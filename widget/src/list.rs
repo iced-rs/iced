@@ -8,8 +8,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    self, Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell,
+    Size, Vector, Widget,
 };
 
 use std::cell::RefCell;
@@ -19,6 +19,7 @@ use std::collections::VecDeque;
 #[allow(missing_debug_implementations)]
 pub struct List<'a, T, Message, Theme, Renderer> {
     content: &'a Content<T>,
+    spacing: f32,
     view_item:
         Box<dyn Fn(usize, &'a T) -> Element<'a, Message, Theme, Renderer> + 'a>,
     visible_elements: Vec<Element<'a, Message, Theme, Renderer>>,
@@ -32,9 +33,20 @@ impl<'a, T, Message, Theme, Renderer> List<'a, T, Message, Theme, Renderer> {
     ) -> Self {
         Self {
             content,
+            spacing: 0.0,
             view_item: Box::new(view_item),
             visible_elements: Vec::new(),
         }
+    }
+
+    /// Sets the vertical spacing _between_ elements.
+    ///
+    /// Custom margins per element do not exist in iced. You should use this
+    /// method instead! While less flexible, it helps you keep spacing between
+    /// elements consistent.
+    pub fn spacing(mut self, amount: impl Into<Pixels>) -> Self {
+        self.spacing = amount.into().0;
+        self
     }
 }
 
@@ -305,7 +317,14 @@ where
             }
         }
 
-        let size = limits.resolve(Length::Shrink, Length::Shrink, state.size);
+        let intrinsic_size = Size::new(
+            state.size.width,
+            state.size.height
+                + self.content.len().saturating_sub(1) as f32 * self.spacing,
+        );
+
+        let size =
+            limits.resolve(Length::Shrink, Length::Shrink, intrinsic_size);
 
         layout::Node::new(size)
     }
@@ -328,11 +347,14 @@ where
             .visible_elements
             .iter_mut()
             .zip(&mut state.visible_layouts)
-            .map(|(element, (_index, layout, tree))| {
+            .map(|(element, (index, layout, tree))| {
                 element.as_widget_mut().on_event(
                     tree,
                     event.clone(),
-                    Layout::with_offset(offset, layout),
+                    Layout::with_offset(
+                        offset + Vector::new(0.0, self.spacing * *index as f32),
+                        layout,
+                    ),
                     cursor,
                     renderer,
                     clipboard,
@@ -353,18 +375,19 @@ where
 
             let offsets = &state.offsets;
 
-            let start = match offsets.binary_search_by(|height| {
-                height
-                    .partial_cmp(&(viewport.y - offset.y))
-                    .unwrap_or(Ordering::Equal)
-            }) {
-                Ok(i) => i,
-                Err(i) => i.saturating_sub(1),
-            }
-            .min(self.content.len());
+            let start =
+                match binary_search_with_index_by(offsets, |i, height| {
+                    (*height + i.saturating_sub(1) as f32 * self.spacing)
+                        .partial_cmp(&(viewport.y - offset.y))
+                        .unwrap_or(Ordering::Equal)
+                }) {
+                    Ok(i) => i,
+                    Err(i) => i.saturating_sub(1),
+                }
+                .min(self.content.len());
 
-            let end = match offsets.binary_search_by(|height| {
-                height
+            let end = match binary_search_with_index_by(offsets, |i, height| {
+                (*height + i.saturating_sub(1) as f32 * self.spacing)
                     .partial_cmp(&(viewport.y + viewport.height - offset.y))
                     .unwrap_or(Ordering::Equal)
             }) {
@@ -431,7 +454,11 @@ where
                         let layout = element
                             .as_widget()
                             .layout(&mut tree, renderer, &state.last_limits)
-                            .move_to((0.0, offsets[start + i]));
+                            .move_to((
+                                0.0,
+                                offsets[start + i]
+                                    + (start + i) as f32 * self.spacing,
+                            ));
 
                         state
                             .visible_layouts
@@ -458,7 +485,11 @@ where
                     let layout = element
                         .as_widget()
                         .layout(&mut tree, renderer, &state.last_limits)
-                        .move_to((0.0, offsets[last_visible + i]));
+                        .move_to((
+                            0.0,
+                            offsets[last_visible + i]
+                                + (last_visible + i) as f32 * self.spacing,
+                        ));
 
                     state.visible_layouts.push((
                         last_visible + i,
@@ -695,4 +726,47 @@ impl<T> FromIterator<T> for Content<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Self::with_items(iter.into_iter().collect())
     }
+}
+
+/// SAFETY: Copied from the `std` library.
+#[allow(unsafe_code)]
+fn binary_search_with_index_by<'a, T, F>(
+    slice: &'a [T],
+    mut f: F,
+) -> Result<usize, usize>
+where
+    F: FnMut(usize, &'a T) -> Ordering,
+{
+    use std::cmp::Ordering::*;
+
+    // INVARIANTS:
+    // - 0 <= left <= left + size = right <= self.len()
+    // - f returns Less for everything in self[..left]
+    // - f returns Greater for everything in self[right..]
+    let mut size = slice.len();
+    let mut left = 0;
+    let mut right = size;
+    while left < right {
+        let mid = left + size / 2;
+
+        // SAFETY: the while condition means `size` is strictly positive, so
+        // `size/2 < size`. Thus `left + size/2 < left + size`, which
+        // coupled with the `left + size <= self.len()` invariant means
+        // we have `left + size/2 < self.len()`, and this is in-bounds.
+        let cmp = f(mid, unsafe { slice.get_unchecked(mid) });
+
+        // This control flow produces conditional moves, which results in
+        // fewer branches and instructions than if/else or matching on
+        // cmp::Ordering.
+        // This is x86 asm for u8: https://rust.godbolt.org/z/698eYffTx.
+        left = if cmp == Less { mid + 1 } else { left };
+        right = if cmp == Greater { mid } else { right };
+        if cmp == Equal {
+            return Ok(mid);
+        }
+
+        size = right - left;
+    }
+
+    Err(left)
 }

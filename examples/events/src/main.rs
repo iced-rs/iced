@@ -63,12 +63,15 @@ impl Events {
     fn view(&self) -> Element<Message> {
         let events = container(
             Scrollable::with_direction(
-                container(list(&self.log, |_i, event| {
-                    text(format!("{event:?}"))
-                        .size(14)
-                        .font(Font::MONOSPACE)
-                        .into()
-                }))
+                container(
+                    list(&self.log, |_i, event| {
+                        text(format!("{event:?}"))
+                            .size(14)
+                            .font(Font::MONOSPACE)
+                            .into()
+                    })
+                    .spacing(10),
+                )
                 .padding(10),
                 scrollable::Direction::Vertical(
                     scrollable::Properties::default()
