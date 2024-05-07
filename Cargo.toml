@@ -172,11 +172,11 @@ unicode-segmentation = "1.0"
 wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
 web-sys = "=0.3.67"
-web-time = "0.2"
+web-time = "1.1"
 wgpu = "0.19"
 winapi = "0.3"
 window_clipboard = "0.4.1"
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "592bd152f6d5786fae7d918532d7db752c0d164f" }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "8affa522bc6dcc497d332a28c03491d22a22f5a7" }
 
 [workspace.lints.rust]
 rust_2018_idioms = "forbid"

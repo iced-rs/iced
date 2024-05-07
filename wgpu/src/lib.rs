@@ -67,8 +67,6 @@ use crate::core::{
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::Viewport;
 
-use std::cell::RefCell;
-
 /// A [`wgpu`] graphics renderer for [`iced`].
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
@@ -84,7 +82,7 @@ pub struct Renderer {
 
     // TODO: Centralize all the image feature handling
     #[cfg(any(feature = "svg", feature = "image"))]
-    image_cache: RefCell<image::Cache>,
+    image_cache: std::cell::RefCell<image::Cache>,
 }
 
 impl Renderer {
@@ -103,7 +101,9 @@ impl Renderer {
             text_storage: text::Storage::new(),
 
             #[cfg(any(feature = "svg", feature = "image"))]
-            image_cache: RefCell::new(_engine.create_image_cache(_device)),
+            image_cache: std::cell::RefCell::new(
+                _engine.create_image_cache(_device),
+            ),
         }
     }
 

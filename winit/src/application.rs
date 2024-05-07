@@ -22,7 +22,9 @@ use crate::runtime::{Command, Debug};
 use crate::{Clipboard, Error, Proxy, Settings};
 
 use futures::channel::mpsc;
+use futures::channel::oneshot;
 
+use std::borrow::Cow;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
 
@@ -129,7 +131,7 @@ pub fn default(theme: &Theme) -> Appearance {
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
-pub async fn run<A, E, C>(
+pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
     graphics_settings: graphics::Settings,
 ) -> Result<(), Error>
@@ -141,12 +143,12 @@ where
 {
     use futures::task;
     use futures::Future;
-    use winit::event_loop::EventLoopBuilder;
+    use winit::event_loop::EventLoop;
 
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let event_loop = EventLoopBuilder::with_user_event()
+    let event_loop = EventLoop::with_user_event()
         .build()
         .expect("Create event loop");
 
@@ -165,102 +167,267 @@ where
         runtime.enter(|| A::new(flags))
     };
 
-    #[cfg(target_arch = "wasm32")]
-    let target = settings.window.platform_specific.target.clone();
+    let id = settings.id;
+    let title = application.title();
 
-    let should_be_visible = settings.window.visible;
-    let exit_on_close_request = settings.window.exit_on_close_request;
+    let (boot_sender, boot_receiver) = oneshot::channel();
+    let (event_sender, event_receiver) = mpsc::unbounded();
+    let (control_sender, control_receiver) = mpsc::unbounded();
 
-    let builder = conversion::window_settings(
-        settings.window,
-        &application.title(),
-        event_loop.primary_monitor(),
-        settings.id,
-    )
-    .with_visible(false);
-
-    log::debug!("Window builder: {builder:#?}");
-
-    let window = Arc::new(
-        builder
-            .build(&event_loop)
-            .map_err(Error::WindowCreationFailed)?,
-    );
-
-    #[cfg(target_arch = "wasm32")]
-    {
-        use winit::platform::web::WindowExtWebSys;
-
-        let canvas = window.canvas().expect("Get window canvas");
-        let _ = canvas.set_attribute(
-            "style",
-            "display: block; width: 100%; height: 100%",
-        );
-
-        let window = web_sys::window().unwrap();
-        let document = window.document().unwrap();
-        let body = document.body().unwrap();
-
-        let target = target.and_then(|target| {
-            body.query_selector(&format!("#{target}"))
-                .ok()
-                .unwrap_or(None)
-        });
-
-        match target {
-            Some(node) => {
-                let _ = node
-                    .replace_with_with_node_1(&canvas)
-                    .expect(&format!("Could not replace #{}", node.id()));
-            }
-            None => {
-                let _ = body
-                    .append_child(&canvas)
-                    .expect("Append canvas to HTML body");
-            }
-        };
-    }
-
-    let mut compositor = C::new(graphics_settings, window.clone()).await?;
-    let renderer = compositor.create_renderer();
-
-    for font in settings.fonts {
-        compositor.load_font(font);
-    }
-
-    let (mut event_sender, event_receiver) = mpsc::unbounded();
-    let (control_sender, mut control_receiver) = mpsc::unbounded();
-
-    let mut instance = Box::pin(run_instance::<A, E, C>(
+    let instance = Box::pin(run_instance::<A, E, C>(
         application,
-        compositor,
-        renderer,
         runtime,
         proxy,
         debug,
+        boot_receiver,
         event_receiver,
         control_sender,
         init_command,
-        window,
-        should_be_visible,
-        exit_on_close_request,
+        settings.fonts,
     ));
 
-    let mut context = task::Context::from_waker(task::noop_waker_ref());
+    let context = task::Context::from_waker(task::noop_waker_ref());
 
-    let process_event =
-        move |event, event_loop: &winit::event_loop::EventLoopWindowTarget<_>| {
+    struct Runner<Message: 'static, F, C> {
+        instance: std::pin::Pin<Box<F>>,
+        context: task::Context<'static>,
+        boot: Option<BootConfig<C>>,
+        sender: mpsc::UnboundedSender<winit::event::Event<Message>>,
+        receiver: mpsc::UnboundedReceiver<winit::event_loop::ControlFlow>,
+        error: Option<Error>,
+        #[cfg(target_arch = "wasm32")]
+        is_booted: std::rc::Rc<std::cell::RefCell<bool>>,
+        #[cfg(target_arch = "wasm32")]
+        queued_events: Vec<winit::event::Event<Message>>,
+    }
+
+    struct BootConfig<C> {
+        sender: oneshot::Sender<Boot<C>>,
+        id: Option<String>,
+        title: String,
+        window_settings: window::Settings,
+        graphics_settings: graphics::Settings,
+    }
+
+    let runner = Runner {
+        instance,
+        context,
+        boot: Some(BootConfig {
+            sender: boot_sender,
+            id,
+            title,
+            window_settings: settings.window,
+            graphics_settings,
+        }),
+        sender: event_sender,
+        receiver: control_receiver,
+        error: None,
+        #[cfg(target_arch = "wasm32")]
+        is_booted: std::rc::Rc::new(std::cell::RefCell::new(false)),
+        #[cfg(target_arch = "wasm32")]
+        queued_events: Vec::new(),
+    };
+
+    impl<Message, F, C> winit::application::ApplicationHandler<Message>
+        for Runner<Message, F, C>
+    where
+        F: Future<Output = ()>,
+        C: Compositor + 'static,
+    {
+        fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+            let Some(BootConfig {
+                sender,
+                id,
+                title,
+                window_settings,
+                graphics_settings,
+            }) = self.boot.take()
+            else {
+                return;
+            };
+
+            let should_be_visible = window_settings.visible;
+            let exit_on_close_request = window_settings.exit_on_close_request;
+
+            #[cfg(target_arch = "wasm32")]
+            let target = window_settings.platform_specific.target.clone();
+
+            let window_attributes = conversion::window_attributes(
+                window_settings,
+                &title,
+                event_loop.primary_monitor(),
+                id,
+            )
+            .with_visible(false);
+
+            log::debug!("Window attributes: {window_attributes:#?}");
+
+            let window = match event_loop.create_window(window_attributes) {
+                Ok(window) => Arc::new(window),
+                Err(error) => {
+                    self.error = Some(Error::WindowCreationFailed(error));
+                    event_loop.exit();
+                    return;
+                }
+            };
+
+            let finish_boot = {
+                let window = window.clone();
+
+                async move {
+                    let compositor =
+                        C::new(graphics_settings, window.clone()).await?;
+
+                    sender
+                        .send(Boot {
+                            window,
+                            compositor,
+                            should_be_visible,
+                            exit_on_close_request,
+                        })
+                        .ok()
+                        .expect("Send boot event");
+
+                    Ok::<_, graphics::Error>(())
+                }
+            };
+
+            #[cfg(not(target_arch = "wasm32"))]
+            if let Err(error) = futures::executor::block_on(finish_boot) {
+                self.error = Some(Error::GraphicsCreationFailed(error));
+                event_loop.exit();
+            }
+
+            #[cfg(target_arch = "wasm32")]
+            {
+                use winit::platform::web::WindowExtWebSys;
+
+                let canvas = window.canvas().expect("Get window canvas");
+                let _ = canvas.set_attribute(
+                    "style",
+                    "display: block; width: 100%; height: 100%",
+                );
+
+                let window = web_sys::window().unwrap();
+                let document = window.document().unwrap();
+                let body = document.body().unwrap();
+
+                let target = target.and_then(|target| {
+                    body.query_selector(&format!("#{target}"))
+                        .ok()
+                        .unwrap_or(None)
+                });
+
+                match target {
+                    Some(node) => {
+                        let _ = node.replace_with_with_node_1(&canvas).expect(
+                            &format!("Could not replace #{}", node.id()),
+                        );
+                    }
+                    None => {
+                        let _ = body
+                            .append_child(&canvas)
+                            .expect("Append canvas to HTML body");
+                    }
+                };
+
+                let is_booted = self.is_booted.clone();
+
+                wasm_bindgen_futures::spawn_local(async move {
+                    finish_boot.await.expect("Finish boot!");
+
+                    *is_booted.borrow_mut() = true;
+                });
+            }
+        }
+
+        fn window_event(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            window_id: winit::window::WindowId,
+            event: winit::event::WindowEvent,
+        ) {
+            #[cfg(target_os = "windows")]
+            let is_move_or_resize = matches!(
+                event,
+                winit::event::WindowEvent::Resized(_)
+                    | winit::event::WindowEvent::Moved(_)
+            );
+
+            self.process_event(
+                event_loop,
+                winit::event::Event::WindowEvent { window_id, event },
+            );
+
+            // TODO: Remove when unnecessary
+            // On Windows, we emulate an `AboutToWait` event after every `Resized` event
+            // since the event loop does not resume during resize interaction.
+            // More details: https://github.com/rust-windowing/winit/issues/3272
+            #[cfg(target_os = "windows")]
+            {
+                if is_move_or_resize {
+                    self.process_event(
+                        event_loop,
+                        winit::event::Event::AboutToWait,
+                    );
+                }
+            }
+        }
+
+        fn user_event(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            message: Message,
+        ) {
+            self.process_event(
+                event_loop,
+                winit::event::Event::UserEvent(message),
+            );
+        }
+
+        fn about_to_wait(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+        ) {
+            self.process_event(event_loop, winit::event::Event::AboutToWait);
+        }
+    }
+
+    impl<Message, F, C> Runner<Message, F, C>
+    where
+        F: Future<Output = ()>,
+    {
+        fn process_event(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            event: winit::event::Event<Message>,
+        ) {
+            // On Wasm, events may start being processed before the compositor
+            // boots up. We simply queue them and process them once ready.
+            #[cfg(target_arch = "wasm32")]
+            if !*self.is_booted.borrow() {
+                self.queued_events.push(event);
+                return;
+            } else if !self.queued_events.is_empty() {
+                let queued_events = std::mem::take(&mut self.queued_events);
+
+                // This won't infinitely recurse, since we `mem::take`
+                for event in queued_events {
+                    self.process_event(event_loop, event);
+                }
+            }
+
             if event_loop.exiting() {
                 return;
             }
 
-            event_sender.start_send(event).expect("Send event");
+            self.sender.start_send(event).expect("Send event");
 
-            let poll = instance.as_mut().poll(&mut context);
+            let poll = self.instance.as_mut().poll(&mut self.context);
 
             match poll {
                 task::Poll::Pending => {
-                    if let Ok(Some(flow)) = control_receiver.try_next() {
+                    if let Ok(Some(flow)) = self.receiver.try_next() {
                         event_loop.set_control_flow(flow);
                     }
                 }
@@ -268,54 +435,45 @@ where
                     event_loop.exit();
                 }
             }
-        };
-
-    #[cfg(not(target_os = "windows"))]
-    let _ = event_loop.run(process_event);
-
-    // TODO: Remove when unnecessary
-    // On Windows, we emulate an `AboutToWait` event after every `Resized` event
-    // since the event loop does not resume during resize interaction.
-    // More details: https://github.com/rust-windowing/winit/issues/3272
-    #[cfg(target_os = "windows")]
-    {
-        let mut process_event = process_event;
-
-        let _ = event_loop.run(move |event, event_loop| {
-            if matches!(
-                event,
-                winit::event::Event::WindowEvent {
-                    event: winit::event::WindowEvent::Resized(_)
-                        | winit::event::WindowEvent::Moved(_),
-                    ..
-                }
-            ) {
-                process_event(event, event_loop);
-                process_event(winit::event::Event::AboutToWait, event_loop);
-            } else {
-                process_event(event, event_loop);
-            }
-        });
+        }
     }
 
-    Ok(())
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let mut runner = runner;
+        let _ = event_loop.run_app(&mut runner);
+
+        runner.error.map(Err).unwrap_or(Ok(()))
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        use winit::platform::web::EventLoopExtWebSys;
+        let _ = event_loop.spawn_app(runner);
+
+        Ok(())
+    }
+}
+
+struct Boot<C> {
+    window: Arc<winit::window::Window>,
+    compositor: C,
+    should_be_visible: bool,
+    exit_on_close_request: bool,
 }
 
 async fn run_instance<A, E, C>(
     mut application: A,
-    mut compositor: C,
-    mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut proxy: Proxy<A::Message>,
     mut debug: Debug,
+    mut boot: oneshot::Receiver<Boot<C>>,
     mut event_receiver: mpsc::UnboundedReceiver<
         winit::event::Event<A::Message>,
     >,
     mut control_sender: mpsc::UnboundedSender<winit::event_loop::ControlFlow>,
     init_command: Command<A::Message>,
-    window: Arc<winit::window::Window>,
-    should_be_visible: bool,
-    exit_on_close_request: bool,
+    fonts: Vec<Cow<'static, [u8]>>,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
@@ -325,6 +483,19 @@ async fn run_instance<A, E, C>(
     use futures::stream::StreamExt;
     use winit::event;
     use winit::event_loop::ControlFlow;
+
+    let Boot {
+        window,
+        mut compositor,
+        should_be_visible,
+        exit_on_close_request,
+    } = boot.try_recv().ok().flatten().expect("Receive boot");
+
+    let mut renderer = compositor.create_renderer();
+
+    for font in fonts {
+        compositor.load_font(font);
+    }
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -480,7 +651,7 @@ async fn run_instance<A, E, C>(
                 debug.draw_finished();
 
                 if new_mouse_interaction != mouse_interaction {
-                    window.set_cursor_icon(conversion::mouse_interaction(
+                    window.set_cursor(conversion::mouse_interaction(
                         new_mouse_interaction,
                     ));
 
