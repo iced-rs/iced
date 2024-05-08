@@ -25,6 +25,7 @@ wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 multi-window = ["iced_runtime/multi-window"]
 
 [dependencies]
+iced_futures.workspace = true
 iced_graphics.workspace = true
 iced_runtime.workspace = true
 
@@ -32,6 +33,7 @@ log.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+wasm-bindgen-futures.workspace = true
 window_clipboard.workspace = true
 winit.workspace = true
 
