@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, Bencher, Criterion};
 
 use iced::alignment;
 use iced::mouse;
-use iced::widget::{canvas, stack, text};
+use iced::widget::{canvas, scrollable, stack, text};
 use iced::{
     Color, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme,
 };
@@ -14,20 +14,31 @@ criterion_group!(benches, wgpu_benchmark);
 
 #[allow(unused_results)]
 pub fn wgpu_benchmark(c: &mut Criterion) {
-    c.bench_function("wgpu — canvas (light)", |b| benchmark(b, scene(10)));
-    c.bench_function("wgpu — canvas (heavy)", |b| benchmark(b, scene(1_000)));
+    c.bench_function("wgpu — canvas (light)", |b| {
+        benchmark(b, |_| scene(10))
+    });
+    c.bench_function("wgpu — canvas (heavy)", |b| {
+        benchmark(b, |_| scene(1_000))
+    });
 
     c.bench_function("wgpu - layered text (light)", |b| {
-        benchmark(b, layered_text(10));
+        benchmark(b, |_| layered_text(10));
     });
     c.bench_function("wgpu - layered text (heavy)", |b| {
-        benchmark(b, layered_text(1_000));
+        benchmark(b, |_| layered_text(1_000));
+    });
+
+    c.bench_function("wgpu - dynamic text (light)", |b| {
+        benchmark(b, |i| dynamic_text(1_000, i));
+    });
+    c.bench_function("wgpu - dynamic text (heavy)", |b| {
+        benchmark(b, |i| dynamic_text(100_000, i));
     });
 }
 
-fn benchmark(
+fn benchmark<'a>(
     bencher: &mut Bencher<'_>,
-    widget: Element<'_, (), Theme, Renderer>,
+    view: impl Fn(usize) -> Element<'a, (), Theme, Renderer>,
 ) {
     use iced_futures::futures::executor;
     use iced_wgpu::graphics;
@@ -94,14 +105,17 @@ fn benchmark(
     let texture_view =
         texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-    let mut user_interface = runtime::UserInterface::build(
-        widget,
-        viewport.logical_size(),
-        runtime::user_interface::Cache::default(),
-        &mut renderer,
-    );
+    let mut i = 0;
+    let mut cache = Some(runtime::user_interface::Cache::default());
 
     bencher.iter(|| {
+        let mut user_interface = runtime::UserInterface::build(
+            view(i),
+            viewport.logical_size(),
+            cache.take().unwrap(),
+            &mut renderer,
+        );
+
         let _ = user_interface.draw(
             &mut renderer,
             &Theme::Dark,
@@ -110,6 +124,8 @@ fn benchmark(
             },
             mouse::Cursor::Unavailable,
         );
+
+        cache = Some(user_interface.into_cache());
 
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -130,6 +146,8 @@ fn benchmark(
 
         let submission = engine.submit(&queue, encoder);
         let _ = device.poll(wgpu::Maintain::WaitForSubmissionIndex(submission));
+
+        i += 1;
     });
 }
 
@@ -188,4 +206,23 @@ fn layered_text<'a, Message: 'a>(
         .width(Length::Fill)
         .height(Length::Fill)
         .into()
+}
+
+fn dynamic_text<'a, Message: 'a>(
+    n: usize,
+    i: usize,
+) -> Element<'a, Message, Theme, Renderer> {
+    const LOREM_IPSUM: &'static str = include_str!("ipsum.txt");
+
+    scrollable(
+        text(format!(
+            "{}... Iteration {i}",
+            std::iter::repeat(LOREM_IPSUM.chars())
+                .flatten()
+                .take(n)
+                .collect::<String>(),
+        ))
+        .size(10),
+    )
+    .into()
 }
