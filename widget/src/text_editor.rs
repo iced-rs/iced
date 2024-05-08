@@ -319,7 +319,9 @@ where
     }
 }
 
-struct State<Highlighter: text::Highlighter> {
+/// The state of a [`TextEditor`].
+#[derive(Debug)]
+pub struct State<Highlighter: text::Highlighter> {
     is_focused: bool,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
@@ -327,6 +329,13 @@ struct State<Highlighter: text::Highlighter> {
     highlighter: RefCell<Highlighter>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format_address: usize,
+}
+
+impl<Highlighter: text::Highlighter> State<Highlighter> {
+    /// Returns whether the [`TextEditor`] is currently focused or not.
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
 }
 
 impl<'a, Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -560,23 +569,27 @@ where
         if state.is_focused {
             match internal.editor.cursor() {
                 Cursor::Caret(position) => {
-                    let position = position + translation;
+                    let cursor =
+                        Rectangle::new(
+                            position + translation,
+                            Size::new(
+                                1.0,
+                                self.line_height
+                                    .to_absolute(self.text_size.unwrap_or_else(
+                                        || renderer.default_size(),
+                                    ))
+                                    .into(),
+                            ),
+                        );
 
-                    if bounds.contains(position) {
+                    if let Some(clipped_cursor) = bounds.intersection(&cursor) {
                         renderer.fill_quad(
                             renderer::Quad {
                                 bounds: Rectangle {
-                                    x: position.x.floor(),
-                                    y: position.y,
-                                    width: 1.0,
-                                    height: self
-                                        .line_height
-                                        .to_absolute(
-                                            self.text_size.unwrap_or_else(
-                                                || renderer.default_size(),
-                                            ),
-                                        )
-                                        .into(),
+                                    x: clipped_cursor.x.floor(),
+                                    y: clipped_cursor.y,
+                                    width: clipped_cursor.width,
+                                    height: clipped_cursor.height,
                                 },
                                 ..renderer::Quad::default()
                             },

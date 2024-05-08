@@ -15,15 +15,23 @@ pub const SIZE: u32 = 2048;
 use crate::core::Size;
 use crate::graphics::color;
 
+use std::sync::Arc;
+
 #[derive(Debug)]
 pub struct Atlas {
     texture: wgpu::Texture,
     texture_view: wgpu::TextureView,
+    texture_bind_group: wgpu::BindGroup,
+    texture_layout: Arc<wgpu::BindGroupLayout>,
     layers: Vec<Layer>,
 }
 
 impl Atlas {
-    pub fn new(device: &wgpu::Device, backend: wgpu::Backend) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        backend: wgpu::Backend,
+        texture_layout: Arc<wgpu::BindGroupLayout>,
+    ) -> Self {
         let layers = match backend {
             // On the GL backend we start with 2 layers, to help wgpu figure
             // out that this texture is `GL_TEXTURE_2D_ARRAY` rather than `GL_TEXTURE_2D`
@@ -60,15 +68,27 @@ impl Atlas {
             ..Default::default()
         });
 
+        let texture_bind_group =
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("iced_wgpu::image texture atlas bind group"),
+                layout: &texture_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                }],
+            });
+
         Atlas {
             texture,
             texture_view,
+            texture_bind_group,
+            texture_layout,
             layers,
         }
     }
 
-    pub fn view(&self) -> &wgpu::TextureView {
-        &self.texture_view
+    pub fn bind_group(&self) -> &wgpu::BindGroup {
+        &self.texture_bind_group
     }
 
     pub fn layer_count(&self) -> usize {
@@ -94,7 +114,7 @@ impl Atlas {
             entry
         };
 
-        log::info!("Allocated atlas entry: {entry:?}");
+        log::debug!("Allocated atlas entry: {entry:?}");
 
         // It is a webgpu requirement that:
         //   BufferCopyView.layout.bytes_per_row % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT == 0
@@ -147,13 +167,20 @@ impl Atlas {
             }
         }
 
-        log::info!("Current atlas: {self:?}");
+        if log::log_enabled!(log::Level::Debug) {
+            log::debug!(
+                "Atlas layers: {} (busy: {}, allocations: {})",
+                self.layer_count(),
+                self.layers.iter().filter(|layer| !layer.is_empty()).count(),
+                self.layers.iter().map(Layer::allocations).sum::<usize>(),
+            );
+        }
 
         Some(entry)
     }
 
     pub fn remove(&mut self, entry: &Entry) {
-        log::info!("Removing atlas entry: {entry:?}");
+        log::debug!("Removing atlas entry: {entry:?}");
 
         match entry {
             Entry::Contiguous(allocation) => {
@@ -266,7 +293,7 @@ impl Atlas {
     }
 
     fn deallocate(&mut self, allocation: &Allocation) {
-        log::info!("Deallocating atlas: {allocation:?}");
+        log::debug!("Deallocating atlas: {allocation:?}");
 
         match allocation {
             Allocation::Full { layer } => {
@@ -413,6 +440,18 @@ impl Atlas {
             self.texture.create_view(&wgpu::TextureViewDescriptor {
                 dimension: Some(wgpu::TextureViewDimension::D2Array),
                 ..Default::default()
+            });
+
+        self.texture_bind_group =
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("iced_wgpu::image texture atlas bind group"),
+                layout: &self.texture_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(
+                        &self.texture_view,
+                    ),
+                }],
             });
     }
 }

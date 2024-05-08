@@ -1,7 +1,7 @@
 use iced::widget::{
-    button, checkbox, column, container, horizontal_rule, pick_list,
-    progress_bar, row, scrollable, slider, text, text_input, toggler,
-    vertical_rule, vertical_space,
+    button, center, checkbox, column, horizontal_rule, pick_list, progress_bar,
+    row, scrollable, slider, text, text_input, toggler, vertical_rule,
+    vertical_space,
 };
 use iced::{Alignment, Element, Length, Theme};
 
@@ -106,12 +106,7 @@ impl Styling {
         .padding(20)
         .max_width(600);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).into()
     }
 
     fn theme(&self) -> Theme {

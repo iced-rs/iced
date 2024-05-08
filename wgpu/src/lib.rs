@@ -62,6 +62,7 @@ pub use geometry::Geometry;
 
 use crate::core::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
+    Vector,
 };
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::Viewport;
@@ -81,11 +82,12 @@ pub struct Renderer {
 
     // TODO: Centralize all the image feature handling
     #[cfg(any(feature = "svg", feature = "image"))]
-    image_cache: image::cache::Shared,
+    image_cache: std::cell::RefCell<image::Cache>,
 }
 
 impl Renderer {
     pub fn new(
+        _device: &wgpu::Device,
         _engine: &Engine,
         default_font: Font,
         default_text_size: Pixels,
@@ -99,7 +101,9 @@ impl Renderer {
             text_storage: text::Storage::new(),
 
             #[cfg(any(feature = "svg", feature = "image"))]
-            image_cache: _engine.image_cache().clone(),
+            image_cache: std::cell::RefCell::new(
+                _engine.create_image_cache(_device),
+            ),
         }
     }
 
@@ -121,6 +125,9 @@ impl Renderer {
 
         self.triangle_storage.trim();
         self.text_storage.trim();
+
+        #[cfg(any(feature = "svg", feature = "image"))]
+        self.image_cache.borrow_mut().trim();
     }
 
     fn prepare(
@@ -190,6 +197,7 @@ impl Renderer {
                     device,
                     encoder,
                     &mut engine.staging_belt,
+                    &mut self.image_cache.borrow_mut(),
                     &layer.images,
                     viewport.projection(),
                     scale_factor,
@@ -245,6 +253,8 @@ impl Renderer {
 
         #[cfg(any(feature = "svg", feature = "image"))]
         let mut image_layer = 0;
+        #[cfg(any(feature = "svg", feature = "image"))]
+        let image_cache = self.image_cache.borrow();
 
         let scale_factor = viewport.scale_factor() as f32;
         let physical_bounds = Rectangle::<f32>::from(Rectangle::with_size(
@@ -358,6 +368,7 @@ impl Renderer {
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
                 engine.image_pipeline.render(
+                    &image_cache,
                     image_layer,
                     scissor_rect,
                     &mut render_pass,
@@ -378,7 +389,6 @@ impl Renderer {
         use crate::core::alignment;
         use crate::core::text::Renderer as _;
         use crate::core::Renderer as _;
-        use crate::core::Vector;
 
         self.with_layer(
             Rectangle::with_size(viewport.logical_size()),
@@ -509,7 +519,7 @@ impl core::image::Renderer for Renderer {
     type Handle = core::image::Handle;
 
     fn measure_image(&self, handle: &Self::Handle) -> Size<u32> {
-        self.image_cache.lock().measure_image(handle)
+        self.image_cache.borrow_mut().measure_image(handle)
     }
 
     fn draw_image(
@@ -517,16 +527,25 @@ impl core::image::Renderer for Renderer {
         handle: Self::Handle,
         filter_method: core::image::FilterMethod,
         bounds: Rectangle,
+        rotation: core::Radians,
+        opacity: f32,
     ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_image(handle, filter_method, bounds, transformation);
+        layer.draw_image(
+            handle,
+            filter_method,
+            bounds,
+            transformation,
+            rotation,
+            opacity,
+        );
     }
 }
 
 #[cfg(feature = "svg")]
 impl core::svg::Renderer for Renderer {
     fn measure_svg(&self, handle: &core::svg::Handle) -> Size<u32> {
-        self.image_cache.lock().measure_svg(handle)
+        self.image_cache.borrow_mut().measure_svg(handle)
     }
 
     fn draw_svg(
@@ -534,9 +553,18 @@ impl core::svg::Renderer for Renderer {
         handle: core::svg::Handle,
         color_filter: Option<Color>,
         bounds: Rectangle,
+        rotation: core::Radians,
+        opacity: f32,
     ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_svg(handle, color_filter, bounds, transformation);
+        layer.draw_svg(
+            handle,
+            color_filter,
+            bounds,
+            transformation,
+            rotation,
+            opacity,
+        );
     }
 }
 

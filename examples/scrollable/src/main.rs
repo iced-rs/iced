@@ -327,7 +327,7 @@ impl ScrollableDemo {
                 .spacing(10)
                 .into();
 
-        container(content).padding(20).center_x().center_y().into()
+        container(content).padding(20).into()
     }
 
     fn theme(&self) -> Theme {

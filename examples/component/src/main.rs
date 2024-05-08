@@ -1,5 +1,5 @@
-use iced::widget::container;
-use iced::{Element, Length};
+use iced::widget::center;
+use iced::Element;
 
 use numeric_input::numeric_input;
 
@@ -27,10 +27,8 @@ impl Component {
     }
 
     fn view(&self) -> Element<Message> {
-        container(numeric_input(self.value, Message::NumericInputChanged))
+        center(numeric_input(self.value, Message::NumericInputChanged))
             .padding(20)
-            .height(Length::Fill)
-            .center_y()
             .into()
     }
 }

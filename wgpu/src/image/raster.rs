@@ -10,7 +10,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 #[derive(Debug)]
 pub enum Memory {
     /// Image data on host
-    Host(image_rs::ImageBuffer<image_rs::Rgba<u8>, Vec<u8>>),
+    Host(image_rs::ImageBuffer<image_rs::Rgba<u8>, image::Bytes>),
     /// Storage entry
     Device(atlas::Entry),
     /// Image not found
@@ -38,8 +38,9 @@ impl Memory {
 /// Caches image raster data
 #[derive(Debug, Default)]
 pub struct Cache {
-    map: FxHashMap<u64, Memory>,
-    hits: FxHashSet<u64>,
+    map: FxHashMap<image::Id, Memory>,
+    hits: FxHashSet<image::Id>,
+    should_trim: bool,
 }
 
 impl Cache {
@@ -50,10 +51,12 @@ impl Cache {
         }
 
         let memory = match graphics::image::load(handle) {
-            Ok(image) => Memory::Host(image.to_rgba8()),
+            Ok(image) => Memory::Host(image),
             Err(image_rs::error::ImageError::IoError(_)) => Memory::NotFound,
             Err(_) => Memory::Invalid,
         };
+
+        self.should_trim = true;
 
         self.insert(handle, memory);
         self.get(handle).unwrap()
@@ -86,6 +89,11 @@ impl Cache {
 
     /// Trim cache misses from cache
     pub fn trim(&mut self, atlas: &mut Atlas) {
+        // Only trim if new entries have landed in the `Cache`
+        if !self.should_trim {
+            return;
+        }
+
         let hits = &self.hits;
 
         self.map.retain(|k, memory| {
@@ -101,6 +109,7 @@ impl Cache {
         });
 
         self.hits.clear();
+        self.should_trim = false;
     }
 
     fn get(&mut self, handle: &image::Handle) -> Option<&mut Memory> {

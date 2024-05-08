@@ -54,7 +54,7 @@ pub enum Error {
     InvalidError(#[from] icon::Error),
 
     /// The underlying OS failed to create the icon.
-    #[error("The underlying OS failted to create the window icon: {0}")]
+    #[error("The underlying OS failed to create the window icon: {0}")]
     OsError(#[from] io::Error),
 
     /// The `image` crate reported an error.

@@ -18,8 +18,8 @@ pub use text::Text;
 
 pub use crate::gradient::{self, Gradient};
 
+use crate::cache::Cached;
 use crate::core::{self, Size};
-use crate::Cached;
 
 /// A renderer capable of drawing some [`Self::Geometry`].
 pub trait Renderer: core::Renderer {

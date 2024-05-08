@@ -13,7 +13,9 @@ use crate::core::{Rectangle, Size, Transformation};
 use crate::Buffer;
 
 use bytemuck::{Pod, Zeroable};
+
 use std::mem;
+use std::sync::Arc;
 
 pub use crate::graphics::Image;
 
@@ -22,13 +24,11 @@ pub type Batch = Vec<Image>;
 #[derive(Debug)]
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
+    backend: wgpu::Backend,
     nearest_sampler: wgpu::Sampler,
     linear_sampler: wgpu::Sampler,
-    texture: wgpu::BindGroup,
-    texture_version: usize,
-    texture_layout: wgpu::BindGroupLayout,
+    texture_layout: Arc<wgpu::BindGroupLayout>,
     constant_layout: wgpu::BindGroupLayout,
-    cache: cache::Shared,
     layers: Vec<Layer>,
     prepare_layer: usize,
 }
@@ -135,14 +135,20 @@ impl Pipeline {
                         attributes: &wgpu::vertex_attr_array!(
                             // Position
                             0 => Float32x2,
-                            // Scale
+                            // Center
                             1 => Float32x2,
-                            // Atlas position
+                            // Scale
                             2 => Float32x2,
+                            // Rotation
+                            3 => Float32,
+                            // Opacity
+                            4 => Float32,
+                            // Atlas position
+                            5 => Float32x2,
                             // Atlas scale
-                            3 => Float32x2,
+                            6 => Float32x2,
                             // Layer
-                            4 => Sint32,
+                            7 => Sint32,
                         ),
                     }],
                 },
@@ -180,25 +186,20 @@ impl Pipeline {
                 multiview: None,
             });
 
-        let cache = Cache::new(device, backend);
-        let texture = cache.create_bind_group(device, &texture_layout);
-
         Pipeline {
             pipeline,
+            backend,
             nearest_sampler,
             linear_sampler,
-            texture,
-            texture_version: cache.layer_count(),
-            texture_layout,
+            texture_layout: Arc::new(texture_layout),
             constant_layout,
-            cache: cache::Shared::new(cache),
             layers: Vec::new(),
             prepare_layer: 0,
         }
     }
 
-    pub fn cache(&self) -> &cache::Shared {
-        &self.cache
+    pub fn create_cache(&self, device: &wgpu::Device) -> Cache {
+        Cache::new(device, self.backend, self.texture_layout.clone())
     }
 
     pub fn prepare(
@@ -206,6 +207,7 @@ impl Pipeline {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
+        cache: &mut Cache,
         images: &Batch,
         transformation: Transformation,
         scale: f32,
@@ -215,8 +217,6 @@ impl Pipeline {
         let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
         let linear_instances: &mut Vec<Instance> = &mut Vec::new();
 
-        let mut cache = self.cache.lock();
-
         for image in images {
             match &image {
                 #[cfg(feature = "image")]
@@ -224,6 +224,8 @@ impl Pipeline {
                     handle,
                     filter_method,
                     bounds,
+                    rotation,
+                    opacity,
                 } => {
                     if let Some(atlas_entry) =
                         cache.upload_raster(device, encoder, handle)
@@ -231,6 +233,8 @@ impl Pipeline {
                         add_instances(
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
+                            f32::from(*rotation),
+                            *opacity,
                             atlas_entry,
                             match filter_method {
                                 crate::core::image::FilterMethod::Nearest => {
@@ -251,6 +255,8 @@ impl Pipeline {
                     handle,
                     color,
                     bounds,
+                    rotation,
+                    opacity,
                 } => {
                     let size = [bounds.width, bounds.height];
 
@@ -260,6 +266,8 @@ impl Pipeline {
                         add_instances(
                             [bounds.x, bounds.y],
                             size,
+                            f32::from(*rotation),
+                            *opacity,
                             atlas_entry,
                             nearest_instances,
                         );
@@ -272,16 +280,6 @@ impl Pipeline {
 
         if nearest_instances.is_empty() && linear_instances.is_empty() {
             return;
-        }
-
-        let texture_version = cache.layer_count();
-
-        if self.texture_version != texture_version {
-            log::info!("Atlas has grown. Recreating bind group...");
-
-            self.texture =
-                cache.create_bind_group(device, &self.texture_layout);
-            self.texture_version = texture_version;
         }
 
         if self.layers.len() <= self.prepare_layer {
@@ -309,6 +307,7 @@ impl Pipeline {
 
     pub fn render<'a>(
         &'a self,
+        cache: &'a Cache,
         layer: usize,
         bounds: Rectangle<u32>,
         render_pass: &mut wgpu::RenderPass<'a>,
@@ -323,14 +322,13 @@ impl Pipeline {
                 bounds.height,
             );
 
-            render_pass.set_bind_group(1, &self.texture, &[]);
+            render_pass.set_bind_group(1, cache.bind_group(), &[]);
 
             layer.render(render_pass);
         }
     }
 
     pub fn end_frame(&mut self) {
-        self.cache.lock().trim();
         self.prepare_layer = 0;
     }
 }
@@ -487,7 +485,10 @@ impl Data {
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 struct Instance {
     _position: [f32; 2],
+    _center: [f32; 2],
     _size: [f32; 2],
+    _rotation: f32,
+    _opacity: f32,
     _position_in_atlas: [f32; 2],
     _size_in_atlas: [f32; 2],
     _layer: u32,
@@ -506,12 +507,27 @@ struct Uniforms {
 fn add_instances(
     image_position: [f32; 2],
     image_size: [f32; 2],
+    rotation: f32,
+    opacity: f32,
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
+    let center = [
+        image_position[0] + image_size[0] / 2.0,
+        image_position[1] + image_size[1] / 2.0,
+    ];
+
     match entry {
         atlas::Entry::Contiguous(allocation) => {
-            add_instance(image_position, image_size, allocation, instances);
+            add_instance(
+                image_position,
+                center,
+                image_size,
+                rotation,
+                opacity,
+                allocation,
+                instances,
+            );
         }
         atlas::Entry::Fragmented { fragments, size } => {
             let scaling_x = image_size[0] / size.width as f32;
@@ -537,7 +553,10 @@ fn add_instances(
                     fragment_height as f32 * scaling_y,
                 ];
 
-                add_instance(position, size, allocation, instances);
+                add_instance(
+                    position, center, size, rotation, opacity, allocation,
+                    instances,
+                );
             }
         }
     }
@@ -546,7 +565,10 @@ fn add_instances(
 #[inline]
 fn add_instance(
     position: [f32; 2],
+    center: [f32; 2],
     size: [f32; 2],
+    rotation: f32,
+    opacity: f32,
     allocation: &atlas::Allocation,
     instances: &mut Vec<Instance>,
 ) {
@@ -556,7 +578,10 @@ fn add_instance(
 
     let instance = Instance {
         _position: position,
+        _center: center,
         _size: size,
+        _rotation: rotation,
+        _opacity: opacity,
         _position_in_atlas: [
             (x as f32 + 0.5) / atlas::SIZE as f32,
             (y as f32 + 0.5) / atlas::SIZE as f32,

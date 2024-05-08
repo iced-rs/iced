@@ -3,7 +3,7 @@ use crate::core::image;
 use crate::core::renderer;
 use crate::core::svg;
 use crate::core::{
-    self, Background, Color, Point, Rectangle, Size, Transformation,
+    self, Background, Color, Point, Radians, Rectangle, Size, Transformation,
 };
 use crate::graphics;
 use crate::graphics::compositor;
@@ -154,11 +154,19 @@ where
         handle: Self::Handle,
         filter_method: image::FilterMethod,
         bounds: Rectangle,
+        rotation: Radians,
+        opacity: f32,
     ) {
         delegate!(
             self,
             renderer,
-            renderer.draw_image(handle, filter_method, bounds)
+            renderer.draw_image(
+                handle,
+                filter_method,
+                bounds,
+                rotation,
+                opacity
+            )
         );
     }
 }
@@ -177,8 +185,14 @@ where
         handle: svg::Handle,
         color: Option<Color>,
         bounds: Rectangle,
+        rotation: Radians,
+        opacity: f32,
     ) {
-        delegate!(self, renderer, renderer.draw_svg(handle, color, bounds));
+        delegate!(
+            self,
+            renderer,
+            renderer.draw_svg(handle, color, bounds, rotation, opacity)
+        );
     }
 }
 
@@ -428,8 +442,8 @@ where
 mod geometry {
     use super::Renderer;
     use crate::core::{Point, Radians, Rectangle, Size, Vector};
+    use crate::graphics::cache::{self, Cached};
     use crate::graphics::geometry::{self, Fill, Path, Stroke, Text};
-    use crate::graphics::Cached;
 
     impl<A, B> geometry::Renderer for Renderer<A, B>
     where
@@ -483,21 +497,25 @@ mod geometry {
             }
         }
 
-        fn cache(self, previous: Option<Self::Cache>) -> Self::Cache {
+        fn cache(
+            self,
+            group: cache::Group,
+            previous: Option<Self::Cache>,
+        ) -> Self::Cache {
             match (self, previous) {
                 (
                     Self::Primary(geometry),
                     Some(Geometry::Primary(previous)),
-                ) => Geometry::Primary(geometry.cache(Some(previous))),
+                ) => Geometry::Primary(geometry.cache(group, Some(previous))),
                 (Self::Primary(geometry), None) => {
-                    Geometry::Primary(geometry.cache(None))
+                    Geometry::Primary(geometry.cache(group, None))
                 }
                 (
                     Self::Secondary(geometry),
                     Some(Geometry::Secondary(previous)),
-                ) => Geometry::Secondary(geometry.cache(Some(previous))),
+                ) => Geometry::Secondary(geometry.cache(group, Some(previous))),
                 (Self::Secondary(geometry), None) => {
-                    Geometry::Secondary(geometry.cache(None))
+                    Geometry::Secondary(geometry.cache(group, None))
                 }
                 _ => unreachable!(),
             }
