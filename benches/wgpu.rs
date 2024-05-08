@@ -15,10 +15,10 @@ criterion_group!(benches, wgpu_benchmark);
 #[allow(unused_results)]
 pub fn wgpu_benchmark(c: &mut Criterion) {
     c.bench_function("wgpu — canvas (light)", |b| {
-        benchmark(b, |_| scene(10))
+        benchmark(b, |_| scene(10));
     });
     c.bench_function("wgpu — canvas (heavy)", |b| {
-        benchmark(b, |_| scene(1_000))
+        benchmark(b, |_| scene(1_000));
     });
 
     c.bench_function("wgpu - layered text (light)", |b| {
@@ -212,7 +212,7 @@ fn dynamic_text<'a, Message: 'a>(
     n: usize,
     i: usize,
 ) -> Element<'a, Message, Theme, Renderer> {
-    const LOREM_IPSUM: &'static str = include_str!("ipsum.txt");
+    const LOREM_IPSUM: &str = include_str!("ipsum.txt");
 
     scrollable(
         text(format!(
