@@ -1050,7 +1050,7 @@ pub fn run_command<A, C, E>(
                     use window::raw_window_handle::HasWindowHandle;
 
                     if let Ok(handle) = window.window_handle() {
-                        proxy.send(tag(&handle));
+                        proxy.send(tag(handle));
                     }
                 }
 

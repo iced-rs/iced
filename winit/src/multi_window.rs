@@ -1223,7 +1223,7 @@ fn run_command<A, C, E>(
                         .get_mut(id)
                         .and_then(|window| window.raw.window_handle().ok())
                     {
-                        proxy.send(tag(&handle));
+                        proxy.send(tag(handle));
                     }
                 }
                 window::Action::Screenshot(id, tag) => {
