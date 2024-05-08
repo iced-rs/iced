@@ -115,6 +115,7 @@ impl Storage {
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         format: wgpu::TextureFormat,
+        pipeline: &glyphon::Pipeline,
         cache: &Cache,
         new_transformation: Transformation,
         bounds: Rectangle,
@@ -131,7 +132,7 @@ impl Storage {
 
             Group {
                 atlas: glyphon::TextAtlas::with_color_mode(
-                    device, queue, format, COLOR_MODE,
+                    device, queue, pipeline, format, COLOR_MODE,
                 ),
                 version: 0,
                 should_trim: false,
@@ -259,6 +260,7 @@ impl Storage {
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
+    state: glyphon::Pipeline,
     format: wgpu::TextureFormat,
     atlas: glyphon::TextAtlas,
     renderers: Vec<glyphon::TextRenderer>,
@@ -272,12 +274,16 @@ impl Pipeline {
         queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
     ) -> Self {
+        let state = glyphon::Pipeline::new(device);
+        let atlas = glyphon::TextAtlas::with_color_mode(
+            device, queue, &state, format, COLOR_MODE,
+        );
+
         Pipeline {
+            state,
             format,
             renderers: Vec::new(),
-            atlas: glyphon::TextAtlas::with_color_mode(
-                device, queue, format, COLOR_MODE,
-            ),
+            atlas,
             prepare_layer: 0,
             cache: BufferCache::new(),
         }
@@ -343,6 +349,7 @@ impl Pipeline {
                         queue,
                         encoder,
                         self.format,
+                        &self.state,
                         cache,
                         layer_transformation * *transformation,
                         layer_bounds * layer_transformation,
