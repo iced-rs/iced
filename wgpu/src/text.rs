@@ -113,13 +113,13 @@ impl Storage {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        viewport: &glyphon::Viewport,
         encoder: &mut wgpu::CommandEncoder,
         format: wgpu::TextureFormat,
         pipeline: &glyphon::Pipeline,
         cache: &Cache,
         new_transformation: Transformation,
         bounds: Rectangle,
-        target_size: Size<u32>,
     ) {
         let group_count = self.groups.len();
 
@@ -152,6 +152,7 @@ impl Storage {
                         let _ = prepare(
                             device,
                             queue,
+                            viewport,
                             encoder,
                             &mut upload.renderer,
                             &mut group.atlas,
@@ -159,7 +160,6 @@ impl Storage {
                             &cache.text,
                             bounds,
                             new_transformation,
-                            target_size,
                         );
                     }
 
@@ -189,6 +189,7 @@ impl Storage {
                     let _ = prepare(
                         device,
                         queue,
+                        viewport,
                         encoder,
                         &mut renderer,
                         &mut group.atlas,
@@ -196,7 +197,6 @@ impl Storage {
                         &cache.text,
                         bounds,
                         new_transformation,
-                        target_size,
                     );
                 }
 
@@ -258,6 +258,20 @@ impl Storage {
     }
 }
 
+pub struct Viewport(glyphon::Viewport);
+
+impl Viewport {
+    pub fn update(&mut self, queue: &wgpu::Queue, resolution: Size<u32>) {
+        self.0.update(
+            queue,
+            glyphon::Resolution {
+                width: resolution.width,
+                height: resolution.height,
+            },
+        );
+    }
+}
+
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
     state: glyphon::Pipeline,
@@ -293,12 +307,12 @@ impl Pipeline {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        viewport: &Viewport,
         encoder: &mut wgpu::CommandEncoder,
         storage: &mut Storage,
         batch: &Batch,
         layer_bounds: Rectangle,
         layer_transformation: Transformation,
-        target_size: Size<u32>,
     ) {
         for item in batch {
             match item {
@@ -319,6 +333,7 @@ impl Pipeline {
                     let result = prepare(
                         device,
                         queue,
+                        &viewport.0,
                         encoder,
                         renderer,
                         &mut self.atlas,
@@ -326,7 +341,6 @@ impl Pipeline {
                         text,
                         layer_bounds * layer_transformation,
                         layer_transformation * *transformation,
-                        target_size,
                     );
 
                     match result {
@@ -347,13 +361,13 @@ impl Pipeline {
                     storage.prepare(
                         device,
                         queue,
+                        &viewport.0,
                         encoder,
                         self.format,
                         &self.state,
                         cache,
                         layer_transformation * *transformation,
                         layer_bounds * layer_transformation,
-                        target_size,
                     );
                 }
             }
@@ -362,6 +376,7 @@ impl Pipeline {
 
     pub fn render<'a>(
         &'a self,
+        viewport: &'a Viewport,
         storage: &'a Storage,
         start: usize,
         batch: &'a Batch,
@@ -383,7 +398,7 @@ impl Pipeline {
                     let renderer = &self.renderers[start + layer_count];
 
                     renderer
-                        .render(&self.atlas, render_pass)
+                        .render(&self.atlas, &viewport.0, render_pass)
                         .expect("Render text");
 
                     layer_count += 1;
@@ -392,7 +407,7 @@ impl Pipeline {
                     if let Some((atlas, upload)) = storage.get(cache) {
                         upload
                             .renderer
-                            .render(atlas, render_pass)
+                            .render(atlas, &viewport.0, render_pass)
                             .expect("Render cached text");
                     }
                 }
@@ -400,6 +415,10 @@ impl Pipeline {
         }
 
         layer_count
+    }
+
+    pub fn create_viewport(&self, device: &wgpu::Device) -> Viewport {
+        Viewport(glyphon::Viewport::new(device, &self.state))
     }
 
     pub fn end_frame(&mut self) {
@@ -413,6 +432,7 @@ impl Pipeline {
 fn prepare(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
+    viewport: &glyphon::Viewport,
     encoder: &mut wgpu::CommandEncoder,
     renderer: &mut glyphon::TextRenderer,
     atlas: &mut glyphon::TextAtlas,
@@ -420,7 +440,6 @@ fn prepare(
     sections: &[Text],
     layer_bounds: Rectangle,
     layer_transformation: Transformation,
-    target_size: Size<u32>,
 ) -> Result<(), glyphon::PrepareError> {
     let mut font_system = font_system().write().expect("Write font system");
     let font_system = font_system.raw();
@@ -617,10 +636,7 @@ fn prepare(
         encoder,
         font_system,
         atlas,
-        glyphon::Resolution {
-            width: target_size.width,
-            height: target_size.height,
-        },
+        viewport,
         text_areas,
         &mut glyphon::SwashCache::new(),
     )

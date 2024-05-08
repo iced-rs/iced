@@ -79,6 +79,7 @@ pub struct Renderer {
 
     triangle_storage: triangle::Storage,
     text_storage: text::Storage,
+    text_viewport: text::Viewport,
 
     // TODO: Centralize all the image feature handling
     #[cfg(any(feature = "svg", feature = "image"))]
@@ -87,8 +88,8 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(
-        _device: &wgpu::Device,
-        _engine: &Engine,
+        device: &wgpu::Device,
+        engine: &Engine,
         default_font: Font,
         default_text_size: Pixels,
     ) -> Self {
@@ -99,10 +100,11 @@ impl Renderer {
 
             triangle_storage: triangle::Storage::new(),
             text_storage: text::Storage::new(),
+            text_viewport: engine.text_pipeline.create_viewport(device),
 
             #[cfg(any(feature = "svg", feature = "image"))]
             image_cache: std::cell::RefCell::new(
-                _engine.create_image_cache(_device),
+                engine.create_image_cache(device),
             ),
         }
     }
@@ -140,6 +142,8 @@ impl Renderer {
         viewport: &Viewport,
     ) {
         let scale_factor = viewport.scale_factor() as f32;
+
+        self.text_viewport.update(queue, viewport.physical_size());
 
         for layer in self.layers.iter_mut() {
             if !layer.quads.is_empty() {
@@ -182,12 +186,12 @@ impl Renderer {
                 engine.text_pipeline.prepare(
                     device,
                     queue,
+                    &self.text_viewport,
                     encoder,
                     &mut self.text_storage,
                     &layer.text,
                     layer.bounds,
                     Transformation::scale(scale_factor),
-                    viewport.physical_size(),
                 );
             }
 
@@ -357,6 +361,7 @@ impl Renderer {
 
             if !layer.text.is_empty() {
                 text_layer += engine.text_pipeline.render(
+                    &self.text_viewport,
                     &self.text_storage,
                     text_layer,
                     &layer.text,
