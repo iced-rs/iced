@@ -4,6 +4,7 @@ use crate::graphics::text;
 
 use resvg::usvg::{self, TreeTextToPath};
 use rustc_hash::{FxHashMap, FxHashSet};
+use tiny_skia::Transform;
 
 use std::cell::RefCell;
 use std::collections::hash_map;
@@ -33,7 +34,9 @@ impl Pipeline {
         handle: &Handle,
         color: Option<Color>,
         bounds: Rectangle,
+        opacity: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
+        transform: Transform,
         clip_mask: Option<&tiny_skia::Mask>,
     ) {
         if let Some(image) = self.cache.borrow_mut().draw(
@@ -45,8 +48,11 @@ impl Pipeline {
                 bounds.x as i32,
                 bounds.y as i32,
                 image,
-                &tiny_skia::PixmapPaint::default(),
-                tiny_skia::Transform::identity(),
+                &tiny_skia::PixmapPaint {
+                    opacity,
+                    ..tiny_skia::PixmapPaint::default()
+                },
+                transform,
                 clip_mask,
             );
         }

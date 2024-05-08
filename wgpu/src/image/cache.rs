@@ -1,8 +1,7 @@
 use crate::core::{self, Size};
 use crate::image::atlas::{self, Atlas};
 
-use std::cell::{RefCell, RefMut};
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Cache {
@@ -14,14 +13,22 @@ pub struct Cache {
 }
 
 impl Cache {
-    pub fn new(device: &wgpu::Device, backend: wgpu::Backend) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        backend: wgpu::Backend,
+        layout: Arc<wgpu::BindGroupLayout>,
+    ) -> Self {
         Self {
-            atlas: Atlas::new(device, backend),
+            atlas: Atlas::new(device, backend, layout),
             #[cfg(feature = "image")]
             raster: crate::image::raster::Cache::default(),
             #[cfg(feature = "svg")]
             vector: crate::image::vector::Cache::default(),
         }
+    }
+
+    pub fn bind_group(&self) -> &wgpu::BindGroup {
+        self.atlas.bind_group()
     }
 
     pub fn layer_count(&self) -> usize {
@@ -69,39 +76,11 @@ impl Cache {
         )
     }
 
-    pub fn create_bind_group(
-        &self,
-        device: &wgpu::Device,
-        layout: &wgpu::BindGroupLayout,
-    ) -> wgpu::BindGroup {
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu::image texture atlas bind group"),
-            layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(self.atlas.view()),
-            }],
-        })
-    }
-
     pub fn trim(&mut self) {
         #[cfg(feature = "image")]
         self.raster.trim(&mut self.atlas);
 
         #[cfg(feature = "svg")]
         self.vector.trim(&mut self.atlas);
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Shared(Rc<RefCell<Cache>>);
-
-impl Shared {
-    pub fn new(cache: Cache) -> Self {
-        Self(Rc::new(RefCell::new(cache)))
-    }
-
-    pub fn lock(&self) -> RefMut<'_, Cache> {
-        self.0.borrow_mut()
     }
 }

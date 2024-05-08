@@ -12,6 +12,7 @@ mod column;
 mod mouse_area;
 mod row;
 mod space;
+mod stack;
 mod themer;
 
 pub mod button;
@@ -77,6 +78,8 @@ pub use scrollable::Scrollable;
 pub use slider::Slider;
 #[doc(no_inline)]
 pub use space::Space;
+#[doc(no_inline)]
+pub use stack::Stack;
 #[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]

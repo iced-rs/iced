@@ -9,10 +9,10 @@
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 mod antialiasing;
-mod cached;
 mod settings;
 mod viewport;
 
+pub mod cache;
 pub mod color;
 pub mod compositor;
 pub mod damage;
@@ -27,7 +27,7 @@ pub mod text;
 pub mod geometry;
 
 pub use antialiasing::Antialiasing;
-pub use cached::Cached;
+pub use cache::Cache;
 pub use compositor::Compositor;
 pub use error::Error;
 pub use gradient::Gradient;

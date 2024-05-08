@@ -51,3 +51,29 @@ impl From<graphics::Settings> for Settings {
         }
     }
 }
+
+/// Obtains a [`wgpu::PresentMode`] from the current environment
+/// configuration, if set.
+///
+/// The value returned by this function can be changed by setting
+/// the `ICED_PRESENT_MODE` env variable. The possible values are:
+///
+/// - `vsync` → [`wgpu::PresentMode::AutoVsync`]
+/// - `no_vsync` → [`wgpu::PresentMode::AutoNoVsync`]
+/// - `immediate` → [`wgpu::PresentMode::Immediate`]
+/// - `fifo` → [`wgpu::PresentMode::Fifo`]
+/// - `fifo_relaxed` → [`wgpu::PresentMode::FifoRelaxed`]
+/// - `mailbox` → [`wgpu::PresentMode::Mailbox`]
+pub fn present_mode_from_env() -> Option<wgpu::PresentMode> {
+    let present_mode = std::env::var("ICED_PRESENT_MODE").ok()?;
+
+    match present_mode.to_lowercase().as_str() {
+        "vsync" => Some(wgpu::PresentMode::AutoVsync),
+        "no_vsync" => Some(wgpu::PresentMode::AutoNoVsync),
+        "immediate" => Some(wgpu::PresentMode::Immediate),
+        "fifo" => Some(wgpu::PresentMode::Fifo),
+        "fifo_relaxed" => Some(wgpu::PresentMode::FifoRelaxed),
+        "mailbox" => Some(wgpu::PresentMode::Mailbox),
+        _ => None,
+    }
+}

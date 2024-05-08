@@ -17,8 +17,6 @@ jobs:
       run: cargo build --package tour --target wasm32-unknown-unknown
     - name: Check compilation of `todos` example
       run: cargo build --package todos --target wasm32-unknown-unknown
-    - name: Check compilation of `integration` example
-      run: cargo build --package integration --target wasm32-unknown-unknown
 
   widget:
     runs-on: ubuntu-latest

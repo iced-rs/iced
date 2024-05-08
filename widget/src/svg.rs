@@ -5,8 +5,8 @@ use crate::core::renderer;
 use crate::core::svg;
 use crate::core::widget::Tree;
 use crate::core::{
-    Color, ContentFit, Element, Layout, Length, Rectangle, Size, Theme, Vector,
-    Widget,
+    Color, ContentFit, Element, Layout, Length, Point, Rectangle, Rotation,
+    Size, Theme, Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -29,6 +29,8 @@ where
     height: Length,
     content_fit: ContentFit,
     class: Theme::Class<'a>,
+    rotation: Rotation,
+    opacity: f32,
 }
 
 impl<'a, Theme> Svg<'a, Theme>
@@ -43,6 +45,8 @@ where
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
             class: Theme::default(),
+            rotation: Rotation::default(),
+            opacity: 1.0,
         }
     }
 
@@ -95,6 +99,21 @@ where
         self.class = class.into();
         self
     }
+
+    /// Applies the given [`Rotation`] to the [`Svg`].
+    pub fn rotation(mut self, rotation: impl Into<Rotation>) -> Self {
+        self.rotation = rotation.into();
+        self
+    }
+
+    /// Sets the opacity of the [`Svg`].
+    ///
+    /// It should be in the [0.0, 1.0] range—`0.0` meaning completely transparent,
+    /// and `1.0` meaning completely opaque.
+    pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
+        self.opacity = opacity.into();
+        self
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -120,11 +139,14 @@ where
         let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
+        // The rotated size of the svg
+        let rotated_size = self.rotation.apply(image_size);
+
         // The size to be available to the widget prior to `Shrink`ing
-        let raw_size = limits.resolve(self.width, self.height, image_size);
+        let raw_size = limits.resolve(self.width, self.height, rotated_size);
 
         // The uncropped size of the image when fit to the bounds above
-        let full_size = self.content_fit.fit(image_size, raw_size);
+        let full_size = self.content_fit.fit(rotated_size, raw_size);
 
         // Shrink the widget to fit the resized image, if requested
         let final_size = Size {
@@ -153,35 +175,47 @@ where
     ) {
         let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
+        let rotated_size = self.rotation.apply(image_size);
 
         let bounds = layout.bounds();
-        let adjusted_fit = self.content_fit.fit(image_size, bounds.size());
+        let adjusted_fit = self.content_fit.fit(rotated_size, bounds.size());
+        let scale = Vector::new(
+            adjusted_fit.width / rotated_size.width,
+            adjusted_fit.height / rotated_size.height,
+        );
+
+        let final_size = image_size * scale;
+
+        let position = match self.content_fit {
+            ContentFit::None => Point::new(
+                bounds.x + (rotated_size.width - adjusted_fit.width) / 2.0,
+                bounds.y + (rotated_size.height - adjusted_fit.height) / 2.0,
+            ),
+            _ => Point::new(
+                bounds.center_x() - final_size.width / 2.0,
+                bounds.center_y() - final_size.height / 2.0,
+            ),
+        };
+
+        let drawing_bounds = Rectangle::new(position, final_size);
+
         let is_mouse_over = cursor.is_over(bounds);
 
+        let status = if is_mouse_over {
+            Status::Hovered
+        } else {
+            Status::Idle
+        };
+
+        let style = theme.style(&self.class, status);
+
         let render = |renderer: &mut Renderer| {
-            let offset = Vector::new(
-                (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
-                (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
-            );
-
-            let drawing_bounds = Rectangle {
-                width: adjusted_fit.width,
-                height: adjusted_fit.height,
-                ..bounds
-            };
-
-            let status = if is_mouse_over {
-                Status::Hovered
-            } else {
-                Status::Idle
-            };
-
-            let style = theme.style(&self.class, status);
-
             renderer.draw_svg(
                 self.handle.clone(),
                 style.color,
-                drawing_bounds + offset,
+                drawing_bounds,
+                self.rotation.radians(),
+                self.opacity,
             );
         };
 

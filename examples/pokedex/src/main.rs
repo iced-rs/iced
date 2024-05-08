@@ -1,5 +1,5 @@
 use iced::futures;
-use iced::widget::{self, column, container, image, row, text};
+use iced::widget::{self, center, column, image, row, text};
 use iced::{Alignment, Command, Element, Length};
 
 pub fn main() -> iced::Result {
@@ -83,12 +83,7 @@ impl Pokedex {
             .align_items(Alignment::End),
         };
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).into()
     }
 }
 
@@ -188,7 +183,7 @@ impl Pokemon {
         {
             let bytes = reqwest::get(&url).await?.bytes().await?;
 
-            Ok(image::Handle::from_memory(bytes))
+            Ok(image::Handle::from_bytes(bytes))
         }
 
         #[cfg(target_arch = "wasm32")]

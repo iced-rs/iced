@@ -350,6 +350,148 @@ where
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
             scrollbars.is_mouse_over(cursor);
 
+        if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at {
+            match event {
+                Event::Mouse(mouse::Event::CursorMoved { .. })
+                | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                    if let Some(scrollbar) = scrollbars.y {
+                        let Some(cursor_position) = cursor.position() else {
+                            return event::Status::Ignored;
+                        };
+
+                        state.scroll_y_to(
+                            scrollbar.scroll_percentage_y(
+                                scroller_grabbed_at,
+                                cursor_position,
+                            ),
+                            bounds,
+                            content_bounds,
+                        );
+
+                        let _ = notify_on_scroll(
+                            state,
+                            &self.on_scroll,
+                            bounds,
+                            content_bounds,
+                            shell,
+                        );
+
+                        return event::Status::Captured;
+                    }
+                }
+                _ => {}
+            }
+        } else if mouse_over_y_scrollbar {
+            match event {
+                Event::Mouse(mouse::Event::ButtonPressed(
+                    mouse::Button::Left,
+                ))
+                | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                    let Some(cursor_position) = cursor.position() else {
+                        return event::Status::Ignored;
+                    };
+
+                    if let (Some(scroller_grabbed_at), Some(scrollbar)) = (
+                        scrollbars.grab_y_scroller(cursor_position),
+                        scrollbars.y,
+                    ) {
+                        state.scroll_y_to(
+                            scrollbar.scroll_percentage_y(
+                                scroller_grabbed_at,
+                                cursor_position,
+                            ),
+                            bounds,
+                            content_bounds,
+                        );
+
+                        state.y_scroller_grabbed_at = Some(scroller_grabbed_at);
+
+                        let _ = notify_on_scroll(
+                            state,
+                            &self.on_scroll,
+                            bounds,
+                            content_bounds,
+                            shell,
+                        );
+                    }
+
+                    return event::Status::Captured;
+                }
+                _ => {}
+            }
+        }
+
+        if let Some(scroller_grabbed_at) = state.x_scroller_grabbed_at {
+            match event {
+                Event::Mouse(mouse::Event::CursorMoved { .. })
+                | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                    let Some(cursor_position) = cursor.position() else {
+                        return event::Status::Ignored;
+                    };
+
+                    if let Some(scrollbar) = scrollbars.x {
+                        state.scroll_x_to(
+                            scrollbar.scroll_percentage_x(
+                                scroller_grabbed_at,
+                                cursor_position,
+                            ),
+                            bounds,
+                            content_bounds,
+                        );
+
+                        let _ = notify_on_scroll(
+                            state,
+                            &self.on_scroll,
+                            bounds,
+                            content_bounds,
+                            shell,
+                        );
+                    }
+
+                    return event::Status::Captured;
+                }
+                _ => {}
+            }
+        } else if mouse_over_x_scrollbar {
+            match event {
+                Event::Mouse(mouse::Event::ButtonPressed(
+                    mouse::Button::Left,
+                ))
+                | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                    let Some(cursor_position) = cursor.position() else {
+                        return event::Status::Ignored;
+                    };
+
+                    if let (Some(scroller_grabbed_at), Some(scrollbar)) = (
+                        scrollbars.grab_x_scroller(cursor_position),
+                        scrollbars.x,
+                    ) {
+                        state.scroll_x_to(
+                            scrollbar.scroll_percentage_x(
+                                scroller_grabbed_at,
+                                cursor_position,
+                            ),
+                            bounds,
+                            content_bounds,
+                        );
+
+                        state.x_scroller_grabbed_at = Some(scroller_grabbed_at);
+
+                        let _ = notify_on_scroll(
+                            state,
+                            &self.on_scroll,
+                            bounds,
+                            content_bounds,
+                            shell,
+                        );
+
+                        return event::Status::Captured;
+                    }
+                }
+                _ => {}
+            }
+        }
+
         let mut event_status = {
             let cursor = match cursor_over_scrollable {
                 Some(cursor_position)
@@ -422,7 +564,9 @@ where
                 let delta = match delta {
                     mouse::ScrollDelta::Lines { x, y } => {
                         // TODO: Configurable speed/friction (?)
-                        let movement = if state.keyboard_modifiers.shift() {
+                        let movement = if !cfg!(target_os = "macos") // macOS automatically inverts the axes when Shift is pressed
+                            && state.keyboard_modifiers.shift()
+                        {
                             Vector::new(y, x)
                         } else {
                             Vector::new(x, y)
@@ -435,15 +579,17 @@ where
 
                 state.scroll(delta, self.direction, bounds, content_bounds);
 
-                notify_on_scroll(
+                event_status = if notify_on_scroll(
                     state,
                     &self.on_scroll,
                     bounds,
                     content_bounds,
                     shell,
-                );
-
-                event_status = event::Status::Captured;
+                ) {
+                    event::Status::Captured
+                } else {
+                    event::Status::Ignored
+                };
             }
             Event::Touch(event)
                 if state.scroll_area_touched_at.is_some()
@@ -481,7 +627,8 @@ where
                             state.scroll_area_touched_at =
                                 Some(cursor_position);
 
-                            notify_on_scroll(
+                            // TODO: bubble up touch movements if not consumed.
+                            let _ = notify_on_scroll(
                                 state,
                                 &self.on_scroll,
                                 bounds,
@@ -496,148 +643,6 @@ where
                 event_status = event::Status::Captured;
             }
             _ => {}
-        }
-
-        if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at {
-            match event {
-                Event::Mouse(mouse::Event::CursorMoved { .. })
-                | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                    if let Some(scrollbar) = scrollbars.y {
-                        let Some(cursor_position) = cursor.position() else {
-                            return event::Status::Ignored;
-                        };
-
-                        state.scroll_y_to(
-                            scrollbar.scroll_percentage_y(
-                                scroller_grabbed_at,
-                                cursor_position,
-                            ),
-                            bounds,
-                            content_bounds,
-                        );
-
-                        notify_on_scroll(
-                            state,
-                            &self.on_scroll,
-                            bounds,
-                            content_bounds,
-                            shell,
-                        );
-
-                        event_status = event::Status::Captured;
-                    }
-                }
-                _ => {}
-            }
-        } else if mouse_over_y_scrollbar {
-            match event {
-                Event::Mouse(mouse::Event::ButtonPressed(
-                    mouse::Button::Left,
-                ))
-                | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                    let Some(cursor_position) = cursor.position() else {
-                        return event::Status::Ignored;
-                    };
-
-                    if let (Some(scroller_grabbed_at), Some(scrollbar)) = (
-                        scrollbars.grab_y_scroller(cursor_position),
-                        scrollbars.y,
-                    ) {
-                        state.scroll_y_to(
-                            scrollbar.scroll_percentage_y(
-                                scroller_grabbed_at,
-                                cursor_position,
-                            ),
-                            bounds,
-                            content_bounds,
-                        );
-
-                        state.y_scroller_grabbed_at = Some(scroller_grabbed_at);
-
-                        notify_on_scroll(
-                            state,
-                            &self.on_scroll,
-                            bounds,
-                            content_bounds,
-                            shell,
-                        );
-                    }
-
-                    event_status = event::Status::Captured;
-                }
-                _ => {}
-            }
-        }
-
-        if let Some(scroller_grabbed_at) = state.x_scroller_grabbed_at {
-            match event {
-                Event::Mouse(mouse::Event::CursorMoved { .. })
-                | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                    let Some(cursor_position) = cursor.position() else {
-                        return event::Status::Ignored;
-                    };
-
-                    if let Some(scrollbar) = scrollbars.x {
-                        state.scroll_x_to(
-                            scrollbar.scroll_percentage_x(
-                                scroller_grabbed_at,
-                                cursor_position,
-                            ),
-                            bounds,
-                            content_bounds,
-                        );
-
-                        notify_on_scroll(
-                            state,
-                            &self.on_scroll,
-                            bounds,
-                            content_bounds,
-                            shell,
-                        );
-                    }
-
-                    event_status = event::Status::Captured;
-                }
-                _ => {}
-            }
-        } else if mouse_over_x_scrollbar {
-            match event {
-                Event::Mouse(mouse::Event::ButtonPressed(
-                    mouse::Button::Left,
-                ))
-                | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                    let Some(cursor_position) = cursor.position() else {
-                        return event::Status::Ignored;
-                    };
-
-                    if let (Some(scroller_grabbed_at), Some(scrollbar)) = (
-                        scrollbars.grab_x_scroller(cursor_position),
-                        scrollbars.x,
-                    ) {
-                        state.scroll_x_to(
-                            scrollbar.scroll_percentage_x(
-                                scroller_grabbed_at,
-                                cursor_position,
-                            ),
-                            bounds,
-                            content_bounds,
-                        );
-
-                        state.x_scroller_grabbed_at = Some(scroller_grabbed_at);
-
-                        notify_on_scroll(
-                            state,
-                            &self.on_scroll,
-                            bounds,
-                            content_bounds,
-                            shell,
-                        );
-
-                        event_status = event::Status::Captured;
-                    }
-                }
-                _ => {}
-            }
         }
 
         event_status
@@ -658,6 +663,10 @@ where
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
+
+        let Some(visible_bounds) = bounds.intersection(viewport) else {
+            return;
+        };
 
         let scrollbars =
             Scrollbars::new(state, self.direction, bounds, content_bounds);
@@ -704,7 +713,7 @@ where
 
         // Draw inner content
         if scrollbars.active() {
-            renderer.with_layer(bounds, |renderer| {
+            renderer.with_layer(visible_bounds, |renderer| {
                 renderer.with_translation(
                     Vector::new(-translation.x, -translation.y),
                     |renderer| {
@@ -767,9 +776,9 @@ where
 
             renderer.with_layer(
                 Rectangle {
-                    width: (bounds.width + 2.0).min(viewport.width),
-                    height: (bounds.height + 2.0).min(viewport.height),
-                    ..bounds
+                    width: (visible_bounds.width + 2.0).min(viewport.width),
+                    height: (visible_bounds.height + 2.0).min(viewport.height),
+                    ..visible_bounds
                 },
                 |renderer| {
                     if let Some(scrollbar) = scrollbars.y {
@@ -850,7 +859,7 @@ where
         if (mouse_over_x_scrollbar || mouse_over_y_scrollbar)
             || state.scrollers_grabbed()
         {
-            mouse::Interaction::Idle
+            mouse::Interaction::None
         } else {
             let translation =
                 state.translation(self.direction, bounds, content_bounds);
@@ -961,51 +970,54 @@ pub fn scroll_to<Message: 'static>(
     Command::widget(operation::scrollable::scroll_to(id.0, offset))
 }
 
+/// Returns [`true`] if the viewport actually changed.
 fn notify_on_scroll<Message>(
     state: &mut State,
     on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
-) {
-    if let Some(on_scroll) = on_scroll {
-        if content_bounds.width <= bounds.width
-            && content_bounds.height <= bounds.height
-        {
-            return;
-        }
+) -> bool {
+    if content_bounds.width <= bounds.width
+        && content_bounds.height <= bounds.height
+    {
+        return false;
+    }
 
-        let viewport = Viewport {
-            offset_x: state.offset_x,
-            offset_y: state.offset_y,
-            bounds,
-            content_bounds,
+    let viewport = Viewport {
+        offset_x: state.offset_x,
+        offset_y: state.offset_y,
+        bounds,
+        content_bounds,
+    };
+
+    // Don't publish redundant viewports to shell
+    if let Some(last_notified) = state.last_notified {
+        let last_relative_offset = last_notified.relative_offset();
+        let current_relative_offset = viewport.relative_offset();
+
+        let last_absolute_offset = last_notified.absolute_offset();
+        let current_absolute_offset = viewport.absolute_offset();
+
+        let unchanged = |a: f32, b: f32| {
+            (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
         };
 
-        // Don't publish redundant viewports to shell
-        if let Some(last_notified) = state.last_notified {
-            let last_relative_offset = last_notified.relative_offset();
-            let current_relative_offset = viewport.relative_offset();
-
-            let last_absolute_offset = last_notified.absolute_offset();
-            let current_absolute_offset = viewport.absolute_offset();
-
-            let unchanged = |a: f32, b: f32| {
-                (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
-            };
-
-            if unchanged(last_relative_offset.x, current_relative_offset.x)
-                && unchanged(last_relative_offset.y, current_relative_offset.y)
-                && unchanged(last_absolute_offset.x, current_absolute_offset.x)
-                && unchanged(last_absolute_offset.y, current_absolute_offset.y)
-            {
-                return;
-            }
+        if unchanged(last_relative_offset.x, current_relative_offset.x)
+            && unchanged(last_relative_offset.y, current_relative_offset.y)
+            && unchanged(last_absolute_offset.x, current_absolute_offset.x)
+            && unchanged(last_absolute_offset.y, current_absolute_offset.y)
+        {
+            return false;
         }
-
-        shell.publish(on_scroll(viewport));
-        state.last_notified = Some(viewport);
     }
+
+    if let Some(on_scroll) = on_scroll {
+        shell.publish(on_scroll(viewport));
+    }
+    state.last_notified = Some(viewport);
+
+    true
 }
 
 #[derive(Debug, Clone, Copy)]
