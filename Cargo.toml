@@ -202,3 +202,6 @@ useless_conversion = "deny"
 
 [workspace.lints.rustdoc]
 broken_intra_doc_links = "forbid"
+
+[patch.crates-io]
+cosmic-text = { git = "https://github.com/hecrj/cosmic-text.git", rev = "a2b3f4064178afd7f91e0d86407a82bf507da55f" }
