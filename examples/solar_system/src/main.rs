@@ -6,18 +6,15 @@
 //! Inspired by the example found in the MDN docs[1].
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
-use iced::application;
-use iced::executor;
 use iced::mouse;
-use iced::theme::{self, Theme};
 use iced::widget::canvas;
 use iced::widget::canvas::gradient;
 use iced::widget::canvas::stroke::{self, Stroke};
-use iced::widget::canvas::Path;
+use iced::widget::canvas::{Geometry, Path};
 use iced::window;
 use iced::{
-    Application, Color, Command, Element, Length, Point, Rectangle, Renderer,
-    Settings, Size, Subscription, Vector,
+    Color, Element, Length, Point, Rectangle, Renderer, Size, Subscription,
+    Theme, Vector,
 };
 
 use std::time::Instant;
@@ -25,12 +22,17 @@ use std::time::Instant;
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    SolarSystem::run(Settings {
-        antialiasing: true,
-        ..Settings::default()
-    })
+    iced::program(
+        "Solar System - Iced",
+        SolarSystem::update,
+        SolarSystem::view,
+    )
+    .subscription(SolarSystem::subscription)
+    .theme(SolarSystem::theme)
+    .run()
 }
 
+#[derive(Default)]
 struct SolarSystem {
     state: State,
 }
@@ -40,33 +42,13 @@ enum Message {
     Tick(Instant),
 }
 
-impl Application for SolarSystem {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            SolarSystem {
-                state: State::new(),
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Solar system - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+impl SolarSystem {
+    fn update(&mut self, message: Message) {
         match message {
             Message::Tick(instant) => {
                 self.state.update(instant);
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
@@ -77,18 +59,7 @@ impl Application for SolarSystem {
     }
 
     fn theme(&self) -> Theme {
-        Theme::Dark
-    }
-
-    fn style(&self) -> theme::Application {
-        fn dark_background(_theme: &Theme) -> application::Appearance {
-            application::Appearance {
-                background_color: Color::BLACK,
-                text_color: Color::WHITE,
-            }
-        }
-
-        theme::Application::custom(dark_background)
+        Theme::Moonfly
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -159,7 +130,7 @@ impl<Message> canvas::Program<Message> for State {
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) -> Vec<canvas::Geometry> {
+    ) -> Vec<Geometry> {
         use std::f32::consts::PI;
 
         let background =
@@ -227,5 +198,11 @@ impl<Message> canvas::Program<Message> for State {
         });
 
         vec![background, system]
+    }
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
     }
 }

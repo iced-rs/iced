@@ -4,7 +4,7 @@ jobs:
   all:
     runs-on: ubuntu-latest
     steps:
-    - uses: hecrj/setup-rust-action@v1
+    - uses: hecrj/setup-rust-action@v2
       with:
         components: rustfmt
     - uses: actions/checkout@master

@@ -456,10 +456,14 @@ impl editor::Editor for Editor {
                 }
             }
             Action::Scroll { lines } => {
-                editor.action(
-                    font_system.raw(),
-                    cosmic_text::Action::Scroll { lines },
-                );
+                let (_, height) = editor.buffer().size();
+
+                if height < i32::MAX as f32 {
+                    editor.action(
+                        font_system.raw(),
+                        cosmic_text::Action::Scroll { lines },
+                    );
+                }
             }
         }
 

@@ -9,19 +9,16 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Border, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle,
-    Shell, Size, Widget,
+    Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
+    Rectangle, Shell, Size, Theme, Widget,
 };
-
-pub use crate::style::toggler::{Appearance, StyleSheet};
 
 /// A toggler widget.
 ///
 /// # Example
 ///
 /// ```no_run
-/// # type Toggler<'a, Message> =
-/// #     iced_widget::Toggler<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// # type Toggler<'a, Message> = iced_widget::Toggler<'a, Message>;
 /// #
 /// pub enum Message {
 ///     TogglerToggled(bool),
@@ -38,7 +35,7 @@ pub struct Toggler<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: StyleSheet,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     is_toggled: bool,
@@ -52,16 +49,16 @@ pub struct Toggler<
     text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
-    style: Theme::Style,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     /// The default size of a [`Toggler`].
-    pub const DEFAULT_SIZE: f32 = 20.0;
+    pub const DEFAULT_SIZE: f32 = 16.0;
 
     /// Creates a new [`Toggler`].
     ///
@@ -91,7 +88,7 @@ where
             text_shaping: text::Shaping::Basic,
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
-            style: Default::default(),
+            class: Theme::default(),
         }
     }
 
@@ -149,8 +146,20 @@ where
     }
 
     /// Sets the style of the [`Toggler`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Toggler`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
@@ -158,7 +167,7 @@ where
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Toggler<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + crate::text::StyleSheet,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -286,7 +295,7 @@ where
                 style,
                 label_layout,
                 tree.state.downcast_ref(),
-                crate::text::Appearance::default(),
+                crate::text::Style::default(),
                 viewport,
             );
         }
@@ -294,11 +303,17 @@ where
         let bounds = toggler_layout.bounds();
         let is_mouse_over = cursor.is_over(layout.bounds());
 
-        let style = if is_mouse_over {
-            theme.hovered(&self.style, self.is_toggled)
+        let status = if is_mouse_over {
+            Status::Hovered {
+                is_toggled: self.is_toggled,
+            }
         } else {
-            theme.active(&self.style, self.is_toggled)
+            Status::Active {
+                is_toggled: self.is_toggled,
+            }
         };
+
+        let style = theme.style(&self.class, status);
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
         let space = SPACE_RATIO * bounds.height;
@@ -354,12 +369,117 @@ impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + crate::text::StyleSheet + 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
         toggler: Toggler<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(toggler)
+    }
+}
+
+/// The possible status of a [`Toggler`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// The [`Toggler`] can be interacted with.
+    Active {
+        /// Indicates whether the [`Toggler`] is toggled.
+        is_toggled: bool,
+    },
+    /// The [`Toggler`] is being hovered.
+    Hovered {
+        /// Indicates whether the [`Toggler`] is toggled.
+        is_toggled: bool,
+    },
+}
+
+/// The appearance of a toggler.
+#[derive(Debug, Clone, Copy)]
+pub struct Style {
+    /// The background [`Color`] of the toggler.
+    pub background: Color,
+    /// The width of the background border of the toggler.
+    pub background_border_width: f32,
+    /// The [`Color`] of the background border of the toggler.
+    pub background_border_color: Color,
+    /// The foreground [`Color`] of the toggler.
+    pub foreground: Color,
+    /// The width of the foreground border of the toggler.
+    pub foreground_border_width: f32,
+    /// The [`Color`] of the foreground border of the toggler.
+    pub foreground_border_color: Color,
+}
+
+/// The theme catalog of a [`Toggler`].
+pub trait Catalog: Sized {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
+
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
+}
+
+/// A styling function for a [`Toggler`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
+    }
+}
+
+/// The default style of a [`Toggler`].
+pub fn default(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
+
+    let background = match status {
+        Status::Active { is_toggled } | Status::Hovered { is_toggled } => {
+            if is_toggled {
+                palette.primary.strong.color
+            } else {
+                palette.background.strong.color
+            }
+        }
+    };
+
+    let foreground = match status {
+        Status::Active { is_toggled } => {
+            if is_toggled {
+                palette.primary.strong.text
+            } else {
+                palette.background.base.color
+            }
+        }
+        Status::Hovered { is_toggled } => {
+            if is_toggled {
+                Color {
+                    a: 0.5,
+                    ..palette.primary.strong.text
+                }
+            } else {
+                palette.background.weak.color
+            }
+        }
+    };
+
+    Style {
+        background,
+        foreground,
+        foreground_border_width: 0.0,
+        foreground_border_color: Color::TRANSPARENT,
+        background_border_width: 0.0,
+        background_border_color: Color::TRANSPARENT,
     }
 }

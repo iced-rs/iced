@@ -1,8 +1,7 @@
 //! Draw triangles!
 use crate::color;
-use crate::core::{Rectangle, Size};
+use crate::core::{Rectangle, Transformation};
 use crate::gradient;
-use crate::Damage;
 
 use bytemuck::{Pod, Zeroable};
 
@@ -14,29 +13,55 @@ pub enum Mesh {
         /// The vertices and indices of the mesh.
         buffers: Indexed<SolidVertex2D>,
 
-        /// The size of the drawable region of the mesh.
-        ///
-        /// Any geometry that falls out of this region will be clipped.
-        size: Size,
+        /// The [`Transformation`] for the vertices of the [`Mesh`].
+        transformation: Transformation,
+
+        /// The clip bounds of the [`Mesh`].
+        clip_bounds: Rectangle,
     },
     /// A mesh with a gradient.
     Gradient {
         /// The vertices and indices of the mesh.
         buffers: Indexed<GradientVertex2D>,
 
-        /// The size of the drawable region of the mesh.
-        ///
-        /// Any geometry that falls out of this region will be clipped.
-        size: Size,
+        /// The [`Transformation`] for the vertices of the [`Mesh`].
+        transformation: Transformation,
+
+        /// The clip bounds of the [`Mesh`].
+        clip_bounds: Rectangle,
     },
 }
 
-impl Damage for Mesh {
-    fn bounds(&self) -> Rectangle {
+impl Mesh {
+    /// Returns the indices of the [`Mesh`].
+    pub fn indices(&self) -> &[u32] {
         match self {
-            Self::Solid { size, .. } | Self::Gradient { size, .. } => {
-                Rectangle::with_size(*size)
+            Self::Solid { buffers, .. } => &buffers.indices,
+            Self::Gradient { buffers, .. } => &buffers.indices,
+        }
+    }
+
+    /// Returns the [`Transformation`] of the [`Mesh`].
+    pub fn transformation(&self) -> Transformation {
+        match self {
+            Self::Solid { transformation, .. }
+            | Self::Gradient { transformation, .. } => *transformation,
+        }
+    }
+
+    /// Returns the clip bounds of the [`Mesh`].
+    pub fn clip_bounds(&self) -> Rectangle {
+        match self {
+            Self::Solid {
+                clip_bounds,
+                transformation,
+                ..
             }
+            | Self::Gradient {
+                clip_bounds,
+                transformation,
+                ..
+            } => *clip_bounds * *transformation,
         }
     }
 }
@@ -73,4 +98,51 @@ pub struct GradientVertex2D {
 
     /// The packed vertex data of the gradient.
     pub gradient: gradient::Packed,
+}
+
+/// The result of counting the attributes of a set of meshes.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct AttributeCount {
+    /// The total amount of solid vertices.
+    pub solid_vertices: usize,
+
+    /// The total amount of solid meshes.
+    pub solids: usize,
+
+    /// The total amount of gradient vertices.
+    pub gradient_vertices: usize,
+
+    /// The total amount of gradient meshes.
+    pub gradients: usize,
+
+    /// The total amount of indices.
+    pub indices: usize,
+}
+
+/// Returns the number of total vertices & total indices of all [`Mesh`]es.
+pub fn attribute_count_of(meshes: &[Mesh]) -> AttributeCount {
+    meshes
+        .iter()
+        .fold(AttributeCount::default(), |mut count, mesh| {
+            match mesh {
+                Mesh::Solid { buffers, .. } => {
+                    count.solids += 1;
+                    count.solid_vertices += buffers.vertices.len();
+                    count.indices += buffers.indices.len();
+                }
+                Mesh::Gradient { buffers, .. } => {
+                    count.gradients += 1;
+                    count.gradient_vertices += buffers.vertices.len();
+                    count.indices += buffers.indices.len();
+                }
+            }
+
+            count
+        })
+}
+
+/// A renderer capable of drawing a [`Mesh`].
+pub trait Renderer {
+    /// Draws the given [`Mesh`].
+    fn draw_mesh(&mut self, mesh: Mesh);
 }

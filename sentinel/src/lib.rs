@@ -1,12 +1,11 @@
 pub use iced_core as core;
-pub use iced_style as style;
 pub use semver::Version;
 
 pub mod client;
 pub mod timing;
 
+use crate::core::theme;
 use crate::core::time::SystemTime;
-use crate::style::theme;
 use crate::timing::Timing;
 
 use futures::future;

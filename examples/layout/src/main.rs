@@ -1,21 +1,22 @@
-use iced::executor;
 use iced::keyboard;
 use iced::mouse;
-use iced::theme;
 use iced::widget::{
-    button, canvas, checkbox, column, container, horizontal_space, pick_list,
-    row, scrollable, text, vertical_rule,
+    button, canvas, center, checkbox, column, container, horizontal_space,
+    pick_list, row, scrollable, text,
 };
 use iced::{
-    color, Alignment, Application, Color, Command, Element, Font, Length,
-    Point, Rectangle, Renderer, Settings, Subscription, Theme,
+    color, Alignment, Element, Font, Length, Point, Rectangle, Renderer,
+    Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
-    Layout::run(Settings::default())
+    iced::program(Layout::title, Layout::update, Layout::view)
+        .subscription(Layout::subscription)
+        .theme(Layout::theme)
+        .run()
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 struct Layout {
     example: Example,
     explain: bool,
@@ -30,28 +31,12 @@ enum Message {
     ThemeSelected(Theme),
 }
 
-impl Application for Layout {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (
-            Self {
-                example: Example::default(),
-                explain: false,
-                theme: Theme::Light,
-            },
-            Command::none(),
-        )
-    }
-
+impl Layout {
     fn title(&self) -> String {
         format!("{} - Layout - Iced", self.example.title)
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Message> {
+    fn update(&mut self, message: Message) {
         match message {
             Message::Next => {
                 self.example = self.example.next();
@@ -66,8 +51,6 @@ impl Application for Layout {
                 self.theme = theme;
             }
         }
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -93,22 +76,18 @@ impl Application for Layout {
         .spacing(20)
         .align_items(Alignment::Center);
 
-        let example = container(if self.explain {
+        let example = center(if self.explain {
             self.example.view().explain(color!(0x0000ff))
         } else {
             self.example.view()
         })
-        .style(|theme: &Theme| {
+        .style(|theme| {
             let palette = theme.extended_palette();
 
-            container::Appearance::default()
+            container::Style::default()
                 .with_border(palette.background.strong.color, 4.0)
         })
-        .padding(4)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y();
+        .padding(4);
 
         let controls = row([
             (!self.example.is_first()).then_some(
@@ -167,10 +146,6 @@ impl Example {
             title: "Application",
             view: application,
         },
-        Self {
-            title: "Nested Quotes",
-            view: nested_quotes,
-        },
     ];
 
     fn is_first(self) -> bool {
@@ -216,12 +191,7 @@ impl Default for Example {
 }
 
 fn centered<'a>() -> Element<'a, Message> {
-    container(text("I am centered!").size(50))
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
-        .into()
+    center(text("I am centered!").size(50)).into()
 }
 
 fn column_<'a>() -> Element<'a, Message> {
@@ -266,10 +236,10 @@ fn application<'a>() -> Element<'a, Message> {
         .padding(10)
         .align_items(Alignment::Center),
     )
-    .style(|theme: &Theme| {
+    .style(|theme| {
         let palette = theme.extended_palette();
 
-        container::Appearance::default()
+        container::Style::default()
             .with_border(palette.background.strong.color, 1)
     });
 
@@ -280,8 +250,7 @@ fn application<'a>() -> Element<'a, Message> {
             .width(200)
             .align_items(Alignment::Center),
     )
-    .style(theme::Container::Box)
-    .height(Length::Fill)
+    .style(container::rounded_box)
     .center_y();
 
     let content = container(
@@ -302,38 +271,6 @@ fn application<'a>() -> Element<'a, Message> {
     .padding(10);
 
     column![header, row![sidebar, content]].into()
-}
-
-fn nested_quotes<'a>() -> Element<'a, Message> {
-    (1..5)
-        .fold(column![text("Original text")].padding(10), |quotes, i| {
-            column![
-                container(
-                    row![vertical_rule(2), quotes].height(Length::Shrink)
-                )
-                .style(|theme: &Theme| {
-                    let palette = theme.extended_palette();
-
-                    container::Appearance::default().with_background(
-                        if palette.is_dark {
-                            Color {
-                                a: 0.01,
-                                ..Color::WHITE
-                            }
-                        } else {
-                            Color {
-                                a: 0.08,
-                                ..Color::BLACK
-                            }
-                        },
-                    )
-                }),
-                text(format!("Reply {i}"))
-            ]
-            .spacing(10)
-            .padding(10)
-        })
-        .into()
 }
 
 fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {

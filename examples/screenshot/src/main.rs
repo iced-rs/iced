@@ -1,13 +1,10 @@
 use iced::alignment;
-use iced::executor;
 use iced::keyboard;
-use iced::theme;
 use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
 use iced::{
-    Alignment, Application, Command, ContentFit, Element, Length, Rectangle,
-    Subscription, Theme,
+    Alignment, Command, ContentFit, Element, Length, Rectangle, Subscription,
 };
 
 use ::image as img;
@@ -16,9 +13,12 @@ use ::image::ColorType;
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    Example::run(iced::Settings::default())
+    iced::program("Screenshot - Iced", Example::update, Example::view)
+        .subscription(Example::subscription)
+        .run()
 }
 
+#[derive(Default)]
 struct Example {
     screenshot: Option<Screenshot>,
     saved_png_path: Option<Result<String, PngError>>,
@@ -43,33 +43,8 @@ enum Message {
     HeightInputChanged(Option<u32>),
 }
 
-impl Application for Example {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        (
-            Example {
-                screenshot: None,
-                saved_png_path: None,
-                png_saving: false,
-                crop_error: None,
-                x_input_value: None,
-                y_input_value: None,
-                width_input_value: None,
-                height_input_value: None,
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        "Screenshot".to_string()
-    }
-
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+impl Example {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Screenshot => {
                 return iced::window::screenshot(
@@ -131,10 +106,10 @@ impl Application for Example {
         Command::none()
     }
 
-    fn view(&self) -> Element<'_, Self::Message> {
+    fn view(&self) -> Element<'_, Message> {
         let image: Element<Message> = if let Some(screenshot) = &self.screenshot
         {
-            image(image::Handle::from_pixels(
+            image(image::Handle::from_rgba(
                 screenshot.size.width,
                 screenshot.size.height,
                 screenshot.clone(),
@@ -148,12 +123,10 @@ impl Application for Example {
         };
 
         let image = container(image)
+            .center_y()
             .padding(10)
-            .style(theme::Container::Box)
-            .width(Length::FillPortion(2))
-            .height(Length::Fill)
-            .center_x()
-            .center_y();
+            .style(container::rounded_box)
+            .width(Length::FillPortion(2));
 
         let crop_origin_controls = row![
             text("X:")
@@ -216,9 +189,9 @@ impl Application for Example {
                         )
                     } else {
                         button(centered_text("Saving..."))
-                            .style(theme::Button::Secondary)
+                            .style(button::secondary)
                     }
-                    .style(theme::Button::Secondary)
+                    .style(button::secondary)
                     .padding([10, 20, 10, 20])
                     .width(Length::Fill)
                 ]
@@ -227,7 +200,7 @@ impl Application for Example {
                     crop_controls,
                     button(centered_text("Crop"))
                         .on_press(Message::Crop)
-                        .style(theme::Button::Destructive)
+                        .style(button::danger)
                         .padding([10, 20, 10, 20])
                         .width(Length::Fill),
                 ]
@@ -238,12 +211,7 @@ impl Application for Example {
             .spacing(40)
         };
 
-        let side_content = container(controls)
-            .align_x(alignment::Horizontal::Center)
-            .width(Length::FillPortion(1))
-            .height(Length::Fill)
-            .center_y()
-            .center_x();
+        let side_content = container(controls).center_y();
 
         let content = row![side_content, image]
             .spacing(10)
@@ -251,16 +219,10 @@ impl Application for Example {
             .height(Length::Fill)
             .align_items(Alignment::Center);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(10)
-            .center_x()
-            .center_y()
-            .into()
+        container(content).padding(10).into()
     }
 
-    fn subscription(&self) -> Subscription<Self::Message> {
+    fn subscription(&self) -> Subscription<Message> {
         use keyboard::key;
 
         keyboard::on_key_press(|key, _modifiers| {

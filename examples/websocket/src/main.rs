@@ -1,17 +1,17 @@
 mod echo;
 
 use iced::alignment::{self, Alignment};
-use iced::executor;
 use iced::widget::{
-    button, column, container, row, scrollable, text, text_input,
+    self, button, center, column, row, scrollable, text, text_input,
 };
-use iced::{
-    Application, Color, Command, Element, Length, Settings, Subscription, Theme,
-};
+use iced::{color, Command, Element, Length, Subscription};
 use once_cell::sync::Lazy;
 
 pub fn main() -> iced::Result {
-    WebSocket::run(Settings::default())
+    iced::program("WebSocket - Iced", WebSocket::update, WebSocket::view)
+        .load(WebSocket::load)
+        .subscription(WebSocket::subscription)
+        .run()
 }
 
 #[derive(Default)]
@@ -29,21 +29,12 @@ enum Message {
     Server,
 }
 
-impl Application for WebSocket {
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-    type Executor = executor::Default;
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (
-            Self::default(),
+impl WebSocket {
+    fn load() -> Command<Message> {
+        Command::batch([
             Command::perform(echo::server::run(), |_| Message::Server),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("WebSocket - Iced")
+            widget::focus_next(),
+        ])
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -97,21 +88,15 @@ impl Application for WebSocket {
 
     fn view(&self) -> Element<Message> {
         let message_log: Element<_> = if self.messages.is_empty() {
-            container(
+            center(
                 text("Your messages will appear here...")
-                    .style(Color::from_rgb8(0x88, 0x88, 0x88)),
+                    .color(color!(0x888888)),
             )
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
             .into()
         } else {
             scrollable(
-                column(
-                    self.messages.iter().cloned().map(text).map(Element::from),
-                )
-                .spacing(10),
+                column(self.messages.iter().map(text).map(Element::from))
+                    .spacing(10),
             )
             .id(MESSAGE_LOG.clone())
             .height(Length::Fill)

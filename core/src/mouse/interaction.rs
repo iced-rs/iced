@@ -3,6 +3,7 @@
 #[allow(missing_docs)]
 pub enum Interaction {
     #[default]
+    None,
     Idle,
     Pointer,
     Grab,

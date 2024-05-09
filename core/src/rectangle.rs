@@ -1,6 +1,6 @@
-use crate::{Point, Size, Vector};
+use crate::{Point, Radians, Size, Vector};
 
-/// A rectangle.
+/// An axis-aligned rectangle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Rectangle<T = f32> {
     /// X coordinate of the top-left corner.
@@ -16,24 +16,32 @@ pub struct Rectangle<T = f32> {
     pub height: T,
 }
 
-impl Rectangle<f32> {
-    /// Creates a new [`Rectangle`] with its top-left corner in the given
-    /// [`Point`] and with the provided [`Size`].
-    pub fn new(top_left: Point, size: Size) -> Self {
+impl<T> Rectangle<T>
+where
+    T: Default,
+{
+    /// Creates a new [`Rectangle`] with its top-left corner at the origin
+    /// and with the provided [`Size`].
+    pub fn with_size(size: Size<T>) -> Self {
         Self {
-            x: top_left.x,
-            y: top_left.y,
+            x: T::default(),
+            y: T::default(),
             width: size.width,
             height: size.height,
         }
     }
+}
 
-    /// Creates a new [`Rectangle`] with its top-left corner at the origin
-    /// and with the provided [`Size`].
-    pub fn with_size(size: Size) -> Self {
+impl Rectangle<f32> {
+    /// A rectangle starting at [`Point::ORIGIN`] with infinite width and height.
+    pub const INFINITE: Self = Self::new(Point::ORIGIN, Size::INFINITY);
+
+    /// Creates a new [`Rectangle`] with its top-left corner in the given
+    /// [`Point`] and with the provided [`Size`].
+    pub const fn new(top_left: Point, size: Size) -> Self {
         Self {
-            x: 0.0,
-            y: 0.0,
+            x: top_left.x,
+            y: top_left.y,
             width: size.width,
             height: size.height,
         }
@@ -139,13 +147,20 @@ impl Rectangle<f32> {
     }
 
     /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
-    pub fn snap(self) -> Rectangle<u32> {
-        Rectangle {
+    pub fn snap(self) -> Option<Rectangle<u32>> {
+        let width = self.width as u32;
+        let height = self.height as u32;
+
+        if width < 1 || height < 1 {
+            return None;
+        }
+
+        Some(Rectangle {
             x: self.x as u32,
             y: self.y as u32,
-            width: self.width as u32,
-            height: self.height as u32,
-        }
+            width,
+            height,
+        })
     }
 
     /// Expands the [`Rectangle`] a given amount.
@@ -156,6 +171,18 @@ impl Rectangle<f32> {
             width: self.width + amount * 2.0,
             height: self.height + amount * 2.0,
         }
+    }
+
+    /// Rotates the [`Rectangle`] and returns the smallest [`Rectangle`]
+    /// containing it.
+    pub fn rotate(self, rotation: Radians) -> Self {
+        let size = self.size().rotate(rotation);
+        let position = Point::new(
+            self.center_x() - size.width / 2.0,
+            self.center_y() - size.height / 2.0,
+        );
+
+        Self::new(position, size)
     }
 }
 
@@ -209,6 +236,22 @@ where
             x: self.x - translation.x,
             y: self.y - translation.y,
             ..self
+        }
+    }
+}
+
+impl<T> std::ops::Mul<Vector<T>> for Rectangle<T>
+where
+    T: std::ops::Mul<Output = T> + Copy,
+{
+    type Output = Rectangle<T>;
+
+    fn mul(self, scale: Vector<T>) -> Self {
+        Rectangle {
+            x: self.x * scale.x,
+            y: self.y * scale.y,
+            width: self.width * scale.x,
+            height: self.height * scale.y,
         }
     }
 }

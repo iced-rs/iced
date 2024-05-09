@@ -1,6 +1,5 @@
-use iced::executor;
-use iced::widget::{column, container, row, slider, text};
-use iced::{Application, Command, Element, Length, Settings, Theme};
+use iced::widget::{center, column, row, slider, text};
+use iced::Element;
 
 use std::time::Duration;
 
@@ -12,22 +11,17 @@ use circular::Circular;
 use linear::Linear;
 
 pub fn main() -> iced::Result {
-    LoadingSpinners::run(Settings {
-        antialiasing: true,
-        ..Default::default()
-    })
+    iced::program(
+        "Loading Spinners - Iced",
+        LoadingSpinners::update,
+        LoadingSpinners::view,
+    )
+    .antialiasing(true)
+    .run()
 }
 
 struct LoadingSpinners {
     cycle_duration: f32,
-}
-
-impl Default for LoadingSpinners {
-    fn default() -> Self {
-        Self {
-            cycle_duration: 2.0,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -35,28 +29,13 @@ enum Message {
     CycleDurationChanged(f32),
 }
 
-impl Application for LoadingSpinners {
-    type Message = Message;
-    type Flags = ();
-    type Executor = executor::Default;
-    type Theme = Theme;
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (Self::default(), Command::none())
-    }
-
-    fn title(&self) -> String {
-        String::from("Loading Spinners - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+impl LoadingSpinners {
+    fn update(&mut self, message: Message) {
         match message {
             Message::CycleDurationChanged(duration) => {
                 self.cycle_duration = duration;
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
@@ -94,7 +73,7 @@ impl Application for LoadingSpinners {
         })
         .spacing(20);
 
-        container(
+        center(
             column.push(
                 row![
                     text("Cycle duration:"),
@@ -108,10 +87,14 @@ impl Application for LoadingSpinners {
                 .spacing(20.0),
             ),
         )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
         .into()
+    }
+}
+
+impl Default for LoadingSpinners {
+    fn default() -> Self {
+        Self {
+            cycle_duration: 2.0,
+        }
     }
 }

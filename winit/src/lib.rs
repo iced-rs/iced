@@ -17,21 +17,12 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
-#![forbid(rust_2018_idioms)]
-#![deny(
-    missing_debug_implementations,
-    missing_docs,
-    unused_results,
-    unsafe_code,
-    rustdoc::broken_intra_doc_links
-)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub use iced_graphics as graphics;
 pub use iced_runtime as runtime;
 pub use iced_runtime::core;
 pub use iced_runtime::debug;
 pub use iced_runtime::futures;
-pub use iced_style as style;
 pub use winit;
 
 #[cfg(feature = "multi-window")]

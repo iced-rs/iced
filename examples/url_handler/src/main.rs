@@ -1,12 +1,11 @@
 use iced::event::{self, Event};
-use iced::executor;
-use iced::widget::{container, text};
-use iced::{
-    Application, Command, Element, Length, Settings, Subscription, Theme,
-};
+use iced::widget::{center, text};
+use iced::{Element, Subscription};
 
 pub fn main() -> iced::Result {
-    App::run(Settings::default())
+    iced::program("URL Handler - Iced", App::update, App::view)
+        .subscription(App::subscription)
+        .run()
 }
 
 #[derive(Debug, Default)]
@@ -19,21 +18,8 @@ enum Message {
     EventOccurred(Event),
 }
 
-impl Application for App {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (App, Command<Message>) {
-        (App::default(), Command::none())
-    }
-
-    fn title(&self) -> String {
-        String::from("Url - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+impl App {
+    fn update(&mut self, message: Message) {
         match message {
             Message::EventOccurred(event) => {
                 if let Event::PlatformSpecific(
@@ -45,9 +31,7 @@ impl Application for App {
                     self.url = Some(url);
                 }
             }
-        };
-
-        Command::none()
+        }
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -60,11 +44,6 @@ impl Application for App {
             None => text("No URL received yet!"),
         };
 
-        container(content.size(48))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content.size(48)).into()
     }
 }

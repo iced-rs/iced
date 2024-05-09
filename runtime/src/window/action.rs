@@ -106,7 +106,7 @@ pub enum Action<T> {
     ///   said, it's usually in the same ballpark as on Windows.
     ChangeIcon(Id, Icon),
     /// Runs the closure with the native window handle of the window with the given [`Id`].
-    RunWithHandle(Id, Box<dyn FnOnce(&WindowHandle<'_>) -> T + 'static>),
+    RunWithHandle(Id, Box<dyn FnOnce(WindowHandle<'_>) -> T + 'static>),
     /// Screenshot the viewport of the window.
     Screenshot(Id, Box<dyn FnOnce(Screenshot) -> T + 'static>),
 }

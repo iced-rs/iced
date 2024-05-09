@@ -1,17 +1,15 @@
 use iced::alignment::{self, Alignment};
-use iced::executor;
 use iced::keyboard;
-use iced::theme::{self, Theme};
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{
     button, column, container, responsive, row, scrollable, text,
 };
-use iced::{
-    Application, Color, Command, Element, Length, Settings, Size, Subscription,
-};
+use iced::{Color, Element, Length, Size, Subscription};
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::program("Pane Grid - Iced", Example::update, Example::view)
+        .subscription(Example::subscription)
+        .run()
 }
 
 struct Example {
@@ -35,30 +33,18 @@ enum Message {
     CloseFocused,
 }
 
-impl Application for Example {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
+impl Example {
+    fn new() -> Self {
         let (panes, _) = pane_grid::State::new(Pane::new(0));
 
-        (
-            Example {
-                panes,
-                panes_created: 1,
-                focus: None,
-            },
-            Command::none(),
-        )
+        Example {
+            panes,
+            panes_created: 1,
+            focus: None,
+        }
     }
 
-    fn title(&self) -> String {
-        String::from("Pane grid - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) {
         match message {
             Message::Split(axis, pane) => {
                 let result =
@@ -132,8 +118,6 @@ impl Application for Example {
                 }
             }
         }
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -162,7 +146,7 @@ impl Application for Example {
             let title = row![
                 pin_button,
                 "Pane",
-                text(pane.id.to_string()).style(if is_focused {
+                text(pane.id.to_string()).color(if is_focused {
                     PANE_ID_COLOR_FOCUSED
                 } else {
                     PANE_ID_COLOR_UNFOCUSED
@@ -206,6 +190,12 @@ impl Application for Example {
             .height(Length::Fill)
             .padding(10)
             .into()
+    }
+}
+
+impl Default for Example {
+    fn default() -> Self {
+        Example::new()
     }
 }
 
@@ -287,10 +277,7 @@ fn view_content<'a>(
         )
     ]
     .push_maybe(if total_panes > 1 && !is_pinned {
-        Some(
-            button("Close", Message::Close(pane))
-                .style(theme::Button::Destructive),
-        )
+        Some(button("Close", Message::Close(pane)).style(button::danger))
     } else {
         None
     })
@@ -304,12 +291,7 @@ fn view_content<'a>(
     .spacing(10)
     .align_items(Alignment::Center);
 
-    container(scrollable(content))
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .padding(5)
-        .center_y()
-        .into()
+    container(scrollable(content)).center_y().padding(5).into()
 }
 
 fn view_controls<'a>(
@@ -327,7 +309,7 @@ fn view_controls<'a>(
 
         Some(
             button(text(content).size(14))
-                .style(theme::Button::Secondary)
+                .style(button::secondary)
                 .padding(3)
                 .on_press(message),
         )
@@ -336,7 +318,7 @@ fn view_controls<'a>(
     });
 
     let close = button(text("Close").size(14))
-        .style(theme::Button::Destructive)
+        .style(button::danger)
         .padding(3)
         .on_press_maybe(if total_panes > 1 && !is_pinned {
             Some(Message::Close(pane))
@@ -351,30 +333,30 @@ mod style {
     use iced::widget::container;
     use iced::{Border, Theme};
 
-    pub fn title_bar_active(theme: &Theme) -> container::Appearance {
+    pub fn title_bar_active(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
-        container::Appearance {
+        container::Style {
             text_color: Some(palette.background.strong.text),
             background: Some(palette.background.strong.color.into()),
             ..Default::default()
         }
     }
 
-    pub fn title_bar_focused(theme: &Theme) -> container::Appearance {
+    pub fn title_bar_focused(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
-        container::Appearance {
+        container::Style {
             text_color: Some(palette.primary.strong.text),
             background: Some(palette.primary.strong.color.into()),
             ..Default::default()
         }
     }
 
-    pub fn pane_active(theme: &Theme) -> container::Appearance {
+    pub fn pane_active(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
-        container::Appearance {
+        container::Style {
             background: Some(palette.background.weak.color.into()),
             border: Border {
                 width: 2.0,
@@ -385,10 +367,10 @@ mod style {
         }
     }
 
-    pub fn pane_focused(theme: &Theme) -> container::Appearance {
+    pub fn pane_focused(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
-        container::Appearance {
+        container::Style {
             background: Some(palette.background.weak.color.into()),
             border: Border {
                 width: 2.0,

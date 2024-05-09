@@ -1,43 +1,55 @@
 use crate::core::{Color, Rectangle, Size};
 use crate::graphics::compositor::{self, Information};
 use crate::graphics::damage;
-use crate::graphics::{Error, Viewport};
-use crate::{Backend, Primitive, Renderer, Settings};
+use crate::graphics::error::{self, Error};
+use crate::graphics::{self, Viewport};
+use crate::{Layer, Renderer, Settings};
 
 use std::collections::VecDeque;
 use std::num::NonZeroU32;
 
+#[allow(missing_debug_implementations)]
 pub struct Compositor {
     context: softbuffer::Context<Box<dyn compositor::Window>>,
     settings: Settings,
 }
 
+#[allow(missing_debug_implementations)]
 pub struct Surface {
     window: softbuffer::Surface<
         Box<dyn compositor::Window>,
         Box<dyn compositor::Window>,
     >,
     clip_mask: tiny_skia::Mask,
-    primitive_stack: VecDeque<Vec<Primitive>>,
+    layer_stack: VecDeque<Vec<Layer>>,
     background_color: Color,
     max_age: u8,
 }
 
 impl crate::graphics::Compositor for Compositor {
-    type Settings = Settings;
     type Renderer = Renderer;
     type Surface = Surface;
 
-    fn new<W: compositor::Window>(
-        settings: Self::Settings,
+    async fn with_backend<W: compositor::Window>(
+        settings: graphics::Settings,
         compatible_window: W,
+        backend: Option<&str>,
     ) -> Result<Self, Error> {
-        Ok(new(settings, compatible_window))
+        match backend {
+            None | Some("tiny-skia") | Some("tiny_skia") => {
+                Ok(new(settings.into(), compatible_window))
+            }
+            Some(backend) => Err(Error::GraphicsAdapterNotFound {
+                backend: "tiny-skia",
+                reason: error::Reason::DidNotMatch {
+                    preferred_backend: backend.to_owned(),
+                },
+            }),
+        }
     }
 
     fn create_renderer(&self) -> Self::Renderer {
         Renderer::new(
-            Backend::new(),
             self.settings.default_font,
             self.settings.default_text_size,
         )
@@ -59,7 +71,7 @@ impl crate::graphics::Compositor for Compositor {
             window,
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
-            primitive_stack: VecDeque::new(),
+            layer_stack: VecDeque::new(),
             background_color: Color::BLACK,
             max_age: 0,
         };
@@ -85,7 +97,7 @@ impl crate::graphics::Compositor for Compositor {
 
         surface.clip_mask =
             tiny_skia::Mask::new(width, height).expect("Create clip mask");
-        surface.primitive_stack.clear();
+        surface.layer_stack.clear();
     }
 
     fn fetch_information(&self) -> Information {
@@ -102,9 +114,7 @@ impl crate::graphics::Compositor for Compositor {
         viewport: &Viewport,
         background_color: Color,
     ) -> Result<(), compositor::SurfaceError> {
-        renderer.with_primitives(|backend, primitives| {
-            present(backend, surface, primitives, viewport, background_color)
-        })
+        present(renderer, surface, viewport, background_color)
     }
 
     fn screenshot(
@@ -114,9 +124,7 @@ impl crate::graphics::Compositor for Compositor {
         viewport: &Viewport,
         background_color: Color,
     ) -> Vec<u8> {
-        renderer.with_primitives(|backend, primitives| {
-            screenshot(surface, backend, primitives, viewport, background_color)
-        })
+        screenshot(renderer, surface, viewport, background_color)
     }
 }
 
@@ -132,37 +140,41 @@ pub fn new<W: compositor::Window>(
 }
 
 pub fn present(
-    backend: &mut Backend,
+    renderer: &mut Renderer,
     surface: &mut Surface,
-    primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
-    let scale_factor = viewport.scale_factor() as f32;
 
     let mut buffer = surface
         .window
         .buffer_mut()
         .map_err(|_| compositor::SurfaceError::Lost)?;
 
-    let last_primitives = {
+    let last_layers = {
         let age = buffer.age();
 
         surface.max_age = surface.max_age.max(age);
-        surface.primitive_stack.truncate(surface.max_age as usize);
+        surface.layer_stack.truncate(surface.max_age as usize);
 
         if age > 0 {
-            surface.primitive_stack.get(age as usize - 1)
+            surface.layer_stack.get(age as usize - 1)
         } else {
             None
         }
     };
 
-    let damage = last_primitives
-        .and_then(|last_primitives| {
-            (surface.background_color == background_color)
-                .then(|| damage::list(last_primitives, primitives))
+    let damage = last_layers
+        .and_then(|last_layers| {
+            (surface.background_color == background_color).then(|| {
+                damage::diff(
+                    last_layers,
+                    renderer.layers(),
+                    |layer| vec![layer.bounds],
+                    Layer::damage,
+                )
+            })
         })
         .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
 
@@ -170,10 +182,11 @@ pub fn present(
         return Ok(());
     }
 
-    surface.primitive_stack.push_front(primitives.to_vec());
+    surface.layer_stack.push_front(renderer.layers().to_vec());
     surface.background_color = background_color;
 
-    let damage = damage::group(damage, scale_factor, physical_size);
+    let damage =
+        damage::group(damage, Rectangle::with_size(viewport.logical_size()));
 
     let mut pixels = tiny_skia::PixmapMut::from_bytes(
         bytemuck::cast_slice_mut(&mut buffer),
@@ -182,10 +195,9 @@ pub fn present(
     )
     .expect("Create pixel map");
 
-    backend.draw(
+    renderer.draw(
         &mut pixels,
         &mut surface.clip_mask,
-        primitives,
         viewport,
         &damage,
         background_color,
@@ -195,9 +207,8 @@ pub fn present(
 }
 
 pub fn screenshot(
+    renderer: &mut Renderer,
     surface: &mut Surface,
-    backend: &mut Backend,
-    primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
 ) -> Vec<u8> {
@@ -206,7 +217,7 @@ pub fn screenshot(
     let mut offscreen_buffer: Vec<u32> =
         vec![0; size.width as usize * size.height as usize];
 
-    backend.draw(
+    renderer.draw(
         &mut tiny_skia::PixmapMut::from_bytes(
             bytemuck::cast_slice_mut(&mut offscreen_buffer),
             size.width,
@@ -214,7 +225,6 @@ pub fn screenshot(
         )
         .expect("Create offscreen pixel map"),
         &mut surface.clip_mask,
-        primitives,
         viewport,
         &[Rectangle::with_size(Size::new(
             size.width as f32,

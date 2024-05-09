@@ -13,17 +13,22 @@ use crate::core::window;
 use crate::core::{Point, Size};
 use crate::debug;
 use crate::futures::futures::channel::mpsc;
-use crate::futures::futures::{task, Future, StreamExt};
+use crate::futures::futures::channel::oneshot;
+use crate::futures::futures::executor;
+use crate::futures::futures::task;
+use crate::futures::futures::{Future, StreamExt};
 use crate::futures::{Executor, Runtime, Subscription};
+use crate::graphics;
 use crate::graphics::{compositor, Compositor};
 use crate::multi_window::window_manager::WindowManager;
 use crate::runtime::command::{self, Command};
 use crate::runtime::multi_window::Program;
 use crate::runtime::user_interface::{self, UserInterface};
-use crate::style::application::StyleSheet;
 use crate::{Clipboard, Error, Proxy, Settings};
 
-use std::collections::HashMap;
+pub use crate::application::{default, Appearance, DefaultStyle};
+
+use rustc_hash::FxHashMap;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
 use std::time::Instant;
@@ -41,7 +46,7 @@ use std::time::Instant;
 /// can be toggled by pressing `F12`.
 pub trait Application: Program
 where
-    Self::Theme: StyleSheet,
+    Self::Theme: DefaultStyle,
 {
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -66,8 +71,8 @@ where
     fn theme(&self, window: window::Id) -> Self::Theme;
 
     /// Returns the `Style` variation of the `Theme`.
-    fn style(&self) -> <Self::Theme as StyleSheet>::Style {
-        Default::default()
+    fn style(&self, theme: &Self::Theme) -> Appearance {
+        theme.default_style()
     }
 
     /// Returns the event `Subscription` for the current state of the
@@ -102,29 +107,29 @@ where
 /// settings.
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
-    compositor_settings: C::Settings,
+    graphics_settings: graphics::Settings,
 ) -> Result<(), Error>
 where
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
-    use winit::event_loop::EventLoopBuilder;
+    use winit::event_loop::EventLoop;
 
     let boot_timer = debug::boot_time();
 
-    let event_loop = EventLoopBuilder::with_user_event()
+    let event_loop = EventLoop::with_user_event()
         .build()
         .expect("Create event loop");
 
-    let proxy = event_loop.create_proxy();
+    let (proxy, worker) = Proxy::new(event_loop.create_proxy());
 
     let runtime = {
-        let proxy = Proxy::new(event_loop.create_proxy());
         let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
+        executor.spawn(worker);
 
-        Runtime::new(executor, proxy)
+        Runtime::new(executor, proxy.clone())
     };
 
     let (application, init_command) = {
@@ -133,184 +138,290 @@ where
         runtime.enter(|| A::new(flags))
     };
 
-    let should_main_be_visible = settings.window.visible;
-    let exit_on_close_request = settings.window.exit_on_close_request;
+    let id = settings.id;
+    let title = application.title(window::Id::MAIN);
 
-    let builder = conversion::window_settings(
-        settings.window,
-        &application.title(window::Id::MAIN),
-        event_loop.primary_monitor(),
-        settings.id,
-    )
-    .with_visible(false);
+    let (boot_sender, boot_receiver) = oneshot::channel();
+    let (event_sender, event_receiver) = mpsc::unbounded();
+    let (control_sender, control_receiver) = mpsc::unbounded();
 
-    log::info!("Window builder: {:#?}", builder);
-
-    let main_window = Arc::new(
-        builder
-            .build(&event_loop)
-            .map_err(Error::WindowCreationFailed)?,
-    );
-
-    #[cfg(target_arch = "wasm32")]
-    {
-        use winit::platform::web::WindowExtWebSys;
-
-        let canvas = main_window.canvas();
-
-        let window = web_sys::window().unwrap();
-        let document = window.document().unwrap();
-        let body = document.body().unwrap();
-
-        let target = target.and_then(|target| {
-            body.query_selector(&format!("#{}", target))
-                .ok()
-                .unwrap_or(None)
-        });
-
-        match target {
-            Some(node) => {
-                let _ = node
-                    .replace_with_with_node_1(&canvas)
-                    .expect(&format!("Could not replace #{}", node.id()));
-            }
-            None => {
-                let _ = body
-                    .append_child(&canvas)
-                    .expect("Append canvas to HTML body");
-            }
-        };
-    }
-
-    let mut compositor = C::new(compositor_settings, main_window.clone())?;
-
-    let mut window_manager = WindowManager::new();
-    let _ = window_manager.insert(
-        window::Id::MAIN,
-        main_window,
-        &application,
-        &mut compositor,
-        exit_on_close_request,
-    );
-
-    let (mut event_sender, event_receiver) = mpsc::unbounded();
-    let (control_sender, mut control_receiver) = mpsc::unbounded();
-
-    let mut instance = Box::pin(run_instance::<A, E, C>(
+    let instance = Box::pin(run_instance::<A, E, C>(
         application,
-        compositor,
         runtime,
         proxy,
+        boot_receiver,
         event_receiver,
         control_sender,
         init_command,
-        window_manager,
-        should_main_be_visible,
         boot_timer,
     ));
 
-    let mut context = task::Context::from_waker(task::noop_waker_ref());
+    let context = task::Context::from_waker(task::noop_waker_ref());
 
-    let process_event = move |event, event_loop: &winit::event_loop::EventLoopWindowTarget<_>| {
-        if event_loop.exiting() {
-            return;
-        }
-
-        event_sender
-            .start_send(Event::EventLoopAwakened(event))
-            .expect("Send event");
-
-        loop {
-            let poll = instance.as_mut().poll(&mut context);
-
-            match poll {
-                task::Poll::Pending => match control_receiver.try_next() {
-                    Ok(Some(control)) => match control {
-                        Control::ChangeFlow(flow) => {
-                            use winit::event_loop::ControlFlow;
-
-                            match (event_loop.control_flow(), flow) {
-                                (
-                                    ControlFlow::WaitUntil(current),
-                                    ControlFlow::WaitUntil(new),
-                                ) if new < current => {}
-                                (
-                                    ControlFlow::WaitUntil(target),
-                                    ControlFlow::Wait,
-                                ) if target > Instant::now() => {}
-                                _ => {
-                                    event_loop.set_control_flow(flow);
-                                }
-                            }
-                        }
-                        Control::CreateWindow {
-                            id,
-                            settings,
-                            title,
-                            monitor,
-                        } => {
-                            let exit_on_close_request =
-                                settings.exit_on_close_request;
-
-                            let window = conversion::window_settings(
-                                settings, &title, monitor, None,
-                            )
-                            .build(event_loop)
-                            .expect("Failed to build window");
-
-                            event_sender
-                                .start_send(Event::WindowCreated {
-                                    id,
-                                    window,
-                                    exit_on_close_request,
-                                })
-                                .expect("Send event");
-                        }
-                        Control::Exit => {
-                            event_loop.exit();
-                        }
-                    },
-                    _ => {
-                        break;
-                    }
-                },
-                task::Poll::Ready(_) => {
-                    event_loop.exit();
-                    break;
-                }
-            };
-        }
-    };
-
-    #[cfg(not(target_os = "windows"))]
-    let _ = event_loop.run(process_event);
-
-    // TODO: Remove when unnecessary
-    // On Windows, we emulate an `AboutToWait` event after every `Resized` event
-    // since the event loop does not resume during resize interaction.
-    // More details: https://github.com/rust-windowing/winit/issues/3272
-    #[cfg(target_os = "windows")]
-    {
-        let mut process_event = process_event;
-
-        let _ = event_loop.run(move |event, event_loop| {
-            if matches!(
-                event,
-                winit::event::Event::WindowEvent {
-                    event: winit::event::WindowEvent::Resized(_)
-                        | winit::event::WindowEvent::Moved(_),
-                    ..
-                }
-            ) {
-                process_event(event, event_loop);
-                process_event(winit::event::Event::AboutToWait, event_loop);
-            } else {
-                process_event(event, event_loop);
-            }
-        });
+    struct Runner<Message: 'static, F, C> {
+        instance: std::pin::Pin<Box<F>>,
+        context: task::Context<'static>,
+        boot: Option<BootConfig<C>>,
+        sender: mpsc::UnboundedSender<Event<Message>>,
+        receiver: mpsc::UnboundedReceiver<Control>,
+        error: Option<Error>,
     }
 
+    struct BootConfig<C> {
+        sender: oneshot::Sender<Boot<C>>,
+        id: Option<String>,
+        title: String,
+        window_settings: window::Settings,
+        graphics_settings: graphics::Settings,
+    }
+
+    let mut runner = Runner {
+        instance,
+        context,
+        boot: Some(BootConfig {
+            sender: boot_sender,
+            id,
+            title,
+            window_settings: settings.window,
+            graphics_settings,
+        }),
+        sender: event_sender,
+        receiver: control_receiver,
+        error: None,
+    };
+
+    impl<Message, F, C> winit::application::ApplicationHandler<Message>
+        for Runner<Message, F, C>
+    where
+        F: Future<Output = ()>,
+        C: Compositor,
+    {
+        fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+            let Some(BootConfig {
+                sender,
+                id,
+                title,
+                window_settings,
+                graphics_settings,
+            }) = self.boot.take()
+            else {
+                return;
+            };
+
+            let should_be_visible = window_settings.visible;
+            let exit_on_close_request = window_settings.exit_on_close_request;
+
+            let window_attributes = conversion::window_attributes(
+                window_settings,
+                &title,
+                event_loop.primary_monitor(),
+                id,
+            )
+            .with_visible(false);
+
+            log::debug!("Window attributes: {window_attributes:#?}");
+
+            let window = match event_loop.create_window(window_attributes) {
+                Ok(window) => Arc::new(window),
+                Err(error) => {
+                    self.error = Some(Error::WindowCreationFailed(error));
+                    event_loop.exit();
+                    return;
+                }
+            };
+
+            let finish_boot = async move {
+                let compositor =
+                    C::new(graphics_settings, window.clone()).await?;
+
+                sender
+                    .send(Boot {
+                        window,
+                        compositor,
+                        should_be_visible,
+                        exit_on_close_request,
+                    })
+                    .ok()
+                    .expect("Send boot event");
+
+                Ok::<_, graphics::Error>(())
+            };
+
+            if let Err(error) = executor::block_on(finish_boot) {
+                self.error = Some(Error::GraphicsCreationFailed(error));
+                event_loop.exit();
+            }
+        }
+
+        fn new_events(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            cause: winit::event::StartCause,
+        ) {
+            if self.boot.is_some() {
+                return;
+            }
+
+            self.process_event(
+                event_loop,
+                Event::EventLoopAwakened(winit::event::Event::NewEvents(cause)),
+            );
+        }
+
+        fn window_event(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            window_id: winit::window::WindowId,
+            event: winit::event::WindowEvent,
+        ) {
+            #[cfg(target_os = "windows")]
+            let is_move_or_resize = matches!(
+                event,
+                winit::event::WindowEvent::Resized(_)
+                    | winit::event::WindowEvent::Moved(_)
+            );
+
+            self.process_event(
+                event_loop,
+                Event::EventLoopAwakened(winit::event::Event::WindowEvent {
+                    window_id,
+                    event,
+                }),
+            );
+
+            // TODO: Remove when unnecessary
+            // On Windows, we emulate an `AboutToWait` event after every `Resized` event
+            // since the event loop does not resume during resize interaction.
+            // More details: https://github.com/rust-windowing/winit/issues/3272
+            #[cfg(target_os = "windows")]
+            {
+                if is_move_or_resize {
+                    self.process_event(
+                        event_loop,
+                        Event::EventLoopAwakened(
+                            winit::event::Event::AboutToWait,
+                        ),
+                    );
+                }
+            }
+        }
+
+        fn user_event(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            message: Message,
+        ) {
+            self.process_event(
+                event_loop,
+                Event::EventLoopAwakened(winit::event::Event::UserEvent(
+                    message,
+                )),
+            );
+        }
+
+        fn about_to_wait(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+        ) {
+            self.process_event(
+                event_loop,
+                Event::EventLoopAwakened(winit::event::Event::AboutToWait),
+            );
+        }
+    }
+
+    impl<Message, F, C> Runner<Message, F, C>
+    where
+        F: Future<Output = ()>,
+        C: Compositor,
+    {
+        fn process_event(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            event: Event<Message>,
+        ) {
+            if event_loop.exiting() {
+                return;
+            }
+
+            self.sender.start_send(event).expect("Send event");
+
+            loop {
+                let poll = self.instance.as_mut().poll(&mut self.context);
+
+                match poll {
+                    task::Poll::Pending => match self.receiver.try_next() {
+                        Ok(Some(control)) => match control {
+                            Control::ChangeFlow(flow) => {
+                                use winit::event_loop::ControlFlow;
+
+                                match (event_loop.control_flow(), flow) {
+                                    (
+                                        ControlFlow::WaitUntil(current),
+                                        ControlFlow::WaitUntil(new),
+                                    ) if new < current => {}
+                                    (
+                                        ControlFlow::WaitUntil(target),
+                                        ControlFlow::Wait,
+                                    ) if target > Instant::now() => {}
+                                    _ => {
+                                        event_loop.set_control_flow(flow);
+                                    }
+                                }
+                            }
+                            Control::CreateWindow {
+                                id,
+                                settings,
+                                title,
+                                monitor,
+                            } => {
+                                let exit_on_close_request =
+                                    settings.exit_on_close_request;
+
+                                let window = event_loop
+                                    .create_window(
+                                        conversion::window_attributes(
+                                            settings, &title, monitor, None,
+                                        ),
+                                    )
+                                    .expect("Create window");
+
+                                self.process_event(
+                                    event_loop,
+                                    Event::WindowCreated {
+                                        id,
+                                        window,
+                                        exit_on_close_request,
+                                    },
+                                );
+                            }
+                            Control::Exit => {
+                                event_loop.exit();
+                            }
+                        },
+                        _ => {
+                            break;
+                        }
+                    },
+                    task::Poll::Ready(_) => {
+                        event_loop.exit();
+                        break;
+                    }
+                };
+            }
+        }
+    }
+
+    let _ = event_loop.run_app(&mut runner);
+
     Ok(())
+}
+
+struct Boot<C> {
+    window: Arc<winit::window::Window>,
+    compositor: C,
+    should_be_visible: bool,
+    exit_on_close_request: bool,
 }
 
 enum Event<Message: 'static> {
@@ -335,29 +446,44 @@ enum Control {
 
 async fn run_instance<A, E, C>(
     mut application: A,
-    mut compositor: C,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
-    mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
+    mut proxy: Proxy<A::Message>,
+    mut boot: oneshot::Receiver<Boot<C>>,
     mut event_receiver: mpsc::UnboundedReceiver<Event<A::Message>>,
     mut control_sender: mpsc::UnboundedSender<Control>,
     init_command: Command<A::Message>,
-    mut window_manager: WindowManager<A, C>,
-    should_main_window_be_visible: bool,
     boot_timer: debug::Timer,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     use winit::event;
     use winit::event_loop::ControlFlow;
+
+    let Boot {
+        window: main_window,
+        mut compositor,
+        should_be_visible,
+        exit_on_close_request,
+    } = boot.try_recv().ok().flatten().expect("Receive boot");
+
+    let mut window_manager = WindowManager::new();
+
+    let _ = window_manager.insert(
+        window::Id::MAIN,
+        main_window.clone(),
+        &application,
+        &mut compositor,
+        exit_on_close_request,
+    );
 
     let main_window = window_manager
         .get_mut(window::Id::MAIN)
         .expect("Get main window");
 
-    if should_main_window_be_visible {
+    if should_be_visible {
         main_window.raw.set_visible(true);
     }
 
@@ -375,7 +501,15 @@ async fn run_instance<A, E, C>(
         )]
     };
 
-    let mut ui_caches = HashMap::new();
+    let mut ui_caches = FxHashMap::default();
+    let mut user_interfaces = ManuallyDrop::new(build_user_interfaces(
+        &application,
+        &mut window_manager,
+        FxHashMap::from_iter([(
+            window::Id::MAIN,
+            user_interface::Cache::default(),
+        )]),
+    ));
 
     run_command(
         &application,
@@ -392,16 +526,8 @@ async fn run_instance<A, E, C>(
     runtime.track(application.subscription().into_recipes());
     boot_timer.finish();
 
-    let mut user_interfaces = ManuallyDrop::new(build_user_interfaces(
-        &application,
-        &mut window_manager,
-        HashMap::from_iter([(
-            window::Id::MAIN,
-            user_interface::Cache::default(),
-        )]),
-    ));
-
     let mut messages = Vec::new();
+    let mut user_events = 0;
 
     'main: while let Some(event) = event_receiver.next().await {
         match event {
@@ -473,6 +599,7 @@ async fn run_instance<A, E, C>(
                     }
                     event::Event::UserEvent(message) => {
                         messages.push(message);
+                        user_events += 1;
                     }
                     event::Event::WindowEvent {
                         window_id: id,
@@ -521,7 +648,7 @@ async fn run_instance<A, E, C>(
                         draw_timer.finish();
 
                         if new_mouse_interaction != window.mouse_interaction {
-                            window.raw.set_cursor_icon(
+                            window.raw.set_cursor(
                                 conversion::mouse_interaction(
                                     new_mouse_interaction,
                                 ),
@@ -592,7 +719,7 @@ async fn run_instance<A, E, C>(
 
                             if new_mouse_interaction != window.mouse_interaction
                             {
-                                window.raw.set_cursor_icon(
+                                window.raw.set_cursor(
                                     conversion::mouse_interaction(
                                         new_mouse_interaction,
                                     ),
@@ -742,7 +869,7 @@ async fn run_instance<A, E, C>(
 
                         // TODO mw application update returns which window IDs to update
                         if !messages.is_empty() || uis_stale {
-                            let mut cached_interfaces: HashMap<
+                            let mut cached_interfaces: FxHashMap<
                                 window::Id,
                                 user_interface::Cache,
                             > = ManuallyDrop::into_inner(user_interfaces)
@@ -784,6 +911,11 @@ async fn run_instance<A, E, C>(
                                     &mut window_manager,
                                     cached_interfaces,
                                 ));
+
+                            if user_events > 0 {
+                                proxy.free_slots(user_events);
+                                user_events = 0;
+                            }
                         }
                     }
                     _ => {}
@@ -804,7 +936,7 @@ fn build_user_interface<'a, A: Application>(
     id: window::Id,
 ) -> UserInterface<'a, A::Message, A::Theme, A::Renderer>
 where
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     let view_timer = debug::view_time(id);
     let view = application.view(id);
@@ -825,13 +957,13 @@ fn update<A: Application, C, E: Executor>(
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
-    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
+    proxy: &mut Proxy<A::Message>,
     messages: &mut Vec<A::Message>,
     window_manager: &mut WindowManager<A, C>,
-    ui_caches: &mut HashMap<window::Id, user_interface::Cache>,
+    ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
 ) where
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     for message in messages.drain(..) {
         debug::log_message(&message);
@@ -865,14 +997,14 @@ fn run_command<A, C, E>(
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
-    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
+    proxy: &mut Proxy<A::Message>,
     window_manager: &mut WindowManager<A, C>,
-    ui_caches: &mut HashMap<window::Id, user_interface::Cache>,
+    ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
 ) where
     A: Application,
     E: Executor,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     use crate::runtime::clipboard;
     use crate::runtime::system;
@@ -890,9 +1022,7 @@ fn run_command<A, C, E>(
                 clipboard::Action::Read(tag, kind) => {
                     let message = tag(clipboard.read(kind));
 
-                    proxy
-                        .send_event(message)
-                        .expect("Send message to event loop");
+                    proxy.send(message);
                 }
                 clipboard::Action::Write(contents, kind) => {
                     clipboard.write(kind, contents);
@@ -944,18 +1074,12 @@ fn run_command<A, C, E>(
                             .to_logical(window.raw.scale_factor());
 
                         proxy
-                            .send_event(callback(Size::new(
-                                size.width,
-                                size.height,
-                            )))
-                            .expect("Send message to event loop");
+                            .send(callback(Size::new(size.width, size.height)));
                     }
                 }
                 window::Action::FetchMaximized(id, callback) => {
                     if let Some(window) = window_manager.get_mut(id) {
-                        proxy
-                            .send_event(callback(window.raw.is_maximized()))
-                            .expect("Send message to event loop");
+                        proxy.send(callback(window.raw.is_maximized()));
                     }
                 }
                 window::Action::Maximize(id, maximized) => {
@@ -965,9 +1089,7 @@ fn run_command<A, C, E>(
                 }
                 window::Action::FetchMinimized(id, callback) => {
                     if let Some(window) = window_manager.get_mut(id) {
-                        proxy
-                            .send_event(callback(window.raw.is_minimized()))
-                            .expect("Send message to event loop");
+                        proxy.send(callback(window.raw.is_minimized()));
                     }
                 }
                 window::Action::Minimize(id, minimized) => {
@@ -989,9 +1111,7 @@ fn run_command<A, C, E>(
                             })
                             .ok();
 
-                        proxy
-                            .send_event(callback(position))
-                            .expect("Send message to event loop");
+                        proxy.send(callback(position));
                     }
                 }
                 window::Action::Move(id, position) => {
@@ -1026,9 +1146,7 @@ fn run_command<A, C, E>(
                             core::window::Mode::Hidden
                         };
 
-                        proxy
-                            .send_event(tag(mode))
-                            .expect("Send message to event loop");
+                        proxy.send(tag(mode));
                     }
                 }
                 window::Action::ToggleMaximize(id) => {
@@ -1076,9 +1194,7 @@ fn run_command<A, C, E>(
                 }
                 window::Action::FetchId(id, tag) => {
                     if let Some(window) = window_manager.get_mut(id) {
-                        proxy
-                            .send_event(tag(window.raw.id().into()))
-                            .expect("Send message to event loop");
+                        proxy.send(tag(window.raw.id().into()));
                     }
                 }
                 window::Action::RunWithHandle(id, tag) => {
@@ -1088,9 +1204,7 @@ fn run_command<A, C, E>(
                         .get_mut(id)
                         .and_then(|window| window.raw.window_handle().ok())
                     {
-                        proxy
-                            .send_event(tag(&handle))
-                            .expect("Send message to event loop");
+                        proxy.send(tag(handle));
                     }
                 }
                 window::Action::Screenshot(id, tag) => {
@@ -1102,12 +1216,10 @@ fn run_command<A, C, E>(
                             window.state.background_color(),
                         );
 
-                        proxy
-                            .send_event(tag(window::Screenshot::new(
-                                bytes,
-                                window.state.physical_size(),
-                            )))
-                            .expect("Event loop doesn't exist.");
+                        proxy.send(tag(window::Screenshot::new(
+                            bytes,
+                            window.state.physical_size(),
+                        )));
                     }
                 }
             },
@@ -1116,7 +1228,7 @@ fn run_command<A, C, E>(
                     #[cfg(feature = "system")]
                     {
                         let graphics_info = compositor.fetch_information();
-                        let proxy = proxy.clone();
+                        let mut proxy = proxy.clone();
 
                         let _ = std::thread::spawn(move || {
                             let information =
@@ -1124,9 +1236,7 @@ fn run_command<A, C, E>(
 
                             let message = _tag(information);
 
-                            proxy
-                                .send_event(message)
-                                .expect("Event loop doesn't exist.");
+                            proxy.send(message);
                         });
                     }
                 }
@@ -1150,9 +1260,7 @@ fn run_command<A, C, E>(
                             match operation.finish() {
                                 operation::Outcome::None => {}
                                 operation::Outcome::Some(message) => {
-                                    proxy
-                                        .send_event(message)
-                                        .expect("Event loop doesn't exist.");
+                                    proxy.send(message);
 
                                     // operation completed, don't need to try to operate on rest of UIs
                                     break 'operate;
@@ -1169,17 +1277,10 @@ fn run_command<A, C, E>(
                     uis.drain().map(|(id, ui)| (id, ui.into_cache())).collect();
             }
             command::Action::LoadFont { bytes, tagger } => {
-                use crate::core::text::Renderer;
-
-                // TODO change this once we change each renderer to having a single backend reference.. :pain:
                 // TODO: Error handling (?)
-                for (_, window) in window_manager.iter_mut() {
-                    window.renderer.load_font(bytes.clone());
-                }
+                compositor.load_font(bytes.clone());
 
-                proxy
-                    .send_event(tagger(Ok(())))
-                    .expect("Send message to event loop");
+                proxy.send(tagger(Ok(())));
             }
             command::Action::Custom(_) => {
                 log::warn!("Unsupported custom action in `iced_winit` shell");
@@ -1189,14 +1290,14 @@ fn run_command<A, C, E>(
 }
 
 /// Build the user interface for every window.
-pub fn build_user_interfaces<'a, A: Application, C: Compositor>(
+pub fn build_user_interfaces<'a, A: Application, C>(
     application: &'a A,
     window_manager: &mut WindowManager<A, C>,
-    mut cached_user_interfaces: HashMap<window::Id, user_interface::Cache>,
-) -> HashMap<window::Id, UserInterface<'a, A::Message, A::Theme, A::Renderer>>
+    mut cached_user_interfaces: FxHashMap<window::Id, user_interface::Cache>,
+) -> FxHashMap<window::Id, UserInterface<'a, A::Message, A::Theme, A::Renderer>>
 where
-    A::Theme: StyleSheet,
     C: Compositor<Renderer = A::Renderer>,
+    A::Theme: DefaultStyle,
 {
     cached_user_interfaces
         .drain()

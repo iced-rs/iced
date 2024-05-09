@@ -40,16 +40,38 @@ where
 {
     /// Creates an empty [`Column`].
     pub fn new() -> Self {
-        Column {
+        Self::from_vecs(Vec::new(), Vec::new())
+    }
+
+    /// Creates a [`Column`] from already allocated [`Vec`]s.
+    ///
+    /// Keep in mind that the [`Column`] will not inspect the [`Vec`]s, which means
+    /// it won't automatically adapt to the sizing strategy of its contents.
+    ///
+    /// If any of the children have a [`Length::Fill`] strategy, you will need to
+    /// call [`Column::width`] or [`Column::height`] accordingly.
+    pub fn from_vecs(
+        keys: Vec<Key>,
+        children: Vec<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        Self {
             spacing: 0.0,
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
             max_width: f32::INFINITY,
             align_items: Alignment::Start,
-            keys: Vec::new(),
-            children: Vec::new(),
+            keys,
+            children,
         }
+    }
+
+    /// Creates a [`Column`] with the given capacity.
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self::from_vecs(
+            Vec::with_capacity(capacity),
+            Vec::with_capacity(capacity),
+        )
     }
 
     /// Creates a [`Column`] with the given elements.
@@ -58,9 +80,9 @@ where
             Item = (Key, Element<'a, Message, Theme, Renderer>),
         >,
     ) -> Self {
-        children
-            .into_iter()
-            .fold(Self::new(), |column, (key, child)| column.push(key, child))
+        let iterator = children.into_iter();
+
+        Self::with_capacity(iterator.size_hint().0).extend(iterator)
     }
 
     /// Sets the vertical spacing _between_ elements.
@@ -132,6 +154,18 @@ where
             self
         }
     }
+
+    /// Extends the [`Column`] with the given children.
+    pub fn extend(
+        self,
+        children: impl IntoIterator<
+            Item = (Key, Element<'a, Message, Theme, Renderer>),
+        >,
+    ) -> Self {
+        children
+            .into_iter()
+            .fold(self, |column, (key, child)| column.push(key, child))
+    }
 }
 
 impl<'a, Key, Message, Renderer> Default for Column<'a, Key, Message, Renderer>
@@ -190,7 +224,7 @@ where
         );
 
         if state.keys != self.keys {
-            state.keys = self.keys.clone();
+            state.keys.clone_from(&self.keys);
         }
     }
 

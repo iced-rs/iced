@@ -1,5 +1,5 @@
 use crate::core::time::SystemTime;
-use crate::style::theme;
+use crate::theme;
 use crate::{Input, Timing, SOCKET_ADDRESS};
 
 use tokio::io::{self, AsyncWriteExt};

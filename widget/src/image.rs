@@ -8,10 +8,9 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Rectangle, Size, Vector, Widget,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size,
+    Vector, Widget,
 };
-
-use std::hash::Hash;
 
 pub use image::{FilterMethod, Handle};
 
@@ -38,6 +37,8 @@ pub struct Image<Handle> {
     height: Length,
     content_fit: ContentFit,
     filter_method: FilterMethod,
+    rotation: Rotation,
+    opacity: f32,
 }
 
 impl<Handle> Image<Handle> {
@@ -47,8 +48,10 @@ impl<Handle> Image<Handle> {
             handle: handle.into(),
             width: Length::Shrink,
             height: Length::Shrink,
-            content_fit: ContentFit::Contain,
+            content_fit: ContentFit::default(),
             filter_method: FilterMethod::default(),
+            rotation: Rotation::default(),
+            opacity: 1.0,
         }
     }
 
@@ -77,6 +80,21 @@ impl<Handle> Image<Handle> {
         self.filter_method = filter_method;
         self
     }
+
+    /// Applies the given [`Rotation`] to the [`Image`].
+    pub fn rotation(mut self, rotation: impl Into<Rotation>) -> Self {
+        self.rotation = rotation.into();
+        self
+    }
+
+    /// Sets the opacity of the [`Image`].
+    ///
+    /// It should be in the [0.0, 1.0] range—`0.0` meaning completely transparent,
+    /// and `1.0` meaning completely opaque.
+    pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
+        self.opacity = opacity.into();
+        self
+    }
 }
 
 /// Computes the layout of an [`Image`].
@@ -87,22 +105,24 @@ pub fn layout<Renderer, Handle>(
     width: Length,
     height: Length,
     content_fit: ContentFit,
+    rotation: Rotation,
 ) -> layout::Node
 where
     Renderer: image::Renderer<Handle = Handle>,
 {
     // The raw w/h of the underlying image
-    let image_size = {
-        let Size { width, height } = renderer.dimensions(handle);
+    let image_size = renderer.measure_image(handle);
+    let image_size =
+        Size::new(image_size.width as f32, image_size.height as f32);
 
-        Size::new(width as f32, height as f32)
-    };
+    // The rotated size of the image
+    let rotated_size = rotation.apply(image_size);
 
     // The size to be available to the widget prior to `Shrink`ing
-    let raw_size = limits.resolve(width, height, image_size);
+    let raw_size = limits.resolve(width, height, rotated_size);
 
     // The uncropped size of the image when fit to the bounds above
-    let full_size = content_fit.fit(image_size, raw_size);
+    let full_size = content_fit.fit(rotated_size, raw_size);
 
     // Shrink the widget to fit the resized image, if requested
     let final_size = Size {
@@ -126,29 +146,47 @@ pub fn draw<Renderer, Handle>(
     handle: &Handle,
     content_fit: ContentFit,
     filter_method: FilterMethod,
+    rotation: Rotation,
+    opacity: f32,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash,
+    Handle: Clone,
 {
-    let Size { width, height } = renderer.dimensions(handle);
+    let Size { width, height } = renderer.measure_image(handle);
     let image_size = Size::new(width as f32, height as f32);
+    let rotated_size = rotation.apply(image_size);
 
     let bounds = layout.bounds();
-    let adjusted_fit = content_fit.fit(image_size, bounds.size());
+    let adjusted_fit = content_fit.fit(rotated_size, bounds.size());
+
+    let scale = Vector::new(
+        adjusted_fit.width / rotated_size.width,
+        adjusted_fit.height / rotated_size.height,
+    );
+
+    let final_size = image_size * scale;
+
+    let position = match content_fit {
+        ContentFit::None => Point::new(
+            bounds.x + (rotated_size.width - adjusted_fit.width) / 2.0,
+            bounds.y + (rotated_size.height - adjusted_fit.height) / 2.0,
+        ),
+        _ => Point::new(
+            bounds.center_x() - final_size.width / 2.0,
+            bounds.center_y() - final_size.height / 2.0,
+        ),
+    };
+
+    let drawing_bounds = Rectangle::new(position, final_size);
 
     let render = |renderer: &mut Renderer| {
-        let offset = Vector::new(
-            (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
-            (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
+        renderer.draw_image(
+            handle.clone(),
+            filter_method,
+            drawing_bounds,
+            rotation.radians(),
+            opacity,
         );
-
-        let drawing_bounds = Rectangle {
-            width: adjusted_fit.width,
-            height: adjusted_fit.height,
-            ..bounds
-        };
-
-        renderer.draw(handle.clone(), filter_method, drawing_bounds + offset);
     };
 
     if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
@@ -163,7 +201,7 @@ impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
     for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash,
+    Handle: Clone,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -185,6 +223,7 @@ where
             self.width,
             self.height,
             self.content_fit,
+            self.rotation,
         )
     }
 
@@ -204,6 +243,8 @@ where
             &self.handle,
             self.content_fit,
             self.filter_method,
+            self.rotation,
+            self.opacity,
         );
     }
 }
@@ -212,7 +253,7 @@ impl<'a, Message, Theme, Renderer, Handle> From<Image<Handle>>
     for Element<'a, Message, Theme, Renderer>
 where
     Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash + 'a,
+    Handle: Clone + 'a,
 {
     fn from(image: Image<Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(image)

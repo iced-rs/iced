@@ -6,7 +6,7 @@ use crate::pane_grid::{
     Axis, Configuration, Direction, Edge, Node, Pane, Region, Split, Target,
 };
 
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 /// The state of a [`PaneGrid`].
 ///
@@ -25,7 +25,7 @@ pub struct State<T> {
     /// The panes of the [`PaneGrid`].
     ///
     /// [`PaneGrid`]: super::PaneGrid
-    pub panes: HashMap<Pane, T>,
+    pub panes: FxHashMap<Pane, T>,
 
     /// The internal state of the [`PaneGrid`].
     ///
@@ -52,7 +52,7 @@ impl<T> State<T> {
 
     /// Creates a new [`State`] with the given [`Configuration`].
     pub fn with_configuration(config: impl Into<Configuration<T>>) -> Self {
-        let mut panes = HashMap::new();
+        let mut panes = FxHashMap::default();
 
         let internal =
             Internal::from_configuration(&mut panes, config.into(), 0);
@@ -353,7 +353,7 @@ impl Internal {
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub fn from_configuration<T>(
-        panes: &mut HashMap<Pane, T>,
+        panes: &mut FxHashMap<Pane, T>,
         content: Configuration<T>,
         next_id: usize,
     ) -> Self {

@@ -7,7 +7,7 @@ jobs:
   todos_linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: hecrj/setup-rust-action@v1
+    - uses: hecrj/setup-rust-action@v2
     - name: Install cargo-deb
       run: cargo install cargo-deb
     - uses: actions/checkout@master
@@ -36,7 +36,7 @@ jobs:
   todos_windows:
     runs-on: windows-latest
     steps:
-    - uses: hecrj/setup-rust-action@v1
+    - uses: hecrj/setup-rust-action@v2
     - uses: actions/checkout@master
     - name: Enable static CRT linkage
       run: |
@@ -56,7 +56,7 @@ jobs:
   todos_macos:
     runs-on: macOS-latest
     steps:
-    - uses: hecrj/setup-rust-action@v1
+    - uses: hecrj/setup-rust-action@v2
     - uses: actions/checkout@master
     - name: Build todos binary
       env:
@@ -73,7 +73,7 @@ jobs:
   todos_raspberry:
     runs-on: ubuntu-latest
     steps:
-    - uses: hecrj/setup-rust-action@v1
+    - uses: hecrj/setup-rust-action@v2
     - uses: actions/checkout@master
     - name: Install cross
       run: cargo install cross

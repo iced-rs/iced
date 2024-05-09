@@ -13,12 +13,13 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{Clipboard, Element, Length, Rectangle, Shell, Size};
-use crate::renderer::wgpu::primitive::pipeline;
+use crate::renderer::wgpu::primitive;
 
 use std::marker::PhantomData;
 
+pub use crate::graphics::Viewport;
 pub use crate::renderer::wgpu::wgpu;
-pub use pipeline::{Primitive, Storage};
+pub use primitive::{Primitive, Storage};
 
 /// A widget which can render custom shaders with Iced's `wgpu` backend.
 ///
@@ -60,7 +61,7 @@ impl<P, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Shader<Message, P>
 where
     P: Program<Message>,
-    Renderer: pipeline::Renderer,
+    Renderer: primitive::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         struct Tag<T>(T);
@@ -160,7 +161,7 @@ where
         let bounds = layout.bounds();
         let state = tree.state.downcast_ref::<P::State>();
 
-        renderer.draw_pipeline_primitive(
+        renderer.draw_primitive(
             bounds,
             self.program.draw(state, cursor_position, bounds),
         );
@@ -171,7 +172,7 @@ impl<'a, Message, Theme, Renderer, P> From<Shader<Message, P>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Renderer: pipeline::Renderer,
+    Renderer: primitive::Renderer,
     P: Program<Message> + 'a,
 {
     fn from(

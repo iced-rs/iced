@@ -22,7 +22,7 @@ fn rounded_box_sdf(to_center: vec2<f32>, size: vec2<f32>, radius: f32) -> f32 {
     return length(max(abs(to_center) - size + vec2<f32>(radius, radius), vec2<f32>(0.0, 0.0))) - radius;
 }
 
-// Based on the fragement position and the center of the quad, select one of the 4 radi.
+// Based on the fragment position and the center of the quad, select one of the 4 radi.
 // Order matches CSS border radius attribute:
 // radi.x = top-left, radi.y = top-right, radi.z = bottom-right, radi.w = bottom-left
 fn select_border_radius(radi: vec4<f32>, position: vec2<f32>, center: vec2<f32>) -> f32 {

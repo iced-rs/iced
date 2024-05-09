@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
@@ -32,6 +35,8 @@ glyphon.workspace = true
 guillotiere.workspace = true
 log.workspace = true
 once_cell.workspace = true
+rustc-hash.workspace = true
+thiserror.workspace = true
 wgpu.workspace = true
 
 lyon.workspace = true
@@ -39,6 +44,3 @@ lyon.optional = true
 
 resvg.workspace = true
 resvg.optional = true
-
-tracing.workspace = true
-tracing.optional = true

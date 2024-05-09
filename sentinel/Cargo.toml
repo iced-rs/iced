@@ -12,9 +12,7 @@ keywords.workspace = true
 
 [dependencies]
 iced_core.workspace = true
-
-iced_style.workspace = true
-iced_style.features = ["serde"]
+iced_core.features = ["serde"]
 
 bincode.workspace = true
 futures.workspace = true

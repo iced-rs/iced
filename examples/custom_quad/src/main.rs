@@ -81,13 +81,11 @@ mod quad {
     }
 }
 
-use iced::widget::{column, container, slider, text};
-use iced::{
-    Alignment, Color, Element, Length, Sandbox, Settings, Shadow, Vector,
-};
+use iced::widget::{center, column, slider, text};
+use iced::{Alignment, Color, Element, Shadow, Vector};
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::run("Custom Quad - Iced", Example::update, Example::view)
 }
 
 struct Example {
@@ -109,9 +107,7 @@ enum Message {
     ShadowBlurRadiusChanged(f32),
 }
 
-impl Sandbox for Example {
-    type Message = Message;
-
+impl Example {
     fn new() -> Self {
         Self {
             radius: [50.0; 4],
@@ -122,10 +118,6 @@ impl Sandbox for Example {
                 blur_radius: 16.0,
             },
         }
-    }
-
-    fn title(&self) -> String {
-        String::from("Custom widget - Iced")
     }
 
     fn update(&mut self, message: Message) {
@@ -195,11 +187,12 @@ impl Sandbox for Example {
         .max_width(500)
         .align_items(Alignment::Center);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).into()
+    }
+}
+
+impl Default for Example {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -1,21 +1,19 @@
 use iced::event::{self, Event};
-use iced::executor;
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{
-    self, button, column, container, pick_list, row, slider, text, text_input,
+    self, button, center, column, pick_list, row, slider, text, text_input,
 };
-use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
-};
+use iced::{Alignment, Command, Element, Length, Subscription};
 
 use toast::{Status, Toast};
 
 pub fn main() -> iced::Result {
-    App::run(Settings::default())
+    iced::program("Toast - Iced", App::update, App::view)
+        .subscription(App::subscription)
+        .run()
 }
 
-#[derive(Default)]
 struct App {
     toasts: Vec<Toast>,
     editing: Toast,
@@ -34,32 +32,20 @@ enum Message {
     Event(Event),
 }
 
-impl Application for App {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = iced::Theme;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            App {
-                toasts: vec![Toast {
-                    title: "Example Toast".into(),
-                    body: "Add more toasts in the form below!".into(),
-                    status: Status::Primary,
-                }],
-                timeout_secs: toast::DEFAULT_TIMEOUT,
-                ..Default::default()
-            },
-            Command::none(),
-        )
+impl App {
+    fn new() -> Self {
+        App {
+            toasts: vec![Toast {
+                title: "Example Toast".into(),
+                body: "Add more toasts in the form below!".into(),
+                status: Status::Primary,
+            }],
+            timeout_secs: toast::DEFAULT_TIMEOUT,
+            editing: Toast::default(),
+        }
     }
 
-    fn title(&self) -> String {
-        String::from("Toast - Iced")
-    }
-
-    fn subscription(&self) -> Subscription<Self::Message> {
+    fn subscription(&self) -> Subscription<Message> {
         event::listen().map(Message::Event)
     }
 
@@ -106,8 +92,8 @@ impl Application for App {
         }
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Message> {
-        let subtitle = |title, content: Element<'a, Message>| {
+    fn view(&self) -> Element<'_, Message> {
+        let subtitle = |title, content: Element<'static, Message>| {
             column![text(title).size(14), content].spacing(5)
         };
 
@@ -116,7 +102,7 @@ impl Application for App {
                 .then_some(Message::Add),
         );
 
-        let content = container(
+        let content = center(
             column![
                 subtitle(
                     "Title",
@@ -160,15 +146,17 @@ impl Application for App {
             ]
             .spacing(10)
             .max_width(200),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y();
+        );
 
         toast::Manager::new(content, &self.toasts, Message::Close)
             .timeout(self.timeout_secs)
             .into()
+    }
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -207,27 +195,6 @@ mod toast {
     impl Status {
         pub const ALL: &'static [Self] =
             &[Self::Primary, Self::Secondary, Self::Success, Self::Danger];
-    }
-
-    impl container::StyleSheet for Status {
-        type Style = Theme;
-
-        fn appearance(&self, theme: &Theme) -> container::Appearance {
-            let palette = theme.extended_palette();
-
-            let pair = match self {
-                Status::Primary => palette.primary.weak,
-                Status::Secondary => palette.secondary.weak,
-                Status::Success => palette.success.weak,
-                Status::Danger => palette.danger.weak,
-            };
-
-            container::Appearance {
-                background: Some(pair.color.into()),
-                text_color: pair.text.into(),
-                ..Default::default()
-            }
-        }
     }
 
     impl fmt::Display for Status {
@@ -282,14 +249,17 @@ mod toast {
                         )
                         .width(Length::Fill)
                         .padding(5)
-                        .style(
-                            theme::Container::Custom(Box::new(toast.status))
-                        ),
+                        .style(match toast.status {
+                            Status::Primary => primary,
+                            Status::Secondary => secondary,
+                            Status::Success => success,
+                            Status::Danger => danger,
+                        }),
                         horizontal_rule(1),
                         container(text(toast.body.as_str()))
                             .width(Length::Fill)
                             .padding(5)
-                            .style(theme::Container::Box),
+                            .style(container::rounded_box),
                     ])
                     .max_width(200)
                     .into()
@@ -675,5 +645,37 @@ mod toast {
         fn from(manager: Manager<'a, Message>) -> Self {
             Element::new(manager)
         }
+    }
+
+    fn styled(pair: theme::palette::Pair) -> container::Style {
+        container::Style {
+            background: Some(pair.color.into()),
+            text_color: pair.text.into(),
+            ..Default::default()
+        }
+    }
+
+    fn primary(theme: &Theme) -> container::Style {
+        let palette = theme.extended_palette();
+
+        styled(palette.primary.weak)
+    }
+
+    fn secondary(theme: &Theme) -> container::Style {
+        let palette = theme.extended_palette();
+
+        styled(palette.secondary.weak)
+    }
+
+    fn success(theme: &Theme) -> container::Style {
+        let palette = theme.extended_palette();
+
+        styled(palette.success.weak)
+    }
+
+    fn danger(theme: &Theme) -> container::Style {
+        let palette = theme.extended_palette();
+
+        styled(palette.danger.weak)
     }
 }

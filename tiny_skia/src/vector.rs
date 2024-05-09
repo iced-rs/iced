@@ -4,11 +4,13 @@ use crate::graphics::text;
 
 use resvg::usvg::{self, TreeTextToPath};
 use rustc_hash::{FxHashMap, FxHashSet};
+use tiny_skia::Transform;
 
 use std::cell::RefCell;
 use std::collections::hash_map;
 use std::fs;
 
+#[derive(Debug)]
 pub struct Pipeline {
     cache: RefCell<Cache>,
 }
@@ -32,7 +34,9 @@ impl Pipeline {
         handle: &Handle,
         color: Option<Color>,
         bounds: Rectangle,
+        opacity: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
+        transform: Transform,
         clip_mask: Option<&tiny_skia::Mask>,
     ) {
         if let Some(image) = self.cache.borrow_mut().draw(
@@ -44,8 +48,11 @@ impl Pipeline {
                 bounds.x as i32,
                 bounds.y as i32,
                 image,
-                &tiny_skia::PixmapPaint::default(),
-                tiny_skia::Transform::identity(),
+                &tiny_skia::PixmapPaint {
+                    opacity,
+                    ..tiny_skia::PixmapPaint::default()
+                },
+                transform,
                 clip_mask,
             );
         }
@@ -201,5 +208,15 @@ impl Cache {
 
         self.tree_hits.clear();
         self.raster_hits.clear();
+    }
+}
+
+impl std::fmt::Debug for Cache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Cache")
+            .field("tree_hits", &self.tree_hits)
+            .field("rasters", &self.rasters)
+            .field("raster_hits", &self.raster_hits)
+            .finish_non_exhaustive()
     }
 }

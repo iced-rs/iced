@@ -98,8 +98,8 @@ that can be incremented and decremented using two buttons.
 We start by modelling the __state__ of our application:
 
 ```rust
+#[derive(Default)]
 struct Counter {
-    // The counter value
     value: i32,
 }
 ```
@@ -110,8 +110,8 @@ the button presses. These interactions are our __messages__:
 ```rust
 #[derive(Debug, Clone, Copy)]
 pub enum Message {
-    IncrementPressed,
-    DecrementPressed,
+    Increment,
+    Decrement,
 }
 ```
 
@@ -126,15 +126,15 @@ impl Counter {
         // We use a column: a simple vertical layout
         column![
             // The increment button. We tell it to produce an
-            // `IncrementPressed` message when pressed
-            button("+").on_press(Message::IncrementPressed),
+            // `Increment` message when pressed
+            button("+").on_press(Message::Increment),
 
             // We show the value of the counter here
             text(self.value).size(50),
 
             // The decrement button. We tell it to produce a
-            // `DecrementPressed` message when pressed
-            button("-").on_press(Message::DecrementPressed),
+            // `Decrement` message when pressed
+            button("-").on_press(Message::Decrement),
         ]
     }
 }
@@ -149,10 +149,10 @@ impl Counter {
 
     pub fn update(&mut self, message: Message) {
         match message {
-            Message::IncrementPressed => {
+            Message::Increment => {
                 self.value += 1;
             }
-            Message::DecrementPressed => {
+            Message::Decrement => {
                 self.value -= 1;
             }
         }
@@ -160,15 +160,22 @@ impl Counter {
 }
 ```
 
-And that's everything! We just wrote a whole user interface. Iced is now able
-to:
+And that's everything! We just wrote a whole user interface. Let's run it:
+
+```rust
+fn main() -> iced::Result {
+    iced::run("A cool counter", Counter::update, Counter::view)
+}
+```
+
+Iced will automatically:
 
   1. Take the result of our __view logic__ and layout its widgets.
   1. Process events from our system and produce __messages__ for our
      __update logic__.
   1. Draw the resulting user interface.
 
-Browse the [documentation] and the [examples] to learn more!
+Read the [book], the [documentation], and the [examples] to learn more!
 
 ## Implementation details
 
@@ -208,6 +215,7 @@ come chat to [our Discord server].
 
 The development of Iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 
+[book]: https://book.iced.rs/
 [documentation]: https://docs.rs/iced/
 [examples]: https://github.com/iced-rs/iced/tree/master/examples
 [Coffee]: https://github.com/hecrj/coffee

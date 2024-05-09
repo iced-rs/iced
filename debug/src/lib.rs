@@ -1,8 +1,7 @@
 pub use iced_core as core;
-pub use iced_style as style;
 
+use crate::core::theme;
 use crate::core::window;
-use crate::style::theme;
 
 pub use internal::Timer;
 
@@ -52,9 +51,9 @@ pub fn skip_next_timing() {
 
 #[cfg(feature = "enable")]
 mod internal {
+    use crate::core::theme;
     use crate::core::time::{Instant, SystemTime};
     use crate::core::window;
-    use crate::style::theme;
 
     use iced_sentinel::client::{self, Client};
     use iced_sentinel::timing::{self, Timing};

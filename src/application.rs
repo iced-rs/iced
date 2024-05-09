@@ -1,7 +1,10 @@
 //! Build interactive cross-platform applications.
+use crate::core::text;
+use crate::graphics::compositor;
+use crate::shell::application;
 use crate::{Command, Element, Executor, Settings, Subscription};
 
-pub use crate::style::application::{Appearance, StyleSheet};
+pub use application::{Appearance, DefaultStyle};
 
 /// An interactive cross-platform application.
 ///
@@ -13,9 +16,7 @@ pub use crate::style::application::{Appearance, StyleSheet};
 ///   document.
 ///
 /// An [`Application`] can execute asynchronous actions by returning a
-/// [`Command`] in some of its methods. If you do not intend to perform any
-/// background work in your program, the [`Sandbox`] trait offers a simplified
-/// interface.
+/// [`Command`] in some of its methods.
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
@@ -59,8 +60,9 @@ pub use crate::style::application::{Appearance, StyleSheet};
 /// says "Hello, world!":
 ///
 /// ```no_run
+/// use iced::advanced::Application;
 /// use iced::executor;
-/// use iced::{Application, Command, Element, Settings, Theme};
+/// use iced::{Command, Element, Settings, Theme, Renderer};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
@@ -73,6 +75,7 @@ pub use crate::style::application::{Appearance, StyleSheet};
 ///     type Flags = ();
 ///     type Message = ();
 ///     type Theme = Theme;
+///     type Renderer = Renderer;
 ///
 ///     fn new(_flags: ()) -> (Hello, Command<Self::Message>) {
 ///         (Hello, Command::none())
@@ -91,7 +94,10 @@ pub use crate::style::application::{Appearance, StyleSheet};
 ///     }
 /// }
 /// ```
-pub trait Application: Sized {
+pub trait Application: Sized
+where
+    Self::Theme: DefaultStyle,
+{
     /// The [`Executor`] that will run commands and subscriptions.
     ///
     /// The [default executor] can be a good starting point!
@@ -104,7 +110,10 @@ pub trait Application: Sized {
     type Message: std::fmt::Debug + Send;
 
     /// The theme of your [`Application`].
-    type Theme: Default + StyleSheet;
+    type Theme: Default;
+
+    /// The renderer of your [`Application`].
+    type Renderer: text::Renderer + compositor::Default;
 
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -139,7 +148,7 @@ pub trait Application: Sized {
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> Element<'_, Self::Message, Self::Theme, crate::Renderer>;
+    fn view(&self) -> Element<'_, Self::Message, Self::Theme, Self::Renderer>;
 
     /// Returns the current [`Theme`] of the [`Application`].
     ///
@@ -148,11 +157,9 @@ pub trait Application: Sized {
         Self::Theme::default()
     }
 
-    /// Returns the current `Style` of the [`Theme`].
-    ///
-    /// [`Theme`]: Self::Theme
-    fn style(&self) -> <Self::Theme as StyleSheet>::Style {
-        <Self::Theme as StyleSheet>::Style::default()
+    /// Returns the current [`Appearance`] of the [`Application`].
+    fn style(&self, theme: &Self::Theme) -> Appearance {
+        theme.default_style()
     }
 
     /// Returns the event [`Subscription`] for the current state of the
@@ -194,7 +201,7 @@ pub trait Application: Sized {
         Self: 'static,
     {
         #[allow(clippy::needless_update)]
-        let renderer_settings = crate::renderer::Settings {
+        let renderer_settings = crate::graphics::Settings {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
             antialiasing: if settings.antialiasing {
@@ -202,26 +209,30 @@ pub trait Application: Sized {
             } else {
                 None
             },
-            ..crate::renderer::Settings::default()
+            ..crate::graphics::Settings::default()
         };
 
         Ok(crate::shell::application::run::<
             Instance<Self>,
             Self::Executor,
-            crate::renderer::Compositor,
+            <Self::Renderer as compositor::Default>::Compositor,
         >(settings.into(), renderer_settings)?)
     }
 }
 
-struct Instance<A: Application>(A);
+struct Instance<A>(A)
+where
+    A: Application,
+    A::Theme: DefaultStyle;
 
 impl<A> crate::runtime::Program for Instance<A>
 where
     A: Application,
+    A::Theme: DefaultStyle,
 {
     type Message = A::Message;
     type Theme = A::Theme;
-    type Renderer = crate::Renderer;
+    type Renderer = A::Renderer;
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.0.update(message)
@@ -232,9 +243,10 @@ where
     }
 }
 
-impl<A> crate::shell::Application for Instance<A>
+impl<A> application::Application for Instance<A>
 where
     A: Application,
+    A::Theme: DefaultStyle,
 {
     type Flags = A::Flags;
 
@@ -252,8 +264,8 @@ where
         self.0.theme()
     }
 
-    fn style(&self) -> <A::Theme as StyleSheet>::Style {
-        self.0.style()
+    fn style(&self, theme: &A::Theme) -> Appearance {
+        self.0.style(theme)
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {

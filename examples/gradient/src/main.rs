@@ -1,23 +1,17 @@
-use iced::application;
-use iced::theme::{self, Theme};
+use iced::gradient;
+use iced::program;
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text,
 };
-use iced::{gradient, window};
-use iced::{
-    Alignment, Background, Color, Element, Length, Radians, Sandbox, Settings,
-};
+use iced::{Alignment, Color, Element, Length, Radians, Theme};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    Gradient::run(Settings {
-        window: window::Settings {
-            transparent: true,
-            ..Default::default()
-        },
-        ..Default::default()
-    })
+    iced::program("Gradient - Iced", Gradient::update, Gradient::view)
+        .style(Gradient::style)
+        .transparent(true)
+        .run()
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -36,9 +30,7 @@ enum Message {
     TransparentToggled(bool),
 }
 
-impl Sandbox for Gradient {
-    type Message = Message;
-
+impl Gradient {
     fn new() -> Self {
         Self {
             start: Color::WHITE,
@@ -46,10 +38,6 @@ impl Sandbox for Gradient {
             angle: Radians(0.0),
             transparent: false,
         }
-    }
-
-    fn title(&self) -> String {
-        String::from("Gradient")
     }
 
     fn update(&mut self, message: Message) {
@@ -72,19 +60,15 @@ impl Sandbox for Gradient {
         } = *self;
 
         let gradient_box = container(horizontal_space())
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .style(move |_: &_| {
+            .style(move |_theme| {
                 let gradient = gradient::Linear::new(angle)
                     .add_stop(0.0, start)
-                    .add_stop(1.0, end)
-                    .into();
+                    .add_stop(1.0, end);
 
-                container::Appearance {
-                    background: Some(Background::Gradient(gradient)),
-                    ..Default::default()
-                }
-            });
+                gradient.into()
+            })
+            .width(Length::Fill)
+            .height(Length::Fill);
 
         let angle_picker = row![
             text("Angle").width(64),
@@ -111,17 +95,23 @@ impl Sandbox for Gradient {
         .into()
     }
 
-    fn style(&self) -> theme::Application {
+    fn style(&self, theme: &Theme) -> program::Appearance {
+        use program::DefaultStyle;
+
         if self.transparent {
-            theme::Application::custom(|theme: &Theme| {
-                application::Appearance {
-                    background_color: Color::TRANSPARENT,
-                    text_color: theme.palette().text,
-                }
-            })
+            program::Appearance {
+                background_color: Color::TRANSPARENT,
+                text_color: theme.palette().text,
+            }
         } else {
-            theme::Application::Default
+            Theme::default_style(theme)
         }
+    }
+}
+
+impl Default for Gradient {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

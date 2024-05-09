@@ -8,16 +8,16 @@ use crate::core::touch;
 use crate::core::window;
 use crate::core::{Event, Point, Size};
 
-/// Converts some [`window::Settings`] into a `WindowBuilder` from `winit`.
-pub fn window_settings(
+/// Converts some [`window::Settings`] into some `WindowAttributes` from `winit`.
+pub fn window_attributes(
     settings: window::Settings,
     title: &str,
     primary_monitor: Option<winit::monitor::MonitorHandle>,
     _id: Option<String>,
-) -> winit::window::WindowBuilder {
-    let mut window_builder = winit::window::WindowBuilder::new();
+) -> winit::window::WindowAttributes {
+    let mut attributes = winit::window::WindowAttributes::default();
 
-    window_builder = window_builder
+    attributes = attributes
         .with_title(title)
         .with_inner_size(winit::dpi::LogicalSize {
             width: settings.size.width,
@@ -39,23 +39,21 @@ pub fn window_settings(
     if let Some(position) =
         position(primary_monitor.as_ref(), settings.size, settings.position)
     {
-        window_builder = window_builder.with_position(position);
+        attributes = attributes.with_position(position);
     }
 
     if let Some(min_size) = settings.min_size {
-        window_builder =
-            window_builder.with_min_inner_size(winit::dpi::LogicalSize {
-                width: min_size.width,
-                height: min_size.height,
-            });
+        attributes = attributes.with_min_inner_size(winit::dpi::LogicalSize {
+            width: min_size.width,
+            height: min_size.height,
+        });
     }
 
     if let Some(max_size) = settings.max_size {
-        window_builder =
-            window_builder.with_max_inner_size(winit::dpi::LogicalSize {
-                width: max_size.width,
-                height: max_size.height,
-            });
+        attributes = attributes.with_max_inner_size(winit::dpi::LogicalSize {
+            width: max_size.width,
+            height: max_size.height,
+        });
     }
 
     #[cfg(any(
@@ -65,35 +63,33 @@ pub fn window_settings(
         target_os = "openbsd"
     ))]
     {
-        // `with_name` is available on both `WindowBuilderExtWayland` and `WindowBuilderExtX11` and they do
-        // exactly the same thing. We arbitrarily choose `WindowBuilderExtWayland` here.
-        use ::winit::platform::wayland::WindowBuilderExtWayland;
+        use ::winit::platform::wayland::WindowAttributesExtWayland;
 
         if let Some(id) = _id {
-            window_builder = window_builder.with_name(id.clone(), id);
+            attributes = attributes.with_name(id.clone(), id);
         }
     }
 
     #[cfg(target_os = "windows")]
     {
-        use winit::platform::windows::WindowBuilderExtWindows;
+        use winit::platform::windows::WindowAttributesExtWindows;
         #[allow(unsafe_code)]
         unsafe {
-            window_builder = window_builder
+            attributes = attributes
                 .with_parent_window(settings.platform_specific.parent);
         }
-        window_builder = window_builder
+        attributes = attributes
             .with_drag_and_drop(settings.platform_specific.drag_and_drop);
 
-        window_builder = window_builder
+        attributes = attributes
             .with_skip_taskbar(settings.platform_specific.skip_taskbar);
     }
 
     #[cfg(target_os = "macos")]
     {
-        use winit::platform::macos::WindowBuilderExtMacOS;
+        use winit::platform::macos::WindowAttributesExtMacOS;
 
-        window_builder = window_builder
+        attributes = attributes
             .with_title_hidden(settings.platform_specific.title_hidden)
             .with_titlebar_transparent(
                 settings.platform_specific.titlebar_transparent,
@@ -107,25 +103,25 @@ pub fn window_settings(
     {
         #[cfg(feature = "x11")]
         {
-            use winit::platform::x11::WindowBuilderExtX11;
+            use winit::platform::x11::WindowAttributesExtX11;
 
-            window_builder = window_builder.with_name(
+            attributes = attributes.with_name(
                 &settings.platform_specific.application_id,
                 &settings.platform_specific.application_id,
             );
         }
         #[cfg(feature = "wayland")]
         {
-            use winit::platform::wayland::WindowBuilderExtWayland;
+            use winit::platform::wayland::WindowAttributesExtWayland;
 
-            window_builder = window_builder.with_name(
+            attributes = attributes.with_name(
                 &settings.platform_specific.application_id,
                 &settings.platform_specific.application_id,
             );
         }
     }
 
-    window_builder
+    attributes
 }
 
 /// Converts a winit window event into an iced event.
@@ -396,7 +392,9 @@ pub fn mouse_interaction(
     use mouse::Interaction;
 
     match interaction {
-        Interaction::Idle => winit::window::CursorIcon::Default,
+        Interaction::None | Interaction::Idle => {
+            winit::window::CursorIcon::Default
+        }
         Interaction::Pointer => winit::window::CursorIcon::Pointer,
         Interaction::Working => winit::window::CursorIcon::Progress,
         Interaction::Grab => winit::window::CursorIcon::Grab,

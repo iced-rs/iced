@@ -1,5 +1,4 @@
 //! Build and show dropdown menus.
-use crate::container::{self, Container};
 use crate::core::alignment;
 use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
@@ -10,24 +9,25 @@ use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
-    Border, Clipboard, Length, Padding, Pixels, Point, Rectangle, Size, Vector,
+    Background, Border, Clipboard, Color, Length, Padding, Pixels, Point,
+    Rectangle, Size, Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
-
-pub use iced_style::menu::{Appearance, StyleSheet};
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
 pub struct Menu<
     'a,
+    'b,
     T,
     Message,
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: StyleSheet,
+    Theme: Catalog,
     Renderer: text::Renderer,
+    'b: 'a,
 {
     state: &'a mut State,
     options: &'a [T],
@@ -40,24 +40,27 @@ pub struct Menu<
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: Theme::Style,
+    class: &'a <Theme as Catalog>::Class<'b>,
 }
 
-impl<'a, T, Message, Theme, Renderer> Menu<'a, T, Message, Theme, Renderer>
+impl<'a, 'b, T, Message, Theme, Renderer>
+    Menu<'a, 'b, T, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
-    Theme: StyleSheet + container::StyleSheet + scrollable::StyleSheet + 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
+    'b: 'a,
 {
-    /// Creates a new [`Menu`] with the given [`State`], a list of options, and
-    /// the message to produced when an option is selected.
+    /// Creates a new [`Menu`] with the given [`State`], a list of options,
+    /// the message to produced when an option is selected, and its [`Style`].
     pub fn new(
         state: &'a mut State,
         options: &'a [T],
         hovered_option: &'a mut Option<usize>,
         on_selected: impl FnMut(T) -> Message + 'a,
         on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
+        class: &'a <Theme as Catalog>::Class<'b>,
     ) -> Self {
         Menu {
             state,
@@ -71,7 +74,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
-            style: Default::default(),
+            class,
         }
     }
 
@@ -111,15 +114,6 @@ where
     /// Sets the font of the [`Menu`].
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = Some(font.into());
-        self
-    }
-
-    /// Sets the style of the [`Menu`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Theme as StyleSheet>::Style>,
-    ) -> Self {
-        self.style = style.into();
         self
     }
 
@@ -163,28 +157,29 @@ impl Default for State {
     }
 }
 
-struct Overlay<'a, Message, Theme, Renderer>
+struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + container::StyleSheet,
+    Theme: Catalog,
     Renderer: crate::core::Renderer,
 {
     position: Point,
     state: &'a mut Tree,
-    container: Container<'a, Message, Theme, Renderer>,
+    list: Scrollable<'a, Message, Theme, Renderer>,
     width: f32,
     target_height: f32,
-    style: <Theme as StyleSheet>::Style,
+    class: &'a <Theme as Catalog>::Class<'b>,
 }
 
-impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer>
+impl<'a, 'b, Message, Theme, Renderer> Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + container::StyleSheet + scrollable::StyleSheet + 'a,
+    Theme: Catalog + scrollable::Catalog + 'a,
     Renderer: text::Renderer + 'a,
+    'b: 'a,
 {
     pub fn new<T>(
         position: Point,
-        menu: Menu<'a, T, Message, Theme, Renderer>,
+        menu: Menu<'a, 'b, T, Message, Theme, Renderer>,
         target_height: f32,
     ) -> Self
     where
@@ -202,40 +197,43 @@ where
             text_size,
             text_line_height,
             text_shaping,
-            style,
+            class,
         } = menu;
 
-        let container = Container::new(Scrollable::new(List {
-            options,
-            hovered_option,
-            on_selected,
-            on_option_hovered,
-            font,
-            text_size,
-            text_line_height,
-            text_shaping,
-            padding,
-            style: style.clone(),
-        }));
+        let list = Scrollable::with_direction(
+            List {
+                options,
+                hovered_option,
+                on_selected,
+                on_option_hovered,
+                font,
+                text_size,
+                text_line_height,
+                text_shaping,
+                padding,
+                class,
+            },
+            scrollable::Direction::default(),
+        );
 
-        state.tree.diff(&container as &dyn Widget<_, _, _>);
+        state.tree.diff(&list as &dyn Widget<_, _, _>);
 
         Self {
             position,
             state: &mut state.tree,
-            container,
+            list,
             width,
             target_height,
-            style,
+            class,
         }
     }
 }
 
-impl<'a, Message, Theme, Renderer>
+impl<'a, 'b, Message, Theme, Renderer>
     crate::core::Overlay<Message, Theme, Renderer>
-    for Overlay<'a, Message, Theme, Renderer>
+    for Overlay<'a, 'b, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + container::StyleSheet,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
@@ -256,7 +254,7 @@ where
         )
         .width(self.width);
 
-        let node = self.container.layout(self.state, renderer, &limits);
+        let node = self.list.layout(self.state, renderer, &limits);
         let size = node.size();
 
         node.move_to(if space_below > space_above {
@@ -277,7 +275,7 @@ where
     ) -> event::Status {
         let bounds = layout.bounds();
 
-        self.container.on_event(
+        self.list.on_event(
             self.state, event, layout, cursor, renderer, clipboard, shell,
             &bounds,
         )
@@ -290,7 +288,7 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.container
+        self.list
             .mouse_interaction(self.state, layout, cursor, viewport, renderer)
     }
 
@@ -298,30 +296,32 @@ where
         &self,
         renderer: &mut Renderer,
         theme: &Theme,
-        style: &renderer::Style,
+        defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        let appearance = StyleSheet::appearance(theme, &self.style);
         let bounds = layout.bounds();
+
+        let style = Catalog::style(theme, self.class);
 
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border: appearance.border,
+                border: style.border,
                 ..renderer::Quad::default()
             },
-            appearance.background,
+            style.background,
         );
 
-        self.container
-            .draw(self.state, renderer, theme, style, layout, cursor, &bounds);
+        self.list.draw(
+            self.state, renderer, theme, defaults, layout, cursor, &bounds,
+        );
     }
 }
 
-struct List<'a, T, Message, Theme, Renderer>
+struct List<'a, 'b, T, Message, Theme, Renderer>
 where
-    Theme: StyleSheet,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     options: &'a [T],
@@ -333,14 +333,14 @@ where
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: Theme::Style,
+    class: &'a <Theme as Catalog>::Class<'b>,
 }
 
-impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for List<'a, T, Message, Theme, Renderer>
+impl<'a, 'b, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for List<'a, 'b, T, Message, Theme, Renderer>
 where
     T: Clone + ToString,
-    Theme: StyleSheet,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn size(&self) -> Size<Length> {
@@ -483,7 +483,7 @@ where
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let appearance = theme.appearance(&self.style);
+        let style = Catalog::style(theme, self.class);
         let bounds = layout.bounds();
 
         let text_size =
@@ -513,20 +513,20 @@ where
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: Rectangle {
-                            x: bounds.x + appearance.border.width,
-                            width: bounds.width - appearance.border.width * 2.0,
+                            x: bounds.x + style.border.width,
+                            width: bounds.width - style.border.width * 2.0,
                             ..bounds
                         },
-                        border: Border::with_radius(appearance.border.radius),
+                        border: Border::rounded(style.border.radius),
                         ..renderer::Quad::default()
                     },
-                    appearance.selected_background,
+                    style.selected_background,
                 );
             }
 
             renderer.fill_text(
                 Text {
-                    content: &option.to_string(),
+                    content: option.to_string(),
                     bounds: Size::new(f32::INFINITY, bounds.height),
                     size: text_size,
                     line_height: self.text_line_height,
@@ -537,9 +537,9 @@ where
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if is_selected {
-                    appearance.selected_text_color
+                    style.selected_text_color
                 } else {
-                    appearance.text_color
+                    style.text_color
                 },
                 *viewport,
             );
@@ -547,16 +547,81 @@ where
     }
 }
 
-impl<'a, T, Message, Theme, Renderer>
-    From<List<'a, T, Message, Theme, Renderer>>
+impl<'a, 'b, T, Message, Theme, Renderer>
+    From<List<'a, 'b, T, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
-    Theme: StyleSheet + 'a,
+    Theme: 'a + Catalog,
     Renderer: 'a + text::Renderer,
+    'b: 'a,
 {
-    fn from(list: List<'a, T, Message, Theme, Renderer>) -> Self {
+    fn from(list: List<'a, 'b, T, Message, Theme, Renderer>) -> Self {
         Element::new(list)
+    }
+}
+
+/// The appearance of a [`Menu`].
+#[derive(Debug, Clone, Copy)]
+pub struct Style {
+    /// The [`Background`] of the menu.
+    pub background: Background,
+    /// The [`Border`] of the menu.
+    pub border: Border,
+    /// The text [`Color`] of the menu.
+    pub text_color: Color,
+    /// The text [`Color`] of a selected option in the menu.
+    pub selected_text_color: Color,
+    /// The background [`Color`] of a selected option in the menu.
+    pub selected_background: Background,
+}
+
+/// The theme catalog of a [`Menu`].
+pub trait Catalog: scrollable::Catalog {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
+
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> <Self as Catalog>::Class<'a>;
+
+    /// The default class for the scrollable of the [`Menu`].
+    fn default_scrollable<'a>() -> <Self as scrollable::Catalog>::Class<'a> {
+        <Self as scrollable::Catalog>::default()
+    }
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &<Self as Catalog>::Class<'_>) -> Style;
+}
+
+/// A styling function for a [`Menu`].
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> StyleFn<'a, Self> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &StyleFn<'_, Self>) -> Style {
+        class(self)
+    }
+}
+
+/// The default style of the list of a [`Menu`].
+pub fn default(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    Style {
+        background: palette.background.weak.color.into(),
+        border: Border {
+            width: 1.0,
+            radius: 0.0.into(),
+            color: palette.background.strong.color,
+        },
+        text_color: palette.background.weak.text,
+        selected_text_color: palette.primary.strong.text,
+        selected_background: palette.primary.strong.color.into(),
     }
 }

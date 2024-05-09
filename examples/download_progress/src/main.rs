@@ -1,14 +1,12 @@
-use iced::executor;
-use iced::widget::{button, column, container, progress_bar, text, Column};
-use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
-    Theme,
-};
-
 mod download;
 
+use iced::widget::{button, center, column, progress_bar, text, Column};
+use iced::{Alignment, Element, Subscription};
+
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::program("Download Progress - Iced", Example::update, Example::view)
+        .subscription(Example::subscription)
+        .run()
 }
 
 #[derive(Debug)]
@@ -24,27 +22,15 @@ pub enum Message {
     DownloadProgressed((usize, download::Progress)),
 }
 
-impl Application for Example {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Example, Command<Message>) {
-        (
-            Example {
-                downloads: vec![Download::new(0)],
-                last_id: 0,
-            },
-            Command::none(),
-        )
+impl Example {
+    fn new() -> Self {
+        Self {
+            downloads: vec![Download::new(0)],
+            last_id: 0,
+        }
     }
 
-    fn title(&self) -> String {
-        String::from("Download progress - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) {
         match message {
             Message::Add => {
                 self.last_id += 1;
@@ -63,9 +49,7 @@ impl Application for Example {
                     download.progress(progress);
                 }
             }
-        };
-
-        Command::none()
+        }
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -83,13 +67,13 @@ impl Application for Example {
                 .spacing(20)
                 .align_items(Alignment::End);
 
-        container(downloads)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .padding(20)
-            .into()
+        center(downloads).padding(20).into()
+    }
+}
+
+impl Default for Example {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

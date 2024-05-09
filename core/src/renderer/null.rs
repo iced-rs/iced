@@ -1,34 +1,21 @@
 use crate::alignment;
+use crate::image;
 use crate::renderer::{self, Renderer};
+use crate::svg;
 use crate::text::{self, Text};
 use crate::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
+    Background, Color, Font, Pixels, Point, Radians, Rectangle, Size,
+    Transformation,
 };
 
-use std::borrow::Cow;
+impl Renderer for () {
+    fn start_layer(&mut self, _bounds: Rectangle) {}
 
-/// A renderer that does nothing.
-///
-/// It can be useful if you are writing tests!
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Null;
+    fn end_layer(&mut self) {}
 
-impl Null {
-    /// Creates a new [`Null`] renderer.
-    pub fn new() -> Null {
-        Null
-    }
-}
+    fn start_transformation(&mut self, _transformation: Transformation) {}
 
-impl Renderer for Null {
-    fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
-
-    fn with_transformation(
-        &mut self,
-        _transformation: Transformation,
-        _f: impl FnOnce(&mut Self),
-    ) {
-    }
+    fn end_transformation(&mut self) {}
 
     fn clear(&mut self) {}
 
@@ -40,7 +27,7 @@ impl Renderer for Null {
     }
 }
 
-impl text::Renderer for Null {
+impl text::Renderer for () {
     type Font = Font;
     type Paragraph = ();
     type Editor = ();
@@ -56,8 +43,6 @@ impl text::Renderer for Null {
     fn default_size(&self) -> Pixels {
         Pixels(16.0)
     }
-
-    fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 
     fn fill_paragraph(
         &mut self,
@@ -79,7 +64,7 @@ impl text::Renderer for Null {
 
     fn fill_text(
         &mut self,
-        _paragraph: Text<'_, Self::Font>,
+        _paragraph: Text,
         _position: Point,
         _color: Color,
         _clip_bounds: Rectangle,
@@ -90,11 +75,11 @@ impl text::Renderer for Null {
 impl text::Paragraph for () {
     type Font = Font;
 
-    fn with_text(_text: Text<'_, Self::Font>) -> Self {}
+    fn with_text(_text: Text<&str>) -> Self {}
 
     fn resize(&mut self, _new_bounds: Size) {}
 
-    fn compare(&self, _text: Text<'_, Self::Font>) -> text::Difference {
+    fn compare(&self, _text: Text<&str>) -> text::Difference {
         text::Difference::None
     }
 
@@ -171,6 +156,40 @@ impl text::Editor for () {
         _format_highlight: impl Fn(
             &H::Highlight,
         ) -> text::highlighter::Format<Self::Font>,
+    ) {
+    }
+}
+
+impl image::Renderer for () {
+    type Handle = ();
+
+    fn measure_image(&self, _handle: &Self::Handle) -> Size<u32> {
+        Size::default()
+    }
+
+    fn draw_image(
+        &mut self,
+        _handle: Self::Handle,
+        _filter_method: image::FilterMethod,
+        _bounds: Rectangle,
+        _rotation: Radians,
+        _opacity: f32,
+    ) {
+    }
+}
+
+impl svg::Renderer for () {
+    fn measure_svg(&self, _handle: &svg::Handle) -> Size<u32> {
+        Size::default()
+    }
+
+    fn draw_svg(
+        &mut self,
+        _handle: svg::Handle,
+        _color: Option<Color>,
+        _bounds: Rectangle,
+        _rotation: Radians,
+        _opacity: f32,
     ) {
     }
 }

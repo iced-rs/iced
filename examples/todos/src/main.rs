@@ -1,14 +1,11 @@
 use iced::alignment::{self, Alignment};
-use iced::font::{self, Font};
 use iced::keyboard;
-use iced::theme::{self, Theme};
 use iced::widget::{
-    self, button, checkbox, column, container, keyed_column, row, scrollable,
-    text, text_input, Text,
+    self, button, center, checkbox, column, container, keyed_column, row,
+    scrollable, text, text_input, Text,
 };
 use iced::window;
-use iced::{Application, Element};
-use iced::{Color, Command, Length, Settings, Size, Subscription};
+use iced::{Command, Element, Font, Length, Subscription};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -20,17 +17,17 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    Todos::run(Settings {
-        window: window::Settings {
-            size: Size::new(500.0, 800.0),
-            ..window::Settings::default()
-        },
-        ..Settings::default()
-    })
+    iced::program(Todos::title, Todos::update, Todos::view)
+        .load(Todos::load)
+        .subscription(Todos::subscription)
+        .font(include_bytes!("../fonts/icons.ttf").as_slice())
+        .window_size((500.0, 800.0))
+        .run()
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 enum Todos {
+    #[default]
     Loading,
     Loaded(State),
 }
@@ -47,7 +44,6 @@ struct State {
 #[derive(Debug, Clone)]
 enum Message {
     Loaded(Result<SavedState, LoadError>),
-    FontLoaded(Result<(), font::Error>),
     Saved(Result<(), SaveError>),
     InputChanged(String),
     CreateTask,
@@ -57,21 +53,9 @@ enum Message {
     ToggleFullscreen(window::Mode),
 }
 
-impl Application for Todos {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = iced::executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Todos, Command<Message>) {
-        (
-            Todos::Loading,
-            Command::batch(vec![
-                font::load(include_bytes!("../fonts/icons.ttf").as_slice())
-                    .map(Message::FontLoaded),
-                Command::perform(SavedState::load(), Message::Loaded),
-            ]),
-        )
+impl Todos {
+    fn load() -> Command<Message> {
+        Command::perform(SavedState::load(), Message::Loaded)
     }
 
     fn title(&self) -> String {
@@ -168,7 +152,7 @@ impl Application for Todos {
                     Message::ToggleFullscreen(mode) => {
                         window::change_mode(window::Id::MAIN, mode)
                     }
-                    _ => Command::none(),
+                    Message::Loaded(_) => Command::none(),
                 };
 
                 if !saved {
@@ -209,7 +193,7 @@ impl Application for Todos {
                 let title = text("todos")
                     .width(Length::Fill)
                     .size(100)
-                    .style(Color::from([0.5, 0.5, 0.5]))
+                    .color([0.5, 0.5, 0.5])
                     .horizontal_alignment(alignment::Horizontal::Center);
 
                 let input = text_input("What needs to be done?", input_value)
@@ -254,7 +238,7 @@ impl Application for Todos {
                     .spacing(20)
                     .max_width(800);
 
-                scrollable(container(content).padding(40).center_x()).into()
+                scrollable(container(content).center_x().padding(40)).into()
             }
         }
     }
@@ -355,6 +339,7 @@ impl Task {
                 let checkbox = checkbox(&self.description, self.completed)
                     .on_toggle(TaskMessage::Completed)
                     .width(Length::Fill)
+                    .size(17)
                     .text_shaping(text::Shaping::Advanced);
 
                 row![
@@ -362,7 +347,7 @@ impl Task {
                     button(edit_icon())
                         .on_press(TaskMessage::Edit)
                         .padding(10)
-                        .style(theme::Button::Text),
+                        .style(button::text),
                 ]
                 .spacing(20)
                 .align_items(Alignment::Center)
@@ -385,7 +370,7 @@ impl Task {
                     )
                     .on_press(TaskMessage::Delete)
                     .padding(10)
-                    .style(theme::Button::Destructive)
+                    .style(button::danger)
                 ]
                 .spacing(20)
                 .align_items(Alignment::Center)
@@ -402,9 +387,9 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
         let label = text(label);
 
         let button = button(label).style(if filter == current_filter {
-            theme::Button::Primary
+            button::primary
         } else {
-            theme::Button::Text
+            button::text
         });
 
         button.on_press(Message::FilterChanged(filter)).padding(8)
@@ -450,27 +435,23 @@ impl Filter {
 }
 
 fn loading_message<'a>() -> Element<'a, Message> {
-    container(
+    center(
         text("Loading...")
             .horizontal_alignment(alignment::Horizontal::Center)
             .size(50),
     )
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .center_y()
     .into()
 }
 
 fn empty_message(message: &str) -> Element<'_, Message> {
-    container(
+    center(
         text(message)
             .width(Length::Fill)
             .size(25)
             .horizontal_alignment(alignment::Horizontal::Center)
-            .style(Color::from([0.7, 0.7, 0.7])),
+            .color([0.7, 0.7, 0.7]),
     )
     .height(200)
-    .center_y()
     .into()
 }
 

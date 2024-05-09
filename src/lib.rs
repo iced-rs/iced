@@ -51,6 +51,7 @@
 //! We start by modelling the __state__ of our application:
 //!
 //! ```
+//! #[derive(Default)]
 //! struct Counter {
 //!     // The counter value
 //!     value: i32,
@@ -63,8 +64,8 @@
 //! ```
 //! #[derive(Debug, Clone, Copy)]
 //! pub enum Message {
-//!     IncrementPressed,
-//!     DecrementPressed,
+//!     Increment,
+//!     Decrement,
 //! }
 //! ```
 //!
@@ -79,8 +80,8 @@
 //! #
 //! # #[derive(Debug, Clone, Copy)]
 //! # pub enum Message {
-//! #     IncrementPressed,
-//! #     DecrementPressed,
+//! #     Increment,
+//! #     Decrement,
 //! # }
 //! #
 //! use iced::widget::{button, column, text, Column};
@@ -90,15 +91,15 @@
 //!         // We use a column: a simple vertical layout
 //!         column![
 //!             // The increment button. We tell it to produce an
-//!             // `IncrementPressed` message when pressed
-//!             button("+").on_press(Message::IncrementPressed),
+//!             // `Increment` message when pressed
+//!             button("+").on_press(Message::Increment),
 //!
 //!             // We show the value of the counter here
 //!             text(self.value).size(50),
 //!
 //!             // The decrement button. We tell it to produce a
-//!             // `DecrementPressed` message when pressed
-//!             button("-").on_press(Message::DecrementPressed),
+//!             // `Decrement` message when pressed
+//!             button("-").on_press(Message::Decrement),
 //!         ]
 //!     }
 //! }
@@ -115,18 +116,18 @@
 //! #
 //! # #[derive(Debug, Clone, Copy)]
 //! # pub enum Message {
-//! #     IncrementPressed,
-//! #     DecrementPressed,
+//! #     Increment,
+//! #     Decrement,
 //! # }
 //! impl Counter {
 //!     // ...
 //!
 //!     pub fn update(&mut self, message: Message) {
 //!         match message {
-//!             Message::IncrementPressed => {
+//!             Message::Increment => {
 //!                 self.value += 1;
 //!             }
-//!             Message::DecrementPressed => {
+//!             Message::Decrement => {
 //!                 self.value -= 1;
 //!             }
 //!         }
@@ -134,8 +135,22 @@
 //! }
 //! ```
 //!
-//! And that's everything! We just wrote a whole user interface. Iced is now
-//! able to:
+//! And that's everything! We just wrote a whole user interface. Let's run it:
+//!
+//! ```no_run
+//! # #[derive(Default)]
+//! # struct Counter;
+//! # impl Counter {
+//! #     fn update(&mut self, _message: ()) {}
+//! #     fn view(&self) -> iced::Element<()> { unimplemented!() }
+//! # }
+//! #
+//! fn main() -> iced::Result {
+//!     iced::run("A cool counter", Counter::update, Counter::view)
+//! }
+//! ```
+//!
+//! Iced will automatically:
 //!
 //!   1. Take the result of our __view logic__ and layout its widgets.
 //!   1. Process events from our system and produce __messages__ for our
@@ -143,26 +158,18 @@
 //!   1. Draw the resulting user interface.
 //!
 //! # Usage
-//! The [`Application`] and [`Sandbox`] traits should get you started quickly,
-//! streamlining all the process described above!
+//! Use [`run`] or the [`program`] builder.
 //!
 //! [Elm]: https://elm-lang.org/
 //! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
+//! [`program`]: program()
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
-)]
-#![forbid(rust_2018_idioms, unsafe_code)]
-#![deny(
-    missing_debug_implementations,
-    missing_docs,
-    unused_results,
-    rustdoc::broken_intra_doc_links
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 use iced_widget::graphics;
 use iced_widget::renderer;
-use iced_widget::style;
 use iced_winit as shell;
 use iced_winit::core;
 use iced_winit::runtime;
@@ -172,10 +179,10 @@ pub use iced_futures::futures;
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
+mod application;
 mod error;
-mod sandbox;
 
-pub mod application;
+pub mod program;
 pub mod settings;
 pub mod time;
 pub mod window;
@@ -186,16 +193,15 @@ pub mod advanced;
 #[cfg(feature = "multi-window")]
 pub mod multi_window;
 
-pub use style::theme;
-
 pub use crate::core::alignment;
 pub use crate::core::border;
 pub use crate::core::color;
 pub use crate::core::gradient;
+pub use crate::core::theme;
 pub use crate::core::{
     Alignment, Background, Border, Color, ContentFit, Degrees, Gradient,
-    Length, Padding, Pixels, Point, Radians, Rectangle, Shadow, Size,
-    Transformation, Vector,
+    Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Shadow, Size,
+    Theme, Transformation, Vector,
 };
 
 pub mod clipboard {
@@ -304,17 +310,15 @@ pub mod widget {
     mod runtime {}
 }
 
-pub use application::Application;
 pub use command::Command;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
 pub use font::Font;
+pub use program::Program;
 pub use renderer::Renderer;
-pub use sandbox::Sandbox;
 pub use settings::Settings;
 pub use subscription::Subscription;
-pub use theme::Theme;
 
 /// A generic widget.
 ///
@@ -326,7 +330,55 @@ pub type Element<
     Renderer = crate::Renderer,
 > = crate::core::Element<'a, Message, Theme, Renderer>;
 
-/// The result of running an [`Application`].
-///
-/// [`Application`]: crate::Application
+/// The result of running a [`Program`].
 pub type Result = std::result::Result<(), Error>;
+
+/// Runs a basic iced application with default [`Settings`] given its title,
+/// update, and view logic.
+///
+/// This is equivalent to chaining [`program`] with [`Program::run`].
+///
+/// [`program`]: program()
+///
+/// # Example
+/// ```no_run
+/// use iced::widget::{button, column, text, Column};
+///
+/// pub fn main() -> iced::Result {
+///     iced::run("A counter", update, view)
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     Increment,
+/// }
+///
+/// fn update(value: &mut u64, message: Message) {
+///     match message {
+///         Message::Increment => *value += 1,
+///     }
+/// }
+///
+/// fn view(value: &u64) -> Column<Message> {
+///     column![
+///         text(value),
+///         button("+").on_press(Message::Increment),
+///     ]
+/// }
+/// ```
+pub fn run<State, Message, Theme, Renderer>(
+    title: impl program::Title<State> + 'static,
+    update: impl program::Update<State, Message> + 'static,
+    view: impl for<'a> program::View<'a, State, Message, Theme, Renderer> + 'static,
+) -> Result
+where
+    State: Default + 'static,
+    Message: std::fmt::Debug + Send + 'static,
+    Theme: Default + program::DefaultStyle + 'static,
+    Renderer: program::Renderer + 'static,
+{
+    program(title, update, view).run()
+}
+
+#[doc(inline)]
+pub use program::program;

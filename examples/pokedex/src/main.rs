@@ -1,17 +1,20 @@
 use iced::futures;
-use iced::widget::{self, column, container, image, row, text};
-use iced::{
-    Alignment, Application, Color, Command, Element, Length, Settings, Theme,
-};
+use iced::widget::{self, center, column, image, row, text};
+use iced::{Alignment, Command, Element, Length};
 
 pub fn main() -> iced::Result {
-    Pokedex::run(Settings::default())
+    iced::program(Pokedex::title, Pokedex::update, Pokedex::view)
+        .load(Pokedex::search)
+        .run()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 enum Pokedex {
+    #[default]
     Loading,
-    Loaded { pokemon: Pokemon },
+    Loaded {
+        pokemon: Pokemon,
+    },
     Errored,
 }
 
@@ -21,17 +24,9 @@ enum Message {
     Search,
 }
 
-impl Application for Pokedex {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = iced::executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Pokedex, Command<Message>) {
-        (
-            Pokedex::Loading,
-            Command::perform(Pokemon::search(), Message::PokemonFound),
-        )
+impl Pokedex {
+    fn search() -> Command<Message> {
+        Command::perform(Pokemon::search(), Message::PokemonFound)
     }
 
     fn title(&self) -> String {
@@ -61,7 +56,7 @@ impl Application for Pokedex {
                 _ => {
                     *self = Pokedex::Loading;
 
-                    Command::perform(Pokemon::search(), Message::PokemonFound)
+                    Self::search()
                 }
             },
         }
@@ -88,12 +83,7 @@ impl Application for Pokedex {
             .align_items(Alignment::End),
         };
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).into()
     }
 }
 
@@ -116,7 +106,7 @@ impl Pokemon {
                     text(&self.name).size(30).width(Length::Fill),
                     text(format!("#{}", self.number))
                         .size(20)
-                        .style(Color::from([0.5, 0.5, 0.5])),
+                        .color([0.5, 0.5, 0.5]),
                 ]
                 .align_items(Alignment::Center)
                 .spacing(20),
@@ -193,7 +183,7 @@ impl Pokemon {
         {
             let bytes = reqwest::get(&url).await?.bytes().await?;
 
-            Ok(image::Handle::from_memory(bytes))
+            Ok(image::Handle::from_bytes(bytes))
         }
 
         #[cfg(target_arch = "wasm32")]

@@ -1,19 +1,22 @@
-use iced::executor;
 use iced::widget::scrollable::Properties;
 use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
     scrollable, slider, text, vertical_space, Scrollable,
 };
-use iced::{
-    Alignment, Application, Color, Command, Element, Length, Settings, Theme,
-};
+use iced::{Alignment, Border, Color, Command, Element, Length, Theme};
 
 use once_cell::sync::Lazy;
 
 static SCROLLABLE_ID: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
 
 pub fn main() -> iced::Result {
-    ScrollableDemo::run(Settings::default())
+    iced::program(
+        "Scrollable - Iced",
+        ScrollableDemo::update,
+        ScrollableDemo::view,
+    )
+    .theme(ScrollableDemo::theme)
+    .run()
 }
 
 struct ScrollableDemo {
@@ -44,28 +47,16 @@ enum Message {
     Scrolled(scrollable::Viewport),
 }
 
-impl Application for ScrollableDemo {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (
-            ScrollableDemo {
-                scrollable_direction: Direction::Vertical,
-                scrollbar_width: 10,
-                scrollbar_margin: 0,
-                scroller_width: 10,
-                current_scroll_offset: scrollable::RelativeOffset::START,
-                alignment: scrollable::Alignment::Start,
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Scrollable - Iced")
+impl ScrollableDemo {
+    fn new() -> Self {
+        ScrollableDemo {
+            scrollable_direction: Direction::Vertical,
+            scrollbar_width: 10,
+            scrollbar_margin: 0,
+            scroller_width: 10,
+            current_scroll_offset: scrollable::RelativeOffset::START,
+            alignment: scrollable::Alignment::Start,
+        }
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -336,18 +327,24 @@ impl Application for ScrollableDemo {
                 .spacing(10)
                 .into();
 
-        container(content).padding(20).center_x().center_y().into()
+        container(content).padding(20).into()
     }
 
-    fn theme(&self) -> Self::Theme {
+    fn theme(&self) -> Theme {
         Theme::Dark
     }
 }
 
-fn progress_bar_custom_style(theme: &Theme) -> progress_bar::Appearance {
-    progress_bar::Appearance {
+impl Default for ScrollableDemo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+fn progress_bar_custom_style(theme: &Theme) -> progress_bar::Style {
+    progress_bar::Style {
         background: theme.extended_palette().background.strong.color.into(),
         bar: Color::from_rgb8(250, 85, 134).into(),
-        border_radius: 0.0.into(),
+        border: Border::default(),
     }
 }

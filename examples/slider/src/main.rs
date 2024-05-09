@@ -1,8 +1,8 @@
-use iced::widget::{column, container, slider, text, vertical_slider};
-use iced::{Element, Length, Sandbox, Settings};
+use iced::widget::{center, column, container, slider, text, vertical_slider};
+use iced::Element;
 
 pub fn main() -> iced::Result {
-    Slider::run(Settings::default())
+    iced::run("Slider - Iced", Slider::update, Slider::view)
 }
 
 #[derive(Debug, Clone)]
@@ -17,20 +17,14 @@ pub struct Slider {
     shift_step: u8,
 }
 
-impl Sandbox for Slider {
-    type Message = Message;
-
-    fn new() -> Slider {
+impl Slider {
+    fn new() -> Self {
         Slider {
             value: 50,
             default: 50,
             step: 5,
             shift_step: 1,
         }
-    }
-
-    fn title(&self) -> String {
-        String::from("Slider - Iced")
     }
 
     fn update(&mut self, message: Message) {
@@ -60,18 +54,20 @@ impl Sandbox for Slider {
 
         let text = text(self.value);
 
-        container(
+        center(
             column![
-                container(v_slider).width(Length::Fill).center_x(),
-                container(h_slider).width(Length::Fill).center_x(),
-                container(text).width(Length::Fill).center_x(),
+                container(v_slider).center_x(),
+                container(h_slider).center_x(),
+                container(text).center_x()
             ]
             .spacing(25),
         )
-        .height(Length::Fill)
-        .width(Length::Fill)
-        .center_x()
-        .center_y()
         .into()
+    }
+}
+
+impl Default for Slider {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -11,6 +11,19 @@ pub enum Background {
     // TODO: Add image variant
 }
 
+impl Background {
+    /// Scales the alpha channel of the [`Background`] by the given
+    /// factor.
+    pub fn scale_alpha(self, factor: f32) -> Self {
+        match self {
+            Self::Color(color) => Self::Color(color.scale_alpha(factor)),
+            Self::Gradient(gradient) => {
+                Self::Gradient(gradient.scale_alpha(factor))
+            }
+        }
+    }
+}
+
 impl From<Color> for Background {
     fn from(color: Color) -> Self {
         Background::Color(color)

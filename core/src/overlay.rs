@@ -79,7 +79,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse::Interaction::Idle
+        mouse::Interaction::None
     }
 
     /// Returns true if the cursor is over the [`Overlay`].

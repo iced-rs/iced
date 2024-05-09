@@ -1,29 +1,29 @@
 //! Display a horizontal or vertical rule for dividing content.
+use crate::core;
+use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    Border, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
+    Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget,
 };
-
-pub use crate::style::rule::{Appearance, FillMode, StyleSheet};
 
 /// Display a horizontal or vertical rule for dividing content.
 #[allow(missing_debug_implementations)]
-pub struct Rule<Theme = crate::Theme>
+pub struct Rule<'a, Theme = crate::Theme>
 where
-    Theme: StyleSheet,
+    Theme: Catalog,
 {
     width: Length,
     height: Length,
     is_horizontal: bool,
-    style: Theme::Style,
+    class: Theme::Class<'a>,
 }
 
-impl<Theme> Rule<Theme>
+impl<'a, Theme> Rule<'a, Theme>
 where
-    Theme: StyleSheet,
+    Theme: Catalog,
 {
     /// Creates a horizontal [`Rule`] with the given height.
     pub fn horizontal(height: impl Into<Pixels>) -> Self {
@@ -31,7 +31,7 @@ where
             width: Length::Fill,
             height: Length::Fixed(height.into().0),
             is_horizontal: true,
-            style: Default::default(),
+            class: Theme::default(),
         }
     }
 
@@ -41,21 +41,34 @@ where
             width: Length::Fixed(width.into().0),
             height: Length::Fill,
             is_horizontal: false,
-            style: Default::default(),
+            class: Theme::default(),
         }
     }
 
     /// Sets the style of the [`Rule`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Rule`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Rule<Theme>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Rule<'a, Theme>
 where
-    Renderer: crate::core::Renderer,
-    Theme: StyleSheet,
+    Renderer: core::Renderer,
+    Theme: Catalog,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -84,7 +97,7 @@ where
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let style = theme.appearance(&self.style);
+        let style = theme.style(&self.class);
 
         let bounds = if self.is_horizontal {
             let line_y = (bounds.y + (bounds.height / 2.0)
@@ -119,7 +132,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border: Border::with_radius(style.radius),
+                border: Border::rounded(style.radius),
                 ..renderer::Quad::default()
             },
             style.color,
@@ -127,14 +140,132 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Rule<Theme>>
+impl<'a, Message, Theme, Renderer> From<Rule<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + 'a,
-    Renderer: 'a + crate::core::Renderer,
+    Theme: 'a + Catalog,
+    Renderer: 'a + core::Renderer,
 {
-    fn from(rule: Rule<Theme>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(rule: Rule<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(rule)
+    }
+}
+
+/// The appearance of a rule.
+#[derive(Debug, Clone, Copy)]
+pub struct Style {
+    /// The color of the rule.
+    pub color: Color,
+    /// The width (thickness) of the rule line.
+    pub width: u16,
+    /// The radius of the line corners.
+    pub radius: border::Radius,
+    /// The [`FillMode`] of the rule.
+    pub fill_mode: FillMode,
+}
+
+/// The fill mode of a rule.
+#[derive(Debug, Clone, Copy)]
+pub enum FillMode {
+    /// Fill the whole length of the container.
+    Full,
+    /// Fill a percent of the length of the container. The rule
+    /// will be centered in that container.
+    ///
+    /// The range is `[0.0, 100.0]`.
+    Percent(f32),
+    /// Uniform offset from each end, length units.
+    Padded(u16),
+    /// Different offset on each end of the rule, length units.
+    /// First = top or left.
+    AsymmetricPadding(u16, u16),
+}
+
+impl FillMode {
+    /// Return the starting offset and length of the rule.
+    ///
+    /// * `space` - The space to fill.
+    ///
+    /// # Returns
+    ///
+    /// * (`starting_offset`, `length`)
+    pub fn fill(&self, space: f32) -> (f32, f32) {
+        match *self {
+            FillMode::Full => (0.0, space),
+            FillMode::Percent(percent) => {
+                if percent >= 100.0 {
+                    (0.0, space)
+                } else {
+                    let percent_width = (space * percent / 100.0).round();
+
+                    (((space - percent_width) / 2.0).round(), percent_width)
+                }
+            }
+            FillMode::Padded(padding) => {
+                if padding == 0 {
+                    (0.0, space)
+                } else {
+                    let padding = padding as f32;
+                    let mut line_width = space - (padding * 2.0);
+                    if line_width < 0.0 {
+                        line_width = 0.0;
+                    }
+
+                    (padding, line_width)
+                }
+            }
+            FillMode::AsymmetricPadding(first_pad, second_pad) => {
+                let first_pad = first_pad as f32;
+                let second_pad = second_pad as f32;
+                let mut line_width = space - first_pad - second_pad;
+                if line_width < 0.0 {
+                    line_width = 0.0;
+                }
+
+                (first_pad, line_width)
+            }
+        }
+    }
+}
+
+/// The theme catalog of a [`Rule`].
+pub trait Catalog: Sized {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
+
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>) -> Style;
+}
+
+/// A styling function for a [`Rule`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &Self::Class<'_>) -> Style {
+        class(self)
+    }
+}
+
+/// The default styling of a [`Rule`].
+pub fn default(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    Style {
+        color: palette.background.strong.color,
+        width: 1,
+        radius: 0.0.into(),
+        fill_mode: FillMode::Full,
     }
 }

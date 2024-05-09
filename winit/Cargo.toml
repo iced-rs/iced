@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 default = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
 system = ["sysinfo"]
@@ -21,13 +24,15 @@ wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 multi-window = ["iced_runtime/multi-window"]
 
 [dependencies]
+iced_futures.workspace = true
 iced_graphics.workspace = true
 iced_runtime.workspace = true
-iced_style.workspace = true
 
 log.workspace = true
+rustc-hash.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+wasm-bindgen-futures.workspace = true
 window_clipboard.workspace = true
 winit.workspace = true
 
@@ -40,3 +45,4 @@ winapi.workspace = true
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys.workspace = true
 web-sys.features = ["Document", "Window"]
+

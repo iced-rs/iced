@@ -1,15 +1,10 @@
-use iced::executor;
 use iced::highlighter::{self, Highlighter};
 use iced::keyboard;
-use iced::theme::{self, Theme};
 use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text,
     text_editor, tooltip,
 };
-use iced::{
-    Alignment, Application, Command, Element, Font, Length, Settings,
-    Subscription,
-};
+use iced::{Alignment, Command, Element, Font, Length, Subscription, Theme};
 
 use std::ffi;
 use std::io;
@@ -17,11 +12,13 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub fn main() -> iced::Result {
-    Editor::run(Settings {
-        fonts: vec![include_bytes!("../fonts/icons.ttf").as_slice().into()],
-        default_font: Font::MONOSPACE,
-        ..Settings::default()
-    })
+    iced::program("Editor - Iced", Editor::update, Editor::view)
+        .load(Editor::load)
+        .subscription(Editor::subscription)
+        .theme(Editor::theme)
+        .font(include_bytes!("../fonts/icons.ttf").as_slice())
+        .default_font(Font::MONOSPACE)
+        .run()
 }
 
 struct Editor {
@@ -43,27 +40,22 @@ enum Message {
     FileSaved(Result<PathBuf, Error>),
 }
 
-impl Application for Editor {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (
-            Self {
-                file: None,
-                content: text_editor::Content::new(),
-                theme: highlighter::Theme::SolarizedDark,
-                is_loading: true,
-                is_dirty: false,
-            },
-            Command::perform(load_file(default_file()), Message::FileOpened),
-        )
+impl Editor {
+    fn new() -> Self {
+        Self {
+            file: None,
+            content: text_editor::Content::new(),
+            theme: highlighter::Theme::SolarizedDark,
+            is_loading: true,
+            is_dirty: false,
+        }
     }
 
-    fn title(&self) -> String {
-        String::from("Editor - Iced")
+    fn load() -> Command<Message> {
+        Command::perform(
+            load_file(format!("{}/src/main.rs", env!("CARGO_MANIFEST_DIR"))),
+            Message::FileOpened,
+        )
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -222,14 +214,16 @@ impl Application for Editor {
     }
 }
 
+impl Default for Editor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Error {
     DialogClosed,
     IoError(io::ErrorKind),
-}
-
-fn default_file() -> PathBuf {
-    PathBuf::from(format!("{}/src/main.rs", env!("CARGO_MANIFEST_DIR")))
 }
 
 async fn open_file() -> Result<(PathBuf, Arc<String>), Error> {
@@ -239,10 +233,14 @@ async fn open_file() -> Result<(PathBuf, Arc<String>), Error> {
         .await
         .ok_or(Error::DialogClosed)?;
 
-    load_file(picked_file.path().to_owned()).await
+    load_file(picked_file).await
 }
 
-async fn load_file(path: PathBuf) -> Result<(PathBuf, Arc<String>), Error> {
+async fn load_file(
+    path: impl Into<PathBuf>,
+) -> Result<(PathBuf, Arc<String>), Error> {
+    let path = path.into();
+
     let contents = tokio::fs::read_to_string(&path)
         .await
         .map(Arc::new)
@@ -279,7 +277,7 @@ fn action<'a, Message: Clone + 'a>(
     label: &'a str,
     on_press: Option<Message>,
 ) -> Element<'a, Message> {
-    let action = button(container(content).width(30).center_x());
+    let action = button(container(content).center_x().width(30));
 
     if let Some(on_press) = on_press {
         tooltip(
@@ -287,10 +285,10 @@ fn action<'a, Message: Clone + 'a>(
             label,
             tooltip::Position::FollowCursor,
         )
-        .style(theme::Container::Box)
+        .style(container::rounded_box)
         .into()
     } else {
-        action.style(theme::Button::Secondary).into()
+        action.style(button::secondary).into()
     }
 }
 

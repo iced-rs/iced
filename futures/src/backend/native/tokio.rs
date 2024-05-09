@@ -22,8 +22,7 @@ impl crate::Executor for Executor {
 
 pub mod time {
     //! Listen and react to time.
-    use crate::core::Hasher;
-    use crate::subscription::{self, Subscription};
+    use crate::subscription::{self, Hasher, Subscription};
 
     /// Returns a [`Subscription`] that produces messages at a set interval.
     ///
@@ -56,13 +55,15 @@ pub mod time {
 
             let start = tokio::time::Instant::now() + self.0;
 
+            let mut interval = tokio::time::interval_at(start, self.0);
+            interval.set_missed_tick_behavior(
+                tokio::time::MissedTickBehavior::Skip,
+            );
+
             let stream = {
-                futures::stream::unfold(
-                    tokio::time::interval_at(start, self.0),
-                    |mut interval| async move {
-                        Some((interval.tick().await, interval))
-                    },
-                )
+                futures::stream::unfold(interval, |mut interval| async move {
+                    Some((interval.tick().await, interval))
+                })
             };
 
             stream.map(tokio::time::Instant::into_std).boxed()

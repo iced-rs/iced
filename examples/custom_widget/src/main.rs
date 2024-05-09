@@ -62,7 +62,7 @@ mod circle {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
-                    border: Border::with_radius(self.radius),
+                    border: Border::rounded(self.radius),
                     ..renderer::Quad::default()
                 },
                 Color::BLACK,
@@ -82,11 +82,11 @@ mod circle {
 }
 
 use circle::circle;
-use iced::widget::{column, container, slider, text};
-use iced::{Alignment, Element, Length, Sandbox, Settings};
+use iced::widget::{center, column, slider, text};
+use iced::{Alignment, Element};
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::run("Custom Widget - Iced", Example::update, Example::view)
 }
 
 struct Example {
@@ -98,15 +98,9 @@ enum Message {
     RadiusChanged(f32),
 }
 
-impl Sandbox for Example {
-    type Message = Message;
-
+impl Example {
     fn new() -> Self {
         Example { radius: 50.0 }
-    }
-
-    fn title(&self) -> String {
-        String::from("Custom widget - Iced")
     }
 
     fn update(&mut self, message: Message) {
@@ -128,11 +122,12 @@ impl Sandbox for Example {
         .max_width(500)
         .align_items(Alignment::Center);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).into()
+    }
+}
+
+impl Default for Example {
+    fn default() -> Self {
+        Self::new()
     }
 }

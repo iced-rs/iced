@@ -5,32 +5,24 @@ mod preset;
 use grid::Grid;
 use preset::Preset;
 
-use iced::executor;
-use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, slider, text,
 };
-use iced::window;
-use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
-};
+use iced::{Alignment, Command, Element, Length, Subscription, Theme};
 use std::time::Duration;
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    GameOfLife::run(Settings {
-        antialiasing: true,
-        window: window::Settings {
-            position: window::Position::Centered,
-            ..window::Settings::default()
-        },
-        ..Settings::default()
-    })
+    iced::program("Game of Life - Iced", GameOfLife::update, GameOfLife::view)
+        .subscription(GameOfLife::subscription)
+        .theme(|_| Theme::Dark)
+        .antialiasing(true)
+        .centered()
+        .run()
 }
 
-#[derive(Default)]
 struct GameOfLife {
     grid: Grid,
     is_playing: bool,
@@ -52,24 +44,16 @@ enum Message {
     PresetPicked(Preset),
 }
 
-impl Application for GameOfLife {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Self {
-                speed: 5,
-                ..Self::default()
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Game of Life - Iced")
+impl GameOfLife {
+    fn new() -> Self {
+        Self {
+            grid: Grid::default(),
+            is_playing: false,
+            queued_ticks: 0,
+            speed: 5,
+            next_speed: None,
+            version: 0,
+        }
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -154,9 +138,11 @@ impl Application for GameOfLife {
             .height(Length::Fill)
             .into()
     }
+}
 
-    fn theme(&self) -> Theme {
-        Theme::Dark
+impl Default for GameOfLife {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -171,7 +157,7 @@ fn view_controls<'a>(
             .on_press(Message::TogglePlayback),
         button("Next")
             .on_press(Message::Next)
-            .style(theme::Button::Secondary),
+            .style(button::secondary),
     ]
     .spacing(10);
 
@@ -185,17 +171,14 @@ fn view_controls<'a>(
     row![
         playback_controls,
         speed_controls,
-        checkbox("Grid", is_grid_enabled)
-            .on_toggle(Message::ToggleGrid)
-            .size(16)
-            .spacing(5)
-            .text_size(16),
-        pick_list(preset::ALL, Some(preset), Message::PresetPicked)
-            .padding(8)
-            .text_size(16),
-        button("Clear")
-            .on_press(Message::Clear)
-            .style(theme::Button::Destructive),
+        checkbox("Grid", is_grid_enabled).on_toggle(Message::ToggleGrid),
+        row![
+            pick_list(preset::ALL, Some(preset), Message::PresetPicked),
+            button("Clear")
+                .on_press(Message::Clear)
+                .style(button::danger)
+        ]
+        .spacing(10)
     ]
     .padding(10)
     .spacing(20)
@@ -619,9 +602,7 @@ mod grid {
                 frame.into_geometry()
             };
 
-            if self.scaling < 0.2 || !self.show_lines {
-                vec![life, overlay]
-            } else {
+            if self.scaling >= 0.2 && self.show_lines {
                 let grid =
                     self.grid_cache.draw(renderer, bounds.size(), |frame| {
                         frame.translate(center);
@@ -658,6 +639,8 @@ mod grid {
                     });
 
                 vec![life, grid, overlay]
+            } else {
+                vec![life, overlay]
             }
         }
 

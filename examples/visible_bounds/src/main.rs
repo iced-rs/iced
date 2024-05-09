@@ -1,20 +1,22 @@
 use iced::event::{self, Event};
-use iced::executor;
 use iced::mouse;
-use iced::theme::{self, Theme};
 use iced::widget::{
     column, container, horizontal_space, row, scrollable, text, vertical_space,
 };
 use iced::window;
 use iced::{
-    Alignment, Application, Color, Command, Element, Font, Length, Point,
-    Rectangle, Settings, Subscription,
+    Alignment, Color, Command, Element, Font, Length, Point, Rectangle,
+    Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::program("Visible Bounds - Iced", Example::update, Example::view)
+        .subscription(Example::subscription)
+        .theme(|_| Theme::Dark)
+        .run()
 }
 
+#[derive(Default)]
 struct Example {
     mouse_position: Option<Point>,
     outer_bounds: Option<Rectangle>,
@@ -30,27 +32,7 @@ enum Message {
     InnerBoundsFetched(Option<Rectangle>),
 }
 
-impl Application for Example {
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-    type Executor = executor::Default;
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (
-            Self {
-                mouse_position: None,
-                outer_bounds: None,
-                inner_bounds: None,
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Visible bounds - Iced")
-    }
-
+impl Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::MouseMoved(position) => {
@@ -82,7 +64,10 @@ impl Application for Example {
             row![
                 text(label),
                 horizontal_space(),
-                text(value).font(Font::MONOSPACE).size(14).style(color),
+                text(value)
+                    .font(Font::MONOSPACE)
+                    .size(14)
+                    .color_maybe(color),
             ]
             .height(40)
             .align_items(Alignment::Center)
@@ -102,13 +87,12 @@ impl Application for Example {
                     })
                     .unwrap_or_default()
                 {
-                    Color {
+                    Some(Color {
                         g: 1.0,
                         ..Color::BLACK
-                    }
-                    .into()
+                    })
                 } else {
-                    theme::Text::Default
+                    None
                 },
             )
         };
@@ -120,7 +104,7 @@ impl Application for Example {
                     Some(Point { x, y }) => format!("({x}, {y})"),
                     None => "unknown".to_string(),
                 },
-                theme::Text::Default,
+                None,
             ),
             view_bounds("Outer container", self.outer_bounds),
             view_bounds("Inner container", self.inner_bounds),
@@ -131,7 +115,7 @@ impl Application for Example {
                     container(text("I am the outer container!"))
                         .id(OUTER_CONTAINER.clone())
                         .padding(40)
-                        .style(theme::Container::Box),
+                        .style(container::rounded_box),
                     vertical_space().height(400),
                     scrollable(
                         column![
@@ -140,7 +124,7 @@ impl Application for Example {
                             container(text("I am the inner container!"))
                                 .id(INNER_CONTAINER.clone())
                                 .padding(40)
-                                .style(theme::Container::Box),
+                                .style(container::rounded_box),
                             vertical_space().height(400),
                         ]
                         .padding(20)
@@ -170,10 +154,6 @@ impl Application for Example {
             }
             _ => None,
         })
-    }
-
-    fn theme(&self) -> Theme {
-        Theme::Dark
     }
 }
 

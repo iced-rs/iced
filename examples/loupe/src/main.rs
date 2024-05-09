@@ -1,59 +1,46 @@
-use iced::widget::{button, column, container, text};
-use iced::{Alignment, Element, Length, Sandbox, Settings};
+use iced::widget::{button, center, column, text};
+use iced::{Alignment, Element};
 
 use loupe::loupe;
 
 pub fn main() -> iced::Result {
-    Counter::run(Settings::default())
+    iced::run("Loupe - Iced", Loupe::update, Loupe::view)
 }
 
-struct Counter {
-    value: i32,
+#[derive(Default)]
+struct Loupe {
+    value: i64,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    IncrementPressed,
-    DecrementPressed,
+    Increment,
+    Decrement,
 }
 
-impl Sandbox for Counter {
-    type Message = Message;
-
-    fn new() -> Self {
-        Self { value: 0 }
-    }
-
-    fn title(&self) -> String {
-        String::from("Counter - Iced")
-    }
-
+impl Loupe {
     fn update(&mut self, message: Message) {
         match message {
-            Message::IncrementPressed => {
+            Message::Increment => {
                 self.value += 1;
             }
-            Message::DecrementPressed => {
+            Message::Decrement => {
                 self.value -= 1;
             }
         }
     }
 
     fn view(&self) -> Element<Message> {
-        container(loupe(
+        center(loupe(
             3.0,
             column![
-                button("Increment").on_press(Message::IncrementPressed),
+                button("Increment").on_press(Message::Increment),
                 text(self.value).size(50),
-                button("Decrement").on_press(Message::DecrementPressed)
+                button("Decrement").on_press(Message::Decrement)
             ]
             .padding(20)
             .align_items(Alignment::Center),
         ))
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
         .into()
     }
 }
@@ -168,7 +155,7 @@ mod loupe {
             if cursor.is_over(layout.bounds()) {
                 mouse::Interaction::ZoomIn
             } else {
-                mouse::Interaction::Idle
+                mouse::Interaction::None
             }
         }
     }

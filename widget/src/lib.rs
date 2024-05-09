@@ -2,23 +2,17 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
-#![forbid(unsafe_code, rust_2018_idioms)]
-#![deny(
-    missing_debug_implementations,
-    missing_docs,
-    unused_results,
-    rustdoc::broken_intra_doc_links
-)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub use iced_renderer as renderer;
 pub use iced_renderer::graphics;
 pub use iced_runtime as runtime;
 pub use iced_runtime::core;
-pub use iced_style as style;
 
 mod column;
 mod mouse_area;
 mod row;
+mod space;
+mod stack;
 mod themer;
 
 pub mod button;
@@ -34,7 +28,6 @@ pub mod radio;
 pub mod rule;
 pub mod scrollable;
 pub mod slider;
-pub mod space;
 pub mod text;
 pub mod text_editor;
 pub mod text_input;
@@ -86,6 +79,8 @@ pub use slider::Slider;
 #[doc(no_inline)]
 pub use space::Space;
 #[doc(no_inline)]
+pub use stack::Stack;
+#[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]
 pub use text_editor::TextEditor;
@@ -135,5 +130,5 @@ pub mod qr_code;
 #[doc(no_inline)]
 pub use qr_code::QRCode;
 
+pub use crate::core::theme::{self, Theme};
 pub use renderer::Renderer;
-pub use style::theme::{self, Theme};

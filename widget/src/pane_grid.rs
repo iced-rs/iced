@@ -30,8 +30,6 @@ pub use split::Split;
 pub use state::State;
 pub use title_bar::TitleBar;
 
-pub use crate::style::pane_grid::{Appearance, Line, StyleSheet};
-
 use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::layout;
@@ -42,8 +40,8 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    self, Background, Border, Clipboard, Color, Element, Layout, Length,
+    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 
 const DRAG_DEADBAND_DISTANCE: f32 = 10.0;
@@ -73,8 +71,7 @@ const THICKNESS_RATIO: f32 = 25.0;
 /// ```no_run
 /// # use iced_widget::{pane_grid, text};
 /// #
-/// # type PaneGrid<'a, Message> =
-/// #     iced_widget::PaneGrid<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// # type PaneGrid<'a, Message> = iced_widget::PaneGrid<'a, Message>;
 /// #
 /// enum PaneState {
 ///     SomePane,
@@ -105,8 +102,8 @@ pub struct PaneGrid<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: StyleSheet + container::StyleSheet,
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     contents: Contents<'a, Content<'a, Message, Theme, Renderer>>,
     width: Length,
@@ -115,13 +112,13 @@ pub struct PaneGrid<
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style: <Theme as StyleSheet>::Style,
+    class: <Theme as Catalog>::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> PaneGrid<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + container::StyleSheet,
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
@@ -161,7 +158,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style: Default::default(),
+            class: <Theme as Catalog>::default(),
         }
     }
 
@@ -221,11 +218,23 @@ where
     }
 
     /// Sets the style of the [`PaneGrid`].
-    pub fn style(
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
+    where
+        <Theme as Catalog>::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`PaneGrid`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(
         mut self,
-        style: impl Into<<Theme as StyleSheet>::Style>,
+        class: impl Into<<Theme as Catalog>::Class<'a>>,
     ) -> Self {
-        self.style = style.into();
+        self.class = class.into();
         self
     }
 
@@ -239,8 +248,8 @@ where
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for PaneGrid<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
-    Theme: StyleSheet + container::StyleSheet,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<state::Action>()
@@ -285,19 +294,29 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(
-            tree,
-            renderer,
-            limits,
-            self.contents.layout(),
-            self.width,
-            self.height,
-            self.spacing,
-            self.contents.iter(),
-            |content, tree, renderer, limits| {
-                content.layout(tree, renderer, limits)
-            },
-        )
+        let size = limits.resolve(self.width, self.height, Size::ZERO);
+        let node = self.contents.layout();
+        let regions = node.pane_regions(self.spacing, size);
+
+        let children = self
+            .contents
+            .iter()
+            .zip(tree.children.iter_mut())
+            .filter_map(|((pane, content), tree)| {
+                let region = regions.get(&pane)?;
+                let size = Size::new(region.width, region.height);
+
+                let node = content.layout(
+                    tree,
+                    renderer,
+                    &layout::Limits::new(size, size),
+                );
+
+                Some(node.move_to(Point::new(region.x, region.y)))
+            })
+            .collect();
+
+        layout::Node::with_children(size, children)
     }
 
     fn operate(
@@ -329,7 +348,10 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
+        let mut event_status = event::Status::Ignored;
+
         let action = tree.state.downcast_mut::<state::Action>();
+        let node = self.contents.layout();
 
         let on_drag = if self.drag_enabled() {
             &self.on_drag
@@ -337,19 +359,164 @@ where
             &None
         };
 
-        let event_status = update(
-            action,
-            self.contents.layout(),
-            &event,
-            layout,
-            cursor,
-            shell,
-            self.spacing,
-            self.contents.iter(),
-            &self.on_click,
-            on_drag,
-            &self.on_resize,
-        );
+        match event {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                let bounds = layout.bounds();
+
+                if let Some(cursor_position) = cursor.position_over(bounds) {
+                    event_status = event::Status::Captured;
+
+                    match &self.on_resize {
+                        Some((leeway, _)) => {
+                            let relative_cursor = Point::new(
+                                cursor_position.x - bounds.x,
+                                cursor_position.y - bounds.y,
+                            );
+
+                            let splits = node.split_regions(
+                                self.spacing,
+                                Size::new(bounds.width, bounds.height),
+                            );
+
+                            let clicked_split = hovered_split(
+                                splits.iter(),
+                                self.spacing + leeway,
+                                relative_cursor,
+                            );
+
+                            if let Some((split, axis, _)) = clicked_split {
+                                if action.picked_pane().is_none() {
+                                    *action =
+                                        state::Action::Resizing { split, axis };
+                                }
+                            } else {
+                                click_pane(
+                                    action,
+                                    layout,
+                                    cursor_position,
+                                    shell,
+                                    self.contents.iter(),
+                                    &self.on_click,
+                                    on_drag,
+                                );
+                            }
+                        }
+                        None => {
+                            click_pane(
+                                action,
+                                layout,
+                                cursor_position,
+                                shell,
+                                self.contents.iter(),
+                                &self.on_click,
+                                on_drag,
+                            );
+                        }
+                    }
+                }
+            }
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerLifted { .. })
+            | Event::Touch(touch::Event::FingerLost { .. }) => {
+                if let Some((pane, origin)) = action.picked_pane() {
+                    if let Some(on_drag) = on_drag {
+                        if let Some(cursor_position) = cursor.position() {
+                            if cursor_position.distance(origin)
+                                > DRAG_DEADBAND_DISTANCE
+                            {
+                                let event = if let Some(edge) =
+                                    in_edge(layout, cursor_position)
+                                {
+                                    DragEvent::Dropped {
+                                        pane,
+                                        target: Target::Edge(edge),
+                                    }
+                                } else {
+                                    let dropped_region = self
+                                        .contents
+                                        .iter()
+                                        .zip(layout.children())
+                                        .find_map(|(target, layout)| {
+                                            layout_region(
+                                                layout,
+                                                cursor_position,
+                                            )
+                                            .map(|region| (target, region))
+                                        });
+
+                                    match dropped_region {
+                                        Some(((target, _), region))
+                                            if pane != target =>
+                                        {
+                                            DragEvent::Dropped {
+                                                pane,
+                                                target: Target::Pane(
+                                                    target, region,
+                                                ),
+                                            }
+                                        }
+                                        _ => DragEvent::Canceled { pane },
+                                    }
+                                };
+
+                                shell.publish(on_drag(event));
+                            }
+                        }
+                    }
+
+                    event_status = event::Status::Captured;
+                } else if action.picked_split().is_some() {
+                    event_status = event::Status::Captured;
+                }
+
+                *action = state::Action::Idle;
+            }
+            Event::Mouse(mouse::Event::CursorMoved { .. })
+            | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                if let Some((_, on_resize)) = &self.on_resize {
+                    if let Some((split, _)) = action.picked_split() {
+                        let bounds = layout.bounds();
+
+                        let splits = node.split_regions(
+                            self.spacing,
+                            Size::new(bounds.width, bounds.height),
+                        );
+
+                        if let Some((axis, rectangle, _)) = splits.get(&split) {
+                            if let Some(cursor_position) = cursor.position() {
+                                let ratio = match axis {
+                                    Axis::Horizontal => {
+                                        let position = cursor_position.y
+                                            - bounds.y
+                                            - rectangle.y;
+
+                                        (position / rectangle.height)
+                                            .clamp(0.1, 0.9)
+                                    }
+                                    Axis::Vertical => {
+                                        let position = cursor_position.x
+                                            - bounds.x
+                                            - rectangle.x;
+
+                                        (position / rectangle.width)
+                                            .clamp(0.1, 0.9)
+                                    }
+                                };
+
+                                shell.publish(on_resize(ResizeEvent {
+                                    split,
+                                    ratio,
+                                }));
+
+                                event_status = event::Status::Captured;
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
 
         let picked_pane = action.picked_pane().map(|(pane, _)| pane);
 
@@ -383,32 +550,61 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse_interaction(
-            tree.state.downcast_ref(),
-            self.contents.layout(),
-            layout,
-            cursor,
-            self.spacing,
-            self.on_resize.as_ref().map(|(leeway, _)| *leeway),
-        )
-        .unwrap_or_else(|| {
-            self.contents
-                .iter()
-                .zip(&tree.children)
-                .zip(layout.children())
-                .map(|(((_pane, content), tree), layout)| {
-                    content.mouse_interaction(
-                        tree,
-                        layout,
-                        cursor,
-                        viewport,
-                        renderer,
-                        self.drag_enabled(),
+        let action = tree.state.downcast_ref::<state::Action>();
+
+        if action.picked_pane().is_some() {
+            return mouse::Interaction::Grabbing;
+        }
+
+        let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
+        let node = self.contents.layout();
+
+        let resize_axis =
+            action.picked_split().map(|(_, axis)| axis).or_else(|| {
+                resize_leeway.and_then(|leeway| {
+                    let cursor_position = cursor.position()?;
+                    let bounds = layout.bounds();
+
+                    let splits =
+                        node.split_regions(self.spacing, bounds.size());
+
+                    let relative_cursor = Point::new(
+                        cursor_position.x - bounds.x,
+                        cursor_position.y - bounds.y,
+                    );
+
+                    hovered_split(
+                        splits.iter(),
+                        self.spacing + leeway,
+                        relative_cursor,
                     )
+                    .map(|(_, axis, _)| axis)
                 })
-                .max()
-                .unwrap_or_default()
-        })
+            });
+
+        if let Some(resize_axis) = resize_axis {
+            return match resize_axis {
+                Axis::Horizontal => mouse::Interaction::ResizingVertically,
+                Axis::Vertical => mouse::Interaction::ResizingHorizontally,
+            };
+        }
+
+        self.contents
+            .iter()
+            .zip(&tree.children)
+            .zip(layout.children())
+            .map(|(((_pane, content), tree), layout)| {
+                content.mouse_interaction(
+                    tree,
+                    layout,
+                    cursor,
+                    viewport,
+                    renderer,
+                    self.drag_enabled(),
+                )
+            })
+            .max()
+            .unwrap_or_default()
     }
 
     fn draw(
@@ -416,33 +612,215 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        style: &renderer::Style,
+        defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        draw(
-            tree.state.downcast_ref(),
-            self.contents.layout(),
-            layout,
-            cursor,
-            renderer,
-            theme,
-            style,
-            viewport,
-            self.spacing,
-            self.on_resize.as_ref().map(|(leeway, _)| *leeway),
-            &self.style,
-            self.contents
-                .iter()
-                .zip(&tree.children)
-                .map(|((pane, content), tree)| (pane, (content, tree))),
-            |(content, tree), renderer, style, layout, cursor, rectangle| {
-                content.draw(
-                    tree, renderer, theme, style, layout, cursor, rectangle,
+        let action = tree.state.downcast_ref::<state::Action>();
+        let node = self.contents.layout();
+        let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
+
+        let contents = self
+            .contents
+            .iter()
+            .zip(&tree.children)
+            .map(|((pane, content), tree)| (pane, (content, tree)));
+
+        let picked_pane = action.picked_pane().filter(|(_, origin)| {
+            cursor
+                .position()
+                .map(|position| position.distance(*origin))
+                .unwrap_or_default()
+                > DRAG_DEADBAND_DISTANCE
+        });
+
+        let picked_split = action
+            .picked_split()
+            .and_then(|(split, axis)| {
+                let bounds = layout.bounds();
+
+                let splits = node.split_regions(self.spacing, bounds.size());
+
+                let (_axis, region, ratio) = splits.get(&split)?;
+
+                let region =
+                    axis.split_line_bounds(*region, *ratio, self.spacing);
+
+                Some((axis, region + Vector::new(bounds.x, bounds.y), true))
+            })
+            .or_else(|| match resize_leeway {
+                Some(leeway) => {
+                    let cursor_position = cursor.position()?;
+                    let bounds = layout.bounds();
+
+                    let relative_cursor = Point::new(
+                        cursor_position.x - bounds.x,
+                        cursor_position.y - bounds.y,
+                    );
+
+                    let splits =
+                        node.split_regions(self.spacing, bounds.size());
+
+                    let (_split, axis, region) = hovered_split(
+                        splits.iter(),
+                        self.spacing + leeway,
+                        relative_cursor,
+                    )?;
+
+                    Some((
+                        axis,
+                        region + Vector::new(bounds.x, bounds.y),
+                        false,
+                    ))
+                }
+                None => None,
+            });
+
+        let pane_cursor = if picked_pane.is_some() {
+            mouse::Cursor::Unavailable
+        } else {
+            cursor
+        };
+
+        let mut render_picked_pane = None;
+
+        let pane_in_edge = if picked_pane.is_some() {
+            cursor
+                .position()
+                .and_then(|cursor_position| in_edge(layout, cursor_position))
+        } else {
+            None
+        };
+
+        let style = Catalog::style(theme, &self.class);
+
+        for ((id, (content, tree)), pane_layout) in
+            contents.zip(layout.children())
+        {
+            match picked_pane {
+                Some((dragging, origin)) if id == dragging => {
+                    render_picked_pane =
+                        Some(((content, tree), origin, pane_layout));
+                }
+                Some((dragging, _)) if id != dragging => {
+                    content.draw(
+                        tree,
+                        renderer,
+                        theme,
+                        defaults,
+                        pane_layout,
+                        pane_cursor,
+                        viewport,
+                    );
+
+                    if picked_pane.is_some() && pane_in_edge.is_none() {
+                        if let Some(region) =
+                            cursor.position().and_then(|cursor_position| {
+                                layout_region(pane_layout, cursor_position)
+                            })
+                        {
+                            let bounds =
+                                layout_region_bounds(pane_layout, region);
+
+                            renderer.fill_quad(
+                                renderer::Quad {
+                                    bounds,
+                                    border: style.hovered_region.border,
+                                    ..renderer::Quad::default()
+                                },
+                                style.hovered_region.background,
+                            );
+                        }
+                    }
+                }
+                _ => {
+                    content.draw(
+                        tree,
+                        renderer,
+                        theme,
+                        defaults,
+                        pane_layout,
+                        pane_cursor,
+                        viewport,
+                    );
+                }
+            }
+        }
+
+        if let Some(edge) = pane_in_edge {
+            let bounds = edge_bounds(layout, edge);
+
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    border: style.hovered_region.border,
+                    ..renderer::Quad::default()
+                },
+                style.hovered_region.background,
+            );
+        }
+
+        // Render picked pane last
+        if let Some(((content, tree), origin, layout)) = render_picked_pane {
+            if let Some(cursor_position) = cursor.position() {
+                let bounds = layout.bounds();
+
+                let translation =
+                    cursor_position - Point::new(origin.x, origin.y);
+
+                renderer.with_translation(translation, |renderer| {
+                    renderer.with_layer(bounds, |renderer| {
+                        content.draw(
+                            tree,
+                            renderer,
+                            theme,
+                            defaults,
+                            layout,
+                            pane_cursor,
+                            viewport,
+                        );
+                    });
+                });
+            }
+        }
+
+        if picked_pane.is_none() {
+            if let Some((axis, split_region, is_picked)) = picked_split {
+                let highlight = if is_picked {
+                    style.picked_split
+                } else {
+                    style.hovered_split
+                };
+
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: match axis {
+                            Axis::Horizontal => Rectangle {
+                                x: split_region.x,
+                                y: (split_region.y
+                                    + (split_region.height - highlight.width)
+                                        / 2.0)
+                                    .round(),
+                                width: split_region.width,
+                                height: highlight.width,
+                            },
+                            Axis::Vertical => Rectangle {
+                                x: (split_region.x
+                                    + (split_region.width - highlight.width)
+                                        / 2.0)
+                                    .round(),
+                                y: split_region.y,
+                                width: highlight.width,
+                                height: split_region.height,
+                            },
+                        },
+                        ..renderer::Quad::default()
+                    },
+                    highlight.color,
                 );
-            },
-        );
+            }
+        }
     }
 
     fn overlay<'b>(
@@ -470,227 +848,14 @@ impl<'a, Message, Theme, Renderer> From<PaneGrid<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + container::StyleSheet + 'a,
-    Renderer: crate::core::Renderer + 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::Renderer + 'a,
 {
     fn from(
         pane_grid: PaneGrid<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(pane_grid)
     }
-}
-
-/// Calculates the [`Layout`] of a [`PaneGrid`].
-pub fn layout<Renderer, T>(
-    tree: &mut Tree,
-    renderer: &Renderer,
-    limits: &layout::Limits,
-    node: &Node,
-    width: Length,
-    height: Length,
-    spacing: f32,
-    contents: impl Iterator<Item = (Pane, T)>,
-    layout_content: impl Fn(
-        T,
-        &mut Tree,
-        &Renderer,
-        &layout::Limits,
-    ) -> layout::Node,
-) -> layout::Node {
-    let size = limits.resolve(width, height, Size::ZERO);
-
-    let regions = node.pane_regions(spacing, size);
-    let children = contents
-        .zip(tree.children.iter_mut())
-        .filter_map(|((pane, content), tree)| {
-            let region = regions.get(&pane)?;
-            let size = Size::new(region.width, region.height);
-
-            let node = layout_content(
-                content,
-                tree,
-                renderer,
-                &layout::Limits::new(size, size),
-            );
-
-            Some(node.move_to(Point::new(region.x, region.y)))
-        })
-        .collect();
-
-    layout::Node::with_children(size, children)
-}
-
-/// Processes an [`Event`] and updates the [`state`] of a [`PaneGrid`]
-/// accordingly.
-pub fn update<'a, Message, T: Draggable>(
-    action: &mut state::Action,
-    node: &Node,
-    event: &Event,
-    layout: Layout<'_>,
-    cursor: mouse::Cursor,
-    shell: &mut Shell<'_, Message>,
-    spacing: f32,
-    contents: impl Iterator<Item = (Pane, T)>,
-    on_click: &Option<Box<dyn Fn(Pane) -> Message + 'a>>,
-    on_drag: &Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
-    on_resize: &Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-) -> event::Status {
-    let mut event_status = event::Status::Ignored;
-
-    match event {
-        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerPressed { .. }) => {
-            let bounds = layout.bounds();
-
-            if let Some(cursor_position) = cursor.position_over(bounds) {
-                event_status = event::Status::Captured;
-
-                match on_resize {
-                    Some((leeway, _)) => {
-                        let relative_cursor = Point::new(
-                            cursor_position.x - bounds.x,
-                            cursor_position.y - bounds.y,
-                        );
-
-                        let splits = node.split_regions(
-                            spacing,
-                            Size::new(bounds.width, bounds.height),
-                        );
-
-                        let clicked_split = hovered_split(
-                            splits.iter(),
-                            spacing + leeway,
-                            relative_cursor,
-                        );
-
-                        if let Some((split, axis, _)) = clicked_split {
-                            if action.picked_pane().is_none() {
-                                *action =
-                                    state::Action::Resizing { split, axis };
-                            }
-                        } else {
-                            click_pane(
-                                action,
-                                layout,
-                                cursor_position,
-                                shell,
-                                contents,
-                                on_click,
-                                on_drag,
-                            );
-                        }
-                    }
-                    None => {
-                        click_pane(
-                            action,
-                            layout,
-                            cursor_position,
-                            shell,
-                            contents,
-                            on_click,
-                            on_drag,
-                        );
-                    }
-                }
-            }
-        }
-        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerLifted { .. })
-        | Event::Touch(touch::Event::FingerLost { .. }) => {
-            if let Some((pane, origin)) = action.picked_pane() {
-                if let Some(on_drag) = on_drag {
-                    if let Some(cursor_position) = cursor.position() {
-                        if cursor_position.distance(origin)
-                            > DRAG_DEADBAND_DISTANCE
-                        {
-                            let event = if let Some(edge) =
-                                in_edge(layout, cursor_position)
-                            {
-                                DragEvent::Dropped {
-                                    pane,
-                                    target: Target::Edge(edge),
-                                }
-                            } else {
-                                let dropped_region = contents
-                                    .zip(layout.children())
-                                    .find_map(|(target, layout)| {
-                                        layout_region(layout, cursor_position)
-                                            .map(|region| (target, region))
-                                    });
-
-                                match dropped_region {
-                                    Some(((target, _), region))
-                                        if pane != target =>
-                                    {
-                                        DragEvent::Dropped {
-                                            pane,
-                                            target: Target::Pane(
-                                                target, region,
-                                            ),
-                                        }
-                                    }
-                                    _ => DragEvent::Canceled { pane },
-                                }
-                            };
-
-                            shell.publish(on_drag(event));
-                        }
-                    }
-                }
-
-                event_status = event::Status::Captured;
-            } else if action.picked_split().is_some() {
-                event_status = event::Status::Captured;
-            }
-
-            *action = state::Action::Idle;
-        }
-        Event::Mouse(mouse::Event::CursorMoved { .. })
-        | Event::Touch(touch::Event::FingerMoved { .. }) => {
-            if let Some((_, on_resize)) = on_resize {
-                if let Some((split, _)) = action.picked_split() {
-                    let bounds = layout.bounds();
-
-                    let splits = node.split_regions(
-                        spacing,
-                        Size::new(bounds.width, bounds.height),
-                    );
-
-                    if let Some((axis, rectangle, _)) = splits.get(&split) {
-                        if let Some(cursor_position) = cursor.position() {
-                            let ratio = match axis {
-                                Axis::Horizontal => {
-                                    let position = cursor_position.y
-                                        - bounds.y
-                                        - rectangle.y;
-
-                                    (position / rectangle.height)
-                                        .clamp(0.1, 0.9)
-                                }
-                                Axis::Vertical => {
-                                    let position = cursor_position.x
-                                        - bounds.x
-                                        - rectangle.x;
-
-                                    (position / rectangle.width).clamp(0.1, 0.9)
-                                }
-                            };
-
-                            shell.publish(on_resize(ResizeEvent {
-                                split,
-                                ratio,
-                            }));
-
-                            event_status = event::Status::Captured;
-                        }
-                    }
-                }
-            }
-        }
-        _ => {}
-    }
-
-    event_status
 }
 
 fn layout_region(layout: Layout<'_>, cursor_position: Point) -> Option<Region> {
@@ -743,257 +908,6 @@ fn click_pane<'a, Message, T>(
                 };
 
                 shell.publish(on_drag(DragEvent::Picked { pane }));
-            }
-        }
-    }
-}
-
-/// Returns the current [`mouse::Interaction`] of a [`PaneGrid`].
-pub fn mouse_interaction(
-    action: &state::Action,
-    node: &Node,
-    layout: Layout<'_>,
-    cursor: mouse::Cursor,
-    spacing: f32,
-    resize_leeway: Option<f32>,
-) -> Option<mouse::Interaction> {
-    if action.picked_pane().is_some() {
-        return Some(mouse::Interaction::Grabbing);
-    }
-
-    let resize_axis =
-        action.picked_split().map(|(_, axis)| axis).or_else(|| {
-            resize_leeway.and_then(|leeway| {
-                let cursor_position = cursor.position()?;
-                let bounds = layout.bounds();
-
-                let splits = node.split_regions(spacing, bounds.size());
-
-                let relative_cursor = Point::new(
-                    cursor_position.x - bounds.x,
-                    cursor_position.y - bounds.y,
-                );
-
-                hovered_split(splits.iter(), spacing + leeway, relative_cursor)
-                    .map(|(_, axis, _)| axis)
-            })
-        });
-
-    if let Some(resize_axis) = resize_axis {
-        return Some(match resize_axis {
-            Axis::Horizontal => mouse::Interaction::ResizingVertically,
-            Axis::Vertical => mouse::Interaction::ResizingHorizontally,
-        });
-    }
-
-    None
-}
-
-/// Draws a [`PaneGrid`].
-pub fn draw<Theme, Renderer, T>(
-    action: &state::Action,
-    node: &Node,
-    layout: Layout<'_>,
-    cursor: mouse::Cursor,
-    renderer: &mut Renderer,
-    theme: &Theme,
-    default_style: &renderer::Style,
-    viewport: &Rectangle,
-    spacing: f32,
-    resize_leeway: Option<f32>,
-    style: &Theme::Style,
-    contents: impl Iterator<Item = (Pane, T)>,
-    draw_pane: impl Fn(
-        T,
-        &mut Renderer,
-        &renderer::Style,
-        Layout<'_>,
-        mouse::Cursor,
-        &Rectangle,
-    ),
-) where
-    Theme: StyleSheet,
-    Renderer: crate::core::Renderer,
-{
-    let picked_pane = action.picked_pane().filter(|(_, origin)| {
-        cursor
-            .position()
-            .map(|position| position.distance(*origin))
-            .unwrap_or_default()
-            > DRAG_DEADBAND_DISTANCE
-    });
-
-    let picked_split = action
-        .picked_split()
-        .and_then(|(split, axis)| {
-            let bounds = layout.bounds();
-
-            let splits = node.split_regions(spacing, bounds.size());
-
-            let (_axis, region, ratio) = splits.get(&split)?;
-
-            let region = axis.split_line_bounds(*region, *ratio, spacing);
-
-            Some((axis, region + Vector::new(bounds.x, bounds.y), true))
-        })
-        .or_else(|| match resize_leeway {
-            Some(leeway) => {
-                let cursor_position = cursor.position()?;
-                let bounds = layout.bounds();
-
-                let relative_cursor = Point::new(
-                    cursor_position.x - bounds.x,
-                    cursor_position.y - bounds.y,
-                );
-
-                let splits = node.split_regions(spacing, bounds.size());
-
-                let (_split, axis, region) = hovered_split(
-                    splits.iter(),
-                    spacing + leeway,
-                    relative_cursor,
-                )?;
-
-                Some((axis, region + Vector::new(bounds.x, bounds.y), false))
-            }
-            None => None,
-        });
-
-    let pane_cursor = if picked_pane.is_some() {
-        mouse::Cursor::Unavailable
-    } else {
-        cursor
-    };
-
-    let mut render_picked_pane = None;
-
-    let pane_in_edge = if picked_pane.is_some() {
-        cursor
-            .position()
-            .and_then(|cursor_position| in_edge(layout, cursor_position))
-    } else {
-        None
-    };
-
-    for ((id, pane), pane_layout) in contents.zip(layout.children()) {
-        match picked_pane {
-            Some((dragging, origin)) if id == dragging => {
-                render_picked_pane = Some((pane, origin, pane_layout));
-            }
-            Some((dragging, _)) if id != dragging => {
-                draw_pane(
-                    pane,
-                    renderer,
-                    default_style,
-                    pane_layout,
-                    pane_cursor,
-                    viewport,
-                );
-
-                if picked_pane.is_some() && pane_in_edge.is_none() {
-                    if let Some(region) =
-                        cursor.position().and_then(|cursor_position| {
-                            layout_region(pane_layout, cursor_position)
-                        })
-                    {
-                        let bounds = layout_region_bounds(pane_layout, region);
-                        let hovered_region_style = theme.hovered_region(style);
-
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds,
-                                border: hovered_region_style.border,
-                                ..renderer::Quad::default()
-                            },
-                            theme.hovered_region(style).background,
-                        );
-                    }
-                }
-            }
-            _ => {
-                draw_pane(
-                    pane,
-                    renderer,
-                    default_style,
-                    pane_layout,
-                    pane_cursor,
-                    viewport,
-                );
-            }
-        }
-    }
-
-    if let Some(edge) = pane_in_edge {
-        let hovered_region_style = theme.hovered_region(style);
-        let bounds = edge_bounds(layout, edge);
-
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds,
-                border: hovered_region_style.border,
-                ..renderer::Quad::default()
-            },
-            theme.hovered_region(style).background,
-        );
-    }
-
-    // Render picked pane last
-    if let Some((pane, origin, layout)) = render_picked_pane {
-        if let Some(cursor_position) = cursor.position() {
-            let bounds = layout.bounds();
-
-            let translation = cursor_position - Point::new(origin.x, origin.y);
-
-            renderer.with_translation(translation, |renderer| {
-                renderer.with_layer(bounds, |renderer| {
-                    draw_pane(
-                        pane,
-                        renderer,
-                        default_style,
-                        layout,
-                        pane_cursor,
-                        viewport,
-                    );
-                });
-            });
-        }
-    }
-
-    if picked_pane.is_none() {
-        if let Some((axis, split_region, is_picked)) = picked_split {
-            let highlight = if is_picked {
-                theme.picked_split(style)
-            } else {
-                theme.hovered_split(style)
-            };
-
-            if let Some(highlight) = highlight {
-                renderer.fill_quad(
-                    renderer::Quad {
-                        bounds: match axis {
-                            Axis::Horizontal => Rectangle {
-                                x: split_region.x,
-                                y: (split_region.y
-                                    + (split_region.height - highlight.width)
-                                        / 2.0)
-                                    .round(),
-                                width: split_region.width,
-                                height: highlight.width,
-                            },
-                            Axis::Vertical => Rectangle {
-                                x: (split_region.x
-                                    + (split_region.width - highlight.width)
-                                        / 2.0)
-                                    .round(),
-                                y: split_region.y,
-                                width: highlight.width,
-                                height: split_region.height,
-                            },
-                        },
-                        ..renderer::Quad::default()
-                    },
-                    highlight.color,
-                );
             }
         }
     }
@@ -1213,5 +1127,92 @@ impl<'a, T> Contents<'a, T> {
 
     fn is_maximized(&self) -> bool {
         matches!(self, Self::Maximized(..))
+    }
+}
+
+/// The appearance of a [`PaneGrid`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Style {
+    /// The appearance of a hovered region highlight.
+    pub hovered_region: Highlight,
+    /// The appearance of a picked split.
+    pub picked_split: Line,
+    /// The appearance of a hovered split.
+    pub hovered_split: Line,
+}
+
+/// The appearance of a highlight of the [`PaneGrid`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Highlight {
+    /// The [`Background`] of the pane region.
+    pub background: Background,
+    /// The [`Border`] of the pane region.
+    pub border: Border,
+}
+
+/// A line.
+///
+/// It is normally used to define the highlight of something, like a split.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Line {
+    /// The [`Color`] of the [`Line`].
+    pub color: Color,
+    /// The width of the [`Line`].
+    pub width: f32,
+}
+
+/// The theme catalog of a [`PaneGrid`].
+pub trait Catalog: container::Catalog {
+    /// The item class of this [`Catalog`].
+    type Class<'a>;
+
+    /// The default class produced by this [`Catalog`].
+    fn default<'a>() -> <Self as Catalog>::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &<Self as Catalog>::Class<'_>) -> Style;
+}
+
+/// A styling function for a [`PaneGrid`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> StyleFn<'a, Self> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &StyleFn<'_, Self>) -> Style {
+        class(self)
+    }
+}
+
+/// The default style of a [`PaneGrid`].
+pub fn default(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    Style {
+        hovered_region: Highlight {
+            background: Background::Color(Color {
+                a: 0.5,
+                ..palette.primary.base.color
+            }),
+            border: Border {
+                width: 2.0,
+                color: palette.primary.strong.color,
+                radius: 0.0.into(),
+            },
+        },
+        hovered_split: Line {
+            color: palette.primary.base.color,
+            width: 2.0,
+        },
+        picked_split: Line {
+            color: palette.primary.strong.color,
+            width: 2.0,
+        },
     }
 }

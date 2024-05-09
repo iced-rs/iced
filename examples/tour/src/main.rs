@@ -1,11 +1,10 @@
 use iced::alignment::{self, Alignment};
-use iced::theme;
 use iced::widget::{
-    checkbox, column, container, horizontal_space, image, radio, row,
+    button, checkbox, column, container, horizontal_space, image, radio, row,
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{Color, Element, Font, Length, Pixels, Sandbox, Settings};
+use iced::{Color, Element, Font, Length, Pixels};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -17,24 +16,18 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    Tour::run(Settings::default())
+    iced::program(Tour::title, Tour::update, Tour::view)
+        .centered()
+        .run()
 }
 
+#[derive(Default)]
 pub struct Tour {
     steps: Steps,
     debug: bool,
 }
 
-impl Sandbox for Tour {
-    type Message = Message;
-
-    fn new() -> Tour {
-        Tour {
-            steps: Steps::new(),
-            debug: false,
-        }
-    }
-
+impl Tour {
     fn title(&self) -> String {
         format!("{} - Iced", self.steps.title())
     }
@@ -56,18 +49,17 @@ impl Sandbox for Tour {
     fn view(&self) -> Element<Message> {
         let Tour { steps, .. } = self;
 
-        let controls = row![]
-            .push_maybe(steps.has_previous().then(|| {
-                button("Back")
-                    .on_press(Message::BackPressed)
-                    .style(theme::Button::Secondary)
-            }))
-            .push(horizontal_space())
-            .push_maybe(
-                steps
-                    .can_continue()
-                    .then(|| button("Next").on_press(Message::NextPressed)),
-            );
+        let controls =
+            row![]
+                .push_maybe(steps.has_previous().then(|| {
+                    padded_button("Back")
+                        .on_press(Message::BackPressed)
+                        .style(button::secondary)
+                }))
+                .push(horizontal_space())
+                .push_maybe(steps.can_continue().then(|| {
+                    padded_button("Next").on_press(Message::NextPressed)
+                }));
 
         let content: Element<_> = column![
             steps.view(self.debug).map(Message::StepMessage),
@@ -84,11 +76,10 @@ impl Sandbox for Tour {
             } else {
                 content
             })
-            .width(Length::Fill)
             .center_x(),
         );
 
-        container(scrollable).height(Length::Fill).center_y().into()
+        container(scrollable).center_y().into()
     }
 }
 
@@ -170,6 +161,12 @@ impl Steps {
 
     fn title(&self) -> &str {
         self.steps[self.current].title()
+    }
+}
+
+impl Default for Steps {
+    fn default() -> Self {
+        Steps::new()
     }
 }
 
@@ -359,7 +356,7 @@ impl<'a> Step {
         .into()
     }
 
-    fn container(title: &str) -> Column<'a, StepMessage> {
+    fn container(title: &str) -> Column<'_, StepMessage> {
         column![text(title).size(50)].spacing(20)
     }
 
@@ -474,7 +471,7 @@ impl<'a> Step {
 
         let color_section = column![
             "And its color:",
-            text(format!("{color:?}")).style(color),
+            text(format!("{color:?}")).color(color),
             color_sliders,
         ]
         .padding(20)
@@ -591,7 +588,7 @@ impl<'a> Step {
         value: &str,
         is_secure: bool,
         is_showing_icon: bool,
-    ) -> Column<'a, StepMessage> {
+    ) -> Column<'_, StepMessage> {
         let mut text_input = text_input("Type something to continue...", value)
             .on_input(StepMessage::InputChanged)
             .padding(10)
@@ -672,12 +669,11 @@ fn ferris<'a>(
         .filter_method(filter_method)
         .width(width),
     )
-    .width(Length::Fill)
     .center_x()
 }
 
-fn button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
-    iced::widget::button(text(label)).padding([12, 24])
+fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {
+    button(text(label)).padding([12, 24])
 }
 
 fn color_slider<'a>(

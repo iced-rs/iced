@@ -18,11 +18,12 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::Element;
 use crate::core::{
-    self, Clipboard, Hasher, Length, Point, Rectangle, Shell, Size, Vector,
+    self, Clipboard, Length, Point, Rectangle, Shell, Size, Vector,
 };
 use crate::runtime::overlay::Nested;
 
 use ouroboros::self_referencing;
+use rustc_hash::FxHasher;
 use std::cell::RefCell;
 use std::hash::{Hash, Hasher as H};
 use std::rc::Rc;
@@ -106,9 +107,12 @@ where
     }
 
     fn state(&self) -> tree::State {
-        let mut hasher = Hasher::default();
-        self.dependency.hash(&mut hasher);
-        let hash = hasher.finish();
+        let hash = {
+            let mut hasher = FxHasher::default();
+            self.dependency.hash(&mut hasher);
+
+            hasher.finish()
+        };
 
         let element =
             Rc::new(RefCell::new(Some((self.view)(&self.dependency).into())));
@@ -127,9 +131,12 @@ where
             .state
             .downcast_mut::<Internal<Message, Theme, Renderer>>();
 
-        let mut hasher = Hasher::default();
-        self.dependency.hash(&mut hasher);
-        let new_hash = hasher.finish();
+        let new_hash = {
+            let mut hasher = FxHasher::default();
+            self.dependency.hash(&mut hasher);
+
+            hasher.finish()
+        };
 
         if current.hash != new_hash {
             current.hash = new_hash;

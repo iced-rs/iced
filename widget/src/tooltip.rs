@@ -20,7 +20,7 @@ pub struct Tooltip<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: container::StyleSheet + crate::text::StyleSheet,
+    Theme: container::Catalog,
     Renderer: text::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
@@ -29,12 +29,12 @@ pub struct Tooltip<
     gap: f32,
     padding: f32,
     snap_within_viewport: bool,
-    style: <Theme as container::StyleSheet>::Style,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Tooltip<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet + crate::text::StyleSheet,
+    Theme: container::Catalog,
     Renderer: text::Renderer,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
@@ -55,7 +55,7 @@ where
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
-            style: Default::default(),
+            class: Theme::default(),
         }
     }
 
@@ -78,11 +78,23 @@ where
     }
 
     /// Sets the style of the [`Tooltip`].
+    #[must_use]
     pub fn style(
         mut self,
-        style: impl Into<<Theme as container::StyleSheet>::Style>,
-    ) -> Self {
-        self.style = style.into();
+        style: impl Fn(&Theme) -> container::Style + 'a,
+    ) -> Self
+    where
+        Theme::Class<'a>: From<container::StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as container::StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Tooltip`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
@@ -90,7 +102,7 @@ where
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Tooltip<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet + crate::text::StyleSheet,
+    Theme: container::Catalog,
     Renderer: text::Renderer,
 {
     fn children(&self) -> Vec<widget::Tree> {
@@ -239,7 +251,7 @@ where
                 positioning: self.position,
                 gap: self.gap,
                 padding: self.padding,
-                style: &self.style,
+                class: &self.class,
             })))
         } else {
             None
@@ -262,7 +274,7 @@ impl<'a, Message, Theme, Renderer> From<Tooltip<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: container::StyleSheet + crate::text::StyleSheet + 'a,
+    Theme: container::Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
@@ -273,11 +285,10 @@ where
 }
 
 /// The position of the tooltip. Defaults to following the cursor.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Position {
-    /// The tooltip will follow the cursor.
-    FollowCursor,
     /// The tooltip will appear on the top of the widget.
+    #[default]
     Top,
     /// The tooltip will appear on the bottom of the widget.
     Bottom,
@@ -285,6 +296,8 @@ pub enum Position {
     Left,
     /// The tooltip will appear on the right of the widget.
     Right,
+    /// The tooltip will follow the cursor.
+    FollowCursor,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -298,7 +311,7 @@ enum State {
 
 struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet + widget::text::StyleSheet,
+    Theme: container::Catalog,
     Renderer: text::Renderer,
 {
     position: Point,
@@ -310,14 +323,14 @@ where
     positioning: Position,
     gap: f32,
     padding: f32,
-    style: &'b <Theme as container::StyleSheet>::Style,
+    class: &'b Theme::Class<'a>,
 }
 
 impl<'a, 'b, Message, Theme, Renderer>
     overlay::Overlay<Message, Theme, Renderer>
     for Overlay<'a, 'b, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet + widget::text::StyleSheet,
+    Theme: container::Catalog,
     Renderer: text::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
@@ -426,7 +439,7 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        let style = container::StyleSheet::appearance(theme, self.style);
+        let style = theme.style(self.class);
 
         container::draw_background(renderer, &style, layout.bounds());
 

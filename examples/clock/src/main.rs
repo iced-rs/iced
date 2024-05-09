@@ -1,17 +1,20 @@
-use iced::executor;
+use iced::alignment;
 use iced::mouse;
 use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
 use iced::{
-    Application, Color, Command, Element, Length, Point, Rectangle, Renderer,
-    Settings, Subscription, Theme, Vector,
+    Degrees, Element, Font, Length, Point, Rectangle, Renderer, Subscription,
+    Theme, Vector,
 };
 
 pub fn main() -> iced::Result {
-    Clock::run(Settings {
-        antialiasing: true,
-        ..Settings::default()
-    })
+    tracing_subscriber::fmt::init();
+
+    iced::program("Clock - Iced", Clock::update, Clock::view)
+        .subscription(Clock::subscription)
+        .theme(Clock::theme)
+        .antialiasing(true)
+        .run()
 }
 
 struct Clock {
@@ -24,28 +27,8 @@ enum Message {
     Tick(time::OffsetDateTime),
 }
 
-impl Application for Clock {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Clock {
-                now: time::OffsetDateTime::now_local()
-                    .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
-                clock: Cache::default(),
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Clock - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+impl Clock {
+    fn update(&mut self, message: Message) {
         match message {
             Message::Tick(local_time) => {
                 let now = local_time;
@@ -56,8 +39,6 @@ impl Application for Clock {
                 }
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
@@ -80,6 +61,21 @@ impl Application for Clock {
             )
         })
     }
+
+    fn theme(&self) -> Theme {
+        Theme::ALL[(self.now.unix_timestamp() as usize / 10) % Theme::ALL.len()]
+            .clone()
+    }
+}
+
+impl Default for Clock {
+    fn default() -> Self {
+        Self {
+            now: time::OffsetDateTime::now_local()
+                .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
+            clock: Cache::default(),
+        }
+    }
 }
 
 impl<Message> canvas::Program<Message> for Clock {
@@ -89,16 +85,18 @@ impl<Message> canvas::Program<Message> for Clock {
         &self,
         _state: &Self::State,
         renderer: &Renderer,
-        _theme: &Theme,
+        theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let clock = self.clock.draw(renderer, bounds.size(), |frame| {
+            let palette = theme.extended_palette();
+
             let center = frame.center();
             let radius = frame.width().min(frame.height()) / 2.0;
 
             let background = Path::circle(center, radius);
-            frame.fill(&background, Color::from_rgb8(0x12, 0x93, 0xD8));
+            frame.fill(&background, palette.secondary.strong.color);
 
             let short_hand =
                 Path::line(Point::ORIGIN, Point::new(0.0, -0.5 * radius));
@@ -111,7 +109,7 @@ impl<Message> canvas::Program<Message> for Clock {
             let thin_stroke = || -> Stroke {
                 Stroke {
                     width,
-                    style: stroke::Style::Solid(Color::WHITE),
+                    style: stroke::Style::Solid(palette.secondary.strong.text),
                     line_cap: LineCap::Round,
                     ..Stroke::default()
                 }
@@ -120,7 +118,7 @@ impl<Message> canvas::Program<Message> for Clock {
             let wide_stroke = || -> Stroke {
                 Stroke {
                     width: width * 3.0,
-                    style: stroke::Style::Solid(Color::WHITE),
+                    style: stroke::Style::Solid(palette.secondary.strong.text),
                     line_cap: LineCap::Round,
                     ..Stroke::default()
                 }
@@ -139,8 +137,31 @@ impl<Message> canvas::Program<Message> for Clock {
             });
 
             frame.with_save(|frame| {
-                frame.rotate(hand_rotation(self.now.second(), 60));
+                let rotation = hand_rotation(self.now.second(), 60);
+
+                frame.rotate(rotation);
                 frame.stroke(&long_hand, thin_stroke());
+
+                let rotate_factor = if rotation < 180.0 { 1.0 } else { -1.0 };
+
+                frame.rotate(Degrees(-90.0 * rotate_factor));
+                frame.fill_text(canvas::Text {
+                    content: theme.to_string(),
+                    size: (radius / 15.0).into(),
+                    position: Point::new(
+                        (0.78 * radius) * rotate_factor,
+                        -width * 2.0,
+                    ),
+                    color: palette.secondary.strong.text,
+                    horizontal_alignment: if rotate_factor > 0.0 {
+                        alignment::Horizontal::Right
+                    } else {
+                        alignment::Horizontal::Left
+                    },
+                    vertical_alignment: alignment::Vertical::Bottom,
+                    font: Font::MONOSPACE,
+                    ..canvas::Text::default()
+                });
             });
         });
 
@@ -148,8 +169,8 @@ impl<Message> canvas::Program<Message> for Clock {
     }
 }
 
-fn hand_rotation(n: u8, total: u8) -> f32 {
+fn hand_rotation(n: u8, total: u8) -> Degrees {
     let turns = n as f32 / total as f32;
 
-    2.0 * std::f32::consts::PI * turns
+    Degrees(360.0 * turns)
 }

@@ -1,5 +1,5 @@
 use crate::core::alignment;
-use crate::core::text::{LineHeight, Shaping};
+use crate::core::text::Shaping;
 use crate::core::{
     Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
@@ -13,7 +13,7 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::hash_map;
 
-#[allow(missing_debug_implementations)]
+#[derive(Debug)]
 pub struct Pipeline {
     glyph_cache: GlyphCache,
     cache: RefCell<Cache>,
@@ -27,6 +27,8 @@ impl Pipeline {
         }
     }
 
+    // TODO: Shared engine
+    #[allow(dead_code)]
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
         font_system()
             .write()
@@ -41,7 +43,6 @@ impl Pipeline {
         paragraph: &paragraph::Weak,
         position: Point,
         color: Color,
-        scale_factor: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
         transformation: Transformation,
@@ -62,7 +63,6 @@ impl Pipeline {
             color,
             paragraph.horizontal_alignment(),
             paragraph.vertical_alignment(),
-            scale_factor,
             pixels,
             clip_mask,
             transformation,
@@ -74,7 +74,6 @@ impl Pipeline {
         editor: &editor::Weak,
         position: Point,
         color: Color,
-        scale_factor: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
         transformation: Transformation,
@@ -95,7 +94,6 @@ impl Pipeline {
             color,
             alignment::Horizontal::Left,
             alignment::Vertical::Top,
-            scale_factor,
             pixels,
             clip_mask,
             transformation,
@@ -108,17 +106,16 @@ impl Pipeline {
         bounds: Rectangle,
         color: Color,
         size: Pixels,
-        line_height: LineHeight,
+        line_height: Pixels,
         font: Font,
         horizontal_alignment: alignment::Horizontal,
         vertical_alignment: alignment::Vertical,
         shaping: Shaping,
-        scale_factor: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
         transformation: Transformation,
     ) {
-        let line_height = f32::from(line_height.to_absolute(size));
+        let line_height = f32::from(line_height);
 
         let mut font_system = font_system().write().expect("Write font system");
         let font_system = font_system.raw();
@@ -149,7 +146,6 @@ impl Pipeline {
             color,
             horizontal_alignment,
             vertical_alignment,
-            scale_factor,
             pixels,
             clip_mask,
             transformation,
@@ -161,7 +157,6 @@ impl Pipeline {
         buffer: &cosmic_text::Buffer,
         position: Point,
         color: Color,
-        scale_factor: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
         transformation: Transformation,
@@ -178,7 +173,6 @@ impl Pipeline {
             color,
             alignment::Horizontal::Left,
             alignment::Vertical::Top,
-            scale_factor,
             pixels,
             clip_mask,
             transformation,
@@ -199,12 +193,11 @@ fn draw(
     color: Color,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    scale_factor: f32,
     pixels: &mut tiny_skia::PixmapMut<'_>,
     clip_mask: Option<&tiny_skia::Mask>,
     transformation: Transformation,
 ) {
-    let bounds = bounds * transformation * scale_factor;
+    let bounds = bounds * transformation;
 
     let x = match horizontal_alignment {
         alignment::Horizontal::Left => bounds.x,
@@ -222,8 +215,8 @@ fn draw(
 
     for run in buffer.layout_runs() {
         for glyph in run.glyphs {
-            let physical_glyph = glyph
-                .physical((x, y), scale_factor * transformation.scale_factor());
+            let physical_glyph =
+                glyph.physical((x, y), transformation.scale_factor());
 
             if let Some((buffer, placement)) = glyph_cache.allocate(
                 physical_glyph.cache_key,
@@ -247,10 +240,8 @@ fn draw(
                 pixels.draw_pixmap(
                     physical_glyph.x + placement.left,
                     physical_glyph.y - placement.top
-                        + (run.line_y
-                            * scale_factor
-                            * transformation.scale_factor())
-                        .round() as i32,
+                        + (run.line_y * transformation.scale_factor()).round()
+                            as i32,
                     pixmap,
                     &tiny_skia::PixmapPaint {
                         opacity,

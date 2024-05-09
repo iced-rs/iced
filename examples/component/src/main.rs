@@ -1,10 +1,10 @@
-use iced::widget::container;
-use iced::{Element, Length, Sandbox, Settings};
+use iced::widget::center;
+use iced::Element;
 
 use numeric_input::numeric_input;
 
 pub fn main() -> iced::Result {
-    Component::run(Settings::default())
+    iced::run("Component - Iced", Component::update, Component::view)
 }
 
 #[derive(Default)]
@@ -17,17 +17,7 @@ enum Message {
     NumericInputChanged(Option<u32>),
 }
 
-impl Sandbox for Component {
-    type Message = Message;
-
-    fn new() -> Self {
-        Self::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("Component - Iced")
-    }
-
+impl Component {
     fn update(&mut self, message: Message) {
         match message {
             Message::NumericInputChanged(value) => {
@@ -37,10 +27,8 @@ impl Sandbox for Component {
     }
 
     fn view(&self) -> Element<Message> {
-        container(numeric_input(self.value, Message::NumericInputChanged))
+        center(numeric_input(self.value, Message::NumericInputChanged))
             .padding(20)
-            .height(Length::Fill)
-            .center_y()
             .into()
     }
 }
@@ -81,7 +69,10 @@ mod numeric_input {
         }
     }
 
-    impl<Message> Component<Message> for NumericInput<Message> {
+    impl<Message, Theme> Component<Message, Theme> for NumericInput<Message>
+    where
+        Theme: text::Catalog + button::Catalog + text_input::Catalog + 'static,
+    {
         type State = ();
         type Event = Event;
 
@@ -111,7 +102,7 @@ mod numeric_input {
             }
         }
 
-        fn view(&self, _state: &Self::State) -> Element<Event> {
+        fn view(&self, _state: &Self::State) -> Element<'_, Event, Theme> {
             let button = |label, on_press| {
                 button(
                     text(label)
@@ -152,8 +143,10 @@ mod numeric_input {
         }
     }
 
-    impl<'a, Message> From<NumericInput<Message>> for Element<'a, Message>
+    impl<'a, Message, Theme> From<NumericInput<Message>>
+        for Element<'a, Message, Theme>
     where
+        Theme: text::Catalog + button::Catalog + text_input::Catalog + 'static,
         Message: 'a,
     {
         fn from(numeric_input: NumericInput<Message>) -> Self {
