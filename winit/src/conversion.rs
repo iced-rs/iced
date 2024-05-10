@@ -323,6 +323,35 @@ pub fn position(
                 y: f64::from(position.y),
             }))
         }
+        window::Position::SpecificWith(to_position) => {
+            if let Some(monitor) = monitor {
+                let start = monitor.position();
+
+                let resolution: winit::dpi::LogicalSize<f32> =
+                    monitor.size().to_logical(monitor.scale_factor());
+
+                let position = to_position(
+                    size,
+                    Size::new(resolution.width, resolution.height),
+                );
+
+                let centered: winit::dpi::PhysicalPosition<i32> =
+                    winit::dpi::LogicalPosition {
+                        x: position.x,
+                        y: position.y,
+                    }
+                    .to_physical(monitor.scale_factor());
+
+                Some(winit::dpi::Position::Physical(
+                    winit::dpi::PhysicalPosition {
+                        x: start.x + centered.x,
+                        y: start.y + centered.y,
+                    },
+                ))
+            } else {
+                None
+            }
+        }
         window::Position::Centered => {
             if let Some(monitor) = monitor {
                 let start = monitor.position();
