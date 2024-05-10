@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{Point, Size};
 
 /// The position of a window in a given screen.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -15,6 +15,12 @@ pub enum Position {
     /// at (0, 0) you would have to set the position to
     /// `(PADDING_X, PADDING_Y)`.
     Specific(Point),
+    /// Like [`Specific`], but the window is positioned with the specific coordinates returned by the function.
+    ///
+    /// The function receives the window size and the monitor's resolution as input.
+    ///
+    /// [`Specific`]: Self::Specific
+    SpecificWith(fn(Size, Size) -> Point),
 }
 
 impl Default for Position {
