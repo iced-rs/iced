@@ -106,7 +106,7 @@ members = [
     "highlighter",
     "renderer",
     "runtime",
-    "sentinel",
+    "beacon",
     "tiny_skia",
     "wgpu",
     "widget",
@@ -126,6 +126,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 
 [workspace.dependencies]
 iced = { version = "0.13.0-dev", path = "." }
+iced_beacon = { version = "0.13.0-dev", path = "beacon" }
 iced_core = { version = "0.13.0-dev", path = "core" }
 iced_debug = { version = "0.13.0-dev", path = "debug" }
 iced_futures = { version = "0.13.0-dev", path = "futures" }
@@ -133,7 +134,6 @@ iced_graphics = { version = "0.13.0-dev", path = "graphics" }
 iced_highlighter = { version = "0.13.0-dev", path = "highlighter" }
 iced_renderer = { version = "0.13.0-dev", path = "renderer" }
 iced_runtime = { version = "0.13.0-dev", path = "runtime" }
-iced_sentinel = { version = "0.13.0-dev", path = "sentinel" }
 iced_tiny_skia = { version = "0.13.0-dev", path = "tiny_skia" }
 iced_wgpu = { version = "0.13.0-dev", path = "wgpu" }
 iced_widget = { version = "0.13.0-dev", path = "widget" }

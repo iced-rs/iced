@@ -61,7 +61,7 @@ pub use settings::Settings;
 pub use geometry::Geometry;
 
 use crate::core::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
+    Background, Color, Font, Pixels, Point, Rectangle, Transformation,
 };
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::Viewport;
@@ -477,7 +477,7 @@ impl core::text::Renderer for Renderer {
 impl core::image::Renderer for Renderer {
     type Handle = core::image::Handle;
 
-    fn measure_image(&self, handle: &Self::Handle) -> Size<u32> {
+    fn measure_image(&self, handle: &Self::Handle) -> core::Size<u32> {
         self.image_cache.borrow_mut().measure_image(handle)
     }
 
@@ -503,7 +503,7 @@ impl core::image::Renderer for Renderer {
 
 #[cfg(feature = "svg")]
 impl core::svg::Renderer for Renderer {
-    fn measure_svg(&self, handle: &core::svg::Handle) -> Size<u32> {
+    fn measure_svg(&self, handle: &core::svg::Handle) -> core::Size<u32> {
         self.image_cache.borrow_mut().measure_svg(handle)
     }
 
@@ -539,7 +539,7 @@ impl graphics::geometry::Renderer for Renderer {
     type Geometry = Geometry;
     type Frame = geometry::Frame;
 
-    fn new_frame(&self, size: Size) -> Self::Frame {
+    fn new_frame(&self, size: core::Size) -> Self::Frame {
         geometry::Frame::new(size)
     }
 

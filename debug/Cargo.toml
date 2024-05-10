@@ -11,13 +11,13 @@ categories.workspace = true
 keywords.workspace = true
 
 [features]
-enable = ["dep:iced_sentinel", "dep:once_cell"]
+enable = ["dep:iced_beacon", "dep:once_cell"]
 
 [dependencies]
 iced_core.workspace = true
 
-iced_sentinel.workspace = true
-iced_sentinel.optional = true
+iced_beacon.workspace = true
+iced_beacon.optional = true
 
 once_cell.workspace = true
 once_cell.optional = true

@@ -106,6 +106,12 @@ where
         type Renderer = Renderer;
         type Executor = executor::Default;
 
+        fn name() -> &'static str {
+            let type_name = std::any::type_name::<State>();
+
+            type_name.split("::").next().unwrap_or(type_name)
+        }
+
         fn load(&self) -> Command<Self::Message> {
             Command::none()
         }
@@ -209,6 +215,10 @@ impl<P: Definition> Program<P> {
                     },
                     command,
                 )
+            }
+
+            fn name() -> &'static str {
+                P::name()
             }
 
             fn title(&self) -> String {
@@ -431,6 +441,8 @@ pub trait Definition: Sized {
     /// The executor of the program.
     type Executor: Executor;
 
+    fn name() -> &'static str;
+
     fn load(&self) -> Command<Self::Message>;
 
     fn update(
@@ -484,12 +496,16 @@ fn with_title<P: Definition>(
         type Renderer = P::Renderer;
         type Executor = P::Executor;
 
+        fn title(&self, state: &Self::State) -> String {
+            self.title.title(state)
+        }
+
         fn load(&self) -> Command<Self::Message> {
             self.program.load()
         }
 
-        fn title(&self, state: &Self::State) -> String {
-            self.title.title(state)
+        fn name() -> &'static str {
+            P::name()
         }
 
         fn update(
@@ -551,6 +567,10 @@ fn with_load<P: Definition>(
 
         fn load(&self) -> Command<Self::Message> {
             Command::batch([self.program.load(), (self.load)()])
+        }
+
+        fn name() -> &'static str {
+            P::name()
         }
 
         fn update(
@@ -621,6 +641,10 @@ fn with_subscription<P: Definition>(
             (self.subscription)(state)
         }
 
+        fn name() -> &'static str {
+            P::name()
+        }
+
         fn load(&self) -> Command<Self::Message> {
             self.program.load()
         }
@@ -684,6 +708,10 @@ fn with_theme<P: Definition>(
 
         fn theme(&self, state: &Self::State) -> Self::Theme {
             (self.theme)(state)
+        }
+
+        fn name() -> &'static str {
+            P::name()
         }
 
         fn load(&self) -> Command<Self::Message> {
@@ -753,6 +781,10 @@ fn with_style<P: Definition>(
             theme: &Self::Theme,
         ) -> Appearance {
             (self.style)(state, theme)
+        }
+
+        fn name() -> &'static str {
+            P::name()
         }
 
         fn load(&self) -> Command<Self::Message> {

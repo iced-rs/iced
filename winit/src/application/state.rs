@@ -38,8 +38,7 @@ where
         let theme = application.theme();
         let appearance = application.style(&theme);
 
-        let _ = application::DefaultStyle::palette(&theme)
-            .map(debug::theme_changed);
+        debug::theme_changed(|| application::DefaultStyle::palette(&theme));
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -216,7 +215,8 @@ where
         self.theme = application.theme();
         self.appearance = application.style(&self.theme);
 
-        let _ = application::DefaultStyle::palette(&self.theme)
-            .map(debug::theme_changed);
+        debug::theme_changed(|| {
+            application::DefaultStyle::palette(&self.theme)
+        });
     }
 }

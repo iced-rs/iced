@@ -48,6 +48,9 @@ where
     /// The data needed to initialize your [`Application`].
     type Flags;
 
+    /// Returns the unique name of the [`Application`].
+    fn name() -> &'static str;
+
     /// Initializes the [`Application`] with the flags provided to
     /// [`run`] as part of the [`Settings`].
     ///
@@ -156,7 +159,8 @@ where
     use futures::Future;
     use winit::event_loop::EventLoop;
 
-    let boot_timer = debug::boot_time();
+    debug::init(A::name());
+    let boot_span = debug::boot();
 
     let event_loop = EventLoop::with_user_event()
         .build()
@@ -193,7 +197,7 @@ where
         control_sender,
         init_command,
         settings.fonts,
-        boot_timer,
+        boot_span,
     ));
 
     let context = task::Context::from_waker(task::noop_waker_ref());
@@ -498,7 +502,7 @@ async fn run_instance<A, E, C>(
     mut control_sender: mpsc::UnboundedSender<winit::event_loop::ControlFlow>,
     init_command: Command<A::Message>,
     fonts: Vec<Cow<'static, [u8]>>,
-    boot_timer: debug::Timer,
+    boot_span: debug::Span,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
@@ -554,7 +558,7 @@ async fn run_instance<A, E, C>(
         &window,
     );
     runtime.track(application.subscription().into_recipes());
-    boot_timer.finish();
+    boot_span.finish();
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &application,
@@ -608,12 +612,12 @@ async fn run_instance<A, E, C>(
                 if viewport_version != current_viewport_version {
                     let logical_size = state.logical_size();
 
-                    let layout_timer = debug::layout_time(window::Id::MAIN);
+                    let layout_span = debug::layout(window::Id::MAIN);
                     user_interface = ManuallyDrop::new(
                         ManuallyDrop::into_inner(user_interface)
                             .relayout(logical_size, &mut renderer),
                     );
-                    layout_timer.finish();
+                    layout_span.finish();
 
                     compositor.configure_surface(
                         &mut surface,
@@ -660,7 +664,7 @@ async fn run_instance<A, E, C>(
 
                 runtime.broadcast(redraw_event, core::event::Status::Ignored);
 
-                let draw_timer = debug::draw_time(window::Id::MAIN);
+                let draw_span = debug::draw(window::Id::MAIN);
                 let new_mouse_interaction = user_interface.draw(
                     &mut renderer,
                     state.theme(),
@@ -670,7 +674,7 @@ async fn run_instance<A, E, C>(
                     state.cursor(),
                 );
                 redraw_pending = false;
-                draw_timer.finish();
+                draw_span.finish();
 
                 if new_mouse_interaction != mouse_interaction {
                     window.set_cursor(conversion::mouse_interaction(
@@ -680,7 +684,7 @@ async fn run_instance<A, E, C>(
                     mouse_interaction = new_mouse_interaction;
                 }
 
-                let render_timer = debug::render_time(window::Id::MAIN);
+                let present_span = debug::present(window::Id::MAIN);
                 match compositor.present(
                     &mut renderer,
                     &mut surface,
@@ -688,7 +692,7 @@ async fn run_instance<A, E, C>(
                     state.background_color(),
                 ) {
                     Ok(()) => {
-                        render_timer.finish();
+                        present_span.finish();
                     }
                     Err(error) => match error {
                         // This is an unrecoverable error.
@@ -733,7 +737,7 @@ async fn run_instance<A, E, C>(
                         redraw_request: None,
                     }
                 } else {
-                    let interact_timer = debug::interact_time(window::Id::MAIN);
+                    let interact_span = debug::interact(window::Id::MAIN);
                     let (interface_state, statuses) = user_interface.update(
                         &events,
                         state.cursor(),
@@ -747,7 +751,7 @@ async fn run_instance<A, E, C>(
                     {
                         runtime.broadcast(event, status);
                     }
-                    interact_timer.finish();
+                    interact_span.finish();
 
                     interface_state
                 };
@@ -842,13 +846,13 @@ pub fn build_user_interface<'a, A: Application>(
 where
     A::Theme: DefaultStyle,
 {
-    let view_timer = debug::view_time(window::Id::MAIN);
+    let view_span = debug::view(window::Id::MAIN);
     let view = application.view();
-    view_timer.finish();
+    view_span.finish();
 
-    let layout_timer = debug::layout_time(window::Id::MAIN);
+    let layout_span = debug::layout(window::Id::MAIN);
     let user_interface = UserInterface::build(view, size, cache, renderer);
-    layout_timer.finish();
+    layout_span.finish();
 
     user_interface
 }
@@ -875,9 +879,9 @@ pub fn update<A: Application, C, E: Executor>(
     for message in messages.drain(..) {
         debug::log_message(&message);
 
-        let update_timer = debug::update_time();
+        let update_span = debug::update();
         let command = runtime.enter(|| application.update(message));
-        update_timer.finish();
+        update_span.finish();
 
         run_command(
             application,

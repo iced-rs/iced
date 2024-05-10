@@ -3,45 +3,49 @@ pub use iced_core as core;
 use crate::core::theme;
 use crate::core::window;
 
-pub use internal::Timer;
+pub use internal::Span;
 
-pub fn open_axe() {}
+pub fn init(name: &str) {
+    internal::init(name);
+}
+
+pub fn open_comet() {}
 
 pub fn log_message(_message: &impl std::fmt::Debug) {}
 
-pub fn theme_changed(palette: theme::Palette) {
-    internal::theme_changed(palette);
+pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
+    internal::theme_changed(f);
 }
 
-pub fn boot_time() -> Timer {
-    internal::boot_time()
+pub fn boot() -> Span {
+    internal::boot()
 }
 
-pub fn update_time() -> Timer {
-    internal::update_time()
+pub fn update() -> Span {
+    internal::update()
 }
 
-pub fn view_time(window: window::Id) -> Timer {
-    internal::view_time(window)
+pub fn view(window: window::Id) -> Span {
+    internal::view(window)
 }
 
-pub fn layout_time(window: window::Id) -> Timer {
-    internal::layout_time(window)
+pub fn layout(window: window::Id) -> Span {
+    internal::layout(window)
 }
 
-pub fn interact_time(window: window::Id) -> Timer {
-    internal::interact_time(window)
+pub fn interact(window: window::Id) -> Span {
+    internal::interact(window)
 }
 
-pub fn draw_time(window: window::Id) -> Timer {
-    internal::draw_time(window)
+pub fn draw(window: window::Id) -> Span {
+    internal::draw(window)
 }
 
-pub fn render_time(window: window::Id) -> Timer {
-    internal::render_time(window)
+pub fn present(window: window::Id) -> Span {
+    internal::present(window)
 }
 
-pub fn time(window: window::Id, name: impl AsRef<str>) -> Timer {
+pub fn time(window: window::Id, name: impl AsRef<str>) -> Span {
     internal::time(window, name)
 }
 
@@ -52,158 +56,156 @@ pub fn skip_next_timing() {
 #[cfg(feature = "enable")]
 mod internal {
     use crate::core::theme;
-    use crate::core::time::{Instant, SystemTime};
+    use crate::core::time::Instant;
     use crate::core::window;
 
-    use iced_sentinel::client::{self, Client};
-    use iced_sentinel::timing::{self, Timing};
+    use iced_beacon as beacon;
+
+    use beacon::client::{self, Client};
+    use beacon::span;
 
     use once_cell::sync::Lazy;
-    use std::sync::{Mutex, MutexGuard};
+    use std::sync::atomic::{self, AtomicBool};
+    use std::sync::RwLock;
 
-    pub fn theme_changed(palette: theme::Palette) {
-        let mut debug = lock();
+    pub fn init(name: &str) {
+        name.clone_into(&mut NAME.write().expect("Write application name"));
+    }
 
-        if debug.last_palette.as_ref() != Some(&palette) {
-            debug.sentinel.report_theme_change(palette);
+    pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
+        let Some(palette) = f() else {
+            return;
+        };
 
-            debug.last_palette = Some(palette);
+        if LAST_PALETTE.read().expect("Read last palette").as_ref()
+            != Some(&palette)
+        {
+            BEACON.log(client::Event::ThemeChanged(palette));
+
+            *LAST_PALETTE.write().expect("Write last palette") = Some(palette);
         }
     }
 
-    pub fn boot_time() -> Timer {
-        timer(timing::Stage::Boot)
+    pub fn boot() -> Span {
+        span(span::Stage::Boot)
     }
 
-    pub fn update_time() -> Timer {
-        timer(timing::Stage::Update)
+    pub fn update() -> Span {
+        span(span::Stage::Update)
     }
 
-    pub fn view_time(window: window::Id) -> Timer {
-        timer(timing::Stage::View(window))
+    pub fn view(window: window::Id) -> Span {
+        span(span::Stage::View(window))
     }
 
-    pub fn layout_time(window: window::Id) -> Timer {
-        timer(timing::Stage::Layout(window))
+    pub fn layout(window: window::Id) -> Span {
+        span(span::Stage::Layout(window))
     }
 
-    pub fn interact_time(window: window::Id) -> Timer {
-        timer(timing::Stage::Interact(window))
+    pub fn interact(window: window::Id) -> Span {
+        span(span::Stage::Interact(window))
     }
 
-    pub fn draw_time(window: window::Id) -> Timer {
-        timer(timing::Stage::Draw(window))
+    pub fn draw(window: window::Id) -> Span {
+        span(span::Stage::Draw(window))
     }
 
-    pub fn render_time(window: window::Id) -> Timer {
-        timer(timing::Stage::Render(window))
+    pub fn present(window: window::Id) -> Span {
+        span(span::Stage::Present(window))
     }
 
-    pub fn time(window: window::Id, name: impl AsRef<str>) -> Timer {
-        timer(timing::Stage::Custom(window, name.as_ref().to_owned()))
+    pub fn time(window: window::Id, name: impl AsRef<str>) -> Span {
+        span(span::Stage::Custom(window, name.as_ref().to_owned()))
     }
 
     pub fn skip_next_timing() {
-        lock().skip_next_timing = true;
+        SKIP_NEXT_SPAN.store(true, atomic::Ordering::Relaxed);
     }
 
-    fn timer(stage: timing::Stage) -> Timer {
-        Timer {
-            stage,
+    fn span(span: span::Stage) -> Span {
+        BEACON.log(client::Event::SpanStarted(span.clone()));
+
+        Span {
+            span,
             start: Instant::now(),
-            start_system_time: SystemTime::now(),
         }
     }
 
     #[derive(Debug)]
-    pub struct Timer {
-        stage: timing::Stage,
+    pub struct Span {
+        span: span::Stage,
         start: Instant,
-        start_system_time: SystemTime,
     }
 
-    impl Timer {
+    impl Span {
         pub fn finish(self) {
-            let mut debug = lock();
-
-            if debug.skip_next_timing {
-                debug.skip_next_timing = false;
+            if SKIP_NEXT_SPAN.fetch_and(false, atomic::Ordering::Relaxed) {
                 return;
             }
 
-            debug.sentinel.report_timing(Timing {
-                stage: self.stage,
-                start: self.start_system_time,
-                duration: self.start.elapsed(),
-            });
+            BEACON.log(client::Event::SpanFinished(
+                self.span,
+                self.start.elapsed(),
+            ));
         }
     }
 
-    #[derive(Debug)]
-    struct Debug {
-        sentinel: Client,
-        last_palette: Option<theme::Palette>,
-        skip_next_timing: bool,
-    }
+    static BEACON: Lazy<Client> = Lazy::new(|| {
+        client::connect(NAME.read().expect("Read application name").to_owned())
+    });
 
-    fn lock() -> MutexGuard<'static, Debug> {
-        static DEBUG: Lazy<Mutex<Debug>> = Lazy::new(|| {
-            Mutex::new(Debug {
-                sentinel: client::connect(),
-                last_palette: None,
-                skip_next_timing: false,
-            })
-        });
-
-        DEBUG.lock().expect("Acquire debug lock")
-    }
+    static NAME: RwLock<String> = RwLock::new(String::new());
+    static LAST_PALETTE: RwLock<Option<theme::Palette>> = RwLock::new(None);
+    static SKIP_NEXT_SPAN: AtomicBool = AtomicBool::new(false);
 }
 
 #[cfg(not(feature = "enable"))]
 mod internal {
+    use crate::core::theme;
     use crate::core::window;
-    use crate::style::theme;
 
-    pub fn theme_changed(_palette: theme::Palette) {}
+    pub fn init(_name: &str) {}
 
-    pub fn boot_time() -> Timer {
-        Timer
+    pub fn theme_changed(_f: impl FnOnce() -> Option<theme::Palette>) {}
+
+    pub fn boot() -> Span {
+        Span
     }
 
-    pub fn update_time() -> Timer {
-        Timer
+    pub fn update() -> Span {
+        Span
     }
 
-    pub fn view_time(_window: window::Id) -> Timer {
-        Timer
+    pub fn view(_window: window::Id) -> Span {
+        Span
     }
 
-    pub fn layout_time(_window: window::Id) -> Timer {
-        Timer
+    pub fn layout(_window: window::Id) -> Span {
+        Span
     }
 
-    pub fn interact_time(_window: window::Id) -> Timer {
-        Timer
+    pub fn interact(_window: window::Id) -> Span {
+        Span
     }
 
-    pub fn draw_time(_window: window::Id) -> Timer {
-        Timer
+    pub fn draw(_window: window::Id) -> Span {
+        Span
     }
 
-    pub fn render_time(_window: window::Id) -> Timer {
-        Timer
+    pub fn present(_window: window::Id) -> Span {
+        Span
     }
 
-    pub fn time(_window: window::Id, _name: impl AsRef<str>) -> Timer {
-        Timer
+    pub fn time(_window: window::Id, _name: impl AsRef<str>) -> Span {
+        Span
     }
 
     pub fn skip_next_timing() {}
 
     #[derive(Debug)]
-    pub struct Timer;
+    pub struct Span;
 
-    impl Timer {
+    impl Span {
         pub fn finish(self) {}
     }
 }

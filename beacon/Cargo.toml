@@ -1,5 +1,5 @@
 [package]
-name = "iced_sentinel"
+name = "iced_beacon"
 description = "A client/server protocol to monitor and supervise iced applications"
 version.workspace = true
 edition.workspace = true
@@ -17,6 +17,7 @@ iced_core.features = ["serde"]
 bincode.workspace = true
 futures.workspace = true
 log.workspace = true
+thiserror.workspace = true
 
 tokio.workspace = true
 tokio.features = ["rt", "rt-multi-thread", "net", "sync", "time", "io-util", "macros"]

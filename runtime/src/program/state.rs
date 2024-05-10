@@ -102,7 +102,7 @@ where
             bounds,
         );
 
-        let interact_timer = debug::interact_time(window::Id::MAIN);
+        let interact_span = debug::interact(window::Id::MAIN);
         let mut messages = Vec::new();
 
         let (_, event_statuses) = user_interface.update(
@@ -125,13 +125,13 @@ where
 
         self.queued_events.clear();
         messages.append(&mut self.queued_messages);
-        drop(interact_timer);
+        interact_span.finish();
 
         let command = if messages.is_empty() {
-            let draw_timer = debug::draw_time(window::Id::MAIN);
+            let draw_span = debug::draw(window::Id::MAIN);
             self.mouse_interaction =
                 user_interface.draw(renderer, theme, style, cursor);
-            drop(draw_timer);
+            draw_span.finish();
 
             self.cache = Some(user_interface.into_cache());
 
@@ -145,9 +145,9 @@ where
                 Command::batch(messages.into_iter().map(|message| {
                     debug::log_message(&message);
 
-                    let update_timer = debug::update_time();
+                    let update_span = debug::update();
                     let command = self.program.update(message);
-                    drop(update_timer);
+                    update_span.finish();
 
                     command
                 }));
@@ -159,10 +159,10 @@ where
                 bounds,
             );
 
-            let draw_timer = debug::draw_time(window::Id::MAIN);
+            let draw_spawn = debug::draw(window::Id::MAIN);
             self.mouse_interaction =
                 user_interface.draw(renderer, theme, style, cursor);
-            drop(draw_timer);
+            draw_spawn.finish();
 
             self.cache = Some(user_interface.into_cache());
 
@@ -214,13 +214,13 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
 ) -> UserInterface<'a, P::Message, P::Theme, P::Renderer> {
-    let view_timer = debug::view_time(window::Id::MAIN);
+    let view_span = debug::view(window::Id::MAIN);
     let view = program.view();
-    drop(view_timer);
+    view_span.finish();
 
-    let layout_timer = debug::layout_time(window::Id::MAIN);
+    let layout_span = debug::layout(window::Id::MAIN);
     let user_interface = UserInterface::build(view, size, cache, renderer);
-    drop(layout_timer);
+    layout_span.finish();
 
     user_interface
 }

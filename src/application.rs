@@ -118,6 +118,9 @@ where
     /// The data needed to initialize your [`Application`].
     type Flags;
 
+    /// Returns the unique name of the [`Application`].
+    fn name() -> &'static str;
+
     /// Initializes the [`Application`] with the flags provided to
     /// [`run`] as part of the [`Settings`].
     ///
@@ -249,6 +252,10 @@ where
     A::Theme: DefaultStyle,
 {
     type Flags = A::Flags;
+
+    fn name() -> &'static str {
+        A::name()
+    }
 
     fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
         let (app, command) = A::new(flags);
