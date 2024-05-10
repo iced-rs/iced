@@ -1,6 +1,6 @@
 //! Zoom and pan on an image.
 use crate::core::event::{self, Event};
-use crate::core::image;
+use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -20,27 +20,27 @@ pub struct Viewer<Handle> {
     max_scale: f32,
     scale_step: f32,
     handle: Handle,
-    filter_method: image::FilterMethod,
+    filter_method: FilterMethod,
     content_fit: ContentFit,
 }
 
 impl<Handle> Viewer<Handle> {
     /// Creates a new [`Viewer`] with the given [`State`].
-    pub fn new(handle: Handle) -> Self {
+    pub fn new<T: Into<Handle>>(handle: T) -> Self {
         Viewer {
-            handle,
+            handle: handle.into(),
             padding: 0.0,
             width: Length::Shrink,
             height: Length::Shrink,
             min_scale: 0.25,
             max_scale: 10.0,
             scale_step: 0.10,
-            filter_method: image::FilterMethod::default(),
-            content_fit: ContentFit::Contain,
+            filter_method: FilterMethod::default(),
+            content_fit: ContentFit::default(),
         }
     }
 
-    /// Sets the [`image::FilterMethod`] of the [`Viewer`].
+    /// Sets the [`FilterMethod`] of the [`Viewer`].
     pub fn filter_method(mut self, filter_method: image::FilterMethod) -> Self {
         self.filter_method = filter_method;
         self
@@ -124,25 +124,24 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         // The raw w/h of the underlying image
-        let image_size = {
-            let Size { width, height } = renderer.measure_image(&self.handle);
-            Size::new(width as f32, height as f32)
-        };
+        let image_size = renderer.measure_image(&self.handle);
+        let image_size =
+            Size::new(image_size.width as f32, image_size.height as f32);
 
         // The size to be available to the widget prior to `Shrink`ing
         let raw_size = limits.resolve(self.width, self.height, image_size);
 
         // The uncropped size of the image when fit to the bounds above
-        let fit_size = self.content_fit.fit(image_size, raw_size);
+        let full_size = self.content_fit.fit(image_size, raw_size);
 
         // Shrink the widget to fit the resized image, if requested
         let final_size = Size {
             width: match self.width {
-                Length::Shrink => f32::min(raw_size.width, fit_size.width),
+                Length::Shrink => f32::min(raw_size.width, full_size.width),
                 _ => raw_size.width,
             },
             height: match self.height {
-                Length::Shrink => f32::min(raw_size.height, fit_size.height),
+                Length::Shrink => f32::min(raw_size.height, full_size.height),
                 _ => raw_size.height,
             },
         };
@@ -323,7 +322,7 @@ where
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
 
-        let image_size = scaled_image_size(
+        let final_size = scaled_image_size(
             renderer,
             &self.handle,
             state,
@@ -332,8 +331,8 @@ where
         );
 
         let translation = {
-            let diff_w = bounds.width - image_size.width;
-            let diff_h = bounds.height - image_size.height;
+            let diff_w = bounds.width - final_size.width;
+            let diff_h = bounds.height - final_size.height;
 
             let image_top_left = match self.content_fit {
                 ContentFit::None => {
@@ -342,9 +341,10 @@ where
                 _ => Vector::new(diff_w / 2.0, diff_h / 2.0),
             };
 
-            image_top_left - state.offset(bounds, image_size)
+            image_top_left - state.offset(bounds, final_size)
         };
-        let drawing_bounds = Rectangle::new(bounds.position(), image_size);
+
+        let drawing_bounds = Rectangle::new(bounds.position(), final_size);
 
         let render = |renderer: &mut Renderer| {
             renderer.with_translation(translation, |renderer| {
@@ -434,11 +434,13 @@ pub fn scaled_image_size<Renderer>(
 where
     Renderer: image::Renderer,
 {
-    let image_size = {
-        let Size { width, height } = renderer.measure_image(handle);
-        Size::new(width as f32, height as f32)
-    };
-    let fit_size = content_fit.fit(image_size, bounds);
+    let Size { width, height } = renderer.measure_image(handle);
+    let image_size = Size::new(width as f32, height as f32);
 
-    Size::new(fit_size.width * state.scale, fit_size.height * state.scale)
+    let adjusted_fit = content_fit.fit(image_size, bounds);
+
+    Size::new(
+        adjusted_fit.width * state.scale,
+        adjusted_fit.height * state.scale,
+    )
 }
