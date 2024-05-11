@@ -586,6 +586,43 @@ where
                     content_bounds,
                     shell,
                 ) {
+                    // We've changed the viewport but the child widget still thinks that the mouse is in the same relative place.
+                    if let Some(cursor_position) = cursor_over_scrollable {
+                        if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) {
+                            let cursor = mouse::Cursor::Available(
+                                cursor_position
+                                    + state.translation(
+                                        self.direction,
+                                        bounds,
+                                        content_bounds,
+                                    ),
+                            );
+
+                            let translation = state.translation(
+                                self.direction,
+                                bounds,
+                                content_bounds,
+                            );
+
+                            _ = self.content.as_widget_mut().on_event(
+                                &mut tree.children[0],
+                                Event::Mouse(mouse::Event::CursorMoved {
+                                    position: cursor_position,
+                                }),
+                                content,
+                                cursor,
+                                renderer,
+                                clipboard,
+                                shell,
+                                &Rectangle {
+                                    y: bounds.y + translation.y,
+                                    x: bounds.x + translation.x,
+                                    ..bounds
+                                },
+                            );
+                        }
+                    };
+
                     event::Status::Captured
                 } else {
                     event::Status::Ignored
