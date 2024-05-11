@@ -587,7 +587,9 @@ where
                     shell,
                 ) {
                     // We've changed the viewport but the child widget still thinks that the mouse is in the same relative place.
-                    if let Some(cursor_position) = cursor_over_scrollable {
+                    if let (Some(cursor_position), Some(cursor_position_abs)) =
+                        (cursor_over_scrollable, cursor.position())
+                    {
                         if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) {
                             let cursor = mouse::Cursor::Available(
                                 cursor_position
@@ -607,7 +609,7 @@ where
                             _ = self.content.as_widget_mut().on_event(
                                 &mut tree.children[0],
                                 Event::Mouse(mouse::Event::CursorMoved {
-                                    position: cursor_position,
+                                    position: cursor_position_abs,
                                 }),
                                 content,
                                 cursor,
