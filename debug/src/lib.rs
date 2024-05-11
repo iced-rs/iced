@@ -9,7 +9,9 @@ pub fn init(name: &str) {
     internal::init(name);
 }
 
-pub fn open_comet() {}
+pub fn toggle_comet() {
+    internal::toggle_comet();
+}
 
 pub fn log_message(_message: &impl std::fmt::Debug) {}
 
@@ -65,11 +67,24 @@ mod internal {
     use beacon::span;
 
     use once_cell::sync::Lazy;
+    use std::process;
     use std::sync::atomic::{self, AtomicBool};
     use std::sync::RwLock;
 
     pub fn init(name: &str) {
         name.clone_into(&mut NAME.write().expect("Write application name"));
+    }
+
+    pub fn toggle_comet() {
+        if BEACON.is_connected() {
+            BEACON.quit();
+        } else {
+            let _ = process::Command::new("iced_comet")
+                .stdin(process::Stdio::null())
+                .stdout(process::Stdio::null())
+                .stderr(process::Stdio::null())
+                .spawn();
+        }
     }
 
     pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
@@ -165,6 +180,8 @@ mod internal {
     use crate::core::window;
 
     pub fn init(_name: &str) {}
+
+    pub fn toggle_comet() {}
 
     pub fn theme_changed(_f: impl FnOnce() -> Option<theme::Palette>) {}
 

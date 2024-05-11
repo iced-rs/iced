@@ -35,6 +35,12 @@ pub enum Event {
         duration: Duration,
         span: Span,
     },
+    QuitRequested {
+        at: SystemTime,
+    },
+    AlreadyRunning {
+        at: SystemTime,
+    },
 }
 
 impl Event {
@@ -43,9 +49,15 @@ impl Event {
             Self::Connected { at, .. }
             | Self::Disconnected { at, .. }
             | Self::ThemeChanged { at, .. }
-            | Self::SpanFinished { at, .. } => *at,
+            | Self::SpanFinished { at, .. }
+            | Self::QuitRequested { at }
+            | Self::AlreadyRunning { at } => *at,
         }
     }
+}
+
+pub fn is_running() -> bool {
+    std::net::TcpListener::bind(client::SERVER_ADDRESS).is_err()
 }
 
 pub fn run() -> impl Stream<Item = Event> {
@@ -53,9 +65,20 @@ pub fn run() -> impl Stream<Item = Event> {
         let mut buffer = Vec::new();
 
         loop {
-            let Ok(mut stream) = connect().await else {
-                delay().await;
-                continue;
+            let mut stream = match connect().await {
+                Ok(stream) => stream,
+                Err(error) => {
+                    if error.kind() == io::ErrorKind::AddrInUse {
+                        let _ = output
+                            .send(Event::AlreadyRunning {
+                                at: SystemTime::now(),
+                            })
+                            .await;
+                    }
+
+                    delay().await;
+                    continue;
+                }
             };
 
             loop {
@@ -123,6 +146,11 @@ pub fn run() -> impl Stream<Item = Event> {
                                             .await;
                                     }
                                 }
+                            }
+                            client::Message::Quit { at } => {
+                                let _ = output
+                                    .send(Event::QuitRequested { at })
+                                    .await;
                             }
                         };
                     }

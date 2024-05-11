@@ -15,6 +15,7 @@ workspace = true
 
 [features]
 default = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
+debug = ["iced_debug/enable"]
 system = ["sysinfo"]
 application = []
 x11 = ["winit/x11"]
@@ -24,6 +25,7 @@ wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 multi-window = ["iced_runtime/multi-window"]
 
 [dependencies]
+iced_debug.workspace = true
 iced_futures.workspace = true
 iced_graphics.workspace = true
 iced_runtime.workspace = true

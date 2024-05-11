@@ -9,6 +9,7 @@ use tokio::net;
 use tokio::sync::mpsc;
 use tokio::time;
 
+use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
 use std::thread;
 
@@ -17,6 +18,7 @@ pub const SERVER_ADDRESS: &str = "127.0.0.1:9167";
 #[derive(Debug, Clone)]
 pub struct Client {
     sender: mpsc::Sender<Message>,
+    is_connected: Arc<AtomicBool>,
     _handle: Arc<thread::JoinHandle<()>>,
 }
 
@@ -30,6 +32,9 @@ pub enum Message {
     EventLogged {
         at: SystemTime,
         event: Event,
+    },
+    Quit {
+        at: SystemTime,
     },
 }
 
@@ -47,28 +52,50 @@ impl Client {
             event,
         });
     }
+
+    pub fn is_connected(&self) -> bool {
+        self.is_connected.load(atomic::Ordering::Relaxed)
+    }
+
+    pub fn quit(&self) {
+        let _ = self.sender.try_send(Message::Quit {
+            at: SystemTime::now(),
+        });
+    }
 }
 
 #[must_use]
 pub fn connect(name: String) -> Client {
     let (sender, receiver) = mpsc::channel(100);
+    let is_connected = Arc::new(AtomicBool::new(false));
 
-    let handle = std::thread::spawn(move || run(name, receiver));
+    let handle = {
+        let is_connected = is_connected.clone();
+
+        std::thread::spawn(move || run(name, is_connected.clone(), receiver))
+    };
 
     Client {
         sender,
+        is_connected,
         _handle: Arc::new(handle),
     }
 }
 
 #[tokio::main]
-async fn run(name: String, mut receiver: mpsc::Receiver<Message>) {
+async fn run(
+    name: String,
+    is_connected: Arc<AtomicBool>,
+    mut receiver: mpsc::Receiver<Message>,
+) {
     let version = semver::Version::parse(env!("CARGO_PKG_VERSION"))
         .expect("Parse package version");
 
     loop {
         match _connect().await {
             Ok(mut stream) => {
+                is_connected.store(true, atomic::Ordering::Relaxed);
+
                 let _ = send(
                     &mut stream,
                     Message::Connected {
@@ -92,6 +119,7 @@ async fn run(name: String, mut receiver: mpsc::Receiver<Message>) {
                 }
             }
             Err(_) => {
+                is_connected.store(false, atomic::Ordering::Relaxed);
                 time::sleep(time::Duration::from_secs(2)).await;
             }
         }

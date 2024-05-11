@@ -37,7 +37,7 @@ qr_code = ["iced_widget/qr_code"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
-debug = ["iced_debug/enable"]
+debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
 tokio = ["iced_futures/tokio"]
 # Enables `async-std` as the `executor::Default` on native platforms
@@ -62,8 +62,8 @@ fira-sans = ["iced_renderer/fira-sans"]
 auto-detect-theme = ["iced_core/auto-detect-theme"]
 
 [dependencies]
-iced_core.workspace = true
 iced_debug.workspace = true
+iced_core.workspace = true
 iced_futures.workspace = true
 iced_renderer.workspace = true
 iced_widget.workspace = true

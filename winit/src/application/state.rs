@@ -161,19 +161,6 @@ where
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = new_modifiers.state();
             }
-            #[cfg(feature = "debug")]
-            WindowEvent::KeyboardInput {
-                event:
-                    winit::event::KeyEvent {
-                        logical_key:
-                            winit::keyboard::Key::Named(
-                                winit::keyboard::NamedKey::F12,
-                            ),
-                        state: winit::event::ElementState::Pressed,
-                        ..
-                    },
-                ..
-            } => crate::debug::open_axe(),
             _ => {}
         }
     }

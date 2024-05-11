@@ -777,6 +777,27 @@ async fn run_instance<A, E, C>(
                         event: window_event,
                         window_id,
                     } => {
+                        #[cfg(feature = "debug")]
+                        match window_event {
+                            winit::event::WindowEvent::KeyboardInput {
+                                event:
+                                    winit::event::KeyEvent {
+                                        logical_key:
+                                            winit::keyboard::Key::Named(
+                                                winit::keyboard::NamedKey::F12,
+                                            ),
+                                        state:
+                                            winit::event::ElementState::Pressed,
+                                        repeat: false,
+                                        ..
+                                    },
+                                ..
+                            } => {
+                                crate::debug::toggle_comet();
+                            }
+                            _ => {}
+                        }
+
                         let Some((id, window)) =
                             window_manager.get_mut_alias(window_id)
                         else {
