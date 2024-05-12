@@ -38,7 +38,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     out.opacity = input.opacity;
 
     // Calculate the vertex position and move the center to the origin
-    v_pos = input.pos + v_pos * input.scale - input.center;
+    v_pos = round(input.pos) + v_pos * input.scale - input.center;
 
     // Apply the rotation around the center of the image
     let cos_rot = cos(input.rotation);
