@@ -84,6 +84,12 @@ mod internal {
                 .stdout(process::Stdio::null())
                 .stderr(process::Stdio::null())
                 .spawn();
+
+            if let Some(palette) =
+                LAST_PALETTE.read().expect("Read last palette").as_ref()
+            {
+                BEACON.log(client::Event::ThemeChanged(*palette));
+            }
         }
     }
 

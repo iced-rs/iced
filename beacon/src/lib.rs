@@ -64,9 +64,9 @@ pub fn run() -> impl Stream<Item = Event> {
     stream::channel(|mut output| async move {
         let mut buffer = Vec::new();
 
-        loop {
-            let mut stream = match connect().await {
-                Ok(stream) => stream,
+        let server = loop {
+            match net::TcpListener::bind(client::SERVER_ADDRESS).await {
+                Ok(server) => break server,
                 Err(error) => {
                     if error.kind() == io::ErrorKind::AddrInUse {
                         let _ = output
@@ -75,11 +75,17 @@ pub fn run() -> impl Stream<Item = Event> {
                             })
                             .await;
                     }
-
                     delay().await;
-                    continue;
                 }
             };
+        };
+
+        loop {
+            let Ok((mut stream, _)) = server.accept().await else {
+                continue;
+            };
+
+            let _ = stream.set_nodelay(true);
 
             loop {
                 match receive(&mut stream, &mut buffer).await {
@@ -160,8 +166,6 @@ pub fn run() -> impl Stream<Item = Event> {
                                 at: SystemTime::now(),
                             })
                             .await;
-
-                        delay().await;
                         break;
                     }
                     Err(Error::DecodingFailed(error)) => {
@@ -171,17 +175,6 @@ pub fn run() -> impl Stream<Item = Event> {
             }
         }
     })
-}
-
-async fn connect() -> Result<net::TcpStream, io::Error> {
-    let listener = net::TcpListener::bind(client::SERVER_ADDRESS).await?;
-
-    let (stream, _) = listener.accept().await?;
-
-    stream.set_nodelay(true)?;
-    stream.readable().await?;
-
-    Ok(stream)
 }
 
 async fn receive(

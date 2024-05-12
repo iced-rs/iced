@@ -110,9 +110,11 @@ async fn run(
                     match send(&mut stream, output).await {
                         Ok(()) => {}
                         Err(error) => {
-                            log::warn!(
-                                "Error sending message to server: {error}"
-                            );
+                            if error.kind() != io::ErrorKind::BrokenPipe {
+                                log::warn!(
+                                    "Error sending message to server: {error}"
+                                );
+                            }
                             break;
                         }
                     }
