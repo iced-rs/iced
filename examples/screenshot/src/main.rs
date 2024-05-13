@@ -123,10 +123,9 @@ impl Example {
         };
 
         let image = container(image)
-            .center_y()
+            .center_y(Length::FillPortion(2))
             .padding(10)
-            .style(container::rounded_box)
-            .width(Length::FillPortion(2));
+            .style(container::rounded_box);
 
         let crop_origin_controls = row![
             text("X:")
@@ -211,7 +210,7 @@ impl Example {
             .spacing(40)
         };
 
-        let side_content = container(controls).center_y();
+        let side_content = container(controls).center_y(Length::Fill);
 
         let content = row![side_content, image]
             .spacing(10)

@@ -207,6 +207,6 @@ impl Window {
                 .align_items(Alignment::Center),
         );
 
-        container(content).center_x().width(200).into()
+        container(content).center_x(200).into()
     }
 }

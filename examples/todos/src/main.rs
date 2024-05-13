@@ -238,7 +238,10 @@ impl Todos {
                     .spacing(20)
                     .max_width(800);
 
-                scrollable(container(content).center_x().padding(40)).into()
+                scrollable(
+                    container(content).center_x(Length::Fill).padding(40),
+                )
+                .into()
             }
         }
     }

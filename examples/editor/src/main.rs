@@ -277,7 +277,7 @@ fn action<'a, Message: Clone + 'a>(
     label: &'a str,
     on_press: Option<Message>,
 ) -> Element<'a, Message> {
-    let action = button(container(content).center_x().width(30));
+    let action = button(container(content).center_x(30));
 
     if let Some(on_press) = on_press {
         tooltip(

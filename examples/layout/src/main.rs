@@ -251,7 +251,7 @@ fn application<'a>() -> Element<'a, Message> {
             .align_items(Alignment::Center),
     )
     .style(container::rounded_box)
-    .center_y();
+    .center_y(Length::Fill);
 
     let content = container(
         scrollable(
