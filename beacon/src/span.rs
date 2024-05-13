@@ -5,20 +5,36 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Span {
     Boot,
-    Update,
-    View { window: window::Id },
-    Layout { window: window::Id },
-    Interact { window: window::Id },
-    Draw { window: window::Id },
-    Present { window: window::Id },
-    Custom { window: window::Id, name: String },
+    Update {
+        message: String,
+        commands_spawned: usize,
+    },
+    View {
+        window: window::Id,
+    },
+    Layout {
+        window: window::Id,
+    },
+    Interact {
+        window: window::Id,
+    },
+    Draw {
+        window: window::Id,
+    },
+    Present {
+        window: window::Id,
+    },
+    Custom {
+        window: window::Id,
+        name: String,
+    },
 }
 
 impl Span {
     pub fn stage(&self) -> Stage {
         match self {
             Span::Boot => Stage::Boot,
-            Span::Update => Stage::Update,
+            Span::Update { .. } => Stage::Update,
             Span::View { window } => Stage::View(*window),
             Span::Layout { window } => Stage::Layout(*window),
             Span::Interact { window } => Stage::Interact(*window),

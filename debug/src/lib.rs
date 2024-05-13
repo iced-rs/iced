@@ -13,18 +13,24 @@ pub fn toggle_comet() {
     internal::toggle_comet();
 }
 
-pub fn log_message(_message: &impl std::fmt::Debug) {}
-
 pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
     internal::theme_changed(f);
+}
+
+pub fn commands_spawned(amount: usize) {
+    internal::commands_spawned(amount)
+}
+
+pub fn subscriptions_tracked(amount: usize) {
+    internal::subscriptions_tracked(amount)
 }
 
 pub fn boot() -> Span {
     internal::boot()
 }
 
-pub fn update() -> Span {
-    internal::update()
+pub fn update(message: &impl std::fmt::Debug) -> Span {
+    internal::update(message)
 }
 
 pub fn view(window: window::Id) -> Span {
@@ -107,12 +113,29 @@ mod internal {
         }
     }
 
+    pub fn commands_spawned(amount: usize) {
+        BEACON.log(client::Event::CommandsSpawned(amount));
+    }
+
+    pub fn subscriptions_tracked(amount: usize) {
+        BEACON.log(client::Event::SubscriptionsTracked(amount));
+    }
+
     pub fn boot() -> Span {
         span(span::Stage::Boot)
     }
 
-    pub fn update() -> Span {
-        span(span::Stage::Update)
+    pub fn update(message: &impl std::fmt::Debug) -> Span {
+        let span = span(span::Stage::Update);
+        let message = format!("{message:.30?}");
+
+        BEACON.log(client::Event::MessageLogged(if message.len() > 29 {
+            format!("{}...", &message[..29])
+        } else {
+            message
+        }));
+
+        span
     }
 
     pub fn view(window: window::Id) -> Span {
@@ -191,11 +214,15 @@ mod internal {
 
     pub fn theme_changed(_f: impl FnOnce() -> Option<theme::Palette>) {}
 
+    pub fn commands_spawned(_amount: usize) {}
+
+    pub fn subscriptions_tracked(_amount: usize) {}
+
     pub fn boot() -> Span {
         Span
     }
 
-    pub fn update() -> Span {
+    pub fn update(_message: &impl std::fmt::Debug) -> Span {
         Span
     }
 

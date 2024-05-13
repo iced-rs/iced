@@ -119,7 +119,9 @@ where
     type Flags;
 
     /// Returns the unique name of the [`Application`].
-    fn name() -> &'static str;
+    fn name() -> &'static str {
+        std::any::type_name::<Self>()
+    }
 
     /// Initializes the [`Application`] with the flags provided to
     /// [`run`] as part of the [`Settings`].

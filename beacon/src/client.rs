@@ -43,6 +43,9 @@ pub enum Event {
     ThemeChanged(theme::Palette),
     SpanStarted(span::Stage),
     SpanFinished(span::Stage, Duration),
+    MessageLogged(String),
+    CommandsSpawned(usize),
+    SubscriptionsTracked(usize),
 }
 
 impl Client {

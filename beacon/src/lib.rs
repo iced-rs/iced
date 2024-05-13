@@ -30,6 +30,10 @@ pub enum Event {
         at: SystemTime,
         palette: theme::Palette,
     },
+    SubscriptionsTracked {
+        at: SystemTime,
+        amount_alive: usize,
+    },
     SpanFinished {
         at: SystemTime,
         duration: Duration,
@@ -49,6 +53,7 @@ impl Event {
             Self::Connected { at, .. }
             | Self::Disconnected { at, .. }
             | Self::ThemeChanged { at, .. }
+            | Self::SubscriptionsTracked { at, .. }
             | Self::SpanFinished { at, .. }
             | Self::QuitRequested { at }
             | Self::AlreadyRunning { at } => *at,
@@ -87,6 +92,9 @@ pub fn run() -> impl Stream<Item = Event> {
 
             let _ = stream.set_nodelay(true);
 
+            let mut last_message = String::new();
+            let mut last_commands_spawned = 0;
+
             loop {
                 match receive(&mut stream, &mut buffer).await {
                     Ok(message) => {
@@ -114,6 +122,30 @@ pub fn run() -> impl Stream<Item = Event> {
                                             })
                                             .await;
                                     }
+                                    client::Event::SubscriptionsTracked(
+                                        amount_alive,
+                                    ) => {
+                                        let _ = output
+                                            .send(Event::SubscriptionsTracked {
+                                                at,
+                                                amount_alive,
+                                            })
+                                            .await;
+                                    }
+                                    client::Event::MessageLogged(message) => {
+                                        last_message = message;
+                                    }
+                                    client::Event::CommandsSpawned(
+                                        commands,
+                                    ) => {
+                                        last_commands_spawned = commands;
+                                    }
+                                    client::Event::SpanStarted(
+                                        span::Stage::Update,
+                                    ) => {
+                                        last_message.clear();
+                                        last_commands_spawned = 0;
+                                    }
                                     client::Event::SpanStarted(_) => {}
                                     client::Event::SpanFinished(
                                         stage,
@@ -121,7 +153,14 @@ pub fn run() -> impl Stream<Item = Event> {
                                     ) => {
                                         let span = match stage {
                                             span::Stage::Boot => Span::Boot,
-                                            span::Stage::Update => Span::Update,
+                                            span::Stage::Update => {
+                                                Span::Update {
+                                                    message: last_message
+                                                        .clone(),
+                                                    commands_spawned:
+                                                        last_commands_spawned,
+                                                }
+                                            }
                                             span::Stage::View(window) => {
                                                 Span::View { window }
                                             }

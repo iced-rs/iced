@@ -143,9 +143,7 @@ where
 
             let commands =
                 Command::batch(messages.into_iter().map(|message| {
-                    debug::log_message(&message);
-
-                    let update_span = debug::update();
+                    let update_span = debug::update(&message);
                     let command = self.program.update(message);
                     update_span.finish();
 

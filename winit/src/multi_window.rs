@@ -523,7 +523,10 @@ async fn run_instance<A, E, C>(
         &mut ui_caches,
     );
 
-    runtime.track(application.subscription().into_recipes());
+    let recipes = application.subscription().into_recipes();
+    debug::subscriptions_tracked(recipes.len());
+    runtime.track(recipes);
+
     boot_span.finish();
 
     let mut messages = Vec::new();
@@ -987,9 +990,7 @@ fn update<A: Application, C, E: Executor>(
     A::Theme: DefaultStyle,
 {
     for message in messages.drain(..) {
-        debug::log_message(&message);
-
-        let update_span = debug::update();
+        let update_span = debug::update(&message);
         let command = runtime.enter(|| application.update(message));
         update_span.finish();
 
@@ -1006,8 +1007,9 @@ fn update<A: Application, C, E: Executor>(
         );
     }
 
-    let subscription = application.subscription();
-    runtime.track(subscription.into_recipes());
+    let recipes = application.subscription().into_recipes();
+    debug::subscriptions_tracked(recipes.len());
+    runtime.track(recipes);
 }
 
 /// Runs the actions of a [`Command`].
@@ -1031,7 +1033,10 @@ fn run_command<A, C, E>(
     use crate::runtime::system;
     use crate::runtime::window;
 
-    for action in command.actions() {
+    let actions = command.actions();
+    debug::commands_spawned(actions.len());
+
+    for action in actions {
         match action {
             command::Action::Future(future) => {
                 runtime.spawn(Box::pin(future));
