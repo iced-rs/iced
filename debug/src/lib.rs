@@ -127,10 +127,10 @@ mod internal {
 
     pub fn update(message: &impl std::fmt::Debug) -> Span {
         let span = span(span::Stage::Update);
-        let message = format!("{message:.30?}");
+        let message = format!("{message:.50?}");
 
-        BEACON.log(client::Event::MessageLogged(if message.len() > 29 {
-            format!("{}...", &message[..29])
+        BEACON.log(client::Event::MessageLogged(if message.len() > 49 {
+            format!("{}...", &message[..49])
         } else {
             message
         }));
