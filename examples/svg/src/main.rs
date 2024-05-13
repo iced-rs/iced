@@ -45,7 +45,7 @@ impl Tiger {
                 .on_toggle(Message::ToggleColorFilter);
 
         center(
-            column![svg, container(apply_color_filter).center_x()]
+            column![svg, container(apply_color_filter).center_x(Length::Fill)]
                 .spacing(20)
                 .height(Length::Fill),
         )

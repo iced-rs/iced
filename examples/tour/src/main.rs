@@ -76,10 +76,10 @@ impl Tour {
             } else {
                 content
             })
-            .center_x(),
+            .center_x(Length::Fill),
         );
 
-        container(scrollable).center_y().into()
+        container(scrollable).center_y(Length::Fill).into()
     }
 }
 
@@ -669,7 +669,7 @@ fn ferris<'a>(
         .filter_method(filter_method)
         .width(width),
     )
-    .center_x()
+    .center_x(Length::Fill)
 }
 
 fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {

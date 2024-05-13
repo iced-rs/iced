@@ -122,9 +122,6 @@ where
 
     /// Sets the [`Container`] to fill all the available space.
     ///
-    /// This can be useful to quickly position content when chained with
-    /// alignment functions—like [`center`].
-    ///
     /// Calling this method is equivalent to chaining [`fill_x`] and
     /// [`fill_y`].
     ///
@@ -159,20 +156,14 @@ where
         self
     }
 
-    /// Sets the [`Container`] to fill the available space in the horizontal axis
-    /// and centers its contents there.
-    pub fn center_x(mut self) -> Self {
-        self.width = Length::Fill;
-        self.horizontal_alignment = alignment::Horizontal::Center;
-        self
+    /// Sets the width of the [`Container`] and centers its contents horizontally.
+    pub fn center_x(self, width: impl Into<Length>) -> Self {
+        self.width(width).align_x(alignment::Horizontal::Center)
     }
 
-    /// Sets the [`Container`] to fill the available space in the vertical axis
-    /// and centers its contents there.
-    pub fn center_y(mut self) -> Self {
-        self.height = Length::Fill;
-        self.vertical_alignment = alignment::Vertical::Center;
-        self
+    /// Sets the height of the [`Container`] and centers its contents vertically.
+    pub fn center_y(self, height: impl Into<Length>) -> Self {
+        self.height(height).align_y(alignment::Vertical::Center)
     }
 
     /// Centers the contents in both the horizontal and vertical axes of the
@@ -182,8 +173,10 @@ where
     ///
     /// [`center_x`]: Self::center_x
     /// [`center_y`]: Self::center_y
-    pub fn center(self) -> Self {
-        self.center_x().center_y()
+    pub fn center(self, length: impl Into<Length>) -> Self {
+        let length = length.into();
+
+        self.center_x(length).center_y(length)
     }
 
     /// Sets whether the contents of the [`Container`] should be clipped on
