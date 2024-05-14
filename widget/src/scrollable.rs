@@ -564,12 +564,18 @@ where
                 let delta = match delta {
                     mouse::ScrollDelta::Lines { x, y } => {
                         // TODO: Configurable speed/friction (?)
-                        let movement = if !cfg!(target_os = "macos") // macOS automatically inverts the axes when Shift is pressed
-                            && state.keyboard_modifiers.shift()
-                        {
-                            Vector::new(y, x)
-                        } else {
-                            Vector::new(x, y)
+                        let movement = match self.direction {
+                            Direction::Vertical(_) => Vector::new(x, y),
+                            Direction::Horizontal(_) => Vector::new(y, x),
+                            Direction::Both { vertical: _, horizontal: _ } => {
+                                if !cfg!(target_os = "macos") // macOS automatically inverts the axes when Shift is pressed
+                                    && state.keyboard_modifiers.shift()
+                                {
+                                    Vector::new(y, x)
+                                } else {
+                                    Vector::new(x, y)
+                                }
+                            }
                         };
 
                         movement * 60.0
