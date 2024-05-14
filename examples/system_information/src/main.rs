@@ -1,4 +1,4 @@
-use iced::widget::{button, column, container, text};
+use iced::widget::{button, center, column, text};
 use iced::{system, Command, Element};
 
 pub fn main() -> iced::Result {
@@ -136,6 +136,6 @@ impl Example {
             }
         };
 
-        container(content).center().into()
+        center(content).into()
     }
 }

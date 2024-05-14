@@ -84,9 +84,10 @@ where
 ///
 /// This is equivalent to:
 /// ```rust,no_run
+/// # use iced_widget::core::Length;
 /// # use iced_widget::Container;
 /// # fn container<A>(x: A) -> Container<'static, ()> { unreachable!() }
-/// let centered = container("Centered!").center();
+/// let centered = container("Centered!").center(Length::Fill);
 /// ```
 ///
 /// [`Container`]: crate::Container
@@ -97,7 +98,7 @@ where
     Theme: container::Catalog + 'a,
     Renderer: core::Renderer,
 {
-    container(content).fill().center()
+    container(content).center(Length::Fill)
 }
 
 /// Creates a new [`Column`] with the given children.
