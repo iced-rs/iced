@@ -474,7 +474,7 @@ async fn run_instance<A, E, C>(
 
     let _ = window_manager.insert(
         window::Id::MAIN,
-        main_window.clone(),
+        main_window,
         &application,
         &mut compositor,
         exit_on_close_request,
