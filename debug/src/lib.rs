@@ -78,6 +78,8 @@ mod internal {
     use std::sync::RwLock;
 
     pub fn init(name: &str) {
+        let name = name.split("::").next().unwrap_or(name);
+
         name.clone_into(&mut NAME.write().expect("Write application name"));
     }
 

@@ -51,6 +51,9 @@ where
     /// The data needed to initialize your [`Application`].
     type Flags;
 
+    /// Returns the unique name of the [`Application`].
+    fn name() -> &'static str;
+
     /// Initializes the [`Application`] with the flags provided to
     /// [`run`] as part of the [`Settings`].
     ///
@@ -117,6 +120,7 @@ where
 {
     use winit::event_loop::EventLoop;
 
+    debug::init(A::name());
     let boot_span = debug::boot();
 
     let event_loop = EventLoop::with_user_event()
@@ -989,7 +993,6 @@ fn update<A: Application, C, E: Executor>(
     for message in messages.drain(..) {
         let update_span = debug::update(&message);
         let command = runtime.enter(|| application.update(message));
-        update_span.finish();
 
         run_command(
             application,
@@ -1002,6 +1005,7 @@ fn update<A: Application, C, E: Executor>(
             window_manager,
             ui_caches,
         );
+        update_span.finish();
     }
 
     let recipes = application.subscription().into_recipes();

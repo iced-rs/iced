@@ -107,9 +107,7 @@ where
         type Executor = executor::Default;
 
         fn name() -> &'static str {
-            let type_name = std::any::type_name::<State>();
-
-            type_name.split("::").next().unwrap_or(type_name)
+            std::any::type_name::<State>()
         }
 
         fn load(&self) -> Command<Self::Message> {

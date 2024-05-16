@@ -84,6 +84,11 @@ where
     /// The data needed to initialize your [`Application`].
     type Flags;
 
+    /// Returns the unique name of the [`Application`].
+    fn name() -> &'static str {
+        std::any::type_name::<Self>()
+    }
+
     /// Initializes the [`Application`] with the flags provided to
     /// [`run`] as part of the [`Settings`].
     ///
@@ -230,6 +235,10 @@ where
         let (app, command) = A::new(flags);
 
         (Instance(app), command)
+    }
+
+    fn name() -> &'static str {
+        A::name()
     }
 
     fn title(&self, window: window::Id) -> String {
