@@ -611,7 +611,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         },
         handle: Handle {
             shape: HandleShape::Circle { radius: 7.0 },
-            background: Background::Color(color),
+            background: color.into(),
             border_color: Color::TRANSPARENT,
             border_width: 0.0,
         },
