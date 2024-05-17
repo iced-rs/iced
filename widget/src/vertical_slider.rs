@@ -415,7 +415,7 @@ where
                 border: Border::rounded(style.rail.border.radius),
                 ..renderer::Quad::default()
             },
-            style.rail.colors.1,
+            style.rail.backgrounds.1,
         );
 
         renderer.fill_quad(
@@ -429,7 +429,7 @@ where
                 border: Border::rounded(style.rail.border.radius),
                 ..renderer::Quad::default()
             },
-            style.rail.colors.0,
+            style.rail.backgrounds.0,
         );
 
         renderer.fill_quad(
