@@ -411,7 +411,7 @@ where
                 border: style.rail.border,
                 ..renderer::Quad::default()
             },
-            style.rail.colors.0,
+            style.rail.backgrounds.0,
         );
 
         renderer.fill_quad(
@@ -425,7 +425,7 @@ where
                 border: style.rail.border,
                 ..renderer::Quad::default()
             },
-            style.rail.colors.1,
+            style.rail.backgrounds.1,
         );
 
         renderer.fill_quad(
@@ -524,8 +524,8 @@ impl Style {
 /// The appearance of a slider rail
 #[derive(Debug, Clone, Copy)]
 pub struct Rail {
-    /// The colors of the rail of the slider.
-    pub colors: (Color, Color),
+    /// The backgrounds of the rail of the slider.
+    pub backgrounds: (Background, Background),
     /// The width of the stroke of a slider rail.
     pub width: f32,
     /// The border of the rail.
@@ -601,7 +601,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
 
     Style {
         rail: Rail {
-            colors: (color, palette.secondary.base.color),
+            backgrounds: (color.into(), palette.secondary.base.color.into()),
             width: 4.0,
             border: Border {
                 radius: 2.0.into(),
