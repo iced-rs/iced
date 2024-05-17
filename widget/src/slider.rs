@@ -9,8 +9,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Color, Element, Layout, Length, Pixels, Point, Rectangle,
-    Shell, Size, Theme, Widget,
+    self, Background, Clipboard, Color, Element, Layout, Length, Pixels, Point,
+    Rectangle, Shell, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -408,7 +408,7 @@ where
                     width: offset + handle_width / 2.0,
                     height: style.rail.width,
                 },
-                border: border::rounded(style.rail.border_radius),
+                border: style.rail.border,
                 ..renderer::Quad::default()
             },
             style.rail.colors.0,
@@ -422,7 +422,7 @@ where
                     width: bounds.width - offset - handle_width / 2.0,
                     height: style.rail.width,
                 },
-                border: border::rounded(style.rail.border_radius),
+                border: style.rail.border,
                 ..renderer::Quad::default()
             },
             style.rail.colors.1,
@@ -443,7 +443,7 @@ where
                 },
                 ..renderer::Quad::default()
             },
-            style.handle.color,
+            style.handle.background,
         );
     }
 
@@ -528,8 +528,8 @@ pub struct Rail {
     pub colors: (Color, Color),
     /// The width of the stroke of a slider rail.
     pub width: f32,
-    /// The border radius of the corners of the rail.
-    pub border_radius: border::Radius,
+    /// The border of the rail.
+    pub border: Border,
 }
 
 /// The appearance of the handle of a slider.
@@ -537,8 +537,8 @@ pub struct Rail {
 pub struct Handle {
     /// The shape of the handle.
     pub shape: HandleShape,
-    /// The [`Color`] of the handle.
-    pub color: Color,
+    /// The [`Background`] of the handle.
+    pub background: Background,
     /// The border width of the handle.
     pub border_width: f32,
     /// The border [`Color`] of the handle.
@@ -603,11 +603,15 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         rail: Rail {
             colors: (color, palette.secondary.base.color),
             width: 4.0,
-            border_radius: 2.0.into(),
+            border: Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: Color::TRANSPARENT,
+            },
         },
         handle: Handle {
             shape: HandleShape::Circle { radius: 7.0 },
-            color,
+            background: Background::Color(color),
             border_color: Color::TRANSPARENT,
             border_width: 0.0,
         },
