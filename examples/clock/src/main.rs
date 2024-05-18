@@ -1,14 +1,12 @@
 use iced::alignment;
 use iced::mouse;
+use iced::time;
 use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
 use iced::{
     Degrees, Element, Font, Length, Point, Rectangle, Renderer, Subscription,
     Theme, Vector,
 };
-
-use chrono as time;
-use time::Timelike;
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -21,13 +19,13 @@ pub fn main() -> iced::Result {
 }
 
 struct Clock {
-    now: time::DateTime<time::Local>,
+    now: chrono::DateTime<chrono::Local>,
     clock: Cache,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    Tick(time::DateTime<time::Local>),
+    Tick(chrono::DateTime<chrono::Local>),
 }
 
 impl Clock {
@@ -57,8 +55,8 @@ impl Clock {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        iced::time::every(std::time::Duration::from_millis(500))
-            .map(|_| Message::Tick(time::offset::Local::now()))
+        time::every(time::Duration::from_millis(500))
+            .map(|_| Message::Tick(chrono::offset::Local::now()))
     }
 
     fn theme(&self) -> Theme {
@@ -70,7 +68,7 @@ impl Clock {
 impl Default for Clock {
     fn default() -> Self {
         Self {
-            now: time::offset::Local::now(),
+            now: chrono::offset::Local::now(),
             clock: Cache::default(),
         }
     }
@@ -87,6 +85,8 @@ impl<Message> canvas::Program<Message> for Clock {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
+        use chrono::Timelike;
+
         let clock = self.clock.draw(renderer, bounds.size(), |frame| {
             let palette = theme.extended_palette();
 
@@ -125,17 +125,17 @@ impl<Message> canvas::Program<Message> for Clock {
             frame.translate(Vector::new(center.x, center.y));
 
             frame.with_save(|frame| {
-                frame.rotate(hand_rotation(self.now.hour() as u8, 12));
+                frame.rotate(hand_rotation(self.now.hour(), 12));
                 frame.stroke(&short_hand, wide_stroke());
             });
 
             frame.with_save(|frame| {
-                frame.rotate(hand_rotation(self.now.minute() as u8, 60));
+                frame.rotate(hand_rotation(self.now.minute(), 60));
                 frame.stroke(&long_hand, wide_stroke());
             });
 
             frame.with_save(|frame| {
-                let rotation = hand_rotation(self.now.second() as u8, 60);
+                let rotation = hand_rotation(self.now.second(), 60);
 
                 frame.rotate(rotation);
                 frame.stroke(&long_hand, thin_stroke());
@@ -167,7 +167,7 @@ impl<Message> canvas::Program<Message> for Clock {
     }
 }
 
-fn hand_rotation(n: u8, total: u8) -> Degrees {
+fn hand_rotation(n: u32, total: u32) -> Degrees {
     let turns = n as f32 / total as f32;
 
     Degrees(360.0 * turns)
