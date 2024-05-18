@@ -189,6 +189,20 @@ where
                                     layout
                                         .move_to_mut((0.0, state.offsets[*i]));
                                 }
+                            } else if let Some(first_visible) =
+                                state.visible_layouts.first()
+                            {
+                                let first_visible_index = first_visible.0;
+                                if original < first_visible_index {
+                                    for (i, layout, _) in
+                                        &mut state.visible_layouts[..]
+                                    {
+                                        layout.move_to_mut((
+                                            0.0,
+                                            state.offsets[*i],
+                                        ));
+                                    }
+                                }
                             }
 
                             state.size.height += height_difference;
