@@ -5,7 +5,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    self, Background, Element, Layout, Length, Rectangle, Size, Theme, Widget,
+    self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme,
+    Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -138,7 +139,10 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle { ..bounds },
-                border: style.border,
+                border: Border {
+                    color: Color::TRANSPARENT,
+                    ..style.border
+                },
                 ..renderer::Quad::default()
             },
             style.background,
@@ -155,6 +159,17 @@ where
                     ..renderer::Quad::default()
                 },
                 style.bar,
+            );
+        }
+
+        if style.border.color != Color::TRANSPARENT {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: Rectangle { ..bounds },
+                    border: style.border,
+                    ..renderer::Quad::default()
+                },
+                Color::TRANSPARENT,
             );
         }
     }
