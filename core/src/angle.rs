@@ -1,6 +1,7 @@
 use crate::{Point, Rectangle, Vector};
 
 use std::f32::consts::{FRAC_PI_2, PI};
+use std::fmt::Display;
 use std::ops::{Add, AddAssign, Div, Mul, RangeInclusive, Rem, Sub, SubAssign};
 
 /// Degrees
@@ -235,5 +236,11 @@ impl PartialEq<f32> for Radians {
 impl PartialOrd<f32> for Radians {
     fn partial_cmp(&self, other: &f32) -> Option<std::cmp::Ordering> {
         self.0.partial_cmp(other)
+    }
+}
+
+impl Display for Radians {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
