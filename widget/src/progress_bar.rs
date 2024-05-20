@@ -152,21 +152,13 @@ where
                         width: active_progress_width,
                         ..bounds
                     },
-                    border: border::rounded(style.border.radius),
+                    border: Border {
+                        color: Color::TRANSPARENT,
+                        ..style.border
+                    },
                     ..renderer::Quad::default()
                 },
                 style.bar,
-            );
-        }
-
-        if style.border.color != Color::TRANSPARENT {
-            renderer.fill_quad(
-                renderer::Quad {
-                    bounds: Rectangle { ..bounds },
-                    border: style.border,
-                    ..renderer::Quad::default()
-                },
-                Color::TRANSPARENT,
             );
         }
     }
