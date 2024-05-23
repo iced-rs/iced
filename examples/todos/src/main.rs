@@ -399,10 +399,10 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
     };
 
     row![
-        text(format!(
+        text!(
             "{tasks_left} {} left",
             if tasks_left == 1 { "task" } else { "tasks" }
-        ))
+        )
         .width(Length::Fill),
         row![
             filter_button("All", Filter::All, current_filter),

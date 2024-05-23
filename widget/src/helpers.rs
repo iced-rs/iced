@@ -65,6 +65,52 @@ macro_rules! stack {
     );
 }
 
+/// Creates a new [`Text`] widget with the provided content.
+///
+/// [`Text`]: core::widget::Text
+///
+/// This macro uses the same syntax as [`format!`], but creates a new [`Text`] widget instead.
+///
+/// See [the formatting documentation in `std::fmt`](std::fmt)
+/// for details of the macro argument syntax.
+///
+/// # Examples
+///
+/// ```no_run
+/// # mod iced {
+/// #     pub struct Element<Message>(pub std::marker::PhantomData<Message>);
+/// #     pub mod widget {
+/// #         macro_rules! text {
+/// #           ($($arg:tt)*) => {unimplemented!()}
+/// #         }
+/// #         pub(crate) use text;
+/// #     }
+/// # }
+/// # struct Example;
+/// # enum Message {}
+/// use iced::Element;
+/// use iced::widget::text;
+///
+/// impl Example {
+///     fn view(&self) -> Element<Message> {
+///         let simple = text!("Hello, world!");
+///
+///         let keyword = text!("Hello, {}", "world!");
+///
+///         let planet = "Earth";
+///         let local_variable = text!("Hello, {planet}!");
+///         // ...
+///         # iced::Element(std::marker::PhantomData)
+///     }
+/// }
+/// ```
+#[macro_export]
+macro_rules! text {
+    ($($arg:tt)*) => {
+        $crate::Text::new(format!($($arg)*))
+    };
+}
+
 /// Creates a new [`Container`] with the provided content.
 ///
 /// [`Container`]: crate::Container

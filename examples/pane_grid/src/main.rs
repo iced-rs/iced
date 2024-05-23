@@ -284,12 +284,10 @@ fn view_content<'a>(
     .spacing(5)
     .max_width(160);
 
-    let content = column![
-        text(format!("{}x{}", size.width, size.height)).size(24),
-        controls,
-    ]
-    .spacing(10)
-    .align_items(Alignment::Center);
+    let content =
+        column![text!("{}x{}", size.width, size.height).size(24), controls,]
+            .spacing(10)
+            .align_items(Alignment::Center);
 
     container(scrollable(content))
         .center_y(Length::Fill)

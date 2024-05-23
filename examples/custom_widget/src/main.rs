@@ -114,7 +114,7 @@ impl Example {
     fn view(&self) -> Element<Message> {
         let content = column![
             circle(self.radius),
-            text(format!("Radius: {:.2}", self.radius)),
+            text!("Radius: {:.2}", self.radius),
             slider(1.0..=100.0, self.radius, Message::RadiusChanged).step(0.01),
         ]
         .padding(20)

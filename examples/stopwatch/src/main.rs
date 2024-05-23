@@ -92,13 +92,13 @@ impl Stopwatch {
 
         let seconds = self.duration.as_secs();
 
-        let duration = text(format!(
+        let duration = text!(
             "{:0>2}:{:0>2}:{:0>2}.{:0>2}",
             seconds / HOUR,
             (seconds % HOUR) / MINUTE,
             seconds % MINUTE,
             self.duration.subsec_millis() / 10,
-        ))
+        )
         .size(40);
 
         let button = |label| {
