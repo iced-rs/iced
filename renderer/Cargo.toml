@@ -10,19 +10,24 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 wgpu = ["iced_wgpu"]
-image = ["iced_tiny_skia/image", "iced_wgpu?/image"]
-svg = ["iced_tiny_skia/svg", "iced_wgpu?/svg"]
-geometry = ["iced_graphics/geometry", "iced_tiny_skia/geometry", "iced_wgpu?/geometry"]
-tracing = ["iced_wgpu?/tracing"]
+tiny-skia = ["iced_tiny_skia"]
+image = ["iced_tiny_skia?/image", "iced_wgpu?/image"]
+svg = ["iced_tiny_skia?/svg", "iced_wgpu?/svg"]
+geometry = ["iced_graphics/geometry", "iced_tiny_skia?/geometry", "iced_wgpu?/geometry"]
 web-colors = ["iced_wgpu?/web-colors"]
 webgl = ["iced_wgpu?/webgl"]
 fira-sans = ["iced_graphics/fira-sans"]
 
 [dependencies]
 iced_graphics.workspace = true
+
 iced_tiny_skia.workspace = true
+iced_tiny_skia.optional = true
 
 iced_wgpu.workspace = true
 iced_wgpu.optional = true

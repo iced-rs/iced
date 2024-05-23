@@ -155,9 +155,9 @@ where
         if let Some(background) = self.background {
             container::draw_background(
                 renderer,
-                &container::Appearance {
+                &container::Style {
                     background: Some(background(&theme)),
-                    ..container::Appearance::default()
+                    ..container::Style::default()
                 },
                 layout.bounds(),
             );

@@ -5,8 +5,8 @@ use crate::core::renderer;
 use crate::core::svg;
 use crate::core::widget::Tree;
 use crate::core::{
-    Color, ContentFit, Element, Layout, Length, Rectangle, Size, Theme, Vector,
-    Widget,
+    Color, ContentFit, Element, Layout, Length, Point, Rectangle, Rotation,
+    Size, Theme, Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -20,36 +20,40 @@ pub use crate::core::svg::Handle;
 /// [`Svg`] images can have a considerable rendering cost when resized,
 /// specially when they are complex.
 #[allow(missing_debug_implementations)]
-pub struct Svg<'a, Theme = crate::Theme> {
+pub struct Svg<'a, Theme = crate::Theme>
+where
+    Theme: Catalog,
+{
     handle: Handle,
     width: Length,
     height: Length,
     content_fit: ContentFit,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
+    rotation: Rotation,
+    opacity: f32,
 }
 
-impl<'a, Theme> Svg<'a, Theme> {
+impl<'a, Theme> Svg<'a, Theme>
+where
+    Theme: Catalog,
+{
     /// Creates a new [`Svg`] from the given [`Handle`].
-    pub fn new(handle: impl Into<Handle>) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    pub fn new(handle: impl Into<Handle>) -> Self {
         Svg {
             handle: handle.into(),
             width: Length::Fill,
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
+            rotation: Rotation::default(),
+            opacity: 1.0,
         }
     }
 
     /// Creates a new [`Svg`] that will display the contents of the file at the
     /// provided path.
     #[must_use]
-    pub fn from_path(path: impl Into<PathBuf>) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    pub fn from_path(path: impl Into<PathBuf>) -> Self {
         Self::new(Handle::from_path(path))
     }
 
@@ -78,13 +82,36 @@ impl<'a, Theme> Svg<'a, Theme> {
         }
     }
 
-    /// Sets the style variant of this [`Svg`].
+    /// Sets the style of the [`Svg`].
     #[must_use]
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Svg`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
+        self
+    }
+
+    /// Applies the given [`Rotation`] to the [`Svg`].
+    pub fn rotation(mut self, rotation: impl Into<Rotation>) -> Self {
+        self.rotation = rotation.into();
+        self
+    }
+
+    /// Sets the opacity of the [`Svg`].
+    ///
+    /// It should be in the [0.0, 1.0] range—`0.0` meaning completely transparent,
+    /// and `1.0` meaning completely opaque.
+    pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
+        self.opacity = opacity.into();
         self
     }
 }
@@ -93,6 +120,7 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Svg<'a, Theme>
 where
     Renderer: svg::Renderer,
+    Theme: Catalog,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -108,14 +136,17 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         // The raw w/h of the underlying image
-        let Size { width, height } = renderer.dimensions(&self.handle);
+        let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
+        // The rotated size of the svg
+        let rotated_size = self.rotation.apply(image_size);
+
         // The size to be available to the widget prior to `Shrink`ing
-        let raw_size = limits.resolve(self.width, self.height, image_size);
+        let raw_size = limits.resolve(self.width, self.height, rotated_size);
 
         // The uncropped size of the image when fit to the bounds above
-        let full_size = self.content_fit.fit(image_size, raw_size);
+        let full_size = self.content_fit.fit(rotated_size, raw_size);
 
         // Shrink the widget to fit the resized image, if requested
         let final_size = Size {
@@ -142,37 +173,49 @@ where
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let Size { width, height } = renderer.dimensions(&self.handle);
+        let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
+        let rotated_size = self.rotation.apply(image_size);
 
         let bounds = layout.bounds();
-        let adjusted_fit = self.content_fit.fit(image_size, bounds.size());
+        let adjusted_fit = self.content_fit.fit(rotated_size, bounds.size());
+        let scale = Vector::new(
+            adjusted_fit.width / rotated_size.width,
+            adjusted_fit.height / rotated_size.height,
+        );
+
+        let final_size = image_size * scale;
+
+        let position = match self.content_fit {
+            ContentFit::None => Point::new(
+                bounds.x + (rotated_size.width - adjusted_fit.width) / 2.0,
+                bounds.y + (rotated_size.height - adjusted_fit.height) / 2.0,
+            ),
+            _ => Point::new(
+                bounds.center_x() - final_size.width / 2.0,
+                bounds.center_y() - final_size.height / 2.0,
+            ),
+        };
+
+        let drawing_bounds = Rectangle::new(position, final_size);
+
         let is_mouse_over = cursor.is_over(bounds);
 
+        let status = if is_mouse_over {
+            Status::Hovered
+        } else {
+            Status::Idle
+        };
+
+        let style = theme.style(&self.class, status);
+
         let render = |renderer: &mut Renderer| {
-            let offset = Vector::new(
-                (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
-                (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
-            );
-
-            let drawing_bounds = Rectangle {
-                width: adjusted_fit.width,
-                height: adjusted_fit.height,
-                ..bounds
-            };
-
-            let status = if is_mouse_over {
-                Status::Hovered
-            } else {
-                Status::Idle
-            };
-
-            let appearance = (self.style)(theme, status);
-
-            renderer.draw(
+            renderer.draw_svg(
                 self.handle.clone(),
-                appearance.color,
-                drawing_bounds + offset,
+                style.color,
+                drawing_bounds,
+                self.rotation.radians(),
+                self.opacity,
             );
         };
 
@@ -189,7 +232,7 @@ where
 impl<'a, Message, Theme, Renderer> From<Svg<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: 'a,
+    Theme: Catalog + 'a,
     Renderer: svg::Renderer + 'a,
 {
     fn from(icon: Svg<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
@@ -208,7 +251,7 @@ pub enum Status {
 
 /// The appearance of an [`Svg`].
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Appearance {
+pub struct Style {
     /// The [`Color`] filter of an [`Svg`].
     ///
     /// Useful for coloring a symbolic icon.
@@ -217,23 +260,37 @@ pub struct Appearance {
     pub color: Option<Color>,
 }
 
-/// The style of an [`Svg`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
+/// The theme catalog of an [`Svg`].
+pub trait Catalog {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
 
-/// The default style of an [`Svg`].
-pub trait DefaultStyle {
-    /// Returns the default style of an [`Svg`].
-    fn default_style(&self, status: Status) -> Appearance;
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self, _status: Status) -> Appearance {
-        Appearance::default()
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(|_theme, _status| Style::default())
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
     }
 }
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self, _status: Status) -> Appearance {
-        *self
+/// A styling function for an [`Svg`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
+
+impl<'a, Theme> From<Style> for StyleFn<'a, Theme> {
+    fn from(style: Style) -> Self {
+        Box::new(move |_theme, _status| style)
     }
 }

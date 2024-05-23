@@ -1,10 +1,7 @@
 use crate::core::Rectangle;
-use crate::graphics::Damage;
-
-pub type Primitive = crate::graphics::Primitive<Custom>;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Custom {
+pub enum Primitive {
     /// A path filled with some paint.
     Fill {
         /// The path to fill.
@@ -25,20 +22,19 @@ pub enum Custom {
     },
 }
 
-impl Damage for Custom {
-    fn bounds(&self) -> Rectangle {
-        match self {
-            Self::Fill { path, .. } | Self::Stroke { path, .. } => {
-                let bounds = path.bounds();
+impl Primitive {
+    /// Returns the visible bounds of the [`Primitive`].
+    pub fn visible_bounds(&self) -> Rectangle {
+        let bounds = match self {
+            Primitive::Fill { path, .. } => path.bounds(),
+            Primitive::Stroke { path, .. } => path.bounds(),
+        };
 
-                Rectangle {
-                    x: bounds.x(),
-                    y: bounds.y(),
-                    width: bounds.width(),
-                    height: bounds.height(),
-                }
-                .expand(1.0)
-            }
+        Rectangle {
+            x: bounds.x(),
+            y: bounds.y(),
+            width: bounds.width(),
+            height: bounds.height(),
         }
     }
 }

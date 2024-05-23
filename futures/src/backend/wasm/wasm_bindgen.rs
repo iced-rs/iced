@@ -16,8 +16,7 @@ impl crate::Executor for Executor {
 
 pub mod time {
     //! Listen and react to time.
-    use crate::core::Hasher;
-    use crate::subscription::{self, Subscription};
+    use crate::subscription::{self, Hasher, Subscription};
     use crate::BoxStream;
 
     /// Returns a [`Subscription`] that produces messages at a set interval.

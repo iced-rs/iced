@@ -1,9 +1,11 @@
 //! This example showcases an interactive `Canvas` for drawing Bézier curves.
-use iced::widget::{button, column, text};
-use iced::{Alignment, Element, Length};
+use iced::alignment;
+use iced::widget::{button, container, horizontal_space, hover};
+use iced::{Element, Length, Theme};
 
 pub fn main() -> iced::Result {
     iced::program("Bezier Tool - Iced", Example::update, Example::view)
+        .theme(|_| Theme::CatppuccinMocha)
         .antialiasing(true)
         .run()
 }
@@ -35,16 +37,22 @@ impl Example {
     }
 
     fn view(&self) -> Element<Message> {
-        column![
-            text("Bezier tool example").width(Length::Shrink).size(50),
+        container(hover(
             self.bezier.view(&self.curves).map(Message::AddCurve),
-            button("Clear")
-                .style(button::danger)
-                .on_press(Message::Clear),
-        ]
+            if self.curves.is_empty() {
+                container(horizontal_space())
+            } else {
+                container(
+                    button("Clear")
+                        .style(button::danger)
+                        .on_press(Message::Clear),
+                )
+                .padding(10)
+                .width(Length::Fill)
+                .align_x(alignment::Horizontal::Right)
+            },
+        ))
         .padding(20)
-        .spacing(20)
-        .align_items(Alignment::Center)
         .into()
     }
 }
@@ -139,27 +147,24 @@ mod bezier {
             &self,
             state: &Self::State,
             renderer: &Renderer,
-            _theme: &Theme,
+            theme: &Theme,
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> Vec<Geometry> {
-            let content = self.state.cache.draw(
-                renderer,
-                bounds.size(),
-                |frame: &mut Frame| {
-                    Curve::draw_all(self.curves, frame);
+            let content =
+                self.state.cache.draw(renderer, bounds.size(), |frame| {
+                    Curve::draw_all(self.curves, frame, theme);
 
                     frame.stroke(
                         &Path::rectangle(Point::ORIGIN, frame.size()),
-                        Stroke::default().with_width(2.0),
+                        Stroke::default()
+                            .with_width(2.0)
+                            .with_color(theme.palette().text),
                     );
-                },
-            );
+                });
 
             if let Some(pending) = state {
-                let pending_curve = pending.draw(renderer, bounds, cursor);
-
-                vec![content, pending_curve]
+                vec![content, pending.draw(renderer, theme, bounds, cursor)]
             } else {
                 vec![content]
             }
@@ -187,7 +192,7 @@ mod bezier {
     }
 
     impl Curve {
-        fn draw_all(curves: &[Curve], frame: &mut Frame) {
+        fn draw_all(curves: &[Curve], frame: &mut Frame, theme: &Theme) {
             let curves = Path::new(|p| {
                 for curve in curves {
                     p.move_to(curve.from);
@@ -195,7 +200,12 @@ mod bezier {
                 }
             });
 
-            frame.stroke(&curves, Stroke::default().with_width(2.0));
+            frame.stroke(
+                &curves,
+                Stroke::default()
+                    .with_width(2.0)
+                    .with_color(theme.palette().text),
+            );
         }
     }
 
@@ -209,6 +219,7 @@ mod bezier {
         fn draw(
             &self,
             renderer: &Renderer,
+            theme: &Theme,
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> Geometry {
@@ -218,7 +229,12 @@ mod bezier {
                 match *self {
                     Pending::One { from } => {
                         let line = Path::line(from, cursor_position);
-                        frame.stroke(&line, Stroke::default().with_width(2.0));
+                        frame.stroke(
+                            &line,
+                            Stroke::default()
+                                .with_width(2.0)
+                                .with_color(theme.palette().text),
+                        );
                     }
                     Pending::Two { from, to } => {
                         let curve = Curve {
@@ -227,7 +243,7 @@ mod bezier {
                             control: cursor_position,
                         };
 
-                        Curve::draw_all(&[curve], &mut frame);
+                        Curve::draw_all(&[curve], &mut frame, theme);
                     }
                 };
             }

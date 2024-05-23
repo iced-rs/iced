@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
@@ -18,9 +21,11 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "fira-sans"]
+default = ["wgpu", "tiny-skia", "fira-sans", "auto-detect-theme"]
 # Enable the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
+# Enable the `tiny-skia` software renderer backend
+tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `Image` widget
 image = ["iced_widget/image", "dep:image"]
 # Enables the `Svg` widget
@@ -50,11 +55,14 @@ highlighter = ["iced_highlighter"]
 # Enables experimental multi-window support.
 multi-window = ["iced_winit/multi-window"]
 # Enables the advanced module
-advanced = []
+advanced = ["iced_core/advanced", "iced_widget/advanced"]
 # Enables embedding Fira Sans as the default font on Wasm builds
 fira-sans = ["iced_renderer/fira-sans"]
+# Enables auto-detecting light/dark mode for the built-in theme
+auto-detect-theme = ["iced_core/auto-detect-theme"]
 
 [dependencies]
+iced_core.workspace = true
 iced_futures.workspace = true
 iced_renderer.workspace = true
 iced_widget.workspace = true
@@ -68,6 +76,15 @@ thiserror.workspace = true
 
 image.workspace = true
 image.optional = true
+
+[dev-dependencies]
+criterion = "0.5"
+iced_wgpu.workspace = true
+
+[[bench]]
+name = "wgpu"
+harness = false
+required-features = ["canvas"]
 
 [profile.release-opt]
 inherits = "release"
@@ -120,10 +137,12 @@ iced_winit = { version = "0.13.0-dev", path = "winit" }
 async-std = "1.0"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
+bytes = "1.6"
 cosmic-text = "0.10"
+dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
-glyphon = "0.5"
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "f07e7bab705e69d39a5e6e52c73039a93c4552f8" }
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
@@ -149,13 +168,37 @@ thiserror = "1.0"
 tiny-skia = "0.11"
 tokio = "1.0"
 tracing = "0.1"
-xxhash-rust = { version = "0.8", features = ["xxh3"] }
 unicode-segmentation = "1.0"
 wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
 web-sys = "=0.3.67"
-web-time = "0.2"
+web-time = "1.1"
 wgpu = "0.19"
 winapi = "0.3"
 window_clipboard = "0.4.1"
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "b91e39ece2c0d378c3b80da7f3ab50e17bb798a5" }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "8affa522bc6dcc497d332a28c03491d22a22f5a7" }
+
+[workspace.lints.rust]
+rust_2018_idioms = "forbid"
+missing_debug_implementations = "deny"
+missing_docs = "deny"
+unsafe_code = "deny"
+unused_results = "deny"
+
+[workspace.lints.clippy]
+type-complexity = "allow"
+semicolon_if_nothing_returned = "deny"
+trivially-copy-pass-by-ref = "deny"
+default_trait_access = "deny"
+match-wildcard-for-single-variants = "deny"
+redundant-closure-for-method-calls = "deny"
+filter_map_next = "deny"
+manual_let_else = "deny"
+unused_async = "deny"
+from_over_into = "deny"
+needless_borrow = "deny"
+new_without_default = "deny"
+useless_conversion = "deny"
+
+[workspace.lints.rustdoc]
+broken_intra_doc_links = "forbid"

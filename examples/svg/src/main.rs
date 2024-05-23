@@ -1,4 +1,4 @@
-use iced::widget::{checkbox, column, container, svg};
+use iced::widget::{center, checkbox, column, container, svg};
 use iced::{color, Element, Length};
 
 pub fn main() -> iced::Result {
@@ -31,7 +31,7 @@ impl Tiger {
         ));
 
         let svg = svg(handle).width(Length::Fill).height(Length::Fill).style(
-            |_theme, _status| svg::Appearance {
+            |_theme, _status| svg::Style {
                 color: if self.apply_color_filter {
                     Some(color!(0x0000ff))
                 } else {
@@ -44,19 +44,12 @@ impl Tiger {
             checkbox("Apply a color filter", self.apply_color_filter)
                 .on_toggle(Message::ToggleColorFilter);
 
-        container(
-            column![
-                svg,
-                container(apply_color_filter).width(Length::Fill).center_x()
-            ]
-            .spacing(20)
-            .height(Length::Fill),
+        center(
+            column![svg, container(apply_color_filter).center_x(Length::Fill)]
+                .spacing(20)
+                .height(Length::Fill),
         )
-        .width(Length::Fill)
-        .height(Length::Fill)
         .padding(20)
-        .center_x()
-        .center_y()
         .into()
     }
 }

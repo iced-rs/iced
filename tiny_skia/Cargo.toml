@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 image = ["iced_graphics/image"]
 svg = ["resvg"]
@@ -25,7 +28,6 @@ log.workspace = true
 rustc-hash.workspace = true
 softbuffer.workspace = true
 tiny-skia.workspace = true
-xxhash-rust.workspace = true
 
 resvg.workspace = true
 resvg.optional = true

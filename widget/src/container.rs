@@ -9,8 +9,9 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
-    Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    self, Background, Border, Clipboard, Color, Element, Layout, Length,
+    Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
+    Widget,
 };
 use crate::runtime::Command;
 
@@ -24,7 +25,8 @@ pub struct Container<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     id: Option<Id>,
     padding: Padding,
@@ -36,27 +38,17 @@ pub struct Container<
     vertical_alignment: alignment::Vertical,
     clip: bool,
     content: Element<'a, Message, Theme, Renderer>,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     /// Creates a [`Container`] with the given content.
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
-        Self::with_style(content, Theme::default_style)
-    }
-
-    /// Creates a [`Container`] with the given content and style.
-    pub fn with_style(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
     ) -> Self {
         let content = content.into();
         let size = content.as_widget().size_hint();
@@ -71,7 +63,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             clip: false,
-            style: Box::new(style),
+            class: Theme::default(),
             content,
         }
     }
@@ -100,6 +92,46 @@ where
         self
     }
 
+    /// Sets the [`Container`] to fill the available space in the horizontal axis.
+    ///
+    /// This can be useful to quickly position content when chained with
+    /// alignment functions—like [`center_x`].
+    ///
+    /// Calling this method is equivalent to calling [`width`] with a
+    /// [`Length::Fill`].
+    ///
+    /// [`center_x`]: Self::center_x
+    /// [`width`]: Self::width
+    pub fn fill_x(self) -> Self {
+        self.width(Length::Fill)
+    }
+
+    /// Sets the [`Container`] to fill the available space in the vetical axis.
+    ///
+    /// This can be useful to quickly position content when chained with
+    /// alignment functions—like [`center_y`].
+    ///
+    /// Calling this method is equivalent to calling [`height`] with a
+    /// [`Length::Fill`].
+    ///
+    /// [`center_y`]: Self::center_x
+    /// [`height`]: Self::height
+    pub fn fill_y(self) -> Self {
+        self.height(Length::Fill)
+    }
+
+    /// Sets the [`Container`] to fill all the available space.
+    ///
+    /// Calling this method is equivalent to chaining [`fill_x`] and
+    /// [`fill_y`].
+    ///
+    /// [`center`]: Self::center
+    /// [`fill_x`]: Self::fill_x
+    /// [`fill_y`]: Self::fill_y
+    pub fn fill(self) -> Self {
+        self.width(Length::Fill).height(Length::Fill)
+    }
+
     /// Sets the maximum width of the [`Container`].
     pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
         self.max_width = max_width.into().0;
@@ -124,25 +156,27 @@ where
         self
     }
 
-    /// Centers the contents in the horizontal axis of the [`Container`].
-    pub fn center_x(mut self) -> Self {
-        self.horizontal_alignment = alignment::Horizontal::Center;
-        self
+    /// Sets the width of the [`Container`] and centers its contents horizontally.
+    pub fn center_x(self, width: impl Into<Length>) -> Self {
+        self.width(width).align_x(alignment::Horizontal::Center)
     }
 
-    /// Centers the contents in the vertical axis of the [`Container`].
-    pub fn center_y(mut self) -> Self {
-        self.vertical_alignment = alignment::Vertical::Center;
-        self
+    /// Sets the height of the [`Container`] and centers its contents vertically.
+    pub fn center_y(self, height: impl Into<Length>) -> Self {
+        self.height(height).align_y(alignment::Vertical::Center)
     }
 
-    /// Sets the style of the [`Container`].
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
-        self
+    /// Centers the contents in both the horizontal and vertical axes of the
+    /// [`Container`].
+    ///
+    /// This is equivalent to chaining [`center_x`] and [`center_y`].
+    ///
+    /// [`center_x`]: Self::center_x
+    /// [`center_y`]: Self::center_y
+    pub fn center(self, length: impl Into<Length>) -> Self {
+        let length = length.into();
+
+        self.center_x(length).center_y(length)
     }
 
     /// Sets whether the contents of the [`Container`] should be clipped on
@@ -151,12 +185,31 @@ where
         self.clip = clip;
         self
     }
+
+    /// Sets the style of the [`Container`].
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Container`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
+        self
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Container<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         self.content.as_widget().tag()
@@ -272,14 +325,7 @@ where
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-
-        let status = if cursor.is_over(bounds) {
-            Status::Hovered
-        } else {
-            Status::Idle
-        };
-
-        let style = (self.style)(theme, status);
+        let style = theme.style(&self.class);
 
         if let Some(clipped_viewport) = bounds.intersection(viewport) {
             draw_background(renderer, &style, bounds);
@@ -324,8 +370,8 @@ impl<'a, Message, Theme, Renderer> From<Container<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: 'a,
-    Renderer: 'a + crate::core::Renderer,
+    Theme: Catalog + 'a,
+    Renderer: core::Renderer + 'a,
 {
     fn from(
         column: Container<'a, Message, Theme, Renderer>,
@@ -362,25 +408,25 @@ pub fn layout(
     )
 }
 
-/// Draws the background of a [`Container`] given its [`Appearance`] and its `bounds`.
+/// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
 pub fn draw_background<Renderer>(
     renderer: &mut Renderer,
-    appearance: &Appearance,
+    style: &Style,
     bounds: Rectangle,
 ) where
-    Renderer: crate::core::Renderer,
+    Renderer: core::Renderer,
 {
-    if appearance.background.is_some()
-        || appearance.border.width > 0.0
-        || appearance.shadow.color.a > 0.0
+    if style.background.is_some()
+        || style.border.width > 0.0
+        || style.shadow.color.a > 0.0
     {
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border: appearance.border,
-                shadow: appearance.shadow,
+                border: style.border,
+                shadow: style.shadow,
             },
-            appearance
+            style
                 .background
                 .unwrap_or(Background::Color(Color::TRANSPARENT)),
         );
@@ -502,7 +548,7 @@ pub fn visible_bounds(id: Id) -> Command<Option<Rectangle>> {
 
 /// The appearance of a container.
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Appearance {
+pub struct Style {
     /// The text [`Color`] of the container.
     pub text_color: Option<Color>,
     /// The [`Background`] of the container.
@@ -513,8 +559,8 @@ pub struct Appearance {
     pub shadow: Shadow,
 }
 
-impl Appearance {
-    /// Updates the border of the [`Appearance`] with the given [`Color`] and `width`.
+impl Style {
+    /// Updates the border of the [`Style`] with the given [`Color`] and `width`.
     pub fn with_border(
         self,
         color: impl Into<Color>,
@@ -530,7 +576,7 @@ impl Appearance {
         }
     }
 
-    /// Updates the background of the [`Appearance`].
+    /// Updates the background of the [`Style`].
     pub fn with_background(self, background: impl Into<Background>) -> Self {
         Self {
             background: Some(background.into()),
@@ -539,99 +585,78 @@ impl Appearance {
     }
 }
 
-impl From<Color> for Appearance {
+impl From<Color> for Style {
     fn from(color: Color) -> Self {
         Self::default().with_background(color)
     }
 }
 
-impl From<Gradient> for Appearance {
+impl From<Gradient> for Style {
     fn from(gradient: Gradient) -> Self {
         Self::default().with_background(gradient)
     }
 }
 
-impl From<gradient::Linear> for Appearance {
+impl From<gradient::Linear> for Style {
     fn from(gradient: gradient::Linear) -> Self {
         Self::default().with_background(gradient)
     }
 }
 
-/// The possible status of a [`Container`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Status {
-    /// The [`Container`] is idle.
-    Idle,
-    /// The [`Container`] is being hovered.
-    Hovered,
+/// The theme catalog of a [`Container`].
+pub trait Catalog {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
+
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>) -> Style;
 }
 
-/// The style of a [`Container`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
+/// A styling function for a [`Container`].
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
 
-/// The default style of a [`Container`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`Container`].
-    fn default_style(&self, status: Status) -> Appearance;
-}
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
 
-impl DefaultStyle for Theme {
-    fn default_style(&self, status: Status) -> Appearance {
-        transparent(self, status)
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(transparent)
     }
-}
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self, _status: Status) -> Appearance {
-        *self
-    }
-}
-
-impl DefaultStyle for Color {
-    fn default_style(&self, _status: Status) -> Appearance {
-        Appearance::from(*self)
-    }
-}
-
-impl DefaultStyle for Gradient {
-    fn default_style(&self, _status: Status) -> Appearance {
-        Appearance::from(*self)
-    }
-}
-
-impl DefaultStyle for gradient::Linear {
-    fn default_style(&self, _status: Status) -> Appearance {
-        Appearance::from(*self)
+    fn style(&self, class: &Self::Class<'_>) -> Style {
+        class(self)
     }
 }
 
 /// A transparent [`Container`].
-pub fn transparent<Theme>(_theme: &Theme, _status: Status) -> Appearance {
-    Appearance::default()
+pub fn transparent<Theme>(_theme: &Theme) -> Style {
+    Style::default()
 }
 
 /// A rounded [`Container`] with a background.
-pub fn rounded_box(theme: &Theme, _status: Status) -> Appearance {
+pub fn rounded_box(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
-    Appearance {
+    Style {
         background: Some(palette.background.weak.color.into()),
         border: Border::rounded(2),
-        ..Appearance::default()
+        ..Style::default()
     }
 }
 
 /// A bordered [`Container`] with a background.
-pub fn bordered_box(theme: &Theme, _status: Status) -> Appearance {
+pub fn bordered_box(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
-    Appearance {
+    Style {
         background: Some(palette.background.weak.color.into()),
         border: Border {
             width: 1.0,
             radius: 0.0.into(),
             color: palette.background.strong.color,
         },
-        ..Appearance::default()
+        ..Style::default()
     }
 }

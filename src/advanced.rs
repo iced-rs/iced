@@ -9,10 +9,12 @@ pub use crate::core::renderer::{self, Renderer};
 pub use crate::core::svg;
 pub use crate::core::text::{self, Text};
 pub use crate::core::widget::{self, Widget};
-pub use crate::core::{Hasher, Shell};
+pub use crate::core::Shell;
 pub use crate::renderer::graphics;
 
 pub mod subscription {
     //! Write your own subscriptions.
-    pub use crate::runtime::futures::subscription::{EventStream, Recipe};
+    pub use crate::runtime::futures::subscription::{
+        EventStream, Hasher, Recipe,
+    };
 }

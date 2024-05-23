@@ -1,8 +1,8 @@
 use iced::alignment::{self, Alignment};
 use iced::keyboard;
 use iced::widget::{
-    self, button, checkbox, column, container, keyed_column, row, scrollable,
-    text, text_input, Text,
+    self, button, center, checkbox, column, container, keyed_column, row,
+    scrollable, text, text_input, Text,
 };
 use iced::window;
 use iced::{Command, Element, Font, Length, Subscription};
@@ -238,7 +238,10 @@ impl Todos {
                     .spacing(20)
                     .max_width(800);
 
-                scrollable(container(content).padding(40).center_x()).into()
+                scrollable(
+                    container(content).center_x(Length::Fill).padding(40),
+                )
+                .into()
             }
         }
     }
@@ -435,19 +438,16 @@ impl Filter {
 }
 
 fn loading_message<'a>() -> Element<'a, Message> {
-    container(
+    center(
         text("Loading...")
             .horizontal_alignment(alignment::Horizontal::Center)
             .size(50),
     )
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .center_y()
     .into()
 }
 
 fn empty_message(message: &str) -> Element<'_, Message> {
-    container(
+    center(
         text(message)
             .width(Length::Fill)
             .size(25)
@@ -455,7 +455,6 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .color([0.7, 0.7, 0.7]),
     )
     .height(200)
-    .center_y()
     .into()
 }
 

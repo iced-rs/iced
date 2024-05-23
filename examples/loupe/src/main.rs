@@ -1,5 +1,5 @@
-use iced::widget::{button, column, container, text};
-use iced::{Alignment, Element, Length};
+use iced::widget::{button, center, column, text};
+use iced::{Alignment, Element};
 
 use loupe::loupe;
 
@@ -31,7 +31,7 @@ impl Loupe {
     }
 
     fn view(&self) -> Element<Message> {
-        container(loupe(
+        center(loupe(
             3.0,
             column![
                 button("Increment").on_press(Message::Increment),
@@ -41,10 +41,6 @@ impl Loupe {
             .padding(20)
             .align_items(Alignment::Center),
         ))
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
         .into()
     }
 }
@@ -159,7 +155,7 @@ mod loupe {
             if cursor.is_over(layout.bounds()) {
                 mouse::Interaction::ZoomIn
             } else {
-                mouse::Interaction::Idle
+                mouse::Interaction::None
             }
         }
     }

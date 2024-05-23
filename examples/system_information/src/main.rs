@@ -1,5 +1,5 @@
-use iced::widget::{button, column, container, text};
-use iced::{system, Command, Element, Length};
+use iced::widget::{button, center, column, text};
+use iced::{system, Command, Element};
 
 pub fn main() -> iced::Result {
     iced::program("System Information - Iced", Example::update, Example::view)
@@ -132,11 +132,6 @@ impl Example {
             }
         };
 
-        container(content)
-            .center_x()
-            .center_y()
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        center(content).into()
     }
 }

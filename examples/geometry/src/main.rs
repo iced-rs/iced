@@ -6,7 +6,10 @@ mod rainbow {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::mouse;
-    use iced::{Element, Length, Rectangle, Renderer, Size, Theme, Vector};
+    use iced::{
+        Element, Length, Rectangle, Renderer, Size, Theme, Transformation,
+        Vector,
+    };
 
     #[derive(Debug, Clone, Copy, Default)]
     pub struct Rainbow;
@@ -44,7 +47,9 @@ mod rainbow {
             cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {
-            use iced::advanced::graphics::mesh::{self, Mesh, SolidVertex2D};
+            use iced::advanced::graphics::mesh::{
+                self, Mesh, Renderer as _, SolidVertex2D,
+            };
             use iced::advanced::Renderer as _;
 
             let bounds = layout.bounds();
@@ -77,7 +82,6 @@ mod rainbow {
             let posn_l = [0.0, bounds.height / 2.0];
 
             let mesh = Mesh::Solid {
-                size: bounds.size(),
                 buffers: mesh::Indexed {
                     vertices: vec![
                         SolidVertex2D {
@@ -128,6 +132,8 @@ mod rainbow {
                         0, 8, 1, // L
                     ],
                 },
+                transformation: Transformation::IDENTITY,
+                clip_bounds: Rectangle::INFINITE,
             };
 
             renderer.with_translation(
@@ -170,12 +176,7 @@ fn view(_state: &()) -> Element<'_, ()> {
     .spacing(20)
     .max_width(500);
 
-    let scrollable =
-        scrollable(container(content).width(Length::Fill).center_x());
+    let scrollable = scrollable(container(content).center_x(Length::Fill));
 
-    container(scrollable)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_y()
-        .into()
+    container(scrollable).center_y(Length::Fill).into()
 }

@@ -5,7 +5,7 @@ use crate::image::atlas::{self, Atlas};
 
 use resvg::tiny_skia;
 use resvg::usvg::{self, TreeTextToPath};
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
 
 /// Entry in cache corresponding to an svg handle
@@ -33,10 +33,11 @@ impl Svg {
 /// Caches svg vector and raster data
 #[derive(Debug, Default)]
 pub struct Cache {
-    svgs: HashMap<u64, Svg>,
-    rasterized: HashMap<(u64, u32, u32, ColorFilter), atlas::Entry>,
-    svg_hits: HashSet<u64>,
-    rasterized_hits: HashSet<(u64, u32, u32, ColorFilter)>,
+    svgs: FxHashMap<u64, Svg>,
+    rasterized: FxHashMap<(u64, u32, u32, ColorFilter), atlas::Entry>,
+    svg_hits: FxHashSet<u64>,
+    rasterized_hits: FxHashSet<(u64, u32, u32, ColorFilter)>,
+    should_trim: bool,
 }
 
 type ColorFilter = Option<[u8; 4]>;
@@ -75,6 +76,8 @@ impl Cache {
                 svg.convert_text(font_system.raw().db_mut());
             }
         }
+
+        self.should_trim = true;
 
         let _ = self.svgs.insert(handle.id(), svg);
         self.svgs.get(&handle.id()).unwrap()
@@ -176,6 +179,10 @@ impl Cache {
 
     /// Load svg and upload raster data
     pub fn trim(&mut self, atlas: &mut Atlas) {
+        if !self.should_trim {
+            return;
+        }
+
         let svg_hits = &self.svg_hits;
         let rasterized_hits = &self.rasterized_hits;
 
@@ -191,6 +198,7 @@ impl Cache {
         });
         self.svg_hits.clear();
         self.rasterized_hits.clear();
+        self.should_trim = false;
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::core::{Font, Pixels};
-use crate::graphics::Antialiasing;
+use crate::Antialiasing;
 
-/// The settings of a Backend.
+/// The settings of a renderer.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
     /// The default [`Font`] to use.

@@ -1,5 +1,5 @@
-use iced::widget::container;
-use iced::{Element, Length};
+use iced::widget::center;
+use iced::Element;
 
 use numeric_input::numeric_input;
 
@@ -27,10 +27,8 @@ impl Component {
     }
 
     fn view(&self) -> Element<Message> {
-        container(numeric_input(self.value, Message::NumericInputChanged))
+        center(numeric_input(self.value, Message::NumericInputChanged))
             .padding(20)
-            .height(Length::Fill)
-            .center_y()
             .into()
     }
 }
@@ -73,10 +71,7 @@ mod numeric_input {
 
     impl<Message, Theme> Component<Message, Theme> for NumericInput<Message>
     where
-        Theme: text::DefaultStyle
-            + button::DefaultStyle
-            + text_input::DefaultStyle
-            + 'static,
+        Theme: text::Catalog + button::Catalog + text_input::Catalog + 'static,
     {
         type State = ();
         type Event = Event;
@@ -151,10 +146,7 @@ mod numeric_input {
     impl<'a, Message, Theme> From<NumericInput<Message>>
         for Element<'a, Message, Theme>
     where
-        Theme: text::DefaultStyle
-            + button::DefaultStyle
-            + text_input::DefaultStyle
-            + 'static,
+        Theme: text::Catalog + button::Catalog + text_input::Catalog + 'static,
         Message: 'a,
     {
         fn from(numeric_input: NumericInput<Message>) -> Self {

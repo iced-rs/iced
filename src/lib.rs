@@ -51,6 +51,7 @@
 //! We start by modelling the __state__ of our application:
 //!
 //! ```
+//! #[derive(Default)]
 //! struct Counter {
 //!     // The counter value
 //!     value: i32,
@@ -165,13 +166,6 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
-#![forbid(rust_2018_idioms, unsafe_code)]
-#![deny(
-    missing_debug_implementations,
-    missing_docs,
-    unused_results,
-    rustdoc::broken_intra_doc_links
-)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 use iced_widget::graphics;
@@ -206,8 +200,8 @@ pub use crate::core::gradient;
 pub use crate::core::theme;
 pub use crate::core::{
     Alignment, Background, Border, Color, ContentFit, Degrees, Gradient,
-    Length, Padding, Pixels, Point, Radians, Rectangle, Shadow, Size, Theme,
-    Transformation, Vector,
+    Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Shadow, Size,
+    Theme, Transformation, Vector,
 };
 
 pub mod clipboard {
@@ -372,15 +366,16 @@ pub type Result = std::result::Result<(), Error>;
 ///     ]
 /// }
 /// ```
-pub fn run<State, Message, Theme>(
+pub fn run<State, Message, Theme, Renderer>(
     title: impl program::Title<State> + 'static,
     update: impl program::Update<State, Message> + 'static,
-    view: impl for<'a> program::View<'a, State, Message, Theme> + 'static,
+    view: impl for<'a> program::View<'a, State, Message, Theme, Renderer> + 'static,
 ) -> Result
 where
     State: Default + 'static,
     Message: std::fmt::Debug + Send + 'static,
     Theme: Default + program::DefaultStyle + 'static,
+    Renderer: program::Renderer + 'static,
 {
     program(title, update, view).run()
 }

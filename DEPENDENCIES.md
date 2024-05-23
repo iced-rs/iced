@@ -20,7 +20,7 @@ pkgs.mkShell rec {
     freetype
     freetype.dev
     libGL
-    pkgconfig
+    pkg-config
     xorg.libX11
     xorg.libXcursor
     xorg.libXi

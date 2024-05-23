@@ -31,11 +31,18 @@ where
         Self::from_vec(Vec::new())
     }
 
+    /// Creates a [`Row`] with the given capacity.
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self::from_vec(Vec::with_capacity(capacity))
+    }
+
     /// Creates a [`Row`] with the given elements.
     pub fn with_children(
         children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
-        Self::new().extend(children)
+        let iterator = children.into_iter();
+
+        Self::with_capacity(iterator.size_hint().0).extend(iterator)
     }
 
     /// Creates a [`Row`] from an already allocated [`Vec`].

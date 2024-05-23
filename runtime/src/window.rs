@@ -197,7 +197,7 @@ pub fn change_icon<Message>(id: Id, icon: Icon) -> Command<Message> {
 /// Note that if the window closes before this call is processed the callback will not be run.
 pub fn run_with_handle<Message>(
     id: Id,
-    f: impl FnOnce(&WindowHandle<'_>) -> Message + 'static,
+    f: impl FnOnce(WindowHandle<'_>) -> Message + 'static,
 ) -> Command<Message> {
     Command::single(command::Action::Window(Action::RunWithHandle(
         id,

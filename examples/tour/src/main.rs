@@ -76,11 +76,10 @@ impl Tour {
             } else {
                 content
             })
-            .width(Length::Fill)
-            .center_x(),
+            .center_x(Length::Fill),
         );
 
-        container(scrollable).height(Length::Fill).center_y().into()
+        container(scrollable).center_y(Length::Fill).into()
     }
 }
 
@@ -357,7 +356,7 @@ impl<'a> Step {
         .into()
     }
 
-    fn container(title: &str) -> Column<'a, StepMessage> {
+    fn container(title: &str) -> Column<'_, StepMessage> {
         column![text(title).size(50)].spacing(20)
     }
 
@@ -589,7 +588,7 @@ impl<'a> Step {
         value: &str,
         is_secure: bool,
         is_showing_icon: bool,
-    ) -> Column<'a, StepMessage> {
+    ) -> Column<'_, StepMessage> {
         let mut text_input = text_input("Type something to continue...", value)
             .on_input(StepMessage::InputChanged)
             .padding(10)
@@ -670,11 +669,10 @@ fn ferris<'a>(
         .filter_method(filter_method)
         .width(width),
     )
-    .width(Length::Fill)
-    .center_x()
+    .center_x(Length::Fill)
 }
 
-fn padded_button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
+fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {
     button(text(label)).padding([12, 24])
 }
 

@@ -1,5 +1,6 @@
 use iced::alignment;
 use iced::mouse;
+use iced::time;
 use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
 use iced::{
@@ -8,6 +9,8 @@ use iced::{
 };
 
 pub fn main() -> iced::Result {
+    tracing_subscriber::fmt::init();
+
     iced::program("Clock - Iced", Clock::update, Clock::view)
         .subscription(Clock::subscription)
         .theme(Clock::theme)
@@ -16,13 +19,13 @@ pub fn main() -> iced::Result {
 }
 
 struct Clock {
-    now: time::OffsetDateTime,
+    now: chrono::DateTime<chrono::Local>,
     clock: Cache,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    Tick(time::OffsetDateTime),
+    Tick(chrono::DateTime<chrono::Local>),
 }
 
 impl Clock {
@@ -52,16 +55,12 @@ impl Clock {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        iced::time::every(std::time::Duration::from_millis(500)).map(|_| {
-            Message::Tick(
-                time::OffsetDateTime::now_local()
-                    .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
-            )
-        })
+        time::every(time::Duration::from_millis(500))
+            .map(|_| Message::Tick(chrono::offset::Local::now()))
     }
 
     fn theme(&self) -> Theme {
-        Theme::ALL[(self.now.unix_timestamp() as usize / 10) % Theme::ALL.len()]
+        Theme::ALL[(self.now.timestamp() as usize / 10) % Theme::ALL.len()]
             .clone()
     }
 }
@@ -69,8 +68,7 @@ impl Clock {
 impl Default for Clock {
     fn default() -> Self {
         Self {
-            now: time::OffsetDateTime::now_local()
-                .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
+            now: chrono::offset::Local::now(),
             clock: Cache::default(),
         }
     }
@@ -87,6 +85,8 @@ impl<Message> canvas::Program<Message> for Clock {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
+        use chrono::Timelike;
+
         let clock = self.clock.draw(renderer, bounds.size(), |frame| {
             let palette = theme.extended_palette();
 
@@ -167,7 +167,7 @@ impl<Message> canvas::Program<Message> for Clock {
     }
 }
 
-fn hand_rotation(n: u8, total: u8) -> Degrees {
+fn hand_rotation(n: u32, total: u32) -> Degrees {
     let turns = n as f32 / total as f32;
 
     Degrees(360.0 * turns)

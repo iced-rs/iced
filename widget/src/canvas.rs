@@ -6,8 +6,11 @@ mod program;
 pub use event::Event;
 pub use program::Program;
 
-pub use crate::graphics::geometry::*;
-pub use crate::renderer::geometry::*;
+pub use crate::graphics::cache::Group;
+pub use crate::graphics::geometry::{
+    fill, gradient, path, stroke, Fill, Gradient, LineCap, LineDash, LineJoin,
+    Path, Stroke, Style, Text,
+};
 
 use crate::core;
 use crate::core::layout::{self, Layout};
@@ -15,11 +18,24 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Length, Rectangle, Shell, Size, Transformation, Widget,
+    Clipboard, Element, Length, Rectangle, Shell, Size, Vector, Widget,
 };
 use crate::graphics::geometry;
 
 use std::marker::PhantomData;
+
+/// A simple cache that stores generated [`Geometry`] to avoid recomputation.
+///
+/// A [`Cache`] will not redraw its geometry unless the dimensions of its layer
+/// change or it is explicitly cleared.
+pub type Cache<Renderer = crate::Renderer> = geometry::Cache<Renderer>;
+
+/// The geometry supported by a renderer.
+pub type Geometry<Renderer = crate::Renderer> =
+    <Renderer as geometry::Renderer>::Geometry;
+
+/// The frame supported by a renderer.
+pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 
 /// A widget capable of drawing 2D graphics.
 ///
@@ -42,7 +58,7 @@ use std::marker::PhantomData;
 /// impl Program<()> for Circle {
 ///     type State = ();
 ///
-///     fn draw(&self, _state: &(), renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) -> Vec<Geometry>{
+///     fn draw(&self, _state: &(), renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) -> Vec<Geometry> {
 ///         // We prepare a new `Frame`
 ///         let mut frame = Frame::new(renderer, bounds.size());
 ///
@@ -207,12 +223,15 @@ where
 
         let state = tree.state.downcast_ref::<P::State>();
 
-        renderer.with_transformation(
-            Transformation::translate(bounds.x, bounds.y),
+        renderer.with_translation(
+            Vector::new(bounds.x, bounds.y),
             |renderer| {
-                renderer.draw(
-                    self.program.draw(state, renderer, theme, bounds, cursor),
-                );
+                let layers =
+                    self.program.draw(state, renderer, theme, bounds, cursor);
+
+                for layer in layers {
+                    renderer.draw_geometry(layer);
+                }
             },
         );
     }

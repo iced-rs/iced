@@ -9,8 +9,9 @@ use std::sync::Arc;
 use winit::monitor::MonitorHandle;
 
 #[allow(missing_debug_implementations)]
-pub struct WindowManager<A: Application, C: Compositor>
+pub struct WindowManager<A, C>
 where
+    A: Application,
     C: Compositor<Renderer = A::Renderer>,
     A::Theme: DefaultStyle,
 {
@@ -60,7 +61,7 @@ where
                 exit_on_close_request,
                 surface,
                 renderer,
-                mouse_interaction: mouse::Interaction::Idle,
+                mouse_interaction: mouse::Interaction::None,
             },
         );
 

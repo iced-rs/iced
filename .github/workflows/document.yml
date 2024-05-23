@@ -27,6 +27,8 @@ jobs:
           -p iced
     - name: Write CNAME file
       run: echo 'docs.iced.rs' > ./target/doc/CNAME
+    - name: Copy redirect file as index.html
+      run: cp docs/redirect.html target/doc/index.html
     - name: Publish documentation
       if: github.ref == 'refs/heads/master'
       uses: peaceiris/actions-gh-pages@v3

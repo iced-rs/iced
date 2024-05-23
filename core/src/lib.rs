@@ -9,13 +9,6 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
-#![forbid(unsafe_code, rust_2018_idioms)]
-#![deny(
-    missing_debug_implementations,
-    missing_docs,
-    unused_results,
-    rustdoc::broken_intra_doc_links
-)]
 pub mod alignment;
 pub mod border;
 pub mod clipboard;
@@ -41,12 +34,12 @@ mod background;
 mod color;
 mod content_fit;
 mod element;
-mod hasher;
 mod length;
 mod padding;
 mod pixels;
 mod point;
 mod rectangle;
+mod rotation;
 mod shadow;
 mod shell;
 mod size;
@@ -64,7 +57,6 @@ pub use element::Element;
 pub use event::Event;
 pub use font::Font;
 pub use gradient::Gradient;
-pub use hasher::Hasher;
 pub use layout::Layout;
 pub use length::Length;
 pub use overlay::Overlay;
@@ -73,6 +65,7 @@ pub use pixels::Pixels;
 pub use point::Point;
 pub use rectangle::Rectangle;
 pub use renderer::Renderer;
+pub use rotation::Rotation;
 pub use shadow::Shadow;
 pub use shell::Shell;
 pub use size::Size;

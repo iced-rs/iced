@@ -1,6 +1,7 @@
 //! Load and draw vector graphics.
-use crate::{Color, Hasher, Rectangle, Size};
+use crate::{Color, Radians, Rectangle, Size};
 
+use rustc_hash::FxHasher;
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
@@ -30,7 +31,7 @@ impl Handle {
     }
 
     fn from_data(data: Data) -> Handle {
-        let mut hasher = Hasher::default();
+        let mut hasher = FxHasher::default();
         data.hash(&mut hasher);
 
         Handle {
@@ -91,8 +92,15 @@ impl std::fmt::Debug for Data {
 /// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer {
     /// Returns the default dimensions of an SVG for the given [`Handle`].
-    fn dimensions(&self, handle: &Handle) -> Size<u32>;
+    fn measure_svg(&self, handle: &Handle) -> Size<u32>;
 
     /// Draws an SVG with the given [`Handle`], an optional [`Color`] filter, and inside the provided `bounds`.
-    fn draw(&mut self, handle: Handle, color: Option<Color>, bounds: Rectangle);
+    fn draw_svg(
+        &mut self,
+        handle: Handle,
+        color: Option<Color>,
+        bounds: Rectangle,
+        rotation: Radians,
+        opacity: f32,
+    );
 }

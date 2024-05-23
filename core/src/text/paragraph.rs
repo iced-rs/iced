@@ -8,14 +8,14 @@ pub trait Paragraph: Sized + Default {
     type Font: Copy + PartialEq;
 
     /// Creates a new [`Paragraph`] laid out with the given [`Text`].
-    fn with_text(text: Text<'_, Self::Font>) -> Self;
+    fn with_text(text: Text<&str, Self::Font>) -> Self;
 
     /// Lays out the [`Paragraph`] with some new boundaries.
     fn resize(&mut self, new_bounds: Size);
 
     /// Compares the [`Paragraph`] with some desired [`Text`] and returns the
     /// [`Difference`].
-    fn compare(&self, text: Text<'_, Self::Font>) -> Difference;
+    fn compare(&self, text: Text<&str, Self::Font>) -> Difference;
 
     /// Returns the horizontal alignment of the [`Paragraph`].
     fn horizontal_alignment(&self) -> alignment::Horizontal;
@@ -35,7 +35,7 @@ pub trait Paragraph: Sized + Default {
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;
 
     /// Updates the [`Paragraph`] to match the given [`Text`], if needed.
-    fn update(&mut self, text: Text<'_, Self::Font>) {
+    fn update(&mut self, text: Text<&str, Self::Font>) {
         match self.compare(text) {
             Difference::None => {}
             Difference::Bounds => {

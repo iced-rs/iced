@@ -1,5 +1,5 @@
 use iced::widget::{
-    column, combo_box, container, scrollable, text, vertical_space,
+    center, column, combo_box, scrollable, text, vertical_space,
 };
 use iced::{Alignment, Element, Length};
 
@@ -68,12 +68,7 @@ impl Example {
         .align_items(Alignment::Center)
         .spacing(10);
 
-        container(scrollable(content))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(scrollable(content)).into()
     }
 }
 

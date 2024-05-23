@@ -1,7 +1,9 @@
 use iced::event;
 use iced::executor;
 use iced::multi_window::{self, Application};
-use iced::widget::{button, column, container, scrollable, text, text_input};
+use iced::widget::{
+    button, center, column, container, scrollable, text, text_input,
+};
 use iced::window;
 use iced::{
     Alignment, Command, Element, Length, Point, Settings, Subscription, Theme,
@@ -128,12 +130,7 @@ impl multi_window::Application for Example {
     fn view(&self, window: window::Id) -> Element<Message> {
         let content = self.windows.get(&window).unwrap().view(window);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).into()
     }
 
     fn theme(&self, window: window::Id) -> Self::Theme {
@@ -210,6 +207,6 @@ impl Window {
                 .align_items(Alignment::Center),
         );
 
-        container(content).width(200).center_x().into()
+        container(content).center_x(200).into()
     }
 }

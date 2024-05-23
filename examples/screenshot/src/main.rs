@@ -109,7 +109,7 @@ impl Example {
     fn view(&self) -> Element<'_, Message> {
         let image: Element<Message> = if let Some(screenshot) = &self.screenshot
         {
-            image(image::Handle::from_pixels(
+            image(image::Handle::from_rgba(
                 screenshot.size.width,
                 screenshot.size.height,
                 screenshot.clone(),
@@ -123,12 +123,9 @@ impl Example {
         };
 
         let image = container(image)
+            .center_y(Length::FillPortion(2))
             .padding(10)
-            .style(container::rounded_box)
-            .width(Length::FillPortion(2))
-            .height(Length::Fill)
-            .center_x()
-            .center_y();
+            .style(container::rounded_box);
 
         let crop_origin_controls = row![
             text("X:")
@@ -213,12 +210,7 @@ impl Example {
             .spacing(40)
         };
 
-        let side_content = container(controls)
-            .align_x(alignment::Horizontal::Center)
-            .width(Length::FillPortion(1))
-            .height(Length::Fill)
-            .center_y()
-            .center_x();
+        let side_content = container(controls).center_y(Length::Fill);
 
         let content = row![side_content, image]
             .spacing(10)
@@ -226,13 +218,7 @@ impl Example {
             .height(Length::Fill)
             .align_items(Alignment::Center);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(10)
-            .center_x()
-            .center_y()
-            .into()
+        container(content).padding(10).into()
     }
 
     fn subscription(&self) -> Subscription<Message> {

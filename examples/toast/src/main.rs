@@ -2,7 +2,7 @@ use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{
-    self, button, column, container, pick_list, row, slider, text, text_input,
+    self, button, center, column, pick_list, row, slider, text, text_input,
 };
 use iced::{Alignment, Command, Element, Length, Subscription};
 
@@ -102,7 +102,7 @@ impl App {
                 .then_some(Message::Add),
         );
 
-        let content = container(
+        let content = center(
             column![
                 subtitle(
                     "Title",
@@ -146,11 +146,7 @@ impl App {
             ]
             .spacing(10)
             .max_width(200),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y();
+        );
 
         toast::Manager::new(content, &self.toasts, Message::Close)
             .timeout(self.timeout_secs)
@@ -651,45 +647,33 @@ mod toast {
         }
     }
 
-    fn styled(pair: theme::palette::Pair) -> container::Appearance {
-        container::Appearance {
+    fn styled(pair: theme::palette::Pair) -> container::Style {
+        container::Style {
             background: Some(pair.color.into()),
             text_color: pair.text.into(),
             ..Default::default()
         }
     }
 
-    fn primary(
-        theme: &Theme,
-        _status: container::Status,
-    ) -> container::Appearance {
+    fn primary(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
         styled(palette.primary.weak)
     }
 
-    fn secondary(
-        theme: &Theme,
-        _status: container::Status,
-    ) -> container::Appearance {
+    fn secondary(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
         styled(palette.secondary.weak)
     }
 
-    fn success(
-        theme: &Theme,
-        _status: container::Status,
-    ) -> container::Appearance {
+    fn success(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
         styled(palette.success.weak)
     }
 
-    fn danger(
-        theme: &Theme,
-        _status: container::Status,
-    ) -> container::Appearance {
+    fn danger(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
         styled(palette.danger.weak)

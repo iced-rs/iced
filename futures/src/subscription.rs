@@ -4,7 +4,6 @@ mod tracker;
 pub use tracker::Tracker;
 
 use crate::core::event::{self, Event};
-use crate::core::Hasher;
 use crate::futures::{Future, Stream};
 use crate::{BoxStream, MaybeSend};
 
@@ -17,6 +16,9 @@ use std::hash::Hash;
 ///
 /// It is the input of a [`Subscription`].
 pub type EventStream = BoxStream<(Event, event::Status)>;
+
+/// The hasher used for identifying subscriptions.
+pub type Hasher = rustc_hash::FxHasher;
 
 /// A request to listen to external events.
 ///

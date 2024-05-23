@@ -47,7 +47,7 @@ where
             cache,
             queued_events: Vec::new(),
             queued_messages: Vec::new(),
-            mouse_interaction: mouse::Interaction::Idle,
+            mouse_interaction: mouse::Interaction::None,
         }
     }
 

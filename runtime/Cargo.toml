@@ -10,11 +10,15 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 debug = []
 multi-window = []
 
 [dependencies]
+bytes.workspace = true
 iced_core.workspace = true
 iced_futures.workspace = true
 iced_futures.features = ["thread-pool"]

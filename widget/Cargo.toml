@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
@@ -21,12 +24,14 @@ svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
 qr_code = ["canvas", "qrcode"]
 wgpu = ["iced_renderer/wgpu"]
+advanced = []
 
 [dependencies]
 iced_renderer.workspace = true
 iced_runtime.workspace = true
 
 num-traits.workspace = true
+rustc-hash.workspace = true
 thiserror.workspace = true
 unicode-segmentation.workspace = true
 

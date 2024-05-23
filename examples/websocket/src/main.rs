@@ -2,7 +2,7 @@ mod echo;
 
 use iced::alignment::{self, Alignment};
 use iced::widget::{
-    button, column, container, row, scrollable, text, text_input,
+    self, button, center, column, row, scrollable, text, text_input,
 };
 use iced::{color, Command, Element, Length, Subscription};
 use once_cell::sync::Lazy;
@@ -31,7 +31,10 @@ enum Message {
 
 impl WebSocket {
     fn load() -> Command<Message> {
-        Command::perform(echo::server::run(), |_| Message::Server)
+        Command::batch([
+            Command::perform(echo::server::run(), |_| Message::Server),
+            widget::focus_next(),
+        ])
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -85,21 +88,15 @@ impl WebSocket {
 
     fn view(&self) -> Element<Message> {
         let message_log: Element<_> = if self.messages.is_empty() {
-            container(
+            center(
                 text("Your messages will appear here...")
                     .color(color!(0x888888)),
             )
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
             .into()
         } else {
             scrollable(
-                column(
-                    self.messages.iter().cloned().map(text).map(Element::from),
-                )
-                .spacing(10),
+                column(self.messages.iter().map(text).map(Element::from))
+                    .spacing(10),
             )
             .id(MESSAGE_LOG.clone())
             .height(Length::Fill)
