@@ -1,7 +1,5 @@
 //! A container for capturing mouse events.
 
-use iced_renderer::core::Point;
-
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -10,7 +8,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{tree, Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// Emit messages on mouse events.
@@ -28,6 +27,7 @@ pub struct MouseArea<
     on_right_release: Option<Message>,
     on_middle_press: Option<Message>,
     on_middle_release: Option<Message>,
+    on_scroll: Option<Box<dyn Fn(mouse::ScrollDelta) -> Message + 'a>>,
     on_enter: Option<Message>,
     on_move: Option<Box<dyn Fn(Point) -> Message>>,
     on_exit: Option<Message>,
@@ -74,6 +74,16 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     #[must_use]
     pub fn on_middle_release(mut self, message: Message) -> Self {
         self.on_middle_release = Some(message);
+        self
+    }
+
+    /// The message to emit when scroll wheel is used
+    #[must_use]
+    pub fn on_scroll<F>(mut self, on_scroll: F) -> Self
+    where
+        F: Fn(mouse::ScrollDelta) -> Message + 'static,
+    {
+        self.on_scroll = Some(Box::new(on_scroll));
         self
     }
 
@@ -128,6 +138,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
             on_right_release: None,
             on_middle_press: None,
             on_middle_release: None,
+            on_scroll: None,
             on_enter: None,
             on_move: None,
             on_exit: None,
@@ -392,6 +403,14 @@ fn update<Message: Clone, Theme, Renderer>(
         )) = event
         {
             shell.publish(message.clone());
+
+            return event::Status::Captured;
+        }
+    }
+
+    if let Some(on_scroll) = widget.on_scroll.as_ref() {
+        if let Event::Mouse(mouse::Event::WheelScrolled { delta }) = event {
+            shell.publish(on_scroll(delta));
 
             return event::Status::Captured;
         }
