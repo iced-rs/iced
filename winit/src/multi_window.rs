@@ -1239,6 +1239,7 @@ fn run_command<A, C, E>(
                         proxy.send(tag(window::Screenshot::new(
                             bytes,
                             window.state.physical_size(),
+                            window.state.viewport().scale_factor(),
                         )));
                     }
                 }
