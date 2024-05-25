@@ -1066,6 +1066,7 @@ pub fn run_command<A, C, E>(
                     proxy.send(tag(window::Screenshot::new(
                         bytes,
                         state.physical_size(),
+                        state.viewport().scale_factor(),
                     )));
                 }
             },
