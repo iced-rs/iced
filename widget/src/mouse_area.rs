@@ -1,6 +1,7 @@
 //! A container for capturing mouse events.
 
 use iced_renderer::core::Point;
+use iced_runtime::core::mouse::ScrollDelta;
 
 use crate::core::event::{self, Event};
 use crate::core::layout;
@@ -28,6 +29,7 @@ pub struct MouseArea<
     on_right_release: Option<Message>,
     on_middle_press: Option<Message>,
     on_middle_release: Option<Message>,
+    on_scroll: Option<Box<dyn Fn(ScrollDelta) -> Message + 'a>>,
     on_enter: Option<Message>,
     on_move: Option<Box<dyn Fn(Point) -> Message>>,
     on_exit: Option<Message>,
@@ -74,6 +76,16 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     #[must_use]
     pub fn on_middle_release(mut self, message: Message) -> Self {
         self.on_middle_release = Some(message);
+        self
+    }
+
+    /// The message to emit when scroll wheel is used
+    #[must_use]
+    pub fn on_scroll<F>(mut self, build_message: F) -> Self
+    where
+        F: Fn(ScrollDelta) -> Message + 'static,
+    {
+        self.on_scroll = Some(Box::new(build_message));
         self
     }
 
@@ -128,6 +140,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
             on_right_release: None,
             on_middle_press: None,
             on_middle_release: None,
+            on_scroll: None,
             on_enter: None,
             on_move: None,
             on_exit: None,
@@ -392,6 +405,14 @@ fn update<Message: Clone, Theme, Renderer>(
         )) = event
         {
             shell.publish(message.clone());
+
+            return event::Status::Captured;
+        }
+    }
+
+    if let Some(message) = widget.on_scroll.as_ref() {
+        if let Event::Mouse(mouse::Event::WheelScrolled { delta }) = event {
+            shell.publish(message(delta));
 
             return event::Status::Captured;
         }
