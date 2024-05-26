@@ -1,0 +1,9 @@
+[package]
+name = "animations"
+version = "0.1.0"
+authors = ["LazyTanuki"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced = { path = "../..", features = ["debug"] }
