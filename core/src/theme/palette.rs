@@ -602,7 +602,8 @@ fn deviate(color: Color, amount: f32) -> Color {
     }
 }
 
-fn mix(a: Color, b: Color, factor: f32) -> Color {
+/// Mix with another color with the given ratio (from 0 to 1)
+pub fn mix(a: Color, b: Color, factor: f32) -> Color {
     let a_lin = Rgb::from(a).into_linear();
     let b_lin = Rgb::from(b).into_linear();
 
