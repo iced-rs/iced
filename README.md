@@ -201,7 +201,7 @@ The development of Iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 
 [book]: https://book.iced.rs/
 [documentation]: https://docs.rs/iced/
-[examples]: https://github.com/iced-rs/iced/tree/master/examples
+[examples]: https://github.com/iced-rs/iced/tree/master/examples#examples
 [Coffee]: https://github.com/hecrj/coffee
 [Elm]: https://elm-lang.org/
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
