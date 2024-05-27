@@ -63,22 +63,6 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 [check out the issues]: https://github.com/iced-rs/iced/issues
 [feel free to contribute!]: #contributing--feedback
 
-## Installation
-
-Add `iced` as a dependency in your `Cargo.toml`:
-
-```toml
-iced = "0.12"
-```
-
-If your project is using a Rust edition older than 2021, then you will need to
-set `resolver = "2"` in the `[package]` section as well.
-
-__Iced moves fast and the `master` branch can contain breaking changes!__ If
-you want to learn about a specific release, check out [the release list].
-
-[the release list]: https://github.com/iced-rs/iced/releases
-
 ## Overview
 
 Inspired by [The Elm Architecture], Iced expects you to split user interfaces
