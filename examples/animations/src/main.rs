@@ -1,5 +1,7 @@
 use iced::{
-    widget::{button, checkbox, column, radio, row, text_input, Toggler},
+    widget::{
+        button, checkbox, column, container, radio, row, text_input, Toggler,
+    },
     Element,
 };
 
@@ -15,6 +17,7 @@ struct Animations {
     input_text: String,
     toggled: bool,
     checked: bool,
+    animations_disabled: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +28,7 @@ enum Message {
     TextChanged(String),
     Toggle(bool),
     Check(bool),
+    DisableAnimations(bool),
 }
 
 impl Animations {
@@ -47,6 +51,7 @@ impl Animations {
             Message::Toggle(t) => self.toggled = t,
             Message::TextSubmitted | Message::ButtonPressed => {}
             Message::Check(c) => self.checked = c,
+            Message::DisableAnimations(b) => self.animations_disabled = b,
         }
     }
 
@@ -58,16 +63,26 @@ impl Animations {
             row![
                 button("Primary")
                     .on_press(Message::ButtonPressed)
-                    .style(button::primary),
+                    .style(button::primary)
+                    .set_animations_enabled(!self.animations_disabled),
                 button("Secondary")
                     .on_press(Message::ButtonPressed)
-                    .style(button::secondary),
+                    .style(button::secondary)
+                    .set_animations_enabled(!self.animations_disabled),
                 button("Success")
                     .on_press(Message::ButtonPressed)
-                    .style(button::success),
+                    .style(button::success)
+                    .set_animations_enabled(!self.animations_disabled),
                 button("Danger")
                     .on_press(Message::ButtonPressed)
-                    .style(button::danger),
+                    .style(button::danger)
+                    .set_animations_enabled(!self.animations_disabled),
+                container(Toggler::new(
+                    Some("Disable buttons animations".into()),
+                    self.animations_disabled,
+                    Message::DisableAnimations,
+                ))
+                .padding(5)
             ],
             button("Text")
                 .on_press(Message::ButtonPressed)

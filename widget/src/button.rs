@@ -1,4 +1,7 @@
 //! Allow your users to perform actions by pressing a button.
+use crate::core::animations::{
+    AnimationDuration, AnimationEffect, AnimationTimeline,
+};
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -8,6 +11,7 @@ use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
+use crate::core::window;
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
     Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
@@ -58,6 +62,8 @@ where
     padding: Padding,
     clip: bool,
     class: Theme::Class<'a>,
+    animation_forward_duration: AnimationDuration,
+    animation_backward_duration: AnimationDuration,
 }
 
 impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
@@ -80,6 +86,8 @@ where
             padding: DEFAULT_PADDING,
             clip: false,
             class: Theme::default(),
+            animation_forward_duration: AnimationDuration::new(75),
+            animation_backward_duration: AnimationDuration::new(200),
         }
     }
 
@@ -142,11 +150,38 @@ where
         self.class = class.into();
         self
     }
+
+    /// Sets the [`AnimationTimeline`] forward duration (in milliseconds) of the [`Button`].
+    pub fn animation_forward_duration(
+        mut self,
+        animation_duration_ms: u16,
+    ) -> Self {
+        self.animation_forward_duration.duration_ms = animation_duration_ms;
+        self
+    }
+
+    /// Sets the [`AnimationTimeline`] backward duration (in milliseconds) of the [`Button`].
+    pub fn animation_backward_duration(
+        mut self,
+        animation_duration_ms: u16,
+    ) -> Self {
+        self.animation_backward_duration.duration_ms = animation_duration_ms;
+        self
+    }
+
+    /// Enables or disables [`AnimationTimeline`] transition on [`Pressed`] and [`Hover`] states.
+    pub fn set_animations_enabled(mut self, enable: bool) -> Self {
+        self.animation_forward_duration.enabled = enable;
+        self.animation_backward_duration.enabled = enable;
+        self
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 struct State {
     is_pressed: bool,
+    hover_animation_timeline: AnimationTimeline,
+    press_animation_timeline: AnimationTimeline,
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -161,7 +196,16 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::default())
+        let state = State {
+            hover_animation_timeline: AnimationTimeline::new(
+                AnimationEffect::Linear,
+            ),
+            press_animation_timeline: AnimationTimeline::new(
+                AnimationEffect::Linear,
+            ),
+            ..Default::default()
+        };
+        tree::State::new(state)
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -251,7 +295,8 @@ where
                         let state = tree.state.downcast_mut::<State>();
 
                         state.is_pressed = true;
-
+                        state.press_animation_timeline.start();
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
                         return event::Status::Captured;
                     }
                 }
@@ -263,6 +308,8 @@ where
 
                     if state.is_pressed {
                         state.is_pressed = false;
+                        state.press_animation_timeline.rewind();
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
 
                         let bounds = layout.bounds();
 
@@ -278,6 +325,49 @@ where
                 let state = tree.state.downcast_mut::<State>();
 
                 state.is_pressed = false;
+            }
+            Event::Window(window::Event::RedrawRequested(now)) => {
+                let state = tree.state.downcast_mut::<State>();
+
+                // When pressing the button, or when it has been pressed and the
+                // animation is still unfinished.
+                if state.is_pressed
+                    || state.press_animation_timeline.is_running()
+                {
+                    if state.press_animation_timeline.on_redraw_request_update(
+                        &self.animation_forward_duration,
+                        &self.animation_backward_duration,
+                        now,
+                        true,
+                    ) {
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
+                    }
+                } else if state
+                    .hover_animation_timeline
+                    .on_redraw_request_update(
+                        &self.animation_forward_duration,
+                        &self.animation_backward_duration,
+                        now,
+                        true,
+                    )
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+            }
+            Event::Mouse(mouse::Event::CursorMoved { position: _ }) => {
+                let state = tree.state.downcast_mut::<State>();
+                let bounds = layout.bounds();
+                if let Some(cursor_position) = cursor.position() {
+                    let is_mouse_over = bounds.contains(cursor_position);
+
+                    if !state.press_animation_timeline.is_running()
+                        && state
+                            .hover_animation_timeline
+                            .on_cursor_moved(is_mouse_over)
+                    {
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
+                    }
+                }
             }
             _ => {}
         }
@@ -301,16 +391,27 @@ where
 
         let status = if self.on_press.is_none() {
             Status::Disabled
-        } else if is_mouse_over {
-            let state = tree.state.downcast_ref::<State>();
-
-            if state.is_pressed {
-                Status::Pressed
-            } else {
-                Status::Hovered
-            }
         } else {
-            Status::Active
+            let state = tree.state.downcast_ref::<State>();
+            if is_mouse_over || state.hover_animation_timeline.is_running() {
+                if state.is_pressed
+                    || state.press_animation_timeline.is_running()
+                {
+                    Status::Pressed {
+                        animation_progress: state
+                            .press_animation_timeline
+                            .progress,
+                    }
+                } else {
+                    Status::Hovered {
+                        animation_progress: state
+                            .hover_animation_timeline
+                            .progress,
+                    }
+                }
+            } else {
+                Status::Active
+            }
         };
 
         let style = theme.style(&self.class, status);
@@ -404,14 +505,20 @@ pub(crate) const DEFAULT_PADDING: Padding = Padding {
 };
 
 /// The possible status of a [`Button`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Status {
     /// The [`Button`] can be pressed.
     Active,
-    /// The [`Button`] can be pressed and it is being hovered.
-    Hovered,
-    /// The [`Button`] is being pressed.
-    Pressed,
+    /// The [`Button`] can be pressed and it is being hovered
+    Hovered {
+        /// Current progress of the [`AnimationTime`] transition
+        animation_progress: f32,
+    },
+    /// The [`Button`] is being pressed
+    Pressed {
+        /// Current progress of the [`AnimationTime`] transition
+        animation_progress: f32,
+    },
     /// The [`Button`] cannot be pressed.
     Disabled,
 }
@@ -477,64 +584,68 @@ impl Catalog for Theme {
     }
 }
 
+#[inline(always)]
+fn status_style(
+    status: Status,
+    base: palette::Pair,
+    base_color: Color,
+) -> Style {
+    match status {
+        Status::Active => styled(base),
+        Status::Pressed {
+            animation_progress: progress,
+        } => Style {
+            background: Some(Background::Color(
+                base_color.mix(base.color, progress),
+            )),
+            ..styled(base)
+        },
+        Status::Hovered {
+            animation_progress: progress,
+        } => Style {
+            background: Some(Background::Color(
+                base_color.mix(base.color, 1.0 - progress),
+            )),
+            ..styled(base)
+        },
+        Status::Disabled => disabled(styled(base)),
+    }
+}
+
 /// A primary button; denoting a main action.
 pub fn primary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
-    let base = styled(palette.primary.strong);
+    let base = palette.primary.strong;
+    let base_color = palette.primary.base.color;
 
-    match status {
-        Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
-            background: Some(Background::Color(palette.primary.base.color)),
-            ..base
-        },
-        Status::Disabled => disabled(base),
-    }
+    status_style(status, base, base_color)
 }
 
 /// A secondary button; denoting a complementary action.
 pub fn secondary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
-    let base = styled(palette.secondary.base);
+    let base = palette.secondary.strong;
+    let base_color = palette.secondary.base.color;
 
-    match status {
-        Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
-            background: Some(Background::Color(palette.secondary.strong.color)),
-            ..base
-        },
-        Status::Disabled => disabled(base),
-    }
+    status_style(status, base, base_color)
 }
 
 /// A success button; denoting a good outcome.
 pub fn success(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
-    let base = styled(palette.success.base);
+    let base = palette.success.base;
+    let base_color = palette.success.strong.color;
 
-    match status {
-        Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
-            background: Some(Background::Color(palette.success.strong.color)),
-            ..base
-        },
-        Status::Disabled => disabled(base),
-    }
+    status_style(status, base, base_color)
 }
 
 /// A danger button; denoting a destructive action.
 pub fn danger(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
-    let base = styled(palette.danger.base);
+    let base = palette.danger.base;
+    let base_color = palette.danger.strong.color;
 
-    match status {
-        Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
-            background: Some(Background::Color(palette.danger.strong.color)),
-            ..base
-        },
-        Status::Disabled => disabled(base),
-    }
+    status_style(status, base, base_color)
 }
 
 /// A text button; useful for links.
@@ -547,9 +658,25 @@ pub fn text(theme: &Theme, status: Status) -> Style {
     };
 
     match status {
-        Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
-            text_color: palette.background.base.text.scale_alpha(0.8),
+        Status::Active => base,
+        Status::Pressed {
+            animation_progress: progress,
+        } => Style {
+            text_color: palette
+                .background
+                .base
+                .text
+                .scale_alpha(0.8 + 0.2 * progress),
+            ..base
+        },
+        Status::Hovered {
+            animation_progress: progress,
+        } => Style {
+            text_color: palette
+                .background
+                .base
+                .text
+                .scale_alpha(1.0 - 0.2 * progress),
             ..base
         },
         Status::Disabled => disabled(base),
