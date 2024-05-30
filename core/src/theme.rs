@@ -90,7 +90,7 @@ impl Theme {
     }
 
     /// Creates a new custom [`Theme`] from the given [`Palette`] and a custom [`palette::Extended`] palette
-    pub fn new_with_extended(name: String, palette: Palette, extended: palette::Extended) -> Self {
+    pub fn custom_with_extended(name: String, palette: Palette, extended: palette::Extended) -> Self {
         Self::Custom(Arc::new(Custom::new_with_extended(name, palette, extended)))
     }
 
