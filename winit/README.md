@@ -15,15 +15,3 @@ It exposes a renderer-agnostic `Application` trait that can be implemented and t
 [documentation]: https://docs.rs/iced_winit
 [`iced_native`]: ../native
 [`winit`]: https://github.com/rust-windowing/winit
-
-## Installation
-Add `iced_winit` as a dependency in your `Cargo.toml`:
-
-```toml
-iced_winit = "0.9"
-```
-
-__Iced moves fast and the `master` branch can contain breaking changes!__ If
-you want to learn about a specific release, check out [the release list].
-
-[the release list]: https://github.com/iced-rs/iced/releases

@@ -1,8 +1,6 @@
 # Examples
-__Iced moves fast and the `master` branch can contain breaking changes!__ If
-you want to learn about a specific release, check out [the release list].
-
-[the release list]: https://github.com/iced-rs/iced/releases
+__Iced moves fast and the `master` branch can contain breaking changes!__ If you want to browse examples that are compatible with the latest release,
+then [switch to the `latest` branch](https://github.com/iced-rs/iced/tree/latest/examples#examples).
 
 ## [Tour](tour)
 A simple UI tour that can run both on native platforms and the web! It showcases different widgets that can be built using Iced.
