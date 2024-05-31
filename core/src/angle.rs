@@ -241,6 +241,6 @@ impl PartialOrd<f32> for Radians {
 
 impl Display for Radians {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{} rad", self.0)
     }
 }
