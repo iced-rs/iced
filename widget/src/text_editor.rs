@@ -767,7 +767,19 @@ impl Update {
                     }
 
                     if let keyboard::Key::Named(named_key) = key.as_ref() {
-                        if let Some(motion) = motion(named_key, modifiers) {
+                        if let Some(motion) = motion(named_key) {
+                            let motion = if platform::is_macos_command_pressed(
+                                modifiers,
+                            ) {
+                                match motion {
+                                    Motion::Left => Motion::Home,
+                                    Motion::Right => Motion::End,
+                                    _ => motion,
+                                }
+                            } else {
+                                motion
+                            };
+
                             let motion = if platform::is_jump_modifier_pressed(
                                 modifiers,
                             ) {
@@ -793,26 +805,14 @@ impl Update {
     }
 }
 
-fn motion(key: key::Named, modifiers: keyboard::Modifiers) -> Option<Motion> {
+fn motion(key: key::Named) -> Option<Motion> {
     match key {
-        key::Named::Home => Some(Motion::Home),
-        key::Named::End => Some(Motion::End),
-        key::Named::ArrowLeft => {
-            if platform::is_macos_command_pressed(modifiers) {
-                Some(Motion::Home)
-            } else {
-                Some(Motion::Left)
-            }
-        }
-        key::Named::ArrowRight => {
-            if platform::is_macos_command_pressed(modifiers) {
-                Some(Motion::End)
-            } else {
-                Some(Motion::Right)
-            }
-        }
+        key::Named::ArrowLeft => Some(Motion::Left),
+        key::Named::ArrowRight => Some(Motion::Right),
         key::Named::ArrowUp => Some(Motion::Up),
         key::Named::ArrowDown => Some(Motion::Down),
+        key::Named::Home => Some(Motion::Home),
+        key::Named::End => Some(Motion::End),
         key::Named::PageUp => Some(Motion::PageUp),
         key::Named::PageDown => Some(Motion::PageDown),
         _ => None,
