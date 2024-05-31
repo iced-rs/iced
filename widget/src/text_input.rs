@@ -826,7 +826,7 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::Backspace) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
+                            if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
                                 if self.is_secure {
@@ -850,7 +850,7 @@ where
                             update_cache(state, &self.value);
                         }
                         keyboard::Key::Named(key::Named::Delete) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
+                            if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
                                 if self.is_secure {
@@ -876,44 +876,6 @@ where
 
                             update_cache(state, &self.value);
                         }
-                        keyboard::Key::Named(key::Named::ArrowLeft) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
-                                && !self.is_secure
-                            {
-                                if modifiers.shift() {
-                                    state
-                                        .cursor
-                                        .select_left_by_words(&self.value);
-                                } else {
-                                    state
-                                        .cursor
-                                        .move_left_by_words(&self.value);
-                                }
-                            } else if modifiers.shift() {
-                                state.cursor.select_left(&self.value);
-                            } else {
-                                state.cursor.move_left(&self.value);
-                            }
-                        }
-                        keyboard::Key::Named(key::Named::ArrowRight) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
-                                && !self.is_secure
-                            {
-                                if modifiers.shift() {
-                                    state
-                                        .cursor
-                                        .select_right_by_words(&self.value);
-                                } else {
-                                    state
-                                        .cursor
-                                        .move_right_by_words(&self.value);
-                                }
-                            } else if modifiers.shift() {
-                                state.cursor.select_right(&self.value);
-                            } else {
-                                state.cursor.move_right(&self.value);
-                            }
-                        }
                         keyboard::Key::Named(key::Named::Home) => {
                             if modifiers.shift() {
                                 state.cursor.select_range(
@@ -932,6 +894,64 @@ where
                                 );
                             } else {
                                 state.cursor.move_to(self.value.len());
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowLeft)
+                            if modifiers.macos_command() =>
+                        {
+                            if modifiers.shift() {
+                                state.cursor.select_range(
+                                    state.cursor.start(&self.value),
+                                    0,
+                                );
+                            } else {
+                                state.cursor.move_to(0);
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowRight)
+                            if modifiers.macos_command() =>
+                        {
+                            if modifiers.shift() {
+                                state.cursor.select_range(
+                                    state.cursor.start(&self.value),
+                                    self.value.len(),
+                                );
+                            } else {
+                                state.cursor.move_to(self.value.len());
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowLeft) => {
+                            if modifiers.jump() && !self.is_secure {
+                                if modifiers.shift() {
+                                    state
+                                        .cursor
+                                        .select_left_by_words(&self.value);
+                                } else {
+                                    state
+                                        .cursor
+                                        .move_left_by_words(&self.value);
+                                }
+                            } else if modifiers.shift() {
+                                state.cursor.select_left(&self.value);
+                            } else {
+                                state.cursor.move_left(&self.value);
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowRight) => {
+                            if modifiers.jump() && !self.is_secure {
+                                if modifiers.shift() {
+                                    state
+                                        .cursor
+                                        .select_right_by_words(&self.value);
+                                } else {
+                                    state
+                                        .cursor
+                                        .move_right_by_words(&self.value);
+                                }
+                            } else if modifiers.shift() {
+                                state.cursor.select_right(&self.value);
+                            } else {
+                                state.cursor.move_right(&self.value);
                             }
                         }
                         keyboard::Key::Named(key::Named::Escape) => {
@@ -1278,18 +1298,6 @@ impl<P: text::Paragraph> operation::TextInput for State<P> {
 
     fn select_all(&mut self) {
         State::select_all(self);
-    }
-}
-
-mod platform {
-    use crate::core::keyboard;
-
-    pub fn is_jump_modifier_pressed(modifiers: keyboard::Modifiers) -> bool {
-        if cfg!(target_os = "macos") {
-            modifiers.alt()
-        } else {
-            modifiers.control()
-        }
     }
 }
 
