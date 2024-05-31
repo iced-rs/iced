@@ -826,7 +826,7 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::Backspace) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
+                            if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
                                 if self.is_secure {
@@ -850,7 +850,7 @@ where
                             update_cache(state, &self.value);
                         }
                         keyboard::Key::Named(key::Named::Delete) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
+                            if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
                                 if self.is_secure {
@@ -897,9 +897,7 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::ArrowLeft)
-                            if platform::is_macos_command_pressed(
-                                modifiers,
-                            ) =>
+                            if modifiers.macos_command() =>
                         {
                             if modifiers.shift() {
                                 state.cursor.select_range(
@@ -911,9 +909,7 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::ArrowRight)
-                            if platform::is_macos_command_pressed(
-                                modifiers,
-                            ) =>
+                            if modifiers.macos_command() =>
                         {
                             if modifiers.shift() {
                                 state.cursor.select_range(
@@ -925,9 +921,7 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::ArrowLeft) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
-                                && !self.is_secure
-                            {
+                            if modifiers.jump() && !self.is_secure {
                                 if modifiers.shift() {
                                     state
                                         .cursor
@@ -944,9 +938,7 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::ArrowRight) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
-                                && !self.is_secure
-                            {
+                            if modifiers.jump() && !self.is_secure {
                                 if modifiers.shift() {
                                     state
                                         .cursor
@@ -1306,31 +1298,6 @@ impl<P: text::Paragraph> operation::TextInput for State<P> {
 
     fn select_all(&mut self) {
         State::select_all(self);
-    }
-}
-
-mod platform {
-    use crate::core::keyboard;
-
-    pub fn is_jump_modifier_pressed(modifiers: keyboard::Modifiers) -> bool {
-        if cfg!(target_os = "macos") {
-            modifiers.alt()
-        } else {
-            modifiers.control()
-        }
-    }
-
-    /// Whether the command key is pressed on a macOS device.
-    ///
-    /// This is relevant for actions like ⌘ + ArrowLeft to move to the beginning of the
-    /// line where the equivalent behavior for `modifiers.command()` is instead a jump on
-    /// other platforms.
-    pub fn is_macos_command_pressed(modifiers: keyboard::Modifiers) -> bool {
-        if cfg!(target_os = "macos") {
-            modifiers.logo()
-        } else {
-            false
-        }
     }
 }
 
