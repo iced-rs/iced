@@ -4,6 +4,7 @@ mod tracker;
 pub use tracker::Tracker;
 
 use crate::core::event::{self, Event};
+use crate::core::window;
 use crate::futures::{Future, Stream};
 use crate::{BoxStream, MaybeSend};
 
@@ -15,7 +16,7 @@ use std::hash::Hash;
 /// A stream of runtime events.
 ///
 /// It is the input of a [`Subscription`].
-pub type EventStream = BoxStream<(Event, event::Status)>;
+pub type EventStream = BoxStream<(Event, event::Status, window::Id)>;
 
 /// The hasher used for identifying subscriptions.
 pub type Hasher = rustc_hash::FxHasher;
@@ -289,7 +290,9 @@ where
 pub(crate) fn filter_map<I, F, Message>(id: I, f: F) -> Subscription<Message>
 where
     I: Hash + 'static,
-    F: Fn(Event, event::Status) -> Option<Message> + MaybeSend + 'static,
+    F: Fn(Event, event::Status, window::Id) -> Option<Message>
+        + MaybeSend
+        + 'static,
     Message: 'static + MaybeSend,
 {
     Subscription::from_recipe(Runner {
@@ -298,8 +301,8 @@ where
             use futures::future;
             use futures::stream::StreamExt;
 
-            events.filter_map(move |(event, status)| {
-                future::ready(f(event, status))
+            events.filter_map(move |(event, status, window)| {
+                future::ready(f(event, status, window))
             })
         },
     })

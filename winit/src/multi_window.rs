@@ -492,13 +492,10 @@ async fn run_instance<A, E, C>(
     let mut events = {
         vec![(
             Some(window::Id::MAIN),
-            core::Event::Window(
-                window::Id::MAIN,
-                window::Event::Opened {
-                    position: main_window.position(),
-                    size: main_window.size(),
-                },
-            ),
+            core::Event::Window(window::Event::Opened {
+                position: main_window.position(),
+                size: main_window.size(),
+            }),
         )]
     };
 
@@ -565,13 +562,10 @@ async fn run_instance<A, E, C>(
 
                 events.push((
                     Some(id),
-                    core::Event::Window(
-                        id,
-                        window::Event::Opened {
-                            position: window.position(),
-                            size: window.size(),
-                        },
-                    ),
+                    core::Event::Window(window::Event::Opened {
+                        position: window.position(),
+                        size: window.size(),
+                    }),
                 ));
             }
             Event::EventLoopAwakened(event) => {
@@ -623,7 +617,6 @@ async fn run_instance<A, E, C>(
                         // Then, we can use the `interface_state` here to decide if a redraw
                         // is needed right away, or simply wait until a specific time.
                         let redraw_event = core::Event::Window(
-                            id,
                             window::Event::RedrawRequested(Instant::now()),
                         );
 
@@ -665,6 +658,7 @@ async fn run_instance<A, E, C>(
                         runtime.broadcast(
                             redraw_event.clone(),
                             core::event::Status::Ignored,
+                            id,
                         );
 
                         let _ = control_sender.start_send(Control::ChangeFlow(
@@ -802,7 +796,7 @@ async fn run_instance<A, E, C>(
 
                             events.push((
                                 None,
-                                core::Event::Window(id, window::Event::Closed),
+                                core::Event::Window(window::Event::Closed),
                             ));
 
                             if window_manager.is_empty() {
@@ -816,7 +810,6 @@ async fn run_instance<A, E, C>(
                             );
 
                             if let Some(event) = conversion::window_event(
-                                id,
                                 window_event,
                                 window.state.scale_factor(),
                                 window.state.modifiers(),
@@ -874,7 +867,7 @@ async fn run_instance<A, E, C>(
                                 .into_iter()
                                 .zip(statuses.into_iter())
                             {
-                                runtime.broadcast(event, status);
+                                runtime.broadcast(event, status, id);
                             }
                         }
 

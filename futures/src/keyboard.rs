@@ -18,7 +18,7 @@ where
     #[derive(Hash)]
     struct OnKeyPress;
 
-    subscription::filter_map((OnKeyPress, f), move |event, status| {
+    subscription::filter_map((OnKeyPress, f), move |event, status, _window| {
         match (event, status) {
             (
                 core::Event::Keyboard(Event::KeyPressed {
@@ -45,8 +45,9 @@ where
     #[derive(Hash)]
     struct OnKeyRelease;
 
-    subscription::filter_map((OnKeyRelease, f), move |event, status| {
-        match (event, status) {
+    subscription::filter_map(
+        (OnKeyRelease, f),
+        move |event, status, _window| match (event, status) {
             (
                 core::Event::Keyboard(Event::KeyReleased {
                     key,
@@ -56,6 +57,6 @@ where
                 core::event::Status::Ignored,
             ) => f(key, modifiers),
             _ => None,
-        }
-    })
+        },
+    )
 }

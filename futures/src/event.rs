@@ -9,7 +9,7 @@ use crate::MaybeSend;
 /// This subscription will notify your application of any [`Event`] that was
 /// not captured by any widget.
 pub fn listen() -> Subscription<Event> {
-    listen_with(|event, status| match status {
+    listen_with(|event, status, _window| match status {
         event::Status::Ignored => Some(event),
         event::Status::Captured => None,
     })
@@ -24,7 +24,7 @@ pub fn listen() -> Subscription<Event> {
 /// - Returns `None`, the [`Event`] will be discarded.
 /// - Returns `Some` message, the `Message` will be produced.
 pub fn listen_with<Message>(
-    f: fn(Event, event::Status) -> Option<Message>,
+    f: fn(Event, event::Status, window::Id) -> Option<Message>,
 ) -> Subscription<Message>
 where
     Message: 'static + MaybeSend,
@@ -32,13 +32,12 @@ where
     #[derive(Hash)]
     struct EventsWith;
 
-    subscription::filter_map(
-        (EventsWith, f),
-        move |event, status| match event {
-            Event::Window(_, window::Event::RedrawRequested(_)) => None,
-            _ => f(event, status),
-        },
-    )
+    subscription::filter_map((EventsWith, f), move |event, status, window| {
+        match event {
+            Event::Window(window::Event::RedrawRequested(_)) => None,
+            _ => f(event, status, window),
+        }
+    })
 }
 
 /// Creates a [`Subscription`] that produces a message for every runtime event,
@@ -47,7 +46,7 @@ where
 /// **Warning:** This [`Subscription`], if unfiltered, may produce messages in
 /// an infinite loop.
 pub fn listen_raw<Message>(
-    f: fn(Event, event::Status) -> Option<Message>,
+    f: fn(Event, event::Status, window::Id) -> Option<Message>,
 ) -> Subscription<Message>
 where
     Message: 'static + MaybeSend,

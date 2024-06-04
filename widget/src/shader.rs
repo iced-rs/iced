@@ -107,7 +107,7 @@ where
                 Some(Event::Keyboard(keyboard_event))
             }
             core::Event::Touch(touch_event) => Some(Event::Touch(touch_event)),
-            core::Event::Window(_, window::Event::RedrawRequested(instant)) => {
+            core::Event::Window(window::Event::RedrawRequested(instant)) => {
                 Some(Event::RedrawRequested(instant))
             }
             _ => None,

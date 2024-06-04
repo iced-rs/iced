@@ -1003,14 +1003,14 @@ where
 
                 state.keyboard_modifiers = modifiers;
             }
-            Event::Window(_, window::Event::Unfocused) => {
+            Event::Window(window::Event::Unfocused) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
                     focus.is_window_focused = false;
                 }
             }
-            Event::Window(_, window::Event::Focused) => {
+            Event::Window(window::Event::Focused) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
@@ -1020,7 +1020,7 @@ where
                     shell.request_redraw(window::RedrawRequest::NextFrame);
                 }
             }
-            Event::Window(_, window::Event::RedrawRequested(now)) => {
+            Event::Window(window::Event::RedrawRequested(now)) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {

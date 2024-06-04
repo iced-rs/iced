@@ -623,7 +623,6 @@ async fn run_instance<A, E, C>(
                 // Then, we can use the `interface_state` here to decide if a redraw
                 // is needed right away, or simply wait until a specific time.
                 let redraw_event = Event::Window(
-                    window::Id::MAIN,
                     window::Event::RedrawRequested(Instant::now()),
                 );
 
@@ -651,7 +650,11 @@ async fn run_instance<A, E, C>(
                     _ => ControlFlow::Wait,
                 });
 
-                runtime.broadcast(redraw_event, core::event::Status::Ignored);
+                runtime.broadcast(
+                    redraw_event,
+                    core::event::Status::Ignored,
+                    window::Id::MAIN,
+                );
 
                 debug.draw_started();
                 let new_mouse_interaction = user_interface.draw(
@@ -714,7 +717,6 @@ async fn run_instance<A, E, C>(
                 state.update(&window, &window_event, &mut debug);
 
                 if let Some(event) = conversion::window_event(
-                    window::Id::MAIN,
                     window_event,
                     state.scale_factor(),
                     state.modifiers(),
@@ -742,7 +744,7 @@ async fn run_instance<A, E, C>(
                 for (event, status) in
                     events.drain(..).zip(statuses.into_iter())
                 {
-                    runtime.broadcast(event, status);
+                    runtime.broadcast(event, status, window::Id::MAIN);
                 }
 
                 if !messages.is_empty()

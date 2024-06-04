@@ -145,11 +145,11 @@ impl Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        event::listen_with(|event, _| match event {
+        event::listen_with(|event, _status, _window| match event {
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 Some(Message::MouseMoved(position))
             }
-            Event::Window(_, window::Event::Resized { .. }) => {
+            Event::Window(window::Event::Resized { .. }) => {
                 Some(Message::WindowResized)
             }
             _ => None,

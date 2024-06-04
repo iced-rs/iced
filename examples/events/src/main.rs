@@ -37,9 +37,8 @@ impl Events {
                 Command::none()
             }
             Message::EventOccurred(event) => {
-                if let Event::Window(id, window::Event::CloseRequested) = event
-                {
-                    window::close(id)
+                if let Event::Window(window::Event::CloseRequested) = event {
+                    window::close(window::Id::MAIN)
                 } else {
                     Command::none()
                 }
