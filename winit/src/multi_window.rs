@@ -491,7 +491,7 @@ async fn run_instance<A, E, C>(
     let mut clipboard = Clipboard::connect(&main_window.raw);
     let mut events = {
         vec![(
-            Some(window::Id::MAIN),
+            window::Id::MAIN,
             core::Event::Window(window::Event::Opened {
                 position: main_window.position(),
                 size: main_window.size(),
@@ -561,7 +561,7 @@ async fn run_instance<A, E, C>(
                 let _ = ui_caches.insert(id, user_interface::Cache::default());
 
                 events.push((
-                    Some(id),
+                    id,
                     core::Event::Window(window::Event::Opened {
                         position: window.position(),
                         size: window.size(),
@@ -588,7 +588,7 @@ async fn run_instance<A, E, C>(
                         use crate::core::event;
 
                         events.push((
-                            None,
+                            window::Id::MAIN,
                             event::Event::PlatformSpecific(
                                 event::PlatformSpecific::MacOS(
                                     event::MacOS::ReceivedUrl(url),
@@ -795,7 +795,7 @@ async fn run_instance<A, E, C>(
                             let _ = ui_caches.remove(&id);
 
                             events.push((
-                                None,
+                                id,
                                 core::Event::Window(window::Event::Closed),
                             ));
 
@@ -814,7 +814,7 @@ async fn run_instance<A, E, C>(
                                 window.state.scale_factor(),
                                 window.state.modifiers(),
                             ) {
-                                events.push((Some(id), event));
+                                events.push((id, event));
                             }
                         }
                     }
@@ -830,8 +830,7 @@ async fn run_instance<A, E, C>(
                             let mut window_events = vec![];
 
                             events.retain(|(window_id, event)| {
-                                if *window_id == Some(id) || window_id.is_none()
-                                {
+                                if *window_id == id {
                                     window_events.push(event.clone());
                                     false
                                 } else {
@@ -869,6 +868,14 @@ async fn run_instance<A, E, C>(
                             {
                                 runtime.broadcast(event, status, id);
                             }
+                        }
+
+                        for (id, event) in events.drain(..) {
+                            runtime.broadcast(
+                                event,
+                                core::event::Status::Ignored,
+                                id,
+                            );
                         }
 
                         debug.event_processing_finished();
