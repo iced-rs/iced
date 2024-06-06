@@ -1272,25 +1272,20 @@ fn run_command<A, C, E>(
                     std::mem::take(ui_caches),
                 );
 
-                'operate: while let Some(mut operation) =
-                    current_operation.take()
-                {
+                while let Some(mut operation) = current_operation.take() {
                     for (id, ui) in uis.iter_mut() {
                         if let Some(window) = window_manager.get_mut(*id) {
                             ui.operate(&window.renderer, operation.as_mut());
+                        }
+                    }
 
-                            match operation.finish() {
-                                operation::Outcome::None => {}
-                                operation::Outcome::Some(message) => {
-                                    proxy.send(message);
-
-                                    // operation completed, don't need to try to operate on rest of UIs
-                                    break 'operate;
-                                }
-                                operation::Outcome::Chain(next) => {
-                                    current_operation = Some(next);
-                                }
-                            }
+                    match operation.finish() {
+                        operation::Outcome::None => {}
+                        operation::Outcome::Some(message) => {
+                            proxy.send(message);
+                        }
+                        operation::Outcome::Chain(next) => {
+                            current_operation = Some(next);
                         }
                     }
                 }
