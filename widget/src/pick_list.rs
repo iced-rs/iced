@@ -161,6 +161,19 @@ where
         self
     }
 
+    /// Sets the style of the [`Menu`].
+    #[must_use]
+    pub fn menu_style(
+        mut self,
+        style: impl Fn(&Theme) -> menu::Style + 'a,
+    ) -> Self
+    where
+        <Theme as menu::Catalog>::Class<'a>: From<menu::StyleFn<'a, Theme>>,
+    {
+        self.menu_class = (Box::new(style) as menu::StyleFn<'a, Theme>).into();
+        self
+    }
+
     /// Sets the style class of the [`PickList`].
     #[cfg(feature = "advanced")]
     #[must_use]
@@ -169,6 +182,17 @@ where
         class: impl Into<<Theme as Catalog>::Class<'a>>,
     ) -> Self {
         self.class = class.into();
+        self
+    }
+
+    /// Sets the style class of the [`Menu`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn menu_class(
+        mut self,
+        class: impl Into<<Theme as menu::Catalog>::Class<'a>>,
+    ) -> Self {
+        self.menu_class = class.into();
         self
     }
 }
