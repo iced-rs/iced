@@ -176,7 +176,7 @@ web-time = "1.1"
 wgpu = "0.19"
 winapi = "0.3"
 window_clipboard = "0.4.1"
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "8affa522bc6dcc497d332a28c03491d22a22f5a7" }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "254d6b3420ce4e674f516f7a2bd440665e05484d" }
 
 [workspace.lints.rust]
 rust_2018_idioms = "forbid"
