@@ -1,5 +1,4 @@
-use crate::core::event::{self, Event};
-use crate::subscription::{Hasher, Recipe};
+use crate::subscription::{Event, Hasher, Recipe};
 use crate::{BoxFuture, MaybeSend};
 
 use futures::channel::mpsc;
@@ -23,7 +22,7 @@ pub struct Tracker {
 #[derive(Debug)]
 pub struct Execution {
     _cancel: futures::channel::oneshot::Sender<()>,
-    listener: Option<futures::channel::mpsc::Sender<(Event, event::Status)>>,
+    listener: Option<futures::channel::mpsc::Sender<Event>>,
 }
 
 impl Tracker {
@@ -139,12 +138,12 @@ impl Tracker {
     /// currently open.
     ///
     /// [`Recipe::stream`]: crate::subscription::Recipe::stream
-    pub fn broadcast(&mut self, event: Event, status: event::Status) {
+    pub fn broadcast(&mut self, event: Event) {
         self.subscriptions
             .values_mut()
             .filter_map(|connection| connection.listener.as_mut())
             .for_each(|listener| {
-                if let Err(error) = listener.try_send((event.clone(), status)) {
+                if let Err(error) = listener.try_send(event.clone()) {
                     log::warn!(
                         "Error sending event to subscription: {error:?}"
                     );

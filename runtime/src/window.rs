@@ -28,8 +28,8 @@ use raw_window_handle::WindowHandle;
 /// In any case, this [`Subscription`] is useful to smoothly draw application-driven
 /// animations without missing any frames.
 pub fn frames() -> Subscription<Instant> {
-    event::listen_raw(|event, _status| match event {
-        crate::core::Event::Window(_, Event::RedrawRequested(at)) => Some(at),
+    event::listen_raw(|event, _status, _window| match event {
+        crate::core::Event::Window(Event::RedrawRequested(at)) => Some(at),
         _ => None,
     })
 }

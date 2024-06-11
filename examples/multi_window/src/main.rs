@@ -145,16 +145,18 @@ impl multi_window::Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        event::listen_with(|event, _| {
-            if let iced::Event::Window(id, window_event) = event {
+        event::listen_with(|event, _, window| {
+            if let iced::Event::Window(window_event) = event {
                 match window_event {
                     window::Event::CloseRequested => {
-                        Some(Message::CloseWindow(id))
+                        Some(Message::CloseWindow(window))
                     }
                     window::Event::Opened { position, .. } => {
-                        Some(Message::WindowOpened(id, position))
+                        Some(Message::WindowOpened(window, position))
                     }
-                    window::Event::Closed => Some(Message::WindowClosed(id)),
+                    window::Event::Closed => {
+                        Some(Message::WindowClosed(window))
+                    }
                     _ => None,
                 }
             } else {

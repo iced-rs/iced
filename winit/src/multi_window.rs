@@ -16,7 +16,8 @@ use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::executor;
 use crate::futures::futures::task;
 use crate::futures::futures::{Future, StreamExt};
-use crate::futures::{Executor, Runtime, Subscription};
+use crate::futures::subscription::{self, Subscription};
+use crate::futures::{Executor, Runtime};
 use crate::graphics;
 use crate::graphics::{compositor, Compositor};
 use crate::multi_window::window_manager::WindowManager;
@@ -491,14 +492,11 @@ async fn run_instance<A, E, C>(
     let mut clipboard = Clipboard::connect(&main_window.raw);
     let mut events = {
         vec![(
-            Some(window::Id::MAIN),
-            core::Event::Window(
-                window::Id::MAIN,
-                window::Event::Opened {
-                    position: main_window.position(),
-                    size: main_window.size(),
-                },
-            ),
+            window::Id::MAIN,
+            core::Event::Window(window::Event::Opened {
+                position: main_window.position(),
+                size: main_window.size(),
+            }),
         )]
     };
 
@@ -564,14 +562,11 @@ async fn run_instance<A, E, C>(
                 let _ = ui_caches.insert(id, user_interface::Cache::default());
 
                 events.push((
-                    Some(id),
-                    core::Event::Window(
-                        id,
-                        window::Event::Opened {
-                            position: window.position(),
-                            size: window.size(),
-                        },
-                    ),
+                    id,
+                    core::Event::Window(window::Event::Opened {
+                        position: window.position(),
+                        size: window.size(),
+                    }),
                 ));
             }
             Event::EventLoopAwakened(event) => {
@@ -591,16 +586,13 @@ async fn run_instance<A, E, C>(
                             event::MacOS::ReceivedUrl(url),
                         ),
                     ) => {
-                        use crate::core::event;
-
-                        events.push((
-                            None,
-                            event::Event::PlatformSpecific(
-                                event::PlatformSpecific::MacOS(
-                                    event::MacOS::ReceivedUrl(url),
+                        runtime.broadcast(
+                            subscription::Event::PlatformSpecific(
+                                subscription::PlatformSpecific::MacOS(
+                                    subscription::MacOS::ReceivedUrl(url),
                                 ),
                             ),
-                        ));
+                        );
                     }
                     event::Event::UserEvent(message) => {
                         messages.push(message);
@@ -623,7 +615,6 @@ async fn run_instance<A, E, C>(
                         // Then, we can use the `interface_state` here to decide if a redraw
                         // is needed right away, or simply wait until a specific time.
                         let redraw_event = core::Event::Window(
-                            id,
                             window::Event::RedrawRequested(Instant::now()),
                         );
 
@@ -662,10 +653,11 @@ async fn run_instance<A, E, C>(
                             window.mouse_interaction = new_mouse_interaction;
                         }
 
-                        runtime.broadcast(
-                            redraw_event.clone(),
-                            core::event::Status::Ignored,
-                        );
+                        runtime.broadcast(subscription::Event::Interaction {
+                            window: id,
+                            event: redraw_event,
+                            status: core::event::Status::Ignored,
+                        });
 
                         let _ = control_sender.start_send(Control::ChangeFlow(
                             match ui_state {
@@ -801,8 +793,8 @@ async fn run_instance<A, E, C>(
                             let _ = ui_caches.remove(&id);
 
                             events.push((
-                                None,
-                                core::Event::Window(id, window::Event::Closed),
+                                id,
+                                core::Event::Window(window::Event::Closed),
                             ));
 
                             if window_manager.is_empty() {
@@ -816,12 +808,11 @@ async fn run_instance<A, E, C>(
                             );
 
                             if let Some(event) = conversion::window_event(
-                                id,
                                 window_event,
                                 window.state.scale_factor(),
                                 window.state.modifiers(),
                             ) {
-                                events.push((Some(id), event));
+                                events.push((id, event));
                             }
                         }
                     }
@@ -837,8 +828,7 @@ async fn run_instance<A, E, C>(
                             let mut window_events = vec![];
 
                             events.retain(|(window_id, event)| {
-                                if *window_id == Some(id) || window_id.is_none()
-                                {
+                                if *window_id == id {
                                     window_events.push(event.clone());
                                     false
                                 } else {
@@ -874,8 +864,24 @@ async fn run_instance<A, E, C>(
                                 .into_iter()
                                 .zip(statuses.into_iter())
                             {
-                                runtime.broadcast(event, status);
+                                runtime.broadcast(
+                                    subscription::Event::Interaction {
+                                        window: id,
+                                        event,
+                                        status,
+                                    },
+                                );
                             }
+                        }
+
+                        for (id, event) in events.drain(..) {
+                            runtime.broadcast(
+                                subscription::Event::Interaction {
+                                    window: id,
+                                    event,
+                                    status: core::event::Status::Ignored,
+                                },
+                            );
                         }
 
                         debug.event_processing_finished();
@@ -1272,25 +1278,20 @@ fn run_command<A, C, E>(
                     std::mem::take(ui_caches),
                 );
 
-                'operate: while let Some(mut operation) =
-                    current_operation.take()
-                {
+                while let Some(mut operation) = current_operation.take() {
                     for (id, ui) in uis.iter_mut() {
                         if let Some(window) = window_manager.get_mut(*id) {
                             ui.operate(&window.renderer, operation.as_mut());
+                        }
+                    }
 
-                            match operation.finish() {
-                                operation::Outcome::None => {}
-                                operation::Outcome::Some(message) => {
-                                    proxy.send(message);
-
-                                    // operation completed, don't need to try to operate on rest of UIs
-                                    break 'operate;
-                                }
-                                operation::Outcome::Chain(next) => {
-                                    current_operation = Some(next);
-                                }
-                            }
+                    match operation.finish() {
+                        operation::Outcome::None => {}
+                        operation::Outcome::Some(message) => {
+                            proxy.send(message);
+                        }
+                        operation::Outcome::Chain(next) => {
+                            current_operation = Some(next);
                         }
                     }
                 }

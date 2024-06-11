@@ -3,7 +3,8 @@ mod tracker;
 
 pub use tracker::Tracker;
 
-use crate::core::event::{self, Event};
+use crate::core::event;
+use crate::core::window;
 use crate::futures::{Future, Stream};
 use crate::{BoxStream, MaybeSend};
 
@@ -12,10 +13,48 @@ use futures::never::Never;
 use std::any::TypeId;
 use std::hash::Hash;
 
+/// A subscription event.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Event {
+    /// A user interacted with a user interface in a window.
+    Interaction {
+        /// The window holding the interface of the interaction.
+        window: window::Id,
+        /// The [`Event`] describing the interaction.
+        ///
+        /// [`Event`]: event::Event
+        event: event::Event,
+
+        /// The [`event::Status`] of the interaction.
+        status: event::Status,
+    },
+
+    /// A platform specific event.
+    PlatformSpecific(PlatformSpecific),
+}
+
+/// A platform specific event
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PlatformSpecific {
+    /// A MacOS specific event
+    MacOS(MacOS),
+}
+
+/// Describes an event specific to MacOS
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MacOS {
+    /// Triggered when the app receives an URL from the system
+    ///
+    /// _**Note:** For this event to be triggered, the executable needs to be properly [bundled]!_
+    ///
+    /// [bundled]: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW19
+    ReceivedUrl(String),
+}
+
 /// A stream of runtime events.
 ///
 /// It is the input of a [`Subscription`].
-pub type EventStream = BoxStream<(Event, event::Status)>;
+pub type EventStream = BoxStream<Event>;
 
 /// The hasher used for identifying subscriptions.
 pub type Hasher = rustc_hash::FxHasher;
@@ -289,7 +328,7 @@ where
 pub(crate) fn filter_map<I, F, Message>(id: I, f: F) -> Subscription<Message>
 where
     I: Hash + 'static,
-    F: Fn(Event, event::Status) -> Option<Message> + MaybeSend + 'static,
+    F: Fn(Event) -> Option<Message> + MaybeSend + 'static,
     Message: 'static + MaybeSend,
 {
     Subscription::from_recipe(Runner {
@@ -298,9 +337,7 @@ where
             use futures::future;
             use futures::stream::StreamExt;
 
-            events.filter_map(move |(event, status)| {
-                future::ready(f(event, status))
-            })
+            events.filter_map(move |event| future::ready(f(event)))
         },
     })
 }
