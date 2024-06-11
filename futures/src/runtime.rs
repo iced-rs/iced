@@ -1,6 +1,4 @@
 //! Run commands and keep track of subscriptions.
-use crate::core::event::{self, Event};
-use crate::core::window;
 use crate::subscription;
 use crate::{BoxFuture, BoxStream, Executor, MaybeSend};
 
@@ -128,12 +126,7 @@ where
     /// See [`Tracker::broadcast`] to learn more.
     ///
     /// [`Tracker::broadcast`]: subscription::Tracker::broadcast
-    pub fn broadcast(
-        &mut self,
-        event: Event,
-        status: event::Status,
-        window: window::Id,
-    ) {
-        self.subscriptions.broadcast(event, status, window);
+    pub fn broadcast(&mut self, event: subscription::Event) {
+        self.subscriptions.broadcast(event);
     }
 }

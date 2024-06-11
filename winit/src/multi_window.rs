@@ -16,7 +16,8 @@ use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::executor;
 use crate::futures::futures::task;
 use crate::futures::futures::{Future, StreamExt};
-use crate::futures::{Executor, Runtime, Subscription};
+use crate::futures::subscription::{self, Subscription};
+use crate::futures::{Executor, Runtime};
 use crate::graphics;
 use crate::graphics::{compositor, Compositor};
 use crate::multi_window::window_manager::WindowManager;
@@ -585,16 +586,13 @@ async fn run_instance<A, E, C>(
                             event::MacOS::ReceivedUrl(url),
                         ),
                     ) => {
-                        use crate::core::event;
-
-                        events.push((
-                            window::Id::MAIN,
-                            event::Event::PlatformSpecific(
-                                event::PlatformSpecific::MacOS(
-                                    event::MacOS::ReceivedUrl(url),
+                        runtime.broadcast(
+                            subscription::Event::PlatformSpecific(
+                                subscription::PlatformSpecific::MacOS(
+                                    subscription::MacOS::ReceivedUrl(url),
                                 ),
                             ),
-                        ));
+                        );
                     }
                     event::Event::UserEvent(message) => {
                         messages.push(message);
@@ -655,11 +653,11 @@ async fn run_instance<A, E, C>(
                             window.mouse_interaction = new_mouse_interaction;
                         }
 
-                        runtime.broadcast(
-                            redraw_event.clone(),
-                            core::event::Status::Ignored,
-                            id,
-                        );
+                        runtime.broadcast(subscription::Event::Interaction {
+                            window: id,
+                            event: redraw_event,
+                            status: core::event::Status::Ignored,
+                        });
 
                         let _ = control_sender.start_send(Control::ChangeFlow(
                             match ui_state {
@@ -866,15 +864,23 @@ async fn run_instance<A, E, C>(
                                 .into_iter()
                                 .zip(statuses.into_iter())
                             {
-                                runtime.broadcast(event, status, id);
+                                runtime.broadcast(
+                                    subscription::Event::Interaction {
+                                        window: id,
+                                        event,
+                                        status,
+                                    },
+                                );
                             }
                         }
 
                         for (id, event) in events.drain(..) {
                             runtime.broadcast(
-                                event,
-                                core::event::Status::Ignored,
-                                id,
+                                subscription::Event::Interaction {
+                                    window: id,
+                                    event,
+                                    status: core::event::Status::Ignored,
+                                },
                             );
                         }
 

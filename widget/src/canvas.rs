@@ -172,7 +172,7 @@ where
             core::Event::Keyboard(keyboard_event) => {
                 Some(Event::Keyboard(keyboard_event))
             }
-            _ => None,
+            core::Event::Window(_) => None,
         };
 
         if let Some(canvas_event) = canvas_event {

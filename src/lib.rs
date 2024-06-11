@@ -236,8 +236,10 @@ pub mod font {
 
 pub mod event {
     //! Handle events of a user interface.
-    pub use crate::core::event::{Event, MacOS, PlatformSpecific, Status};
-    pub use iced_futures::event::{listen, listen_raw, listen_with};
+    pub use crate::core::event::{Event, Status};
+    pub use iced_futures::event::{
+        listen, listen_raw, listen_url, listen_with,
+    };
 }
 
 pub mod keyboard {

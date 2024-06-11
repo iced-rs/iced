@@ -12,7 +12,8 @@ use crate::core::widget::operation;
 use crate::core::window;
 use crate::core::{Color, Event, Point, Size, Theme};
 use crate::futures::futures;
-use crate::futures::{Executor, Runtime, Subscription};
+use crate::futures::subscription::{self, Subscription};
+use crate::futures::{Executor, Runtime};
 use crate::graphics;
 use crate::graphics::compositor::{self, Compositor};
 use crate::runtime::clipboard;
@@ -574,12 +575,10 @@ async fn run_instance<A, E, C>(
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
                 event::MacOS::ReceivedUrl(url),
             )) => {
-                use crate::core::event;
-
-                events.push(Event::PlatformSpecific(
-                    event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(
-                        url,
-                    )),
+                runtime.broadcast(subscription::Event::PlatformSpecific(
+                    subscription::PlatformSpecific::MacOS(
+                        subscription::MacOS::ReceivedUrl(url),
+                    ),
                 ));
             }
             event::Event::UserEvent(message) => {
@@ -650,11 +649,11 @@ async fn run_instance<A, E, C>(
                     _ => ControlFlow::Wait,
                 });
 
-                runtime.broadcast(
-                    redraw_event,
-                    core::event::Status::Ignored,
-                    window::Id::MAIN,
-                );
+                runtime.broadcast(subscription::Event::Interaction {
+                    window: window::Id::MAIN,
+                    event: redraw_event,
+                    status: core::event::Status::Ignored,
+                });
 
                 debug.draw_started();
                 let new_mouse_interaction = user_interface.draw(
@@ -744,7 +743,11 @@ async fn run_instance<A, E, C>(
                 for (event, status) in
                     events.drain(..).zip(statuses.into_iter())
                 {
-                    runtime.broadcast(event, status, window::Id::MAIN);
+                    runtime.broadcast(subscription::Event::Interaction {
+                        window: window::Id::MAIN,
+                        event,
+                        status,
+                    });
                 }
 
                 if !messages.is_empty()

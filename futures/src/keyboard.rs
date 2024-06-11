@@ -1,5 +1,6 @@
 //! Listen to keyboard events.
 use crate::core;
+use crate::core::event;
 use crate::core::keyboard::{Event, Key, Modifiers};
 use crate::subscription::{self, Subscription};
 use crate::MaybeSend;
@@ -18,16 +19,14 @@ where
     #[derive(Hash)]
     struct OnKeyPress;
 
-    subscription::filter_map((OnKeyPress, f), move |event, status, _window| {
-        match (event, status) {
-            (
-                core::Event::Keyboard(Event::KeyPressed {
-                    key, modifiers, ..
-                }),
-                core::event::Status::Ignored,
-            ) => f(key, modifiers),
-            _ => None,
-        }
+    subscription::filter_map((OnKeyPress, f), move |event| match event {
+        subscription::Event::Interaction {
+            event:
+                core::Event::Keyboard(Event::KeyPressed { key, modifiers, .. }),
+            status: event::Status::Ignored,
+            ..
+        } => f(key, modifiers),
+        _ => None,
     })
 }
 
@@ -45,18 +44,13 @@ where
     #[derive(Hash)]
     struct OnKeyRelease;
 
-    subscription::filter_map(
-        (OnKeyRelease, f),
-        move |event, status, _window| match (event, status) {
-            (
-                core::Event::Keyboard(Event::KeyReleased {
-                    key,
-                    modifiers,
-                    ..
-                }),
-                core::event::Status::Ignored,
-            ) => f(key, modifiers),
-            _ => None,
-        },
-    )
+    subscription::filter_map((OnKeyRelease, f), move |event| match event {
+        subscription::Event::Interaction {
+            event:
+                core::Event::Keyboard(Event::KeyReleased { key, modifiers, .. }),
+            status: event::Status::Ignored,
+            ..
+        } => f(key, modifiers),
+        _ => None,
+    })
 }

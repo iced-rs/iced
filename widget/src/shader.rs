@@ -110,7 +110,7 @@ where
             core::Event::Window(window::Event::RedrawRequested(instant)) => {
                 Some(Event::RedrawRequested(instant))
             }
-            _ => None,
+            core::Event::Window(_) => None,
         };
 
         if let Some(custom_shader_event) = custom_shader_event {

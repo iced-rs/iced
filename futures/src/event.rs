@@ -32,11 +32,17 @@ where
     #[derive(Hash)]
     struct EventsWith;
 
-    subscription::filter_map((EventsWith, f), move |event, status, window| {
-        match event {
-            Event::Window(window::Event::RedrawRequested(_)) => None,
-            _ => f(event, status, window),
+    subscription::filter_map((EventsWith, f), move |event| match event {
+        subscription::Event::Interaction {
+            event: Event::Window(window::Event::RedrawRequested(_)),
+            ..
         }
+        | subscription::Event::PlatformSpecific(_) => None,
+        subscription::Event::Interaction {
+            window,
+            event,
+            status,
+        } => f(event, status, window),
     })
 }
 
@@ -54,5 +60,32 @@ where
     #[derive(Hash)]
     struct RawEvents;
 
-    subscription::filter_map((RawEvents, f), f)
+    subscription::filter_map((RawEvents, f), move |event| match event {
+        subscription::Event::Interaction {
+            window,
+            event,
+            status,
+        } => f(event, status, window),
+        subscription::Event::PlatformSpecific(_) => None,
+    })
+}
+
+/// Creates a [`Subscription`] that notifies of custom application URL
+/// received from the system.
+///
+/// _**Note:** Currently, it only triggers on macOS and the executable needs to be properly [bundled]!_
+///
+/// [bundled]: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW19
+pub fn listen_url() -> Subscription<String> {
+    #[derive(Hash)]
+    struct ListenUrl;
+
+    subscription::filter_map(ListenUrl, move |event| match event {
+        subscription::Event::PlatformSpecific(
+            subscription::PlatformSpecific::MacOS(
+                subscription::MacOS::ReceivedUrl(url),
+            ),
+        ) => Some(url),
+        _ => None,
+    })
 }
