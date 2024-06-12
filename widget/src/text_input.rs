@@ -21,6 +21,7 @@ use crate::core::keyboard::key;
 use crate::core::layout;
 use crate::core::mouse::{self, click};
 use crate::core::renderer;
+use crate::core::text::paragraph::Plain;
 use crate::core::text::{self, paragraph, Text};
 use crate::core::time::Instant;
 use crate::core::touch;
@@ -1207,9 +1208,9 @@ impl<P: text::Paragraph> Default for State<P> {
     fn default() -> Self {
         Self {
             cursor_animation: cursor_animation(CursorAnimationType::default()),
-            value: Default::default(),
-            placeholder: Default::default(),
-            icon: Default::default(),
+            value: Plain::default(),
+            placeholder: Plain::default(),
+            icon: Plain::default(),
             is_focused: false,
             is_dragging: false,
             is_pasting: None,
