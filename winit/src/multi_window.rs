@@ -1249,6 +1249,16 @@ fn run_command<A, C, E>(
                         )));
                     }
                 }
+                window::Action::EnableMousePassthrough(id) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        let _res = window.raw.set_cursor_hittest(false);
+                    }
+                }
+                window::Action::DisableMousePassthrough(id) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        let _res = window.raw.set_cursor_hittest(true);
+                    }
+                }
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {

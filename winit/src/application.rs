@@ -1058,7 +1058,6 @@ pub fn run_command<A, C, E>(
                         proxy.send(tag(handle));
                     }
                 }
-
                 window::Action::Screenshot(_id, tag) => {
                     let bytes = compositor.screenshot(
                         renderer,
@@ -1073,6 +1072,12 @@ pub fn run_command<A, C, E>(
                         state.physical_size(),
                         state.viewport().scale_factor(),
                     )));
+                }
+                window::Action::DisableMousePassthrough(_id) => {
+                    let _res = window.set_cursor_hittest(true);
+                }
+                window::Action::EnableMousePassthrough(_id) => {
+                    let _res = window.set_cursor_hittest(false);
                 }
             },
             command::Action::System(action) => match action {

@@ -109,6 +109,16 @@ pub enum Action<T> {
     RunWithHandle(Id, Box<dyn FnOnce(WindowHandle<'_>) -> T + 'static>),
     /// Screenshot the viewport of the window.
     Screenshot(Id, Box<dyn FnOnce(Screenshot) -> T + 'static>),
+    /// Enables mouse passthrough for the given window.
+    ///
+    /// This disables mouse events for the window and passes mouse events
+    /// through to whatever window is underneath.
+    EnableMousePassthrough(Id),
+    /// Disable mouse passthrough for the given window.
+    ///
+    /// This enables mouse events for the window and stops mouse events
+    /// from being passed to whatever is underneath.
+    DisableMousePassthrough(Id),
 }
 
 impl<T> Action<T> {
@@ -163,6 +173,12 @@ impl<T> Action<T> {
                 id,
                 Box::new(move |screenshot| f(tag(screenshot))),
             ),
+            Self::EnableMousePassthrough(id) => {
+                Action::EnableMousePassthrough(id)
+            }
+            Self::DisableMousePassthrough(id) => {
+                Action::DisableMousePassthrough(id)
+            }
         }
     }
 }
@@ -225,6 +241,12 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::RunWithHandle({id:?})")
             }
             Self::Screenshot(id, _) => write!(f, "Action::Screenshot({id:?})"),
+            Self::EnableMousePassthrough(id) => {
+                write!(f, "Action::EnableMousePassthrough({id:?})")
+            }
+            Self::DisableMousePassthrough(id) => {
+                write!(f, "Action::DisableMousePassthrough({id:?})")
+            }
         }
     }
 }
