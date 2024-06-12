@@ -1,5 +1,6 @@
 //! Show toggle controls using togglers.
 use crate::core::alignment;
+use crate::core::animations::{AnimationDuration, AnimationTimeline};
 use crate::core::event;
 use crate::core::layout;
 use crate::core::mouse;
@@ -8,6 +9,7 @@ use crate::core::text;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
     Rectangle, Shell, Size, Theme, Widget,
@@ -50,6 +52,7 @@ pub struct Toggler<
     spacing: f32,
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
+    animation_duration: AnimationDuration,
 }
 
 impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
@@ -89,6 +92,7 @@ where
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
             class: Theme::default(),
+            animation_duration: AnimationDuration::new(200),
         }
     }
 
@@ -164,6 +168,13 @@ where
     }
 }
 
+#[derive(Debug)]
+/// The state of the [`Toggler`].
+pub struct State {
+    press_animation_timeline: AnimationTimeline,
+    text_state: tree::State,
+}
+
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Toggler<'a, Message, Theme, Renderer>
 where
@@ -175,7 +186,12 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+        tree::State::new(State {
+            press_animation_timeline: AnimationTimeline::default(),
+            text_state: tree::State::new(widget::text::State::<
+                Renderer::Paragraph,
+            >::default()),
+        })
     }
 
     fn size(&self) -> Size<Length> {
@@ -199,12 +215,11 @@ where
             |_| layout::Node::new(Size::new(2.0 * self.size, self.size)),
             |limits| {
                 if let Some(label) = self.label.as_deref() {
-                    let state = tree
-                    .state
-                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+                    let state = tree.state.downcast_mut::<State>();
+                    let text_state = state.text_state.downcast_mut::<widget::text::State::<Renderer::Paragraph>>();
 
                     widget::text::layout(
-                        state,
+                        text_state,
                         renderer,
                         limits,
                         self.width,
@@ -226,7 +241,7 @@ where
 
     fn on_event(
         &mut self,
-        _state: &mut Tree,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -239,14 +254,35 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let mouse_over = cursor.is_over(layout.bounds());
+                let state = tree.state.downcast_mut::<State>();
 
                 if mouse_over {
+                    if !self.is_toggled {
+                        state.press_animation_timeline.start();
+                    } else {
+                        state.press_animation_timeline.rewind();
+                    }
                     shell.publish((self.on_toggle)(!self.is_toggled));
 
                     event::Status::Captured
                 } else {
                     event::Status::Ignored
                 }
+            }
+            Event::Window(window::Event::RedrawRequested(now)) => {
+                let state = tree.state.downcast_mut::<State>();
+
+                if state.press_animation_timeline.is_running()
+                    && state.press_animation_timeline.on_redraw_request_update(
+                        &self.animation_duration,
+                        &self.animation_duration,
+                        now,
+                        true,
+                    )
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+                event::Status::Captured
             }
             _ => event::Status::Ignored,
         }
@@ -287,6 +323,8 @@ where
         let mut children = layout.children();
         let toggler_layout = children.next().unwrap();
 
+        let state = tree.state.downcast_ref::<State>();
+
         if self.label.is_some() {
             let label_layout = children.next().unwrap();
 
@@ -294,7 +332,7 @@ where
                 renderer,
                 style,
                 label_layout,
-                tree.state.downcast_ref(),
+                state.text_state.downcast_ref(),
                 crate::text::Style::default(),
                 viewport,
             );
@@ -306,10 +344,12 @@ where
         let status = if is_mouse_over {
             Status::Hovered {
                 is_toggled: self.is_toggled,
+                animation_progress: state.press_animation_timeline.progress,
             }
         } else {
             Status::Active {
                 is_toggled: self.is_toggled,
+                animation_progress: state.press_animation_timeline.progress,
             }
         };
 
@@ -338,13 +378,12 @@ where
             style.background,
         );
 
+        // Evaluate the x ratio according to the state of the [`AnimationTimeline`].
+        // 1.0 means fully on, 0.0 fully off.
+        let x_ratio = state.press_animation_timeline.progress;
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
-                + if self.is_toggled {
-                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
-                } else {
-                    2.0 * space
-                },
+                + (2.0 * space + (x_ratio * (bounds.width - bounds.height))),
             y: bounds.y + (2.0 * space),
             width: bounds.height - (4.0 * space),
             height: bounds.height - (4.0 * space),
@@ -380,17 +419,21 @@ where
 }
 
 /// The possible status of a [`Toggler`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Status {
     /// The [`Toggler`] can be interacted with.
     Active {
         /// Indicates whether the [`Toggler`] is toggled.
         is_toggled: bool,
+        /// Current progress of the transition animation
+        animation_progress: f32,
     },
     /// The [`Toggler`] is being hovered.
     Hovered {
         /// Indicates whether the [`Toggler`] is toggled.
         is_toggled: bool,
+        /// Current progress of the transition animation
+        animation_progress: f32,
     },
 }
 
@@ -445,24 +488,44 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     let background = match status {
-        Status::Active { is_toggled } | Status::Hovered { is_toggled } => {
+        Status::Active {
+            is_toggled,
+            animation_progress,
+        }
+        | Status::Hovered {
+            is_toggled,
+            animation_progress,
+        } => {
             if is_toggled {
-                palette.primary.strong.color
+                palette.primary.strong.color.mix(
+                    palette.background.strong.color,
+                    1.0 - animation_progress,
+                )
             } else {
-                palette.background.strong.color
+                palette
+                    .background
+                    .strong
+                    .color
+                    .mix(palette.primary.strong.color, animation_progress)
             }
         }
     };
 
     let foreground = match status {
-        Status::Active { is_toggled } => {
+        Status::Active {
+            is_toggled,
+            animation_progress: _,
+        } => {
             if is_toggled {
                 palette.primary.strong.text
             } else {
                 palette.background.base.color
             }
         }
-        Status::Hovered { is_toggled } => {
+        Status::Hovered {
+            is_toggled,
+            animation_progress: _,
+        } => {
             if is_toggled {
                 Color {
                     a: 0.5,
