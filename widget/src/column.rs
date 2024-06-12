@@ -1,14 +1,14 @@
 //! Distribute content vertically.
+use crate::core::{
+    Alignment, Clipboard, Element, Layout, Length, Padding, Pixels, Rectangle,
+    Shell, Size, Vector, Widget,
+};
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
-use crate::core::{
-    Alignment, Clipboard, Element, Layout, Length, Padding, Pixels, Rectangle,
-    Shell, Size, Vector, Widget,
-};
 
 /// A container that distributes its contents vertically.
 #[allow(missing_debug_implementations)]
@@ -25,8 +25,8 @@ pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 }
 
 impl<'a, Message, Theme, Renderer> Column<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
+    where
+        Renderer: crate::core::Renderer,
 {
     /// Creates an empty [`Column`].
     pub fn new() -> Self {
@@ -40,7 +40,7 @@ where
 
     /// Creates a [`Column`] with the given elements.
     pub fn with_children(
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+        children: impl IntoIterator<Item=Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         let iterator = children.into_iter();
 
@@ -146,25 +146,31 @@ where
     /// Extends the [`Column`] with the given children.
     pub fn extend(
         self,
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+        children: impl IntoIterator<Item=Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         children.into_iter().fold(self, Self::push)
     }
 }
 
 impl<'a, Message, Renderer> Default for Column<'a, Message, Renderer>
-where
-    Renderer: crate::core::Renderer,
+    where
+        Renderer: crate::core::Renderer,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
+impl<'a, Message, Theme, Renderer: crate::core::Renderer> FromIterator<Element<'a, Message, Theme, Renderer>> for Column<'a, Message, Theme, Renderer> {
+    fn from_iter<T: IntoIterator<Item=Element<'a, Message, Theme, Renderer>>>(iter: T) -> Self {
+        Self::with_children(iter)
+    }
+}
+
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Column<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
+for Column<'a, Message, Theme, Renderer>
+    where
+        Renderer: crate::core::Renderer,
 {
     fn children(&self) -> Vec<Tree> {
         self.children.iter().map(Tree::new).collect()
@@ -326,11 +332,11 @@ where
 }
 
 impl<'a, Message, Theme, Renderer> From<Column<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
+for Element<'a, Message, Theme, Renderer>
+    where
+        Message: 'a,
+        Theme: 'a,
+        Renderer: crate::core::Renderer + 'a,
 {
     fn from(column: Column<'a, Message, Theme, Renderer>) -> Self {
         Self::new(column)
