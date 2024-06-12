@@ -161,6 +161,12 @@ where
     }
 }
 
+impl<'a, Message, Theme, Renderer: crate::core::Renderer> FromIterator<Element<'a, Message, Theme, Renderer>> for Column<'a, Message, Theme, Renderer> {
+    fn from_iter<T: IntoIterator<Item=Element<'a, Message, Theme, Renderer>>>(iter: T) -> Self {
+        Self::with_children(iter)
+    }
+}
+
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Column<'a, Message, Theme, Renderer>
 where
