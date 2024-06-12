@@ -1,5 +1,7 @@
 //! Show toggle controls using checkboxes.
+
 use crate::core::alignment;
+use crate::core::animations::{AnimationDuration, AnimationTimeline};
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -9,6 +11,7 @@ use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
     Rectangle, Shell, Size, Theme, Widget,
@@ -53,6 +56,7 @@ pub struct Checkbox<
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
     class: Theme::Class<'a>,
+    animation_duration: AnimationDuration,
 }
 
 impl<'a, Message, Theme, Renderer> Checkbox<'a, Message, Theme, Renderer>
@@ -91,6 +95,7 @@ where
                 shaping: text::Shaping::Basic,
             },
             class: Theme::default(),
+            animation_duration: AnimationDuration::new(200),
         }
     }
 
@@ -190,7 +195,12 @@ where
         self
     }
 }
-
+#[derive(Debug)]
+/// The state of the [`Checkbox`].
+pub struct State {
+    press_animation_timeline: AnimationTimeline,
+    text_state: tree::State,
+}
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Checkbox<'a, Message, Theme, Renderer>
 where
@@ -202,7 +212,12 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+        tree::State::new(State {
+            press_animation_timeline: AnimationTimeline::default(),
+            text_state: tree::State::new(widget::text::State::<
+                Renderer::Paragraph,
+            >::default()),
+        })
     }
 
     fn size(&self) -> Size<Length> {
@@ -223,12 +238,13 @@ where
             self.spacing,
             |_| layout::Node::new(Size::new(self.size, self.size)),
             |limits| {
-                let state = tree
-                    .state
+                let state = tree.state.downcast_mut::<State>();
+                let text_state = state
+                    .text_state
                     .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
 
                 widget::text::layout(
-                    state,
+                    text_state,
                     renderer,
                     limits,
                     self.width,
@@ -247,7 +263,7 @@ where
 
     fn on_event(
         &mut self,
-        _tree: &mut Tree,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -260,13 +276,34 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let mouse_over = cursor.is_over(layout.bounds());
+                let state = tree.state.downcast_mut::<State>();
 
                 if mouse_over {
                     if let Some(on_toggle) = &self.on_toggle {
+                        if !self.is_checked {
+                            state.press_animation_timeline.start();
+                        } else {
+                            state.press_animation_timeline.rewind();
+                        }
                         shell.publish((on_toggle)(!self.is_checked));
                         return event::Status::Captured;
                     }
                 }
+            }
+            Event::Window(window::Event::RedrawRequested(now)) => {
+                let state = tree.state.downcast_mut::<State>();
+
+                if state.press_animation_timeline.is_running()
+                    && state.press_animation_timeline.on_redraw_request_update(
+                        &self.animation_duration,
+                        &self.animation_duration,
+                        now,
+                        true,
+                    )
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+                return event::Status::Captured;
             }
             _ => {}
         }
@@ -302,15 +339,28 @@ where
         let is_mouse_over = cursor.is_over(layout.bounds());
         let is_disabled = self.on_toggle.is_none();
         let is_checked = self.is_checked;
+        let state = tree.state.downcast_ref::<State>();
+        let text_state = state
+            .text_state
+            .downcast_ref::<widget::text::State<Renderer::Paragraph>>();
 
         let mut children = layout.children();
 
         let status = if is_disabled {
-            Status::Disabled { is_checked }
+            Status::Disabled {
+                is_checked,
+                animation_progress: state.press_animation_timeline.progress,
+            }
         } else if is_mouse_over {
-            Status::Hovered { is_checked }
+            Status::Hovered {
+                is_checked,
+                animation_progress: state.press_animation_timeline.progress,
+            }
         } else {
-            Status::Active { is_checked }
+            Status::Active {
+                is_checked,
+                animation_progress: state.press_animation_timeline.progress,
+            }
         };
 
         let style = theme.style(&self.class, status);
@@ -363,7 +413,7 @@ where
                 renderer,
                 defaults,
                 label_layout,
-                tree.state.downcast_ref(),
+                text_state,
                 crate::text::Style {
                     color: style.text_color,
                 },
@@ -403,22 +453,28 @@ pub struct Icon<Font> {
 }
 
 /// The possible status of a [`Checkbox`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Status {
     /// The [`Checkbox`] can be interacted with.
     Active {
         /// Indicates if the [`Checkbox`] is currently checked.
         is_checked: bool,
+        /// Current progress of the transition animation
+        animation_progress: f32,
     },
     /// The [`Checkbox`] can be interacted with and it is being hovered.
     Hovered {
         /// Indicates if the [`Checkbox`] is currently checked.
         is_checked: bool,
+        /// Current progress of the transition animation
+        animation_progress: f32,
     },
     /// The [`Checkbox`] cannot be interacted with.
     Disabled {
         /// Indicates if the [`Checkbox`] is currently checked.
         is_checked: bool,
+        /// Current progress of the transition animation
+        animation_progress: f32,
     },
 }
 
@@ -469,23 +525,35 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     match status {
-        Status::Active { is_checked } => styled(
+        Status::Active {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.primary.strong.text,
             palette.background.base,
             palette.primary.strong,
             is_checked,
+            animation_progress,
         ),
-        Status::Hovered { is_checked } => styled(
+        Status::Hovered {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.primary.strong.text,
             palette.background.weak,
             palette.primary.base,
             is_checked,
+            animation_progress,
         ),
-        Status::Disabled { is_checked } => styled(
+        Status::Disabled {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.primary.strong.text,
             palette.background.weak,
             palette.background.strong,
             is_checked,
+            animation_progress,
         ),
     }
 }
@@ -495,23 +563,35 @@ pub fn secondary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     match status {
-        Status::Active { is_checked } => styled(
+        Status::Active {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.background.base.text,
             palette.background.base,
             palette.background.strong,
             is_checked,
+            animation_progress,
         ),
-        Status::Hovered { is_checked } => styled(
+        Status::Hovered {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.background.base.text,
             palette.background.weak,
             palette.background.strong,
             is_checked,
+            animation_progress,
         ),
-        Status::Disabled { is_checked } => styled(
+        Status::Disabled {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.background.strong.color,
             palette.background.weak,
             palette.background.weak,
             is_checked,
+            animation_progress,
         ),
     }
 }
@@ -521,23 +601,35 @@ pub fn success(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     match status {
-        Status::Active { is_checked } => styled(
+        Status::Active {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.success.base.text,
             palette.background.base,
             palette.success.base,
             is_checked,
+            animation_progress,
         ),
-        Status::Hovered { is_checked } => styled(
+        Status::Hovered {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.success.base.text,
             palette.background.weak,
             palette.success.base,
             is_checked,
+            animation_progress,
         ),
-        Status::Disabled { is_checked } => styled(
+        Status::Disabled {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.success.base.text,
             palette.background.weak,
             palette.success.weak,
             is_checked,
+            animation_progress,
         ),
     }
 }
@@ -547,23 +639,35 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     match status {
-        Status::Active { is_checked } => styled(
+        Status::Active {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.danger.base.text,
             palette.background.base,
             palette.danger.base,
             is_checked,
+            animation_progress,
         ),
-        Status::Hovered { is_checked } => styled(
+        Status::Hovered {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.danger.base.text,
             palette.background.weak,
             palette.danger.base,
             is_checked,
+            animation_progress,
         ),
-        Status::Disabled { is_checked } => styled(
+        Status::Disabled {
+            is_checked,
+            animation_progress,
+        } => styled(
             palette.danger.base.text,
             palette.background.weak,
             palette.danger.weak,
             is_checked,
+            animation_progress,
         ),
     }
 }
@@ -573,14 +677,19 @@ fn styled(
     base: palette::Pair,
     accent: palette::Pair,
     is_checked: bool,
+    animation_progress: f32,
 ) -> Style {
     Style {
         background: Background::Color(if is_checked {
-            accent.color
+            accent.color.mix(base.color, 1.0 - animation_progress)
         } else {
-            base.color
+            base.color.mix(accent.color, animation_progress)
         }),
-        icon_color,
+        icon_color: if is_checked {
+            icon_color.scale_alpha(animation_progress)
+        } else {
+            icon_color
+        },
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
