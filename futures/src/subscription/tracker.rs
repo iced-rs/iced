@@ -1,5 +1,6 @@
+use crate::core::MaybeSend;
 use crate::subscription::{Event, Hasher, Recipe};
-use crate::{BoxFuture, MaybeSend};
+use crate::BoxFuture;
 
 use futures::channel::mpsc;
 use futures::sink::{Sink, SinkExt};

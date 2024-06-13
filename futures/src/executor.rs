@@ -1,5 +1,5 @@
 //! Choose your preferred executor to power a runtime.
-use crate::MaybeSend;
+use crate::core::MaybeSend;
 use futures::Future;
 
 /// A type that can run futures.

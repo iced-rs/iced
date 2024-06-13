@@ -19,7 +19,7 @@ use crate::graphics::compositor::{self, Compositor};
 use crate::runtime::clipboard;
 use crate::runtime::program::Program;
 use crate::runtime::user_interface::{self, UserInterface};
-use crate::runtime::{Command, Debug};
+use crate::runtime::{Action, Debug, Task};
 use crate::{Clipboard, Error, Proxy, Settings};
 
 use futures::channel::mpsc;
@@ -36,7 +36,7 @@ use std::sync::Arc;
 /// its own window.
 ///
 /// An [`Application`] can execute asynchronous actions by returning a
-/// [`Command`] in some of its methods.
+/// [`Task`] in some of its methods.
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
@@ -52,10 +52,10 @@ where
     ///
     /// Here is where you should return the initial state of your app.
     ///
-    /// Additionally, you can return a [`Command`] if you need to perform some
+    /// Additionally, you can return a [`Task`] if you need to perform some
     /// async action in the background on startup. This is useful if you want to
     /// load state from a file, perform an initial HTTP request, etc.
-    fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
+    fn new(flags: Self::Flags) -> (Self, Task<Self::Message>);
 
     /// Returns the current title of the [`Application`].
     ///
@@ -155,18 +155,22 @@ where
 
     let (proxy, worker) = Proxy::new(event_loop.create_proxy());
 
-    let runtime = {
+    let mut runtime = {
         let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
         executor.spawn(worker);
 
         Runtime::new(executor, proxy.clone())
     };
 
-    let (application, init_command) = {
+    let (application, task) = {
         let flags = settings.flags;
 
         runtime.enter(|| A::new(flags))
     };
+
+    if let Some(stream) = task.into_stream() {
+        runtime.run(stream);
+    }
 
     let id = settings.id;
     let title = application.title();
@@ -183,7 +187,6 @@ where
         boot_receiver,
         event_receiver,
         control_sender,
-        init_command,
         settings.fonts,
     ));
 
@@ -193,7 +196,7 @@ where
         instance: std::pin::Pin<Box<F>>,
         context: task::Context<'static>,
         boot: Option<BootConfig<C>>,
-        sender: mpsc::UnboundedSender<winit::event::Event<Message>>,
+        sender: mpsc::UnboundedSender<winit::event::Event<Action<Message>>>,
         receiver: mpsc::UnboundedReceiver<winit::event_loop::ControlFlow>,
         error: Option<Error>,
         #[cfg(target_arch = "wasm32")]
@@ -229,7 +232,7 @@ where
         queued_events: Vec::new(),
     };
 
-    impl<Message, F, C> winit::application::ApplicationHandler<Message>
+    impl<Message, F, C> winit::application::ApplicationHandler<Action<Message>>
         for Runner<Message, F, C>
     where
         F: Future<Output = ()>,
@@ -393,11 +396,11 @@ where
         fn user_event(
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
-            message: Message,
+            action: Action<Message>,
         ) {
             self.process_event(
                 event_loop,
-                winit::event::Event::UserEvent(message),
+                winit::event::Event::UserEvent(action),
             );
         }
 
@@ -416,7 +419,7 @@ where
         fn process_event(
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
-            event: winit::event::Event<Message>,
+            event: winit::event::Event<Action<Message>>,
         ) {
             // On Wasm, events may start being processed before the compositor
             // boots up. We simply queue them and process them once ready.
@@ -480,15 +483,14 @@ struct Boot<C> {
 
 async fn run_instance<A, E, C>(
     mut application: A,
-    mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
+    mut runtime: Runtime<E, Proxy<A::Message>, Action<A::Message>>,
     mut proxy: Proxy<A::Message>,
     mut debug: Debug,
     mut boot: oneshot::Receiver<Boot<C>>,
     mut event_receiver: mpsc::UnboundedReceiver<
-        winit::event::Event<A::Message>,
+        winit::event::Event<Action<A::Message>>,
     >,
     mut control_sender: mpsc::UnboundedSender<winit::event_loop::ControlFlow>,
-    init_command: Command<A::Message>,
     fonts: Vec<Cow<'static, [u8]>>,
 ) where
     A: Application + 'static,
@@ -518,7 +520,7 @@ async fn run_instance<A, E, C>(
     let physical_size = state.physical_size();
 
     let mut clipboard = Clipboard::connect(&window);
-    let mut cache = user_interface::Cache::default();
+    let cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(
         window.clone(),
         physical_size.width,
@@ -530,22 +532,12 @@ async fn run_instance<A, E, C>(
         window.set_visible(true);
     }
 
-    run_command(
-        &application,
-        &mut compositor,
-        &mut surface,
-        &mut cache,
-        &state,
-        &mut renderer,
-        init_command,
-        &mut runtime,
-        &mut clipboard,
-        &mut should_exit,
-        &mut proxy,
-        &mut debug,
-        &window,
+    runtime.track(
+        application
+            .subscription()
+            .map(Action::Output)
+            .into_recipes(),
     );
-    runtime.track(application.subscription().into_recipes());
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &application,
@@ -581,8 +573,21 @@ async fn run_instance<A, E, C>(
                     ),
                 ));
             }
-            event::Event::UserEvent(message) => {
-                messages.push(message);
+            event::Event::UserEvent(action) => {
+                run_action(
+                    action,
+                    &mut user_interface,
+                    &mut compositor,
+                    &mut surface,
+                    &state,
+                    &mut renderer,
+                    &mut messages,
+                    &mut clipboard,
+                    &mut should_exit,
+                    &mut debug,
+                    &window,
+                );
+
                 user_events += 1;
             }
             event::Event::WindowEvent {
@@ -756,21 +761,14 @@ async fn run_instance<A, E, C>(
                         user_interface::State::Outdated
                     )
                 {
-                    let mut cache =
+                    let cache =
                         ManuallyDrop::into_inner(user_interface).into_cache();
 
                     // Update application
                     update(
                         &mut application,
-                        &mut compositor,
-                        &mut surface,
-                        &mut cache,
                         &mut state,
-                        &mut renderer,
                         &mut runtime,
-                        &mut clipboard,
-                        &mut should_exit,
-                        &mut proxy,
                         &mut debug,
                         &mut messages,
                         &window,
@@ -855,282 +853,230 @@ where
 }
 
 /// Updates an [`Application`] by feeding it the provided messages, spawning any
-/// resulting [`Command`], and tracking its [`Subscription`].
-pub fn update<A: Application, C, E: Executor>(
+/// resulting [`Task`], and tracking its [`Subscription`].
+pub fn update<A: Application, E: Executor>(
     application: &mut A,
-    compositor: &mut C,
-    surface: &mut C::Surface,
-    cache: &mut user_interface::Cache,
     state: &mut State<A>,
-    renderer: &mut A::Renderer,
-    runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
-    clipboard: &mut Clipboard,
-    should_exit: &mut bool,
-    proxy: &mut Proxy<A::Message>,
+    runtime: &mut Runtime<E, Proxy<A::Message>, Action<A::Message>>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
 ) where
-    C: Compositor<Renderer = A::Renderer> + 'static,
     A::Theme: DefaultStyle,
 {
     for message in messages.drain(..) {
         debug.log_message(&message);
 
         debug.update_started();
-        let command = runtime.enter(|| application.update(message));
+        let task = runtime.enter(|| application.update(message));
         debug.update_finished();
 
-        run_command(
-            application,
-            compositor,
-            surface,
-            cache,
-            state,
-            renderer,
-            command,
-            runtime,
-            clipboard,
-            should_exit,
-            proxy,
-            debug,
-            window,
-        );
+        if let Some(stream) = task.into_stream() {
+            runtime.run(stream);
+        }
     }
 
     state.synchronize(application, window);
 
     let subscription = application.subscription();
-    runtime.track(subscription.into_recipes());
+    runtime.track(subscription.map(Action::Output).into_recipes());
 }
 
-/// Runs the actions of a [`Command`].
-pub fn run_command<A, C, E>(
-    application: &A,
+/// Runs the actions of a [`Task`].
+pub fn run_action<A, C>(
+    action: Action<A::Message>,
+    user_interface: &mut UserInterface<'_, A::Message, A::Theme, C::Renderer>,
     compositor: &mut C,
     surface: &mut C::Surface,
-    cache: &mut user_interface::Cache,
     state: &State<A>,
     renderer: &mut A::Renderer,
-    command: Command<A::Message>,
-    runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
+    messages: &mut Vec<A::Message>,
     clipboard: &mut Clipboard,
     should_exit: &mut bool,
-    proxy: &mut Proxy<A::Message>,
     debug: &mut Debug,
     window: &winit::window::Window,
 ) where
     A: Application,
-    E: Executor,
     C: Compositor<Renderer = A::Renderer> + 'static,
     A::Theme: DefaultStyle,
 {
-    use crate::runtime::command;
     use crate::runtime::system;
     use crate::runtime::window;
 
-    for action in command.actions() {
-        match action {
-            command::Action::Future(future) => {
-                runtime.spawn(future);
+    match action {
+        Action::Clipboard(action) => match action {
+            clipboard::Action::Read { target, channel } => {
+                let _ = channel.send(clipboard.read(target));
             }
-            command::Action::Stream(stream) => {
-                runtime.run(stream);
+            clipboard::Action::Write { target, contents } => {
+                clipboard.write(target, contents);
             }
-            command::Action::Clipboard(action) => match action {
-                clipboard::Action::Read(tag, kind) => {
-                    let message = tag(clipboard.read(kind));
-
-                    proxy.send(message);
-                }
-                clipboard::Action::Write(contents, kind) => {
-                    clipboard.write(kind, contents);
-                }
-            },
-            command::Action::Window(action) => match action {
-                window::Action::Close(_id) => {
-                    *should_exit = true;
-                }
-                window::Action::Drag(_id) => {
-                    let _res = window.drag_window();
-                }
-                window::Action::Spawn { .. } => {
-                    log::warn!(
-                        "Spawning a window is only available with \
+        },
+        Action::Window(action) => match action {
+            window::Action::Close(_id) => {
+                *should_exit = true;
+            }
+            window::Action::Drag(_id) => {
+                let _res = window.drag_window();
+            }
+            window::Action::Open { .. } => {
+                log::warn!(
+                    "Spawning a window is only available with \
                         multi-window applications."
-                    );
-                }
-                window::Action::Resize(_id, size) => {
-                    let _ =
-                        window.request_inner_size(winit::dpi::LogicalSize {
-                            width: size.width,
-                            height: size.height,
-                        });
-                }
-                window::Action::FetchSize(_id, callback) => {
-                    let size =
-                        window.inner_size().to_logical(window.scale_factor());
+                );
+            }
+            window::Action::Resize(_id, size) => {
+                let _ = window.request_inner_size(winit::dpi::LogicalSize {
+                    width: size.width,
+                    height: size.height,
+                });
+            }
+            window::Action::FetchSize(_id, channel) => {
+                let size =
+                    window.inner_size().to_logical(window.scale_factor());
 
-                    proxy.send(callback(Size::new(size.width, size.height)));
-                }
-                window::Action::FetchMaximized(_id, callback) => {
-                    proxy.send(callback(window.is_maximized()));
-                }
-                window::Action::Maximize(_id, maximized) => {
-                    window.set_maximized(maximized);
-                }
-                window::Action::FetchMinimized(_id, callback) => {
-                    proxy.send(callback(window.is_minimized()));
-                }
-                window::Action::Minimize(_id, minimized) => {
-                    window.set_minimized(minimized);
-                }
-                window::Action::FetchPosition(_id, callback) => {
-                    let position = window
-                        .inner_position()
-                        .map(|position| {
-                            let position = position
-                                .to_logical::<f32>(window.scale_factor());
+                let _ = channel.send(Size::new(size.width, size.height));
+            }
+            window::Action::FetchMaximized(_id, channel) => {
+                let _ = channel.send(window.is_maximized());
+            }
+            window::Action::Maximize(_id, maximized) => {
+                window.set_maximized(maximized);
+            }
+            window::Action::FetchMinimized(_id, channel) => {
+                let _ = channel.send(window.is_minimized());
+            }
+            window::Action::Minimize(_id, minimized) => {
+                window.set_minimized(minimized);
+            }
+            window::Action::FetchPosition(_id, channel) => {
+                let position = window
+                    .inner_position()
+                    .map(|position| {
+                        let position =
+                            position.to_logical::<f32>(window.scale_factor());
 
-                            Point::new(position.x, position.y)
-                        })
-                        .ok();
+                        Point::new(position.x, position.y)
+                    })
+                    .ok();
 
-                    proxy.send(callback(position));
-                }
-                window::Action::Move(_id, position) => {
-                    window.set_outer_position(winit::dpi::LogicalPosition {
-                        x: position.x,
-                        y: position.y,
+                let _ = channel.send(position);
+            }
+            window::Action::Move(_id, position) => {
+                window.set_outer_position(winit::dpi::LogicalPosition {
+                    x: position.x,
+                    y: position.y,
+                });
+            }
+            window::Action::ChangeMode(_id, mode) => {
+                window.set_visible(conversion::visible(mode));
+                window.set_fullscreen(conversion::fullscreen(
+                    window.current_monitor(),
+                    mode,
+                ));
+            }
+            window::Action::ChangeIcon(_id, icon) => {
+                window.set_window_icon(conversion::icon(icon));
+            }
+            window::Action::FetchMode(_id, channel) => {
+                let mode = if window.is_visible().unwrap_or(true) {
+                    conversion::mode(window.fullscreen())
+                } else {
+                    core::window::Mode::Hidden
+                };
+
+                let _ = channel.send(mode);
+            }
+            window::Action::ToggleMaximize(_id) => {
+                window.set_maximized(!window.is_maximized());
+            }
+            window::Action::ToggleDecorations(_id) => {
+                window.set_decorations(!window.is_decorated());
+            }
+            window::Action::RequestUserAttention(_id, user_attention) => {
+                window.request_user_attention(
+                    user_attention.map(conversion::user_attention),
+                );
+            }
+            window::Action::GainFocus(_id) => {
+                window.focus_window();
+            }
+            window::Action::ChangeLevel(_id, level) => {
+                window.set_window_level(conversion::window_level(level));
+            }
+            window::Action::ShowSystemMenu(_id) => {
+                if let mouse::Cursor::Available(point) = state.cursor() {
+                    window.show_window_menu(winit::dpi::LogicalPosition {
+                        x: point.x,
+                        y: point.y,
                     });
                 }
-                window::Action::ChangeMode(_id, mode) => {
-                    window.set_visible(conversion::visible(mode));
-                    window.set_fullscreen(conversion::fullscreen(
-                        window.current_monitor(),
-                        mode,
-                    ));
-                }
-                window::Action::ChangeIcon(_id, icon) => {
-                    window.set_window_icon(conversion::icon(icon));
-                }
-                window::Action::FetchMode(_id, tag) => {
-                    let mode = if window.is_visible().unwrap_or(true) {
-                        conversion::mode(window.fullscreen())
-                    } else {
-                        core::window::Mode::Hidden
-                    };
+            }
+            window::Action::FetchRawId(_id, channel) => {
+                let _ = channel.send(window.id().into());
+            }
+            window::Action::RunWithHandle(_id, f) => {
+                use window::raw_window_handle::HasWindowHandle;
 
-                    proxy.send(tag(mode));
+                if let Ok(handle) = window.window_handle() {
+                    f(handle);
                 }
-                window::Action::ToggleMaximize(_id) => {
-                    window.set_maximized(!window.is_maximized());
-                }
-                window::Action::ToggleDecorations(_id) => {
-                    window.set_decorations(!window.is_decorated());
-                }
-                window::Action::RequestUserAttention(_id, user_attention) => {
-                    window.request_user_attention(
-                        user_attention.map(conversion::user_attention),
-                    );
-                }
-                window::Action::GainFocus(_id) => {
-                    window.focus_window();
-                }
-                window::Action::ChangeLevel(_id, level) => {
-                    window.set_window_level(conversion::window_level(level));
-                }
-                window::Action::ShowSystemMenu(_id) => {
-                    if let mouse::Cursor::Available(point) = state.cursor() {
-                        window.show_window_menu(winit::dpi::LogicalPosition {
-                            x: point.x,
-                            y: point.y,
-                        });
-                    }
-                }
-                window::Action::FetchId(_id, tag) => {
-                    proxy.send(tag(window.id().into()));
-                }
-                window::Action::RunWithHandle(_id, tag) => {
-                    use window::raw_window_handle::HasWindowHandle;
+            }
 
-                    if let Ok(handle) = window.window_handle() {
-                        proxy.send(tag(handle));
-                    }
-                }
-
-                window::Action::Screenshot(_id, tag) => {
-                    let bytes = compositor.screenshot(
-                        renderer,
-                        surface,
-                        state.viewport(),
-                        state.background_color(),
-                        &debug.overlay(),
-                    );
-
-                    proxy.send(tag(window::Screenshot::new(
-                        bytes,
-                        state.physical_size(),
-                        state.viewport().scale_factor(),
-                    )));
-                }
-            },
-            command::Action::System(action) => match action {
-                system::Action::QueryInformation(_tag) => {
-                    #[cfg(feature = "system")]
-                    {
-                        let graphics_info = compositor.fetch_information();
-                        let mut proxy = proxy.clone();
-
-                        let _ = std::thread::spawn(move || {
-                            let information =
-                                crate::system::information(graphics_info);
-
-                            let message = _tag(information);
-
-                            proxy.send(message);
-                        });
-                    }
-                }
-            },
-            command::Action::Widget(action) => {
-                let mut current_cache = std::mem::take(cache);
-                let mut current_operation = Some(action);
-
-                let mut user_interface = build_user_interface(
-                    application,
-                    current_cache,
+            window::Action::Screenshot(_id, channel) => {
+                let bytes = compositor.screenshot(
                     renderer,
-                    state.logical_size(),
-                    debug,
+                    surface,
+                    state.viewport(),
+                    state.background_color(),
+                    &debug.overlay(),
                 );
 
-                while let Some(mut operation) = current_operation.take() {
-                    user_interface.operate(renderer, operation.as_mut());
+                let _ = channel.send(window::Screenshot::new(
+                    bytes,
+                    state.physical_size(),
+                    state.viewport().scale_factor(),
+                ));
+            }
+        },
+        Action::System(action) => match action {
+            system::Action::QueryInformation(_channel) => {
+                #[cfg(feature = "system")]
+                {
+                    let graphics_info = compositor.fetch_information();
 
-                    match operation.finish() {
-                        operation::Outcome::None => {}
-                        operation::Outcome::Some(message) => {
-                            proxy.send(message);
-                        }
-                        operation::Outcome::Chain(next) => {
-                            current_operation = Some(next);
-                        }
+                    let _ = std::thread::spawn(move || {
+                        let information =
+                            crate::system::information(graphics_info);
+
+                        let _ = _channel.send(information);
+                    });
+                }
+            }
+        },
+        Action::Widget(operation) => {
+            let mut current_operation = Some(operation);
+
+            while let Some(mut operation) = current_operation.take() {
+                user_interface.operate(renderer, operation.as_mut());
+
+                match operation.finish() {
+                    operation::Outcome::None => {}
+                    operation::Outcome::Some(()) => {}
+                    operation::Outcome::Chain(next) => {
+                        current_operation = Some(next);
                     }
                 }
+            }
+        }
+        Action::LoadFont { bytes, channel } => {
+            // TODO: Error handling (?)
+            compositor.load_font(bytes);
 
-                current_cache = user_interface.into_cache();
-                *cache = current_cache;
-            }
-            command::Action::LoadFont { bytes, tagger } => {
-                // TODO: Error handling (?)
-                compositor.load_font(bytes);
-
-                proxy.send(tagger(Ok(())));
-            }
-            command::Action::Custom(_) => {
-                log::warn!("Unsupported custom action in `iced_winit` shell");
-            }
+            let _ = channel.send(Ok(()));
+        }
+        Action::Output(message) => {
+            messages.push(message);
         }
     }
 }

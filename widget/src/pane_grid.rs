@@ -324,7 +324,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation<()>,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
             self.contents

@@ -4,7 +4,7 @@ use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text,
     text_editor, tooltip,
 };
-use iced::{Alignment, Command, Element, Font, Length, Subscription, Theme};
+use iced::{Alignment, Element, Font, Length, Subscription, Task, Theme};
 
 use std::ffi;
 use std::io;
@@ -51,26 +51,26 @@ impl Editor {
         }
     }
 
-    fn load() -> Command<Message> {
-        Command::perform(
+    fn load() -> Task<Message> {
+        Task::perform(
             load_file(format!("{}/src/main.rs", env!("CARGO_MANIFEST_DIR"))),
             Message::FileOpened,
         )
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ActionPerformed(action) => {
                 self.is_dirty = self.is_dirty || action.is_edit();
 
                 self.content.perform(action);
 
-                Command::none()
+                Task::none()
             }
             Message::ThemeSelected(theme) => {
                 self.theme = theme;
 
-                Command::none()
+                Task::none()
             }
             Message::NewFile => {
                 if !self.is_loading {
@@ -78,15 +78,15 @@ impl Editor {
                     self.content = text_editor::Content::new();
                 }
 
-                Command::none()
+                Task::none()
             }
             Message::OpenFile => {
                 if self.is_loading {
-                    Command::none()
+                    Task::none()
                 } else {
                     self.is_loading = true;
 
-                    Command::perform(open_file(), Message::FileOpened)
+                    Task::perform(open_file(), Message::FileOpened)
                 }
             }
             Message::FileOpened(result) => {
@@ -98,15 +98,15 @@ impl Editor {
                     self.content = text_editor::Content::with_text(&contents);
                 }
 
-                Command::none()
+                Task::none()
             }
             Message::SaveFile => {
                 if self.is_loading {
-                    Command::none()
+                    Task::none()
                 } else {
                     self.is_loading = true;
 
-                    Command::perform(
+                    Task::perform(
                         save_file(self.file.clone(), self.content.text()),
                         Message::FileSaved,
                     )
@@ -120,7 +120,7 @@ impl Editor {
                     self.is_dirty = false;
                 }
 
-                Command::none()
+                Task::none()
             }
         }
     }

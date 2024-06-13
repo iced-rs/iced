@@ -197,7 +197,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<()>,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
             self.children

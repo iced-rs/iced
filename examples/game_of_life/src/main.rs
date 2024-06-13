@@ -9,7 +9,7 @@ use iced::time;
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, slider, text,
 };
-use iced::{Alignment, Command, Element, Length, Subscription, Theme};
+use iced::{Alignment, Element, Length, Subscription, Task, Theme};
 use std::time::Duration;
 
 pub fn main() -> iced::Result {
@@ -56,7 +56,7 @@ impl GameOfLife {
         }
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Grid(message, version) => {
                 if version == self.version {
@@ -75,7 +75,7 @@ impl GameOfLife {
 
                     let version = self.version;
 
-                    return Command::perform(task, move |message| {
+                    return Task::perform(task, move |message| {
                         Message::Grid(message, version)
                     });
                 }
@@ -103,7 +103,7 @@ impl GameOfLife {
             }
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {

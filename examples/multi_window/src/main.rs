@@ -6,7 +6,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Alignment, Command, Element, Length, Point, Settings, Subscription, Theme,
+    Alignment, Element, Length, Point, Settings, Subscription, Task, Theme,
     Vector,
 };
 
@@ -48,13 +48,13 @@ impl multi_window::Application for Example {
     type Theme = Theme;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
+    fn new(_flags: ()) -> (Self, Task<Message>) {
         (
             Example {
                 windows: HashMap::from([(window::Id::MAIN, Window::new(1))]),
                 next_window_pos: window::Position::Default,
             },
-            Command::none(),
+            Task::none(),
         )
     }
 
@@ -65,14 +65,14 @@ impl multi_window::Application for Example {
             .unwrap_or("Example".to_string())
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ScaleInputChanged(id, scale) => {
                 let window =
                     self.windows.get_mut(&id).expect("Window not found!");
                 window.scale_input = scale;
 
-                Command::none()
+                Task::none()
             }
             Message::ScaleChanged(id, scale) => {
                 let window =
@@ -83,7 +83,7 @@ impl multi_window::Application for Example {
                     .unwrap_or(window.current_scale)
                     .clamp(0.5, 5.0);
 
-                Command::none()
+                Task::none()
             }
             Message::TitleChanged(id, title) => {
                 let window =
@@ -91,12 +91,12 @@ impl multi_window::Application for Example {
 
                 window.title = title;
 
-                Command::none()
+                Task::none()
             }
             Message::CloseWindow(id) => window::close(id),
             Message::WindowClosed(id) => {
                 self.windows.remove(&id);
-                Command::none()
+                Task::none()
             }
             Message::WindowOpened(id, position) => {
                 if let Some(position) = position {
@@ -108,13 +108,13 @@ impl multi_window::Application for Example {
                 if let Some(window) = self.windows.get(&id) {
                     text_input::focus(window.input_id.clone())
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::NewWindow => {
                 let count = self.windows.len() + 1;
 
-                let (id, spawn_window) = window::spawn(window::Settings {
+                let (id, spawn_window) = window::open(window::Settings {
                     position: self.next_window_pos,
                     exit_on_close_request: count % 2 == 0,
                     ..Default::default()

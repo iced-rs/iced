@@ -13,7 +13,7 @@ use crate::core::{
     Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
     Widget,
 };
-use crate::runtime::Command;
+use crate::runtime::Task;
 
 /// An element decorating some content.
 ///
@@ -258,7 +258,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<()>,
     ) {
         operation.container(
             self.id.as_ref().map(|id| &id.0),
@@ -457,9 +457,9 @@ impl From<Id> for widget::Id {
     }
 }
 
-/// Produces a [`Command`] that queries the visible screen bounds of the
+/// Produces a [`Task`] that queries the visible screen bounds of the
 /// [`Container`] with the given [`Id`].
-pub fn visible_bounds(id: Id) -> Command<Option<Rectangle>> {
+pub fn visible_bounds(id: Id) -> Task<Option<Rectangle>> {
     struct VisibleBounds {
         target: widget::Id,
         depth: usize,
@@ -538,7 +538,7 @@ pub fn visible_bounds(id: Id) -> Command<Option<Rectangle>> {
         }
     }
 
-    Command::widget(VisibleBounds {
+    Task::widget(VisibleBounds {
         target: id.into(),
         depth: 0,
         scrollables: Vec::new(),

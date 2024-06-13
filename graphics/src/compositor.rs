@@ -1,7 +1,6 @@
 //! A compositor is responsible for initializing a renderer and managing window
 //! surfaces.
-use crate::core::Color;
-use crate::futures::{MaybeSend, MaybeSync};
+use crate::core::{Color, MaybeSend, MaybeSync};
 use crate::{Error, Settings, Viewport};
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};

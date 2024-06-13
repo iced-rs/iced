@@ -5,7 +5,7 @@ use iced::widget::{
     scrollable, text, text_input, Text,
 };
 use iced::window;
-use iced::{Command, Element, Font, Length, Subscription};
+use iced::{Element, Font, Length, Subscription, Task as Command};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};

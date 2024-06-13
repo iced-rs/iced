@@ -30,7 +30,7 @@ use crate::core::{
     Background, Border, Color, Element, Layout, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, Theme, Vector, Widget,
 };
-use crate::runtime::Command;
+use crate::runtime::{Action, Task};
 
 /// A field that can be filled with text.
 ///
@@ -540,7 +540,7 @@ where
         tree: &mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<()>,
     ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
@@ -1140,35 +1140,38 @@ impl From<Id> for widget::Id {
     }
 }
 
-/// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
-pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::focusable::focus(id.0))
+/// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
+pub fn focus<T>(id: Id) -> Task<T> {
+    Task::effect(Action::widget(operation::focusable::focus(id.0)))
 }
 
-/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// end.
-pub fn move_cursor_to_end<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to_end(id.0))
+pub fn move_cursor_to_end<T>(id: Id) -> Task<T> {
+    Task::effect(Action::widget(operation::text_input::move_cursor_to_end(
+        id.0,
+    )))
 }
 
-/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// front.
-pub fn move_cursor_to_front<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to_front(id.0))
+pub fn move_cursor_to_front<T>(id: Id) -> Task<T> {
+    Task::effect(Action::widget(operation::text_input::move_cursor_to_front(
+        id.0,
+    )))
 }
 
-/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// provided position.
-pub fn move_cursor_to<Message: 'static>(
-    id: Id,
-    position: usize,
-) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to(id.0, position))
+pub fn move_cursor_to<T>(id: Id, position: usize) -> Task<T> {
+    Task::effect(Action::widget(operation::text_input::move_cursor_to(
+        id.0, position,
+    )))
 }
 
-/// Produces a [`Command`] that selects all the content of the [`TextInput`] with the given [`Id`].
-pub fn select_all<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::select_all(id.0))
+/// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`Id`].
+pub fn select_all<T>(id: Id) -> Task<T> {
+    Task::effect(Action::widget(operation::text_input::select_all(id.0)))
 }
 
 /// The state of a [`TextInput`].

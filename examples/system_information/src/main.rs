@@ -1,5 +1,5 @@
 use iced::widget::{button, center, column, text};
-use iced::{system, Command, Element};
+use iced::{system, Element, Task};
 
 pub fn main() -> iced::Result {
     iced::program("System Information - Iced", Example::update, Example::view)
@@ -24,19 +24,20 @@ enum Message {
 }
 
 impl Example {
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Refresh => {
                 *self = Self::Loading;
 
-                return system::fetch_information(Message::InformationReceived);
+                return system::fetch_information()
+                    .map(Message::InformationReceived);
             }
             Message::InformationReceived(information) => {
                 *self = Self::Loaded { information };
             }
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<Message> {

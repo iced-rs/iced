@@ -35,7 +35,7 @@ use crate::core::text;
 use crate::executor::{self, Executor};
 use crate::graphics::compositor;
 use crate::window;
-use crate::{Command, Element, Font, Result, Settings, Size, Subscription};
+use crate::{Element, Font, Result, Settings, Size, Subscription, Task};
 
 pub use crate::application::{Appearance, DefaultStyle};
 
@@ -76,7 +76,7 @@ pub fn program<State, Message, Theme, Renderer>(
 ) -> Program<impl Definition<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
-    Message: Send + std::fmt::Debug,
+    Message: Send + std::fmt::Debug + 'static,
     Theme: Default + DefaultStyle,
     Renderer: self::Renderer,
 {
@@ -94,7 +94,7 @@ where
     impl<State, Message, Theme, Renderer, Update, View> Definition
         for Application<State, Message, Theme, Renderer, Update, View>
     where
-        Message: Send + std::fmt::Debug,
+        Message: Send + std::fmt::Debug + 'static,
         Theme: Default + DefaultStyle,
         Renderer: self::Renderer,
         Update: self::Update<State, Message>,
@@ -106,15 +106,15 @@ where
         type Renderer = Renderer;
         type Executor = executor::Default;
 
-        fn load(&self) -> Command<Self::Message> {
-            Command::none()
+        fn load(&self) -> Task<Self::Message> {
+            Task::none()
         }
 
         fn update(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Command<Self::Message> {
+        ) -> Task<Self::Message> {
             self.update.update(state, message).into()
         }
 
@@ -197,7 +197,7 @@ impl<P: Definition> Program<P> {
 
             fn new(
                 (program, initialize): Self::Flags,
-            ) -> (Self, Command<Self::Message>) {
+            ) -> (Self, Task<Self::Message>) {
                 let state = initialize();
                 let command = program.load();
 
@@ -218,7 +218,7 @@ impl<P: Definition> Program<P> {
             fn update(
                 &mut self,
                 message: Self::Message,
-            ) -> Command<Self::Message> {
+            ) -> Task<Self::Message> {
                 self.program.update(&mut self.state, message)
             }
 
@@ -357,10 +357,10 @@ impl<P: Definition> Program<P> {
         }
     }
 
-    /// Runs the [`Command`] produced by the closure at startup.
+    /// Runs the [`Task`] produced by the closure at startup.
     pub fn load(
         self,
-        f: impl Fn() -> Command<P::Message>,
+        f: impl Fn() -> Task<P::Message>,
     ) -> Program<
         impl Definition<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
@@ -420,7 +420,7 @@ pub trait Definition: Sized {
     type State;
 
     /// The message of the program.
-    type Message: Send + std::fmt::Debug;
+    type Message: Send + std::fmt::Debug + 'static;
 
     /// The theme of the program.
     type Theme: Default + DefaultStyle;
@@ -431,13 +431,13 @@ pub trait Definition: Sized {
     /// The executor of the program.
     type Executor: Executor;
 
-    fn load(&self) -> Command<Self::Message>;
+    fn load(&self) -> Task<Self::Message>;
 
     fn update(
         &self,
         state: &mut Self::State,
         message: Self::Message,
-    ) -> Command<Self::Message>;
+    ) -> Task<Self::Message>;
 
     fn view<'a>(
         &self,
@@ -484,7 +484,7 @@ fn with_title<P: Definition>(
         type Renderer = P::Renderer;
         type Executor = P::Executor;
 
-        fn load(&self) -> Command<Self::Message> {
+        fn load(&self) -> Task<Self::Message> {
             self.program.load()
         }
 
@@ -496,7 +496,7 @@ fn with_title<P: Definition>(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Command<Self::Message> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -532,7 +532,7 @@ fn with_title<P: Definition>(
 
 fn with_load<P: Definition>(
     program: P,
-    f: impl Fn() -> Command<P::Message>,
+    f: impl Fn() -> Task<P::Message>,
 ) -> impl Definition<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithLoad<P, F> {
         program: P,
@@ -541,7 +541,7 @@ fn with_load<P: Definition>(
 
     impl<P: Definition, F> Definition for WithLoad<P, F>
     where
-        F: Fn() -> Command<P::Message>,
+        F: Fn() -> Task<P::Message>,
     {
         type State = P::State;
         type Message = P::Message;
@@ -549,15 +549,15 @@ fn with_load<P: Definition>(
         type Renderer = P::Renderer;
         type Executor = executor::Default;
 
-        fn load(&self) -> Command<Self::Message> {
-            Command::batch([self.program.load(), (self.load)()])
+        fn load(&self) -> Task<Self::Message> {
+            Task::batch([self.program.load(), (self.load)()])
         }
 
         fn update(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Command<Self::Message> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -621,7 +621,7 @@ fn with_subscription<P: Definition>(
             (self.subscription)(state)
         }
 
-        fn load(&self) -> Command<Self::Message> {
+        fn load(&self) -> Task<Self::Message> {
             self.program.load()
         }
 
@@ -629,7 +629,7 @@ fn with_subscription<P: Definition>(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Command<Self::Message> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -686,7 +686,7 @@ fn with_theme<P: Definition>(
             (self.theme)(state)
         }
 
-        fn load(&self) -> Command<Self::Message> {
+        fn load(&self) -> Task<Self::Message> {
             self.program.load()
         }
 
@@ -698,7 +698,7 @@ fn with_theme<P: Definition>(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Command<Self::Message> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -755,7 +755,7 @@ fn with_style<P: Definition>(
             (self.style)(state, theme)
         }
 
-        fn load(&self) -> Command<Self::Message> {
+        fn load(&self) -> Task<Self::Message> {
             self.program.load()
         }
 
@@ -767,7 +767,7 @@ fn with_style<P: Definition>(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Command<Self::Message> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -822,26 +822,26 @@ where
 /// The update logic of some [`Program`].
 ///
 /// This trait allows the [`program`] builder to take any closure that
-/// returns any `Into<Command<Message>>`.
+/// returns any `Into<Task<Message>>`.
 pub trait Update<State, Message> {
     /// Processes the message and updates the state of the [`Program`].
     fn update(
         &self,
         state: &mut State,
         message: Message,
-    ) -> impl Into<Command<Message>>;
+    ) -> impl Into<Task<Message>>;
 }
 
 impl<T, State, Message, C> Update<State, Message> for T
 where
     T: Fn(&mut State, Message) -> C,
-    C: Into<Command<Message>>,
+    C: Into<Task<Message>>,
 {
     fn update(
         &self,
         state: &mut State,
         message: Message,
-    ) -> impl Into<Command<Message>> {
+    ) -> impl Into<Task<Message>> {
         self(state, message)
     }
 }

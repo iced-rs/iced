@@ -3,7 +3,7 @@ use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
     scrollable, slider, text, vertical_space, Scrollable,
 };
-use iced::{Alignment, Border, Color, Command, Element, Length, Theme};
+use iced::{Alignment, Border, Color, Element, Length, Task, Theme};
 
 use once_cell::sync::Lazy;
 
@@ -59,7 +59,7 @@ impl ScrollableDemo {
         }
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SwitchDirection(direction) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
@@ -82,17 +82,17 @@ impl ScrollableDemo {
             Message::ScrollbarWidthChanged(width) => {
                 self.scrollbar_width = width;
 
-                Command::none()
+                Task::none()
             }
             Message::ScrollbarMarginChanged(margin) => {
                 self.scrollbar_margin = margin;
 
-                Command::none()
+                Task::none()
             }
             Message::ScrollerWidthChanged(width) => {
                 self.scroller_width = width;
 
-                Command::none()
+                Task::none()
             }
             Message::ScrollToBeginning => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
@@ -113,7 +113,7 @@ impl ScrollableDemo {
             Message::Scrolled(viewport) => {
                 self.current_scroll_offset = viewport.relative_offset();
 
-                Command::none()
+                Task::none()
             }
         }
     }

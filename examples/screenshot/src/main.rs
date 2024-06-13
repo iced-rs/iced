@@ -4,7 +4,7 @@ use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
 use iced::{
-    Alignment, Command, ContentFit, Element, Length, Rectangle, Subscription,
+    Alignment, ContentFit, Element, Length, Rectangle, Subscription, Task,
 };
 
 use ::image as img;
@@ -44,13 +44,11 @@ enum Message {
 }
 
 impl Example {
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Screenshot => {
-                return iced::window::screenshot(
-                    window::Id::MAIN,
-                    Message::ScreenshotData,
-                );
+                return iced::window::screenshot(window::Id::MAIN)
+                    .map(Message::ScreenshotData);
             }
             Message::ScreenshotData(screenshot) => {
                 self.screenshot = Some(screenshot);
@@ -59,7 +57,7 @@ impl Example {
                 if let Some(screenshot) = &self.screenshot {
                     self.png_saving = true;
 
-                    return Command::perform(
+                    return Task::perform(
                         save_to_png(screenshot.clone()),
                         Message::PngSaved,
                     );
@@ -103,7 +101,7 @@ impl Example {
             }
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<'_, Message> {
