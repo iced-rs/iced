@@ -8,7 +8,7 @@ pub use scrollable::Scrollable;
 pub use text_input::TextInput;
 
 use crate::widget::Id;
-use crate::{MaybeSend, Rectangle, Vector};
+use crate::{Rectangle, Vector};
 
 use std::any::Any;
 use std::fmt;
@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 /// A piece of logic that can traverse the widget tree of an application in
 /// order to query or update some widget state.
-pub trait Operation<T>: MaybeSend {
+pub trait Operation<T>: Send {
     /// Operates on a widget that contains other widgets.
     ///
     /// The `operate_on_children` function can be called to return control to

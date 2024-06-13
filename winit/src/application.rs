@@ -202,7 +202,7 @@ where
         #[cfg(target_arch = "wasm32")]
         is_booted: std::rc::Rc<std::cell::RefCell<bool>>,
         #[cfg(target_arch = "wasm32")]
-        queued_events: Vec<winit::event::Event<Message>>,
+        queued_events: Vec<winit::event::Event<Action<Message>>>,
     }
 
     struct BootConfig<C> {

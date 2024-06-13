@@ -52,7 +52,7 @@ impl<T> Task<T> {
     /// its output.
     pub fn widget(operation: impl widget::Operation<T> + 'static) -> Task<T>
     where
-        T: MaybeSend + 'static,
+        T: Send + 'static,
     {
         Self::channel(move |sender| {
             let operation =

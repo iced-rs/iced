@@ -7,7 +7,7 @@ use crate::core::time::Instant;
 use crate::core::window::{
     Event, Icon, Id, Level, Mode, Settings, UserAttention,
 };
-use crate::core::{MaybeSend, Point, Size};
+use crate::core::{Point, Size};
 use crate::futures::event;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::Subscription;
@@ -303,10 +303,10 @@ pub fn change_icon<T>(id: Id, icon: Icon) -> Task<T> {
 /// Note that if the window closes before this call is processed the callback will not be run.
 pub fn run_with_handle<T>(
     id: Id,
-    f: impl FnOnce(WindowHandle<'_>) -> T + MaybeSend + 'static,
+    f: impl FnOnce(WindowHandle<'_>) -> T + Send + 'static,
 ) -> Task<T>
 where
-    T: MaybeSend + 'static,
+    T: Send + 'static,
 {
     Task::oneshot(move |channel| {
         crate::Action::Window(Action::RunWithHandle(
