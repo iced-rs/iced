@@ -152,8 +152,15 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer: crate::core::Renderer> FromIterator<Element<'a, Message, Theme, Renderer>> for Row<'a, Message, Theme, Renderer> {
-    fn from_iter<T: IntoIterator<Item=Element<'a, Message, Theme, Renderer>>>(iter: T) -> Self {
+impl<'a, Message, Theme, Renderer: crate::core::Renderer>
+    FromIterator<Element<'a, Message, Theme, Renderer>>
+    for Row<'a, Message, Theme, Renderer>
+{
+    fn from_iter<
+        T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+    >(
+        iter: T,
+    ) -> Self {
         Self::with_children(iter)
     }
 }
