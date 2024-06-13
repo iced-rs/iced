@@ -179,9 +179,10 @@ where
                 state: &mut dyn widget::operation::Scrollable,
                 id: Option<&widget::Id>,
                 bounds: Rectangle,
+                content_bounds: Rectangle,
                 translation: Vector,
             ) {
-                self.operation.scrollable(state, id, bounds, translation);
+                self.operation.scrollable(state, id, bounds, content_bounds, translation);
             }
 
             fn text_input(
