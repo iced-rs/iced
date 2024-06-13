@@ -2,8 +2,8 @@
 use crate::core;
 use crate::core::event;
 use crate::core::keyboard::{Event, Key, Modifiers};
-use crate::core::MaybeSend;
 use crate::subscription::{self, Subscription};
+use crate::MaybeSend;
 
 /// Listens to keyboard key presses and calls the given function
 /// map them into actual messages.

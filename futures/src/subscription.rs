@@ -5,9 +5,8 @@ pub use tracker::Tracker;
 
 use crate::core::event;
 use crate::core::window;
-use crate::core::MaybeSend;
 use crate::futures::{Future, Stream};
-use crate::BoxStream;
+use crate::{BoxStream, MaybeSend};
 
 use futures::channel::mpsc;
 use futures::never::Never;

@@ -1,11 +1,10 @@
 use crate::core::widget;
-use crate::core::MaybeSend;
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::future::{self, FutureExt};
 use crate::futures::futures::never::Never;
 use crate::futures::futures::stream::{self, Stream, StreamExt};
-use crate::futures::{boxed_stream, BoxStream};
+use crate::futures::{boxed_stream, BoxStream, MaybeSend};
 use crate::Action;
 
 use std::future::Future;

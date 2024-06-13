@@ -1,7 +1,6 @@
 //! Run commands and keep track of subscriptions.
-use crate::core::MaybeSend;
 use crate::subscription;
-use crate::{BoxFuture, BoxStream, Executor};
+use crate::{BoxFuture, BoxStream, Executor, MaybeSend};
 
 use futures::{channel::mpsc, Sink};
 use std::marker::PhantomData;
