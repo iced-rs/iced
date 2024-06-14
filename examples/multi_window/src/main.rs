@@ -87,13 +87,12 @@ impl multi_window::Application for Example {
                     .map(Message::WindowOpened)
             }
             Message::WindowOpened(id) => {
-                self.windows.insert(id, Window::new(self.windows.len() + 1));
+                let window = Window::new(self.windows.len() + 1);
+                let focus_input = text_input::focus(window.input_id.clone());
 
-                if let Some(window) = self.windows.get(&id) {
-                    text_input::focus(window.input_id.clone())
-                } else {
-                    Task::none()
-                }
+                self.windows.insert(id, window);
+
+                focus_input
             }
             Message::WindowClosed(id) => {
                 self.windows.remove(&id);
