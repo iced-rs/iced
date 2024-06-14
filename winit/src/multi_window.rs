@@ -1030,7 +1030,7 @@ fn run_action<A, C>(
             }
         },
         Action::Window(action) => match action {
-            window::Action::Open(id, settings) => {
+            window::Action::Open(id, settings, channel) => {
                 let monitor = window_manager.last_monitor();
 
                 control_sender
@@ -1041,6 +1041,8 @@ fn run_action<A, C>(
                         monitor,
                     })
                     .expect("Send control action");
+
+                let _ = channel.send(id);
             }
             window::Action::Close(id) => {
                 let _ = window_manager.remove(id);

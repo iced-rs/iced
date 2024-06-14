@@ -34,7 +34,7 @@ struct Example {
 enum Message {
     Crop,
     Screenshot,
-    ScreenshotData(Screenshot),
+    Screenshotted(Screenshot),
     Png,
     PngSaved(Result<String, PngError>),
     XInputChanged(Option<u32>),
@@ -48,9 +48,9 @@ impl Example {
         match message {
             Message::Screenshot => {
                 return iced::window::screenshot(window::Id::MAIN)
-                    .map(Message::ScreenshotData);
+                    .map(Message::Screenshotted);
             }
-            Message::ScreenshotData(screenshot) => {
+            Message::Screenshotted(screenshot) => {
                 self.screenshot = Some(screenshot);
             }
             Message::Png => {

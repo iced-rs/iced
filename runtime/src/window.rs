@@ -21,7 +21,7 @@ use raw_window_handle::WindowHandle;
 #[allow(missing_debug_implementations)]
 pub enum Action {
     /// Opens a new window with some [`Settings`].
-    Open(Id, Settings),
+    Open(Id, Settings, oneshot::Sender<Id>),
 
     /// Close the window and exits the application.
     Close(Id),
@@ -155,16 +155,36 @@ pub fn frames() -> Subscription<Instant> {
     })
 }
 
-/// Opens a new window with the given `settings`.
-///
-/// Returns the new window [`Id`] alongside the [`Task`].
-pub fn open<T>(settings: Settings) -> (Id, Task<T>) {
+/// Subscribes to all window close requests of the running application.
+pub fn close_requests() -> Subscription<Id> {
+    event::listen_with(|event, _status, id| {
+        if let crate::core::Event::Window(Event::CloseRequested) = event {
+            Some(id)
+        } else {
+            None
+        }
+    })
+}
+
+/// Subscribes to all window closings of the running application.
+pub fn closings() -> Subscription<Id> {
+    event::listen_with(|event, _status, id| {
+        if let crate::core::Event::Window(Event::Closed) = event {
+            Some(id)
+        } else {
+            None
+        }
+    })
+}
+
+/// Opens a new window with the given [`Settings`]; producing the [`Id`]
+/// of the new window on completion.
+pub fn open(settings: Settings) -> Task<Id> {
     let id = Id::unique();
 
-    (
-        id,
-        Task::effect(crate::Action::Window(Action::Open(id, settings))),
-    )
+    Task::oneshot(|channel| {
+        crate::Action::Window(Action::Open(id, settings, channel))
+    })
 }
 
 /// Closes the window with `id`.
