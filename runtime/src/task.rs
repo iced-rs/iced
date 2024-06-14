@@ -208,18 +208,25 @@ impl<T> Task<T> {
             None => Task::done(Vec::new()),
             Some(stream) => Task(Some(boxed_stream(
                 stream::unfold(
-                    (stream, Vec::new()),
-                    |(mut stream, mut outputs)| async move {
-                        let action = stream.next().await?;
+                    (stream, Some(Vec::new())),
+                    move |(mut stream, outputs)| async move {
+                        let mut outputs = outputs?;
+
+                        let Some(action) = stream.next().await else {
+                            return Some((
+                                Some(Action::Output(outputs)),
+                                (stream, None),
+                            ));
+                        };
 
                         match action.output() {
                             Ok(output) => {
                                 outputs.push(output);
 
-                                Some((None, (stream, outputs)))
+                                Some((None, (stream, Some(outputs))))
                             }
                             Err(action) => {
-                                Some((Some(action), (stream, outputs)))
+                                Some((Some(action), (stream, Some(outputs))))
                             }
                         }
                     },
