@@ -157,7 +157,7 @@ ouroboros = "0.18"
 palette = "0.7"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
-resvg = "0.41"
+resvg = "0.42"
 rustc-hash = "1.0"
 smol = "1.0"
 smol_str = "0.2"
@@ -204,4 +204,4 @@ useless_conversion = "deny"
 broken_intra_doc_links = "forbid"
 
 [patch.crates-io]
-cosmic-text = { git = "https://github.com/hecrj/cosmic-text.git", rev = "a2b3f4064178afd7f91e0d86407a82bf507da55f" }
+cosmic-text = { git = "https://github.com/pop-os/cosmic-text.git", rev = "542b20ca4376a3b5de5fa629db1a4ace44e18e0c" }

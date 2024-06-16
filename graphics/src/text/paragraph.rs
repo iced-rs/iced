@@ -77,8 +77,8 @@ impl core::text::Paragraph for Paragraph {
 
         buffer.set_size(
             font_system.raw(),
-            text.bounds.width,
-            text.bounds.height,
+            Some(text.bounds.width),
+            Some(text.bounds.height),
         );
 
         buffer.set_text(
@@ -116,8 +116,8 @@ impl core::text::Paragraph for Paragraph {
 
                 internal.buffer.set_size(
                     font_system.raw(),
-                    new_bounds.width,
-                    new_bounds.height,
+                    Some(new_bounds.width),
+                    Some(new_bounds.height),
                 );
 
                 internal.bounds = new_bounds;

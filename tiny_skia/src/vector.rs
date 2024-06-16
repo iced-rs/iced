@@ -1,6 +1,5 @@
 use crate::core::svg::{Data, Handle};
 use crate::core::{Color, Rectangle, Size};
-use crate::graphics::text;
 
 use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -83,26 +82,23 @@ impl Cache {
         let id = handle.id();
 
         if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
-            let mut font_system =
-                text::font_system().write().expect("Write font system");
-
             let mut svg = match handle.data() {
                 Data::Path(path) => {
                     fs::read_to_string(path).ok().and_then(|contents| {
                         usvg::Tree::from_str(
                             &contents,
-                            &usvg::Options::default(),
-                            font_system.raw().db(),
+                            &usvg::Options::default(), // TODO: Set usvg::Options::fontdb
                         )
                         .ok()
                     })
                 }
-                Data::Bytes(bytes) => usvg::Tree::from_data(
-                    bytes,
-                    &usvg::Options::default(),
-                    font_system.raw().db(),
-                )
-                .ok(),
+                Data::Bytes(bytes) => {
+                    usvg::Tree::from_data(
+                        bytes,
+                        &usvg::Options::default(), // TODO: Set usvg::Options::fontdb
+                    )
+                    .ok()
+                }
             };
 
             if let Some(svg) = &mut svg {

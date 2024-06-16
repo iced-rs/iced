@@ -136,7 +136,8 @@ impl editor::Editor for Editor {
                                 width,
                                 y: (visual_line as i32 + visual_lines_offset)
                                     as f32
-                                    * line_height,
+                                    * line_height
+                                    - buffer.scroll().vertical,
                                 height: line_height,
                             })
                         } else {
@@ -218,7 +219,8 @@ impl editor::Editor for Editor {
                 Cursor::Caret(Point::new(
                     offset,
                     (visual_lines_offset + visual_line as i32) as f32
-                        * line_height,
+                        * line_height
+                        - buffer.scroll().vertical,
                 ))
             }
         }
@@ -482,8 +484,8 @@ impl editor::Editor for Editor {
 
             buffer_mut_from_editor(&mut internal.editor).set_size(
                 font_system.raw(),
-                new_bounds.width,
-                new_bounds.height,
+                Some(new_bounds.width),
+                Some(new_bounds.height),
             );
 
             internal.bounds = new_bounds;
@@ -513,7 +515,8 @@ impl editor::Editor for Editor {
         let buffer = buffer_from_editor(&internal.editor);
 
         let scroll = buffer.scroll();
-        let mut window = buffer.visible_lines();
+        let mut window = (internal.bounds.height / buffer.metrics().line_height)
+            .ceil() as i32;
 
         let last_visible_line = buffer.lines[scroll.line..]
             .iter()
@@ -715,8 +718,7 @@ fn visual_lines_offset(line: usize, buffer: &cosmic_text::Buffer) -> i32 {
         })
         .sum();
 
-    (visual_lines_offset as i32 - scroll.layout)
-        * if scroll.line < line { 1 } else { -1 }
+    visual_lines_offset as i32 * if scroll.line < line { 1 } else { -1 }
 }
 
 fn to_motion(motion: Motion) -> cosmic_text::Motion {

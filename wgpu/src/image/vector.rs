@@ -1,6 +1,5 @@
 use crate::core::svg;
 use crate::core::{Color, Size};
-use crate::graphics::text;
 use crate::image::atlas::{self, Atlas};
 
 use resvg::tiny_skia;
@@ -49,17 +48,13 @@ impl Cache {
             return self.svgs.get(&handle.id()).unwrap();
         }
 
-        let mut font_system =
-            text::font_system().write().expect("Write font system");
-
         let svg = match handle.data() {
             svg::Data::Path(path) => fs::read_to_string(path)
                 .ok()
                 .and_then(|contents| {
                     usvg::Tree::from_str(
                         &contents,
-                        &usvg::Options::default(),
-                        font_system.raw().db(),
+                        &usvg::Options::default(), // TODO: Set usvg::Options::fontdb
                     )
                     .ok()
                 })
@@ -68,8 +63,7 @@ impl Cache {
             svg::Data::Bytes(bytes) => {
                 match usvg::Tree::from_data(
                     bytes,
-                    &usvg::Options::default(),
-                    font_system.raw().db(),
+                    &usvg::Options::default(), // TODO: Set usvg::Options::fontdb
                 ) {
                     Ok(tree) => Svg::Loaded(tree),
                     Err(_) => Svg::NotFound,

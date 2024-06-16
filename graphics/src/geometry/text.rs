@@ -43,6 +43,7 @@ impl Text {
 
         let mut buffer = cosmic_text::BufferLine::new(
             &self.content,
+            cosmic_text::LineEnding::default(),
             cosmic_text::AttrsList::new(text::to_attributes(self.font)),
             text::to_shaping(self.shaping),
         );
@@ -50,9 +51,10 @@ impl Text {
         let layout = buffer.layout(
             font_system.raw(),
             self.size.0,
-            f32::MAX,
+            None,
             cosmic_text::Wrap::None,
             None,
+            4,
         );
 
         let translation_x = match self.horizontal_alignment {
