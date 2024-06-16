@@ -8,6 +8,24 @@ body:
         Thanks for taking the time to fill out this bug report!
   - type: checkboxes
     attributes:
+      label: Is your issue REALLY a bug?
+      description: |
+        This issue tracker is for __BUG REPORTS ONLY__.
+
+        It's obvious, right? This is a bug report form, after all! Still, some crazy users seem to forcefully fill
+        out this form just to ask questions and request features.
+
+        The core team does not appreciate that. Don't do it.
+
+        If you want to ask a question or request a feature, please [go back here](https://github.com/iced-rs/iced/issues/new/choose)
+        and read carefully.
+      options:
+      - label: My issue is indeed a bug!
+        required: true
+      - label: I am not crazy! I will not fill out this form just to ask a question or request a feature. Pinky promise.
+        required: true
+  - type: checkboxes
+    attributes:
       label: Is there an existing issue for this?
       description: |
         Please, search [the existing issues] and see if an issue already exists for the bug you encountered.

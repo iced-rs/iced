@@ -3,7 +3,7 @@ contact_links:
   - name: I have a question
     url: https://discourse.iced.rs/c/learn/6
     about: Ask and learn from others in the Discourse forum.
-  - name: I want to start a discussion
+  - name: I want to request a feature or start a discussion
     url: https://discourse.iced.rs/c/request-feedback/7
     about: Share your idea and gather feedback in the Discourse forum.
   - name: I want to chat with other users of the library
