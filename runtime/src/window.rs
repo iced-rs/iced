@@ -155,10 +155,21 @@ pub fn frames() -> Subscription<Instant> {
     })
 }
 
-/// Subscribes to all window close requests of the running application.
-pub fn close_requests() -> Subscription<Id> {
+/// Subscribes to all window events of the running application.
+pub fn events() -> Subscription<(Id, Event)> {
     event::listen_with(|event, _status, id| {
-        if let crate::core::Event::Window(Event::CloseRequested) = event {
+        if let crate::core::Event::Window(event) = event {
+            Some((id, event))
+        } else {
+            None
+        }
+    })
+}
+
+/// Subscribes to all [`Event::Closed`] occurrences in the running application.
+pub fn open_events() -> Subscription<Id> {
+    event::listen_with(|event, _status, id| {
+        if let crate::core::Event::Window(Event::Closed) = event {
             Some(id)
         } else {
             None
@@ -166,10 +177,21 @@ pub fn close_requests() -> Subscription<Id> {
     })
 }
 
-/// Subscribes to all window closings of the running application.
-pub fn closings() -> Subscription<Id> {
+/// Subscribes to all [`Event::Closed`] occurrences in the running application.
+pub fn close_events() -> Subscription<Id> {
     event::listen_with(|event, _status, id| {
         if let crate::core::Event::Window(Event::Closed) = event {
+            Some(id)
+        } else {
+            None
+        }
+    })
+}
+
+/// Subscribes to all [`Event::CloseRequested`] occurences in the running application.
+pub fn close_requests() -> Subscription<Id> {
+    event::listen_with(|event, _status, id| {
+        if let crate::core::Event::Window(Event::CloseRequested) = event {
             Some(id)
         } else {
             None

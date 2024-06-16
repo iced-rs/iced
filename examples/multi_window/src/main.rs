@@ -150,7 +150,7 @@ impl multi_window::Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        window::closings().map(Message::WindowClosed)
+        window::close_events().map(Message::WindowClosed)
     }
 }
 
