@@ -22,7 +22,7 @@ pub fn main() -> iced::Result {
 }
 
 pub struct Tour {
-    step: Step,
+    screen: Screen,
     slider: u8,
     layout: Layout,
     spacing: u16,
@@ -59,18 +59,18 @@ pub enum Message {
 
 impl Tour {
     fn title(&self) -> String {
-        let screen = match self.step {
-            Step::Welcome => "Welcome",
-            Step::Radio => "Radio button",
-            Step::Toggler => "Toggler",
-            Step::Slider => "Slider",
-            Step::Text => "Text",
-            Step::Image => "Image",
-            Step::RowsAndColumns => "Rows and columns",
-            Step::Scrollable => "Scrollable",
-            Step::TextInput => "Text input",
-            Step::Debugger => "Debugger",
-            Step::End => "End",
+        let screen = match self.screen {
+            Screen::Welcome => "Welcome",
+            Screen::Radio => "Radio button",
+            Screen::Toggler => "Toggler",
+            Screen::Slider => "Slider",
+            Screen::Text => "Text",
+            Screen::Image => "Image",
+            Screen::RowsAndColumns => "Rows and columns",
+            Screen::Scrollable => "Scrollable",
+            Screen::TextInput => "Text input",
+            Screen::Debugger => "Debugger",
+            Screen::End => "End",
         };
 
         format!("{} - Iced", screen)
@@ -79,13 +79,13 @@ impl Tour {
     fn update(&mut self, event: Message) {
         match event {
             Message::BackPressed => {
-                if let Some(step) = self.step.previous() {
-                    self.step = step;
+                if let Some(screen) = self.screen.previous() {
+                    self.screen = screen;
                 }
             }
             Message::NextPressed => {
-                if let Some(step) = self.step.next() {
-                    self.step = step;
+                if let Some(screen) = self.screen.next() {
+                    self.screen = screen;
                 }
             }
             Message::SliderChanged(value) => {
@@ -137,7 +137,7 @@ impl Tour {
     fn view(&self) -> Element<Message> {
         let controls =
             row![]
-                .push_maybe(self.step.previous().is_some().then(|| {
+                .push_maybe(self.screen.previous().is_some().then(|| {
                     padded_button("Back")
                         .on_press(Message::BackPressed)
                         .style(button::secondary)
@@ -147,18 +147,18 @@ impl Tour {
                     padded_button("Next").on_press(Message::NextPressed)
                 }));
 
-        let screen = match self.step {
-            Step::Welcome => self.welcome(),
-            Step::Radio => self.radio(),
-            Step::Toggler => self.toggler(),
-            Step::Slider => self.slider(),
-            Step::Text => self.text(),
-            Step::Image => self.image(),
-            Step::RowsAndColumns => self.rows_and_columns(),
-            Step::Scrollable => self.scrollable(),
-            Step::TextInput => self.text_input(),
-            Step::Debugger => self.debugger(),
-            Step::End => self.end(),
+        let screen = match self.screen {
+            Screen::Welcome => self.welcome(),
+            Screen::Radio => self.radio(),
+            Screen::Toggler => self.toggler(),
+            Screen::Slider => self.slider(),
+            Screen::Text => self.text(),
+            Screen::Image => self.image(),
+            Screen::RowsAndColumns => self.rows_and_columns(),
+            Screen::Scrollable => self.scrollable(),
+            Screen::TextInput => self.text_input(),
+            Screen::Debugger => self.debugger(),
+            Screen::End => self.end(),
         };
 
         let content: Element<_> = column![screen, controls,]
@@ -180,18 +180,18 @@ impl Tour {
     }
 
     fn can_continue(&self) -> bool {
-        match self.step {
-            Step::Welcome => true,
-            Step::Radio => self.language == Some(Language::Rust),
-            Step::Toggler => self.toggler,
-            Step::Slider => true,
-            Step::Text => true,
-            Step::Image => true,
-            Step::RowsAndColumns => true,
-            Step::Scrollable => true,
-            Step::TextInput => !self.input_value.is_empty(),
-            Step::Debugger => true,
-            Step::End => false,
+        match self.screen {
+            Screen::Welcome => true,
+            Screen::Radio => self.language == Some(Language::Rust),
+            Screen::Toggler => self.toggler,
+            Screen::Slider => true,
+            Screen::Text => true,
+            Screen::Image => true,
+            Screen::RowsAndColumns => true,
+            Screen::Scrollable => true,
+            Screen::TextInput => !self.input_value.is_empty(),
+            Screen::Debugger => true,
+            Screen::End => false,
         }
     }
 
@@ -498,7 +498,7 @@ impl Tour {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Step {
+enum Screen {
     Welcome,
     Slider,
     RowsAndColumns,
@@ -512,7 +512,7 @@ enum Step {
     End,
 }
 
-impl Step {
+impl Screen {
     const ALL: &'static [Self] = &[
         Self::Welcome,
         Self::Slider,
@@ -527,25 +527,25 @@ impl Step {
         Self::End,
     ];
 
-    pub fn next(self) -> Option<Step> {
+    pub fn next(self) -> Option<Screen> {
         Self::ALL
             .get(
                 Self::ALL
                     .iter()
                     .copied()
-                    .position(|step| step == self)
-                    .expect("Step must exist")
+                    .position(|screen| screen == self)
+                    .expect("Screen must exist")
                     + 1,
             )
             .copied()
     }
 
-    pub fn previous(self) -> Option<Step> {
+    pub fn previous(self) -> Option<Screen> {
         let position = Self::ALL
             .iter()
             .copied()
-            .position(|step| step == self)
-            .expect("Step must exist");
+            .position(|screen| screen == self)
+            .expect("Screen must exist");
 
         if position > 0 {
             Some(Self::ALL[position - 1])
@@ -632,7 +632,7 @@ pub enum Layout {
 impl Default for Tour {
     fn default() -> Self {
         Self {
-            step: Step::Welcome,
+            screen: Screen::Welcome,
             slider: 50,
             layout: Layout::Row,
             spacing: 20,
