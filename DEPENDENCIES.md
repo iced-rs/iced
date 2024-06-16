@@ -25,6 +25,10 @@ pkgs.mkShell rec {
     xorg.libXcursor
     xorg.libXi
     xorg.libXrandr
+
+    wayland
+    wayland.dev
+    libxkbcommon
   ];
 
   LD_LIBRARY_PATH =
