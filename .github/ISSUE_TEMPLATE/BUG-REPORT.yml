@@ -12,13 +12,11 @@ body:
       description: |
         This issue tracker is for __BUG REPORTS ONLY__.
 
-        It's obvious, right? This is a bug report form, after all! Still, some crazy users seem to forcefully fill
-        out this form just to ask questions and request features.
+        It's obvious, right? This is a bug report form, after all! Still, some crazy users seem to forcefully fill out this form just to ask questions and request features.
 
         The core team does not appreciate that. Don't do it.
 
-        If you want to ask a question or request a feature, please [go back here](https://github.com/iced-rs/iced/issues/new/choose)
-        and read carefully.
+        If you want to ask a question or request a feature, please [go back here](https://github.com/iced-rs/iced/issues/new/choose) and read carefully.
       options:
       - label: My issue is indeed a bug!
         required: true
