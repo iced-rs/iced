@@ -21,190 +21,27 @@ pub fn main() -> iced::Result {
         .run()
 }
 
-#[derive(Default)]
 pub struct Tour {
-    steps: Steps,
+    step: Step,
+    slider: u8,
+    layout: Layout,
+    spacing: u16,
+    text_size: u16,
+    text_color: Color,
+    language: Option<Language>,
+    toggler: bool,
+    image_width: u16,
+    image_filter_method: image::FilterMethod,
+    input_value: String,
+    input_is_secure: bool,
+    input_is_showing_icon: bool,
     debug: bool,
-}
-
-impl Tour {
-    fn title(&self) -> String {
-        format!("{} - Iced", self.steps.title())
-    }
-
-    fn update(&mut self, event: Message) {
-        match event {
-            Message::BackPressed => {
-                self.steps.go_back();
-            }
-            Message::NextPressed => {
-                self.steps.advance();
-            }
-            Message::StepMessage(step_msg) => {
-                self.steps.update(step_msg, &mut self.debug);
-            }
-        }
-    }
-
-    fn view(&self) -> Element<Message> {
-        let Tour { steps, .. } = self;
-
-        let controls =
-            row![]
-                .push_maybe(steps.has_previous().then(|| {
-                    padded_button("Back")
-                        .on_press(Message::BackPressed)
-                        .style(button::secondary)
-                }))
-                .push(horizontal_space())
-                .push_maybe(steps.can_continue().then(|| {
-                    padded_button("Next").on_press(Message::NextPressed)
-                }));
-
-        let content: Element<_> = column![
-            steps.view(self.debug).map(Message::StepMessage),
-            controls,
-        ]
-        .max_width(540)
-        .spacing(20)
-        .padding(20)
-        .into();
-
-        let scrollable = scrollable(
-            container(if self.debug {
-                content.explain(Color::BLACK)
-            } else {
-                content
-            })
-            .center_x(Length::Fill),
-        );
-
-        container(scrollable).center_y(Length::Fill).into()
-    }
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     BackPressed,
     NextPressed,
-    StepMessage(StepMessage),
-}
-
-struct Steps {
-    steps: Vec<Step>,
-    current: usize,
-}
-
-impl Steps {
-    fn new() -> Steps {
-        Steps {
-            steps: vec![
-                Step::Welcome,
-                Step::Slider { value: 50 },
-                Step::RowsAndColumns {
-                    layout: Layout::Row,
-                    spacing: 20,
-                },
-                Step::Text {
-                    size: 30,
-                    color: Color::BLACK,
-                },
-                Step::Radio { selection: None },
-                Step::Toggler {
-                    can_continue: false,
-                },
-                Step::Image {
-                    width: 300,
-                    filter_method: image::FilterMethod::Linear,
-                },
-                Step::Scrollable,
-                Step::TextInput {
-                    value: String::new(),
-                    is_secure: false,
-                    is_showing_icon: false,
-                },
-                Step::Debugger,
-                Step::End,
-            ],
-            current: 0,
-        }
-    }
-
-    fn update(&mut self, msg: StepMessage, debug: &mut bool) {
-        self.steps[self.current].update(msg, debug);
-    }
-
-    fn view(&self, debug: bool) -> Element<StepMessage> {
-        self.steps[self.current].view(debug)
-    }
-
-    fn advance(&mut self) {
-        if self.can_continue() {
-            self.current += 1;
-        }
-    }
-
-    fn go_back(&mut self) {
-        if self.has_previous() {
-            self.current -= 1;
-        }
-    }
-
-    fn has_previous(&self) -> bool {
-        self.current > 0
-    }
-
-    fn can_continue(&self) -> bool {
-        self.current + 1 < self.steps.len()
-            && self.steps[self.current].can_continue()
-    }
-
-    fn title(&self) -> &str {
-        self.steps[self.current].title()
-    }
-}
-
-impl Default for Steps {
-    fn default() -> Self {
-        Steps::new()
-    }
-}
-
-enum Step {
-    Welcome,
-    Slider {
-        value: u8,
-    },
-    RowsAndColumns {
-        layout: Layout,
-        spacing: u16,
-    },
-    Text {
-        size: u16,
-        color: Color,
-    },
-    Radio {
-        selection: Option<Language>,
-    },
-    Toggler {
-        can_continue: bool,
-    },
-    Image {
-        width: u16,
-        filter_method: image::FilterMethod,
-    },
-    Scrollable,
-    TextInput {
-        value: String,
-        is_secure: bool,
-        is_showing_icon: bool,
-    },
-    Debugger,
-    End,
-}
-
-#[derive(Debug, Clone)]
-pub enum StepMessage {
     SliderChanged(u8),
     LayoutChanged(Layout),
     SpacingChanged(u16),
@@ -220,147 +57,145 @@ pub enum StepMessage {
     TogglerChanged(bool),
 }
 
-impl<'a> Step {
-    fn update(&mut self, msg: StepMessage, debug: &mut bool) {
-        match msg {
-            StepMessage::DebugToggled(value) => {
-                if let Step::Debugger = self {
-                    *debug = value;
-                }
-            }
-            StepMessage::LanguageSelected(language) => {
-                if let Step::Radio { selection } = self {
-                    *selection = Some(language);
-                }
-            }
-            StepMessage::SliderChanged(new_value) => {
-                if let Step::Slider { value, .. } = self {
-                    *value = new_value;
-                }
-            }
-            StepMessage::TextSizeChanged(new_size) => {
-                if let Step::Text { size, .. } = self {
-                    *size = new_size;
-                }
-            }
-            StepMessage::TextColorChanged(new_color) => {
-                if let Step::Text { color, .. } = self {
-                    *color = new_color;
-                }
-            }
-            StepMessage::LayoutChanged(new_layout) => {
-                if let Step::RowsAndColumns { layout, .. } = self {
-                    *layout = new_layout;
-                }
-            }
-            StepMessage::SpacingChanged(new_spacing) => {
-                if let Step::RowsAndColumns { spacing, .. } = self {
-                    *spacing = new_spacing;
-                }
-            }
-            StepMessage::ImageWidthChanged(new_width) => {
-                if let Step::Image { width, .. } = self {
-                    *width = new_width;
-                }
-            }
-            StepMessage::ImageUseNearestToggled(use_nearest) => {
-                if let Step::Image { filter_method, .. } = self {
-                    *filter_method = if use_nearest {
-                        image::FilterMethod::Nearest
-                    } else {
-                        image::FilterMethod::Linear
-                    };
-                }
-            }
-            StepMessage::InputChanged(new_value) => {
-                if let Step::TextInput { value, .. } = self {
-                    *value = new_value;
-                }
-            }
-            StepMessage::ToggleSecureInput(toggle) => {
-                if let Step::TextInput { is_secure, .. } = self {
-                    *is_secure = toggle;
-                }
-            }
-            StepMessage::TogglerChanged(value) => {
-                if let Step::Toggler { can_continue, .. } = self {
-                    *can_continue = value;
-                }
-            }
-            StepMessage::ToggleTextInputIcon(toggle) => {
-                if let Step::TextInput {
-                    is_showing_icon, ..
-                } = self
-                {
-                    *is_showing_icon = toggle;
-                }
-            }
-        };
-    }
-
-    fn title(&self) -> &str {
-        match self {
+impl Tour {
+    fn title(&self) -> String {
+        let screen = match self.step {
             Step::Welcome => "Welcome",
-            Step::Radio { .. } => "Radio button",
-            Step::Toggler { .. } => "Toggler",
-            Step::Slider { .. } => "Slider",
-            Step::Text { .. } => "Text",
-            Step::Image { .. } => "Image",
-            Step::RowsAndColumns { .. } => "Rows and columns",
+            Step::Radio => "Radio button",
+            Step::Toggler => "Toggler",
+            Step::Slider => "Slider",
+            Step::Text => "Text",
+            Step::Image => "Image",
+            Step::RowsAndColumns => "Rows and columns",
             Step::Scrollable => "Scrollable",
-            Step::TextInput { .. } => "Text input",
+            Step::TextInput => "Text input",
             Step::Debugger => "Debugger",
             Step::End => "End",
+        };
+
+        format!("{} - Iced", screen)
+    }
+
+    fn update(&mut self, event: Message) {
+        match event {
+            Message::BackPressed => {
+                if let Some(step) = self.step.previous() {
+                    self.step = step;
+                }
+            }
+            Message::NextPressed => {
+                if let Some(step) = self.step.next() {
+                    self.step = step;
+                }
+            }
+            Message::SliderChanged(value) => {
+                self.slider = value;
+            }
+            Message::LayoutChanged(layout) => {
+                self.layout = layout;
+            }
+            Message::SpacingChanged(spacing) => {
+                self.spacing = spacing;
+            }
+            Message::TextSizeChanged(text_size) => {
+                self.text_size = text_size;
+            }
+            Message::TextColorChanged(text_color) => {
+                self.text_color = text_color;
+            }
+            Message::LanguageSelected(language) => {
+                self.language = Some(language);
+            }
+            Message::ImageWidthChanged(image_width) => {
+                self.image_width = image_width;
+            }
+            Message::ImageUseNearestToggled(use_nearest) => {
+                self.image_filter_method = if use_nearest {
+                    image::FilterMethod::Nearest
+                } else {
+                    image::FilterMethod::Linear
+                };
+            }
+            Message::InputChanged(input_value) => {
+                self.input_value = input_value;
+            }
+            Message::ToggleSecureInput(is_secure) => {
+                self.input_is_secure = is_secure;
+            }
+            Message::ToggleTextInputIcon(show_icon) => {
+                self.input_is_showing_icon = show_icon;
+            }
+            Message::DebugToggled(debug) => {
+                self.debug = debug;
+            }
+            Message::TogglerChanged(toggler) => {
+                self.toggler = toggler;
+            }
         }
     }
 
+    fn view(&self) -> Element<Message> {
+        let controls =
+            row![]
+                .push_maybe(self.step.previous().is_some().then(|| {
+                    padded_button("Back")
+                        .on_press(Message::BackPressed)
+                        .style(button::secondary)
+                }))
+                .push(horizontal_space())
+                .push_maybe(self.can_continue().then(|| {
+                    padded_button("Next").on_press(Message::NextPressed)
+                }));
+
+        let screen = match self.step {
+            Step::Welcome => self.welcome(),
+            Step::Radio => self.radio(),
+            Step::Toggler => self.toggler(),
+            Step::Slider => self.slider(),
+            Step::Text => self.text(),
+            Step::Image => self.image(),
+            Step::RowsAndColumns => self.rows_and_columns(),
+            Step::Scrollable => self.scrollable(),
+            Step::TextInput => self.text_input(),
+            Step::Debugger => self.debugger(),
+            Step::End => self.end(),
+        };
+
+        let content: Element<_> = column![screen, controls,]
+            .max_width(540)
+            .spacing(20)
+            .padding(20)
+            .into();
+
+        let scrollable = scrollable(
+            container(if self.debug {
+                content.explain(Color::BLACK)
+            } else {
+                content
+            })
+            .center_x(Length::Fill),
+        );
+
+        container(scrollable).center_y(Length::Fill).into()
+    }
+
     fn can_continue(&self) -> bool {
-        match self {
+        match self.step {
             Step::Welcome => true,
-            Step::Radio { selection } => *selection == Some(Language::Rust),
-            Step::Toggler { can_continue } => *can_continue,
-            Step::Slider { .. } => true,
-            Step::Text { .. } => true,
-            Step::Image { .. } => true,
-            Step::RowsAndColumns { .. } => true,
+            Step::Radio => self.language == Some(Language::Rust),
+            Step::Toggler => self.toggler,
+            Step::Slider => true,
+            Step::Text => true,
+            Step::Image => true,
+            Step::RowsAndColumns => true,
             Step::Scrollable => true,
-            Step::TextInput { value, .. } => !value.is_empty(),
+            Step::TextInput => !self.input_value.is_empty(),
             Step::Debugger => true,
             Step::End => false,
         }
     }
 
-    fn view(&self, debug: bool) -> Element<StepMessage> {
-        match self {
-            Step::Welcome => Self::welcome(),
-            Step::Radio { selection } => Self::radio(*selection),
-            Step::Toggler { can_continue } => Self::toggler(*can_continue),
-            Step::Slider { value } => Self::slider(*value),
-            Step::Text { size, color } => Self::text(*size, *color),
-            Step::Image {
-                width,
-                filter_method,
-            } => Self::image(*width, *filter_method),
-            Step::RowsAndColumns { layout, spacing } => {
-                Self::rows_and_columns(*layout, *spacing)
-            }
-            Step::Scrollable => Self::scrollable(),
-            Step::TextInput {
-                value,
-                is_secure,
-                is_showing_icon,
-            } => Self::text_input(value, *is_secure, *is_showing_icon),
-            Step::Debugger => Self::debugger(debug),
-            Step::End => Self::end(),
-        }
-        .into()
-    }
-
-    fn container(title: &str) -> Column<'_, StepMessage> {
-        column![text(title).size(50)].spacing(20)
-    }
-
-    fn welcome() -> Column<'a, StepMessage> {
+    fn welcome(&self) -> Column<Message> {
         Self::container("Welcome!")
             .push(
                 "This is a simple tour meant to showcase a bunch of widgets \
@@ -389,7 +224,7 @@ impl<'a> Step {
             )
     }
 
-    fn slider(value: u8) -> Column<'a, StepMessage> {
+    fn slider(&self) -> Column<Message> {
         Self::container("Slider")
             .push(
                 "A slider allows you to smoothly select a value from a range \
@@ -399,47 +234,48 @@ impl<'a> Step {
                 "The following slider lets you choose an integer from \
                  0 to 100:",
             )
-            .push(slider(0..=100, value, StepMessage::SliderChanged))
+            .push(slider(0..=100, self.slider, Message::SliderChanged))
             .push(
-                text(value.to_string())
+                text(self.slider.to_string())
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
     }
 
-    fn rows_and_columns(
-        layout: Layout,
-        spacing: u16,
-    ) -> Column<'a, StepMessage> {
-        let row_radio =
-            radio("Row", Layout::Row, Some(layout), StepMessage::LayoutChanged);
+    fn rows_and_columns(&self) -> Column<Message> {
+        let row_radio = radio(
+            "Row",
+            Layout::Row,
+            Some(self.layout),
+            Message::LayoutChanged,
+        );
 
         let column_radio = radio(
             "Column",
             Layout::Column,
-            Some(layout),
-            StepMessage::LayoutChanged,
+            Some(self.layout),
+            Message::LayoutChanged,
         );
 
-        let layout_section: Element<_> = match layout {
+        let layout_section: Element<_> = match self.layout {
             Layout::Row => {
-                row![row_radio, column_radio].spacing(spacing).into()
+                row![row_radio, column_radio].spacing(self.spacing).into()
             }
-            Layout::Column => {
-                column![row_radio, column_radio].spacing(spacing).into()
-            }
+            Layout::Column => column![row_radio, column_radio]
+                .spacing(self.spacing)
+                .into(),
         };
 
         let spacing_section = column![
-            slider(0..=80, spacing, StepMessage::SpacingChanged),
-            text!("{spacing} px")
+            slider(0..=80, self.spacing, Message::SpacingChanged),
+            text!("{} px", self.spacing)
                 .width(Length::Fill)
                 .horizontal_alignment(alignment::Horizontal::Center),
         ]
         .spacing(10);
 
         Self::container("Rows and columns")
-            .spacing(spacing)
+            .spacing(self.spacing)
             .push(
                 "Iced uses a layout model based on flexbox to position UI \
                  elements.",
@@ -453,11 +289,14 @@ impl<'a> Step {
             .push(spacing_section)
     }
 
-    fn text(size: u16, color: Color) -> Column<'a, StepMessage> {
+    fn text(&self) -> Column<Message> {
+        let size = self.text_size;
+        let color = self.text_color;
+
         let size_section = column![
             "You can change its size:",
             text!("This text is {size} pixels").size(size),
-            slider(10..=70, size, StepMessage::TextSizeChanged),
+            slider(10..=70, size, Message::TextSizeChanged),
         ]
         .padding(20)
         .spacing(20);
@@ -486,7 +325,7 @@ impl<'a> Step {
             .push(color_section)
     }
 
-    fn radio(selection: Option<Language>) -> Column<'a, StepMessage> {
+    fn radio(&self) -> Column<Message> {
         let question = column![
             text("Iced is written in...").size(24),
             column(
@@ -497,8 +336,8 @@ impl<'a> Step {
                         radio(
                             language,
                             language,
-                            selection,
-                            StepMessage::LanguageSelected,
+                            self.language,
+                            Message::LanguageSelected,
                         )
                     })
                     .map(Element::from)
@@ -521,27 +360,27 @@ impl<'a> Step {
             )
     }
 
-    fn toggler(can_continue: bool) -> Column<'a, StepMessage> {
+    fn toggler(&self) -> Column<Message> {
         Self::container("Toggler")
             .push("A toggler is mostly used to enable or disable something.")
             .push(
                 Container::new(toggler(
                     "Toggle me to continue...".to_owned(),
-                    can_continue,
-                    StepMessage::TogglerChanged,
+                    self.toggler,
+                    Message::TogglerChanged,
                 ))
                 .padding([0, 40]),
             )
     }
 
-    fn image(
-        width: u16,
-        filter_method: image::FilterMethod,
-    ) -> Column<'a, StepMessage> {
+    fn image(&self) -> Column<Message> {
+        let width = self.image_width;
+        let filter_method = self.image_filter_method;
+
         Self::container("Image")
             .push("An image that tries to keep its aspect ratio.")
             .push(ferris(width, filter_method))
-            .push(slider(100..=500, width, StepMessage::ImageWidthChanged))
+            .push(slider(100..=500, width, Message::ImageWidthChanged))
             .push(
                 text!("Width: {width} px")
                     .width(Length::Fill)
@@ -552,12 +391,12 @@ impl<'a> Step {
                     "Use nearest interpolation",
                     filter_method == image::FilterMethod::Nearest,
                 )
-                .on_toggle(StepMessage::ImageUseNearestToggled),
+                .on_toggle(Message::ImageUseNearestToggled),
             )
             .align_items(Alignment::Center)
     }
 
-    fn scrollable() -> Column<'a, StepMessage> {
+    fn scrollable(&self) -> Column<Message> {
         Self::container("Scrollable")
             .push(
                 "Iced supports scrollable content. Try it out! Find the \
@@ -584,13 +423,13 @@ impl<'a> Step {
             )
     }
 
-    fn text_input(
-        value: &str,
-        is_secure: bool,
-        is_showing_icon: bool,
-    ) -> Column<'_, StepMessage> {
+    fn text_input(&self) -> Column<Message> {
+        let value = &self.input_value;
+        let is_secure = self.input_is_secure;
+        let is_showing_icon = self.input_is_showing_icon;
+
         let mut text_input = text_input("Type something to continue...", value)
-            .on_input(StepMessage::InputChanged)
+            .on_input(Message::InputChanged)
             .padding(10)
             .size(30);
 
@@ -609,11 +448,11 @@ impl<'a> Step {
             .push(text_input.secure(is_secure))
             .push(
                 checkbox("Enable password mode", is_secure)
-                    .on_toggle(StepMessage::ToggleSecureInput),
+                    .on_toggle(Message::ToggleSecureInput),
             )
             .push(
                 checkbox("Show icon", is_showing_icon)
-                    .on_toggle(StepMessage::ToggleTextInputIcon),
+                    .on_toggle(Message::ToggleTextInputIcon),
             )
             .push(
                 "A text input produces a message every time it changes. It is \
@@ -630,7 +469,7 @@ impl<'a> Step {
             )
     }
 
-    fn debugger(debug: bool) -> Column<'a, StepMessage> {
+    fn debugger(&self) -> Column<Message> {
         Self::container("Debugger")
             .push(
                 "You can ask Iced to visually explain the layouting of the \
@@ -641,23 +480,85 @@ impl<'a> Step {
                  see element boundaries.",
             )
             .push(
-                checkbox("Explain layout", debug)
-                    .on_toggle(StepMessage::DebugToggled),
+                checkbox("Explain layout", self.debug)
+                    .on_toggle(Message::DebugToggled),
             )
             .push("Feel free to go back and take a look.")
     }
 
-    fn end() -> Column<'a, StepMessage> {
+    fn end(&self) -> Column<Message> {
         Self::container("You reached the end!")
             .push("This tour will be updated as more features are added.")
             .push("Make sure to keep an eye on it!")
+    }
+
+    fn container(title: &str) -> Column<'_, Message> {
+        column![text(title).size(50)].spacing(20)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Step {
+    Welcome,
+    Slider,
+    RowsAndColumns,
+    Text,
+    Radio,
+    Toggler,
+    Image,
+    Scrollable,
+    TextInput,
+    Debugger,
+    End,
+}
+
+impl Step {
+    const ALL: &'static [Self] = &[
+        Self::Welcome,
+        Self::Slider,
+        Self::RowsAndColumns,
+        Self::Text,
+        Self::Radio,
+        Self::Toggler,
+        Self::Image,
+        Self::Scrollable,
+        Self::TextInput,
+        Self::Debugger,
+        Self::End,
+    ];
+
+    pub fn next(self) -> Option<Step> {
+        Self::ALL
+            .get(
+                Self::ALL
+                    .iter()
+                    .copied()
+                    .position(|step| step == self)
+                    .expect("Step must exist")
+                    + 1,
+            )
+            .copied()
+    }
+
+    pub fn previous(self) -> Option<Step> {
+        let position = Self::ALL
+            .iter()
+            .copied()
+            .position(|step| step == self)
+            .expect("Step must exist");
+
+        if position > 0 {
+            Some(Self::ALL[position - 1])
+        } else {
+            None
+        }
     }
 }
 
 fn ferris<'a>(
     width: u16,
     filter_method: image::FilterMethod,
-) -> Container<'a, StepMessage> {
+) -> Container<'a, Message> {
     container(
         // This should go away once we unify resource loading on native
         // platforms
@@ -679,9 +580,9 @@ fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {
 fn color_slider<'a>(
     component: f32,
     update: impl Fn(f32) -> Color + 'a,
-) -> Slider<'a, f64, StepMessage> {
+) -> Slider<'a, f64, Message> {
     slider(0.0..=1.0, f64::from(component), move |c| {
-        StepMessage::TextColorChanged(update(c as f32))
+        Message::TextColorChanged(update(c as f32))
     })
     .step(0.01)
 }
@@ -726,4 +627,25 @@ impl From<Language> for String {
 pub enum Layout {
     Row,
     Column,
+}
+
+impl Default for Tour {
+    fn default() -> Self {
+        Self {
+            step: Step::Welcome,
+            slider: 50,
+            layout: Layout::Row,
+            spacing: 20,
+            text_size: 30,
+            text_color: Color::BLACK,
+            language: None,
+            toggler: false,
+            image_width: 300,
+            image_filter_method: image::FilterMethod::Linear,
+            input_value: String::new(),
+            input_is_secure: false,
+            input_is_showing_icon: false,
+            debug: false,
+        }
+    }
 }
