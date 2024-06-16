@@ -12,7 +12,7 @@ use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::rule::{self, Rule};
-use crate::runtime::Command;
+use crate::runtime::{Action, Task};
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
 use crate::text::{self, Text};
@@ -275,7 +275,7 @@ where
             state: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn operation::Operation<Message>,
+            operation: &mut dyn operation::Operation<()>,
         ) {
             self.content
                 .as_widget()
@@ -477,7 +477,7 @@ where
             tree: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn operation::Operation<Message>,
+            operation: &mut dyn operation::Operation<()>,
         ) {
             let children = [&self.base, &self.top]
                 .into_iter()
@@ -929,19 +929,13 @@ where
 }
 
 /// Focuses the previous focusable widget.
-pub fn focus_previous<Message>() -> Command<Message>
-where
-    Message: 'static,
-{
-    Command::widget(operation::focusable::focus_previous())
+pub fn focus_previous<T>() -> Task<T> {
+    Task::effect(Action::widget(operation::focusable::focus_previous()))
 }
 
 /// Focuses the next focusable widget.
-pub fn focus_next<Message>() -> Command<Message>
-where
-    Message: 'static,
-{
-    Command::widget(operation::focusable::focus_next())
+pub fn focus_next<T>() -> Task<T> {
+    Task::effect(Action::widget(operation::focusable::focus_next()))
 }
 
 /// A container intercepting mouse events.

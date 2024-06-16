@@ -4,7 +4,7 @@ use iced::keyboard::key;
 use iced::widget::{
     self, button, center, column, pick_list, row, slider, text, text_input,
 };
-use iced::{Alignment, Command, Element, Length, Subscription};
+use iced::{Alignment, Element, Length, Subscription, Task};
 
 use toast::{Status, Toast};
 
@@ -49,7 +49,7 @@ impl App {
         event::listen().map(Message::Event)
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Add => {
                 if !self.editing.title.is_empty()
@@ -57,27 +57,27 @@ impl App {
                 {
                     self.toasts.push(std::mem::take(&mut self.editing));
                 }
-                Command::none()
+                Task::none()
             }
             Message::Close(index) => {
                 self.toasts.remove(index);
-                Command::none()
+                Task::none()
             }
             Message::Title(title) => {
                 self.editing.title = title;
-                Command::none()
+                Task::none()
             }
             Message::Body(body) => {
                 self.editing.body = body;
-                Command::none()
+                Task::none()
             }
             Message::Status(status) => {
                 self.editing.status = status;
-                Command::none()
+                Task::none()
             }
             Message::Timeout(timeout) => {
                 self.timeout_secs = timeout as u64;
-                Command::none()
+                Task::none()
             }
             Message::Event(Event::Keyboard(keyboard::Event::KeyPressed {
                 key: keyboard::Key::Named(key::Named::Tab),
@@ -88,7 +88,7 @@ impl App {
                 key: keyboard::Key::Named(key::Named::Tab),
                 ..
             })) => widget::focus_next(),
-            Message::Event(_) => Command::none(),
+            Message::Event(_) => Task::none(),
         }
     }
 
@@ -347,7 +347,7 @@ mod toast {
             state: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn Operation<Message>,
+            operation: &mut dyn Operation<()>,
         ) {
             operation.container(None, layout.bounds(), &mut |operation| {
                 self.content.as_widget().operate(
@@ -589,7 +589,7 @@ mod toast {
             &mut self,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn widget::Operation<Message>,
+            operation: &mut dyn widget::Operation<()>,
         ) {
             operation.container(None, layout.bounds(), &mut |operation| {
                 self.toasts

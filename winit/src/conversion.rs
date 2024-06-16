@@ -73,11 +73,7 @@ pub fn window_attributes(
     #[cfg(target_os = "windows")]
     {
         use winit::platform::windows::WindowAttributesExtWindows;
-        #[allow(unsafe_code)]
-        unsafe {
-            attributes = attributes
-                .with_parent_window(settings.platform_specific.parent);
-        }
+
         attributes = attributes
             .with_drag_and_drop(settings.platform_specific.drag_and_drop);
 

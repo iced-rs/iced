@@ -33,8 +33,5 @@ web-time.workspace = true
 dark-light.workspace = true
 dark-light.optional = true
 
-[target.'cfg(windows)'.dependencies]
-raw-window-handle.workspace = true
-
 [dev-dependencies]
 approx = "0.5"

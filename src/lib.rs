@@ -203,6 +203,7 @@ pub use crate::core::{
     Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Shadow, Size,
     Theme, Transformation, Vector,
 };
+pub use crate::runtime::Task;
 
 pub mod clipboard {
     //! Access the clipboard.
@@ -256,11 +257,6 @@ pub mod mouse {
     };
 }
 
-pub mod command {
-    //! Run asynchronous actions.
-    pub use crate::runtime::command::{channel, Command};
-}
-
 pub mod subscription {
     //! Listen to external events in your application.
     pub use iced_futures::subscription::{
@@ -312,7 +308,6 @@ pub mod widget {
     mod runtime {}
 }
 
-pub use command::Command;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;

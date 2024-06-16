@@ -15,7 +15,7 @@ use crate::core::{
     self, Background, Border, Clipboard, Color, Element, Layout, Length,
     Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
-use crate::runtime::Command;
+use crate::runtime::{Action, Task};
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
@@ -295,7 +295,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<()>,
     ) {
         let state = tree.state.downcast_mut::<State>();
 
@@ -952,22 +952,18 @@ impl From<Id> for widget::Id {
     }
 }
 
-/// Produces a [`Command`] that snaps the [`Scrollable`] with the given [`Id`]
+/// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`Id`]
 /// to the provided `percentage` along the x & y axis.
-pub fn snap_to<Message: 'static>(
-    id: Id,
-    offset: RelativeOffset,
-) -> Command<Message> {
-    Command::widget(operation::scrollable::snap_to(id.0, offset))
+pub fn snap_to<T>(id: Id, offset: RelativeOffset) -> Task<T> {
+    Task::effect(Action::widget(operation::scrollable::snap_to(id.0, offset)))
 }
 
-/// Produces a [`Command`] that scrolls the [`Scrollable`] with the given [`Id`]
+/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
 /// to the provided [`AbsoluteOffset`] along the x & y axis.
-pub fn scroll_to<Message: 'static>(
-    id: Id,
-    offset: AbsoluteOffset,
-) -> Command<Message> {
-    Command::widget(operation::scrollable::scroll_to(id.0, offset))
+pub fn scroll_to<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
+    Task::effect(Action::widget(operation::scrollable::scroll_to(
+        id.0, offset,
+    )))
 }
 
 /// Returns [`true`] if the viewport actually changed.

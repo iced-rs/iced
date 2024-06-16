@@ -1,7 +1,5 @@
 //! Load and use fonts.
-pub use iced_core::font::*;
-
-use crate::command::{self, Command};
+use crate::{Action, Task};
 use std::borrow::Cow;
 
 /// An error while loading a font.
@@ -9,11 +7,9 @@ use std::borrow::Cow;
 pub enum Error {}
 
 /// Load a font from its bytes.
-pub fn load(
-    bytes: impl Into<Cow<'static, [u8]>>,
-) -> Command<Result<(), Error>> {
-    Command::single(command::Action::LoadFont {
+pub fn load(bytes: impl Into<Cow<'static, [u8]>>) -> Task<Result<(), Error>> {
+    Task::oneshot(|channel| Action::LoadFont {
         bytes: bytes.into(),
-        tagger: Box::new(std::convert::identity),
+        channel,
     })
 }

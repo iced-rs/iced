@@ -8,7 +8,7 @@ jobs:
     steps:
     - uses: hecrj/setup-rust-action@v2
       with:
-        rust-version: nightly-2023-12-11
+        rust-version: nightly
     - uses: actions/checkout@v2
     - name: Generate documentation
       run: |
