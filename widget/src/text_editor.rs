@@ -466,6 +466,12 @@ where
                 shell.publish(on_edit(action));
             }
             Update::Scroll(lines) => {
+                let bounds = self.content.0.borrow().editor.bounds();
+
+                if bounds.height >= i32::MAX as f32 {
+                    return event::Status::Ignored;
+                }
+
                 let lines = lines + state.partial_scroll;
                 state.partial_scroll = lines.fract();
 
