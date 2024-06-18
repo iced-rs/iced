@@ -2,7 +2,7 @@ use iced_wgpu::Renderer;
 use iced_widget::{column, container, row, slider, text, text_input};
 use iced_winit::core::alignment;
 use iced_winit::core::{Color, Element, Length, Theme};
-use iced_winit::runtime::{Command, Program};
+use iced_winit::runtime::{Program, Task};
 
 pub struct Controls {
     background_color: Color,
@@ -33,7 +33,7 @@ impl Program for Controls {
     type Message = Message;
     type Renderer = Renderer;
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::BackgroundColorChanged(color) => {
                 self.background_color = color;
@@ -43,7 +43,7 @@ impl Program for Controls {
             }
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<Message, Theme, Renderer> {
@@ -78,9 +78,7 @@ impl Program for Controls {
         container(
             column![
                 text("Background color").color(Color::WHITE),
-                text(format!("{background_color:?}"))
-                    .size(14)
-                    .color(Color::WHITE),
+                text!("{background_color:?}").size(14).color(Color::WHITE),
                 text_input("Placeholder", &self.input)
                     .on_input(Message::InputChanged),
                 sliders,

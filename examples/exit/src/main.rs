@@ -1,6 +1,6 @@
 use iced::widget::{button, center, column};
 use iced::window;
-use iced::{Alignment, Command, Element};
+use iced::{Alignment, Element, Task};
 
 pub fn main() -> iced::Result {
     iced::program("Exit - Iced", Exit::update, Exit::view).run()
@@ -18,13 +18,13 @@ enum Message {
 }
 
 impl Exit {
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Confirm => window::close(window::Id::MAIN),
             Message::Exit => {
                 self.show_confirm = true;
 
-                Command::none()
+                Task::none()
             }
         }
     }

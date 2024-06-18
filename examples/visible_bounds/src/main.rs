@@ -5,8 +5,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Alignment, Color, Command, Element, Font, Length, Point, Rectangle,
-    Subscription, Theme,
+    Alignment, Color, Element, Font, Length, Point, Rectangle, Subscription,
+    Task, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -33,14 +33,14 @@ enum Message {
 }
 
 impl Example {
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::MouseMoved(position) => {
                 self.mouse_position = Some(position);
 
-                Command::none()
+                Task::none()
             }
-            Message::Scrolled | Message::WindowResized => Command::batch(vec![
+            Message::Scrolled | Message::WindowResized => Task::batch(vec![
                 container::visible_bounds(OUTER_CONTAINER.clone())
                     .map(Message::OuterBoundsFetched),
                 container::visible_bounds(INNER_CONTAINER.clone())
@@ -49,12 +49,12 @@ impl Example {
             Message::OuterBoundsFetched(outer_bounds) => {
                 self.outer_bounds = outer_bounds;
 
-                Command::none()
+                Task::none()
             }
             Message::InnerBoundsFetched(inner_bounds) => {
                 self.inner_bounds = inner_bounds;
 
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -145,11 +145,11 @@ impl Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        event::listen_with(|event, _| match event {
+        event::listen_with(|event, _status, _window| match event {
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 Some(Message::MouseMoved(position))
             }
-            Event::Window(_, window::Event::Resized { .. }) => {
+            Event::Window(window::Event::Resized { .. }) => {
                 Some(Message::WindowResized)
             }
             _ => None,

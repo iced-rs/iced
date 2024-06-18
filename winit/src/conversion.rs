@@ -73,11 +73,7 @@ pub fn window_attributes(
     #[cfg(target_os = "windows")]
     {
         use winit::platform::windows::WindowAttributesExtWindows;
-        #[allow(unsafe_code)]
-        unsafe {
-            attributes = attributes
-                .with_parent_window(settings.platform_specific.parent);
-        }
+
         attributes = attributes
             .with_drag_and_drop(settings.platform_specific.drag_and_drop);
 
@@ -126,7 +122,6 @@ pub fn window_attributes(
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
-    id: window::Id,
     event: winit::event::WindowEvent,
     scale_factor: f64,
     modifiers: winit::keyboard::ModifiersState,
@@ -137,16 +132,13 @@ pub fn window_event(
         WindowEvent::Resized(new_size) => {
             let logical_size = new_size.to_logical(scale_factor);
 
-            Some(Event::Window(
-                id,
-                window::Event::Resized {
-                    width: logical_size.width,
-                    height: logical_size.height,
-                },
-            ))
+            Some(Event::Window(window::Event::Resized {
+                width: logical_size.width,
+                height: logical_size.height,
+            }))
         }
         WindowEvent::CloseRequested => {
-            Some(Event::Window(id, window::Event::CloseRequested))
+            Some(Event::Window(window::Event::CloseRequested))
         }
         WindowEvent::CursorMoved { position, .. } => {
             let position = position.to_logical::<f64>(scale_factor);
@@ -264,22 +256,19 @@ pub fn window_event(
                 self::modifiers(new_modifiers.state()),
             )))
         }
-        WindowEvent::Focused(focused) => Some(Event::Window(
-            id,
-            if focused {
-                window::Event::Focused
-            } else {
-                window::Event::Unfocused
-            },
-        )),
+        WindowEvent::Focused(focused) => Some(Event::Window(if focused {
+            window::Event::Focused
+        } else {
+            window::Event::Unfocused
+        })),
         WindowEvent::HoveredFile(path) => {
-            Some(Event::Window(id, window::Event::FileHovered(path.clone())))
+            Some(Event::Window(window::Event::FileHovered(path.clone())))
         }
         WindowEvent::DroppedFile(path) => {
-            Some(Event::Window(id, window::Event::FileDropped(path.clone())))
+            Some(Event::Window(window::Event::FileDropped(path.clone())))
         }
         WindowEvent::HoveredFileCancelled => {
-            Some(Event::Window(id, window::Event::FilesHoveredLeft))
+            Some(Event::Window(window::Event::FilesHoveredLeft))
         }
         WindowEvent::Touch(touch) => {
             Some(Event::Touch(touch_event(touch, scale_factor)))
@@ -288,7 +277,7 @@ pub fn window_event(
             let winit::dpi::LogicalPosition { x, y } =
                 position.to_logical(scale_factor);
 
-            Some(Event::Window(id, window::Event::Moved { x, y }))
+            Some(Event::Window(window::Event::Moved { x, y }))
         }
         _ => None,
     }

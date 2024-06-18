@@ -4,7 +4,7 @@ use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
 use iced::{
-    Alignment, Command, ContentFit, Element, Length, Rectangle, Subscription,
+    Alignment, ContentFit, Element, Length, Rectangle, Subscription, Task,
 };
 
 use ::image as img;
@@ -34,7 +34,7 @@ struct Example {
 enum Message {
     Crop,
     Screenshot,
-    ScreenshotData(Screenshot),
+    Screenshotted(Screenshot),
     Png,
     PngSaved(Result<String, PngError>),
     XInputChanged(Option<u32>),
@@ -44,22 +44,20 @@ enum Message {
 }
 
 impl Example {
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Screenshot => {
-                return iced::window::screenshot(
-                    window::Id::MAIN,
-                    Message::ScreenshotData,
-                );
+                return iced::window::screenshot(window::Id::MAIN)
+                    .map(Message::Screenshotted);
             }
-            Message::ScreenshotData(screenshot) => {
+            Message::Screenshotted(screenshot) => {
                 self.screenshot = Some(screenshot);
             }
             Message::Png => {
                 if let Some(screenshot) = &self.screenshot {
                     self.png_saving = true;
 
-                    return Command::perform(
+                    return Task::perform(
                         save_to_png(screenshot.clone()),
                         Message::PngSaved,
                     );
@@ -103,7 +101,7 @@ impl Example {
             }
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<'_, Message> {
@@ -160,7 +158,7 @@ impl Example {
                 .push_maybe(
                     self.crop_error
                         .as_ref()
-                        .map(|error| text(format!("Crop error! \n{error}"))),
+                        .map(|error| text!("Crop error! \n{error}")),
                 )
                 .spacing(10)
                 .align_items(Alignment::Center);

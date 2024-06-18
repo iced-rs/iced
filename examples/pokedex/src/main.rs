@@ -1,6 +1,6 @@
 use iced::futures;
 use iced::widget::{self, center, column, image, row, text};
-use iced::{Alignment, Command, Element, Length};
+use iced::{Alignment, Element, Length, Task};
 
 pub fn main() -> iced::Result {
     iced::program(Pokedex::title, Pokedex::update, Pokedex::view)
@@ -25,8 +25,8 @@ enum Message {
 }
 
 impl Pokedex {
-    fn search() -> Command<Message> {
-        Command::perform(Pokemon::search(), Message::PokemonFound)
+    fn search() -> Task<Message> {
+        Task::perform(Pokemon::search(), Message::PokemonFound)
     }
 
     fn title(&self) -> String {
@@ -39,20 +39,20 @@ impl Pokedex {
         format!("{subtitle} - Pokédex")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::PokemonFound(Ok(pokemon)) => {
                 *self = Pokedex::Loaded { pokemon };
 
-                Command::none()
+                Task::none()
             }
             Message::PokemonFound(Err(_error)) => {
                 *self = Pokedex::Errored;
 
-                Command::none()
+                Task::none()
             }
             Message::Search => match self {
-                Pokedex::Loading => Command::none(),
+                Pokedex::Loading => Task::none(),
                 _ => {
                     *self = Pokedex::Loading;
 
@@ -104,9 +104,7 @@ impl Pokemon {
             column![
                 row![
                     text(&self.name).size(30).width(Length::Fill),
-                    text(format!("#{}", self.number))
-                        .size(20)
-                        .color([0.5, 0.5, 0.5]),
+                    text!("#{}", self.number).size(20).color([0.5, 0.5, 0.5]),
                 ]
                 .align_items(Alignment::Center)
                 .spacing(20),

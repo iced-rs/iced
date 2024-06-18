@@ -1,15 +1,13 @@
 //! Access the native system.
 use crate::graphics::compositor;
-use crate::runtime::command::{self, Command};
 use crate::runtime::system::{Action, Information};
+use crate::runtime::{self, Task};
 
 /// Query for available system information.
-pub fn fetch_information<Message>(
-    f: impl Fn(Information) -> Message + Send + 'static,
-) -> Command<Message> {
-    Command::single(command::Action::System(Action::QueryInformation(
-        Box::new(f),
-    )))
+pub fn fetch_information() -> Task<Information> {
+    Task::oneshot(|channel| {
+        runtime::Action::System(Action::QueryInformation(channel))
+    })
 }
 
 pub(crate) fn information(

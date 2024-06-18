@@ -144,9 +144,6 @@ impl Pipeline {
         layer: &'a Layer,
         range: Range<usize>,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = tracing::info_span!("Wgpu::Quad::Solid", "DRAW").entered();
-
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, constants, &[]);
         render_pass.set_vertex_buffer(0, layer.instances.slice(..));

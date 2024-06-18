@@ -12,7 +12,7 @@ use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::rule::{self, Rule};
-use crate::runtime::Command;
+use crate::runtime::{Action, Task};
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
 use crate::text::{self, Text};
@@ -63,6 +63,52 @@ macro_rules! stack {
     ($($x:expr),+ $(,)?) => (
         $crate::Stack::with_children([$($crate::core::Element::from($x)),+])
     );
+}
+
+/// Creates a new [`Text`] widget with the provided content.
+///
+/// [`Text`]: core::widget::Text
+///
+/// This macro uses the same syntax as [`format!`], but creates a new [`Text`] widget instead.
+///
+/// See [the formatting documentation in `std::fmt`](std::fmt)
+/// for details of the macro argument syntax.
+///
+/// # Examples
+///
+/// ```no_run
+/// # mod iced {
+/// #     pub struct Element<Message>(pub std::marker::PhantomData<Message>);
+/// #     pub mod widget {
+/// #         macro_rules! text {
+/// #           ($($arg:tt)*) => {unimplemented!()}
+/// #         }
+/// #         pub(crate) use text;
+/// #     }
+/// # }
+/// # struct Example;
+/// # enum Message {}
+/// use iced::Element;
+/// use iced::widget::text;
+///
+/// impl Example {
+///     fn view(&self) -> Element<Message> {
+///         let simple = text!("Hello, world!");
+///
+///         let keyword = text!("Hello, {}", "world!");
+///
+///         let planet = "Earth";
+///         let local_variable = text!("Hello, {planet}!");
+///         // ...
+///         # iced::Element(std::marker::PhantomData)
+///     }
+/// }
+/// ```
+#[macro_export]
+macro_rules! text {
+    ($($arg:tt)*) => {
+        $crate::Text::new(format!($($arg)*))
+    };
 }
 
 /// Creates a new [`Container`] with the provided content.
@@ -229,7 +275,7 @@ where
             state: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn operation::Operation<Message>,
+            operation: &mut dyn operation::Operation<()>,
         ) {
             self.content
                 .as_widget()
@@ -431,7 +477,7 @@ where
             tree: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn operation::Operation<Message>,
+            operation: &mut dyn operation::Operation<()>,
         ) {
             let children = [&self.base, &self.top]
                 .into_iter()
@@ -883,19 +929,13 @@ where
 }
 
 /// Focuses the previous focusable widget.
-pub fn focus_previous<Message>() -> Command<Message>
-where
-    Message: 'static,
-{
-    Command::widget(operation::focusable::focus_previous())
+pub fn focus_previous<T>() -> Task<T> {
+    Task::effect(Action::widget(operation::focusable::focus_previous()))
 }
 
 /// Focuses the next focusable widget.
-pub fn focus_next<Message>() -> Command<Message>
-where
-    Message: 'static,
-{
-    Command::widget(operation::focusable::focus_next())
+pub fn focus_next<T>() -> Task<T> {
+    Task::effect(Action::widget(operation::focusable::focus_next()))
 }
 
 /// A container intercepting mouse events.

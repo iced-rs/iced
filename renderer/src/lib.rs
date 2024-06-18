@@ -48,6 +48,13 @@ mod renderer {
 
 #[cfg(not(any(feature = "wgpu", feature = "tiny-skia")))]
 mod renderer {
+    #[cfg(not(debug_assertions))]
+    compile_error!(
+        "Cannot compile `iced_renderer` in release mode \
+        without a renderer feature enabled. \
+        Enable either the `wgpu` or `tiny-skia` feature, or both."
+    );
+
     pub type Renderer = ();
     pub type Compositor = ();
 }

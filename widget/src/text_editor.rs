@@ -466,6 +466,12 @@ where
                 shell.publish(on_edit(action));
             }
             Update::Scroll(lines) => {
+                let bounds = self.content.0.borrow().editor.bounds();
+
+                if bounds.height >= i32::MAX as f32 {
+                    return event::Status::Ignored;
+                }
+
                 let lines = lines + state.partial_scroll;
                 state.partial_scroll = lines.fract();
 
@@ -768,9 +774,17 @@ impl Update {
 
                     if let keyboard::Key::Named(named_key) = key.as_ref() {
                         if let Some(motion) = motion(named_key) {
-                            let motion = if platform::is_jump_modifier_pressed(
-                                modifiers,
-                            ) {
+                            let motion = if modifiers.macos_command() {
+                                match motion {
+                                    Motion::Left => Motion::Home,
+                                    Motion::Right => Motion::End,
+                                    _ => motion,
+                                }
+                            } else {
+                                motion
+                            };
+
+                            let motion = if modifiers.jump() {
                                 motion.widen()
                             } else {
                                 motion
@@ -804,18 +818,6 @@ fn motion(key: key::Named) -> Option<Motion> {
         key::Named::PageUp => Some(Motion::PageUp),
         key::Named::PageDown => Some(Motion::PageDown),
         _ => None,
-    }
-}
-
-mod platform {
-    use crate::core::keyboard;
-
-    pub fn is_jump_modifier_pressed(modifiers: keyboard::Modifiers) -> bool {
-        if cfg!(target_os = "macos") {
-            modifiers.alt()
-        } else {
-            modifiers.control()
-        }
     }
 }
 

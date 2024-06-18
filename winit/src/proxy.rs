@@ -4,17 +4,18 @@ use crate::futures::futures::{
     task::{Context, Poll},
     Future, Sink, StreamExt,
 };
+use crate::runtime::Action;
 use std::pin::Pin;
 
 /// An event loop proxy with backpressure that implements `Sink`.
 #[derive(Debug)]
-pub struct Proxy<Message: 'static> {
-    raw: winit::event_loop::EventLoopProxy<Message>,
-    sender: mpsc::Sender<Message>,
+pub struct Proxy<T: 'static> {
+    raw: winit::event_loop::EventLoopProxy<Action<T>>,
+    sender: mpsc::Sender<Action<T>>,
     notifier: mpsc::Sender<usize>,
 }
 
-impl<Message: 'static> Clone for Proxy<Message> {
+impl<T: 'static> Clone for Proxy<T> {
     fn clone(&self) -> Self {
         Self {
             raw: self.raw.clone(),
@@ -24,12 +25,12 @@ impl<Message: 'static> Clone for Proxy<Message> {
     }
 }
 
-impl<Message: 'static> Proxy<Message> {
+impl<T: 'static> Proxy<T> {
     const MAX_SIZE: usize = 100;
 
     /// Creates a new [`Proxy`] from an `EventLoopProxy`.
     pub fn new(
-        raw: winit::event_loop::EventLoopProxy<Message>,
+        raw: winit::event_loop::EventLoopProxy<Action<T>>,
     ) -> (Self, impl Future<Output = ()>) {
         let (notifier, mut processed) = mpsc::channel(Self::MAX_SIZE);
         let (sender, mut receiver) = mpsc::channel(Self::MAX_SIZE);
@@ -72,16 +73,16 @@ impl<Message: 'static> Proxy<Message> {
         )
     }
 
-    /// Sends a `Message` to the event loop.
+    /// Sends a value to the event loop.
     ///
     /// Note: This skips the backpressure mechanism with an unbounded
     /// channel. Use sparingly!
-    pub fn send(&mut self, message: Message)
+    pub fn send(&mut self, value: T)
     where
-        Message: std::fmt::Debug,
+        T: std::fmt::Debug,
     {
         self.raw
-            .send_event(message)
+            .send_event(Action::Output(value))
             .expect("Send message to event loop");
     }
 
@@ -92,7 +93,7 @@ impl<Message: 'static> Proxy<Message> {
     }
 }
 
-impl<Message: 'static> Sink<Message> for Proxy<Message> {
+impl<T: 'static> Sink<Action<T>> for Proxy<T> {
     type Error = mpsc::SendError;
 
     fn poll_ready(
@@ -104,9 +105,9 @@ impl<Message: 'static> Sink<Message> for Proxy<Message> {
 
     fn start_send(
         mut self: Pin<&mut Self>,
-        message: Message,
+        action: Action<T>,
     ) -> Result<(), Self::Error> {
-        self.sender.start_send(message)
+        self.sender.start_send(action)
     }
 
     fn poll_flush(

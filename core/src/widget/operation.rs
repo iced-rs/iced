@@ -12,11 +12,11 @@ use crate::{Rectangle, Vector};
 
 use std::any::Any;
 use std::fmt;
-use std::rc::Rc;
+use std::sync::Arc;
 
 /// A piece of logic that can traverse the widget tree of an application in
 /// order to query or update some widget state.
-pub trait Operation<T> {
+pub trait Operation<T>: Send {
     /// Operates on a widget that contains other widgets.
     ///
     /// The `operate_on_children` function can be called to return control to
@@ -81,7 +81,7 @@ where
 /// Maps the output of an [`Operation`] using the given function.
 pub fn map<A, B>(
     operation: Box<dyn Operation<A>>,
-    f: impl Fn(A) -> B + 'static,
+    f: impl Fn(A) -> B + Send + Sync + 'static,
 ) -> impl Operation<B>
 where
     A: 'static,
@@ -90,7 +90,7 @@ where
     #[allow(missing_debug_implementations)]
     struct Map<A, B> {
         operation: Box<dyn Operation<A>>,
-        f: Rc<dyn Fn(A) -> B>,
+        f: Arc<dyn Fn(A) -> B + Send + Sync>,
     }
 
     impl<A, B> Operation<B> for Map<A, B>
@@ -197,7 +197,7 @@ where
 
     Map {
         operation,
-        f: Rc::new(f),
+        f: Arc::new(f),
     }
 }
 

@@ -11,16 +11,20 @@ use std::fmt::{Debug, Formatter};
 pub struct Screenshot {
     /// The bytes of the [`Screenshot`].
     pub bytes: Bytes,
-    /// The size of the [`Screenshot`].
+    /// The size of the [`Screenshot`] in physical pixels.
     pub size: Size<u32>,
+    /// The scale factor of the [`Screenshot`]. This can be useful when converting between widget
+    /// bounds (which are in logical pixels) to crop screenshots.
+    pub scale_factor: f64,
 }
 
 impl Debug for Screenshot {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Screenshot: {{ \n bytes: {}\n size: {:?} }}",
+            "Screenshot: {{ \n bytes: {}\n scale: {}\n size: {:?} }}",
             self.bytes.len(),
+            self.scale_factor,
             self.size
         )
     }
@@ -28,10 +32,15 @@ impl Debug for Screenshot {
 
 impl Screenshot {
     /// Creates a new [`Screenshot`].
-    pub fn new(bytes: impl Into<Bytes>, size: Size<u32>) -> Self {
+    pub fn new(
+        bytes: impl Into<Bytes>,
+        size: Size<u32>,
+        scale_factor: f64,
+    ) -> Self {
         Self {
             bytes: bytes.into(),
             size,
+            scale_factor,
         }
     }
 
@@ -70,6 +79,7 @@ impl Screenshot {
         Ok(Self {
             bytes: Bytes::from(chopped),
             size: Size::new(region.width, region.height),
+            scale_factor: self.scale_factor,
         })
     }
 }

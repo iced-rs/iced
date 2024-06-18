@@ -566,7 +566,7 @@ where
     pub fn operate(
         &mut self,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation<()>,
     ) {
         self.root.as_widget().operate(
             &mut self.state,

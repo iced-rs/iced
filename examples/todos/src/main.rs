@@ -5,7 +5,7 @@ use iced::widget::{
     scrollable, text, text_input, Text,
 };
 use iced::window;
-use iced::{Command, Element, Font, Length, Subscription};
+use iced::{Element, Font, Length, Subscription, Task as Command};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -399,10 +399,10 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
     };
 
     row![
-        text(format!(
+        text!(
             "{tasks_left} {} left",
             if tasks_left == 1 { "task" } else { "tasks" }
-        ))
+        )
         .width(Length::Fill),
         row![
             filter_button("All", Filter::All, current_filter),

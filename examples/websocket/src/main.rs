@@ -4,7 +4,7 @@ use iced::alignment::{self, Alignment};
 use iced::widget::{
     self, button, center, column, row, scrollable, text, text_input,
 };
-use iced::{color, Command, Element, Length, Subscription};
+use iced::{color, Element, Length, Subscription, Task};
 use once_cell::sync::Lazy;
 
 pub fn main() -> iced::Result {
@@ -30,19 +30,19 @@ enum Message {
 }
 
 impl WebSocket {
-    fn load() -> Command<Message> {
-        Command::batch([
-            Command::perform(echo::server::run(), |_| Message::Server),
+    fn load() -> Task<Message> {
+        Task::batch([
+            Task::perform(echo::server::run(), |_| Message::Server),
             widget::focus_next(),
         ])
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::NewMessageChanged(new_message) => {
                 self.new_message = new_message;
 
-                Command::none()
+                Task::none()
             }
             Message::Send(message) => match &mut self.state {
                 State::Connected(connection) => {
@@ -50,9 +50,9 @@ impl WebSocket {
 
                     connection.send(message);
 
-                    Command::none()
+                    Task::none()
                 }
-                State::Disconnected => Command::none(),
+                State::Disconnected => Task::none(),
             },
             Message::Echo(event) => match event {
                 echo::Event::Connected(connection) => {
@@ -60,14 +60,14 @@ impl WebSocket {
 
                     self.messages.push(echo::Message::connected());
 
-                    Command::none()
+                    Task::none()
                 }
                 echo::Event::Disconnected => {
                     self.state = State::Disconnected;
 
                     self.messages.push(echo::Message::disconnected());
 
-                    Command::none()
+                    Task::none()
                 }
                 echo::Event::MessageReceived(message) => {
                     self.messages.push(message);
@@ -78,7 +78,7 @@ impl WebSocket {
                     )
                 }
             },
-            Message::Server => Command::none(),
+            Message::Server => Task::none(),
         }
     }
 

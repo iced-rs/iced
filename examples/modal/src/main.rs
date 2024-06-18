@@ -5,7 +5,7 @@ use iced::widget::{
     self, button, center, column, container, horizontal_space, mouse_area,
     opaque, pick_list, row, stack, text, text_input,
 };
-use iced::{Alignment, Color, Command, Element, Length, Subscription};
+use iced::{Alignment, Color, Element, Length, Subscription, Task};
 
 use std::fmt;
 
@@ -39,7 +39,7 @@ impl App {
         event::listen().map(Message::Event)
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ShowModal => {
                 self.show_modal = true;
@@ -47,26 +47,26 @@ impl App {
             }
             Message::HideModal => {
                 self.hide_modal();
-                Command::none()
+                Task::none()
             }
             Message::Email(email) => {
                 self.email = email;
-                Command::none()
+                Task::none()
             }
             Message::Password(password) => {
                 self.password = password;
-                Command::none()
+                Task::none()
             }
             Message::Plan(plan) => {
                 self.plan = plan;
-                Command::none()
+                Task::none()
             }
             Message::Submit => {
                 if !self.email.is_empty() && !self.password.is_empty() {
                     self.hide_modal();
                 }
 
-                Command::none()
+                Task::none()
             }
             Message::Event(event) => match event {
                 Event::Keyboard(keyboard::Event::KeyPressed {
@@ -85,9 +85,9 @@ impl App {
                     ..
                 }) => {
                     self.hide_modal();
-                    Command::none()
+                    Task::none()
                 }
-                _ => Command::none(),
+                _ => Task::none(),
             },
         }
     }

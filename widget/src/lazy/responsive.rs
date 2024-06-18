@@ -161,7 +161,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation<()>,
     ) {
         let state = tree.state.downcast_mut::<State>();
         let mut content = self.content.borrow_mut();

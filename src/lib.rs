@@ -203,6 +203,7 @@ pub use crate::core::{
     Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Shadow, Size,
     Theme, Transformation, Vector,
 };
+pub use crate::runtime::Task;
 
 pub mod clipboard {
     //! Access the clipboard.
@@ -236,8 +237,10 @@ pub mod font {
 
 pub mod event {
     //! Handle events of a user interface.
-    pub use crate::core::event::{Event, MacOS, PlatformSpecific, Status};
-    pub use iced_futures::event::{listen, listen_raw, listen_with};
+    pub use crate::core::event::{Event, Status};
+    pub use iced_futures::event::{
+        listen, listen_raw, listen_url, listen_with,
+    };
 }
 
 pub mod keyboard {
@@ -252,11 +255,6 @@ pub mod mouse {
     pub use crate::core::mouse::{
         Button, Cursor, Event, Interaction, ScrollDelta,
     };
-}
-
-pub mod command {
-    //! Run asynchronous actions.
-    pub use crate::runtime::command::{channel, Command};
 }
 
 pub mod subscription {
@@ -310,7 +308,6 @@ pub mod widget {
     mod runtime {}
 }
 
-pub use command::Command;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;

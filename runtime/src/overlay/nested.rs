@@ -131,13 +131,13 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation<()>,
     ) {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn widget::Operation<Message>,
+            operation: &mut dyn widget::Operation<()>,
         ) where
             Renderer: renderer::Renderer,
         {

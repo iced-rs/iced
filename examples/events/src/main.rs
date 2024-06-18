@@ -2,7 +2,7 @@ use iced::alignment;
 use iced::event::{self, Event};
 use iced::widget::{button, center, checkbox, text, Column};
 use iced::window;
-use iced::{Alignment, Command, Element, Length, Subscription};
+use iced::{Alignment, Element, Length, Subscription, Task};
 
 pub fn main() -> iced::Result {
     iced::program("Events - Iced", Events::update, Events::view)
@@ -25,7 +25,7 @@ enum Message {
 }
 
 impl Events {
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::EventOccurred(event) if self.enabled => {
                 self.last.push(event);
@@ -34,20 +34,19 @@ impl Events {
                     let _ = self.last.remove(0);
                 }
 
-                Command::none()
+                Task::none()
             }
             Message::EventOccurred(event) => {
-                if let Event::Window(id, window::Event::CloseRequested) = event
-                {
-                    window::close(id)
+                if let Event::Window(window::Event::CloseRequested) = event {
+                    window::close(window::Id::MAIN)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::Toggled(enabled) => {
                 self.enabled = enabled;
 
-                Command::none()
+                Task::none()
             }
             Message::Exit => window::close(window::Id::MAIN),
         }
@@ -61,7 +60,7 @@ impl Events {
         let events = Column::with_children(
             self.last
                 .iter()
-                .map(|event| text(format!("{event:?}")).size(40))
+                .map(|event| text!("{event:?}").size(40))
                 .map(Element::from),
         );
 

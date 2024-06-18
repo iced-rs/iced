@@ -1,6 +1,6 @@
 //! Leverage multi-window support in your application.
 use crate::window;
-use crate::{Command, Element, Executor, Settings, Subscription};
+use crate::{Element, Executor, Settings, Subscription, Task};
 
 pub use crate::application::{Appearance, DefaultStyle};
 
@@ -14,7 +14,7 @@ pub use crate::application::{Appearance, DefaultStyle};
 ///   document and display only the contents of the `window::Id::MAIN` window.
 ///
 /// An [`Application`] can execute asynchronous actions by returning a
-/// [`Command`] in some of its methods.
+/// [`Task`] in some of its methods.
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
@@ -29,7 +29,7 @@ pub use crate::application::{Appearance, DefaultStyle};
 ///
 /// ```no_run
 /// use iced::{executor, window};
-/// use iced::{Command, Element, Settings, Theme};
+/// use iced::{Task, Element, Settings, Theme};
 /// use iced::multi_window::{self, Application};
 ///
 /// pub fn main() -> iced::Result {
@@ -44,16 +44,16 @@ pub use crate::application::{Appearance, DefaultStyle};
 ///     type Message = ();
 ///     type Theme = Theme;
 ///
-///     fn new(_flags: ()) -> (Hello, Command<Self::Message>) {
-///         (Hello, Command::none())
+///     fn new(_flags: ()) -> (Hello, Task<Self::Message>) {
+///         (Hello, Task::none())
 ///     }
 ///
 ///     fn title(&self, _window: window::Id) -> String {
 ///         String::from("A cool application")
 ///     }
 ///
-///     fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
-///         Command::none()
+///     fn update(&mut self, _message: Self::Message) -> Task<Self::Message> {
+///         Task::none()
 ///     }
 ///
 ///     fn view(&self, _window: window::Id) -> Element<Self::Message> {
@@ -89,12 +89,12 @@ where
     ///
     /// Here is where you should return the initial state of your app.
     ///
-    /// Additionally, you can return a [`Command`] if you need to perform some
+    /// Additionally, you can return a [`Task`] if you need to perform some
     /// async action in the background on startup. This is useful if you want to
     /// load state from a file, perform an initial HTTP request, etc.
     ///
     /// [`run`]: Self::run
-    fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
+    fn new(flags: Self::Flags) -> (Self, Task<Self::Message>);
 
     /// Returns the current title of the `window` of the [`Application`].
     ///
@@ -108,8 +108,8 @@ where
     /// produced by either user interactions or commands, will be handled by
     /// this method.
     ///
-    /// Any [`Command`] returned will be executed immediately in the background.
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
+    /// Any [`Task`] returned will be executed immediately in the background.
+    fn update(&mut self, message: Self::Message) -> Task<Self::Message>;
 
     /// Returns the widgets to display in the `window` of the [`Application`].
     ///
@@ -207,7 +207,7 @@ where
     type Theme = A::Theme;
     type Renderer = crate::Renderer;
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
         self.0.update(message)
     }
 
@@ -226,7 +226,7 @@ where
 {
     type Flags = A::Flags;
 
-    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
+    fn new(flags: Self::Flags) -> (Self, Task<A::Message>) {
         let (app, command) = A::new(flags);
 
         (Instance(app), command)

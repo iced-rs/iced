@@ -30,7 +30,7 @@ use crate::core::{
     Background, Border, Color, Element, Layout, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, Theme, Vector, Widget,
 };
-use crate::runtime::Command;
+use crate::runtime::{Action, Task};
 
 /// A field that can be filled with text.
 ///
@@ -540,7 +540,7 @@ where
         tree: &mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<()>,
     ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
@@ -826,7 +826,7 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::Backspace) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
+                            if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
                                 if self.is_secure {
@@ -850,7 +850,7 @@ where
                             update_cache(state, &self.value);
                         }
                         keyboard::Key::Named(key::Named::Delete) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
+                            if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
                                 if self.is_secure {
@@ -876,44 +876,6 @@ where
 
                             update_cache(state, &self.value);
                         }
-                        keyboard::Key::Named(key::Named::ArrowLeft) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
-                                && !self.is_secure
-                            {
-                                if modifiers.shift() {
-                                    state
-                                        .cursor
-                                        .select_left_by_words(&self.value);
-                                } else {
-                                    state
-                                        .cursor
-                                        .move_left_by_words(&self.value);
-                                }
-                            } else if modifiers.shift() {
-                                state.cursor.select_left(&self.value);
-                            } else {
-                                state.cursor.move_left(&self.value);
-                            }
-                        }
-                        keyboard::Key::Named(key::Named::ArrowRight) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
-                                && !self.is_secure
-                            {
-                                if modifiers.shift() {
-                                    state
-                                        .cursor
-                                        .select_right_by_words(&self.value);
-                                } else {
-                                    state
-                                        .cursor
-                                        .move_right_by_words(&self.value);
-                                }
-                            } else if modifiers.shift() {
-                                state.cursor.select_right(&self.value);
-                            } else {
-                                state.cursor.move_right(&self.value);
-                            }
-                        }
                         keyboard::Key::Named(key::Named::Home) => {
                             if modifiers.shift() {
                                 state.cursor.select_range(
@@ -932,6 +894,64 @@ where
                                 );
                             } else {
                                 state.cursor.move_to(self.value.len());
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowLeft)
+                            if modifiers.macos_command() =>
+                        {
+                            if modifiers.shift() {
+                                state.cursor.select_range(
+                                    state.cursor.start(&self.value),
+                                    0,
+                                );
+                            } else {
+                                state.cursor.move_to(0);
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowRight)
+                            if modifiers.macos_command() =>
+                        {
+                            if modifiers.shift() {
+                                state.cursor.select_range(
+                                    state.cursor.start(&self.value),
+                                    self.value.len(),
+                                );
+                            } else {
+                                state.cursor.move_to(self.value.len());
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowLeft) => {
+                            if modifiers.jump() && !self.is_secure {
+                                if modifiers.shift() {
+                                    state
+                                        .cursor
+                                        .select_left_by_words(&self.value);
+                                } else {
+                                    state
+                                        .cursor
+                                        .move_left_by_words(&self.value);
+                                }
+                            } else if modifiers.shift() {
+                                state.cursor.select_left(&self.value);
+                            } else {
+                                state.cursor.move_left(&self.value);
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowRight) => {
+                            if modifiers.jump() && !self.is_secure {
+                                if modifiers.shift() {
+                                    state
+                                        .cursor
+                                        .select_right_by_words(&self.value);
+                                } else {
+                                    state
+                                        .cursor
+                                        .move_right_by_words(&self.value);
+                                }
+                            } else if modifiers.shift() {
+                                state.cursor.select_right(&self.value);
+                            } else {
+                                state.cursor.move_right(&self.value);
                             }
                         }
                         keyboard::Key::Named(key::Named::Escape) => {
@@ -983,14 +1003,14 @@ where
 
                 state.keyboard_modifiers = modifiers;
             }
-            Event::Window(_, window::Event::Unfocused) => {
+            Event::Window(window::Event::Unfocused) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
                     focus.is_window_focused = false;
                 }
             }
-            Event::Window(_, window::Event::Focused) => {
+            Event::Window(window::Event::Focused) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
@@ -1000,7 +1020,7 @@ where
                     shell.request_redraw(window::RedrawRequest::NextFrame);
                 }
             }
-            Event::Window(_, window::Event::RedrawRequested(now)) => {
+            Event::Window(window::Event::RedrawRequested(now)) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
@@ -1120,35 +1140,38 @@ impl From<Id> for widget::Id {
     }
 }
 
-/// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
-pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::focusable::focus(id.0))
+/// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
+pub fn focus<T>(id: Id) -> Task<T> {
+    Task::effect(Action::widget(operation::focusable::focus(id.0)))
 }
 
-/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// end.
-pub fn move_cursor_to_end<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to_end(id.0))
+pub fn move_cursor_to_end<T>(id: Id) -> Task<T> {
+    Task::effect(Action::widget(operation::text_input::move_cursor_to_end(
+        id.0,
+    )))
 }
 
-/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// front.
-pub fn move_cursor_to_front<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to_front(id.0))
+pub fn move_cursor_to_front<T>(id: Id) -> Task<T> {
+    Task::effect(Action::widget(operation::text_input::move_cursor_to_front(
+        id.0,
+    )))
 }
 
-/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// provided position.
-pub fn move_cursor_to<Message: 'static>(
-    id: Id,
-    position: usize,
-) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to(id.0, position))
+pub fn move_cursor_to<T>(id: Id, position: usize) -> Task<T> {
+    Task::effect(Action::widget(operation::text_input::move_cursor_to(
+        id.0, position,
+    )))
 }
 
-/// Produces a [`Command`] that selects all the content of the [`TextInput`] with the given [`Id`].
-pub fn select_all<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::select_all(id.0))
+/// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`Id`].
+pub fn select_all<T>(id: Id) -> Task<T> {
+    Task::effect(Action::widget(operation::text_input::select_all(id.0)))
 }
 
 /// The state of a [`TextInput`].
@@ -1278,18 +1301,6 @@ impl<P: text::Paragraph> operation::TextInput for State<P> {
 
     fn select_all(&mut self) {
         State::select_all(self);
-    }
-}
-
-mod platform {
-    use crate::core::keyboard;
-
-    pub fn is_jump_modifier_pressed(modifiers: keyboard::Modifiers) -> bool {
-        if cfg!(target_os = "macos") {
-            modifiers.alt()
-        } else {
-            modifiers.control()
-        }
     }
 }
 
