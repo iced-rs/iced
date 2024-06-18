@@ -3,7 +3,7 @@ use iced::window;
 use iced::{Alignment, Element, Task};
 
 pub fn main() -> iced::Result {
-    iced::program("Exit - Iced", Exit::update, Exit::view).run()
+    iced::application("Exit - Iced", Exit::update, Exit::view).run()
 }
 
 #[derive(Default)]

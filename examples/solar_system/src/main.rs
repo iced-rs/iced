@@ -22,7 +22,7 @@ use std::time::Instant;
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program(
+    iced::application(
         "Solar System - Iced",
         SolarSystem::update,
         SolarSystem::view,

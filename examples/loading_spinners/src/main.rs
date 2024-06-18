@@ -11,7 +11,7 @@ use circular::Circular;
 use linear::Linear;
 
 pub fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "Loading Spinners - Iced",
         LoadingSpinners::update,
         LoadingSpinners::view,

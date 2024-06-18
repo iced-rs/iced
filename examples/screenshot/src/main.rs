@@ -13,7 +13,7 @@ use ::image::ColorType;
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("Screenshot - Iced", Example::update, Example::view)
+    iced::application("Screenshot - Iced", Example::update, Example::view)
         .subscription(Example::subscription)
         .run()
 }

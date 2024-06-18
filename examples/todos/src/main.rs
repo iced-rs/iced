@@ -17,7 +17,7 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    iced::program(Todos::title, Todos::update, Todos::view)
+    iced::application(Todos::title, Todos::update, Todos::view)
         .load(Todos::load)
         .subscription(Todos::subscription)
         .font(include_bytes!("../fonts/icons.ttf").as_slice())

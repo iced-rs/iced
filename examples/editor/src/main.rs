@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub fn main() -> iced::Result {
-    iced::program("Editor - Iced", Editor::update, Editor::view)
+    iced::application("Editor - Iced", Editor::update, Editor::view)
         .load(Editor::load)
         .subscription(Editor::subscription)
         .theme(Editor::theme)

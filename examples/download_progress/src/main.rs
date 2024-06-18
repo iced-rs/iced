@@ -4,9 +4,13 @@ use iced::widget::{button, center, column, progress_bar, text, Column};
 use iced::{Alignment, Element, Subscription};
 
 pub fn main() -> iced::Result {
-    iced::program("Download Progress - Iced", Example::update, Example::view)
-        .subscription(Example::subscription)
-        .run()
+    iced::application(
+        "Download Progress - Iced",
+        Example::update,
+        Example::view,
+    )
+    .subscription(Example::subscription)
+    .run()
 }
 
 #[derive(Debug)]

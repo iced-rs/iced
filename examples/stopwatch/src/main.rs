@@ -7,7 +7,7 @@ use iced::{Alignment, Element, Subscription, Theme};
 use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
-    iced::program("Stopwatch - Iced", Stopwatch::update, Stopwatch::view)
+    iced::application("Stopwatch - Iced", Stopwatch::update, Stopwatch::view)
         .subscription(Stopwatch::subscription)
         .theme(Stopwatch::theme)
         .run()

@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "Color Palette - Iced",
         ColorPalette::update,
         ColorPalette::view,

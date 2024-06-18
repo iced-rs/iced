@@ -9,7 +9,7 @@ use iced::{
 };
 
 pub fn main() -> iced::Result {
-    iced::program("Ferris - Iced", Image::update, Image::view)
+    iced::application("Ferris - Iced", Image::update, Image::view)
         .subscription(Image::subscription)
         .theme(|_| Theme::TokyoNight)
         .run()
