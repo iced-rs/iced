@@ -204,4 +204,4 @@ useless_conversion = "deny"
 broken_intra_doc_links = "forbid"
 
 [patch.crates-io]
-cosmic-text = { git = "https://github.com/pop-os/cosmic-text.git", rev = "542b20ca4376a3b5de5fa629db1a4ace44e18e0c" }
+cosmic-text = { git = "https://github.com/pop-os/cosmic-text.git", rev = "7677ba388cbce3cc1488f0cf0cc5bfe8194f55d3" }
