@@ -6,8 +6,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, ContentFit, Element, Layout, Length, Pixels, Point, Radians,
-    Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, ContentFit, Element, Layout, Length, Pixels, Point, Rectangle,
+    Rotation, Shell, Size, Vector, Widget,
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -22,6 +22,7 @@ pub struct Viewer<Handle> {
     handle: Handle,
     filter_method: FilterMethod,
     content_fit: ContentFit,
+    rotation: Rotation,
 }
 
 impl<Handle> Viewer<Handle> {
@@ -37,6 +38,7 @@ impl<Handle> Viewer<Handle> {
             scale_step: 0.10,
             filter_method: FilterMethod::default(),
             content_fit: ContentFit::default(),
+            rotation: Rotation::default(),
         }
     }
 
@@ -94,6 +96,12 @@ impl<Handle> Viewer<Handle> {
         self.scale_step = scale_step;
         self
     }
+
+    /// Applies the given [`Rotation`] to the [`Viewer`].
+    pub fn rotation(mut self, rotation: impl Into<Rotation>) -> Self {
+        self.rotation = rotation.into();
+        self
+    }
 }
 
 impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
@@ -128,11 +136,14 @@ where
         let image_size =
             Size::new(image_size.width as f32, image_size.height as f32);
 
+        // The rotated size of the image
+        let rotated_size = self.rotation.apply(image_size);
+
         // The size to be available to the widget prior to `Shrink`ing
-        let raw_size = limits.resolve(self.width, self.height, image_size);
+        let raw_size = limits.resolve(self.width, self.height, rotated_size);
 
         // The uncropped size of the image when fit to the bounds above
-        let full_size = self.content_fit.fit(image_size, raw_size);
+        let full_size = self.content_fit.fit(rotated_size, raw_size);
 
         // Shrink the widget to fit the resized image, if requested
         let final_size = Size {
@@ -190,6 +201,7 @@ where
                                 state,
                                 bounds.size(),
                                 self.content_fit,
+                                self.rotation,
                             );
 
                             let factor = state.scale / previous_scale - 1.0;
@@ -251,6 +263,7 @@ where
                         state,
                         bounds.size(),
                         self.content_fit,
+                        self.rotation,
                     );
                     let hidden_width = (scaled_size.width - bounds.width / 2.0)
                         .max(0.0)
@@ -328,6 +341,7 @@ where
             state,
             bounds.size(),
             self.content_fit,
+            self.rotation,
         );
 
         let translation = {
@@ -352,7 +366,7 @@ where
                     self.handle.clone(),
                     self.filter_method,
                     drawing_bounds,
-                    Radians(0.0),
+                    self.rotation.radians(),
                     1.0,
                 );
             });
@@ -430,14 +444,15 @@ pub fn scaled_image_size<Renderer>(
     state: &State,
     bounds: Size,
     content_fit: ContentFit,
+    rotation: Rotation,
 ) -> Size
 where
     Renderer: image::Renderer,
 {
     let Size { width, height } = renderer.measure_image(handle);
     let image_size = Size::new(width as f32, height as f32);
-
-    let adjusted_fit = content_fit.fit(image_size, bounds);
+    let rotated_size = rotation.apply(image_size);
+    let adjusted_fit = content_fit.fit(rotated_size, bounds);
 
     Size::new(
         adjusted_fit.width * state.scale,
