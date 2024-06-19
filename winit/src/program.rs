@@ -8,12 +8,12 @@ use crate::conversion;
 use crate::core;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
 use crate::core::{Color, Element, Point, Size, Theme};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
-use crate::futures::futures::executor;
 use crate::futures::futures::task;
 use crate::futures::futures::{Future, StreamExt};
 use crate::futures::subscription::{self, Subscription};
@@ -30,7 +30,6 @@ use window_manager::WindowManager;
 use rustc_hash::FxHashMap;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
-use std::time::Instant;
 
 /// An interactive, native, cross-platform, multi-windowed application.
 ///
@@ -231,6 +230,11 @@ where
         sender: mpsc::UnboundedSender<Event<Message>>,
         receiver: mpsc::UnboundedReceiver<Control>,
         error: Option<Error>,
+
+        #[cfg(target_arch = "wasm32")]
+        is_booted: std::rc::Rc<std::cell::RefCell<bool>>,
+        #[cfg(target_arch = "wasm32")]
+        queued_events: Vec<Event<Message>>,
     }
 
     struct BootConfig<C> {
@@ -239,7 +243,7 @@ where
         graphics_settings: graphics::Settings,
     }
 
-    let mut runner = Runner {
+    let runner = Runner {
         instance,
         context,
         id: settings.id,
@@ -251,13 +255,18 @@ where
         sender: event_sender,
         receiver: control_receiver,
         error: None,
+
+        #[cfg(target_arch = "wasm32")]
+        is_booted: std::rc::Rc::new(std::cell::RefCell::new(false)),
+        #[cfg(target_arch = "wasm32")]
+        queued_events: Vec::new(),
     };
 
     impl<Message, F, C> winit::application::ApplicationHandler<Message>
         for Runner<Message, F, C>
     where
         F: Future<Output = ()>,
-        C: Compositor,
+        C: Compositor + 'static,
     {
         fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
             let Some(BootConfig {
@@ -298,9 +307,23 @@ where
                 Ok::<_, graphics::Error>(())
             };
 
-            if let Err(error) = executor::block_on(finish_boot) {
+            #[cfg(not(target_arch = "wasm32"))]
+            if let Err(error) =
+                crate::futures::futures::executor::block_on(finish_boot)
+            {
                 self.error = Some(Error::GraphicsCreationFailed(error));
                 event_loop.exit();
+            }
+
+            #[cfg(target_arch = "wasm32")]
+            {
+                let is_booted = self.is_booted.clone();
+
+                wasm_bindgen_futures::spawn_local(async move {
+                    finish_boot.await.expect("Finish boot!");
+
+                    *is_booted.borrow_mut() = true;
+                });
             }
         }
 
@@ -391,6 +414,19 @@ where
             event_loop: &winit::event_loop::ActiveEventLoop,
             event: Event<Message>,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if !*self.is_booted.borrow() {
+                self.queued_events.push(event);
+                return;
+            } else if !self.queued_events.is_empty() {
+                let queued_events = std::mem::take(&mut self.queued_events);
+
+                // This won't infinitely recurse, since we `mem::take`
+                for event in queued_events {
+                    self.process_event(event_loop, event);
+                }
+            }
+
             if event_loop.exiting() {
                 return;
             }
@@ -429,6 +465,10 @@ where
                                 let exit_on_close_request =
                                     settings.exit_on_close_request;
 
+                                #[cfg(target_arch = "wasm32")]
+                                let target =
+                                    settings.platform_specific.target.clone();
+
                                 let window = event_loop
                                     .create_window(
                                         conversion::window_attributes(
@@ -441,6 +481,52 @@ where
                                         ),
                                     )
                                     .expect("Create window");
+
+                                #[cfg(target_arch = "wasm32")]
+                                {
+                                    use winit::platform::web::WindowExtWebSys;
+
+                                    let canvas = window
+                                        .canvas()
+                                        .expect("Get window canvas");
+
+                                    let _ = canvas.set_attribute(
+                                        "style",
+                                        "display: block; width: 100%; height: 100%",
+                                    );
+
+                                    let window = web_sys::window().unwrap();
+                                    let document = window.document().unwrap();
+                                    let body = document.body().unwrap();
+
+                                    let target = target.and_then(|target| {
+                                        body.query_selector(&format!(
+                                            "#{target}"
+                                        ))
+                                        .ok()
+                                        .unwrap_or(None)
+                                    });
+
+                                    match target {
+                                        Some(node) => {
+                                            let _ = node
+                                                .replace_with_with_node_1(
+                                                    &canvas,
+                                                )
+                                                .expect(&format!(
+                                                    "Could not replace #{}",
+                                                    node.id()
+                                                ));
+                                        }
+                                        None => {
+                                            let _ = body
+                                                .append_child(&canvas)
+                                                .expect(
+                                                "Append canvas to HTML body",
+                                            );
+                                        }
+                                    };
+                                }
 
                                 self.process_event(
                                     event_loop,
@@ -468,9 +554,21 @@ where
         }
     }
 
-    let _ = event_loop.run_app(&mut runner);
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let mut runner = runner;
+        let _ = event_loop.run_app(&mut runner);
 
-    Ok(())
+        runner.error.map(Err).unwrap_or(Ok(()))
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        use winit::platform::web::EventLoopExtWebSys;
+        let _ = event_loop.spawn_app(runner);
+
+        Ok(())
+    }
 }
 
 struct Boot<C> {
