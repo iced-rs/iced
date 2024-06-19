@@ -1165,6 +1165,18 @@ fn run_action<P, C>(
                 let _ = window_manager.remove(id);
                 let _ = ui_caches.remove(&id);
             }
+            window::Action::GetOldest(channel) => {
+                let id =
+                    window_manager.iter_mut().next().map(|(id, _window)| id);
+
+                let _ = channel.send(id);
+            }
+            window::Action::GetLatest(channel) => {
+                let id =
+                    window_manager.iter_mut().last().map(|(id, _window)| id);
+
+                let _ = channel.send(id);
+            }
             window::Action::Drag(id) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = window.raw.drag_window();
@@ -1180,7 +1192,7 @@ fn run_action<P, C>(
                     );
                 }
             }
-            window::Action::FetchSize(id, channel) => {
+            window::Action::GetSize(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let size = window
                         .raw
@@ -1190,7 +1202,7 @@ fn run_action<P, C>(
                     let _ = channel.send(Size::new(size.width, size.height));
                 }
             }
-            window::Action::FetchMaximized(id, channel) => {
+            window::Action::GetMaximized(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = channel.send(window.raw.is_maximized());
                 }
@@ -1200,7 +1212,7 @@ fn run_action<P, C>(
                     window.raw.set_maximized(maximized);
                 }
             }
-            window::Action::FetchMinimized(id, channel) => {
+            window::Action::GetMinimized(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = channel.send(window.raw.is_minimized());
                 }
@@ -1210,7 +1222,7 @@ fn run_action<P, C>(
                     window.raw.set_minimized(minimized);
                 }
             }
-            window::Action::FetchPosition(id, channel) => {
+            window::Action::GetPosition(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let position = window
                         .raw
@@ -1250,7 +1262,7 @@ fn run_action<P, C>(
                     window.raw.set_window_icon(conversion::icon(icon));
                 }
             }
-            window::Action::FetchMode(id, channel) => {
+            window::Action::GetMode(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let mode = if window.raw.is_visible().unwrap_or(true) {
                         conversion::mode(window.raw.fullscreen())
@@ -1304,7 +1316,7 @@ fn run_action<P, C>(
                     }
                 }
             }
-            window::Action::FetchRawId(id, channel) => {
+            window::Action::GetRawId(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = channel.send(window.raw.id().into());
                 }
