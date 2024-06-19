@@ -149,9 +149,10 @@ impl Todos {
                             widget::focus_next()
                         }
                     }
-                    Message::ToggleFullscreen(mode) => {
-                        window::change_mode(window::Id::MAIN, mode)
-                    }
+                    Message::ToggleFullscreen(mode) => window::get_latest()
+                        .and_then(move |window| {
+                            window::change_mode(window, mode)
+                        }),
                     Message::Loaded(_) => Command::none(),
                 };
 
