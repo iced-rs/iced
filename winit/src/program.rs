@@ -8,31 +8,28 @@ use crate::conversion;
 use crate::core;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
-use crate::core::{Point, Size};
+use crate::core::{Color, Element, Point, Size, Theme};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
-use crate::futures::futures::executor;
 use crate::futures::futures::task;
 use crate::futures::futures::{Future, StreamExt};
 use crate::futures::subscription::{self, Subscription};
 use crate::futures::{Executor, Runtime};
 use crate::graphics;
 use crate::graphics::{compositor, Compositor};
-use crate::multi_window::window_manager::WindowManager;
-use crate::runtime::multi_window::Program;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::Debug;
-use crate::runtime::{Action, Task};
+use crate::runtime::{self, Action, Task};
 use crate::{Clipboard, Error, Proxy, Settings};
 
-pub use crate::application::{default, Appearance, DefaultStyle};
+use window_manager::WindowManager;
 
 use rustc_hash::FxHashMap;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
-use std::time::Instant;
 
 /// An interactive, native, cross-platform, multi-windowed application.
 ///
@@ -40,19 +37,37 @@ use std::time::Instant;
 /// your GUI application by simply calling [`run`]. It will run in
 /// its own window.
 ///
-/// An [`Application`] can execute asynchronous actions by returning a
+/// A [`Program`] can execute asynchronous actions by returning a
 /// [`Task`] in some of its methods.
 ///
-/// When using an [`Application`] with the `debug` feature enabled, a debug view
+/// When using a [`Program`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
-pub trait Application: Program
+pub trait Program
 where
+    Self: Sized,
     Self::Theme: DefaultStyle,
 {
-    /// The data needed to initialize your [`Application`].
+    /// The type of __messages__ your [`Program`] will produce.
+    type Message: std::fmt::Debug + Send;
+
+    /// The theme used to draw the [`Program`].
+    type Theme;
+
+    /// The [`Executor`] that will run commands and subscriptions.
+    ///
+    /// The [default executor] can be a good starting point!
+    ///
+    /// [`Executor`]: Self::Executor
+    /// [default executor]: crate::futures::backend::default::Executor
+    type Executor: Executor;
+
+    /// The graphics backend to use to draw the [`Program`].
+    type Renderer: core::Renderer + core::text::Renderer;
+
+    /// The data needed to initialize your [`Program`].
     type Flags;
 
-    /// Initializes the [`Application`] with the flags provided to
+    /// Initializes the [`Program`] with the flags provided to
     /// [`run`] as part of the [`Settings`].
     ///
     /// Here is where you should return the initial state of your app.
@@ -62,13 +77,31 @@ where
     /// load state from a file, perform an initial HTTP request, etc.
     fn new(flags: Self::Flags) -> (Self, Task<Self::Message>);
 
-    /// Returns the current title of the [`Application`].
+    /// Returns the current title of the [`Program`].
     ///
     /// This title can be dynamic! The runtime will automatically update the
     /// title of your application when necessary.
     fn title(&self, window: window::Id) -> String;
 
-    /// Returns the current `Theme` of the [`Application`].
+    /// Handles a __message__ and updates the state of the [`Program`].
+    ///
+    /// This is where you define your __update logic__. All the __messages__,
+    /// produced by either user interactions or commands, will be handled by
+    /// this method.
+    ///
+    /// Any [`Task`] returned will be executed immediately in the background by the
+    /// runtime.
+    fn update(&mut self, message: Self::Message) -> Task<Self::Message>;
+
+    /// Returns the widgets to display in the [`Program`] for the `window`.
+    ///
+    /// These widgets can produce __messages__ based on user interaction.
+    fn view(
+        &self,
+        window: window::Id,
+    ) -> Element<'_, Self::Message, Self::Theme, Self::Renderer>;
+
+    /// Returns the current `Theme` of the [`Program`].
     fn theme(&self, window: window::Id) -> Self::Theme;
 
     /// Returns the `Style` variation of the `Theme`.
@@ -89,7 +122,7 @@ where
         Subscription::none()
     }
 
-    /// Returns the scale factor of the window of the [`Application`].
+    /// Returns the scale factor of the window of the [`Program`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
     /// (i.e. zooming).
@@ -104,17 +137,49 @@ where
     }
 }
 
-/// Runs an [`Application`] with an executor, compositor, and the provided
+/// The appearance of a program.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Appearance {
+    /// The background [`Color`] of the application.
+    pub background_color: Color,
+
+    /// The default text [`Color`] of the application.
+    pub text_color: Color,
+}
+
+/// The default style of a [`Program`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`Program`].
+    fn default_style(&self) -> Appearance;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style(&self) -> Appearance {
+        default(self)
+    }
+}
+
+/// The default [`Appearance`] of a [`Program`] with the built-in [`Theme`].
+pub fn default(theme: &Theme) -> Appearance {
+    let palette = theme.extended_palette();
+
+    Appearance {
+        background_color: palette.background.base.color,
+        text_color: palette.background.base.text,
+    }
+}
+/// Runs a [`Program`] with an executor, compositor, and the provided
 /// settings.
-pub fn run<A, E, C>(
-    settings: Settings<A::Flags>,
+pub fn run<P, C>(
+    settings: Settings,
     graphics_settings: graphics::Settings,
+    window_settings: Option<window::Settings>,
+    flags: P::Flags,
 ) -> Result<(), Error>
 where
-    A: Application + 'static,
-    E: Executor + 'static,
-    C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: DefaultStyle,
+    P: Program + 'static,
+    C: Compositor<Renderer = P::Renderer> + 'static,
+    P::Theme: DefaultStyle,
 {
     use winit::event_loop::EventLoop;
 
@@ -128,33 +193,29 @@ where
     let (proxy, worker) = Proxy::new(event_loop.create_proxy());
 
     let mut runtime = {
-        let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
+        let executor =
+            P::Executor::new().map_err(Error::ExecutorCreationFailed)?;
         executor.spawn(worker);
 
         Runtime::new(executor, proxy.clone())
     };
 
-    let (application, task) = {
-        let flags = settings.flags;
-
-        runtime.enter(|| A::new(flags))
-    };
+    let (program, task) = runtime.enter(|| P::new(flags));
 
     if let Some(stream) = task.into_stream() {
         runtime.run(stream);
     }
 
-    let id = settings.id;
-    let title = application.title(window::Id::MAIN);
+    runtime.track(program.subscription().map(Action::Output).into_recipes());
 
     let (boot_sender, boot_receiver) = oneshot::channel();
     let (event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, control_receiver) = mpsc::unbounded();
 
-    let instance = Box::pin(run_instance::<A, E, C>(
-        application,
+    let instance = Box::pin(run_instance::<P, C>(
+        program,
         runtime,
-        proxy,
+        proxy.clone(),
         debug,
         boot_receiver,
         event_receiver,
@@ -166,46 +227,56 @@ where
     struct Runner<Message: 'static, F, C> {
         instance: std::pin::Pin<Box<F>>,
         context: task::Context<'static>,
-        boot: Option<BootConfig<C>>,
-        sender: mpsc::UnboundedSender<Event<Message>>,
+        id: Option<String>,
+        boot: Option<BootConfig<Message, C>>,
+        sender: mpsc::UnboundedSender<Event<Action<Message>>>,
         receiver: mpsc::UnboundedReceiver<Control>,
         error: Option<Error>,
+
+        #[cfg(target_arch = "wasm32")]
+        is_booted: std::rc::Rc<std::cell::RefCell<bool>>,
+        #[cfg(target_arch = "wasm32")]
+        queued_events: Vec<Event<Action<Message>>>,
     }
 
-    struct BootConfig<C> {
+    struct BootConfig<Message: 'static, C> {
+        proxy: Proxy<Message>,
         sender: oneshot::Sender<Boot<C>>,
-        id: Option<String>,
-        title: String,
-        window_settings: window::Settings,
+        window_settings: Option<window::Settings>,
         graphics_settings: graphics::Settings,
     }
 
-    let mut runner = Runner {
+    let runner = Runner {
         instance,
         context,
+        id: settings.id,
         boot: Some(BootConfig {
+            proxy,
             sender: boot_sender,
-            id,
-            title,
-            window_settings: settings.window,
+            window_settings,
             graphics_settings,
         }),
         sender: event_sender,
         receiver: control_receiver,
         error: None,
+
+        #[cfg(target_arch = "wasm32")]
+        is_booted: std::rc::Rc::new(std::cell::RefCell::new(false)),
+        #[cfg(target_arch = "wasm32")]
+        queued_events: Vec::new(),
     };
 
-    impl<Message, F, C> winit::application::ApplicationHandler<Message>
+    impl<Message, F, C> winit::application::ApplicationHandler<Action<Message>>
         for Runner<Message, F, C>
     where
+        Message: std::fmt::Debug,
         F: Future<Output = ()>,
-        C: Compositor,
+        C: Compositor + 'static,
     {
         fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
             let Some(BootConfig {
+                mut proxy,
                 sender,
-                id,
-                title,
                 window_settings,
                 graphics_settings,
             }) = self.boot.take()
@@ -213,20 +284,9 @@ where
                 return;
             };
 
-            let should_be_visible = window_settings.visible;
-            let exit_on_close_request = window_settings.exit_on_close_request;
-
-            let window_attributes = conversion::window_attributes(
-                window_settings,
-                &title,
-                event_loop.primary_monitor(),
-                id,
-            )
-            .with_visible(false);
-
-            log::debug!("Window attributes: {window_attributes:#?}");
-
-            let window = match event_loop.create_window(window_attributes) {
+            let window = match event_loop.create_window(
+                winit::window::WindowAttributes::default().with_visible(false),
+            ) {
                 Ok(window) => Arc::new(window),
                 Err(error) => {
                     self.error = Some(Error::WindowCreationFailed(error));
@@ -235,26 +295,53 @@ where
                 }
             };
 
+            let clipboard = Clipboard::connect(&window);
+
             let finish_boot = async move {
                 let compositor =
                     C::new(graphics_settings, window.clone()).await?;
 
                 sender
                     .send(Boot {
-                        window,
                         compositor,
-                        should_be_visible,
-                        exit_on_close_request,
+                        clipboard,
+                        is_daemon: window_settings.is_none(),
                     })
                     .ok()
                     .expect("Send boot event");
 
+                if let Some(window_settings) = window_settings {
+                    let (sender, _receiver) = oneshot::channel();
+
+                    proxy.send_action(Action::Window(
+                        runtime::window::Action::Open(
+                            window::Id::unique(),
+                            window_settings,
+                            sender,
+                        ),
+                    ));
+                }
+
                 Ok::<_, graphics::Error>(())
             };
 
-            if let Err(error) = executor::block_on(finish_boot) {
+            #[cfg(not(target_arch = "wasm32"))]
+            if let Err(error) =
+                crate::futures::futures::executor::block_on(finish_boot)
+            {
                 self.error = Some(Error::GraphicsCreationFailed(error));
                 event_loop.exit();
+            }
+
+            #[cfg(target_arch = "wasm32")]
+            {
+                let is_booted = self.is_booted.clone();
+
+                wasm_bindgen_futures::spawn_local(async move {
+                    finish_boot.await.expect("Finish boot!");
+
+                    *is_booted.borrow_mut() = true;
+                });
             }
         }
 
@@ -314,12 +401,12 @@ where
         fn user_event(
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
-            message: Message,
+            action: Action<Message>,
         ) {
             self.process_event(
                 event_loop,
                 Event::EventLoopAwakened(winit::event::Event::UserEvent(
-                    message,
+                    action,
                 )),
             );
         }
@@ -343,8 +430,21 @@ where
         fn process_event(
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
-            event: Event<Message>,
+            event: Event<Action<Message>>,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if !*self.is_booted.borrow() {
+                self.queued_events.push(event);
+                return;
+            } else if !self.queued_events.is_empty() {
+                let queued_events = std::mem::take(&mut self.queued_events);
+
+                // This won't infinitely recurse, since we `mem::take`
+                for event in queued_events {
+                    self.process_event(event_loop, event);
+                }
+            }
+
             if event_loop.exiting() {
                 return;
             }
@@ -383,13 +483,68 @@ where
                                 let exit_on_close_request =
                                     settings.exit_on_close_request;
 
+                                #[cfg(target_arch = "wasm32")]
+                                let target =
+                                    settings.platform_specific.target.clone();
+
                                 let window = event_loop
                                     .create_window(
                                         conversion::window_attributes(
-                                            settings, &title, monitor, None,
+                                            settings,
+                                            &title,
+                                            monitor
+                                                .or(event_loop
+                                                    .primary_monitor()),
+                                            self.id.clone(),
                                         ),
                                     )
                                     .expect("Create window");
+
+                                #[cfg(target_arch = "wasm32")]
+                                {
+                                    use winit::platform::web::WindowExtWebSys;
+
+                                    let canvas = window
+                                        .canvas()
+                                        .expect("Get window canvas");
+
+                                    let _ = canvas.set_attribute(
+                                        "style",
+                                        "display: block; width: 100%; height: 100%",
+                                    );
+
+                                    let window = web_sys::window().unwrap();
+                                    let document = window.document().unwrap();
+                                    let body = document.body().unwrap();
+
+                                    let target = target.and_then(|target| {
+                                        body.query_selector(&format!(
+                                            "#{target}"
+                                        ))
+                                        .ok()
+                                        .unwrap_or(None)
+                                    });
+
+                                    match target {
+                                        Some(node) => {
+                                            let _ = node
+                                                .replace_with_with_node_1(
+                                                    &canvas,
+                                                )
+                                                .expect(&format!(
+                                                    "Could not replace #{}",
+                                                    node.id()
+                                                ));
+                                        }
+                                        None => {
+                                            let _ = body
+                                                .append_child(&canvas)
+                                                .expect(
+                                                "Append canvas to HTML body",
+                                            );
+                                        }
+                                    };
+                                }
 
                                 self.process_event(
                                     event_loop,
@@ -417,16 +572,27 @@ where
         }
     }
 
-    let _ = event_loop.run_app(&mut runner);
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let mut runner = runner;
+        let _ = event_loop.run_app(&mut runner);
 
-    Ok(())
+        runner.error.map(Err).unwrap_or(Ok(()))
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        use winit::platform::web::EventLoopExtWebSys;
+        let _ = event_loop.spawn_app(runner);
+
+        Ok(())
+    }
 }
 
 struct Boot<C> {
-    window: Arc<winit::window::Window>,
     compositor: C,
-    should_be_visible: bool,
-    exit_on_close_request: bool,
+    clipboard: Clipboard,
+    is_daemon: bool,
 }
 
 enum Event<Message: 'static> {
@@ -449,79 +615,36 @@ enum Control {
     },
 }
 
-async fn run_instance<A, E, C>(
-    mut application: A,
-    mut runtime: Runtime<E, Proxy<A::Message>, Action<A::Message>>,
-    mut proxy: Proxy<A::Message>,
+async fn run_instance<P, C>(
+    mut program: P,
+    mut runtime: Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
+    mut proxy: Proxy<P::Message>,
     mut debug: Debug,
     mut boot: oneshot::Receiver<Boot<C>>,
-    mut event_receiver: mpsc::UnboundedReceiver<Event<Action<A::Message>>>,
+    mut event_receiver: mpsc::UnboundedReceiver<Event<Action<P::Message>>>,
     mut control_sender: mpsc::UnboundedSender<Control>,
 ) where
-    A: Application + 'static,
-    E: Executor + 'static,
-    C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: DefaultStyle,
+    P: Program + 'static,
+    C: Compositor<Renderer = P::Renderer> + 'static,
+    P::Theme: DefaultStyle,
 {
     use winit::event;
     use winit::event_loop::ControlFlow;
 
     let Boot {
-        window: main_window,
         mut compositor,
-        should_be_visible,
-        exit_on_close_request,
+        mut clipboard,
+        is_daemon,
     } = boot.try_recv().ok().flatten().expect("Receive boot");
 
     let mut window_manager = WindowManager::new();
 
-    let _ = window_manager.insert(
-        window::Id::MAIN,
-        main_window,
-        &application,
-        &mut compositor,
-        exit_on_close_request,
-    );
-
-    let main_window = window_manager
-        .get_mut(window::Id::MAIN)
-        .expect("Get main window");
-
-    if should_be_visible {
-        main_window.raw.set_visible(true);
-    }
-
-    let mut clipboard = Clipboard::connect(&main_window.raw);
-    let mut events = {
-        vec![(
-            window::Id::MAIN,
-            core::Event::Window(window::Event::Opened {
-                position: main_window.position(),
-                size: main_window.size(),
-            }),
-        )]
-    };
+    let mut events = Vec::new();
+    let mut messages = Vec::new();
+    let mut actions = 0;
 
     let mut ui_caches = FxHashMap::default();
-    let mut user_interfaces = ManuallyDrop::new(build_user_interfaces(
-        &application,
-        &mut debug,
-        &mut window_manager,
-        FxHashMap::from_iter([(
-            window::Id::MAIN,
-            user_interface::Cache::default(),
-        )]),
-    ));
-
-    runtime.track(
-        application
-            .subscription()
-            .map(Action::Output)
-            .into_recipes(),
-    );
-
-    let mut messages = Vec::new();
-    let mut user_events = 0;
+    let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
 
     debug.startup_finished();
 
@@ -535,7 +658,7 @@ async fn run_instance<A, E, C>(
                 let window = window_manager.insert(
                     id,
                     Arc::new(window),
-                    &application,
+                    &program,
                     &mut compositor,
                     exit_on_close_request,
                 );
@@ -545,7 +668,7 @@ async fn run_instance<A, E, C>(
                 let _ = user_interfaces.insert(
                     id,
                     build_user_interface(
-                        &application,
+                        &program,
                         user_interface::Cache::default(),
                         &mut window.renderer,
                         logical_size,
@@ -570,8 +693,6 @@ async fn run_instance<A, E, C>(
                         | event::StartCause::ResumeTimeReached { .. },
                     ) => {
                         for (_id, window) in window_manager.iter_mut() {
-                            // TODO once widgets can request to be redrawn, we can avoid always requesting a
-                            // redraw
                             window.raw.request_redraw();
                         }
                     }
@@ -591,7 +712,7 @@ async fn run_instance<A, E, C>(
                     event::Event::UserEvent(action) => {
                         run_action(
                             action,
-                            &application,
+                            &program,
                             &mut compositor,
                             &mut messages,
                             &mut clipboard,
@@ -601,7 +722,7 @@ async fn run_instance<A, E, C>(
                             &mut window_manager,
                             &mut ui_caches,
                         );
-                        user_events += 1;
+                        actions += 1;
                     }
                     event::Event::WindowEvent {
                         window_id: id,
@@ -751,9 +872,6 @@ async fn run_instance<A, E, C>(
                         ) {
                             Ok(()) => {
                                 debug.render_finished();
-
-                                // TODO: Handle animations!
-                                // Maybe we can use `ControlFlow::WaitUntil` for this.
                             }
                             Err(error) => match error {
                                 // This is an unrecoverable error.
@@ -782,6 +900,16 @@ async fn run_instance<A, E, C>(
                         event: window_event,
                         window_id,
                     } => {
+                        if !is_daemon
+                            && matches!(
+                                window_event,
+                                winit::event::WindowEvent::Destroyed
+                            )
+                            && window_manager.is_empty()
+                        {
+                            break 'main;
+                        }
+
                         let Some((id, window)) =
                             window_manager.get_mut_alias(window_id)
                         else {
@@ -801,10 +929,6 @@ async fn run_instance<A, E, C>(
                                 id,
                                 core::Event::Window(window::Event::Closed),
                             ));
-
-                            if window_manager.is_empty() {
-                                break 'main;
-                            }
                         } else {
                             window.state.update(
                                 &window.raw,
@@ -891,7 +1015,6 @@ async fn run_instance<A, E, C>(
 
                         debug.event_processing_finished();
 
-                        // TODO mw application update returns which window IDs to update
                         if !messages.is_empty() || uis_stale {
                             let cached_interfaces: FxHashMap<
                                 window::Id,
@@ -901,40 +1024,34 @@ async fn run_instance<A, E, C>(
                                 .map(|(id, ui)| (id, ui.into_cache()))
                                 .collect();
 
-                            // Update application
                             update(
-                                &mut application,
+                                &mut program,
                                 &mut runtime,
                                 &mut debug,
                                 &mut messages,
                             );
 
-                            // we must synchronize all window states with application state after an
-                            // application update since we don't know what changed
                             for (id, window) in window_manager.iter_mut() {
                                 window.state.synchronize(
-                                    &application,
+                                    &program,
                                     id,
                                     &window.raw,
                                 );
 
-                                // TODO once widgets can request to be redrawn, we can avoid always requesting a
-                                // redraw
                                 window.raw.request_redraw();
                             }
 
-                            // rebuild UIs with the synchronized states
                             user_interfaces =
                                 ManuallyDrop::new(build_user_interfaces(
-                                    &application,
+                                    &program,
                                     &mut debug,
                                     &mut window_manager,
                                     cached_interfaces,
                                 ));
 
-                            if user_events > 0 {
-                                proxy.free_slots(user_events);
-                                user_events = 0;
+                            if actions > 0 {
+                                proxy.free_slots(actions);
+                                actions = 0;
                             }
                         }
                     }
@@ -947,20 +1064,20 @@ async fn run_instance<A, E, C>(
     let _ = ManuallyDrop::into_inner(user_interfaces);
 }
 
-/// Builds a window's [`UserInterface`] for the [`Application`].
-fn build_user_interface<'a, A: Application>(
-    application: &'a A,
+/// Builds a window's [`UserInterface`] for the [`Program`].
+fn build_user_interface<'a, P: Program>(
+    program: &'a P,
     cache: user_interface::Cache,
-    renderer: &mut A::Renderer,
+    renderer: &mut P::Renderer,
     size: Size,
     debug: &mut Debug,
     id: window::Id,
-) -> UserInterface<'a, A::Message, A::Theme, A::Renderer>
+) -> UserInterface<'a, P::Message, P::Theme, P::Renderer>
 where
-    A::Theme: DefaultStyle,
+    P::Theme: DefaultStyle,
 {
     debug.view_started();
-    let view = application.view(id);
+    let view = program.view(id);
     debug.view_finished();
 
     debug.layout_started();
@@ -970,19 +1087,19 @@ where
     user_interface
 }
 
-fn update<A: Application, E: Executor>(
-    application: &mut A,
-    runtime: &mut Runtime<E, Proxy<A::Message>, Action<A::Message>>,
+fn update<P: Program, E: Executor>(
+    program: &mut P,
+    runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>>,
     debug: &mut Debug,
-    messages: &mut Vec<A::Message>,
+    messages: &mut Vec<P::Message>,
 ) where
-    A::Theme: DefaultStyle,
+    P::Theme: DefaultStyle,
 {
     for message in messages.drain(..) {
         debug.log_message(&message);
         debug.update_started();
 
-        let task = runtime.enter(|| application.update(message));
+        let task = runtime.enter(|| program.update(message));
         debug.update_finished();
 
         if let Some(stream) = task.into_stream() {
@@ -990,28 +1107,28 @@ fn update<A: Application, E: Executor>(
         }
     }
 
-    let subscription = application.subscription();
+    let subscription = program.subscription();
     runtime.track(subscription.map(Action::Output).into_recipes());
 }
 
-fn run_action<A, C>(
-    action: Action<A::Message>,
-    application: &A,
+fn run_action<P, C>(
+    action: Action<P::Message>,
+    program: &P,
     compositor: &mut C,
-    messages: &mut Vec<A::Message>,
+    messages: &mut Vec<P::Message>,
     clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
     debug: &mut Debug,
     interfaces: &mut FxHashMap<
         window::Id,
-        UserInterface<'_, A::Message, A::Theme, A::Renderer>,
+        UserInterface<'_, P::Message, P::Theme, P::Renderer>,
     >,
-    window_manager: &mut WindowManager<A, C>,
+    window_manager: &mut WindowManager<P, C>,
     ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
 ) where
-    A: Application,
-    C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: DefaultStyle,
+    P: Program,
+    C: Compositor<Renderer = P::Renderer> + 'static,
+    P::Theme: DefaultStyle,
 {
     use crate::runtime::clipboard;
     use crate::runtime::system;
@@ -1037,7 +1154,7 @@ fn run_action<A, C>(
                     .start_send(Control::CreateWindow {
                         id,
                         settings,
-                        title: application.title(id),
+                        title: program.title(id),
                         monitor,
                     })
                     .expect("Send control action");
@@ -1047,12 +1164,18 @@ fn run_action<A, C>(
             window::Action::Close(id) => {
                 let _ = window_manager.remove(id);
                 let _ = ui_caches.remove(&id);
+            }
+            window::Action::GetOldest(channel) => {
+                let id =
+                    window_manager.iter_mut().next().map(|(id, _window)| id);
 
-                if window_manager.is_empty() {
-                    control_sender
-                        .start_send(Control::Exit)
-                        .expect("Send control action");
-                }
+                let _ = channel.send(id);
+            }
+            window::Action::GetLatest(channel) => {
+                let id =
+                    window_manager.iter_mut().last().map(|(id, _window)| id);
+
+                let _ = channel.send(id);
             }
             window::Action::Drag(id) => {
                 if let Some(window) = window_manager.get_mut(id) {
@@ -1069,7 +1192,7 @@ fn run_action<A, C>(
                     );
                 }
             }
-            window::Action::FetchSize(id, channel) => {
+            window::Action::GetSize(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let size = window
                         .raw
@@ -1079,7 +1202,7 @@ fn run_action<A, C>(
                     let _ = channel.send(Size::new(size.width, size.height));
                 }
             }
-            window::Action::FetchMaximized(id, channel) => {
+            window::Action::GetMaximized(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = channel.send(window.raw.is_maximized());
                 }
@@ -1089,7 +1212,7 @@ fn run_action<A, C>(
                     window.raw.set_maximized(maximized);
                 }
             }
-            window::Action::FetchMinimized(id, channel) => {
+            window::Action::GetMinimized(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = channel.send(window.raw.is_minimized());
                 }
@@ -1099,7 +1222,7 @@ fn run_action<A, C>(
                     window.raw.set_minimized(minimized);
                 }
             }
-            window::Action::FetchPosition(id, channel) => {
+            window::Action::GetPosition(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let position = window
                         .raw
@@ -1139,7 +1262,7 @@ fn run_action<A, C>(
                     window.raw.set_window_icon(conversion::icon(icon));
                 }
             }
-            window::Action::FetchMode(id, channel) => {
+            window::Action::GetMode(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let mode = if window.raw.is_visible().unwrap_or(true) {
                         conversion::mode(window.raw.fullscreen())
@@ -1193,7 +1316,7 @@ fn run_action<A, C>(
                     }
                 }
             }
-            window::Action::FetchRawId(id, channel) => {
+            window::Action::GetRawId(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = channel.send(window.raw.id().into());
                 }
@@ -1266,19 +1389,24 @@ fn run_action<A, C>(
 
             let _ = channel.send(Ok(()));
         }
+        Action::Exit => {
+            control_sender
+                .start_send(Control::Exit)
+                .expect("Send control action");
+        }
     }
 }
 
 /// Build the user interface for every window.
-pub fn build_user_interfaces<'a, A: Application, C>(
-    application: &'a A,
+pub fn build_user_interfaces<'a, P: Program, C>(
+    program: &'a P,
     debug: &mut Debug,
-    window_manager: &mut WindowManager<A, C>,
+    window_manager: &mut WindowManager<P, C>,
     mut cached_user_interfaces: FxHashMap<window::Id, user_interface::Cache>,
-) -> FxHashMap<window::Id, UserInterface<'a, A::Message, A::Theme, A::Renderer>>
+) -> FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>
 where
-    C: Compositor<Renderer = A::Renderer>,
-    A::Theme: DefaultStyle,
+    C: Compositor<Renderer = P::Renderer>,
+    P::Theme: DefaultStyle,
 {
     cached_user_interfaces
         .drain()
@@ -1288,7 +1416,7 @@ where
             Some((
                 id,
                 build_user_interface(
-                    application,
+                    program,
                     cache,
                     &mut window.renderer,
                     window.state.logical_size(),
@@ -1300,7 +1428,7 @@ where
         .collect()
 }
 
-/// Returns true if the provided event should cause an [`Application`] to
+/// Returns true if the provided event should cause a [`Program`] to
 /// exit.
 pub fn user_force_quit(
     event: &winit::event::WindowEvent,

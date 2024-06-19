@@ -4,7 +4,7 @@ use iced::widget::{button, container, horizontal_space, hover};
 use iced::{Element, Length, Theme};
 
 pub fn main() -> iced::Result {
-    iced::program("Bezier Tool - Iced", Example::update, Example::view)
+    iced::application("Bezier Tool - Iced", Example::update, Example::view)
         .theme(|_| Theme::CatppuccinMocha)
         .antialiasing(true)
         .run()

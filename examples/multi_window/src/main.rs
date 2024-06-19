@@ -1,18 +1,21 @@
-use iced::executor;
-use iced::multi_window::{self, Application};
 use iced::widget::{
     button, center, column, container, horizontal_space, scrollable, text,
     text_input,
 };
 use iced::window;
-use iced::{
-    Alignment, Element, Length, Settings, Subscription, Task, Theme, Vector,
-};
+use iced::{Alignment, Element, Length, Subscription, Task, Theme, Vector};
 
 use std::collections::BTreeMap;
 
 fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::daemon(Example::title, Example::update, Example::view)
+        .load(|| {
+            window::open(window::Settings::default()).map(Message::WindowOpened)
+        })
+        .subscription(Example::subscription)
+        .theme(Example::theme)
+        .scale_factor(Example::scale_factor)
+        .run()
 }
 
 #[derive(Default)]
@@ -39,21 +42,7 @@ enum Message {
     TitleChanged(window::Id, String),
 }
 
-impl multi_window::Application for Example {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Task<Message>) {
-        (
-            Example {
-                windows: BTreeMap::from([(window::Id::MAIN, Window::new(1))]),
-            },
-            Task::none(),
-        )
-    }
-
+impl Example {
     fn title(&self, window: window::Id) -> String {
         self.windows
             .get(&window)
@@ -68,7 +57,7 @@ impl multi_window::Application for Example {
                     return Task::none();
                 };
 
-                window::fetch_position(*last_window)
+                window::get_position(*last_window)
                     .then(|last_position| {
                         let position = last_position.map_or(
                             window::Position::Default,
@@ -97,7 +86,11 @@ impl multi_window::Application for Example {
             Message::WindowClosed(id) => {
                 self.windows.remove(&id);
 
-                Task::none()
+                if self.windows.is_empty() {
+                    iced::exit()
+                } else {
+                    Task::none()
+                }
             }
             Message::ScaleInputChanged(id, scale) => {
                 if let Some(window) = self.windows.get_mut(&id) {
@@ -149,7 +142,7 @@ impl multi_window::Application for Example {
             .unwrap_or(1.0)
     }
 
-    fn subscription(&self) -> Subscription<Self::Message> {
+    fn subscription(&self) -> Subscription<Message> {
         window::close_events().map(Message::WindowClosed)
     }
 }

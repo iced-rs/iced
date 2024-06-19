@@ -7,7 +7,7 @@ use iced::widget::{
 use iced::{Color, Element, Length, Size, Subscription};
 
 pub fn main() -> iced::Result {
-    iced::program("Pane Grid - Iced", Example::update, Example::view)
+    iced::application("Pane Grid - Iced", Example::update, Example::view)
         .subscription(Example::subscription)
         .run()
 }

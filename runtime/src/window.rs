@@ -26,6 +26,12 @@ pub enum Action {
     /// Close the window and exits the application.
     Close(Id),
 
+    /// Gets the [`Id`] of the oldest window.
+    GetOldest(oneshot::Sender<Option<Id>>),
+
+    /// Gets the [`Id`] of the latest window.
+    GetLatest(oneshot::Sender<Option<Id>>),
+
     /// Move the window with the left mouse button until the button is
     /// released.
     ///
@@ -36,26 +42,26 @@ pub enum Action {
     /// Resize the window to the given logical dimensions.
     Resize(Id, Size),
 
-    /// Fetch the current logical dimensions of the window.
-    FetchSize(Id, oneshot::Sender<Size>),
+    /// Get the current logical dimensions of the window.
+    GetSize(Id, oneshot::Sender<Size>),
 
-    /// Fetch if the current window is maximized or not.
-    FetchMaximized(Id, oneshot::Sender<bool>),
+    /// Get if the current window is maximized or not.
+    GetMaximized(Id, oneshot::Sender<bool>),
 
     /// Set the window to maximized or back
     Maximize(Id, bool),
 
-    /// Fetch if the current window is minimized or not.
+    /// Get if the current window is minimized or not.
     ///
     /// ## Platform-specific
     /// - **Wayland:** Always `None`.
-    FetchMinimized(Id, oneshot::Sender<Option<bool>>),
+    GetMinimized(Id, oneshot::Sender<Option<bool>>),
 
     /// Set the window to minimized or back
     Minimize(Id, bool),
 
-    /// Fetch the current logical coordinates of the window.
-    FetchPosition(Id, oneshot::Sender<Option<Point>>),
+    /// Get the current logical coordinates of the window.
+    GetPosition(Id, oneshot::Sender<Option<Point>>),
 
     /// Move the window to the given logical coordinates.
     ///
@@ -65,8 +71,8 @@ pub enum Action {
     /// Change the [`Mode`] of the window.
     ChangeMode(Id, Mode),
 
-    /// Fetch the current [`Mode`] of the window.
-    FetchMode(Id, oneshot::Sender<Mode>),
+    /// Get the current [`Mode`] of the window.
+    GetMode(Id, oneshot::Sender<Mode>),
 
     /// Toggle the window to maximized or back
     ToggleMaximize(Id),
@@ -114,8 +120,8 @@ pub enum Action {
     /// Android / iOS / macOS / Orbital / Web / X11: Unsupported.
     ShowSystemMenu(Id),
 
-    /// Fetch the raw identifier unique to the window.
-    FetchRawId(Id, oneshot::Sender<u64>),
+    /// Get the raw identifier unique to the window.
+    GetRawId(Id, oneshot::Sender<u64>),
 
     /// Change the window [`Icon`].
     ///
@@ -214,6 +220,16 @@ pub fn close<T>(id: Id) -> Task<T> {
     Task::effect(crate::Action::Window(Action::Close(id)))
 }
 
+/// Gets the window [`Id`] of the oldest window.
+pub fn get_oldest() -> Task<Option<Id>> {
+    Task::oneshot(|channel| crate::Action::Window(Action::GetOldest(channel)))
+}
+
+/// Gets the window [`Id`] of the latest window.
+pub fn get_latest() -> Task<Option<Id>> {
+    Task::oneshot(|channel| crate::Action::Window(Action::GetLatest(channel)))
+}
+
 /// Begins dragging the window while the left mouse button is held.
 pub fn drag<T>(id: Id) -> Task<T> {
     Task::effect(crate::Action::Window(Action::Drag(id)))
@@ -224,17 +240,17 @@ pub fn resize<T>(id: Id, new_size: Size) -> Task<T> {
     Task::effect(crate::Action::Window(Action::Resize(id, new_size)))
 }
 
-/// Fetches the window's size in logical dimensions.
-pub fn fetch_size(id: Id) -> Task<Size> {
+/// Get the window's size in logical dimensions.
+pub fn get_size(id: Id) -> Task<Size> {
     Task::oneshot(move |channel| {
-        crate::Action::Window(Action::FetchSize(id, channel))
+        crate::Action::Window(Action::GetSize(id, channel))
     })
 }
 
-/// Fetches if the window is maximized.
-pub fn fetch_maximized(id: Id) -> Task<bool> {
+/// Gets the maximized state of the window with the given [`Id`].
+pub fn get_maximized(id: Id) -> Task<bool> {
     Task::oneshot(move |channel| {
-        crate::Action::Window(Action::FetchMaximized(id, channel))
+        crate::Action::Window(Action::GetMaximized(id, channel))
     })
 }
 
@@ -243,10 +259,10 @@ pub fn maximize<T>(id: Id, maximized: bool) -> Task<T> {
     Task::effect(crate::Action::Window(Action::Maximize(id, maximized)))
 }
 
-/// Fetches if the window is minimized.
-pub fn fetch_minimized(id: Id) -> Task<Option<bool>> {
+/// Gets the minimized state of the window with the given [`Id`].
+pub fn get_minimized(id: Id) -> Task<Option<bool>> {
     Task::oneshot(move |channel| {
-        crate::Action::Window(Action::FetchMinimized(id, channel))
+        crate::Action::Window(Action::GetMinimized(id, channel))
     })
 }
 
@@ -255,10 +271,10 @@ pub fn minimize<T>(id: Id, minimized: bool) -> Task<T> {
     Task::effect(crate::Action::Window(Action::Minimize(id, minimized)))
 }
 
-/// Fetches the current window position in logical coordinates.
-pub fn fetch_position(id: Id) -> Task<Option<Point>> {
+/// Gets the position in logical coordinates of the window with the given [`Id`].
+pub fn get_position(id: Id) -> Task<Option<Point>> {
     Task::oneshot(move |channel| {
-        crate::Action::Window(Action::FetchPosition(id, channel))
+        crate::Action::Window(Action::GetPosition(id, channel))
     })
 }
 
@@ -272,10 +288,10 @@ pub fn change_mode<T>(id: Id, mode: Mode) -> Task<T> {
     Task::effect(crate::Action::Window(Action::ChangeMode(id, mode)))
 }
 
-/// Fetches the current [`Mode`] of the window.
-pub fn fetch_mode(id: Id) -> Task<Mode> {
+/// Gets the current [`Mode`] of the window.
+pub fn get_mode(id: Id) -> Task<Mode> {
     Task::oneshot(move |channel| {
-        crate::Action::Window(Action::FetchMode(id, channel))
+        crate::Action::Window(Action::GetMode(id, channel))
     })
 }
 
@@ -327,11 +343,11 @@ pub fn show_system_menu<T>(id: Id) -> Task<T> {
     Task::effect(crate::Action::Window(Action::ShowSystemMenu(id)))
 }
 
-/// Fetches an identifier unique to the window, provided by the underlying windowing system. This is
+/// Gets an identifier unique to the window, provided by the underlying windowing system. This is
 /// not to be confused with [`Id`].
-pub fn fetch_raw_id<Message>(id: Id) -> Task<u64> {
+pub fn get_raw_id<Message>(id: Id) -> Task<u64> {
     Task::oneshot(|channel| {
-        crate::Action::Window(Action::FetchRawId(id, channel))
+        crate::Action::Window(Action::GetRawId(id, channel))
     })
 }
 

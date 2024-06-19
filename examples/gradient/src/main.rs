@@ -1,5 +1,5 @@
+use iced::application;
 use iced::gradient;
-use iced::program;
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text,
 };
@@ -8,7 +8,7 @@ use iced::{Alignment, Color, Element, Length, Radians, Theme};
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("Gradient - Iced", Gradient::update, Gradient::view)
+    iced::application("Gradient - Iced", Gradient::update, Gradient::view)
         .style(Gradient::style)
         .transparent(true)
         .run()
@@ -95,11 +95,11 @@ impl Gradient {
         .into()
     }
 
-    fn style(&self, theme: &Theme) -> program::Appearance {
-        use program::DefaultStyle;
+    fn style(&self, theme: &Theme) -> application::Appearance {
+        use application::DefaultStyle;
 
         if self.transparent {
-            program::Appearance {
+            application::Appearance {
                 background_color: Color::TRANSPARENT,
                 text_color: theme.palette().text,
             }

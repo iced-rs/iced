@@ -15,12 +15,16 @@ use std::time::Duration;
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("Game of Life - Iced", GameOfLife::update, GameOfLife::view)
-        .subscription(GameOfLife::subscription)
-        .theme(|_| Theme::Dark)
-        .antialiasing(true)
-        .centered()
-        .run()
+    iced::application(
+        "Game of Life - Iced",
+        GameOfLife::update,
+        GameOfLife::view,
+    )
+    .subscription(GameOfLife::subscription)
+    .theme(|_| Theme::Dark)
+    .antialiasing(true)
+    .centered()
+    .run()
 }
 
 struct GameOfLife {

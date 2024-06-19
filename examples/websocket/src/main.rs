@@ -8,7 +8,7 @@ use iced::{color, Element, Length, Subscription, Task};
 use once_cell::sync::Lazy;
 
 pub fn main() -> iced::Result {
-    iced::program("WebSocket - Iced", WebSocket::update, WebSocket::view)
+    iced::application("WebSocket - Iced", WebSocket::update, WebSocket::view)
         .load(WebSocket::load)
         .subscription(WebSocket::subscription)
         .run()

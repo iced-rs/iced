@@ -11,7 +11,7 @@ use std::cell::RefCell;
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("The Matrix - Iced", TheMatrix::update, TheMatrix::view)
+    iced::application("The Matrix - Iced", TheMatrix::update, TheMatrix::view)
         .subscription(TheMatrix::subscription)
         .antialiasing(true)
         .run()

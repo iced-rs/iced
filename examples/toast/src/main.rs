@@ -9,7 +9,7 @@ use iced::{Alignment, Element, Length, Subscription, Task};
 use toast::{Status, Toast};
 
 pub fn main() -> iced::Result {
-    iced::program("Toast - Iced", App::update, App::view)
+    iced::application("Toast - Iced", App::update, App::view)
         .subscription(App::subscription)
         .run()
 }

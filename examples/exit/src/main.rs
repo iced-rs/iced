@@ -3,7 +3,7 @@ use iced::window;
 use iced::{Alignment, Element, Task};
 
 pub fn main() -> iced::Result {
-    iced::program("Exit - Iced", Exit::update, Exit::view).run()
+    iced::application("Exit - Iced", Exit::update, Exit::view).run()
 }
 
 #[derive(Default)]
@@ -20,7 +20,7 @@ enum Message {
 impl Exit {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Confirm => window::close(window::Id::MAIN),
+            Message::Confirm => window::get_latest().and_then(window::close),
             Message::Exit => {
                 self.show_confirm = true;
 

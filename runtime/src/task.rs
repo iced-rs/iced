@@ -242,6 +242,39 @@ impl<T> Task<T> {
     }
 }
 
+impl<T> Task<Option<T>> {
+    /// Executes a new [`Task`] after this one, only when it produces `Some` value.
+    ///
+    /// The value is provided to the closure to create the subsequent [`Task`].
+    pub fn and_then<A>(
+        self,
+        f: impl Fn(T) -> Task<A> + MaybeSend + 'static,
+    ) -> Task<A>
+    where
+        T: MaybeSend + 'static,
+        A: MaybeSend + 'static,
+    {
+        self.then(move |option| option.map_or_else(Task::none, &f))
+    }
+}
+
+impl<T, E> Task<Result<T, E>> {
+    /// Executes a new [`Task`] after this one, only when it succeeds with an `Ok` value.
+    ///
+    /// The success value is provided to the closure to create the subsequent [`Task`].
+    pub fn and_then<A>(
+        self,
+        f: impl Fn(T) -> Task<A> + MaybeSend + 'static,
+    ) -> Task<A>
+    where
+        T: MaybeSend + 'static,
+        E: MaybeSend + 'static,
+        A: MaybeSend + 'static,
+    {
+        self.then(move |option| option.map_or_else(|_| Task::none(), &f))
+    }
+}
+
 impl<T> From<()> for Task<T>
 where
     T: MaybeSend + 'static,

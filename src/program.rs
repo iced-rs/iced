@@ -1,421 +1,17 @@
-//! Create and run iced applications step by step.
-//!
-//! # Example
-//! ```no_run
-//! use iced::widget::{button, column, text, Column};
-//! use iced::Theme;
-//!
-//! pub fn main() -> iced::Result {
-//!     iced::program("A counter", update, view)
-//!         .theme(|_| Theme::Dark)
-//!         .centered()
-//!         .run()
-//! }
-//!
-//! #[derive(Debug, Clone)]
-//! enum Message {
-//!     Increment,
-//! }
-//!
-//! fn update(value: &mut u64, message: Message) {
-//!     match message {
-//!         Message::Increment => *value += 1,
-//!     }
-//! }
-//!
-//! fn view(value: &u64) -> Column<Message> {
-//!     column![
-//!         text(value),
-//!         button("+").on_press(Message::Increment),
-//!     ]
-//! }
-//! ```
-use crate::application::Application;
 use crate::core::text;
-use crate::executor::{self, Executor};
 use crate::graphics::compositor;
+use crate::shell;
 use crate::window;
-use crate::{Element, Font, Result, Settings, Size, Subscription, Task};
+use crate::{Element, Executor, Result, Settings, Subscription, Task};
 
-pub use crate::application::{Appearance, DefaultStyle};
-
-use std::borrow::Cow;
-
-/// Creates an iced [`Program`] given its title, update, and view logic.
-///
-/// # Example
-/// ```no_run
-/// use iced::widget::{button, column, text, Column};
-///
-/// pub fn main() -> iced::Result {
-///     iced::program("A counter", update, view).run()
-/// }
-///
-/// #[derive(Debug, Clone)]
-/// enum Message {
-///     Increment,
-/// }
-///
-/// fn update(value: &mut u64, message: Message) {
-///     match message {
-///         Message::Increment => *value += 1,
-///     }
-/// }
-///
-/// fn view(value: &u64) -> Column<Message> {
-///     column![
-///         text(value),
-///         button("+").on_press(Message::Increment),
-///     ]
-/// }
-/// ```
-pub fn program<State, Message, Theme, Renderer>(
-    title: impl Title<State>,
-    update: impl Update<State, Message>,
-    view: impl for<'a> self::View<'a, State, Message, Theme, Renderer>,
-) -> Program<impl Definition<State = State, Message = Message, Theme = Theme>>
-where
-    State: 'static,
-    Message: Send + std::fmt::Debug + 'static,
-    Theme: Default + DefaultStyle,
-    Renderer: self::Renderer,
-{
-    use std::marker::PhantomData;
-
-    struct Application<State, Message, Theme, Renderer, Update, View> {
-        update: Update,
-        view: View,
-        _state: PhantomData<State>,
-        _message: PhantomData<Message>,
-        _theme: PhantomData<Theme>,
-        _renderer: PhantomData<Renderer>,
-    }
-
-    impl<State, Message, Theme, Renderer, Update, View> Definition
-        for Application<State, Message, Theme, Renderer, Update, View>
-    where
-        Message: Send + std::fmt::Debug + 'static,
-        Theme: Default + DefaultStyle,
-        Renderer: self::Renderer,
-        Update: self::Update<State, Message>,
-        View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
-    {
-        type State = State;
-        type Message = Message;
-        type Theme = Theme;
-        type Renderer = Renderer;
-        type Executor = executor::Default;
-
-        fn load(&self) -> Task<Self::Message> {
-            Task::none()
-        }
-
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
-            self.update.update(state, message).into()
-        }
-
-        fn view<'a>(
-            &self,
-            state: &'a Self::State,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.view.view(state).into()
-        }
-    }
-
-    Program {
-        raw: Application {
-            update,
-            view,
-            _state: PhantomData,
-            _message: PhantomData,
-            _theme: PhantomData,
-            _renderer: PhantomData,
-        },
-        settings: Settings::default(),
-    }
-    .title(title)
-}
-
-/// The underlying definition and configuration of an iced application.
-///
-/// You can use this API to create and run iced applications
-/// step by step—without coupling your logic to a trait
-/// or a specific type.
-///
-/// You can create a [`Program`] with the [`program`] helper.
-///
-/// [`run`]: Program::run
-#[derive(Debug)]
-pub struct Program<P: Definition> {
-    raw: P,
-    settings: Settings,
-}
-
-impl<P: Definition> Program<P> {
-    /// Runs the underlying [`Application`] of the [`Program`].
-    ///
-    /// The state of the [`Program`] must implement [`Default`].
-    /// If your state does not implement [`Default`], use [`run_with`]
-    /// instead.
-    ///
-    /// [`run_with`]: Self::run_with
-    pub fn run(self) -> Result
-    where
-        Self: 'static,
-        P::State: Default,
-    {
-        self.run_with(P::State::default)
-    }
-
-    /// Runs the underlying [`Application`] of the [`Program`] with a
-    /// closure that creates the initial state.
-    pub fn run_with(
-        self,
-        initialize: impl Fn() -> P::State + Clone + 'static,
-    ) -> Result
-    where
-        Self: 'static,
-    {
-        use std::marker::PhantomData;
-
-        struct Instance<P: Definition, I> {
-            program: P,
-            state: P::State,
-            _initialize: PhantomData<I>,
-        }
-
-        impl<P: Definition, I: Fn() -> P::State> Application for Instance<P, I> {
-            type Message = P::Message;
-            type Theme = P::Theme;
-            type Renderer = P::Renderer;
-            type Flags = (P, I);
-            type Executor = P::Executor;
-
-            fn new(
-                (program, initialize): Self::Flags,
-            ) -> (Self, Task<Self::Message>) {
-                let state = initialize();
-                let command = program.load();
-
-                (
-                    Self {
-                        program,
-                        state,
-                        _initialize: PhantomData,
-                    },
-                    command,
-                )
-            }
-
-            fn title(&self) -> String {
-                self.program.title(&self.state)
-            }
-
-            fn update(
-                &mut self,
-                message: Self::Message,
-            ) -> Task<Self::Message> {
-                self.program.update(&mut self.state, message)
-            }
-
-            fn view(
-                &self,
-            ) -> crate::Element<'_, Self::Message, Self::Theme, Self::Renderer>
-            {
-                self.program.view(&self.state)
-            }
-
-            fn subscription(&self) -> Subscription<Self::Message> {
-                self.program.subscription(&self.state)
-            }
-
-            fn theme(&self) -> Self::Theme {
-                self.program.theme(&self.state)
-            }
-
-            fn style(&self, theme: &Self::Theme) -> Appearance {
-                self.program.style(&self.state, theme)
-            }
-        }
-
-        let Self { raw, settings } = self;
-
-        Instance::run(Settings {
-            flags: (raw, initialize),
-            id: settings.id,
-            window: settings.window,
-            fonts: settings.fonts,
-            default_font: settings.default_font,
-            default_text_size: settings.default_text_size,
-            antialiasing: settings.antialiasing,
-        })
-    }
-
-    /// Sets the [`Settings`] that will be used to run the [`Program`].
-    pub fn settings(self, settings: Settings) -> Self {
-        Self { settings, ..self }
-    }
-
-    /// Sets the [`Settings::antialiasing`] of the [`Program`].
-    pub fn antialiasing(self, antialiasing: bool) -> Self {
-        Self {
-            settings: Settings {
-                antialiasing,
-                ..self.settings
-            },
-            ..self
-        }
-    }
-
-    /// Sets the default [`Font`] of the [`Program`].
-    pub fn default_font(self, default_font: Font) -> Self {
-        Self {
-            settings: Settings {
-                default_font,
-                ..self.settings
-            },
-            ..self
-        }
-    }
-
-    /// Adds a font to the list of fonts that will be loaded at the start of the [`Program`].
-    pub fn font(mut self, font: impl Into<Cow<'static, [u8]>>) -> Self {
-        self.settings.fonts.push(font.into());
-        self
-    }
-
-    /// Sets the [`window::Settings::position`] to [`window::Position::Centered`] in the [`Program`].
-    pub fn centered(self) -> Self {
-        Self {
-            settings: Settings {
-                window: window::Settings {
-                    position: window::Position::Centered,
-                    ..self.settings.window
-                },
-                ..self.settings
-            },
-            ..self
-        }
-    }
-
-    /// Sets the [`window::Settings::exit_on_close_request`] of the [`Program`].
-    pub fn exit_on_close_request(self, exit_on_close_request: bool) -> Self {
-        Self {
-            settings: Settings {
-                window: window::Settings {
-                    exit_on_close_request,
-                    ..self.settings.window
-                },
-                ..self.settings
-            },
-            ..self
-        }
-    }
-
-    /// Sets the [`window::Settings::size`] of the [`Program`].
-    pub fn window_size(self, size: impl Into<Size>) -> Self {
-        Self {
-            settings: Settings {
-                window: window::Settings {
-                    size: size.into(),
-                    ..self.settings.window
-                },
-                ..self.settings
-            },
-            ..self
-        }
-    }
-
-    /// Sets the [`window::Settings::transparent`] of the [`Program`].
-    pub fn transparent(self, transparent: bool) -> Self {
-        Self {
-            settings: Settings {
-                window: window::Settings {
-                    transparent,
-                    ..self.settings.window
-                },
-                ..self.settings
-            },
-            ..self
-        }
-    }
-
-    /// Sets the [`Title`] of the [`Program`].
-    pub(crate) fn title(
-        self,
-        title: impl Title<P::State>,
-    ) -> Program<
-        impl Definition<State = P::State, Message = P::Message, Theme = P::Theme>,
-    > {
-        Program {
-            raw: with_title(self.raw, title),
-            settings: self.settings,
-        }
-    }
-
-    /// Runs the [`Task`] produced by the closure at startup.
-    pub fn load(
-        self,
-        f: impl Fn() -> Task<P::Message>,
-    ) -> Program<
-        impl Definition<State = P::State, Message = P::Message, Theme = P::Theme>,
-    > {
-        Program {
-            raw: with_load(self.raw, f),
-            settings: self.settings,
-        }
-    }
-
-    /// Sets the subscription logic of the [`Program`].
-    pub fn subscription(
-        self,
-        f: impl Fn(&P::State) -> Subscription<P::Message>,
-    ) -> Program<
-        impl Definition<State = P::State, Message = P::Message, Theme = P::Theme>,
-    > {
-        Program {
-            raw: with_subscription(self.raw, f),
-            settings: self.settings,
-        }
-    }
-
-    /// Sets the theme logic of the [`Program`].
-    pub fn theme(
-        self,
-        f: impl Fn(&P::State) -> P::Theme,
-    ) -> Program<
-        impl Definition<State = P::State, Message = P::Message, Theme = P::Theme>,
-    > {
-        Program {
-            raw: with_theme(self.raw, f),
-            settings: self.settings,
-        }
-    }
-
-    /// Sets the style logic of the [`Program`].
-    pub fn style(
-        self,
-        f: impl Fn(&P::State, &P::Theme) -> Appearance,
-    ) -> Program<
-        impl Definition<State = P::State, Message = P::Message, Theme = P::Theme>,
-    > {
-        Program {
-            raw: with_style(self.raw, f),
-            settings: self.settings,
-        }
-    }
-}
+pub use crate::shell::program::{Appearance, DefaultStyle};
 
 /// The internal definition of a [`Program`].
 ///
 /// You should not need to implement this trait directly. Instead, use the
 /// methods available in the [`Program`] struct.
 #[allow(missing_docs)]
-pub trait Definition: Sized {
+pub trait Program: Sized {
     /// The state of the program.
     type State;
 
@@ -442,9 +38,10 @@ pub trait Definition: Sized {
     fn view<'a>(
         &self,
         state: &'a Self::State,
+        window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer>;
 
-    fn title(&self, _state: &Self::State) -> String {
+    fn title(&self, _state: &Self::State, _window: window::Id) -> String {
         String::from("A cool iced application!")
     }
 
@@ -455,28 +52,159 @@ pub trait Definition: Sized {
         Subscription::none()
     }
 
-    fn theme(&self, _state: &Self::State) -> Self::Theme {
+    fn theme(&self, _state: &Self::State, _window: window::Id) -> Self::Theme {
         Self::Theme::default()
     }
 
     fn style(&self, _state: &Self::State, theme: &Self::Theme) -> Appearance {
         DefaultStyle::default_style(theme)
     }
+
+    fn scale_factor(&self, _state: &Self::State, _window: window::Id) -> f64 {
+        1.0
+    }
+
+    /// Runs the [`Program`].
+    ///
+    /// The state of the [`Program`] must implement [`Default`].
+    /// If your state does not implement [`Default`], use [`run_with`]
+    /// instead.
+    ///
+    /// [`run_with`]: Self::run_with
+    fn run(
+        self,
+        settings: Settings,
+        window_settings: Option<window::Settings>,
+    ) -> Result
+    where
+        Self: 'static,
+        Self::State: Default,
+    {
+        self.run_with(settings, window_settings, Self::State::default)
+    }
+
+    /// Runs the [`Program`] with the given [`Settings`] and a closure that creates the initial state.
+    fn run_with<I>(
+        self,
+        settings: Settings,
+        window_settings: Option<window::Settings>,
+        initialize: I,
+    ) -> Result
+    where
+        Self: 'static,
+        I: Fn() -> Self::State + Clone + 'static,
+    {
+        use std::marker::PhantomData;
+
+        struct Instance<P: Program, I> {
+            program: P,
+            state: P::State,
+            _initialize: PhantomData<I>,
+        }
+
+        impl<P: Program, I: Fn() -> P::State> shell::Program for Instance<P, I> {
+            type Message = P::Message;
+            type Theme = P::Theme;
+            type Renderer = P::Renderer;
+            type Flags = (P, I);
+            type Executor = P::Executor;
+
+            fn new(
+                (program, initialize): Self::Flags,
+            ) -> (Self, Task<Self::Message>) {
+                let state = initialize();
+                let command = program.load();
+
+                (
+                    Self {
+                        program,
+                        state,
+                        _initialize: PhantomData,
+                    },
+                    command,
+                )
+            }
+
+            fn title(&self, window: window::Id) -> String {
+                self.program.title(&self.state, window)
+            }
+
+            fn update(
+                &mut self,
+                message: Self::Message,
+            ) -> Task<Self::Message> {
+                self.program.update(&mut self.state, message)
+            }
+
+            fn view(
+                &self,
+                window: window::Id,
+            ) -> crate::Element<'_, Self::Message, Self::Theme, Self::Renderer>
+            {
+                self.program.view(&self.state, window)
+            }
+
+            fn subscription(&self) -> Subscription<Self::Message> {
+                self.program.subscription(&self.state)
+            }
+
+            fn theme(&self, window: window::Id) -> Self::Theme {
+                self.program.theme(&self.state, window)
+            }
+
+            fn style(&self, theme: &Self::Theme) -> Appearance {
+                self.program.style(&self.state, theme)
+            }
+
+            fn scale_factor(&self, window: window::Id) -> f64 {
+                self.program.scale_factor(&self.state, window)
+            }
+        }
+
+        #[allow(clippy::needless_update)]
+        let renderer_settings = crate::graphics::Settings {
+            default_font: settings.default_font,
+            default_text_size: settings.default_text_size,
+            antialiasing: if settings.antialiasing {
+                Some(crate::graphics::Antialiasing::MSAAx4)
+            } else {
+                None
+            },
+            ..crate::graphics::Settings::default()
+        };
+
+        Ok(shell::program::run::<
+            Instance<Self, I>,
+            <Self::Renderer as compositor::Default>::Compositor,
+        >(
+            Settings {
+                id: settings.id,
+                fonts: settings.fonts,
+                default_font: settings.default_font,
+                default_text_size: settings.default_text_size,
+                antialiasing: settings.antialiasing,
+            }
+            .into(),
+            renderer_settings,
+            window_settings,
+            (self, initialize),
+        )?)
+    }
 }
 
-fn with_title<P: Definition>(
+pub fn with_title<P: Program>(
     program: P,
-    title: impl Title<P::State>,
-) -> impl Definition<State = P::State, Message = P::Message, Theme = P::Theme> {
+    title: impl Fn(&P::State, window::Id) -> String,
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithTitle<P, Title> {
         program: P,
         title: Title,
     }
 
-    impl<P, Title> Definition for WithTitle<P, Title>
+    impl<P, Title> Program for WithTitle<P, Title>
     where
-        P: Definition,
-        Title: self::Title<P::State>,
+        P: Program,
+        Title: Fn(&P::State, window::Id) -> String,
     {
         type State = P::State;
         type Message = P::Message;
@@ -488,8 +216,8 @@ fn with_title<P: Definition>(
             self.program.load()
         }
 
-        fn title(&self, state: &Self::State) -> String {
-            self.title.title(state)
+        fn title(&self, state: &Self::State, window: window::Id) -> String {
+            (self.title)(state, window)
         }
 
         fn update(
@@ -503,12 +231,17 @@ fn with_title<P: Definition>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state)
+            self.program.view(state, window)
         }
 
-        fn theme(&self, state: &Self::State) -> Self::Theme {
-            self.program.theme(state)
+        fn theme(
+            &self,
+            state: &Self::State,
+            window: window::Id,
+        ) -> Self::Theme {
+            self.program.theme(state, window)
         }
 
         fn subscription(
@@ -525,21 +258,25 @@ fn with_title<P: Definition>(
         ) -> Appearance {
             self.program.style(state, theme)
         }
+
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+            self.program.scale_factor(state, window)
+        }
     }
 
     WithTitle { program, title }
 }
 
-fn with_load<P: Definition>(
+pub fn with_load<P: Program>(
     program: P,
     f: impl Fn() -> Task<P::Message>,
-) -> impl Definition<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithLoad<P, F> {
         program: P,
         load: F,
     }
 
-    impl<P: Definition, F> Definition for WithLoad<P, F>
+    impl<P: Program, F> Program for WithLoad<P, F>
     where
         F: Fn() -> Task<P::Message>,
     {
@@ -547,7 +284,7 @@ fn with_load<P: Definition>(
         type Message = P::Message;
         type Theme = P::Theme;
         type Renderer = P::Renderer;
-        type Executor = executor::Default;
+        type Executor = P::Executor;
 
         fn load(&self) -> Task<Self::Message> {
             Task::batch([self.program.load(), (self.load)()])
@@ -564,12 +301,13 @@ fn with_load<P: Definition>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state)
+            self.program.view(state, window)
         }
 
-        fn title(&self, state: &Self::State) -> String {
-            self.program.title(state)
+        fn title(&self, state: &Self::State, window: window::Id) -> String {
+            self.program.title(state, window)
         }
 
         fn subscription(
@@ -579,8 +317,12 @@ fn with_load<P: Definition>(
             self.program.subscription(state)
         }
 
-        fn theme(&self, state: &Self::State) -> Self::Theme {
-            self.program.theme(state)
+        fn theme(
+            &self,
+            state: &Self::State,
+            window: window::Id,
+        ) -> Self::Theme {
+            self.program.theme(state, window)
         }
 
         fn style(
@@ -590,21 +332,25 @@ fn with_load<P: Definition>(
         ) -> Appearance {
             self.program.style(state, theme)
         }
+
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+            self.program.scale_factor(state, window)
+        }
     }
 
     WithLoad { program, load: f }
 }
 
-fn with_subscription<P: Definition>(
+pub fn with_subscription<P: Program>(
     program: P,
     f: impl Fn(&P::State) -> Subscription<P::Message>,
-) -> impl Definition<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithSubscription<P, F> {
         program: P,
         subscription: F,
     }
 
-    impl<P: Definition, F> Definition for WithSubscription<P, F>
+    impl<P: Program, F> Program for WithSubscription<P, F>
     where
         F: Fn(&P::State) -> Subscription<P::Message>,
     {
@@ -612,7 +358,7 @@ fn with_subscription<P: Definition>(
         type Message = P::Message;
         type Theme = P::Theme;
         type Renderer = P::Renderer;
-        type Executor = executor::Default;
+        type Executor = P::Executor;
 
         fn subscription(
             &self,
@@ -636,16 +382,21 @@ fn with_subscription<P: Definition>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state)
+            self.program.view(state, window)
         }
 
-        fn title(&self, state: &Self::State) -> String {
-            self.program.title(state)
+        fn title(&self, state: &Self::State, window: window::Id) -> String {
+            self.program.title(state, window)
         }
 
-        fn theme(&self, state: &Self::State) -> Self::Theme {
-            self.program.theme(state)
+        fn theme(
+            &self,
+            state: &Self::State,
+            window: window::Id,
+        ) -> Self::Theme {
+            self.program.theme(state, window)
         }
 
         fn style(
@@ -655,6 +406,10 @@ fn with_subscription<P: Definition>(
         ) -> Appearance {
             self.program.style(state, theme)
         }
+
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+            self.program.scale_factor(state, window)
+        }
     }
 
     WithSubscription {
@@ -663,18 +418,18 @@ fn with_subscription<P: Definition>(
     }
 }
 
-fn with_theme<P: Definition>(
+pub fn with_theme<P: Program>(
     program: P,
-    f: impl Fn(&P::State) -> P::Theme,
-) -> impl Definition<State = P::State, Message = P::Message, Theme = P::Theme> {
+    f: impl Fn(&P::State, window::Id) -> P::Theme,
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithTheme<P, F> {
         program: P,
         theme: F,
     }
 
-    impl<P: Definition, F> Definition for WithTheme<P, F>
+    impl<P: Program, F> Program for WithTheme<P, F>
     where
-        F: Fn(&P::State) -> P::Theme,
+        F: Fn(&P::State, window::Id) -> P::Theme,
     {
         type State = P::State;
         type Message = P::Message;
@@ -682,16 +437,20 @@ fn with_theme<P: Definition>(
         type Renderer = P::Renderer;
         type Executor = P::Executor;
 
-        fn theme(&self, state: &Self::State) -> Self::Theme {
-            (self.theme)(state)
+        fn theme(
+            &self,
+            state: &Self::State,
+            window: window::Id,
+        ) -> Self::Theme {
+            (self.theme)(state, window)
         }
 
         fn load(&self) -> Task<Self::Message> {
             self.program.load()
         }
 
-        fn title(&self, state: &Self::State) -> String {
-            self.program.title(state)
+        fn title(&self, state: &Self::State, window: window::Id) -> String {
+            self.program.title(state, window)
         }
 
         fn update(
@@ -705,8 +464,9 @@ fn with_theme<P: Definition>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state)
+            self.program.view(state, window)
         }
 
         fn subscription(
@@ -723,21 +483,25 @@ fn with_theme<P: Definition>(
         ) -> Appearance {
             self.program.style(state, theme)
         }
+
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+            self.program.scale_factor(state, window)
+        }
     }
 
     WithTheme { program, theme: f }
 }
 
-fn with_style<P: Definition>(
+pub fn with_style<P: Program>(
     program: P,
     f: impl Fn(&P::State, &P::Theme) -> Appearance,
-) -> impl Definition<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithStyle<P, F> {
         program: P,
         style: F,
     }
 
-    impl<P: Definition, F> Definition for WithStyle<P, F>
+    impl<P: Program, F> Program for WithStyle<P, F>
     where
         F: Fn(&P::State, &P::Theme) -> Appearance,
     {
@@ -759,8 +523,8 @@ fn with_style<P: Definition>(
             self.program.load()
         }
 
-        fn title(&self, state: &Self::State) -> String {
-            self.program.title(state)
+        fn title(&self, state: &Self::State, window: window::Id) -> String {
+            self.program.title(state, window)
         }
 
         fn update(
@@ -774,8 +538,9 @@ fn with_style<P: Definition>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state)
+            self.program.view(state, window)
         }
 
         fn subscription(
@@ -785,91 +550,96 @@ fn with_style<P: Definition>(
             self.program.subscription(state)
         }
 
-        fn theme(&self, state: &Self::State) -> Self::Theme {
-            self.program.theme(state)
+        fn theme(
+            &self,
+            state: &Self::State,
+            window: window::Id,
+        ) -> Self::Theme {
+            self.program.theme(state, window)
+        }
+
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+            self.program.scale_factor(state, window)
         }
     }
 
     WithStyle { program, style: f }
 }
 
-/// The title logic of some [`Program`].
-///
-/// This trait is implemented both for `&static str` and
-/// any closure `Fn(&State) -> String`.
-///
-/// This trait allows the [`program`] builder to take any of them.
-pub trait Title<State> {
-    /// Produces the title of the [`Program`].
-    fn title(&self, state: &State) -> String;
-}
-
-impl<State> Title<State> for &'static str {
-    fn title(&self, _state: &State) -> String {
-        self.to_string()
+pub fn with_scale_factor<P: Program>(
+    program: P,
+    f: impl Fn(&P::State, window::Id) -> f64,
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+    struct WithScaleFactor<P, F> {
+        program: P,
+        scale_factor: F,
     }
-}
 
-impl<T, State> Title<State> for T
-where
-    T: Fn(&State) -> String,
-{
-    fn title(&self, state: &State) -> String {
-        self(state)
+    impl<P: Program, F> Program for WithScaleFactor<P, F>
+    where
+        F: Fn(&P::State, window::Id) -> f64,
+    {
+        type State = P::State;
+        type Message = P::Message;
+        type Theme = P::Theme;
+        type Renderer = P::Renderer;
+        type Executor = P::Executor;
+
+        fn load(&self) -> Task<Self::Message> {
+            self.program.load()
+        }
+
+        fn title(&self, state: &Self::State, window: window::Id) -> String {
+            self.program.title(state, window)
+        }
+
+        fn update(
+            &self,
+            state: &mut Self::State,
+            message: Self::Message,
+        ) -> Task<Self::Message> {
+            self.program.update(state, message)
+        }
+
+        fn view<'a>(
+            &self,
+            state: &'a Self::State,
+            window: window::Id,
+        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+            self.program.view(state, window)
+        }
+
+        fn subscription(
+            &self,
+            state: &Self::State,
+        ) -> Subscription<Self::Message> {
+            self.program.subscription(state)
+        }
+
+        fn theme(
+            &self,
+            state: &Self::State,
+            window: window::Id,
+        ) -> Self::Theme {
+            self.program.theme(state, window)
+        }
+
+        fn style(
+            &self,
+            state: &Self::State,
+            theme: &Self::Theme,
+        ) -> Appearance {
+            self.program.style(state, theme)
+        }
+
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+            (self.scale_factor)(state, window)
+        }
     }
-}
 
-/// The update logic of some [`Program`].
-///
-/// This trait allows the [`program`] builder to take any closure that
-/// returns any `Into<Task<Message>>`.
-pub trait Update<State, Message> {
-    /// Processes the message and updates the state of the [`Program`].
-    fn update(
-        &self,
-        state: &mut State,
-        message: Message,
-    ) -> impl Into<Task<Message>>;
-}
-
-impl<T, State, Message, C> Update<State, Message> for T
-where
-    T: Fn(&mut State, Message) -> C,
-    C: Into<Task<Message>>,
-{
-    fn update(
-        &self,
-        state: &mut State,
-        message: Message,
-    ) -> impl Into<Task<Message>> {
-        self(state, message)
-    }
-}
-
-/// The view logic of some [`Program`].
-///
-/// This trait allows the [`program`] builder to take any closure that
-/// returns any `Into<Element<'_, Message>>`.
-pub trait View<'a, State, Message, Theme, Renderer> {
-    /// Produces the widget of the [`Program`].
-    fn view(
-        &self,
-        state: &'a State,
-    ) -> impl Into<Element<'a, Message, Theme, Renderer>>;
-}
-
-impl<'a, T, State, Message, Theme, Renderer, Widget>
-    View<'a, State, Message, Theme, Renderer> for T
-where
-    T: Fn(&'a State) -> Widget,
-    State: 'static,
-    Widget: Into<Element<'a, Message, Theme, Renderer>>,
-{
-    fn view(
-        &self,
-        state: &'a State,
-    ) -> impl Into<Element<'a, Message, Theme, Renderer>> {
-        self(state)
+    WithScaleFactor {
+        program,
+        scale_factor: f,
     }
 }
 

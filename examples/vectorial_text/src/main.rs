@@ -6,7 +6,7 @@ use iced::widget::{
 use iced::{Element, Length, Point, Rectangle, Renderer, Theme, Vector};
 
 pub fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "Vectorial Text - Iced",
         VectorialText::update,
         VectorialText::view,

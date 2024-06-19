@@ -8,7 +8,7 @@ use rand::Rng;
 use std::fmt::Debug;
 
 fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "Sierpinski Triangle - Iced",
         SierpinskiEmulator::update,
         SierpinskiEmulator::view,

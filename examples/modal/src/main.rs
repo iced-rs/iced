@@ -10,7 +10,7 @@ use iced::{Alignment, Color, Element, Length, Subscription, Task};
 use std::fmt;
 
 pub fn main() -> iced::Result {
-    iced::program("Modal - Iced", App::update, App::view)
+    iced::application("Modal - Iced", App::update, App::view)
         .subscription(App::subscription)
         .run()
 }

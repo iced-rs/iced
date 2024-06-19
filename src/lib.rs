@@ -158,11 +158,11 @@
 //!   1. Draw the resulting user interface.
 //!
 //! # Usage
-//! Use [`run`] or the [`program`] builder.
+//! Use [`run`] or the [`application`] builder.
 //!
 //! [Elm]: https://elm-lang.org/
 //! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
-//! [`program`]: program()
+//! [`application`]: application()
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
@@ -179,19 +179,17 @@ pub use iced_futures::futures;
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
-mod application;
 mod error;
+mod program;
 
-pub mod program;
+pub mod application;
+pub mod daemon;
 pub mod settings;
 pub mod time;
 pub mod window;
 
 #[cfg(feature = "advanced")]
 pub mod advanced;
-
-#[cfg(feature = "multi-window")]
-pub mod multi_window;
 
 pub use crate::core::alignment;
 pub use crate::core::border;
@@ -203,7 +201,7 @@ pub use crate::core::{
     Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Shadow, Size,
     Theme, Transformation, Vector,
 };
-pub use crate::runtime::Task;
+pub use crate::runtime::{exit, Task};
 
 pub mod clipboard {
     //! Access the clipboard.
@@ -308,11 +306,12 @@ pub mod widget {
     mod runtime {}
 }
 
+pub use application::{application, Application};
+pub use daemon::{daemon, Daemon};
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
 pub use font::Font;
-pub use program::Program;
 pub use renderer::Renderer;
 pub use settings::Settings;
 pub use subscription::Subscription;
@@ -327,13 +326,13 @@ pub type Element<
     Renderer = crate::Renderer,
 > = crate::core::Element<'a, Message, Theme, Renderer>;
 
-/// The result of running a [`Program`].
+/// The result of running an iced program.
 pub type Result = std::result::Result<(), Error>;
 
 /// Runs a basic iced application with default [`Settings`] given its title,
 /// update, and view logic.
 ///
-/// This is equivalent to chaining [`program`] with [`Program::run`].
+/// This is equivalent to chaining [`application()`] with [`Application::run`].
 ///
 /// [`program`]: program()
 ///
@@ -364,9 +363,10 @@ pub type Result = std::result::Result<(), Error>;
 /// }
 /// ```
 pub fn run<State, Message, Theme, Renderer>(
-    title: impl program::Title<State> + 'static,
-    update: impl program::Update<State, Message> + 'static,
-    view: impl for<'a> program::View<'a, State, Message, Theme, Renderer> + 'static,
+    title: impl application::Title<State> + 'static,
+    update: impl application::Update<State, Message> + 'static,
+    view: impl for<'a> application::View<'a, State, Message, Theme, Renderer>
+        + 'static,
 ) -> Result
 where
     State: Default + 'static,
@@ -374,8 +374,5 @@ where
     Theme: Default + program::DefaultStyle + 'static,
     Renderer: program::Renderer + 'static,
 {
-    program(title, update, view).run()
+    application(title, update, view).run()
 }
-
-#[doc(inline)]
-pub use program::program;

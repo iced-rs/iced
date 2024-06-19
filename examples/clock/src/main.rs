@@ -11,7 +11,7 @@ use iced::{
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("Clock - Iced", Clock::update, Clock::view)
+    iced::application("Clock - Iced", Clock::update, Clock::view)
         .subscription(Clock::subscription)
         .theme(Clock::theme)
         .antialiasing(true)

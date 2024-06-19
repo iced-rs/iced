@@ -70,6 +70,12 @@ pub enum Action<T> {
 
     /// Run a system action.
     System(system::Action),
+
+    /// Exits the runtime.
+    ///
+    /// This will normally close any application windows and
+    /// terminate the runtime loop.
+    Exit,
 }
 
 impl<T> Action<T> {
@@ -88,6 +94,7 @@ impl<T> Action<T> {
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
+            Action::Exit => Err(Action::Exit),
         }
     }
 }
@@ -110,6 +117,15 @@ where
             }
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
+            Action::Exit => write!(f, "Action::Exit"),
         }
     }
+}
+
+/// Creates a [`Task`] that exits the iced runtime.
+///
+/// This will normally close any application windows and
+/// terminate the runtime loop.
+pub fn exit<T>() -> Task<T> {
+    Task::effect(Action::Exit)
 }

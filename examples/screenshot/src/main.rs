@@ -13,7 +13,7 @@ use ::image::ColorType;
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("Screenshot - Iced", Example::update, Example::view)
+    iced::application("Screenshot - Iced", Example::update, Example::view)
         .subscription(Example::subscription)
         .run()
 }
@@ -47,7 +47,8 @@ impl Example {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Screenshot => {
-                return iced::window::screenshot(window::Id::MAIN)
+                return window::get_latest()
+                    .and_then(window::screenshot)
                     .map(Message::Screenshotted);
             }
             Message::Screenshotted(screenshot) => {

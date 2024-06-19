@@ -2,7 +2,7 @@ use iced::widget::{center, column, pick_list, qr_code, row, text, text_input};
 use iced::{Alignment, Element, Theme};
 
 pub fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "QR Code Generator - Iced",
         QRGenerator::update,
         QRGenerator::view,
