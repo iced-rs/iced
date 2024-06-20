@@ -306,8 +306,8 @@ pub mod widget {
     mod runtime {}
 }
 
-pub use application::{application, Application};
-pub use daemon::{daemon, Daemon};
+pub use application::Application;
+pub use daemon::Daemon;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
@@ -315,6 +315,11 @@ pub use font::Font;
 pub use renderer::Renderer;
 pub use settings::Settings;
 pub use subscription::Subscription;
+
+#[doc(inline)]
+pub use application::application;
+#[doc(inline)]
+pub use daemon::daemon;
 
 /// A generic widget.
 ///
