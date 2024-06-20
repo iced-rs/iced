@@ -212,6 +212,13 @@ impl<P: Program> Application<P> {
         self
     }
 
+    /// Sets the [`window::Settings`] of the [`Application`].
+    ///
+    /// Overwrites any previous [`window::Settings`].
+    pub fn window(self, window: window::Settings) -> Self {
+        Self { window, ..self }
+    }
+
     /// Sets the [`window::Settings::position`] to [`window::Position::Centered`] in the [`Application`].
     pub fn centered(self) -> Self {
         Self {
@@ -250,6 +257,50 @@ impl<P: Program> Application<P> {
         Self {
             window: window::Settings {
                 transparent,
+                ..self.window
+            },
+            ..self
+        }
+    }
+
+    /// Sets the [`window::Settings::resizable`] of the [`Application`].
+    pub fn resizable(self, resizable: bool) -> Self {
+        Self {
+            window: window::Settings {
+                resizable,
+                ..self.window
+            },
+            ..self
+        }
+    }
+
+    /// Sets the [`window::Settings::decorations`] of the [`Application`].
+    pub fn decorations(self, decorations: bool) -> Self {
+        Self {
+            window: window::Settings {
+                decorations,
+                ..self.window
+            },
+            ..self
+        }
+    }
+
+    /// Sets the [`window::Settings::position`] of the [`Application`].
+    pub fn position(self, position: window::Position) -> Self {
+        Self {
+            window: window::Settings {
+                position,
+                ..self.window
+            },
+            ..self
+        }
+    }
+
+    /// Sets the [`window::Settings::level`] of the [`Application`].
+    pub fn level(self, level: window::Level) -> Self {
+        Self {
+            window: window::Settings {
+                level,
                 ..self.window
             },
             ..self
