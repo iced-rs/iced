@@ -256,6 +256,50 @@ impl<P: Program> Application<P> {
         }
     }
 
+    /// Sets the [`window::Settings::resizable`] of the [`Application`].
+    pub fn resizable(self, resizable: bool) -> Self {
+        Self {
+            window: window::Settings {
+                resizable,
+                ..self.window
+            },
+            ..self
+        }
+    }
+
+    /// Sets the [`window::Settings::decorations`] of the [`Application`].
+    pub fn decorations(self, decorations: bool) -> Self {
+        Self {
+            window: window::Settings {
+                decorations,
+                ..self.window
+            },
+            ..self
+        }
+    }
+
+    /// Sets the [`window::Settings::position`] of the [`Application`].
+    pub fn position(self, position: window::Position) -> Self {
+        Self {
+            window: window::Settings {
+                position,
+                ..self.window
+            },
+            ..self
+        }
+    }
+    
+    /// Sets the [`window::Settings::level`] of the [`Application`].
+    pub fn level(self, level: window::Level) -> Self {
+        Self {
+            window: window::Settings {
+                level,
+                ..self.window
+            },
+            ..self
+        }
+    }
+
     /// Sets the [`Title`] of the [`Application`].
     pub(crate) fn title(
         self,
