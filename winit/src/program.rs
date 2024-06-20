@@ -305,6 +305,7 @@ where
                     .send(Boot {
                         compositor,
                         clipboard,
+                        window: window.id(),
                         is_daemon: window_settings.is_none(),
                     })
                     .ok()
@@ -592,6 +593,7 @@ where
 struct Boot<C> {
     compositor: C,
     clipboard: Clipboard,
+    window: winit::window::WindowId,
     is_daemon: bool,
 }
 
@@ -634,6 +636,7 @@ async fn run_instance<P, C>(
     let Boot {
         mut compositor,
         mut clipboard,
+        window: boot_window,
         is_daemon,
     } = boot.try_recv().ok().flatten().expect("Receive boot");
 
@@ -905,6 +908,7 @@ async fn run_instance<P, C>(
                                 window_event,
                                 winit::event::WindowEvent::Destroyed
                             )
+                            && window_id != boot_window
                             && window_manager.is_empty()
                         {
                             break 'main;
