@@ -7,7 +7,7 @@ use crate::core::Color;
 use crate::gradient::{self, Gradient};
 
 /// The style used to fill geometry.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Fill {
     /// The color or gradient of the fill.
     ///
