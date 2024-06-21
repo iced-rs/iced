@@ -125,7 +125,7 @@ impl<P: Program> Daemon<P> {
         Self: 'static,
         I: Fn() -> P::State + Clone + 'static,
     {
-        self.raw.run_with(self.settings, None, initialize)
+        self.raw.run_with(self.settings, Vec::new(), initialize)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Daemon`].

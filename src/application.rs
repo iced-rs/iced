@@ -118,9 +118,9 @@ where
         fn view<'a>(
             &self,
             state: &'a Self::State,
-            _window: window::Id,
+            window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.view.view(state).into()
+            self.view.view(state, Some(window)).into()
         }
     }
 
@@ -134,7 +134,7 @@ where
             _renderer: PhantomData,
         },
         settings: Settings::default(),
-        window: window::Settings::default(),
+        windows: vec![window::Settings::default()],
     }
     .title(title)
 }
@@ -150,7 +150,7 @@ where
 pub struct Application<P: Program> {
     raw: P,
     settings: Settings,
-    window: window::Settings,
+    windows: Vec<window::Settings>,
 }
 
 impl<P: Program> Application<P> {
@@ -176,7 +176,7 @@ impl<P: Program> Application<P> {
         I: Fn() -> P::State + Clone + 'static,
     {
         self.raw
-            .run_with(self.settings, Some(self.window), initialize)
+            .run_with(self.settings, self.windows, initialize)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Application`].
@@ -212,99 +212,80 @@ impl<P: Program> Application<P> {
         self
     }
 
-    /// Sets the [`window::Settings`] of the [`Application`].
-    ///
-    /// Overwrites any previous [`window::Settings`].
-    pub fn window(self, window: window::Settings) -> Self {
-        Self { window, ..self }
+    /// Adds a [`window::Settings`] to the [`Application`].
+    pub fn without_windows(mut self) -> Self {
+        self.windows.clear();
+        self
+    }
+
+    /// Adds a [`window::Settings`] to the [`Application`].
+    pub fn add_window(mut self, window: window::Settings) -> Self {
+        self.windows.push(window);
+        self
     }
 
     /// Sets the [`window::Settings::position`] to [`window::Position::Centered`] in the [`Application`].
-    pub fn centered(self) -> Self {
-        Self {
-            window: window::Settings {
-                position: window::Position::Centered,
-                ..self.window
-            },
-            ..self
+    pub fn centered(mut self) -> Self {
+        for window in &mut self.windows {
+            window.position = window::Position::Centered;
         }
+        self
     }
 
     /// Sets the [`window::Settings::exit_on_close_request`] of the [`Application`].
-    pub fn exit_on_close_request(self, exit_on_close_request: bool) -> Self {
-        Self {
-            window: window::Settings {
-                exit_on_close_request,
-                ..self.window
-            },
-            ..self
+    pub fn exit_on_close_request(mut self, exit_on_close_request: bool) -> Self {
+        for window in &mut self.windows {
+            window.exit_on_close_request = exit_on_close_request;
         }
+        self
     }
 
     /// Sets the [`window::Settings::size`] of the [`Application`].
-    pub fn window_size(self, size: impl Into<Size>) -> Self {
-        Self {
-            window: window::Settings {
-                size: size.into(),
-                ..self.window
-            },
-            ..self
+    pub fn window_size(mut self, size: impl Into<Size> + Clone) -> Self {
+        for window in &mut self.windows {
+            window.size = size.clone().into();
         }
+        self
     }
 
     /// Sets the [`window::Settings::transparent`] of the [`Application`].
-    pub fn transparent(self, transparent: bool) -> Self {
-        Self {
-            window: window::Settings {
-                transparent,
-                ..self.window
-            },
-            ..self
+    pub fn transparent(mut self, transparent: bool) -> Self {
+        for window in &mut self.windows {
+            window.transparent = transparent;
         }
+        self
     }
 
     /// Sets the [`window::Settings::resizable`] of the [`Application`].
-    pub fn resizable(self, resizable: bool) -> Self {
-        Self {
-            window: window::Settings {
-                resizable,
-                ..self.window
-            },
-            ..self
+    pub fn resizable(mut self, resizable: bool) -> Self {
+        for window in &mut self.windows {
+            window.resizable = resizable;
         }
+        self
     }
 
     /// Sets the [`window::Settings::decorations`] of the [`Application`].
-    pub fn decorations(self, decorations: bool) -> Self {
-        Self {
-            window: window::Settings {
-                decorations,
-                ..self.window
-            },
-            ..self
+    pub fn decorations(mut self, decorations: bool) -> Self {
+        for window in &mut self.windows {
+            window.decorations = decorations;
         }
+        self
     }
 
     /// Sets the [`window::Settings::position`] of the [`Application`].
-    pub fn position(self, position: window::Position) -> Self {
-        Self {
-            window: window::Settings {
-                position,
-                ..self.window
-            },
-            ..self
+    pub fn position(mut self, position: window::Position) -> Self {
+        for window in &mut self.windows {
+            window.position = position;
         }
+        self
     }
 
     /// Sets the [`window::Settings::level`] of the [`Application`].
-    pub fn level(self, level: window::Level) -> Self {
-        Self {
-            window: window::Settings {
-                level,
-                ..self.window
-            },
-            ..self
+    pub fn level(mut self, level: window::Level) -> Self {
+        for window in &mut self.windows {
+            window.level = level;
         }
+        self
     }
 
     /// Sets the [`Title`] of the [`Application`].
@@ -319,7 +300,7 @@ impl<P: Program> Application<P> {
                 title.title(state)
             }),
             settings: self.settings,
-            window: self.window,
+            windows: self.windows,
         }
     }
 
@@ -333,7 +314,7 @@ impl<P: Program> Application<P> {
         Application {
             raw: program::with_load(self.raw, f),
             settings: self.settings,
-            window: self.window,
+            windows: self.windows,
         }
     }
 
@@ -347,7 +328,7 @@ impl<P: Program> Application<P> {
         Application {
             raw: program::with_subscription(self.raw, f),
             settings: self.settings,
-            window: self.window,
+            windows: self.windows,
         }
     }
 
@@ -361,7 +342,7 @@ impl<P: Program> Application<P> {
         Application {
             raw: program::with_theme(self.raw, move |state, _window| f(state)),
             settings: self.settings,
-            window: self.window,
+            windows: self.windows,
         }
     }
 
@@ -375,7 +356,7 @@ impl<P: Program> Application<P> {
         Application {
             raw: program::with_style(self.raw, f),
             settings: self.settings,
-            window: self.window,
+            windows: self.windows,
         }
     }
 
@@ -391,7 +372,7 @@ impl<P: Program> Application<P> {
                 f(state)
             }),
             settings: self.settings,
-            window: self.window,
+            windows: self.windows,
         }
     }
 }
@@ -458,20 +439,22 @@ pub trait View<'a, State, Message, Theme, Renderer> {
     fn view(
         &self,
         state: &'a State,
+        window: Option<window::Id>,
     ) -> impl Into<Element<'a, Message, Theme, Renderer>>;
 }
 
 impl<'a, T, State, Message, Theme, Renderer, Widget>
     View<'a, State, Message, Theme, Renderer> for T
 where
-    T: Fn(&'a State) -> Widget,
+    T: Fn(&'a State, Option<window::Id>) -> Widget,
     State: 'static,
     Widget: Into<Element<'a, Message, Theme, Renderer>>,
 {
     fn view(
         &self,
         state: &'a State,
+        window: Option<window::Id>,
     ) -> impl Into<Element<'a, Message, Theme, Renderer>> {
-        self(state)
+        self(state, window)
     }
 }

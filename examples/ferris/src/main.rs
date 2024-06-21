@@ -91,7 +91,7 @@ impl Image {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self, _window: Option<window::Id>) -> Element<Message> {
         let i_am_ferris = column![
             "Hello!",
             Element::from(

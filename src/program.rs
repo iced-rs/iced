@@ -74,7 +74,7 @@ pub trait Program: Sized {
     fn run(
         self,
         settings: Settings,
-        window_settings: Option<window::Settings>,
+        window_settings: Vec<window::Settings>,
     ) -> Result
     where
         Self: 'static,
@@ -87,7 +87,7 @@ pub trait Program: Sized {
     fn run_with<I>(
         self,
         settings: Settings,
-        window_settings: Option<window::Settings>,
+        window_settings: Vec<window::Settings>,
         initialize: I,
     ) -> Result
     where
@@ -173,6 +173,7 @@ pub trait Program: Sized {
             ..crate::graphics::Settings::default()
         };
 
+
         Ok(shell::program::run::<
             Instance<Self, I>,
             <Self::Renderer as compositor::Default>::Compositor,
@@ -186,7 +187,7 @@ pub trait Program: Sized {
             }
             .into(),
             renderer_settings,
-            window_settings,
+            window_settings.get(0).cloned(),
             (self, initialize),
         )?)
     }
