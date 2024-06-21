@@ -65,6 +65,17 @@ where
         self.raw.stroke(path, stroke);
     }
 
+    /// Draws the stroke of an axis-aligned rectangle with the provided style
+    /// given its top-left corner coordinate and its `Size` on the [`Frame`] .
+    pub fn stroke_rectangle<'a>(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        stroke: impl Into<Stroke<'a>>,
+    ) {
+        self.raw.stroke_rectangle(top_left, size, stroke);
+    }
+
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
     /// them with the given color.
     ///
@@ -200,6 +211,12 @@ pub trait Backend: Sized {
     fn paste(&mut self, frame: Self);
 
     fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>);
+    fn stroke_rectangle<'a>(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        stroke: impl Into<Stroke<'a>>,
+    );
 
     fn fill(&mut self, path: &Path, fill: impl Into<Fill>);
     fn fill_text(&mut self, text: impl Into<Text>);
@@ -248,6 +265,13 @@ impl Backend for () {
     fn paste(&mut self, _frame: Self) {}
 
     fn stroke<'a>(&mut self, _path: &Path, _stroke: impl Into<Stroke<'a>>) {}
+    fn stroke_rectangle<'a>(
+        &mut self,
+        _top_left: Point,
+        _size: Size,
+        _stroke: impl Into<Stroke<'a>>,
+    ) {
+    }
 
     fn fill(&mut self, _path: &Path, _fill: impl Into<Fill>) {}
     fn fill_text(&mut self, _text: impl Into<Text>) {}
