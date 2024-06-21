@@ -60,7 +60,7 @@ pub enum Action<T> {
     },
 
     /// Run a widget operation.
-    Widget(Box<dyn widget::Operation<()> + Send>),
+    Widget(Box<dyn widget::Operation<()>>),
 
     /// Run a clipboard action.
     Clipboard(clipboard::Action),
