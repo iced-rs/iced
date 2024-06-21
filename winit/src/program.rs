@@ -28,6 +28,7 @@ use crate::{Clipboard, Error, Proxy, Settings};
 use window_manager::WindowManager;
 
 use rustc_hash::FxHashMap;
+use std::borrow::Cow;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
 
@@ -242,6 +243,7 @@ where
     struct BootConfig<Message: 'static, C> {
         proxy: Proxy<Message>,
         sender: oneshot::Sender<Boot<C>>,
+        fonts: Vec<Cow<'static, [u8]>>,
         window_settings: Option<window::Settings>,
         graphics_settings: graphics::Settings,
     }
@@ -253,6 +255,7 @@ where
         boot: Some(BootConfig {
             proxy,
             sender: boot_sender,
+            fonts: settings.fonts,
             window_settings,
             graphics_settings,
         }),
@@ -277,6 +280,7 @@ where
             let Some(BootConfig {
                 mut proxy,
                 sender,
+                fonts,
                 window_settings,
                 graphics_settings,
             }) = self.boot.take()
@@ -298,8 +302,12 @@ where
             let clipboard = Clipboard::connect(&window);
 
             let finish_boot = async move {
-                let compositor =
+                let mut compositor =
                     C::new(graphics_settings, window.clone()).await?;
+
+                for font in fonts {
+                    compositor.load_font(font);
+                }
 
                 sender
                     .send(Boot {
