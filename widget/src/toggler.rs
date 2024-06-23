@@ -489,7 +489,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                     ..palette.primary.strong.text
                 }
             } else {
-                palette.background.base.color
+                palette.background.weak.color
             }
         }
         Status::Disabled => palette.background.weak.color,
