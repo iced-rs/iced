@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - `fetch_position` command in `window` module. [#2280](https://github.com/iced-rs/iced/pull/2280)
+-  Transition animation for `Toggler` widget. [#2479](https://github.com/iced-rs/iced/pull/2479)
+
+### Changed
+- Toggler widget now has it's own `toggler::State` type rather than `text::State` [#2479](https://github.com/iced-rs/iced/pull/2479)
 
 Many thanks to...
 
