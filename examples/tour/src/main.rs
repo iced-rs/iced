@@ -40,12 +40,6 @@ pub struct Tour {
 }
 
 #[derive(Debug, Clone)]
-pub enum Toggle {
-    Disable,
-    Enable,
-}
-
-#[derive(Debug, Clone)]
 pub enum Message {
     BackPressed,
     NextPressed,
@@ -62,7 +56,7 @@ pub enum Message {
     ToggleTextInputIcon(bool),
     DebugToggled(bool),
     TogglerChanged(bool),
-    ToggleBehavior(Toggle)
+    ToggleBehavior(bool),
 }
 
 impl Tour {
@@ -140,17 +134,13 @@ impl Tour {
                 self.toggler = toggler;
             }
             Message::ToggleBehavior(toggle) => {
-                match toggle {
-                    Toggle::Disable => {
-                        self.toggler = false;
-                        self.disable_toggle = true;
-                    }
-                    Toggle::Enable => {
-                        self.disable_toggle = false;
-                    }
+                if toggle {
+                    self.toggler = false;
+                    self.disable_toggle = true;
+                } else {
+                    self.disable_toggle = false;
                 }
             }
-
 
         }
     }
@@ -385,10 +375,10 @@ impl Tour {
         let toggle_behavior = Row::new()
             .push(
                 Button::new("Disable Toggle")
-                    .on_press(Message::ToggleBehavior(Toggle::Disable)),
+                    .on_press(Message::ToggleBehavior(true)),
             )
             .push(
-                Button::new("Enable Toggle").on_press(Message::ToggleBehavior(Toggle::Enable)),
+                Button::new("Enable Toggle").on_press(Message::ToggleBehavior(false)),
             )
             .spacing(10)
             .align_items(Alignment::Center);
