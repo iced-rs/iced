@@ -7,3 +7,4 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["debug"] }
+once_cell.workspace = true
