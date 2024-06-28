@@ -175,7 +175,7 @@ pub fn events() -> Subscription<(Id, Event)> {
 /// Subscribes to all [`Event::Closed`] occurrences in the running application.
 pub fn open_events() -> Subscription<Id> {
     event::listen_with(|event, _status, id| {
-        if let crate::core::Event::Window(Event::Closed) = event {
+        if let crate::core::Event::Window(Event::Opened { .. }) = event {
             Some(id)
         } else {
             None
