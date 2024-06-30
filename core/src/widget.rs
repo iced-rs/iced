@@ -96,7 +96,7 @@ where
         Vec::new()
     }
 
-    /// Reconciliates the [`Widget`] with the provided [`Tree`].
+    /// Reconciles the [`Widget`] with the provided [`Tree`].
     fn diff(&self, _tree: &mut Tree) {}
 
     /// Applies an [`Operation`] to the [`Widget`].
