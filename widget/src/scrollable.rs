@@ -1,6 +1,9 @@
 //! Navigate an endless amount of content with a scrollbar.
 // use crate::container;
 use crate::container;
+use crate::core::animations::{
+    AnimationDuration, AnimationEffect, AnimationTimeline,
+};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::layout;
@@ -11,6 +14,7 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Background, Border, Clipboard, Color, Element, Layout, Length,
     Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
@@ -38,6 +42,7 @@ pub struct Scrollable<
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
     class: Theme::Class<'a>,
+    scroll_animation_duration: AnimationDuration,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
@@ -79,6 +84,7 @@ where
             content,
             on_scroll: None,
             class: Theme::default(),
+            scroll_animation_duration: AnimationDuration::new(300),
         }
     }
 
@@ -366,6 +372,7 @@ where
                             ),
                             bounds,
                             content_bounds,
+                            true,
                         );
 
                         let _ = notify_on_scroll(
@@ -402,6 +409,7 @@ where
                             ),
                             bounds,
                             content_bounds,
+                            false,
                         );
 
                         state.y_scroller_grabbed_at = Some(scroller_grabbed_at);
@@ -437,6 +445,7 @@ where
                             ),
                             bounds,
                             content_bounds,
+                            true,
                         );
 
                         let _ = notify_on_scroll(
@@ -473,6 +482,7 @@ where
                             ),
                             bounds,
                             content_bounds,
+                            false,
                         );
 
                         state.x_scroller_grabbed_at = Some(scroller_grabbed_at);
@@ -641,6 +651,33 @@ where
                 }
 
                 event_status = event::Status::Captured;
+            }
+            Event::Window(window::Event::RedrawRequested(now)) => {
+                // Update offsets according to the currently running animations
+                state
+                    .offset_y
+                    .on_redraw_request(state.y_scroll_animation.progress);
+                state
+                    .offset_x
+                    .on_redraw_request(state.x_scroll_animation.progress);
+
+                if (state.x_scroll_animation.is_running()
+                    && state.x_scroll_animation.on_redraw_request_update(
+                        &self.scroll_animation_duration,
+                        &self.scroll_animation_duration,
+                        now,
+                        false,
+                    ))
+                    | (state.y_scroll_animation.is_running()
+                        && state.y_scroll_animation.on_redraw_request_update(
+                            &self.scroll_animation_duration,
+                            &self.scroll_animation_duration,
+                            now,
+                            false,
+                        ))
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
             }
             _ => {}
         }
@@ -1012,6 +1049,7 @@ fn notify_on_scroll<Message>(
         shell.publish(on_scroll(viewport));
     }
     state.last_notified = Some(viewport);
+    shell.request_redraw(window::RedrawRequest::NextFrame);
 
     true
 }
@@ -1025,18 +1063,26 @@ struct State {
     x_scroller_grabbed_at: Option<f32>,
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
+    y_scroll_animation: AnimationTimeline,
+    x_scroll_animation: AnimationTimeline,
 }
 
 impl Default for State {
     fn default() -> Self {
         Self {
             scroll_area_touched_at: None,
-            offset_y: Offset::Absolute(0.0),
+            offset_y: Offset::Absolute(OffsetInner::default()),
             y_scroller_grabbed_at: None,
-            offset_x: Offset::Absolute(0.0),
+            offset_x: Offset::Absolute(OffsetInner::default()),
             x_scroller_grabbed_at: None,
             keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,
+            y_scroll_animation: AnimationTimeline::new(
+                AnimationEffect::EaseOut,
+            ),
+            x_scroll_animation: AnimationTimeline::new(
+                AnimationEffect::EaseOut,
+            ),
         }
     }
 }
@@ -1051,21 +1097,61 @@ impl operation::Scrollable for State {
     }
 }
 
+/// Offset information includes useful data for animations, a.k.a "smooth scrolling".
+#[derive(Debug, Clone, Copy, Default)]
+struct OffsetInner {
+    /// Offset at the start of the [`AnimationTimeline`]
+    start: f32,
+    /// Offset that is currently displayed
+    current: f32,
+    /// Offset at the end of the [`AnimationTimeline`]
+    target: f32,
+}
+
+impl OffsetInner {
+    fn new(start: f32, current: f32, target: f32) -> Self {
+        Self {
+            start,
+            current,
+            target,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 enum Offset {
-    Absolute(f32),
-    Relative(f32),
+    Absolute(OffsetInner),
+    Relative(OffsetInner),
 }
 
 impl Offset {
-    fn absolute(self, viewport: f32, content: f32) -> f32 {
+    fn absolute(self, viewport: f32, content: f32) -> OffsetInner {
         match self {
-            Offset::Absolute(absolute) => {
-                absolute.min((content - viewport).max(0.0))
-            }
-            Offset::Relative(percentage) => {
-                ((content - viewport) * percentage).max(0.0)
-            }
+            Offset::Absolute(absolute) => OffsetInner::new(
+                absolute.start.min((content - viewport).max(0.0)),
+                absolute.current.min((content - viewport).max(0.0)),
+                absolute.target.min((content - viewport).max(0.0)),
+            ),
+            Offset::Relative(percentage) => OffsetInner::new(
+                ((content - viewport) * percentage.start).max(0.0),
+                ((content - viewport) * percentage.current).max(0.0),
+                ((content - viewport) * percentage.target).max(0.0),
+            ),
+        }
+    }
+
+    fn relative(self, viewport: f32, content: f32) -> OffsetInner {
+        match self {
+            Offset::Absolute(absolute) => OffsetInner::new(
+                absolute.start / (content - viewport),
+                absolute.current / (content - viewport),
+                absolute.target / (content - viewport),
+            ),
+            Offset::Relative(percentage) => OffsetInner::new(
+                percentage.start.max(0.0),
+                percentage.current.max(0.0),
+                percentage.target.max(0.0),
+            ),
         }
     }
 
@@ -1074,12 +1160,31 @@ impl Offset {
         viewport: f32,
         content: f32,
         alignment: Alignment,
-    ) -> f32 {
+    ) -> OffsetInner {
         let offset = self.absolute(viewport, content);
 
         match alignment {
             Alignment::Start => offset,
-            Alignment::End => ((content - viewport).max(0.0) - offset).max(0.0),
+            Alignment::End => OffsetInner {
+                start: ((content - viewport).max(0.0) - offset.start).max(0.0),
+                current: ((content - viewport).max(0.0) - offset.current)
+                    .max(0.0),
+                target: ((content - viewport).max(0.0) - offset.target)
+                    .max(0.0),
+            },
+        }
+    }
+
+    fn on_redraw_request(&mut self, animation_progress: f32) {
+        match self {
+            Offset::Absolute(offset) => {
+                offset.current = offset.start
+                    + (offset.target - offset.start) * animation_progress;
+            }
+            Offset::Relative(offset) => {
+                offset.current = offset.start
+                    + (offset.target - offset.start) * animation_progress;
+            }
         }
     }
 }
@@ -1098,10 +1203,12 @@ impl Viewport {
     pub fn absolute_offset(&self) -> AbsoluteOffset {
         let x = self
             .offset_x
-            .absolute(self.bounds.width, self.content_bounds.width);
+            .absolute(self.bounds.width, self.content_bounds.width)
+            .current;
         let y = self
             .offset_y
-            .absolute(self.bounds.height, self.content_bounds.height);
+            .absolute(self.bounds.height, self.content_bounds.height)
+            .current;
 
         AbsoluteOffset { x, y }
     }
@@ -1177,19 +1284,35 @@ impl State {
         );
 
         if bounds.height < content_bounds.height {
-            self.offset_y = Offset::Absolute(
-                (self.offset_y.absolute(bounds.height, content_bounds.height)
-                    - delta.y)
-                    .clamp(0.0, content_bounds.height - bounds.height),
-            );
+            let mut absolute =
+                self.offset_y.absolute(bounds.height, content_bounds.height);
+            absolute.start = absolute.current;
+            absolute.target = (absolute.target - delta.y)
+                .clamp(0.0, content_bounds.height - bounds.height);
+            self.offset_y = Offset::Absolute(absolute);
         }
 
         if bounds.width < content_bounds.width {
-            self.offset_x = Offset::Absolute(
-                (self.offset_x.absolute(bounds.width, content_bounds.width)
-                    - delta.x)
-                    .clamp(0.0, content_bounds.width - bounds.width),
-            );
+            let mut absolute =
+                self.offset_x.absolute(bounds.width, content_bounds.width);
+            absolute.start = absolute.current;
+            absolute.target = (absolute.target - delta.x)
+                .clamp(0.0, content_bounds.width - bounds.width);
+            self.offset_x = Offset::Absolute(absolute);
+        }
+
+        // Start scroll animations
+        // Use a threshold of 20% before resetting the animation so that
+        // it doesn't get stuck at 0% when spaming mouse wheel.
+        if (!self.y_scroll_animation.is_running())
+            | (self.y_scroll_animation.progress > 0.2)
+        {
+            self.y_scroll_animation.start();
+        }
+        if (!self.x_scroll_animation.is_running())
+            | (self.x_scroll_animation.progress > 0.2)
+        {
+            self.x_scroll_animation.start();
         }
     }
 
@@ -1202,9 +1325,21 @@ impl State {
         percentage: f32,
         bounds: Rectangle,
         content_bounds: Rectangle,
+        instantaneous: bool,
     ) {
-        self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0));
+        let mut inner =
+            self.offset_y.relative(bounds.height, content_bounds.height);
+        if instantaneous {
+            inner.current = inner.target;
+            inner.start = inner.target;
+        } else {
+            inner.start = inner.current;
+        }
+        inner.target = percentage.clamp(0.0, 1.0);
+        self.offset_y = Offset::Relative(inner);
         self.unsnap(bounds, content_bounds);
+        self.y_scroll_animation.reset();
+        self.y_scroll_animation.start();
     }
 
     /// Scrolls the [`Scrollable`] to a relative amount along the x axis.
@@ -1216,21 +1351,91 @@ impl State {
         percentage: f32,
         bounds: Rectangle,
         content_bounds: Rectangle,
+        instantaneous: bool,
     ) {
-        self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0));
+        let mut inner =
+            self.offset_x.relative(bounds.width, content_bounds.width);
+        if instantaneous {
+            inner.current = inner.target;
+            inner.start = inner.target;
+        } else {
+            inner.start = inner.current;
+        }
+        inner.target = percentage.clamp(0.0, 1.0);
+        self.offset_x = Offset::Relative(inner);
         self.unsnap(bounds, content_bounds);
+        self.x_scroll_animation.reset();
+        self.x_scroll_animation.start();
     }
 
     /// Snaps the scroll position to a [`RelativeOffset`].
     pub fn snap_to(&mut self, offset: RelativeOffset) {
-        self.offset_x = Offset::Relative(offset.x.clamp(0.0, 1.0));
-        self.offset_y = Offset::Relative(offset.y.clamp(0.0, 1.0));
+        if let Some(viewport) = self.last_notified {
+            let mut inner_y = self.offset_y.relative(
+                viewport.bounds.height,
+                viewport.content_bounds.height,
+            );
+            inner_y.start = inner_y.current;
+            inner_y.target = offset.y.clamp(0.0, 1.0);
+            self.offset_y = Offset::Relative(inner_y);
+
+            let mut inner_x = self
+                .offset_x
+                .relative(viewport.bounds.width, viewport.content_bounds.width);
+            inner_x.start = inner_x.current;
+            inner_x.target = offset.x.clamp(0.0, 1.0);
+            self.offset_x = Offset::Relative(inner_x);
+        } else {
+            self.offset_x = Offset::Relative(OffsetInner::new(
+                match self.offset_x {
+                    Offset::Absolute(_) => 0.0,
+                    Offset::Relative(r) => r.current,
+                },
+                0.0,
+                offset.x.clamp(0.0, 1.0),
+            ));
+            self.offset_y = Offset::Relative(OffsetInner::new(
+                match self.offset_y {
+                    Offset::Absolute(_) => 0.0,
+                    Offset::Relative(r) => r.current,
+                },
+                0.0,
+                offset.y.clamp(0.0, 1.0),
+            ));
+        }
+        self.y_scroll_animation.start();
+        self.x_scroll_animation.start();
     }
 
     /// Scroll to the provided [`AbsoluteOffset`].
     pub fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        self.offset_x = Offset::Absolute(offset.x.max(0.0));
-        self.offset_y = Offset::Absolute(offset.y.max(0.0));
+        if let Some(viewport) = self.last_notified {
+            let mut inner_y = self.offset_y.absolute(
+                viewport.bounds.height,
+                viewport.content_bounds.height,
+            );
+            inner_y.start = inner_y.current;
+            inner_y.target = offset.y.clamp(0.0, 1.0);
+            self.offset_y = Offset::Absolute(inner_y);
+            let mut inner_x = self.offset_x.absolute(
+                viewport.bounds.height,
+                viewport.content_bounds.height,
+            );
+            inner_x.start = inner_x.current;
+            inner_x.target = offset.x.clamp(0.0, 1.0);
+            self.offset_x = Offset::Absolute(inner_x);
+        } else {
+            self.offset_x = Offset::Absolute(OffsetInner::new(
+                0.0,
+                0.0,
+                offset.x.clamp(0.0, 1.0),
+            ));
+            self.offset_y = Offset::Absolute(OffsetInner::new(
+                0.0,
+                0.0,
+                offset.y.clamp(0.0, 1.0),
+            ));
+        }
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the
@@ -1254,20 +1459,24 @@ impl State {
     ) -> Vector {
         Vector::new(
             if let Some(horizontal) = direction.horizontal() {
-                self.offset_x.translation(
-                    bounds.width,
-                    content_bounds.width,
-                    horizontal.alignment,
-                )
+                self.offset_x
+                    .translation(
+                        bounds.width,
+                        content_bounds.width,
+                        horizontal.alignment,
+                    )
+                    .current
             } else {
                 0.0
             },
             if let Some(vertical) = direction.vertical() {
-                self.offset_y.translation(
-                    bounds.height,
-                    content_bounds.height,
-                    vertical.alignment,
-                )
+                self.offset_y
+                    .translation(
+                        bounds.height,
+                        content_bounds.height,
+                        vertical.alignment,
+                    )
+                    .current
             } else {
                 0.0
             },
