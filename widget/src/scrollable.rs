@@ -38,6 +38,7 @@ pub struct Scrollable<
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
     class: Theme::Class<'a>,
+    static_content: bool,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
@@ -57,6 +58,7 @@ where
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
+            static_content: false,
         }
         .validate()
     }
@@ -158,6 +160,21 @@ where
             Direction::Horizontal(_) => {}
         }
 
+        self
+    }
+
+    /// Makes the [`Scrollable`] treat content statically. This means that, while scroll offset
+    /// calculations are still carried out, the content is rendered as-is, without it being
+    /// scrolled. This is useful when you want to implement your own scrolling logic in your
+    /// content widget.
+    pub fn static_content(mut self) -> Self {
+        self.static_content = true;
+        self
+    }
+
+    /// Makes the [`Scrollable`] treat content non-statically (the default).
+    pub fn non_static_content(mut self) -> Self {
+        self.static_content = false;
         self
     }
 
@@ -577,24 +594,23 @@ where
         }
 
         let mut event_status = {
+            let translation =
+                state.translation(self.direction, bounds, content_bounds);
+
             let cursor = match cursor_over_scrollable {
                 Some(cursor_position)
                     if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
                 {
-                    mouse::Cursor::Available(
-                        cursor_position
-                            + state.translation(
-                                self.direction,
-                                bounds,
-                                content_bounds,
-                            ),
-                    )
+                    mouse::Cursor::Available(cursor_position + translation)
                 }
                 _ => mouse::Cursor::Unavailable,
             };
 
-            let translation =
-                state.translation(self.direction, bounds, content_bounds);
+            let content_translation = if self.static_content {
+                Vector::ZERO
+            } else {
+                translation
+            };
 
             self.content.as_widget_mut().on_event(
                 &mut tree.children[0],
@@ -605,8 +621,8 @@ where
                 clipboard,
                 shell,
                 &Rectangle {
-                    y: bounds.y + translation.y,
-                    x: bounds.x + translation.x,
+                    y: bounds.y + content_translation.y,
+                    x: bounds.x + content_translation.x,
                     ..bounds
                 },
             )
@@ -795,11 +811,17 @@ where
 
         container::draw_background(renderer, &style.container, layout.bounds());
 
+        let content_translation = if self.static_content {
+            Vector::ZERO
+        } else {
+            translation
+        };
+
         // Draw inner content
         if scrollbars.active() {
             renderer.with_layer(visible_bounds, |renderer| {
                 renderer.with_translation(
-                    Vector::new(-translation.x, -translation.y),
+                    Vector::new(-content_translation.x, -content_translation.y),
                     |renderer| {
                         self.content.as_widget().draw(
                             &tree.children[0],
@@ -809,8 +831,8 @@ where
                             content_layout,
                             cursor,
                             &Rectangle {
-                                y: bounds.y + translation.y,
-                                x: bounds.x + translation.x,
+                                y: bounds.y + content_translation.y,
+                                x: bounds.x + content_translation.x,
                                 ..bounds
                             },
                         );
@@ -959,13 +981,19 @@ where
                 _ => mouse::Cursor::Unavailable,
             };
 
+            let content_translation = if self.static_content {
+                Vector::ZERO
+            } else {
+                translation
+            };
+
             self.content.as_widget().mouse_interaction(
                 &tree.children[0],
                 content_layout,
                 cursor,
                 &Rectangle {
-                    y: bounds.y + translation.y,
-                    x: bounds.x + translation.x,
+                    y: bounds.y + content_translation.y,
+                    x: bounds.x + content_translation.x,
                     ..bounds
                 },
                 renderer,
@@ -984,11 +1012,15 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
 
-        let offset = tree.state.downcast_ref::<State>().translation(
-            self.direction,
-            bounds,
-            content_bounds,
-        );
+        let offset = if self.static_content {
+            Vector::ZERO
+        } else {
+            tree.state.downcast_ref::<State>().translation(
+                self.direction,
+                bounds,
+                content_bounds,
+            )
+        };
 
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
