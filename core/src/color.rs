@@ -1,5 +1,13 @@
 use palette::rgb::{Srgb, Srgba};
 
+#[derive(Debug, thiserror::Error)]
+/// Errors that can occur when constructing a [`Color`].
+pub enum ColorError {
+    #[error("The specified hex string is invalid. See supported formats.")]
+    /// The specified hex string is invalid. See supported formats.
+    InvalidHex,
+}
+
 /// A color in the `sRGB` color space.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Color {
@@ -85,6 +93,52 @@ impl Color {
             g: f32::from(g) / 255.0,
             b: f32::from(b) / 255.0,
             a,
+        }
+    }
+
+    /// Creates a [`Color`] from a hex string. Supported formats are #rrggbb, #rrggbbaa, #rgb,
+    /// #rgba. The “#” is optional. Both uppercase and lowercase are supported.
+    pub fn from_hex(s: &str) -> Result<Color, ColorError> {
+        let hex = s.strip_prefix('#').unwrap_or(s);
+        let n_chars = hex.len();
+
+        let get_channel = |from: usize, to: usize| {
+            let num = usize::from_str_radix(&hex[from..=to], 16)
+                .map_err(|_| ColorError::InvalidHex)?
+                as f32
+                / 255.0;
+            // If we only got half a byte (one letter), expand it into a full byte (two letters)
+            Ok(if from == to { num + num * 16.0 } else { num })
+        };
+
+        if n_chars == 3 {
+            Ok(Color::from_rgb(
+                get_channel(0, 0)?,
+                get_channel(1, 1)?,
+                get_channel(2, 2)?,
+            ))
+        } else if n_chars == 6 {
+            Ok(Color::from_rgb(
+                get_channel(0, 1)?,
+                get_channel(2, 3)?,
+                get_channel(4, 5)?,
+            ))
+        } else if n_chars == 4 {
+            Ok(Color::from_rgba(
+                get_channel(0, 0)?,
+                get_channel(1, 1)?,
+                get_channel(2, 2)?,
+                get_channel(3, 3)?,
+            ))
+        } else if n_chars == 8 {
+            Ok(Color::from_rgba(
+                get_channel(0, 1)?,
+                get_channel(2, 3)?,
+                get_channel(4, 5)?,
+                get_channel(6, 7)?,
+            ))
+        } else {
+            Err(ColorError::InvalidHex)
         }
     }
 
@@ -272,5 +326,20 @@ mod tests {
         assert_relative_eq!(result.g, 0.5);
         assert_relative_eq!(result.b, 0.3);
         assert_relative_eq!(result.a, 1.0);
+    }
+
+    #[test]
+    fn from_hex() -> Result<(), ColorError> {
+        let tests = [
+            ("#ff0000", [255, 0, 0, 255]),
+            ("00ff0080", [0, 255, 0, 128]),
+            ("#F80", [255, 136, 0, 255]),
+            ("#00f1", [0, 0, 255, 17]),
+        ];
+        for (arg, expected) in tests {
+            assert_eq!(Color::from_hex(arg)?.into_rgba8(), expected);
+        }
+        assert!(Color::from_hex("invalid").is_err());
+        Ok(())
     }
 }
