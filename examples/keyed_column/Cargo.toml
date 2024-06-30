@@ -1,0 +1,11 @@
+[package]
+name = "keyed_column"
+version = "0.1.0"
+authors = ["Cosmo André <soucosmomoraes@gmail.com>"]
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+iced.workspace = true
