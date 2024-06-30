@@ -601,7 +601,7 @@ where
                     let target = cursor_position.x - text_layout.bounds().x;
 
                     let click =
-                        mouse::Click::new(cursor_position, state.last_click);
+                        mouse::Click::new(cursor_position, mouse::Button::Left, state.last_click);
 
                     match click.kind() {
                         click::Kind::Single => {
