@@ -412,10 +412,10 @@ where
                     width: style.rail.width,
                     height: offset + handle_width / 2.0,
                 },
-                border: Border::rounded(style.rail.border_radius),
+                border: Border::rounded(style.rail.border.radius),
                 ..renderer::Quad::default()
             },
-            style.rail.colors.1,
+            style.rail.backgrounds.1,
         );
 
         renderer.fill_quad(
@@ -426,10 +426,10 @@ where
                     width: style.rail.width,
                     height: bounds.height - offset - handle_width / 2.0,
                 },
-                border: Border::rounded(style.rail.border_radius),
+                border: Border::rounded(style.rail.border.radius),
                 ..renderer::Quad::default()
             },
-            style.rail.colors.0,
+            style.rail.backgrounds.0,
         );
 
         renderer.fill_quad(
@@ -447,7 +447,7 @@ where
                 },
                 ..renderer::Quad::default()
             },
-            style.handle.color,
+            style.handle.background,
         );
     }
 
