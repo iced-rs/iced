@@ -350,6 +350,17 @@ where
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
             scrollbars.is_mouse_over(cursor);
 
+        if state.queue_notify {
+            _ = notify_on_scroll(
+                state,
+                &self.on_scroll,
+                bounds,
+                content_bounds,
+                shell,
+            );
+            state.queue_notify = false;
+        }
+
         if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at {
             match event {
                 Event::Mouse(mouse::Event::CursorMoved { .. })
@@ -1024,6 +1035,8 @@ struct State {
     offset_x: Offset,
     x_scroller_grabbed_at: Option<f32>,
     keyboard_modifiers: keyboard::Modifiers,
+    /// Operations don't have access to the `on_scroll` function, so queue to retrigger it when needed.
+    queue_notify: bool,
     last_notified: Option<Viewport>,
 }
 
@@ -1036,6 +1049,7 @@ impl Default for State {
             offset_x: Offset::Absolute(0.0),
             x_scroller_grabbed_at: None,
             keyboard_modifiers: keyboard::Modifiers::default(),
+            queue_notify: false,
             last_notified: None,
         }
     }
@@ -1044,10 +1058,12 @@ impl Default for State {
 impl operation::Scrollable for State {
     fn snap_to(&mut self, offset: RelativeOffset) {
         State::snap_to(self, offset);
+        self.queue_notify = true;
     }
 
     fn scroll_to(&mut self, offset: AbsoluteOffset) {
         State::scroll_to(self, offset);
+        self.queue_notify = true;
     }
 }
 
