@@ -1,5 +1,13 @@
 use palette::rgb::{Srgb, Srgba};
 
+#[derive(Debug, thiserror::Error)]
+/// Errors that can occur when constructing a [`Color`].
+pub enum ColorError {
+    #[error("The specified hex string is invalid. See supported formats.")]
+    /// The specified hex string is invalid. See supported formats.
+    InvalidHex,
+}
+
 /// A color in the `sRGB` color space.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Color {
@@ -85,6 +93,41 @@ impl Color {
             g: f32::from(g) / 255.0,
             b: f32::from(b) / 255.0,
             a,
+        }
+    }
+
+    /// Creates a [`Color`] from a hex string. Supported formats are #aabbcc, #abc, #aabbccff. The
+    /// “#” is optional. Both uppercase and lowercase are supported.
+    pub fn from_hex(s: &str) -> Result<Color, ColorError> {
+        let mut hex = s.replace('#', "").to_lowercase();
+        let mut n_chars = hex.chars().count();
+
+        if n_chars == 3 || n_chars == 4 {
+            hex = hex
+                .chars()
+                .map(|c| c.to_string().repeat(2))
+                .collect::<Vec<String>>()
+                .join("");
+            n_chars *= 2;
+        } else if n_chars != 6 && n_chars != 8 {
+            return Err(ColorError::InvalidHex);
+        }
+
+        let Ok(num) = usize::from_str_radix(&hex, 16) else {
+            return Err(ColorError::InvalidHex);
+        };
+
+        if n_chars == 8 {
+            let r = (num >> 24) as f32 / 255.0;
+            let g = ((num >> 16) & 0x00FF) as f32 / 255.0;
+            let b = ((num >> 8) & 0x0000FF) as f32 / 255.0;
+            let a = (num & 0x000000FF) as f32 / 255.0;
+            Ok(Color::from_rgba(r, g, b, a))
+        } else {
+            let r = (num >> 16) as f32 / 255.0;
+            let g = ((num >> 8) & 0x00FF) as f32 / 255.0;
+            let b = (num & 0x0000FF) as f32 / 255.0;
+            Ok(Color::from_rgb(r, g, b))
         }
     }
 
