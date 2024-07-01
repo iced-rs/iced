@@ -5,9 +5,12 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::time::Instant;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
+use crate::core::window::RedrawRequest;
 use crate::core::{
     Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
     Rectangle, Shell, Size, Theme, Widget,
@@ -164,6 +167,57 @@ where
     }
 }
 
+#[derive(Debug, Default)]
+struct Animation {
+    value: f32,
+    should_toggle: bool,
+    last_update: Option<Instant>,
+}
+
+impl Animation {
+    fn update(&mut self, now: Instant) {
+        let delta = self
+            .last_update
+            .map(|l| now.duration_since(l).as_secs_f32())
+            .unwrap_or(0.0);
+        self.last_update = Some(now);
+
+        if self.should_toggle {
+            self.value += delta * 10.0;
+        } else {
+            self.value -= delta * 10.0;
+        }
+
+        self.value = self.value.clamp(0.0, 1.0);
+    }
+
+    fn set_should_toggle(&mut self, should_toggle: bool) {
+        if self.should_toggle != should_toggle {
+            self.last_update = None;
+            self.should_toggle = should_toggle;
+        }
+    }
+
+    fn is_redraw_needed(&self) -> bool {
+        if self.should_toggle {
+            self.value < 1.0
+        } else {
+            self.value > 0.0
+        }
+    }
+
+    fn is_fully_toggled(&self) -> bool {
+        self.value >= 1.0
+    }
+}
+
+/// The state of a [`Toggler`].
+#[derive(Debug, Default)]
+pub struct State<P: text::Paragraph> {
+    text_state: widget::text::State<P>,
+    animation: Animation,
+}
+
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Toggler<'a, Message, Theme, Renderer>
 where
@@ -171,11 +225,11 @@ where
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
+        tree::Tag::of::<State<Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+        tree::State::new(State::<Renderer::Paragraph>::default())
     }
 
     fn size(&self) -> Size<Length> {
@@ -199,12 +253,11 @@ where
             |_| layout::Node::new(Size::new(2.0 * self.size, self.size)),
             |limits| {
                 if let Some(label) = self.label.as_deref() {
-                    let state = tree
-                    .state
-                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+                    let state =
+                        tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
                     widget::text::layout(
-                        state,
+                        &mut state.text_state,
                         renderer,
                         limits,
                         self.width,
@@ -226,7 +279,7 @@ where
 
     fn on_event(
         &mut self,
-        _state: &mut Tree,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -247,6 +300,19 @@ where
                 } else {
                     event::Status::Ignored
                 }
+            }
+            Event::Window(window::Event::RedrawRequested(now)) => {
+                let state: &mut State<Renderer::Paragraph> =
+                    tree.state.downcast_mut();
+
+                state.animation.set_should_toggle(self.is_toggled);
+
+                if state.animation.is_redraw_needed() {
+                    state.animation.update(now);
+                    shell.request_redraw(RedrawRequest::NextFrame);
+                }
+
+                event::Status::Ignored
             }
             _ => event::Status::Ignored,
         }
@@ -287,6 +353,8 @@ where
         let mut children = layout.children();
         let toggler_layout = children.next().unwrap();
 
+        let state: &State<Renderer::Paragraph> = tree.state.downcast_ref();
+
         if self.label.is_some() {
             let label_layout = children.next().unwrap();
 
@@ -294,7 +362,7 @@ where
                 renderer,
                 style,
                 label_layout,
-                tree.state.downcast_ref(),
+                &state.text_state,
                 crate::text::Style::default(),
                 viewport,
             );
@@ -305,11 +373,11 @@ where
 
         let status = if is_mouse_over {
             Status::Hovered {
-                is_toggled: self.is_toggled,
+                is_toggled: state.animation.is_fully_toggled(),
             }
         } else {
             Status::Active {
-                is_toggled: self.is_toggled,
+                is_toggled: state.animation.is_fully_toggled(),
             }
         };
 
@@ -338,16 +406,18 @@ where
             style.background,
         );
 
+        let margin = 2.0 * space;
+        let head_diameter = bounds.height - margin * 2.0;
+        let inner_width = bounds.width - margin * 2.0;
+
+        let toggled_progress =
+            (inner_width - head_diameter) * state.animation.value;
+
         let toggler_foreground_bounds = Rectangle {
-            x: bounds.x
-                + if self.is_toggled {
-                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
-                } else {
-                    2.0 * space
-                },
-            y: bounds.y + (2.0 * space),
-            width: bounds.height - (4.0 * space),
-            height: bounds.height - (4.0 * space),
+            x: bounds.x + margin + toggled_progress,
+            y: bounds.y + margin,
+            width: head_diameter,
+            height: head_diameter,
         };
 
         renderer.fill_quad(
