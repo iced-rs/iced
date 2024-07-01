@@ -329,6 +329,27 @@ where
     }
 }
 
+impl<'a, Theme, Renderer> From<String> for Text<'a, Theme, Renderer>
+where
+    Theme: Catalog + 'a,
+    Renderer: text::Renderer,
+{
+    fn from(content: String) -> Self {
+        Self::new(content)
+    }
+}
+
+impl<'a, Message, Theme, Renderer> From<String>
+    for Element<'a, Message, Theme, Renderer>
+where
+    Theme: Catalog + 'a,
+    Renderer: text::Renderer + 'a,
+{
+    fn from(content: String) -> Self {
+        Text::from(content).into()
+    }
+}
+
 /// The appearance of some text.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Style {
