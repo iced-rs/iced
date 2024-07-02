@@ -1,7 +1,7 @@
 use iced::alignment::{self, Alignment};
 use iced::widget::{
     button, checkbox, column, container, horizontal_space, image, radio, row,
-    scrollable, slider, text, text_input, toggler, vertical_space,
+    scrollable, slider, text, text_input, toggler, vertical_space, Row,
 };
 use iced::widget::{Button, Column, Container, Slider};
 use iced::{Color, Element, Font, Length, Pixels};
@@ -36,6 +36,7 @@ pub struct Tour {
     input_is_secure: bool,
     input_is_showing_icon: bool,
     debug: bool,
+    disable_toggle: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -55,6 +56,7 @@ pub enum Message {
     ToggleTextInputIcon(bool),
     DebugToggled(bool),
     TogglerChanged(bool),
+    ToggleBehavior(bool),
 }
 
 impl Tour {
@@ -131,6 +133,15 @@ impl Tour {
             Message::TogglerChanged(toggler) => {
                 self.toggler = toggler;
             }
+            Message::ToggleBehavior(toggle) => {
+                if toggle {
+                    self.toggler = false;
+                    self.disable_toggle = true;
+                } else {
+                    self.disable_toggle = false;
+                }
+            }
+
         }
     }
 
@@ -361,16 +372,30 @@ impl Tour {
     }
 
     fn toggler(&self) -> Column<Message> {
+        let toggle_behavior = Row::new()
+            .push(
+                Button::new("Disable Toggle")
+                    .on_press(Message::ToggleBehavior(true)),
+            )
+            .push(
+                Button::new("Enable Toggle").on_press(Message::ToggleBehavior(false)),
+            )
+            .spacing(10)
+            .align_items(Alignment::Center);
         Self::container("Toggler")
             .push("A toggler is mostly used to enable or disable something.")
             .push(
-                Container::new(toggler(
-                    "Toggle me to continue...".to_owned(),
-                    self.toggler,
-                    Message::TogglerChanged,
-                ))
+                Container::new(
+                    toggler(
+                        "Toggle me to continue...".to_owned(),
+                        self.toggler,
+                        Message::TogglerChanged,
+                    )
+                    .disabled(self.disable_toggle),
+                )
                 .padding([0, 40]),
             )
+            .push(toggle_behavior)
     }
 
     fn image(&self) -> Column<Message> {
@@ -646,6 +671,7 @@ impl Default for Tour {
             input_is_secure: false,
             input_is_showing_icon: false,
             debug: false,
+            disable_toggle: false,
         }
     }
 }
