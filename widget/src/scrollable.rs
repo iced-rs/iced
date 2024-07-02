@@ -492,7 +492,7 @@ where
             }
         }
 
-        let mut event_status = {
+        let event_status = {
             let cursor = match cursor_over_scrollable {
                 Some(cursor_position)
                     if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
@@ -579,7 +579,7 @@ where
 
                 state.scroll(delta, self.direction, bounds, content_bounds);
 
-                event_status = if notify_on_scroll(
+                return if notify_on_scroll(
                     state,
                     &self.on_scroll,
                     bounds,
@@ -640,10 +640,18 @@ where
                     _ => {}
                 }
 
-                event_status = event::Status::Captured;
+                return event::Status::Captured;
             }
             _ => {}
         }
+
+        let _ = notify_on_scroll(
+            state,
+            &self.on_scroll,
+            bounds,
+            content_bounds,
+            shell,
+        );
 
         event_status
     }
@@ -989,20 +997,24 @@ fn notify_on_scroll<Message>(
 
     // Don't publish redundant viewports to shell
     if let Some(last_notified) = state.last_notified {
-        let last_relative_offset = last_notified.relative_offset();
-        let current_relative_offset = viewport.relative_offset();
-
         let last_absolute_offset = last_notified.absolute_offset();
         let current_absolute_offset = viewport.absolute_offset();
+        let last_bounds = last_notified.bounds();
+        let current_bounds = viewport.bounds();
 
         let unchanged = |a: f32, b: f32| {
             (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
         };
+        let unchanged_rect = |a: &Rectangle, b: &Rectangle| {
+            unchanged(a.x, b.x)
+                && unchanged(a.y, b.y)
+                && unchanged(a.width, b.width)
+                && unchanged(a.height, b.height)
+        };
 
-        if unchanged(last_relative_offset.x, current_relative_offset.x)
-            && unchanged(last_relative_offset.y, current_relative_offset.y)
-            && unchanged(last_absolute_offset.x, current_absolute_offset.x)
+        if unchanged(last_absolute_offset.x, current_absolute_offset.x)
             && unchanged(last_absolute_offset.y, current_absolute_offset.y)
+            && unchanged_rect(&last_bounds, &current_bounds)
         {
             return false;
         }
