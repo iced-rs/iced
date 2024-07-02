@@ -385,6 +385,27 @@ impl editor::Editor for Editor {
                     }));
                 }
             }
+            Action::SelectAll => {
+                let buffer = editor.buffer();
+                if buffer.lines.len() > 1
+                    || buffer
+                        .lines
+                        .first()
+                        .is_some_and(|line| !line.text().is_empty())
+                {
+                    let cursor = editor.cursor();
+                    editor.set_select_opt(Some(cosmic_text::Cursor {
+                        line: 0,
+                        index: 0,
+                        ..cursor
+                    }));
+
+                    editor.action(
+                        font_system.raw(),
+                        motion_to_action(Motion::DocumentEnd),
+                    );
+                }
+            }
 
             // Editing events
             Action::Edit(edit) => {
