@@ -1,5 +1,4 @@
 //! Navigate an endless amount of content with a scrollbar.
-// use crate::container;
 use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
