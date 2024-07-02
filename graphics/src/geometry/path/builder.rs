@@ -1,6 +1,7 @@
 use crate::geometry::path::{arc, Arc, Path};
 
-use iced_core::{Point, Radians, Size};
+use crate::core::border;
+use crate::core::{Point, Radians, Size};
 
 use lyon_path::builder::{self, SvgPathBuilder};
 use lyon_path::geom;
@@ -157,6 +158,71 @@ impl Builder {
             top_left.y + size.height,
         ));
         self.line_to(Point::new(top_left.x, top_left.y + size.height));
+        self.close();
+    }
+
+    /// Adds a rounded rectangle to the [`Path`] given its top-left
+    /// corner coordinate its [`Size`] and [`border::Radius`].
+    #[inline]
+    pub fn rounded_rectangle(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        radius: border::Radius,
+    ) {
+        let min_size = (size.height / 2.0).min(size.width / 2.0);
+        let [top_left_corner, top_right_corner, bottom_right_corner, bottom_left_corner] =
+            radius.into();
+
+        self.move_to(Point::new(
+            top_left.x + min_size.min(top_left_corner),
+            top_left.y,
+        ));
+        self.line_to(Point::new(
+            top_left.x + size.width - min_size.min(top_right_corner),
+            top_left.y,
+        ));
+        self.arc_to(
+            Point::new(top_left.x + size.width, top_left.y),
+            Point::new(
+                top_left.x + size.width,
+                top_left.y + min_size.min(top_right_corner),
+            ),
+            min_size.min(top_right_corner),
+        );
+        self.line_to(Point::new(
+            top_left.x + size.width,
+            top_left.y + size.height - min_size.min(bottom_right_corner),
+        ));
+        self.arc_to(
+            Point::new(top_left.x + size.width, top_left.y + size.height),
+            Point::new(
+                top_left.x + size.width - min_size.min(bottom_right_corner),
+                top_left.y + size.height,
+            ),
+            min_size.min(bottom_right_corner),
+        );
+        self.line_to(Point::new(
+            top_left.x + min_size.min(bottom_left_corner),
+            top_left.y + size.height,
+        ));
+        self.arc_to(
+            Point::new(top_left.x, top_left.y + size.height),
+            Point::new(
+                top_left.x,
+                top_left.y + size.height - min_size.min(bottom_left_corner),
+            ),
+            min_size.min(bottom_left_corner),
+        );
+        self.line_to(Point::new(
+            top_left.x,
+            top_left.y + min_size.min(top_left_corner),
+        ));
+        self.arc_to(
+            Point::new(top_left.x, top_left.y),
+            Point::new(top_left.x + min_size.min(top_left_corner), top_left.y),
+            min_size.min(top_left_corner),
+        );
         self.close();
     }
 
