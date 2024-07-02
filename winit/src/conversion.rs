@@ -101,10 +101,12 @@ pub fn window_attributes(
         {
             use winit::platform::x11::WindowAttributesExtX11;
 
-            attributes = attributes.with_name(
-                &settings.platform_specific.application_id,
-                &settings.platform_specific.application_id,
-            );
+            attributes = attributes
+                .with_override_redirect(settings.override_redirect)
+                .with_name(
+                    &settings.platform_specific.application_id,
+                    &settings.platform_specific.application_id,
+                );
         }
         #[cfg(feature = "wayland")]
         {
