@@ -39,6 +39,23 @@ pub struct Text<Content = String, Font = crate::Font> {
 
     /// The [`Shaping`] strategy of the [`Text`].
     pub shaping: Shaping,
+
+    /// The [`Wrapping`] strategy of the [`Text`].
+    pub wrapping: Wrapping,
+}
+
+/// The wrapping strategy of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Wrapping {
+    /// No wrapping.
+    None,
+    /// Word wrapping.
+    ///
+    /// This is the default.
+    #[default]
+    Word,
+    /// Glyph wrapping.
+    Glyph,
 }
 
 /// The shaping strategy of some text.

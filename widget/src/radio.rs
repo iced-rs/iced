@@ -244,6 +244,7 @@ where
                     alignment::Horizontal::Left,
                     alignment::Vertical::Top,
                     self.text_shaping,
+                    text::Wrapping::default(),
                 )
             },
         )

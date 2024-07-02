@@ -2,7 +2,7 @@ use crate::alignment;
 use crate::image;
 use crate::renderer::{self, Renderer};
 use crate::svg;
-use crate::text::{self, Text};
+use crate::text::{self, Text, Wrapping};
 use crate::{
     Background, Color, Font, Pixels, Point, Radians, Rectangle, Size,
     Transformation,
@@ -143,6 +143,7 @@ impl text::Editor for () {
         &mut self,
         _new_bounds: Size,
         _new_font: Self::Font,
+        _new_wrapping: Wrapping,
         _new_size: Pixels,
         _new_line_height: text::LineHeight,
         _new_highlighter: &mut impl text::Highlighter,
