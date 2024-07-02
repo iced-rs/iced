@@ -160,6 +160,49 @@ impl Builder {
         self.close();
     }
 
+    /// Adds a rounded rectangle to the [`Path`] given its top-left
+    /// corner coordinate its `Size` and curve radius.
+    #[inline]
+    pub fn rounded_rectangle(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        radius: f32,
+    ) {
+        self.move_to(Point::new(top_left.x + radius, top_left.y));
+        self.line_to(Point::new(top_left.x + size.width - radius, top_left.y));
+        self.arc_to(
+            Point::new(top_left.x + size.width, top_left.y),
+            Point::new(top_left.x + size.width, top_left.y + radius),
+            radius,
+        );
+        self.line_to(Point::new(
+            top_left.x + size.width,
+            top_left.y + size.height - radius,
+        ));
+        self.arc_to(
+            Point::new(top_left.x + size.width, top_left.y + size.height),
+            Point::new(
+                top_left.x + size.width - radius,
+                top_left.y + size.height,
+            ),
+            radius,
+        );
+        self.line_to(Point::new(top_left.x + radius, top_left.y + size.height));
+        self.arc_to(
+            Point::new(top_left.x, top_left.y + size.height),
+            Point::new(top_left.x, top_left.y + size.height - radius),
+            radius,
+        );
+        self.line_to(Point::new(top_left.x, top_left.y + radius));
+        self.arc_to(
+            Point::new(top_left.x, top_left.y),
+            Point::new(top_left.x + radius, top_left.y),
+            radius,
+        );
+        self.close();
+    }
+
     /// Adds a circle to the [`Path`] given its center coordinate and its
     /// radius.
     #[inline]
