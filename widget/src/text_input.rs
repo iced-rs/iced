@@ -30,7 +30,8 @@ use crate::core::{
     Background, Border, Color, Element, Layout, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, Theme, Vector, Widget,
 };
-use crate::runtime::{Action, Task};
+use crate::runtime::task::{self, Task};
+use crate::runtime::Action;
 
 /// A field that can be filled with text.
 ///
@@ -1142,13 +1143,13 @@ impl From<Id> for widget::Id {
 
 /// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
 pub fn focus<T>(id: Id) -> Task<T> {
-    Task::effect(Action::widget(operation::focusable::focus(id.0)))
+    task::effect(Action::widget(operation::focusable::focus(id.0)))
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// end.
 pub fn move_cursor_to_end<T>(id: Id) -> Task<T> {
-    Task::effect(Action::widget(operation::text_input::move_cursor_to_end(
+    task::effect(Action::widget(operation::text_input::move_cursor_to_end(
         id.0,
     )))
 }
@@ -1156,7 +1157,7 @@ pub fn move_cursor_to_end<T>(id: Id) -> Task<T> {
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// front.
 pub fn move_cursor_to_front<T>(id: Id) -> Task<T> {
-    Task::effect(Action::widget(operation::text_input::move_cursor_to_front(
+    task::effect(Action::widget(operation::text_input::move_cursor_to_front(
         id.0,
     )))
 }
@@ -1164,14 +1165,14 @@ pub fn move_cursor_to_front<T>(id: Id) -> Task<T> {
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// provided position.
 pub fn move_cursor_to<T>(id: Id, position: usize) -> Task<T> {
-    Task::effect(Action::widget(operation::text_input::move_cursor_to(
+    task::effect(Action::widget(operation::text_input::move_cursor_to(
         id.0, position,
     )))
 }
 
 /// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`Id`].
 pub fn select_all<T>(id: Id) -> Task<T> {
-    Task::effect(Action::widget(operation::text_input::select_all(id.0)))
+    task::effect(Action::widget(operation::text_input::select_all(id.0)))
 }
 
 /// The state of a [`TextInput`].
