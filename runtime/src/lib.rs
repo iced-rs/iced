@@ -15,13 +15,12 @@ pub mod keyboard;
 pub mod overlay;
 pub mod program;
 pub mod system;
+pub mod task;
 pub mod user_interface;
 pub mod window;
 
 #[cfg(feature = "multi-window")]
 pub mod multi_window;
-
-mod task;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.
@@ -127,5 +126,5 @@ where
 /// This will normally close any application windows and
 /// terminate the runtime loop.
 pub fn exit<T>() -> Task<T> {
-    Task::effect(Action::Exit)
+    task::effect(Action::Exit)
 }

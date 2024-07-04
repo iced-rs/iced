@@ -203,7 +203,7 @@ where
 
     let (program, task) = runtime.enter(|| P::new(flags));
 
-    if let Some(stream) = task.into_stream() {
+    if let Some(stream) = runtime::task::into_stream(task) {
         runtime.run(stream);
     }
 
@@ -1114,7 +1114,7 @@ fn update<P: Program, E: Executor>(
         let task = runtime.enter(|| program.update(message));
         debug.update_finished();
 
-        if let Some(stream) = task.into_stream() {
+        if let Some(stream) = runtime::task::into_stream(task) {
             runtime.run(stream);
         }
     }

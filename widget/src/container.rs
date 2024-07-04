@@ -13,7 +13,7 @@ use crate::core::{
     Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
     Widget,
 };
-use crate::runtime::Task;
+use crate::runtime::task::{self, Task};
 
 /// An element decorating some content.
 ///
@@ -538,7 +538,7 @@ pub fn visible_bounds(id: Id) -> Task<Option<Rectangle>> {
         }
     }
 
-    Task::widget(VisibleBounds {
+    task::widget(VisibleBounds {
         target: id.into(),
         depth: 0,
         scrollables: Vec::new(),

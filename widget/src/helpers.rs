@@ -12,7 +12,8 @@ use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::rule::{self, Rule};
-use crate::runtime::{Action, Task};
+use crate::runtime::task::{self, Task};
+use crate::runtime::Action;
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
 use crate::text::{self, Text};
@@ -930,12 +931,12 @@ where
 
 /// Focuses the previous focusable widget.
 pub fn focus_previous<T>() -> Task<T> {
-    Task::effect(Action::widget(operation::focusable::focus_previous()))
+    task::effect(Action::widget(operation::focusable::focus_previous()))
 }
 
 /// Focuses the next focusable widget.
 pub fn focus_next<T>() -> Task<T> {
-    Task::effect(Action::widget(operation::focusable::focus_next()))
+    task::effect(Action::widget(operation::focusable::focus_next()))
 }
 
 /// A container intercepting mouse events.

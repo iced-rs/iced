@@ -15,7 +15,8 @@ use crate::core::{
     self, Background, Border, Clipboard, Color, Element, Layout, Length,
     Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
-use crate::runtime::{Action, Task};
+use crate::runtime::task::{self, Task};
+use crate::runtime::Action;
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
@@ -955,13 +956,13 @@ impl From<Id> for widget::Id {
 /// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`Id`]
 /// to the provided `percentage` along the x & y axis.
 pub fn snap_to<T>(id: Id, offset: RelativeOffset) -> Task<T> {
-    Task::effect(Action::widget(operation::scrollable::snap_to(id.0, offset)))
+    task::effect(Action::widget(operation::scrollable::snap_to(id.0, offset)))
 }
 
 /// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
 /// to the provided [`AbsoluteOffset`] along the x & y axis.
 pub fn scroll_to<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
-    Task::effect(Action::widget(operation::scrollable::scroll_to(
+    task::effect(Action::widget(operation::scrollable::scroll_to(
         id.0, offset,
     )))
 }
