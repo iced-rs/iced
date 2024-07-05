@@ -48,7 +48,7 @@ impl Path {
     }
 
     /// Creates a new [`Path`] representing a rounded rectangle given its top-left
-    /// corner coordinate, its `Size` and radius.
+    /// corner coordinate, its [`Size`] and border [`Radius`].
     pub fn rounded_rectangle(top_left: Point, size: Size, radius: Radius) -> Self {
         Self::new(|p| p.rounded_rectangle(top_left, size, radius))
     }

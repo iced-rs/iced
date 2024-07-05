@@ -162,7 +162,7 @@ impl Builder {
     }
 
     /// Adds a rounded rectangle to the [`Path`] given its top-left
-    /// corner coordinate its `Size` and curve radius.
+    /// corner coordinate its [`Size`] and border [`Radius`].
     #[inline]
     pub fn rounded_rectangle(
         &mut self,
