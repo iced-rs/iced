@@ -169,36 +169,37 @@ impl Builder {
         size: Size,
         radius: f32,
     ) {
-        self.move_to(Point::new(top_left.x + radius, top_left.y));
-        self.line_to(Point::new(top_left.x + size.width - radius, top_left.y));
+        let safe_radius = radius.min((size.height / 2.0).min(size.width / 2.0));
+        self.move_to(Point::new(top_left.x + safe_radius, top_left.y));
+        self.line_to(Point::new(top_left.x + size.width - safe_radius, top_left.y));
         self.arc_to(
             Point::new(top_left.x + size.width, top_left.y),
-            Point::new(top_left.x + size.width, top_left.y + radius),
-            radius,
+            Point::new(top_left.x + size.width, top_left.y + safe_radius),
+            safe_radius,
         );
         self.line_to(Point::new(
             top_left.x + size.width,
-            top_left.y + size.height - radius,
+            top_left.y + size.height - safe_radius,
         ));
         self.arc_to(
             Point::new(top_left.x + size.width, top_left.y + size.height),
             Point::new(
-                top_left.x + size.width - radius,
+                top_left.x + size.width - safe_radius,
                 top_left.y + size.height,
             ),
-            radius,
+            safe_radius,
         );
-        self.line_to(Point::new(top_left.x + radius, top_left.y + size.height));
+        self.line_to(Point::new(top_left.x + safe_radius, top_left.y + size.height));
         self.arc_to(
             Point::new(top_left.x, top_left.y + size.height),
-            Point::new(top_left.x, top_left.y + size.height - radius),
-            radius,
+            Point::new(top_left.x, top_left.y + size.height - safe_radius),
+            safe_radius,
         );
-        self.line_to(Point::new(top_left.x, top_left.y + radius));
+        self.line_to(Point::new(top_left.x, top_left.y + safe_radius));
         self.arc_to(
             Point::new(top_left.x, top_left.y),
-            Point::new(top_left.x + radius, top_left.y),
-            radius,
+            Point::new(top_left.x + safe_radius, top_left.y),
+            safe_radius,
         );
         self.close();
     }

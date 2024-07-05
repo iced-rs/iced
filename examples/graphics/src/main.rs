@@ -1,4 +1,4 @@
-use iced::widget::canvas::{self, Cache, Canvas, Geometry, Path};
+use iced::widget::canvas::{self, Cache, Canvas, Geometry, Path, Text};
 use iced::{mouse, Color, Point, Size};
 use iced::{Element, Length, Rectangle, Renderer, Theme};
 
@@ -48,10 +48,26 @@ impl<Message> canvas::Program<Message> for Graphics {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
             let rect = Path::rounded_rectangle(
                 Point::new(10.0, 10.0),
-                Size::new(100.0, 100.0),
+                Size::new(300.0, 300.0),
                 20.0,
             );
+            let rect_bigger_radius = Path::rounded_rectangle(
+                Point::new(320.0, 10.0),
+                Size::new(300.0, 200.0),
+                180.0,
+            );
             frame.fill(&rect, Color::from_rgb8(0x12, 0x93, 0xD8));
+            frame.fill(&rect_bigger_radius, Color::from_rgb8(0x12, 0x93, 0xD8));
+            frame.fill_text(Text {
+                content: "Rounded rectangle".to_string(),
+                position: Point::new(400.0, 90.0),
+                ..canvas::Text::default()
+            });
+            frame.fill_text(Text {
+                content: "when radius is bigger than one of the sides".to_string(),
+                position: Point::new(330.0, 110.0),
+                ..canvas::Text::default()
+            });
         });
 
         vec![geometry]
