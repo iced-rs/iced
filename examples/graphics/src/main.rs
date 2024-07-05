@@ -74,7 +74,7 @@ impl<Message> canvas::Program<Message> for Graphics {
             let rect_different_radius = Path::rounded_rectangle(
                 Point::new(640.0, 10.0),
                 Size::new(300.0, 200.0),
-                Radius([10.0, 20.0, 30.0, 40.0]),
+                Radius::from([10.0, 20.0, 30.0, 40.0]),
             );
             frame.fill(&rect_different_radius, Color::from_rgb8(0x12, 0x93, 0xD8));
             frame.fill_text(Text {
