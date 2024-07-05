@@ -14,6 +14,6 @@ pub use crate::renderer::graphics;
 pub mod subscription {
     //! Write your own subscriptions.
     pub use crate::runtime::futures::subscription::{
-        EventStream, Hasher, Recipe,
+        from_recipe, into_recipes, EventStream, Hasher, Recipe,
     };
 }
