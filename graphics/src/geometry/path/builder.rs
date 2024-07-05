@@ -1,5 +1,6 @@
 use crate::geometry::path::{arc, Arc, Path};
 
+use iced_core::border::Radius;
 use iced_core::{Point, Radians, Size};
 
 use lyon_path::builder::{self, SvgPathBuilder};
@@ -167,39 +168,39 @@ impl Builder {
         &mut self,
         top_left: Point,
         size: Size,
-        radius: f32,
+        radius: Radius,
     ) {
-        let safe_radius = radius.min((size.height / 2.0).min(size.width / 2.0));
-        self.move_to(Point::new(top_left.x + safe_radius, top_left.y));
-        self.line_to(Point::new(top_left.x + size.width - safe_radius, top_left.y));
+        let min_size = (size.height / 2.0).min(size.width / 2.0);
+        self.move_to(Point::new(top_left.x + min_size.min(radius.0[0]), top_left.y));
+        self.line_to(Point::new(top_left.x + size.width - min_size.min(radius.0[1]), top_left.y));
         self.arc_to(
             Point::new(top_left.x + size.width, top_left.y),
-            Point::new(top_left.x + size.width, top_left.y + safe_radius),
-            safe_radius,
+            Point::new(top_left.x + size.width, top_left.y + min_size.min(radius.0[1])),
+            min_size.min(radius.0[1]),
         );
         self.line_to(Point::new(
             top_left.x + size.width,
-            top_left.y + size.height - safe_radius,
+            top_left.y + size.height - min_size.min(radius.0[2]),
         ));
         self.arc_to(
             Point::new(top_left.x + size.width, top_left.y + size.height),
             Point::new(
-                top_left.x + size.width - safe_radius,
+                top_left.x + size.width - min_size.min(radius.0[2]),
                 top_left.y + size.height,
             ),
-            safe_radius,
+            min_size.min(radius.0[2]),
         );
-        self.line_to(Point::new(top_left.x + safe_radius, top_left.y + size.height));
+        self.line_to(Point::new(top_left.x + min_size.min(radius.0[3]), top_left.y + size.height));
         self.arc_to(
             Point::new(top_left.x, top_left.y + size.height),
-            Point::new(top_left.x, top_left.y + size.height - safe_radius),
-            safe_radius,
+            Point::new(top_left.x, top_left.y + size.height - min_size.min(radius.0[3])),
+            min_size.min(radius.0[3]),
         );
-        self.line_to(Point::new(top_left.x, top_left.y + safe_radius));
+        self.line_to(Point::new(top_left.x, top_left.y + min_size.min(radius.0[0])));
         self.arc_to(
             Point::new(top_left.x, top_left.y),
-            Point::new(top_left.x + safe_radius, top_left.y),
-            safe_radius,
+            Point::new(top_left.x + min_size.min(radius.0[1]), top_left.y),
+            min_size.min(radius.0[0]),
         );
         self.close();
     }

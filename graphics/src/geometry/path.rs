@@ -9,7 +9,7 @@ pub use builder::Builder;
 
 pub use lyon_path;
 
-use iced_core::{Point, Size};
+use iced_core::{border::Radius, Point, Size};
 
 /// An immutable set of points that may or may not be connected.
 ///
@@ -49,7 +49,7 @@ impl Path {
 
     /// Creates a new [`Path`] representing a rounded rectangle given its top-left
     /// corner coordinate, its `Size` and radius.
-    pub fn rounded_rectangle(top_left: Point, size: Size, radius: f32) -> Self {
+    pub fn rounded_rectangle(top_left: Point, size: Size, radius: Radius) -> Self {
         Self::new(|p| p.rounded_rectangle(top_left, size, radius))
     }
 
