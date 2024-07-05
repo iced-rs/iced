@@ -26,7 +26,7 @@ pub mod time {
     pub fn every(
         duration: std::time::Duration,
     ) -> Subscription<wasm_timer::Instant> {
-        Subscription::from_recipe(Every(duration))
+        subscription::from_recipe(Every(duration))
     }
 
     #[derive(Debug)]

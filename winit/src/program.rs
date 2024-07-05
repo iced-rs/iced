@@ -207,7 +207,9 @@ where
         runtime.run(stream);
     }
 
-    runtime.track(program.subscription().map(Action::Output).into_recipes());
+    runtime.track(subscription::into_recipes(
+        program.subscription().map(Action::Output),
+    ));
 
     let (boot_sender, boot_receiver) = oneshot::channel();
     let (event_sender, event_receiver) = mpsc::unbounded();
@@ -1120,7 +1122,7 @@ fn update<P: Program, E: Executor>(
     }
 
     let subscription = program.subscription();
-    runtime.track(subscription.map(Action::Output).into_recipes());
+    runtime.track(subscription::into_recipes(subscription.map(Action::Output)));
 }
 
 fn run_action<P, C>(
