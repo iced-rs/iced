@@ -171,36 +171,37 @@ impl Builder {
         radius: Radius,
     ) {
         let min_size = (size.height / 2.0).min(size.width / 2.0);
-        self.move_to(Point::new(top_left.x + min_size.min(radius.0[0]), top_left.y));
-        self.line_to(Point::new(top_left.x + size.width - min_size.min(radius.0[1]), top_left.y));
+        let rad_array:[f32; 4] = radius.into();
+        self.move_to(Point::new(top_left.x + min_size.min(rad_array[0]), top_left.y));
+        self.line_to(Point::new(top_left.x + size.width - min_size.min(rad_array[1]), top_left.y));
         self.arc_to(
             Point::new(top_left.x + size.width, top_left.y),
-            Point::new(top_left.x + size.width, top_left.y + min_size.min(radius.0[1])),
-            min_size.min(radius.0[1]),
+            Point::new(top_left.x + size.width, top_left.y + min_size.min(rad_array[1])),
+            min_size.min(rad_array[1]),
         );
         self.line_to(Point::new(
             top_left.x + size.width,
-            top_left.y + size.height - min_size.min(radius.0[2]),
+            top_left.y + size.height - min_size.min(rad_array[2]),
         ));
         self.arc_to(
             Point::new(top_left.x + size.width, top_left.y + size.height),
             Point::new(
-                top_left.x + size.width - min_size.min(radius.0[2]),
+                top_left.x + size.width - min_size.min(rad_array[2]),
                 top_left.y + size.height,
             ),
-            min_size.min(radius.0[2]),
+            min_size.min(rad_array[2]),
         );
-        self.line_to(Point::new(top_left.x + min_size.min(radius.0[3]), top_left.y + size.height));
+        self.line_to(Point::new(top_left.x + min_size.min(rad_array[3]), top_left.y + size.height));
         self.arc_to(
             Point::new(top_left.x, top_left.y + size.height),
-            Point::new(top_left.x, top_left.y + size.height - min_size.min(radius.0[3])),
-            min_size.min(radius.0[3]),
+            Point::new(top_left.x, top_left.y + size.height - min_size.min(rad_array[3])),
+            min_size.min(rad_array[3]),
         );
-        self.line_to(Point::new(top_left.x, top_left.y + min_size.min(radius.0[0])));
+        self.line_to(Point::new(top_left.x, top_left.y + min_size.min(rad_array[0])));
         self.arc_to(
             Point::new(top_left.x, top_left.y),
-            Point::new(top_left.x + min_size.min(radius.0[1]), top_left.y),
-            min_size.min(radius.0[0]),
+            Point::new(top_left.x + min_size.min(rad_array[1]), top_left.y),
+            min_size.min(rad_array[0]),
         );
         self.close();
     }
