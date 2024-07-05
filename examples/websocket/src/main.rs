@@ -83,7 +83,7 @@ impl WebSocket {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        echo::connect().map(Message::Echo)
+        Subscription::run(echo::connect).map(Message::Echo)
     }
 
     fn view(&self) -> Element<Message> {

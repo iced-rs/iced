@@ -175,6 +175,7 @@ use iced_winit::core;
 use iced_winit::runtime;
 
 pub use iced_futures::futures;
+pub use iced_futures::stream;
 
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
@@ -202,6 +203,7 @@ pub use crate::core::{
     Theme, Transformation, Vector,
 };
 pub use crate::runtime::{exit, Task};
+pub use iced_futures::Subscription;
 
 pub mod clipboard {
     //! Access the clipboard.
@@ -252,13 +254,6 @@ pub mod mouse {
     //! Listen and react to mouse events.
     pub use crate::core::mouse::{
         Button, Cursor, Event, Interaction, ScrollDelta,
-    };
-}
-
-pub mod subscription {
-    //! Listen to external events in your application.
-    pub use iced_futures::subscription::{
-        channel, run, run_with_id, unfold, Subscription,
     };
 }
 
@@ -314,7 +309,6 @@ pub use executor::Executor;
 pub use font::Font;
 pub use renderer::Renderer;
 pub use settings::Settings;
-pub use subscription::Subscription;
 
 #[doc(inline)]
 pub use application::application;
