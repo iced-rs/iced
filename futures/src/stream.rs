@@ -1,6 +1,5 @@
 //! Create asynchronous streams of data.
 use futures::channel::mpsc;
-use futures::never::Never;
 use futures::stream::{self, Stream, StreamExt};
 
 use std::future::Future;
@@ -16,11 +15,11 @@ pub fn channel<T, F>(
     f: impl FnOnce(mpsc::Sender<T>) -> F,
 ) -> impl Stream<Item = T>
 where
-    F: Future<Output = Never>,
+    F: Future<Output = ()>,
 {
     let (sender, receiver) = mpsc::channel(size);
 
-    let runner = stream::once(f(sender)).map(|_| unreachable!());
+    let runner = stream::once(f(sender)).filter_map(|_| async { None });
 
     stream::select(receiver, runner)
 }
