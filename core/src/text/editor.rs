@@ -70,6 +70,8 @@ pub enum Action {
     SelectWord,
     /// Select the line at the current cursor.
     SelectLine,
+    /// Select the entire buffer.
+    SelectAll,
     /// Perform an [`Edit`].
     Edit(Edit),
     /// Click the [`Editor`] at the given [`Point`].
