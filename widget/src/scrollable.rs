@@ -421,6 +421,7 @@ where
             state,
             self.id.as_ref().map(|id| &id.0),
             bounds,
+            content_bounds,
             translation,
         );
 
@@ -1144,8 +1145,13 @@ impl operation::Scrollable for State {
         State::snap_to(self, offset);
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        State::scroll_to(self, offset);
+    fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        State::scroll_to(self, offset, bounds, content_bounds);
     }
 }
 
@@ -1323,17 +1329,16 @@ impl State {
     }
 
     /// Scroll to the provided [`AbsoluteOffset`].
-    pub fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        // TODO: do we have cases where `self.last_notified` is `None`?
-        if let Some(viewport) = self.last_notified {
-            self.offset_x_relative = Offset::Absolute(offset.x.max(0.0))
-                .relative(viewport.bounds.width, viewport.content_bounds.width);
-            self.offset_y_relative = Offset::Absolute(offset.y.max(0.0))
-                .relative(
-                    viewport.bounds.height,
-                    viewport.content_bounds.height,
-                );
-        }
+    pub fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        self.offset_x_relative = Offset::Absolute(offset.x.max(0.0))
+            .relative(bounds.width, content_bounds.width);
+        self.offset_y_relative = Offset::Absolute(offset.y.max(0.0))
+            .relative(bounds.height, content_bounds.height);
     }
 
     /// Returns the scrolling translation of the [`State`], given a [`Direction`],
