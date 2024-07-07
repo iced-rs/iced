@@ -32,7 +32,7 @@ web-time.workspace = true
 
 dark-light.workspace = true
 dark-light.optional = true
-lilt = "0.5.0"
+lilt = "0.6.0"
 
 [dev-dependencies]
 approx = "0.5"

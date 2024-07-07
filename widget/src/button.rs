@@ -611,7 +611,7 @@ pub enum Status {
 
 /// The [`AnimationTarget`] represents, through its ['FloatRepresentable`]
 /// implementation the ratio of color mixing between the base and hover colors.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum AnimationTarget {
     Active,
     Hovered,

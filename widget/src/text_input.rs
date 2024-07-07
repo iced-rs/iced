@@ -99,7 +99,7 @@ pub enum CursorAnimationType {
 
 /// The [`AnimationTarget`] represents, through its ['FloatRepresentable`]
 /// implementation the ratio of opacity of the cursor during it's blink effect.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum AnimationTarget {
     Shown,
     Hidden,
