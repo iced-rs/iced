@@ -18,16 +18,14 @@ pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
     iced::application(Todos::title, Todos::update, Todos::view)
-        .load(Todos::load)
         .subscription(Todos::subscription)
         .font(include_bytes!("../fonts/icons.ttf").as_slice())
         .window_size((500.0, 800.0))
-        .run()
+        .run_with(Todos::new)
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 enum Todos {
-    #[default]
     Loading,
     Loaded(State),
 }
@@ -54,8 +52,11 @@ enum Message {
 }
 
 impl Todos {
-    fn load() -> Command<Message> {
-        Command::perform(SavedState::load(), Message::Loaded)
+    fn new() -> (Self, Command<Message>) {
+        (
+            Self::Loading,
+            Command::perform(SavedState::load(), Message::Loaded),
+        )
     }
 
     fn title(&self) -> String {

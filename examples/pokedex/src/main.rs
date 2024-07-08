@@ -4,17 +4,13 @@ use iced::{Alignment, Element, Length, Task};
 
 pub fn main() -> iced::Result {
     iced::application(Pokedex::title, Pokedex::update, Pokedex::view)
-        .load(Pokedex::search)
-        .run()
+        .run_with(Pokedex::new)
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 enum Pokedex {
-    #[default]
     Loading,
-    Loaded {
-        pokemon: Pokemon,
-    },
+    Loaded { pokemon: Pokemon },
     Errored,
 }
 
@@ -25,6 +21,10 @@ enum Message {
 }
 
 impl Pokedex {
+    fn new() -> (Self, Task<Message>) {
+        (Self::Loading, Self::search())
+    }
+
     fn search() -> Task<Message> {
         Task::perform(Pokemon::search(), Message::PokemonFound)
     }

@@ -9,16 +9,12 @@ use std::collections::BTreeMap;
 
 fn main() -> iced::Result {
     iced::daemon(Example::title, Example::update, Example::view)
-        .load(|| {
-            window::open(window::Settings::default()).map(Message::WindowOpened)
-        })
         .subscription(Example::subscription)
         .theme(Example::theme)
         .scale_factor(Example::scale_factor)
-        .run()
+        .run_with(Example::new)
 }
 
-#[derive(Default)]
 struct Example {
     windows: BTreeMap<window::Id, Window>,
 }
@@ -43,6 +39,16 @@ enum Message {
 }
 
 impl Example {
+    fn new() -> (Self, Task<Message>) {
+        (
+            Self {
+                windows: BTreeMap::new(),
+            },
+            window::open(window::Settings::default())
+                .map(Message::WindowOpened),
+        )
+    }
+
     fn title(&self, window: window::Id) -> String {
         self.windows
             .get(&window)

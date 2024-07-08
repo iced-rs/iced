@@ -9,12 +9,10 @@ use once_cell::sync::Lazy;
 
 pub fn main() -> iced::Result {
     iced::application("WebSocket - Iced", WebSocket::update, WebSocket::view)
-        .load(WebSocket::load)
         .subscription(WebSocket::subscription)
-        .run()
+        .run_with(WebSocket::new)
 }
 
-#[derive(Default)]
 struct WebSocket {
     messages: Vec<echo::Message>,
     new_message: String,
@@ -30,11 +28,18 @@ enum Message {
 }
 
 impl WebSocket {
-    fn load() -> Task<Message> {
-        Task::batch([
-            Task::perform(echo::server::run(), |_| Message::Server),
-            widget::focus_next(),
-        ])
+    fn new() -> (Self, Task<Message>) {
+        (
+            Self {
+                messages: Vec::new(),
+                new_message: String::new(),
+                state: State::Disconnected,
+            },
+            Task::batch([
+                Task::perform(echo::server::run(), |_| Message::Server),
+                widget::focus_next(),
+            ]),
+        )
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
@@ -138,12 +143,6 @@ impl WebSocket {
 enum State {
     Disconnected,
     Connected(echo::Connection),
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self::Disconnected
-    }
 }
 
 static MESSAGE_LOG: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);

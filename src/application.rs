@@ -103,10 +103,6 @@ where
         type Renderer = Renderer;
         type Executor = iced_futures::backend::default::Executor;
 
-        fn load(&self) -> Task<Self::Message> {
-            Task::none()
-        }
-
         fn update(
             &self,
             state: &mut Self::State,
@@ -166,14 +162,14 @@ impl<P: Program> Application<P> {
         Self: 'static,
         P::State: Default,
     {
-        self.run_with(P::State::default)
+        self.raw.run(self.settings, Some(self.window))
     }
 
     /// Runs the [`Application`] with a closure that creates the initial state.
     pub fn run_with<I>(self, initialize: I) -> Result
     where
         Self: 'static,
-        I: Fn() -> P::State + Clone + 'static,
+        I: Fn() -> (P::State, Task<P::Message>) + Clone + 'static,
     {
         self.raw
             .run_with(self.settings, Some(self.window), initialize)
@@ -318,20 +314,6 @@ impl<P: Program> Application<P> {
             raw: program::with_title(self.raw, move |state, _window| {
                 title.title(state)
             }),
-            settings: self.settings,
-            window: self.window,
-        }
-    }
-
-    /// Runs the [`Task`] produced by the closure at startup.
-    pub fn load(
-        self,
-        f: impl Fn() -> Task<P::Message>,
-    ) -> Application<
-        impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
-    > {
-        Application {
-            raw: program::with_load(self.raw, f),
             settings: self.settings,
             window: self.window,
         }

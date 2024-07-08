@@ -55,10 +55,6 @@ where
         type Renderer = Renderer;
         type Executor = iced_futures::backend::default::Executor;
 
-        fn load(&self) -> Task<Self::Message> {
-            Task::none()
-        }
-
         fn update(
             &self,
             state: &mut Self::State,
@@ -116,14 +112,14 @@ impl<P: Program> Daemon<P> {
         Self: 'static,
         P::State: Default,
     {
-        self.run_with(P::State::default)
+        self.raw.run(self.settings, None)
     }
 
     /// Runs the [`Daemon`] with a closure that creates the initial state.
     pub fn run_with<I>(self, initialize: I) -> Result
     where
         Self: 'static,
-        I: Fn() -> P::State + Clone + 'static,
+        I: Fn() -> (P::State, Task<P::Message>) + Clone + 'static,
     {
         self.raw.run_with(self.settings, None, initialize)
     }
@@ -172,19 +168,6 @@ impl<P: Program> Daemon<P> {
             raw: program::with_title(self.raw, move |state, window| {
                 title.title(state, window)
             }),
-            settings: self.settings,
-        }
-    }
-
-    /// Runs the [`Task`] produced by the closure at startup.
-    pub fn load(
-        self,
-        f: impl Fn() -> Task<P::Message>,
-    ) -> Daemon<
-        impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
-    > {
-        Daemon {
-            raw: program::with_load(self.raw, f),
             settings: self.settings,
         }
     }

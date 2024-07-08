@@ -27,8 +27,6 @@ pub trait Program: Sized {
     /// The executor of the program.
     type Executor: Executor;
 
-    fn load(&self) -> Task<Self::Message>;
-
     fn update(
         &self,
         state: &mut Self::State,
@@ -80,7 +78,9 @@ pub trait Program: Sized {
         Self: 'static,
         Self::State: Default,
     {
-        self.run_with(settings, window_settings, Self::State::default)
+        self.run_with(settings, window_settings, || {
+            (Self::State::default(), Task::none())
+        })
     }
 
     /// Runs the [`Program`] with the given [`Settings`] and a closure that creates the initial state.
@@ -92,7 +92,7 @@ pub trait Program: Sized {
     ) -> Result
     where
         Self: 'static,
-        I: Fn() -> Self::State + Clone + 'static,
+        I: Fn() -> (Self::State, Task<Self::Message>) + Clone + 'static,
     {
         use std::marker::PhantomData;
 
@@ -102,7 +102,9 @@ pub trait Program: Sized {
             _initialize: PhantomData<I>,
         }
 
-        impl<P: Program, I: Fn() -> P::State> shell::Program for Instance<P, I> {
+        impl<P: Program, I: Fn() -> (P::State, Task<P::Message>)> shell::Program
+            for Instance<P, I>
+        {
             type Message = P::Message;
             type Theme = P::Theme;
             type Renderer = P::Renderer;
@@ -112,8 +114,7 @@ pub trait Program: Sized {
             fn new(
                 (program, initialize): Self::Flags,
             ) -> (Self, Task<Self::Message>) {
-                let state = initialize();
-                let command = program.load();
+                let (state, task) = initialize();
 
                 (
                     Self {
@@ -121,7 +122,7 @@ pub trait Program: Sized {
                         state,
                         _initialize: PhantomData,
                     },
-                    command,
+                    task,
                 )
             }
 
@@ -212,10 +213,6 @@ pub fn with_title<P: Program>(
         type Renderer = P::Renderer;
         type Executor = P::Executor;
 
-        fn load(&self) -> Task<Self::Message> {
-            self.program.load()
-        }
-
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             (self.title)(state, window)
         }
@@ -267,80 +264,6 @@ pub fn with_title<P: Program>(
     WithTitle { program, title }
 }
 
-pub fn with_load<P: Program>(
-    program: P,
-    f: impl Fn() -> Task<P::Message>,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
-    struct WithLoad<P, F> {
-        program: P,
-        load: F,
-    }
-
-    impl<P: Program, F> Program for WithLoad<P, F>
-    where
-        F: Fn() -> Task<P::Message>,
-    {
-        type State = P::State;
-        type Message = P::Message;
-        type Theme = P::Theme;
-        type Renderer = P::Renderer;
-        type Executor = P::Executor;
-
-        fn load(&self) -> Task<Self::Message> {
-            Task::batch([self.program.load(), (self.load)()])
-        }
-
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
-            self.program.update(state, message)
-        }
-
-        fn view<'a>(
-            &self,
-            state: &'a Self::State,
-            window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state, window)
-        }
-
-        fn title(&self, state: &Self::State, window: window::Id) -> String {
-            self.program.title(state, window)
-        }
-
-        fn subscription(
-            &self,
-            state: &Self::State,
-        ) -> Subscription<Self::Message> {
-            self.program.subscription(state)
-        }
-
-        fn theme(
-            &self,
-            state: &Self::State,
-            window: window::Id,
-        ) -> Self::Theme {
-            self.program.theme(state, window)
-        }
-
-        fn style(
-            &self,
-            state: &Self::State,
-            theme: &Self::Theme,
-        ) -> Appearance {
-            self.program.style(state, theme)
-        }
-
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
-            self.program.scale_factor(state, window)
-        }
-    }
-
-    WithLoad { program, load: f }
-}
-
 pub fn with_subscription<P: Program>(
     program: P,
     f: impl Fn(&P::State) -> Subscription<P::Message>,
@@ -365,10 +288,6 @@ pub fn with_subscription<P: Program>(
             state: &Self::State,
         ) -> Subscription<Self::Message> {
             (self.subscription)(state)
-        }
-
-        fn load(&self) -> Task<Self::Message> {
-            self.program.load()
         }
 
         fn update(
@@ -445,10 +364,6 @@ pub fn with_theme<P: Program>(
             (self.theme)(state, window)
         }
 
-        fn load(&self) -> Task<Self::Message> {
-            self.program.load()
-        }
-
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             self.program.title(state, window)
         }
@@ -519,10 +434,6 @@ pub fn with_style<P: Program>(
             (self.style)(state, theme)
         }
 
-        fn load(&self) -> Task<Self::Message> {
-            self.program.load()
-        }
-
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             self.program.title(state, window)
         }
@@ -584,10 +495,6 @@ pub fn with_scale_factor<P: Program>(
         type Theme = P::Theme;
         type Renderer = P::Renderer;
         type Executor = P::Executor;
-
-        fn load(&self) -> Task<Self::Message> {
-            self.program.load()
-        }
 
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             self.program.title(state, window)

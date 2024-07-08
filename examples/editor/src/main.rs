@@ -13,12 +13,11 @@ use std::sync::Arc;
 
 pub fn main() -> iced::Result {
     iced::application("Editor - Iced", Editor::update, Editor::view)
-        .load(Editor::load)
         .subscription(Editor::subscription)
         .theme(Editor::theme)
         .font(include_bytes!("../fonts/icons.ttf").as_slice())
         .default_font(Font::MONOSPACE)
-        .run()
+        .run_with(Editor::new)
 }
 
 struct Editor {
@@ -41,20 +40,22 @@ enum Message {
 }
 
 impl Editor {
-    fn new() -> Self {
-        Self {
-            file: None,
-            content: text_editor::Content::new(),
-            theme: highlighter::Theme::SolarizedDark,
-            is_loading: true,
-            is_dirty: false,
-        }
-    }
-
-    fn load() -> Task<Message> {
-        Task::perform(
-            load_file(format!("{}/src/main.rs", env!("CARGO_MANIFEST_DIR"))),
-            Message::FileOpened,
+    fn new() -> (Self, Task<Message>) {
+        (
+            Self {
+                file: None,
+                content: text_editor::Content::new(),
+                theme: highlighter::Theme::SolarizedDark,
+                is_loading: true,
+                is_dirty: false,
+            },
+            Task::perform(
+                load_file(format!(
+                    "{}/src/main.rs",
+                    env!("CARGO_MANIFEST_DIR")
+                )),
+                Message::FileOpened,
+            ),
         )
     }
 
@@ -211,12 +212,6 @@ impl Editor {
         } else {
             Theme::Light
         }
-    }
-}
-
-impl Default for Editor {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
