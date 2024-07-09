@@ -9,7 +9,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::theme::palette::{self, mix};
+use crate::core::theme::palette::{self, deviate};
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
@@ -102,7 +102,7 @@ where
             padding: DEFAULT_PADDING,
             clip: false,
             class: Theme::default(),
-            animation_forward_duration: AnimationDuration::new(50.),
+            animation_forward_duration: AnimationDuration::new(75.),
             animation_backward_duration: AnimationDuration::new(200.),
         }
     }
@@ -691,30 +691,24 @@ impl Catalog for Theme {
 
 /// Mix the base with the hover color according to the [`Button`] state.
 #[inline(always)]
-fn status_style(
-    status: Status,
-    base: palette::Pair,
-    hover_color: Color,
-) -> Style {
+fn status_style(status: Status, base: palette::Pair) -> Style {
     match status {
         Status::Active => styled(base),
         Status::Pressed {
             animation_progress: progress,
         } => Style {
-            background: Some(Background::Color(mix(
+            background: Some(Background::Color(deviate(
                 base.color,
-                hover_color,
-                progress,
+                progress * 0.2,
             ))),
             ..styled(base)
         },
         Status::Hovered {
             animation_progress: progress,
         } => Style {
-            background: Some(Background::Color(mix(
+            background: Some(Background::Color(deviate(
                 base.color,
-                hover_color,
-                progress,
+                progress * 0.2,
             ))),
             ..styled(base)
         },
@@ -726,36 +720,32 @@ fn status_style(
 pub fn primary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let base = palette.primary.strong;
-    let hover_color = palette.primary.base.color;
 
-    status_style(status, base, hover_color)
+    status_style(status, base)
 }
 
 /// A secondary button; denoting a complementary action.
 pub fn secondary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let base = palette.secondary.base;
-    let hover_color = palette.secondary.strong.color;
 
-    status_style(status, base, hover_color)
+    status_style(status, base)
 }
 
 /// A success button; denoting a good outcome.
 pub fn success(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let base = palette.success.base;
-    let hover_color = palette.success.strong.color;
 
-    status_style(status, base, hover_color)
+    status_style(status, base)
 }
 
 /// A danger button; denoting a destructive action.
 pub fn danger(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let base = palette.danger.base;
-    let hover_color = palette.danger.strong.color;
 
-    status_style(status, base, hover_color)
+    status_style(status, base)
 }
 
 /// A text button; useful for links.

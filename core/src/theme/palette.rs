@@ -594,7 +594,8 @@ fn lighten(color: Color, amount: f32) -> Color {
     from_hsl(hsl)
 }
 
-fn deviate(color: Color, amount: f32) -> Color {
+/// Lighten dark colors and darken light ones by the specefied amount.
+pub fn deviate(color: Color, amount: f32) -> Color {
     if is_dark(color) {
         lighten(color, amount)
     } else {
