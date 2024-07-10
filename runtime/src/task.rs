@@ -55,24 +55,6 @@ impl<T> Task<T> {
         Self::stream(stream.map(f))
     }
 
-    /// Creates a new [`Task`] that runs the given [`Future`] and produces
-    /// its output.
-    pub fn future(future: impl Future<Output = T> + MaybeSend + 'static) -> Self
-    where
-        T: 'static,
-    {
-        Self::stream(stream::once(future))
-    }
-
-    /// Creates a new [`Task`] that runs the given [`Stream`] and produces
-    /// each of its items.
-    pub fn stream(stream: impl Stream<Item = T> + MaybeSend + 'static) -> Self
-    where
-        T: 'static,
-    {
-        Self(Some(boxed_stream(stream.map(Action::Output))))
-    }
-
     /// Combines the given tasks and produces a single [`Task`] that will run all of them
     /// in parallel.
     pub fn batch(tasks: impl IntoIterator<Item = Self>) -> Self
@@ -174,6 +156,61 @@ impl<T> Task<T> {
                 )
                 .filter_map(future::ready),
             ))),
+        }
+    }
+
+    /// Creates a new [`Task`] that can be aborted with the returned [`Handle`].
+    pub fn abortable(self) -> (Self, Handle)
+    where
+        T: 'static,
+    {
+        match self.0 {
+            Some(stream) => {
+                let (stream, handle) = stream::abortable(stream);
+
+                (Self(Some(boxed_stream(stream))), Handle(Some(handle)))
+            }
+            None => (Self(None), Handle(None)),
+        }
+    }
+
+    /// Creates a new [`Task`] that runs the given [`Future`] and produces
+    /// its output.
+    pub fn future(future: impl Future<Output = T> + MaybeSend + 'static) -> Self
+    where
+        T: 'static,
+    {
+        Self::stream(stream::once(future))
+    }
+
+    /// Creates a new [`Task`] that runs the given [`Stream`] and produces
+    /// each of its items.
+    pub fn stream(stream: impl Stream<Item = T> + MaybeSend + 'static) -> Self
+    where
+        T: 'static,
+    {
+        Self(Some(boxed_stream(stream.map(Action::Output))))
+    }
+}
+
+/// A handle to a [`Task`] that can be used for aborting it.
+#[derive(Debug, Clone)]
+pub struct Handle(Option<stream::AbortHandle>);
+
+impl Handle {
+    /// Aborts the [`Task`] of this [`Handle`].
+    pub fn abort(&self) {
+        if let Some(handle) = &self.0 {
+            handle.abort();
+        }
+    }
+
+    /// Returns `true` if the [`Task`] of this [`Handle`] has been aborted.
+    pub fn is_aborted(&self) -> bool {
+        if let Some(handle) = &self.0 {
+            handle.is_aborted()
+        } else {
+            true
         }
     }
 }
