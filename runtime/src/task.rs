@@ -159,6 +159,21 @@ impl<T> Task<T> {
         }
     }
 
+    /// Creates a new [`Task`] that can be aborted with the returned [`Handle`].
+    pub fn abortable(self) -> (Self, Handle)
+    where
+        T: 'static,
+    {
+        match self.0 {
+            Some(stream) => {
+                let (stream, handle) = stream::abortable(stream);
+
+                (Self(Some(boxed_stream(stream))), Handle(Some(handle)))
+            }
+            None => (Self(None), Handle(None)),
+        }
+    }
+
     /// Creates a new [`Task`] that runs the given [`Future`] and produces
     /// its output.
     pub fn future(future: impl Future<Output = T> + MaybeSend + 'static) -> Self
@@ -175,6 +190,28 @@ impl<T> Task<T> {
         T: 'static,
     {
         Self(Some(boxed_stream(stream.map(Action::Output))))
+    }
+}
+
+/// A handle to a [`Task`] that can be used for aborting it.
+#[derive(Debug, Clone)]
+pub struct Handle(Option<stream::AbortHandle>);
+
+impl Handle {
+    /// Aborts the [`Task`] of this [`Handle`].
+    pub fn abort(&self) {
+        if let Some(handle) = &self.0 {
+            handle.abort();
+        }
+    }
+
+    /// Returns `true` if the [`Task`] of this [`Handle`] has been aborted.
+    pub fn is_aborted(&self) -> bool {
+        if let Some(handle) = &self.0 {
+            handle.is_aborted()
+        } else {
+            true
+        }
     }
 }
 

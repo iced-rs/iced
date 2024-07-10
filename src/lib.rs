@@ -202,8 +202,13 @@ pub use crate::core::{
     Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Shadow, Size,
     Theme, Transformation, Vector,
 };
-pub use crate::runtime::{exit, Task};
+pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
+
+pub mod task {
+    //! Create runtime tasks.
+    pub use crate::runtime::task::{Handle, Task};
+}
 
 pub mod clipboard {
     //! Access the clipboard.
@@ -309,6 +314,7 @@ pub use executor::Executor;
 pub use font::Font;
 pub use renderer::Renderer;
 pub use settings::Settings;
+pub use task::Task;
 
 #[doc(inline)]
 pub use application::application;
