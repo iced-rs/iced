@@ -1,5 +1,5 @@
-use iced::widget::{center, column, container, slider, text, vertical_slider};
-use iced::{Element, Length};
+use iced::widget::{column, container, iced, slider, text, vertical_slider};
+use iced::{Alignment, Element, Length};
 
 pub fn main() -> iced::Result {
     iced::run("Slider - Iced", Slider::update, Slider::view)
@@ -12,19 +12,11 @@ pub enum Message {
 
 pub struct Slider {
     value: u8,
-    default: u8,
-    step: u8,
-    shift_step: u8,
 }
 
 impl Slider {
     fn new() -> Self {
-        Slider {
-            value: 50,
-            default: 50,
-            step: 5,
-            shift_step: 1,
-        }
+        Slider { value: 50 }
     }
 
     fn update(&mut self, message: Message) {
@@ -37,32 +29,27 @@ impl Slider {
 
     fn view(&self) -> Element<Message> {
         let h_slider = container(
-            slider(0..=100, self.value, Message::SliderChanged)
-                .default(self.default)
-                .step(self.step)
-                .shift_step(self.shift_step),
+            slider(1..=100, self.value, Message::SliderChanged)
+                .default(50)
+                .shift_step(5),
         )
         .width(250);
 
         let v_slider = container(
-            vertical_slider(0..=100, self.value, Message::SliderChanged)
-                .default(self.default)
-                .step(self.step)
-                .shift_step(self.shift_step),
+            vertical_slider(1..=100, self.value, Message::SliderChanged)
+                .default(50)
+                .shift_step(5),
         )
         .height(200);
 
         let text = text(self.value);
 
-        center(
-            column![
-                container(v_slider).center_x(Length::Fill),
-                container(h_slider).center_x(Length::Fill),
-                container(text).center_x(Length::Fill)
-            ]
-            .spacing(25),
-        )
-        .into()
+        column![v_slider, h_slider, text, iced(self.value as f32),]
+            .width(Length::Fill)
+            .align_items(Alignment::Center)
+            .spacing(20)
+            .padding(20)
+            .into()
     }
 }
 

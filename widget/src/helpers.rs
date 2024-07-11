@@ -890,6 +890,41 @@ where
     crate::Svg::new(handle)
 }
 
+/// Creates an [`Element`] that displays the iced logo with the given `text_size`.
+///
+/// Useful for showing some love to your favorite GUI library in your "About" screen,
+/// for instance.
+#[cfg(feature = "svg")]
+pub fn iced<'a, Message, Theme, Renderer>(
+    text_size: impl Into<Pixels>,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Renderer: core::Renderer
+        + core::text::Renderer<Font = core::Font>
+        + core::svg::Renderer
+        + 'a,
+    Theme: text::Catalog + crate::svg::Catalog + 'a,
+{
+    use crate::core::{Alignment, Font};
+    use crate::svg;
+    use once_cell::sync::Lazy;
+
+    static LOGO: Lazy<svg::Handle> = Lazy::new(|| {
+        svg::Handle::from_memory(include_bytes!("../assets/iced-logo.svg"))
+    });
+
+    let text_size = text_size.into();
+
+    row![
+        svg(LOGO.clone()).width(text_size * 1.3),
+        text("iced").size(text_size).font(Font::MONOSPACE)
+    ]
+    .spacing(text_size.0 / 3.0)
+    .align_items(Alignment::Center)
+    .into()
+}
+
 /// Creates a new [`Canvas`].
 ///
 /// [`Canvas`]: crate::Canvas

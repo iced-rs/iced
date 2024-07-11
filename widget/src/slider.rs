@@ -237,7 +237,7 @@ where
                 let steps = (percent * (end - start) / step).round();
                 let value = steps * step + start;
 
-                T::from_f64(value)
+                T::from_f64(value.min(end))
             };
 
             new_value
