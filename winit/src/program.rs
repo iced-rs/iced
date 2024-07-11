@@ -494,6 +494,8 @@ where
                                 let exit_on_close_request =
                                     settings.exit_on_close_request;
 
+                                let visible = settings.visible;
+
                                 #[cfg(target_arch = "wasm32")]
                                 let target =
                                     settings.platform_specific.target.clone();
@@ -507,7 +509,8 @@ where
                                                 .or(event_loop
                                                     .primary_monitor()),
                                             self.id.clone(),
-                                        ),
+                                        )
+                                        .with_visible(false),
                                     )
                                     .expect("Create window");
 
@@ -563,6 +566,7 @@ where
                                         id,
                                         window,
                                         exit_on_close_request,
+                                        make_visible: visible,
                                     },
                                 );
                             }
@@ -612,6 +616,7 @@ enum Event<Message: 'static> {
         id: window::Id,
         window: winit::window::Window,
         exit_on_close_request: bool,
+        make_visible: bool,
     },
     EventLoopAwakened(winit::event::Event<Message>),
 }
@@ -667,6 +672,7 @@ async fn run_instance<P, C>(
                 id,
                 window,
                 exit_on_close_request,
+                make_visible,
             } => {
                 let window = window_manager.insert(
                     id,
@@ -690,6 +696,10 @@ async fn run_instance<P, C>(
                     ),
                 );
                 let _ = ui_caches.insert(id, user_interface::Cache::default());
+
+                if make_visible {
+                    window.raw.set_visible(true);
+                }
 
                 events.push((
                     id,
