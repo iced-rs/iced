@@ -202,6 +202,16 @@ where
     };
 
     let (program, task) = runtime.enter(|| P::new(flags));
+    let is_daemon = window_settings.is_none();
+
+    let task = if let Some(window_settings) = window_settings {
+        let mut task = Some(task);
+
+        runtime::window::open(window_settings)
+            .then(move |_| task.take().unwrap_or(Task::none()))
+    } else {
+        task
+    };
 
     if let Some(stream) = runtime::task::into_stream(task) {
         runtime.run(stream);
@@ -223,6 +233,7 @@ where
         boot_receiver,
         event_receiver,
         control_sender,
+        is_daemon,
     ));
 
     let context = task::Context::from_waker(task::noop_waker_ref());
@@ -231,7 +242,7 @@ where
         instance: std::pin::Pin<Box<F>>,
         context: task::Context<'static>,
         id: Option<String>,
-        boot: Option<BootConfig<Message, C>>,
+        boot: Option<BootConfig<C>>,
         sender: mpsc::UnboundedSender<Event<Action<Message>>>,
         receiver: mpsc::UnboundedReceiver<Control>,
         error: Option<Error>,
@@ -242,11 +253,9 @@ where
         queued_events: Vec<Event<Action<Message>>>,
     }
 
-    struct BootConfig<Message: 'static, C> {
-        proxy: Proxy<Message>,
+    struct BootConfig<C> {
         sender: oneshot::Sender<Boot<C>>,
         fonts: Vec<Cow<'static, [u8]>>,
-        window_settings: Option<window::Settings>,
         graphics_settings: graphics::Settings,
     }
 
@@ -255,10 +264,8 @@ where
         context,
         id: settings.id,
         boot: Some(BootConfig {
-            proxy,
             sender: boot_sender,
             fonts: settings.fonts,
-            window_settings,
             graphics_settings,
         }),
         sender: event_sender,
@@ -280,10 +287,8 @@ where
     {
         fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
             let Some(BootConfig {
-                mut proxy,
                 sender,
                 fonts,
-                window_settings,
                 graphics_settings,
             }) = self.boot.take()
             else {
@@ -316,22 +321,9 @@ where
                         compositor,
                         clipboard,
                         window: window.id(),
-                        is_daemon: window_settings.is_none(),
                     })
                     .ok()
                     .expect("Send boot event");
-
-                if let Some(window_settings) = window_settings {
-                    let (sender, _receiver) = oneshot::channel();
-
-                    proxy.send_action(Action::Window(
-                        runtime::window::Action::Open(
-                            window::Id::unique(),
-                            window_settings,
-                            sender,
-                        ),
-                    ));
-                }
 
                 Ok::<_, graphics::Error>(())
             };
@@ -490,6 +482,7 @@ where
                                 settings,
                                 title,
                                 monitor,
+                                on_open,
                             } => {
                                 let exit_on_close_request =
                                     settings.exit_on_close_request;
@@ -567,6 +560,7 @@ where
                                         window,
                                         exit_on_close_request,
                                         make_visible: visible,
+                                        on_open,
                                     },
                                 );
                             }
@@ -608,7 +602,6 @@ struct Boot<C> {
     compositor: C,
     clipboard: Clipboard,
     window: winit::window::WindowId,
-    is_daemon: bool,
 }
 
 enum Event<Message: 'static> {
@@ -617,6 +610,7 @@ enum Event<Message: 'static> {
         window: winit::window::Window,
         exit_on_close_request: bool,
         make_visible: bool,
+        on_open: oneshot::Sender<window::Id>,
     },
     EventLoopAwakened(winit::event::Event<Message>),
 }
@@ -629,6 +623,7 @@ enum Control {
         settings: window::Settings,
         title: String,
         monitor: Option<winit::monitor::MonitorHandle>,
+        on_open: oneshot::Sender<window::Id>,
     },
 }
 
@@ -640,6 +635,7 @@ async fn run_instance<P, C>(
     mut boot: oneshot::Receiver<Boot<C>>,
     mut event_receiver: mpsc::UnboundedReceiver<Event<Action<P::Message>>>,
     mut control_sender: mpsc::UnboundedSender<Control>,
+    is_daemon: bool,
 ) where
     P: Program + 'static,
     C: Compositor<Renderer = P::Renderer> + 'static,
@@ -652,7 +648,6 @@ async fn run_instance<P, C>(
         mut compositor,
         mut clipboard,
         window: boot_window,
-        is_daemon,
     } = boot.try_recv().ok().flatten().expect("Receive boot");
 
     let mut window_manager = WindowManager::new();
@@ -673,6 +668,7 @@ async fn run_instance<P, C>(
                 window,
                 exit_on_close_request,
                 make_visible,
+                on_open,
             } => {
                 let window = window_manager.insert(
                     id,
@@ -708,6 +704,8 @@ async fn run_instance<P, C>(
                         size: window.size(),
                     }),
                 ));
+
+                let _ = on_open.send(id);
             }
             Event::EventLoopAwakened(event) => {
                 match event {
@@ -1180,10 +1178,9 @@ fn run_action<P, C>(
                         settings,
                         title: program.title(id),
                         monitor,
+                        on_open: channel,
                     })
                     .expect("Send control action");
-
-                let _ = channel.send(id);
             }
             window::Action::Close(id) => {
                 let _ = window_manager.remove(id);
