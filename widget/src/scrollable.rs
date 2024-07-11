@@ -109,6 +109,32 @@ where
         self
     }
 
+    /// Inverts the alignment of the horizontal direction of the [`Scrollable`], if applicable.
+    pub fn align_x(mut self, alignment: Alignment) -> Self {
+        match &mut self.direction {
+            Direction::Horizontal(horizontal)
+            | Direction::Both { horizontal, .. } => {
+                horizontal.alignment = alignment;
+            }
+            Direction::Vertical(_) => {}
+        }
+
+        self
+    }
+
+    /// Sets the alignment of the vertical direction of the [`Scrollable`], if applicable.
+    pub fn align_y(mut self, alignment: Alignment) -> Self {
+        match &mut self.direction {
+            Direction::Vertical(vertical)
+            | Direction::Both { vertical, .. } => {
+                vertical.alignment = alignment;
+            }
+            Direction::Horizontal(_) => {}
+        }
+
+        self
+    }
+
     /// Sets the style of this [`Scrollable`].
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
