@@ -12,7 +12,7 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     self, Background, Border, Clipboard, Color, Element, Layout, Length,
-    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
@@ -49,37 +49,38 @@ where
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
-        Self::with_direction(content, Direction::default())
-    }
-
-    /// Creates a new [`Scrollable`] with the given [`Direction`].
-    pub fn with_direction(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        direction: Direction,
-    ) -> Self {
-        let content = content.into();
-
-        debug_assert!(
-            direction.vertical().is_none()
-                || !content.as_widget().size_hint().height.is_fill(),
-            "scrollable content must not fill its vertical scrolling axis"
-        );
-
-        debug_assert!(
-            direction.horizontal().is_none()
-                || !content.as_widget().size_hint().width.is_fill(),
-            "scrollable content must not fill its horizontal scrolling axis"
-        );
-
         Scrollable {
             id: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            direction,
-            content,
+            direction: Direction::default(),
+            content: content.into(),
             on_scroll: None,
             class: Theme::default(),
         }
+        .validate()
+    }
+
+    fn validate(self) -> Self {
+        debug_assert!(
+            self.direction.vertical().is_none()
+                || !self.content.as_widget().size_hint().height.is_fill(),
+            "scrollable content must not fill its vertical scrolling axis"
+        );
+
+        debug_assert!(
+            self.direction.horizontal().is_none()
+                || !self.content.as_widget().size_hint().width.is_fill(),
+            "scrollable content must not fill its horizontal scrolling axis"
+        );
+
+        self
+    }
+
+    /// Creates a new [`Scrollable`] with the given [`Direction`].
+    pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
+        self.direction = direction.into();
+        self.validate()
     }
 
     /// Sets the [`Id`] of the [`Scrollable`].
@@ -108,7 +109,7 @@ where
         self
     }
 
-    /// Inverts the alignment of the horizontal direction of the [`Scrollable`], if applicable.
+    /// Sets the alignment of the horizontal direction of the [`Scrollable`], if applicable.
     pub fn align_x(mut self, alignment: Alignment) -> Self {
         match &mut self.direction {
             Direction::Horizontal(horizontal)
@@ -127,6 +128,32 @@ where
             Direction::Vertical(vertical)
             | Direction::Both { vertical, .. } => {
                 vertical.alignment = alignment;
+            }
+            Direction::Horizontal(_) => {}
+        }
+
+        self
+    }
+
+    /// Sets whether the horizontal [`Scrollbar`] should be embedded in the [`Scrollable`].
+    pub fn embed_x(mut self, embedded: bool) -> Self {
+        match &mut self.direction {
+            Direction::Horizontal(horizontal)
+            | Direction::Both { horizontal, .. } => {
+                horizontal.embedded = embedded;
+            }
+            Direction::Vertical(_) => {}
+        }
+
+        self
+    }
+
+    /// Sets whether the vertical [`Scrollbar`] should be embedded in the [`Scrollable`].
+    pub fn embed_y(mut self, embedded: bool) -> Self {
+        match &mut self.direction {
+            Direction::Vertical(vertical)
+            | Direction::Both { vertical, .. } => {
+                vertical.embedded = embedded;
             }
             Direction::Horizontal(_) => {}
         }
@@ -157,21 +184,21 @@ where
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Direction {
     /// Vertical scrolling
-    Vertical(Properties),
+    Vertical(Scrollbar),
     /// Horizontal scrolling
-    Horizontal(Properties),
+    Horizontal(Scrollbar),
     /// Both vertical and horizontal scrolling
     Both {
         /// The properties of the vertical scrollbar.
-        vertical: Properties,
+        vertical: Scrollbar,
         /// The properties of the horizontal scrollbar.
-        horizontal: Properties,
+        horizontal: Scrollbar,
     },
 }
 
 impl Direction {
-    /// Returns the [`Properties`] of the horizontal scrollbar, if any.
-    pub fn horizontal(&self) -> Option<&Properties> {
+    /// Returns the horizontal [`Scrollbar`], if any.
+    pub fn horizontal(&self) -> Option<&Scrollbar> {
         match self {
             Self::Horizontal(properties) => Some(properties),
             Self::Both { horizontal, .. } => Some(horizontal),
@@ -179,8 +206,8 @@ impl Direction {
         }
     }
 
-    /// Returns the [`Properties`] of the vertical scrollbar, if any.
-    pub fn vertical(&self) -> Option<&Properties> {
+    /// Returns the vertical [`Scrollbar`], if any.
+    pub fn vertical(&self) -> Option<&Scrollbar> {
         match self {
             Self::Vertical(properties) => Some(properties),
             Self::Both { vertical, .. } => Some(vertical),
@@ -191,32 +218,34 @@ impl Direction {
 
 impl Default for Direction {
     fn default() -> Self {
-        Self::Vertical(Properties::default())
+        Self::Vertical(Scrollbar::default())
     }
 }
 
-/// Properties of a scrollbar within a [`Scrollable`].
+/// A scrollbar within a [`Scrollable`].
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Properties {
+pub struct Scrollbar {
     width: f32,
     margin: f32,
     scroller_width: f32,
     alignment: Alignment,
+    embedded: bool,
 }
 
-impl Default for Properties {
+impl Default for Scrollbar {
     fn default() -> Self {
         Self {
             width: 10.0,
             margin: 0.0,
             scroller_width: 10.0,
             alignment: Alignment::Start,
+            embedded: false,
         }
     }
 }
 
-impl Properties {
-    /// Creates new [`Properties`] for use in a [`Scrollable`].
+impl Scrollbar {
+    /// Creates new [`Scrollbar`] for use in a [`Scrollable`].
     pub fn new() -> Self {
         Self::default()
     }
@@ -242,6 +271,15 @@ impl Properties {
     /// Sets the alignment of the [`Scrollable`] .
     pub fn alignment(mut self, alignment: Alignment) -> Self {
         self.alignment = alignment;
+        self
+    }
+
+    /// Sets whether the [`Scrollbar`] should be embedded in the [`Scrollable`].
+    ///
+    /// An embedded [`Scrollbar`] will always be displayed, will take layout space,
+    /// and will not float over the contents.
+    pub fn embedded(mut self, embedded: bool) -> Self {
+        self.embedded = embedded;
         self
     }
 }
@@ -291,29 +329,49 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout::contained(limits, self.width, self.height, |limits| {
-            let child_limits = layout::Limits::new(
-                Size::new(limits.min().width, limits.min().height),
-                Size::new(
-                    if self.direction.horizontal().is_some() {
-                        f32::INFINITY
-                    } else {
-                        limits.max().width
-                    },
-                    if self.direction.vertical().is_some() {
-                        f32::MAX
-                    } else {
-                        limits.max().height
-                    },
-                ),
-            );
+        let (right_padding, bottom_padding) = match self.direction {
+            Direction::Vertical(scrollbar) if scrollbar.embedded => {
+                (scrollbar.width + scrollbar.margin * 2.0, 0.0)
+            }
+            Direction::Horizontal(scrollbar) if scrollbar.embedded => {
+                (0.0, scrollbar.width + scrollbar.margin * 2.0)
+            }
+            _ => (0.0, 0.0),
+        };
 
-            self.content.as_widget().layout(
-                &mut tree.children[0],
-                renderer,
-                &child_limits,
-            )
-        })
+        layout::padded(
+            limits,
+            self.width,
+            self.height,
+            Padding {
+                right: right_padding,
+                bottom: bottom_padding,
+                ..Padding::ZERO
+            },
+            |limits| {
+                let child_limits = layout::Limits::new(
+                    Size::new(limits.min().width, limits.min().height),
+                    Size::new(
+                        if self.direction.horizontal().is_some() {
+                            f32::INFINITY
+                        } else {
+                            limits.max().width
+                        },
+                        if self.direction.vertical().is_some() {
+                            f32::MAX
+                        } else {
+                            limits.max().height
+                        },
+                    ),
+                );
+
+                self.content.as_widget().layout(
+                    &mut tree.children[0],
+                    renderer,
+                    &child_limits,
+                )
+            },
+        )
     }
 
     fn operate(
@@ -762,7 +820,7 @@ where
 
             let draw_scrollbar =
                 |renderer: &mut Renderer,
-                 style: Scrollbar,
+                 style: Rail,
                  scrollbar: &internals::Scrollbar| {
                     if scrollbar.bounds.width > 0.0
                         && scrollbar.bounds.height > 0.0
@@ -782,21 +840,23 @@ where
                         );
                     }
 
-                    if scrollbar.scroller.bounds.width > 0.0
-                        && scrollbar.scroller.bounds.height > 0.0
-                        && (style.scroller.color != Color::TRANSPARENT
-                            || (style.scroller.border.color
-                                != Color::TRANSPARENT
-                                && style.scroller.border.width > 0.0))
-                    {
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds: scrollbar.scroller.bounds,
-                                border: style.scroller.border,
-                                ..renderer::Quad::default()
-                            },
-                            style.scroller.color,
-                        );
+                    if let Some(scroller) = scrollbar.scroller {
+                        if scroller.bounds.width > 0.0
+                            && scroller.bounds.height > 0.0
+                            && (style.scroller.color != Color::TRANSPARENT
+                                || (style.scroller.border.color
+                                    != Color::TRANSPARENT
+                                    && style.scroller.border.width > 0.0))
+                        {
+                            renderer.fill_quad(
+                                renderer::Quad {
+                                    bounds: scroller.bounds,
+                                    border: style.scroller.border,
+                                    ..renderer::Quad::default()
+                                },
+                                style.scroller.color,
+                            );
+                        }
                     }
                 };
 
@@ -810,7 +870,7 @@ where
                     if let Some(scrollbar) = scrollbars.y {
                         draw_scrollbar(
                             renderer,
-                            style.vertical_scrollbar,
+                            style.vertical_rail,
                             &scrollbar,
                         );
                     }
@@ -818,7 +878,7 @@ where
                     if let Some(scrollbar) = scrollbars.x {
                         draw_scrollbar(
                             renderer,
-                            style.horizontal_scrollbar,
+                            style.horizontal_rail,
                             &scrollbar,
                         );
                     }
@@ -1324,16 +1384,16 @@ impl Scrollbars {
     ) -> Self {
         let translation = state.translation(direction, bounds, content_bounds);
 
-        let show_scrollbar_x = direction
-            .horizontal()
-            .filter(|_| content_bounds.width > bounds.width);
+        let show_scrollbar_x = direction.horizontal().filter(|scrollbar| {
+            scrollbar.embedded || content_bounds.width > bounds.width
+        });
 
-        let show_scrollbar_y = direction
-            .vertical()
-            .filter(|_| content_bounds.height > bounds.height);
+        let show_scrollbar_y = direction.vertical().filter(|scrollbar| {
+            scrollbar.embedded || content_bounds.height > bounds.height
+        });
 
         let y_scrollbar = if let Some(vertical) = show_scrollbar_y {
-            let Properties {
+            let Scrollbar {
                 width,
                 margin,
                 scroller_width,
@@ -1367,26 +1427,35 @@ impl Scrollbars {
             };
 
             let ratio = bounds.height / content_bounds.height;
-            // min height for easier grabbing with super tall content
-            let scroller_height = (scrollbar_bounds.height * ratio).max(2.0);
-            let scroller_offset =
-                translation.y * ratio * scrollbar_bounds.height / bounds.height;
 
-            let scroller_bounds = Rectangle {
-                x: bounds.x + bounds.width
-                    - total_scrollbar_width / 2.0
-                    - scroller_width / 2.0,
-                y: (scrollbar_bounds.y + scroller_offset).max(0.0),
-                width: scroller_width,
-                height: scroller_height,
+            let scroller = if ratio >= 1.0 {
+                None
+            } else {
+                // min height for easier grabbing with super tall content
+                let scroller_height =
+                    (scrollbar_bounds.height * ratio).max(2.0);
+                let scroller_offset =
+                    translation.y * ratio * scrollbar_bounds.height
+                        / bounds.height;
+
+                let scroller_bounds = Rectangle {
+                    x: bounds.x + bounds.width
+                        - total_scrollbar_width / 2.0
+                        - scroller_width / 2.0,
+                    y: (scrollbar_bounds.y + scroller_offset).max(0.0),
+                    width: scroller_width,
+                    height: scroller_height,
+                };
+
+                Some(internals::Scroller {
+                    bounds: scroller_bounds,
+                })
             };
 
             Some(internals::Scrollbar {
                 total_bounds: total_scrollbar_bounds,
                 bounds: scrollbar_bounds,
-                scroller: internals::Scroller {
-                    bounds: scroller_bounds,
-                },
+                scroller,
                 alignment: vertical.alignment,
             })
         } else {
@@ -1394,7 +1463,7 @@ impl Scrollbars {
         };
 
         let x_scrollbar = if let Some(horizontal) = show_scrollbar_x {
-            let Properties {
+            let Scrollbar {
                 width,
                 margin,
                 scroller_width,
@@ -1428,26 +1497,34 @@ impl Scrollbars {
             };
 
             let ratio = bounds.width / content_bounds.width;
-            // min width for easier grabbing with extra wide content
-            let scroller_length = (scrollbar_bounds.width * ratio).max(2.0);
-            let scroller_offset =
-                translation.x * ratio * scrollbar_bounds.width / bounds.width;
 
-            let scroller_bounds = Rectangle {
-                x: (scrollbar_bounds.x + scroller_offset).max(0.0),
-                y: bounds.y + bounds.height
-                    - total_scrollbar_height / 2.0
-                    - scroller_width / 2.0,
-                width: scroller_length,
-                height: scroller_width,
+            let scroller = if ratio >= 1.0 {
+                None
+            } else {
+                // min width for easier grabbing with extra wide content
+                let scroller_length = (scrollbar_bounds.width * ratio).max(2.0);
+                let scroller_offset =
+                    translation.x * ratio * scrollbar_bounds.width
+                        / bounds.width;
+
+                let scroller_bounds = Rectangle {
+                    x: (scrollbar_bounds.x + scroller_offset).max(0.0),
+                    y: bounds.y + bounds.height
+                        - total_scrollbar_height / 2.0
+                        - scroller_width / 2.0,
+                    width: scroller_length,
+                    height: scroller_width,
+                };
+
+                Some(internals::Scroller {
+                    bounds: scroller_bounds,
+                })
             };
 
             Some(internals::Scrollbar {
                 total_bounds: total_scrollbar_bounds,
                 bounds: scrollbar_bounds,
-                scroller: internals::Scroller {
-                    bounds: scroller_bounds,
-                },
+                scroller,
                 alignment: horizontal.alignment,
             })
         } else {
@@ -1478,33 +1555,33 @@ impl Scrollbars {
     }
 
     fn grab_y_scroller(&self, cursor_position: Point) -> Option<f32> {
-        self.y.and_then(|scrollbar| {
-            if scrollbar.total_bounds.contains(cursor_position) {
-                Some(if scrollbar.scroller.bounds.contains(cursor_position) {
-                    (cursor_position.y - scrollbar.scroller.bounds.y)
-                        / scrollbar.scroller.bounds.height
-                } else {
-                    0.5
-                })
+        let scrollbar = self.y?;
+        let scroller = scrollbar.scroller?;
+
+        if scrollbar.total_bounds.contains(cursor_position) {
+            Some(if scroller.bounds.contains(cursor_position) {
+                (cursor_position.y - scroller.bounds.y) / scroller.bounds.height
             } else {
-                None
-            }
-        })
+                0.5
+            })
+        } else {
+            None
+        }
     }
 
     fn grab_x_scroller(&self, cursor_position: Point) -> Option<f32> {
-        self.x.and_then(|scrollbar| {
-            if scrollbar.total_bounds.contains(cursor_position) {
-                Some(if scrollbar.scroller.bounds.contains(cursor_position) {
-                    (cursor_position.x - scrollbar.scroller.bounds.x)
-                        / scrollbar.scroller.bounds.width
-                } else {
-                    0.5
-                })
+        let scrollbar = self.x?;
+        let scroller = scrollbar.scroller?;
+
+        if scrollbar.total_bounds.contains(cursor_position) {
+            Some(if scroller.bounds.contains(cursor_position) {
+                (cursor_position.x - scroller.bounds.x) / scroller.bounds.width
             } else {
-                None
-            }
-        })
+                0.5
+            })
+        } else {
+            None
+        }
     }
 
     fn active(&self) -> bool {
@@ -1521,7 +1598,7 @@ pub(super) mod internals {
     pub struct Scrollbar {
         pub total_bounds: Rectangle,
         pub bounds: Rectangle,
-        pub scroller: Scroller,
+        pub scroller: Option<Scroller>,
         pub alignment: Alignment,
     }
 
@@ -1537,14 +1614,18 @@ pub(super) mod internals {
             grabbed_at: f32,
             cursor_position: Point,
         ) -> f32 {
-            let percentage = (cursor_position.y
-                - self.bounds.y
-                - self.scroller.bounds.height * grabbed_at)
-                / (self.bounds.height - self.scroller.bounds.height);
+            if let Some(scroller) = self.scroller {
+                let percentage = (cursor_position.y
+                    - self.bounds.y
+                    - scroller.bounds.height * grabbed_at)
+                    / (self.bounds.height - scroller.bounds.height);
 
-            match self.alignment {
-                Alignment::Start => percentage,
-                Alignment::End => 1.0 - percentage,
+                match self.alignment {
+                    Alignment::Start => percentage,
+                    Alignment::End => 1.0 - percentage,
+                }
+            } else {
+                0.0
             }
         }
 
@@ -1554,14 +1635,18 @@ pub(super) mod internals {
             grabbed_at: f32,
             cursor_position: Point,
         ) -> f32 {
-            let percentage = (cursor_position.x
-                - self.bounds.x
-                - self.scroller.bounds.width * grabbed_at)
-                / (self.bounds.width - self.scroller.bounds.width);
+            if let Some(scroller) = self.scroller {
+                let percentage = (cursor_position.x
+                    - self.bounds.x
+                    - scroller.bounds.width * grabbed_at)
+                    / (self.bounds.width - scroller.bounds.width);
 
-            match self.alignment {
-                Alignment::Start => percentage,
-                Alignment::End => 1.0 - percentage,
+                match self.alignment {
+                    Alignment::Start => percentage,
+                    Alignment::End => 1.0 - percentage,
+                }
+            } else {
+                0.0
             }
         }
     }
@@ -1595,22 +1680,22 @@ pub enum Status {
     },
 }
 
-/// The appearance of a scrolable.
+/// The appearance of a scrollable.
 #[derive(Debug, Clone, Copy)]
 pub struct Style {
     /// The [`container::Style`] of a scrollable.
     pub container: container::Style,
-    /// The vertical [`Scrollbar`] appearance.
-    pub vertical_scrollbar: Scrollbar,
-    /// The horizontal [`Scrollbar`] appearance.
-    pub horizontal_scrollbar: Scrollbar,
+    /// The vertical [`Rail`] appearance.
+    pub vertical_rail: Rail,
+    /// The horizontal [`Rail`] appearance.
+    pub horizontal_rail: Rail,
     /// The [`Background`] of the gap between a horizontal and vertical scrollbar.
     pub gap: Option<Background>,
 }
 
 /// The appearance of the scrollbar of a scrollable.
 #[derive(Debug, Clone, Copy)]
-pub struct Scrollbar {
+pub struct Rail {
     /// The [`Background`] of a scrollbar.
     pub background: Option<Background>,
     /// The [`Border`] of a scrollbar.
@@ -1659,7 +1744,7 @@ impl Catalog for Theme {
 pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
-    let scrollbar = Scrollbar {
+    let scrollbar = Rail {
         background: Some(palette.background.weak.color.into()),
         border: Border::rounded(2),
         scroller: Scroller {
@@ -1671,15 +1756,15 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     match status {
         Status::Active => Style {
             container: container::Style::default(),
-            vertical_scrollbar: scrollbar,
-            horizontal_scrollbar: scrollbar,
+            vertical_rail: scrollbar,
+            horizontal_rail: scrollbar,
             gap: None,
         },
         Status::Hovered {
             is_horizontal_scrollbar_hovered,
             is_vertical_scrollbar_hovered,
         } => {
-            let hovered_scrollbar = Scrollbar {
+            let hovered_scrollbar = Rail {
                 scroller: Scroller {
                     color: palette.primary.strong.color,
                     ..scrollbar.scroller
@@ -1689,12 +1774,12 @@ pub fn default(theme: &Theme, status: Status) -> Style {
 
             Style {
                 container: container::Style::default(),
-                vertical_scrollbar: if is_vertical_scrollbar_hovered {
+                vertical_rail: if is_vertical_scrollbar_hovered {
                     hovered_scrollbar
                 } else {
                     scrollbar
                 },
-                horizontal_scrollbar: if is_horizontal_scrollbar_hovered {
+                horizontal_rail: if is_horizontal_scrollbar_hovered {
                     hovered_scrollbar
                 } else {
                     scrollbar
@@ -1706,7 +1791,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             is_horizontal_scrollbar_dragged,
             is_vertical_scrollbar_dragged,
         } => {
-            let dragged_scrollbar = Scrollbar {
+            let dragged_scrollbar = Rail {
                 scroller: Scroller {
                     color: palette.primary.base.color,
                     ..scrollbar.scroller
@@ -1716,12 +1801,12 @@ pub fn default(theme: &Theme, status: Status) -> Style {
 
             Style {
                 container: container::Style::default(),
-                vertical_scrollbar: if is_vertical_scrollbar_dragged {
+                vertical_rail: if is_vertical_scrollbar_dragged {
                     dragged_scrollbar
                 } else {
                     scrollbar
                 },
-                horizontal_scrollbar: if is_horizontal_scrollbar_dragged {
+                horizontal_rail: if is_horizontal_scrollbar_dragged {
                     dragged_scrollbar
                 } else {
                     scrollbar

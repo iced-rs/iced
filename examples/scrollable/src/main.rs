@@ -1,7 +1,6 @@
-use iced::widget::scrollable::Properties;
 use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
-    scrollable, slider, text, vertical_space, Scrollable,
+    scrollable, slider, text, vertical_space,
 };
 use iced::{Alignment, Border, Color, Element, Length, Task, Theme};
 
@@ -203,7 +202,7 @@ impl ScrollableDemo {
 
         let scrollable_content: Element<Message> =
             Element::from(match self.scrollable_direction {
-                Direction::Vertical => Scrollable::with_direction(
+                Direction::Vertical => scrollable(
                     column![
                         scroll_to_end_button(),
                         text("Beginning!"),
@@ -216,19 +215,19 @@ impl ScrollableDemo {
                     .align_items(Alignment::Center)
                     .padding([40, 0, 40, 0])
                     .spacing(40),
-                    scrollable::Direction::Vertical(
-                        Properties::new()
-                            .width(self.scrollbar_width)
-                            .margin(self.scrollbar_margin)
-                            .scroller_width(self.scroller_width)
-                            .alignment(self.alignment),
-                    ),
                 )
+                .direction(scrollable::Direction::Vertical(
+                    scrollable::Scrollbar::new()
+                        .width(self.scrollbar_width)
+                        .margin(self.scrollbar_margin)
+                        .scroller_width(self.scroller_width)
+                        .alignment(self.alignment),
+                ))
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
-                Direction::Horizontal => Scrollable::with_direction(
+                Direction::Horizontal => scrollable(
                     row![
                         scroll_to_end_button(),
                         text("Beginning!"),
@@ -242,19 +241,19 @@ impl ScrollableDemo {
                     .align_items(Alignment::Center)
                     .padding([0, 40, 0, 40])
                     .spacing(40),
-                    scrollable::Direction::Horizontal(
-                        Properties::new()
-                            .width(self.scrollbar_width)
-                            .margin(self.scrollbar_margin)
-                            .scroller_width(self.scroller_width)
-                            .alignment(self.alignment),
-                    ),
                 )
+                .direction(scrollable::Direction::Horizontal(
+                    scrollable::Scrollbar::new()
+                        .width(self.scrollbar_width)
+                        .margin(self.scrollbar_margin)
+                        .scroller_width(self.scroller_width)
+                        .alignment(self.alignment),
+                ))
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
-                Direction::Multi => Scrollable::with_direction(
+                Direction::Multi => scrollable(
                     //horizontal content
                     row![
                         column![
@@ -284,19 +283,19 @@ impl ScrollableDemo {
                     .align_items(Alignment::Center)
                     .padding([0, 40, 0, 40])
                     .spacing(40),
-                    {
-                        let properties = Properties::new()
-                            .width(self.scrollbar_width)
-                            .margin(self.scrollbar_margin)
-                            .scroller_width(self.scroller_width)
-                            .alignment(self.alignment);
-
-                        scrollable::Direction::Both {
-                            horizontal: properties,
-                            vertical: properties,
-                        }
-                    },
                 )
+                .direction({
+                    let scrollbar = scrollable::Scrollbar::new()
+                        .width(self.scrollbar_width)
+                        .margin(self.scrollbar_margin)
+                        .scroller_width(self.scroller_width)
+                        .alignment(self.alignment);
+
+                    scrollable::Direction::Both {
+                        horizontal: scrollbar,
+                        vertical: scrollbar,
+                    }
+                })
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .id(SCROLLABLE_ID.clone())

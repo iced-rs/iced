@@ -200,21 +200,18 @@ where
             class,
         } = menu;
 
-        let list = Scrollable::with_direction(
-            List {
-                options,
-                hovered_option,
-                on_selected,
-                on_option_hovered,
-                font,
-                text_size,
-                text_line_height,
-                text_shaping,
-                padding,
-                class,
-            },
-            scrollable::Direction::default(),
-        );
+        let list = Scrollable::new(List {
+            options,
+            hovered_option,
+            on_selected,
+            on_option_hovered,
+            font,
+            text_size,
+            text_line_height,
+            text_shaping,
+            padding,
+            class,
+        });
 
         state.tree.diff(&list as &dyn Widget<_, _, _>);
 

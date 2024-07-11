@@ -1,4 +1,4 @@
-use crate::Size;
+use crate::{Pixels, Size};
 
 /// An amount of space to pad for each side of a box
 ///
@@ -54,13 +54,45 @@ impl Padding {
         left: 0.0,
     };
 
-    /// Create a Padding that is equal on all sides
+    /// Create a [`Padding`] that is equal on all sides.
     pub const fn new(padding: f32) -> Padding {
         Padding {
             top: padding,
             right: padding,
             bottom: padding,
             left: padding,
+        }
+    }
+
+    /// Create some top [`Padding`].
+    pub fn top(padding: impl Into<Pixels>) -> Self {
+        Self {
+            top: padding.into().0,
+            ..Self::ZERO
+        }
+    }
+
+    /// Create some right [`Padding`].
+    pub fn right(padding: impl Into<Pixels>) -> Self {
+        Self {
+            right: padding.into().0,
+            ..Self::ZERO
+        }
+    }
+
+    /// Create some bottom [`Padding`].
+    pub fn bottom(padding: impl Into<Pixels>) -> Self {
+        Self {
+            bottom: padding.into().0,
+            ..Self::ZERO
+        }
+    }
+
+    /// Create some left [`Padding`].
+    pub fn left(padding: impl Into<Pixels>) -> Self {
+        Self {
+            left: padding.into().0,
+            ..Self::ZERO
         }
     }
 
