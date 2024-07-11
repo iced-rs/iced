@@ -367,6 +367,34 @@ impl Catalog for Theme {
     }
 }
 
+/// Text conveying some important information, like an action.
+pub fn primary(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.palette().primary),
+    }
+}
+
+/// Text conveying some secondary information, like a footnote.
+pub fn secondary(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.extended_palette().secondary.strong.color),
+    }
+}
+
+/// Text conveying some positive information, like a successful event.
+pub fn success(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.palette().success),
+    }
+}
+
+/// Text conveying some negative information, like an error.
+pub fn danger(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.palette().danger),
+    }
+}
+
 /// A fragment of [`Text`].
 ///
 /// This is just an alias to a string that may be either
