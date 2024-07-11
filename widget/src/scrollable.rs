@@ -197,7 +197,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    /// Returns the [`Properties`] of the horizontal scrollbar, if any.
+    /// Returns the horizontal [`Scrollbar`], if any.
     pub fn horizontal(&self) -> Option<&Scrollbar> {
         match self {
             Self::Horizontal(properties) => Some(properties),
@@ -206,7 +206,7 @@ impl Direction {
         }
     }
 
-    /// Returns the [`Properties`] of the vertical scrollbar, if any.
+    /// Returns the vertical [`Scrollbar`], if any.
     pub fn vertical(&self) -> Option<&Scrollbar> {
         match self {
             Self::Vertical(properties) => Some(properties),
@@ -222,7 +222,7 @@ impl Default for Direction {
     }
 }
 
-/// Properties of a scrollbar within a [`Scrollable`].
+/// A scrollbar within a [`Scrollable`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Scrollbar {
     width: f32,
@@ -245,7 +245,7 @@ impl Default for Scrollbar {
 }
 
 impl Scrollbar {
-    /// Creates new [`Properties`] for use in a [`Scrollable`].
+    /// Creates new [`Scrollbar`] for use in a [`Scrollable`].
     pub fn new() -> Self {
         Self::default()
     }
