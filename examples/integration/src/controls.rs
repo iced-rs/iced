@@ -1,6 +1,6 @@
 use iced_wgpu::Renderer;
 use iced_widget::{column, container, row, slider, text, text_input};
-use iced_winit::core::{Color, Element, Length, Theme};
+use iced_winit::core::{Color, Element, Length::*, Theme};
 use iced_winit::runtime::{Program, Task};
 
 pub struct Controls {
@@ -85,8 +85,7 @@ impl Program for Controls {
             .spacing(10),
         )
         .padding(10)
-        .height(Length::Fill)
-        .align_bottom()
+        .align_bottom(Fill)
         .into()
     }
 }

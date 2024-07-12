@@ -6,7 +6,7 @@ use iced::touch;
 use iced::widget::canvas::event;
 use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{self, Canvas, Geometry};
-use iced::{Color, Element, Length, Point, Rectangle, Renderer, Theme};
+use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Theme};
 
 use std::collections::HashMap;
 
@@ -46,10 +46,7 @@ impl Multitouch {
     }
 
     fn view(&self) -> Element<Message> {
-        Canvas::new(self)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        Canvas::new(self).width(Fill).height(Fill).into()
     }
 }
 

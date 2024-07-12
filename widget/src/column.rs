@@ -104,21 +104,6 @@ where
         self
     }
 
-    /// Centers the contents of the [`Column`] horizontally.
-    pub fn center_x(self) -> Self {
-        self.align_x(Alignment::Center)
-    }
-
-    /// Aligns the contents of the [`Column`] to the left.
-    pub fn align_left(self) -> Self {
-        self.align_x(alignment::left())
-    }
-
-    /// Aligns the contents of the [`Column`] to the right.
-    pub fn align_right(self) -> Self {
-        self.align_x(alignment::right())
-    }
-
     /// Sets the horizontal alignment of the contents of the [`Column`] .
     pub fn align_x(mut self, align: impl Into<alignment::Horizontal>) -> Self {
         self.align = Alignment::from(align.into());

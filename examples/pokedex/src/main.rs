@@ -1,6 +1,6 @@
 use iced::futures;
 use iced::widget::{self, center, column, image, row, text};
-use iced::{Element, Length, Task};
+use iced::{Center, Element, Fill, Right, Task};
 
 pub fn main() -> iced::Result {
     iced::application(Pokedex::title, Pokedex::update, Pokedex::view)
@@ -63,10 +63,9 @@ impl Pokedex {
     }
 
     fn view(&self) -> Element<Message> {
-        let content = match self {
+        let content: Element<_> = match self {
             Pokedex::Loading => {
-                column![text("Searching for Pokémon...").size(40),]
-                    .width(Length::Shrink)
+                text("Searching for Pokémon...").size(40).into()
             }
             Pokedex::Loaded { pokemon } => column![
                 pokemon.view(),
@@ -74,13 +73,15 @@ impl Pokedex {
             ]
             .max_width(500)
             .spacing(20)
-            .align_right(),
+            .align_x(Right)
+            .into(),
             Pokedex::Errored => column![
                 text("Whoops! Something went wrong...").size(40),
                 button("Try again").on_press(Message::Search)
             ]
             .spacing(20)
-            .align_right(),
+            .align_x(Right)
+            .into(),
         };
 
         center(content).into()
@@ -103,17 +104,17 @@ impl Pokemon {
             image::viewer(self.image.clone()),
             column![
                 row![
-                    text(&self.name).size(30).width(Length::Fill),
+                    text(&self.name).size(30).width(Fill),
                     text!("#{}", self.number).size(20).color([0.5, 0.5, 0.5]),
                 ]
-                .center_y()
+                .align_y(Center)
                 .spacing(20),
                 self.description.as_ref(),
             ]
             .spacing(20),
         ]
         .spacing(20)
-        .center_y()
+        .align_y(Center)
         .into()
     }
 

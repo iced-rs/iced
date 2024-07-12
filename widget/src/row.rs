@@ -95,21 +95,6 @@ where
         self
     }
 
-    /// Centers the contents of the [`Row`] vertically.
-    pub fn center_y(self) -> Self {
-        self.align_y(Alignment::Center)
-    }
-
-    /// Aligns the contents of the [`Row`] to the top.
-    pub fn align_top(self) -> Self {
-        self.align_y(alignment::top())
-    }
-
-    /// Aligns the contents of the [`Row`] to the bottom.
-    pub fn align_bottom(self) -> Self {
-        self.align_y(alignment::bottom())
-    }
-
     /// Sets the vertical alignment of the contents of the [`Row`] .
     pub fn align_y(mut self, align: impl Into<alignment::Vertical>) -> Self {
         self.align = Alignment::from(align.into());

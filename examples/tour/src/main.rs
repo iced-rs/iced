@@ -3,7 +3,7 @@ use iced::widget::{
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{Color, Element, Font, Length, Pixels};
+use iced::{Center, Color, Element, Fill, Font, Pixels};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -172,10 +172,10 @@ impl Tour {
             } else {
                 content
             })
-            .center_x(Length::Fill),
+            .center_x(Fill),
         );
 
-        container(scrollable).center_y(Length::Fill).into()
+        container(scrollable).center_y(Fill).into()
     }
 
     fn can_continue(&self) -> bool {
@@ -234,7 +234,7 @@ impl Tour {
                  0 to 100:",
             )
             .push(slider(0..=100, self.slider, Message::SliderChanged))
-            .push(text(self.slider.to_string()).width(Length::Fill).center_x())
+            .push(text(self.slider.to_string()).width(Fill).align_x(Center))
     }
 
     fn rows_and_columns(&self) -> Column<Message> {
@@ -263,7 +263,7 @@ impl Tour {
 
         let spacing_section = column![
             slider(0..=80, self.spacing, Message::SpacingChanged),
-            text!("{} px", self.spacing).width(Length::Fill).center_x(),
+            text!("{} px", self.spacing).width(Fill).align_x(Center),
         ]
         .spacing(10);
 
@@ -374,7 +374,7 @@ impl Tour {
             .push("An image that tries to keep its aspect ratio.")
             .push(ferris(width, filter_method))
             .push(slider(100..=500, width, Message::ImageWidthChanged))
-            .push(text!("Width: {width} px").width(Length::Fill).center_x())
+            .push(text!("Width: {width} px").width(Fill).align_x(Center))
             .push(
                 checkbox(
                     "Use nearest interpolation",
@@ -382,7 +382,7 @@ impl Tour {
                 )
                 .on_toggle(Message::ImageUseNearestToggled),
             )
-            .center_x()
+            .align_x(Center)
     }
 
     fn scrollable(&self) -> Column<Message> {
@@ -398,13 +398,13 @@ impl Tour {
             .push(vertical_space().height(4096))
             .push(
                 text("You are halfway there!")
-                    .width(Length::Fill)
+                    .width(Fill)
                     .size(30)
-                    .center_x(),
+                    .align_x(Center),
             )
             .push(vertical_space().height(4096))
             .push(ferris(300, image::FilterMethod::Linear))
-            .push(text("You made it!").width(Length::Fill).size(50).center_x())
+            .push(text("You made it!").width(Fill).size(50).align_x(Center))
     }
 
     fn text_input(&self) -> Column<Message> {
@@ -448,8 +448,8 @@ impl Tour {
                 } else {
                     value
                 })
-                .width(Length::Fill)
-                .center_x(),
+                .width(Fill)
+                .align_x(Center),
             )
     }
 
@@ -554,7 +554,7 @@ fn ferris<'a>(
         .filter_method(filter_method)
         .width(width),
     )
-    .center_x(Length::Fill)
+    .center_x(Fill)
 }
 
 fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {

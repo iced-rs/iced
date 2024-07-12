@@ -2,8 +2,7 @@ use iced::mouse;
 use iced::time::{self, Instant};
 use iced::widget::canvas;
 use iced::{
-    Color, Element, Font, Length, Point, Rectangle, Renderer, Subscription,
-    Theme,
+    Color, Element, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme,
 };
 
 use std::cell::RefCell;
@@ -37,10 +36,7 @@ impl TheMatrix {
     }
 
     fn view(&self) -> Element<Message> {
-        canvas(self as &Self)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        canvas(self as &Self).width(Fill).height(Fill).into()
     }
 
     fn subscription(&self) -> Subscription<Message> {

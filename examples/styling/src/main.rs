@@ -3,7 +3,7 @@ use iced::widget::{
     row, scrollable, slider, text, text_input, toggler, vertical_rule,
     vertical_space,
 };
-use iced::{Element, Length, Theme};
+use iced::{Center, Element, Fill, Theme};
 
 pub fn main() -> iced::Result {
     iced::application("Styling - Iced", Styling::update, Styling::view)
@@ -48,7 +48,7 @@ impl Styling {
         let choose_theme = column![
             text("Theme:"),
             pick_list(Theme::ALL, Some(&self.theme), Message::ThemeChanged)
-                .width(Length::Fill),
+                .width(Fill),
         ]
         .spacing(10);
 
@@ -71,7 +71,7 @@ impl Styling {
             vertical_space().height(800),
             "You did it!"
         ])
-        .width(Length::Fill)
+        .width(Fill)
         .height(100);
 
         let checkbox = checkbox("Check me!", self.checkbox_value)
@@ -82,13 +82,12 @@ impl Styling {
             self.toggler_value,
             Message::TogglerToggled,
         )
-        .width(Length::Shrink)
         .spacing(10);
 
         let content = column![
             choose_theme,
             horizontal_rule(38),
-            row![text_input, button].spacing(10).center_y(),
+            row![text_input, button].spacing(10).align_y(Center),
             slider,
             progress_bar,
             row![
@@ -98,7 +97,7 @@ impl Styling {
             ]
             .spacing(10)
             .height(100)
-            .center_y(),
+            .align_y(Center),
         ]
         .spacing(20)
         .padding(20)

@@ -5,7 +5,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Color, Element, Font, Length, Point, Rectangle, Subscription, Task, Theme,
+    Center, Color, Element, Fill, Font, Point, Rectangle, Subscription, Task,
+    Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -69,7 +70,7 @@ impl Example {
                     .color_maybe(color),
             ]
             .height(40)
-            .center_y()
+            .align_y(Center)
         };
 
         let view_bounds = |label, bounds: Option<Rectangle>| {
@@ -129,13 +130,13 @@ impl Example {
                         .padding(20)
                     )
                     .on_scroll(|_| Message::Scrolled)
-                    .width(Length::Fill)
+                    .width(Fill)
                     .height(300),
                 ]
                 .padding(20)
             )
             .on_scroll(|_| Message::Scrolled)
-            .width(Length::Fill)
+            .width(Fill)
             .height(300),
         ]
         .spacing(10)

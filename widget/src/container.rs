@@ -92,37 +92,6 @@ where
         self
     }
 
-    /// Sets the [`Container`] to fill the available space in the horizontal axis.
-    ///
-    /// Calling this method is equivalent to calling [`width`] with a
-    /// [`Length::Fill`].
-    ///
-    /// [`width`]: Self::width
-    pub fn fill_x(self) -> Self {
-        self.width(Length::Fill)
-    }
-
-    /// Sets the [`Container`] to fill the available space in the vertical axis.
-    ///
-    /// Calling this method is equivalent to calling [`height`] with a
-    /// [`Length::Fill`].
-    ///
-    /// [`height`]: Self::height
-    pub fn fill_y(self) -> Self {
-        self.height(Length::Fill)
-    }
-
-    /// Sets the [`Container`] to fill all the available space.
-    ///
-    /// Calling this method is equivalent to chaining [`fill_x`] and
-    /// [`fill_y`].
-    ///
-    /// [`fill_x`]: Self::fill_x
-    /// [`fill_y`]: Self::fill_y
-    pub fn fill(self) -> Self {
-        self.width(Length::Fill).height(Length::Fill)
-    }
-
     /// Sets the maximum width of the [`Container`].
     pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
         self.max_width = max_width.into().0;
@@ -159,23 +128,23 @@ where
     }
 
     /// Aligns the contents of the [`Container`] to the left.
-    pub fn align_left(self) -> Self {
-        self.align_x(alignment::left())
+    pub fn align_left(self, width: impl Into<Length>) -> Self {
+        self.width(width).align_x(alignment::Horizontal::Left)
     }
 
     /// Aligns the contents of the [`Container`] to the right.
-    pub fn align_right(self) -> Self {
-        self.align_x(alignment::right())
+    pub fn align_right(self, width: impl Into<Length>) -> Self {
+        self.width(width).align_x(alignment::Horizontal::Right)
     }
 
     /// Aligns the contents of the [`Container`] to the top.
-    pub fn align_top(self) -> Self {
-        self.align_y(alignment::top())
+    pub fn align_top(self, height: Length) -> Self {
+        self.height(height).align_y(alignment::Vertical::Top)
     }
 
     /// Aligns the contents of the [`Container`] to the bottom.
-    pub fn align_bottom(self) -> Self {
-        self.align_y(alignment::bottom())
+    pub fn align_bottom(self, height: Length) -> Self {
+        self.height(height).align_y(alignment::Vertical::Bottom)
     }
 
     /// Sets the content alignment for the horizontal axis of the [`Container`].

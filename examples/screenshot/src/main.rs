@@ -2,7 +2,10 @@ use iced::keyboard;
 use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
-use iced::{ContentFit, Element, Length, Rectangle, Subscription, Task};
+use iced::{
+    Center, ContentFit, Element, Fill, FillPortion, Rectangle, Subscription,
+    Task,
+};
 
 use ::image as img;
 use ::image::ColorType;
@@ -111,15 +114,15 @@ impl Example {
                 screenshot.clone(),
             ))
             .content_fit(ContentFit::Contain)
-            .width(Length::Fill)
-            .height(Length::Fill)
+            .width(Fill)
+            .height(Fill)
             .into()
         } else {
             text("Press the button to take a screenshot!").into()
         };
 
         let image = container(image)
-            .center_y(Length::FillPortion(2))
+            .center_y(FillPortion(2))
             .padding(10)
             .style(container::rounded_box);
 
@@ -130,7 +133,7 @@ impl Example {
             numeric_input("0", self.y_input_value).map(Message::YInputChanged)
         ]
         .spacing(10)
-        .center_y();
+        .align_y(Center);
 
         let crop_dimension_controls = row![
             text("W:").width(30),
@@ -141,7 +144,7 @@ impl Example {
                 .map(Message::HeightInputChanged)
         ]
         .spacing(10)
-        .center_y();
+        .align_y(Center);
 
         let crop_controls =
             column![crop_origin_controls, crop_dimension_controls]
@@ -151,7 +154,7 @@ impl Example {
                         .map(|error| text!("Crop error! \n{error}")),
                 )
                 .spacing(10)
-                .center_x();
+                .align_x(Center);
 
         let controls = {
             let save_result =
@@ -168,7 +171,7 @@ impl Example {
                 column![
                     button(centered_text("Screenshot!"))
                         .padding([10, 20, 10, 20])
-                        .width(Length::Fill)
+                        .width(Fill)
                         .on_press(Message::Screenshot),
                     if !self.png_saving {
                         button(centered_text("Save as png")).on_press_maybe(
@@ -180,7 +183,7 @@ impl Example {
                     }
                     .style(button::secondary)
                     .padding([10, 20, 10, 20])
-                    .width(Length::Fill)
+                    .width(Fill)
                 ]
                 .spacing(10),
                 column![
@@ -189,22 +192,22 @@ impl Example {
                         .on_press(Message::Crop)
                         .style(button::danger)
                         .padding([10, 20, 10, 20])
-                        .width(Length::Fill),
+                        .width(Fill),
                 ]
                 .spacing(10)
-                .center_x(),
+                .align_x(Center),
             ]
             .push_maybe(save_result.map(text))
             .spacing(40)
         };
 
-        let side_content = container(controls).center_y(Length::Fill);
+        let side_content = container(controls).center_y(Fill);
 
         let content = row![side_content, image]
             .spacing(10)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_y();
+            .width(Fill)
+            .height(Fill)
+            .align_y(Center);
 
         container(content).padding(10).into()
     }
@@ -265,5 +268,5 @@ fn numeric_input(
 }
 
 fn centered_text(content: &str) -> Element<'_, Message> {
-    text(content).width(Length::Fill).center_x().into()
+    text(content).width(Fill).align_x(Center).into()
 }

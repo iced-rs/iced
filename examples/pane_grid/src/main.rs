@@ -3,7 +3,7 @@ use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{
     button, column, container, responsive, row, scrollable, text,
 };
-use iced::{Color, Element, Length, Size, Subscription};
+use iced::{Center, Color, Element, Fill, Size, Subscription};
 
 pub fn main() -> iced::Result {
     iced::application("Pane Grid - Iced", Example::update, Example::view)
@@ -177,16 +177,16 @@ impl Example {
                 style::pane_active
             })
         })
-        .width(Length::Fill)
-        .height(Length::Fill)
+        .width(Fill)
+        .height(Fill)
         .spacing(10)
         .on_click(Message::Clicked)
         .on_drag(Message::Dragged)
         .on_resize(10, Message::Resized);
 
         container(pane_grid)
-            .width(Length::Fill)
-            .height(Length::Fill)
+            .width(Fill)
+            .height(Fill)
             .padding(10)
             .into()
     }
@@ -254,8 +254,8 @@ fn view_content<'a>(
     size: Size,
 ) -> Element<'a, Message> {
     let button = |label, message| {
-        button(text(label).width(Length::Fill).center_x().size(16))
-            .width(Length::Fill)
+        button(text(label).width(Fill).align_x(Center).size(16))
+            .width(Fill)
             .padding(8)
             .on_press(message)
     };
@@ -281,10 +281,10 @@ fn view_content<'a>(
     let content =
         column![text!("{}x{}", size.width, size.height).size(24), controls,]
             .spacing(10)
-            .center_x();
+            .align_x(Center);
 
     container(scrollable(content))
-        .center_y(Length::Fill)
+        .center_y(Fill)
         .padding(5)
         .into()
 }

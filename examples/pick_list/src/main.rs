@@ -1,5 +1,5 @@
 use iced::widget::{column, pick_list, scrollable, vertical_space};
-use iced::{Element, Length};
+use iced::{Center, Element, Fill};
 
 pub fn main() -> iced::Result {
     iced::run("Pick List - Iced", Example::update, Example::view)
@@ -38,8 +38,8 @@ impl Example {
             pick_list,
             vertical_space().height(600),
         ]
-        .width(Length::Fill)
-        .center_x()
+        .width(Fill)
+        .align_x(Center)
         .spacing(10);
 
         scrollable(content).into()

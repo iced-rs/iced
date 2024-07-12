@@ -5,8 +5,8 @@ use iced::widget::{
     pick_list, row, scrollable, text,
 };
 use iced::{
-    color, Element, Font, Length, Point, Rectangle, Renderer, Subscription,
-    Theme,
+    color, Center, Element, Fill, Font, Length, Point, Rectangle, Renderer,
+    Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -74,7 +74,7 @@ impl Layout {
             pick_list(Theme::ALL, Some(&self.theme), Message::ThemeSelected),
         ]
         .spacing(20)
-        .center_y();
+        .align_y(Center);
 
         let example = center(if self.explain {
             self.example.view().explain(color!(0x0000ff))
@@ -234,7 +234,7 @@ fn application<'a>() -> Element<'a, Message> {
             square(40),
         ]
         .padding(10)
-        .center_y(),
+        .align_y(Center),
     )
     .style(|theme| {
         let palette = theme.extended_palette();
@@ -248,10 +248,10 @@ fn application<'a>() -> Element<'a, Message> {
             .spacing(40)
             .padding(10)
             .width(200)
-            .center_x(),
+            .align_x(Center),
     )
     .style(container::rounded_box)
-    .center_y(Length::Fill);
+    .center_y(Fill);
 
     let content = container(
         scrollable(
@@ -263,10 +263,10 @@ fn application<'a>() -> Element<'a, Message> {
                 "The end"
             ]
             .spacing(40)
-            .center_x()
-            .width(Length::Fill),
+            .align_x(Center)
+            .width(Fill),
         )
-        .height(Length::Fill),
+        .height(Fill),
     )
     .padding(10);
 

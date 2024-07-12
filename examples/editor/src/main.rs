@@ -4,7 +4,7 @@ use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text,
     text_editor, tooltip,
 };
-use iced::{Element, Font, Length, Subscription, Task, Theme};
+use iced::{Center, Element, Fill, Font, Subscription, Task, Theme};
 
 use std::ffi;
 use std::io;
@@ -158,7 +158,7 @@ impl Editor {
             .padding([5, 10])
         ]
         .spacing(10)
-        .center_y();
+        .align_y(Center);
 
         let status = row![
             text(if let Some(path) = &self.file {
@@ -184,7 +184,7 @@ impl Editor {
         column![
             controls,
             text_editor(&self.content)
-                .height(Length::Fill)
+                .height(Fill)
                 .on_action(Message::ActionPerformed)
                 .highlight::<Highlighter>(
                     highlighter::Settings {

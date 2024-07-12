@@ -2,7 +2,7 @@ use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
     scrollable, slider, text, vertical_space,
 };
-use iced::{Border, Color, Element, Length, Task, Theme};
+use iced::{Border, Center, Color, Element, Fill, Task, Theme};
 
 use once_cell::sync::Lazy;
 
@@ -212,7 +212,7 @@ impl ScrollableDemo {
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
-                    .center_x()
+                    .align_x(Center)
                     .padding([40, 0, 40, 0])
                     .spacing(40),
                 )
@@ -223,8 +223,8 @@ impl ScrollableDemo {
                         .scroller_width(self.scroller_width)
                         .anchor(self.anchor),
                 ))
-                .width(Length::Fill)
-                .height(Length::Fill)
+                .width(Fill)
+                .height(Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
                 Direction::Horizontal => scrollable(
@@ -238,7 +238,7 @@ impl ScrollableDemo {
                         scroll_to_beginning_button(),
                     ]
                     .height(450)
-                    .center_y()
+                    .align_y(Center)
                     .padding([0, 40, 0, 40])
                     .spacing(40),
                 )
@@ -249,8 +249,8 @@ impl ScrollableDemo {
                         .scroller_width(self.scroller_width)
                         .anchor(self.anchor),
                 ))
-                .width(Length::Fill)
-                .height(Length::Fill)
+                .width(Fill)
+                .height(Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
                 Direction::Multi => scrollable(
@@ -280,7 +280,7 @@ impl ScrollableDemo {
                         text("Horizontal - End!"),
                         scroll_to_beginning_button(),
                     ]
-                    .center_y()
+                    .align_y(Center)
                     .padding([0, 40, 0, 40])
                     .spacing(40),
                 )
@@ -296,8 +296,8 @@ impl ScrollableDemo {
                         vertical: scrollbar,
                     }
                 })
-                .width(Length::Fill)
-                .height(Length::Fill)
+                .width(Fill)
+                .height(Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
             });
@@ -322,7 +322,7 @@ impl ScrollableDemo {
 
         let content: Element<Message> =
             column![scroll_controls, scrollable_content, progress_bars]
-                .center_x()
+                .align_x(Center)
                 .spacing(10)
                 .into();
 

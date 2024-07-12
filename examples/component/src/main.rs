@@ -35,7 +35,7 @@ impl Component {
 
 mod numeric_input {
     use iced::widget::{button, component, row, text, text_input, Component};
-    use iced::{Element, Length, Size};
+    use iced::{Center, Element, Fill, Length, Size};
 
     pub struct NumericInput<Message> {
         value: Option<u32>,
@@ -103,15 +103,10 @@ mod numeric_input {
 
         fn view(&self, _state: &Self::State) -> Element<'_, Event, Theme> {
             let button = |label, on_press| {
-                button(
-                    text(label)
-                        .width(Length::Fill)
-                        .height(Length::Fill)
-                        .center(),
-                )
-                .width(40)
-                .height(40)
-                .on_press(on_press)
+                button(text(label).width(Fill).height(Fill).center())
+                    .width(40)
+                    .height(40)
+                    .on_press(on_press)
             };
 
             row![
@@ -128,7 +123,7 @@ mod numeric_input {
                 .padding(10),
                 button("+", Event::IncrementPressed),
             ]
-            .center_y()
+            .align_y(Center)
             .spacing(10)
             .into()
         }

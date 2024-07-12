@@ -1,4 +1,5 @@
 use iced::widget::{button, column, text, Column};
+use iced::Center;
 
 pub fn main() -> iced::Result {
     iced::run("A cool counter", Counter::update, Counter::view)
@@ -34,6 +35,6 @@ impl Counter {
             button("Decrement").on_press(Message::Decrement)
         ]
         .padding(20)
-        .center_x()
+        .align_x(Center)
     }
 }

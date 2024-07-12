@@ -4,8 +4,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Color, ContentFit, Degrees, Element, Length, Radians, Rotation,
-    Subscription, Theme,
+    Bottom, Center, Color, ContentFit, Degrees, Element, Fill, Radians,
+    Rotation, Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -108,7 +108,7 @@ impl Image {
             "I am Ferris!"
         ]
         .spacing(20)
-        .center_x();
+        .align_x(Center);
 
         let fit = row![
             pick_list(
@@ -122,7 +122,7 @@ impl Image {
                 Some(self.content_fit),
                 Message::ContentFitChanged
             )
-            .width(Length::Fill),
+            .width(Fill),
             pick_list(
                 [RotationStrategy::Floating, RotationStrategy::Solid],
                 Some(match self.rotation {
@@ -131,10 +131,10 @@ impl Image {
                 }),
                 Message::RotationStrategyChanged,
             )
-            .width(Length::Fill),
+            .width(Fill),
         ]
         .spacing(10)
-        .align_bottom();
+        .align_y(Bottom);
 
         let properties = row![
             with_value(
@@ -159,12 +159,12 @@ impl Image {
                         .size(12)
                 ]
                 .spacing(10)
-                .center_y(),
+                .align_y(Center),
                 format!("Rotation: {:.0}°", f32::from(self.rotation.degrees()))
             )
         ]
         .spacing(10)
-        .align_bottom();
+        .align_y(Bottom);
 
         container(column![fit, center(i_am_ferris), properties].spacing(10))
             .padding(10)
@@ -206,6 +206,6 @@ fn with_value<'a>(
 ) -> Element<'a, Message> {
     column![control.into(), text(value).size(12).line_height(1.0)]
         .spacing(2)
-        .center_x()
+        .align_x(Center)
         .into()
 }

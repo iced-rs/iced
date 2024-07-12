@@ -1,7 +1,7 @@
 use iced::keyboard;
 use iced::time;
 use iced::widget::{button, center, column, row, text};
-use iced::{Element, Subscription, Theme};
+use iced::{Center, Element, Subscription, Theme};
 
 use std::time::{Duration, Instant};
 
@@ -101,7 +101,7 @@ impl Stopwatch {
         .size(40);
 
         let button =
-            |label| button(text(label).center_x()).padding(10).width(80);
+            |label| button(text(label).align_x(Center)).padding(10).width(80);
 
         let toggle_button = {
             let label = match self.state {
@@ -118,7 +118,7 @@ impl Stopwatch {
 
         let controls = row![toggle_button, reset_button].spacing(20);
 
-        let content = column![duration, controls].center_x().spacing(20);
+        let content = column![duration, controls].align_x(Center).spacing(20);
 
         center(content).into()
     }

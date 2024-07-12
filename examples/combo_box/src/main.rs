@@ -1,7 +1,7 @@
 use iced::widget::{
     center, column, combo_box, scrollable, text, vertical_space,
 };
-use iced::{Element, Length};
+use iced::{Center, Element, Fill};
 
 pub fn main() -> iced::Result {
     iced::run("Combo Box - Iced", Example::update, Example::view)
@@ -64,8 +64,8 @@ impl Example {
             combo_box,
             vertical_space().height(150),
         ]
-        .width(Length::Fill)
-        .center_x()
+        .width(Fill)
+        .align_x(Center)
         .spacing(10);
 
         center(scrollable(content)).into()
