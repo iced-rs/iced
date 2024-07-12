@@ -114,6 +114,26 @@ pub fn bottom_left(value: impl Into<Pixels>) -> Radius {
     Radius::default().bottom_left(value)
 }
 
+/// Creates a new [`Radius`] with the given value as top left and top right.
+pub fn top(value: impl Into<Pixels>) -> Radius {
+    Radius::default().top(value)
+}
+
+/// Creates a new [`Radius`] with the given value as bottom left and bottom right.
+pub fn bottom(value: impl Into<Pixels>) -> Radius {
+    Radius::default().bottom(value)
+}
+
+/// Creates a new [`Radius`] with the given value as top left and bottom left.
+pub fn left(value: impl Into<Pixels>) -> Radius {
+    Radius::default().left(value)
+}
+
+/// Creates a new [`Radius`] with the given value as top right and bottom right.
+pub fn right(value: impl Into<Pixels>) -> Radius {
+    Radius::default().right(value)
+}
+
 impl Radius {
     /// Creates a new [`Radius`] with the same value for each corner.
     pub fn new(value: impl Into<Pixels>) -> Self {
@@ -155,6 +175,50 @@ impl Radius {
     pub fn bottom_left(self, value: impl Into<Pixels>) -> Self {
         Self {
             bottom_left: value.into().0,
+            ..self
+        }
+    }
+
+    /// Sets the top left and top right values of the [`Radius`].
+    pub fn top(self, value: impl Into<Pixels>) -> Self {
+        let value = value.into().0;
+
+        Self {
+            top_left: value,
+            top_right: value,
+            ..self
+        }
+    }
+
+    /// Sets the bottom left and bottom right values of the [`Radius`].
+    pub fn bottom(self, value: impl Into<Pixels>) -> Self {
+        let value = value.into().0;
+
+        Self {
+            bottom_left: value,
+            bottom_right: value,
+            ..self
+        }
+    }
+
+    /// Sets the top left and bottom left values of the [`Radius`].
+    pub fn left(self, value: impl Into<Pixels>) -> Self {
+        let value = value.into().0;
+
+        Self {
+            top_left: value,
+            bottom_left: value,
+            ..self
+        }
+    }
+
+    /// Sets the top right and bottom right values of the [`Radius`].
+    pub fn right(self, value: impl Into<Pixels>) -> Self {
+        let value = value.into().0;
+
+        Self {
+            top_right: value,
+            bottom_right: value,
             ..self
         }
     }
