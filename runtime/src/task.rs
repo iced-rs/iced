@@ -168,9 +168,21 @@ impl<T> Task<T> {
             Some(stream) => {
                 let (stream, handle) = stream::abortable(stream);
 
-                (Self(Some(boxed_stream(stream))), Handle(Some(handle)))
+                (
+                    Self(Some(boxed_stream(stream))),
+                    Handle {
+                        raw: Some(handle),
+                        abort_on_drop: false,
+                    },
+                )
             }
-            None => (Self(None), Handle(None)),
+            None => (
+                Self(None),
+                Handle {
+                    raw: None,
+                    abort_on_drop: false,
+                },
+            ),
         }
     }
 
@@ -195,22 +207,45 @@ impl<T> Task<T> {
 
 /// A handle to a [`Task`] that can be used for aborting it.
 #[derive(Debug, Clone)]
-pub struct Handle(Option<stream::AbortHandle>);
+pub struct Handle {
+    raw: Option<stream::AbortHandle>,
+    abort_on_drop: bool,
+}
 
 impl Handle {
     /// Aborts the [`Task`] of this [`Handle`].
     pub fn abort(&self) {
-        if let Some(handle) = &self.0 {
+        if let Some(handle) = &self.raw {
             handle.abort();
+        }
+    }
+
+    /// Returns a new [`Handle`] that will call [`Handle::abort`] whenever
+    /// it is dropped.
+    ///
+    /// This can be really useful if you do not want to worry about calling
+    /// [`Handle::abort`] yourself.
+    pub fn abort_on_drop(mut self) -> Self {
+        Self {
+            raw: self.raw.take(),
+            abort_on_drop: true,
         }
     }
 
     /// Returns `true` if the [`Task`] of this [`Handle`] has been aborted.
     pub fn is_aborted(&self) -> bool {
-        if let Some(handle) = &self.0 {
+        if let Some(handle) = &self.raw {
             handle.is_aborted()
         } else {
             true
+        }
+    }
+}
+
+impl Drop for Handle {
+    fn drop(&mut self) {
+        if self.abort_on_drop {
+            self.abort();
         }
     }
 }
