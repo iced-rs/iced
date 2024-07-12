@@ -80,7 +80,7 @@ where
             is_toggled,
             on_toggle: Box::new(f),
             label: label.into(),
-            width: Length::Fill,
+            width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
             text_size: None,
             text_line_height: text::LineHeight::default(),
