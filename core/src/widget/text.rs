@@ -86,21 +86,27 @@ where
         self
     }
 
+    /// Centers the [`Text`], both horizontally and vertically.
+    pub fn center(self) -> Self {
+        self.align_x(alignment::Horizontal::Center)
+            .align_y(alignment::Vertical::Center)
+    }
+
     /// Sets the [`alignment::Horizontal`] of the [`Text`].
-    pub fn horizontal_alignment(
+    pub fn align_x(
         mut self,
-        alignment: alignment::Horizontal,
+        alignment: impl Into<alignment::Horizontal>,
     ) -> Self {
-        self.horizontal_alignment = alignment;
+        self.horizontal_alignment = alignment.into();
         self
     }
 
     /// Sets the [`alignment::Vertical`] of the [`Text`].
-    pub fn vertical_alignment(
+    pub fn align_y(
         mut self,
-        alignment: alignment::Vertical,
+        alignment: impl Into<alignment::Vertical>,
     ) -> Self {
-        self.vertical_alignment = alignment;
+        self.vertical_alignment = alignment.into();
         self
     }
 

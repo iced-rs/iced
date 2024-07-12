@@ -3,7 +3,7 @@ use iced::widget::{
     text_input,
 };
 use iced::window;
-use iced::{Alignment, Element, Length, Subscription, Task, Theme, Vector};
+use iced::{Center, Element, Fill, Subscription, Task, Theme, Vector};
 
 use std::collections::BTreeMap;
 
@@ -188,8 +188,8 @@ impl Window {
         let content = scrollable(
             column![scale_input, title_input, new_window_button]
                 .spacing(50)
-                .width(Length::Fill)
-                .align_items(Alignment::Center),
+                .width(Fill)
+                .align_x(Center),
         );
 
         container(content).center_x(200).into()

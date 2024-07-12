@@ -1,5 +1,6 @@
 //! Create choices using radio buttons.
 use crate::core::alignment;
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -9,8 +10,8 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Theme, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Pixels, Rectangle,
+    Shell, Size, Theme, Widget,
 };
 
 /// A circular button representing a choice.
@@ -342,7 +343,7 @@ where
                             width: bounds.width - dot_size,
                             height: bounds.height - dot_size,
                         },
-                        border: Border::rounded(dot_size / 2.0),
+                        border: border::rounded(dot_size / 2.0),
                         ..renderer::Quad::default()
                     },
                     style.dot_color,

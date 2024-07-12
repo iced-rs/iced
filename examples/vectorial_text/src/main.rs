@@ -1,9 +1,9 @@
-use iced::alignment::{self, Alignment};
+use iced::alignment;
 use iced::mouse;
 use iced::widget::{
     canvas, checkbox, column, horizontal_space, row, slider, text,
 };
-use iced::{Element, Length, Point, Rectangle, Renderer, Theme, Vector};
+use iced::{Center, Element, Fill, Point, Rectangle, Renderer, Theme, Vector};
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -59,7 +59,7 @@ impl VectorialText {
         };
 
         column![
-            canvas(&self.state).width(Length::Fill).height(Length::Fill),
+            canvas(&self.state).width(Fill).height(Fill),
             column![
                 checkbox("Use Japanese", self.state.use_japanese,)
                     .on_toggle(Message::ToggleJapanese),
@@ -85,7 +85,7 @@ impl VectorialText {
                 ]
                 .spacing(20),
             ]
-            .align_items(Alignment::Center)
+            .align_x(Center)
             .spacing(10)
         ]
         .spacing(10)

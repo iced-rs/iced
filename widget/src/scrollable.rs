@@ -1,5 +1,6 @@
 //! Navigate an endless amount of content with a scrollbar.
 use crate::container;
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::layout;
@@ -11,8 +12,8 @@ use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Background, Border, Clipboard, Color, Element, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    self, Background, Clipboard, Color, Element, Layout, Length, Padding,
+    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
@@ -109,53 +110,70 @@ where
         self
     }
 
-    /// Sets the alignment of the horizontal direction of the [`Scrollable`], if applicable.
-    pub fn align_x(mut self, alignment: Alignment) -> Self {
+    /// Anchors the vertical [`Scrollable`] direction to the top.
+    pub fn anchor_top(self) -> Self {
+        self.anchor_y(Anchor::Start)
+    }
+
+    /// Anchors the vertical [`Scrollable`] direction to the bottom.
+    pub fn anchor_bottom(self) -> Self {
+        self.anchor_y(Anchor::End)
+    }
+
+    /// Anchors the horizontal [`Scrollable`] direction to the left.
+    pub fn anchor_left(self) -> Self {
+        self.anchor_x(Anchor::Start)
+    }
+
+    /// Anchors the horizontal [`Scrollable`] direction to the right.
+    pub fn anchor_right(self) -> Self {
+        self.anchor_x(Anchor::End)
+    }
+
+    /// Sets the [`Anchor`] of the horizontal direction of the [`Scrollable`], if applicable.
+    pub fn anchor_x(mut self, alignment: Anchor) -> Self {
         match &mut self.direction {
-            Direction::Horizontal(horizontal)
+            Direction::Horizontal {
+                scrollbar: horizontal,
+                ..
+            }
             | Direction::Both { horizontal, .. } => {
                 horizontal.alignment = alignment;
             }
-            Direction::Vertical(_) => {}
+            Direction::Vertical { .. } => {}
         }
 
         self
     }
 
-    /// Sets the alignment of the vertical direction of the [`Scrollable`], if applicable.
-    pub fn align_y(mut self, alignment: Alignment) -> Self {
+    /// Sets the [`Anchor`] of the vertical direction of the [`Scrollable`], if applicable.
+    pub fn anchor_y(mut self, alignment: Anchor) -> Self {
         match &mut self.direction {
-            Direction::Vertical(vertical)
+            Direction::Vertical {
+                scrollbar: vertical,
+                ..
+            }
             | Direction::Both { vertical, .. } => {
                 vertical.alignment = alignment;
             }
-            Direction::Horizontal(_) => {}
+            Direction::Horizontal { .. } => {}
         }
 
         self
     }
 
-    /// Sets whether the horizontal [`Scrollbar`] should be embedded in the [`Scrollable`].
-    pub fn embed_x(mut self, embedded: bool) -> Self {
+    /// Embeds the [`Scrollbar`] into the [`Scrollable`], instead of floating on top of the
+    /// content.
+    ///
+    /// The `spacing` provided will be used as space between the [`Scrollbar`] and the contents
+    /// of the [`Scrollable`].
+    pub fn spacing(mut self, new_spacing: impl Into<Pixels>) -> Self {
         match &mut self.direction {
-            Direction::Horizontal(horizontal)
-            | Direction::Both { horizontal, .. } => {
-                horizontal.embedded = embedded;
+            Direction::Horizontal { spacing, .. }
+            | Direction::Vertical { spacing, .. } => {
+                *spacing = Some(new_spacing.into().0);
             }
-            Direction::Vertical(_) => {}
-        }
-
-        self
-    }
-
-    /// Sets whether the vertical [`Scrollbar`] should be embedded in the [`Scrollable`].
-    pub fn embed_y(mut self, embedded: bool) -> Self {
-        match &mut self.direction {
-            Direction::Vertical(vertical)
-            | Direction::Both { vertical, .. } => {
-                vertical.embedded = embedded;
-            }
-            Direction::Horizontal(_) => {}
+            Direction::Both { .. } => {}
         }
 
         self
@@ -184,9 +202,19 @@ where
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Direction {
     /// Vertical scrolling
-    Vertical(Scrollbar),
+    Vertical {
+        /// The vertical [`Scrollbar`].
+        scrollbar: Scrollbar,
+        /// The amount of spacing between the [`Scrollbar`] and the contents, if embedded.
+        spacing: Option<f32>,
+    },
     /// Horizontal scrolling
-    Horizontal(Scrollbar),
+    Horizontal {
+        /// The horizontal [`Scrollbar`].
+        scrollbar: Scrollbar,
+        /// The amount of spacing between the [`Scrollbar`] and the contents, if embedded.
+        spacing: Option<f32>,
+    },
     /// Both vertical and horizontal scrolling
     Both {
         /// The properties of the vertical scrollbar.
@@ -200,25 +228,28 @@ impl Direction {
     /// Returns the horizontal [`Scrollbar`], if any.
     pub fn horizontal(&self) -> Option<&Scrollbar> {
         match self {
-            Self::Horizontal(properties) => Some(properties),
+            Self::Horizontal { scrollbar, .. } => Some(scrollbar),
             Self::Both { horizontal, .. } => Some(horizontal),
-            Self::Vertical(_) => None,
+            Self::Vertical { .. } => None,
         }
     }
 
     /// Returns the vertical [`Scrollbar`], if any.
     pub fn vertical(&self) -> Option<&Scrollbar> {
         match self {
-            Self::Vertical(properties) => Some(properties),
+            Self::Vertical { scrollbar, .. } => Some(scrollbar),
             Self::Both { vertical, .. } => Some(vertical),
-            Self::Horizontal(_) => None,
+            Self::Horizontal { .. } => None,
         }
     }
 }
 
 impl Default for Direction {
     fn default() -> Self {
-        Self::Vertical(Scrollbar::default())
+        Self::Vertical {
+            scrollbar: Scrollbar::default(),
+            spacing: None,
+        }
     }
 }
 
@@ -228,8 +259,8 @@ pub struct Scrollbar {
     width: f32,
     margin: f32,
     scroller_width: f32,
-    alignment: Alignment,
-    embedded: bool,
+    alignment: Anchor,
+    spacing: Option<f32>,
 }
 
 impl Default for Scrollbar {
@@ -238,8 +269,8 @@ impl Default for Scrollbar {
             width: 10.0,
             margin: 0.0,
             scroller_width: 10.0,
-            alignment: Alignment::Start,
-            embedded: false,
+            alignment: Anchor::Start,
+            spacing: None,
         }
     }
 }
@@ -250,47 +281,49 @@ impl Scrollbar {
         Self::default()
     }
 
-    /// Sets the scrollbar width of the [`Scrollable`] .
+    /// Sets the scrollbar width of the [`Scrollbar`] .
     pub fn width(mut self, width: impl Into<Pixels>) -> Self {
         self.width = width.into().0.max(0.0);
         self
     }
 
-    /// Sets the scrollbar margin of the [`Scrollable`] .
+    /// Sets the scrollbar margin of the [`Scrollbar`] .
     pub fn margin(mut self, margin: impl Into<Pixels>) -> Self {
         self.margin = margin.into().0;
         self
     }
 
-    /// Sets the scroller width of the [`Scrollable`] .
+    /// Sets the scroller width of the [`Scrollbar`] .
     pub fn scroller_width(mut self, scroller_width: impl Into<Pixels>) -> Self {
         self.scroller_width = scroller_width.into().0.max(0.0);
         self
     }
 
-    /// Sets the alignment of the [`Scrollable`] .
-    pub fn alignment(mut self, alignment: Alignment) -> Self {
+    /// Sets the [`Anchor`] of the [`Scrollbar`] .
+    pub fn anchor(mut self, alignment: Anchor) -> Self {
         self.alignment = alignment;
         self
     }
 
-    /// Sets whether the [`Scrollbar`] should be embedded in the [`Scrollable`].
+    /// Sets whether the [`Scrollbar`] should be embedded in the [`Scrollable`], using
+    /// the given spacing between itself and the contents.
     ///
     /// An embedded [`Scrollbar`] will always be displayed, will take layout space,
     /// and will not float over the contents.
-    pub fn embedded(mut self, embedded: bool) -> Self {
-        self.embedded = embedded;
+    pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
+        self.spacing = Some(spacing.into().0);
         self
     }
 }
 
-/// Alignment of the scrollable's content relative to it's [`Viewport`] in one direction.
+/// The anchor of the scroller of the [`Scrollable`] relative to its [`Viewport`]
+/// on a given axis.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum Alignment {
-    /// Content is aligned to the start of the [`Viewport`].
+pub enum Anchor {
+    /// Scroller is anchoer to the start of the [`Viewport`].
     #[default]
     Start,
-    /// Content is aligned to the end of the [`Viewport`]
+    /// Content is aligned to the end of the [`Viewport`].
     End,
 }
 
@@ -330,12 +363,14 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let (right_padding, bottom_padding) = match self.direction {
-            Direction::Vertical(scrollbar) if scrollbar.embedded => {
-                (scrollbar.width + scrollbar.margin * 2.0, 0.0)
-            }
-            Direction::Horizontal(scrollbar) if scrollbar.embedded => {
-                (0.0, scrollbar.width + scrollbar.margin * 2.0)
-            }
+            Direction::Vertical {
+                scrollbar,
+                spacing: Some(spacing),
+            } => (scrollbar.width + scrollbar.margin * 2.0 + spacing, 0.0),
+            Direction::Horizontal {
+                scrollbar,
+                spacing: Some(spacing),
+            } => (0.0, scrollbar.width + scrollbar.margin * 2.0 + spacing),
             _ => (0.0, 0.0),
         };
 
@@ -1159,13 +1194,13 @@ impl Offset {
         self,
         viewport: f32,
         content: f32,
-        alignment: Alignment,
+        alignment: Anchor,
     ) -> f32 {
         let offset = self.absolute(viewport, content);
 
         match alignment {
-            Alignment::Start => offset,
-            Alignment::End => ((content - viewport).max(0.0) - offset).max(0.0),
+            Anchor::Start => offset,
+            Anchor::End => ((content - viewport).max(0.0) - offset).max(0.0),
         }
     }
 }
@@ -1252,9 +1287,9 @@ impl State {
             .map(|p| p.alignment)
             .unwrap_or_default();
 
-        let align = |alignment: Alignment, delta: f32| match alignment {
-            Alignment::Start => delta,
-            Alignment::End => -delta,
+        let align = |alignment: Anchor, delta: f32| match alignment {
+            Anchor::Start => delta,
+            Anchor::End => -delta,
         };
 
         let delta = Vector::new(
@@ -1385,11 +1420,11 @@ impl Scrollbars {
         let translation = state.translation(direction, bounds, content_bounds);
 
         let show_scrollbar_x = direction.horizontal().filter(|scrollbar| {
-            scrollbar.embedded || content_bounds.width > bounds.width
+            scrollbar.spacing.is_some() || content_bounds.width > bounds.width
         });
 
         let show_scrollbar_y = direction.vertical().filter(|scrollbar| {
-            scrollbar.embedded || content_bounds.height > bounds.height
+            scrollbar.spacing.is_some() || content_bounds.height > bounds.height
         });
 
         let y_scrollbar = if let Some(vertical) = show_scrollbar_y {
@@ -1592,14 +1627,14 @@ impl Scrollbars {
 pub(super) mod internals {
     use crate::core::{Point, Rectangle};
 
-    use super::Alignment;
+    use super::Anchor;
 
     #[derive(Debug, Copy, Clone)]
     pub struct Scrollbar {
         pub total_bounds: Rectangle,
         pub bounds: Rectangle,
         pub scroller: Option<Scroller>,
-        pub alignment: Alignment,
+        pub alignment: Anchor,
     }
 
     impl Scrollbar {
@@ -1621,8 +1656,8 @@ pub(super) mod internals {
                     / (self.bounds.height - scroller.bounds.height);
 
                 match self.alignment {
-                    Alignment::Start => percentage,
-                    Alignment::End => 1.0 - percentage,
+                    Anchor::Start => percentage,
+                    Anchor::End => 1.0 - percentage,
                 }
             } else {
                 0.0
@@ -1642,8 +1677,8 @@ pub(super) mod internals {
                     / (self.bounds.width - scroller.bounds.width);
 
                 match self.alignment {
-                    Alignment::Start => percentage,
-                    Alignment::End => 1.0 - percentage,
+                    Anchor::Start => percentage,
+                    Anchor::End => 1.0 - percentage,
                 }
             } else {
                 0.0
@@ -1746,10 +1781,10 @@ pub fn default(theme: &Theme, status: Status) -> Style {
 
     let scrollbar = Rail {
         background: Some(palette.background.weak.color.into()),
-        border: Border::rounded(2),
+        border: border::rounded(2),
         scroller: Scroller {
             color: palette.background.strong.color,
-            border: Border::rounded(2),
+            border: border::rounded(2),
         },
     };
 

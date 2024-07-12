@@ -1,4 +1,5 @@
 //! Distribute content horizontally.
+use crate::core::alignment::{self, Alignment};
 use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -6,8 +7,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Alignment, Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell,
-    Size, Vector, Widget,
+    Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 /// A container that distributes its contents horizontally.
@@ -17,7 +18,7 @@ pub struct Row<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     padding: Padding,
     width: Length,
     height: Length,
-    align_items: Alignment,
+    align: Alignment,
     clip: bool,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
 }
@@ -60,7 +61,7 @@ where
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
-            align_items: Alignment::Start,
+            align: Alignment::Start,
             clip: false,
             children,
         }
@@ -95,8 +96,8 @@ where
     }
 
     /// Sets the vertical alignment of the contents of the [`Row`] .
-    pub fn align_items(mut self, align: Alignment) -> Self {
-        self.align_items = align;
+    pub fn align_y(mut self, align: impl Into<alignment::Vertical>) -> Self {
+        self.align = Alignment::from(align.into());
         self
     }
 
@@ -199,7 +200,7 @@ where
             self.height,
             self.padding,
             self.spacing,
-            self.align_items,
+            self.align,
             &self.children,
             &mut tree.children,
         )

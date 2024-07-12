@@ -921,7 +921,7 @@ where
         text("iced").size(text_size).font(Font::MONOSPACE)
     ]
     .spacing(text_size.0 / 3.0)
-    .align_items(Alignment::Center)
+    .align_y(Alignment::Center)
     .into()
 }
 

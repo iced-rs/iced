@@ -1,4 +1,5 @@
 //! Allow your users to perform actions by pressing a button.
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -9,8 +10,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
-    Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Padding, Rectangle,
+    Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 /// A generic widget that produces a message when pressed.
@@ -591,7 +592,7 @@ fn styled(pair: palette::Pair) -> Style {
     Style {
         background: Some(Background::Color(pair.color)),
         text_color: pair.text,
-        border: Border::rounded(2),
+        border: border::rounded(2),
         ..Style::default()
     }
 }

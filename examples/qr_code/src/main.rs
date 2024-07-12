@@ -1,5 +1,5 @@
 use iced::widget::{center, column, pick_list, qr_code, row, text, text_input};
-use iced::{Alignment, Element, Theme};
+use iced::{Center, Element, Theme};
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -58,7 +58,7 @@ impl QRGenerator {
             pick_list(Theme::ALL, Some(&self.theme), Message::ThemeChanged,)
         ]
         .spacing(10)
-        .align_items(Alignment::Center);
+        .align_y(Center);
 
         let content = column![title, input, choose_theme]
             .push_maybe(
@@ -68,7 +68,7 @@ impl QRGenerator {
             )
             .width(700)
             .spacing(20)
-            .align_items(Alignment::Center);
+            .align_x(Center);
 
         center(content).padding(20).into()
     }

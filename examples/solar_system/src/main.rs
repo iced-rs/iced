@@ -13,7 +13,7 @@ use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{Geometry, Path};
 use iced::window;
 use iced::{
-    Color, Element, Length, Point, Rectangle, Renderer, Size, Subscription,
+    Color, Element, Fill, Point, Rectangle, Renderer, Size, Subscription,
     Theme, Vector,
 };
 
@@ -52,10 +52,7 @@ impl SolarSystem {
     }
 
     fn view(&self) -> Element<Message> {
-        canvas(&self.state)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        canvas(&self.state).width(Fill).height(Fill).into()
     }
 
     fn theme(&self) -> Theme {

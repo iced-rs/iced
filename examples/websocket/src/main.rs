@@ -1,10 +1,9 @@
 mod echo;
 
-use iced::alignment::{self, Alignment};
 use iced::widget::{
     self, button, center, column, row, scrollable, text, text_input,
 };
-use iced::{color, Element, Length, Subscription, Task};
+use iced::{color, Center, Element, Fill, Subscription, Task};
 use once_cell::sync::Lazy;
 
 pub fn main() -> iced::Result {
@@ -104,7 +103,7 @@ impl WebSocket {
                     .spacing(10),
             )
             .id(MESSAGE_LOG.clone())
-            .height(Length::Fill)
+            .height(Fill)
             .into()
         };
 
@@ -113,12 +112,8 @@ impl WebSocket {
                 .on_input(Message::NewMessageChanged)
                 .padding(10);
 
-            let mut button = button(
-                text("Send")
-                    .height(40)
-                    .vertical_alignment(alignment::Vertical::Center),
-            )
-            .padding([0, 20]);
+            let mut button = button(text("Send").height(40).align_y(Center))
+                .padding([0, 20]);
 
             if matches!(self.state, State::Connected(_)) {
                 if let Some(message) = echo::Message::new(&self.new_message) {
@@ -127,13 +122,11 @@ impl WebSocket {
                 }
             }
 
-            row![input, button]
-                .spacing(10)
-                .align_items(Alignment::Center)
+            row![input, button].spacing(10).align_y(Center)
         };
 
         column![message_log, new_message_input]
-            .height(Length::Fill)
+            .height(Fill)
             .padding(20)
             .spacing(10)
             .into()

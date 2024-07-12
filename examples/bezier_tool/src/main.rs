@@ -1,7 +1,6 @@
 //! This example showcases an interactive `Canvas` for drawing Bézier curves.
-use iced::alignment;
 use iced::widget::{button, container, horizontal_space, hover};
-use iced::{Element, Length, Theme};
+use iced::{Element, Fill, Theme};
 
 pub fn main() -> iced::Result {
     iced::application("Bezier Tool - Iced", Example::update, Example::view)
@@ -48,8 +47,7 @@ impl Example {
                         .on_press(Message::Clear),
                 )
                 .padding(10)
-                .width(Length::Fill)
-                .align_x(alignment::Horizontal::Right)
+                .align_right(Fill)
             },
         ))
         .padding(20)
@@ -61,7 +59,7 @@ mod bezier {
     use iced::mouse;
     use iced::widget::canvas::event::{self, Event};
     use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
-    use iced::{Element, Length, Point, Rectangle, Renderer, Theme};
+    use iced::{Element, Fill, Point, Rectangle, Renderer, Theme};
 
     #[derive(Default)]
     pub struct State {
@@ -74,8 +72,8 @@ mod bezier {
                 state: self,
                 curves,
             })
-            .width(Length::Fill)
-            .height(Length::Fill)
+            .width(Fill)
+            .height(Fill)
             .into()
         }
 

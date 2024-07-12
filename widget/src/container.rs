@@ -1,5 +1,6 @@
 //! Decorate content and apply alignment.
 use crate::core::alignment::{self, Alignment};
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::gradient::{self, Gradient};
 use crate::core::layout;
@@ -9,9 +10,8 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Border, Clipboard, Color, Element, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
-    Widget,
+    self, Background, Clipboard, Color, Element, Layout, Length, Padding,
+    Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::task::{self, Task};
 
@@ -92,46 +92,6 @@ where
         self
     }
 
-    /// Sets the [`Container`] to fill the available space in the horizontal axis.
-    ///
-    /// This can be useful to quickly position content when chained with
-    /// alignment functions—like [`center_x`].
-    ///
-    /// Calling this method is equivalent to calling [`width`] with a
-    /// [`Length::Fill`].
-    ///
-    /// [`center_x`]: Self::center_x
-    /// [`width`]: Self::width
-    pub fn fill_x(self) -> Self {
-        self.width(Length::Fill)
-    }
-
-    /// Sets the [`Container`] to fill the available space in the vetical axis.
-    ///
-    /// This can be useful to quickly position content when chained with
-    /// alignment functions—like [`center_y`].
-    ///
-    /// Calling this method is equivalent to calling [`height`] with a
-    /// [`Length::Fill`].
-    ///
-    /// [`center_y`]: Self::center_x
-    /// [`height`]: Self::height
-    pub fn fill_y(self) -> Self {
-        self.height(Length::Fill)
-    }
-
-    /// Sets the [`Container`] to fill all the available space.
-    ///
-    /// Calling this method is equivalent to chaining [`fill_x`] and
-    /// [`fill_y`].
-    ///
-    /// [`center`]: Self::center
-    /// [`fill_x`]: Self::fill_x
-    /// [`fill_y`]: Self::fill_y
-    pub fn fill(self) -> Self {
-        self.width(Length::Fill).height(Length::Fill)
-    }
-
     /// Sets the maximum width of the [`Container`].
     pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
         self.max_width = max_width.into().0;
@@ -141,18 +101,6 @@ where
     /// Sets the maximum height of the [`Container`].
     pub fn max_height(mut self, max_height: impl Into<Pixels>) -> Self {
         self.max_height = max_height.into().0;
-        self
-    }
-
-    /// Sets the content alignment for the horizontal axis of the [`Container`].
-    pub fn align_x(mut self, alignment: alignment::Horizontal) -> Self {
-        self.horizontal_alignment = alignment;
-        self
-    }
-
-    /// Sets the content alignment for the vertical axis of the [`Container`].
-    pub fn align_y(mut self, alignment: alignment::Vertical) -> Self {
-        self.vertical_alignment = alignment;
         self
     }
 
@@ -177,6 +125,44 @@ where
         let length = length.into();
 
         self.center_x(length).center_y(length)
+    }
+
+    /// Aligns the contents of the [`Container`] to the left.
+    pub fn align_left(self, width: impl Into<Length>) -> Self {
+        self.width(width).align_x(alignment::Horizontal::Left)
+    }
+
+    /// Aligns the contents of the [`Container`] to the right.
+    pub fn align_right(self, width: impl Into<Length>) -> Self {
+        self.width(width).align_x(alignment::Horizontal::Right)
+    }
+
+    /// Aligns the contents of the [`Container`] to the top.
+    pub fn align_top(self, height: impl Into<Length>) -> Self {
+        self.height(height).align_y(alignment::Vertical::Top)
+    }
+
+    /// Aligns the contents of the [`Container`] to the bottom.
+    pub fn align_bottom(self, height: impl Into<Length>) -> Self {
+        self.height(height).align_y(alignment::Vertical::Bottom)
+    }
+
+    /// Sets the content alignment for the horizontal axis of the [`Container`].
+    pub fn align_x(
+        mut self,
+        alignment: impl Into<alignment::Horizontal>,
+    ) -> Self {
+        self.horizontal_alignment = alignment.into();
+        self
+    }
+
+    /// Sets the content alignment for the vertical axis of the [`Container`].
+    pub fn align_y(
+        mut self,
+        alignment: impl Into<alignment::Vertical>,
+    ) -> Self {
+        self.vertical_alignment = alignment.into();
+        self
     }
 
     /// Sets whether the contents of the [`Container`] should be clipped on
@@ -641,7 +627,7 @@ pub fn rounded_box(theme: &Theme) -> Style {
 
     Style {
         background: Some(palette.background.weak.color.into()),
-        border: Border::rounded(2),
+        border: border::rounded(2),
         ..Style::default()
     }
 }

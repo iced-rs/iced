@@ -196,6 +196,7 @@ pub use crate::core::alignment;
 pub use crate::core::border;
 pub use crate::core::color;
 pub use crate::core::gradient;
+pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
     Alignment, Background, Border, Color, ContentFit, Degrees, Gradient,
@@ -204,6 +205,11 @@ pub use crate::core::{
 };
 pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
+
+pub use alignment::Horizontal::{Left, Right};
+pub use alignment::Vertical::{Bottom, Top};
+pub use Alignment::Center;
+pub use Length::{Fill, FillPortion, Shrink};
 
 pub mod task {
     //! Create runtime tasks.

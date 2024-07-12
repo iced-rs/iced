@@ -2,7 +2,7 @@ use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
     scrollable, slider, text, vertical_space,
 };
-use iced::{Alignment, Border, Color, Element, Length, Task, Theme};
+use iced::{Border, Center, Color, Element, Fill, Task, Theme};
 
 use once_cell::sync::Lazy;
 
@@ -24,7 +24,7 @@ struct ScrollableDemo {
     scrollbar_margin: u16,
     scroller_width: u16,
     current_scroll_offset: scrollable::RelativeOffset,
-    alignment: scrollable::Alignment,
+    anchor: scrollable::Anchor,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Copy)]
@@ -37,7 +37,7 @@ enum Direction {
 #[derive(Debug, Clone)]
 enum Message {
     SwitchDirection(Direction),
-    AlignmentChanged(scrollable::Alignment),
+    AlignmentChanged(scrollable::Anchor),
     ScrollbarWidthChanged(u16),
     ScrollbarMarginChanged(u16),
     ScrollerWidthChanged(u16),
@@ -54,7 +54,7 @@ impl ScrollableDemo {
             scrollbar_margin: 0,
             scroller_width: 10,
             current_scroll_offset: scrollable::RelativeOffset::START,
-            alignment: scrollable::Alignment::Start,
+            anchor: scrollable::Anchor::Start,
         }
     }
 
@@ -71,7 +71,7 @@ impl ScrollableDemo {
             }
             Message::AlignmentChanged(alignment) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
-                self.alignment = alignment;
+                self.anchor = alignment;
 
                 scrollable::snap_to(
                     SCROLLABLE_ID.clone(),
@@ -168,14 +168,14 @@ impl ScrollableDemo {
             text("Scrollable alignment:"),
             radio(
                 "Start",
-                scrollable::Alignment::Start,
-                Some(self.alignment),
+                scrollable::Anchor::Start,
+                Some(self.anchor),
                 Message::AlignmentChanged,
             ),
             radio(
                 "End",
-                scrollable::Alignment::End,
-                Some(self.alignment),
+                scrollable::Anchor::End,
+                Some(self.anchor),
                 Message::AlignmentChanged,
             )
         ]
@@ -212,19 +212,20 @@ impl ScrollableDemo {
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
-                    .align_items(Alignment::Center)
-                    .padding([40, 0, 40, 0])
+                    .align_x(Center)
+                    .padding([40, 0])
                     .spacing(40),
                 )
-                .direction(scrollable::Direction::Vertical(
-                    scrollable::Scrollbar::new()
+                .direction(scrollable::Direction::Vertical {
+                    scrollbar: scrollable::Scrollbar::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
                         .scroller_width(self.scroller_width)
-                        .alignment(self.alignment),
-                ))
-                .width(Length::Fill)
-                .height(Length::Fill)
+                        .anchor(self.anchor),
+                    spacing: None,
+                })
+                .width(Fill)
+                .height(Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
                 Direction::Horizontal => scrollable(
@@ -238,19 +239,20 @@ impl ScrollableDemo {
                         scroll_to_beginning_button(),
                     ]
                     .height(450)
-                    .align_items(Alignment::Center)
-                    .padding([0, 40, 0, 40])
+                    .align_y(Center)
+                    .padding([0, 40])
                     .spacing(40),
                 )
-                .direction(scrollable::Direction::Horizontal(
-                    scrollable::Scrollbar::new()
+                .direction(scrollable::Direction::Horizontal {
+                    scrollbar: scrollable::Scrollbar::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
                         .scroller_width(self.scroller_width)
-                        .alignment(self.alignment),
-                ))
-                .width(Length::Fill)
-                .height(Length::Fill)
+                        .anchor(self.anchor),
+                    spacing: None,
+                })
+                .width(Fill)
+                .height(Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
                 Direction::Multi => scrollable(
@@ -280,8 +282,8 @@ impl ScrollableDemo {
                         text("Horizontal - End!"),
                         scroll_to_beginning_button(),
                     ]
-                    .align_items(Alignment::Center)
-                    .padding([0, 40, 0, 40])
+                    .align_y(Center)
+                    .padding([0, 40])
                     .spacing(40),
                 )
                 .direction({
@@ -289,15 +291,15 @@ impl ScrollableDemo {
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
                         .scroller_width(self.scroller_width)
-                        .alignment(self.alignment);
+                        .anchor(self.anchor);
 
                     scrollable::Direction::Both {
                         horizontal: scrollbar,
                         vertical: scrollbar,
                     }
                 })
-                .width(Length::Fill)
-                .height(Length::Fill)
+                .width(Fill)
+                .height(Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
             });
@@ -322,7 +324,7 @@ impl ScrollableDemo {
 
         let content: Element<Message> =
             column![scroll_controls, scrollable_content, progress_bars]
-                .align_items(Alignment::Center)
+                .align_x(Center)
                 .spacing(10)
                 .into();
 
