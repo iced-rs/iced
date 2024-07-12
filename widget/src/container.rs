@@ -1,5 +1,6 @@
 //! Decorate content and apply alignment.
 use crate::core::alignment::{self, Alignment};
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::gradient::{self, Gradient};
 use crate::core::layout;
@@ -9,9 +10,8 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Border, Clipboard, Color, Element, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
-    Widget,
+    self, Background, Clipboard, Color, Element, Layout, Length, Padding,
+    Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::task::{self, Task};
 
@@ -627,7 +627,7 @@ pub fn rounded_box(theme: &Theme) -> Style {
 
     Style {
         background: Some(palette.background.weak.color.into()),
-        border: Border::rounded(2),
+        border: border::rounded(2),
         ..Style::default()
     }
 }

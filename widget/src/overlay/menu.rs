@@ -1,5 +1,6 @@
 //! Build and show dropdown menus.
 use crate::core::alignment;
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -9,8 +10,8 @@ use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
-    Background, Border, Clipboard, Color, Length, Padding, Pixels, Point,
-    Rectangle, Size, Theme, Vector,
+    Background, Clipboard, Color, Length, Padding, Pixels, Point, Rectangle,
+    Size, Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -514,7 +515,7 @@ where
                             width: bounds.width - style.border.width * 2.0,
                             ..bounds
                         },
-                        border: Border::rounded(style.border.radius),
+                        border: border::rounded(style.border.radius),
                         ..renderer::Quad::default()
                     },
                     style.selected_background,

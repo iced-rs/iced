@@ -5,6 +5,7 @@ pub use crate::slider::{
     default, Catalog, Handle, HandleShape, Status, Style, StyleFn,
 };
 
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
@@ -14,8 +15,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Border, Clipboard, Element, Length, Pixels, Point, Rectangle, Shell,
-    Size, Widget,
+    self, Clipboard, Element, Length, Pixels, Point, Rectangle, Shell, Size,
+    Widget,
 };
 
 /// An vertical bar and a handle that selects a single value from a range of
@@ -412,7 +413,7 @@ where
                     width: style.rail.width,
                     height: offset + handle_width / 2.0,
                 },
-                border: Border::rounded(style.rail.border_radius),
+                border: border::rounded(style.rail.border_radius),
                 ..renderer::Quad::default()
             },
             style.rail.colors.1,
@@ -426,7 +427,7 @@ where
                     width: style.rail.width,
                     height: bounds.height - offset - handle_width / 2.0,
                 },
-                border: Border::rounded(style.rail.border_radius),
+                border: border::rounded(style.rail.border_radius),
                 ..renderer::Quad::default()
             },
             style.rail.colors.0,

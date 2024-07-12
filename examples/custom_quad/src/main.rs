@@ -3,12 +3,13 @@ mod quad {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
+    use iced::border;
     use iced::mouse;
     use iced::{Border, Color, Element, Length, Rectangle, Shadow, Size};
 
     pub struct CustomQuad {
         size: f32,
-        radius: [f32; 4],
+        radius: border::Radius,
         border_width: f32,
         shadow: Shadow,
     }
@@ -16,7 +17,7 @@ mod quad {
     impl CustomQuad {
         pub fn new(
             size: f32,
-            radius: [f32; 4],
+            radius: border::Radius,
             border_width: f32,
             shadow: Shadow,
         ) -> Self {
@@ -63,7 +64,7 @@ mod quad {
                 renderer::Quad {
                     bounds: layout.bounds(),
                     border: Border {
-                        radius: self.radius.into(),
+                        radius: self.radius,
                         width: self.border_width,
                         color: Color::from_rgb(1.0, 0.0, 0.0),
                     },
@@ -81,6 +82,7 @@ mod quad {
     }
 }
 
+use iced::border;
 use iced::widget::{center, column, slider, text};
 use iced::{Center, Color, Element, Shadow, Vector};
 
@@ -89,7 +91,7 @@ pub fn main() -> iced::Result {
 }
 
 struct Example {
-    radius: [f32; 4],
+    radius: border::Radius,
     border_width: f32,
     shadow: Shadow,
 }
@@ -110,7 +112,7 @@ enum Message {
 impl Example {
     fn new() -> Self {
         Self {
-            radius: [50.0; 4],
+            radius: border::radius(50),
             border_width: 0.0,
             shadow: Shadow {
                 color: Color::from_rgba(0.0, 0.0, 0.0, 0.8),
@@ -121,19 +123,18 @@ impl Example {
     }
 
     fn update(&mut self, message: Message) {
-        let [tl, tr, br, bl] = self.radius;
         match message {
             Message::RadiusTopLeftChanged(radius) => {
-                self.radius = [radius, tr, br, bl];
+                self.radius = self.radius.top_left(radius);
             }
             Message::RadiusTopRightChanged(radius) => {
-                self.radius = [tl, radius, br, bl];
+                self.radius = self.radius.top_right(radius);
             }
             Message::RadiusBottomRightChanged(radius) => {
-                self.radius = [tl, tr, radius, bl];
+                self.radius = self.radius.bottom_right(radius);
             }
             Message::RadiusBottomLeftChanged(radius) => {
-                self.radius = [tl, tr, br, radius];
+                self.radius = self.radius.bottom_left(radius);
             }
             Message::BorderWidthChanged(width) => {
                 self.border_width = width;
@@ -151,7 +152,13 @@ impl Example {
     }
 
     fn view(&self) -> Element<Message> {
-        let [tl, tr, br, bl] = self.radius;
+        let border::Radius {
+            top_left,
+            top_right,
+            bottom_right,
+            bottom_left,
+        } = self.radius;
+
         let Shadow {
             offset: Vector { x: sx, y: sy },
             blur_radius: sr,
@@ -165,12 +172,12 @@ impl Example {
                 self.border_width,
                 self.shadow
             ),
-            text!("Radius: {tl:.2}/{tr:.2}/{br:.2}/{bl:.2}"),
-            slider(1.0..=100.0, tl, Message::RadiusTopLeftChanged).step(0.01),
-            slider(1.0..=100.0, tr, Message::RadiusTopRightChanged).step(0.01),
-            slider(1.0..=100.0, br, Message::RadiusBottomRightChanged)
+            text!("Radius: {top_left:.2}/{top_right:.2}/{bottom_right:.2}/{bottom_left:.2}"),
+            slider(1.0..=100.0, top_left, Message::RadiusTopLeftChanged).step(0.01),
+            slider(1.0..=100.0, top_right, Message::RadiusTopRightChanged).step(0.01),
+            slider(1.0..=100.0, bottom_right, Message::RadiusBottomRightChanged)
                 .step(0.01),
-            slider(1.0..=100.0, bl, Message::RadiusBottomLeftChanged)
+            slider(1.0..=100.0, bottom_left, Message::RadiusBottomLeftChanged)
                 .step(0.01),
             slider(1.0..=10.0, self.border_width, Message::BorderWidthChanged)
                 .step(0.01),

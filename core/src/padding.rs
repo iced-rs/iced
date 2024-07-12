@@ -32,7 +32,7 @@ use crate::{Pixels, Size};
 /// let widget = Widget::new().padding(20);              // 20px on all sides
 /// let widget = Widget::new().padding([10, 20]);        // top/bottom, left/right
 /// ```
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct Padding {
     /// Top padding
     pub top: f32,
@@ -51,34 +51,22 @@ pub fn all(padding: impl Into<Pixels>) -> Padding {
 
 /// Create some top [`Padding`].
 pub fn top(padding: impl Into<Pixels>) -> Padding {
-    Padding {
-        top: padding.into().0,
-        ..Padding::ZERO
-    }
+    Padding::default().top(padding)
 }
 
 /// Create some bottom [`Padding`].
 pub fn bottom(padding: impl Into<Pixels>) -> Padding {
-    Padding {
-        bottom: padding.into().0,
-        ..Padding::ZERO
-    }
+    Padding::default().bottom(padding)
 }
 
 /// Create some left [`Padding`].
 pub fn left(padding: impl Into<Pixels>) -> Padding {
-    Padding {
-        left: padding.into().0,
-        ..Padding::ZERO
-    }
+    Padding::default().left(padding)
 }
 
 /// Create some right [`Padding`].
 pub fn right(padding: impl Into<Pixels>) -> Padding {
-    Padding {
-        right: padding.into().0,
-        ..Padding::ZERO
-    }
+    Padding::default().right(padding)
 }
 
 impl Padding {

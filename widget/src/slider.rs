@@ -1,5 +1,5 @@
 //! Display an interactive selector of a single value from a range of values.
-use crate::core::border;
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
@@ -9,8 +9,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Border, Clipboard, Color, Element, Layout, Length, Pixels, Point,
-    Rectangle, Shell, Size, Theme, Widget,
+    self, Clipboard, Color, Element, Layout, Length, Pixels, Point, Rectangle,
+    Shell, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -408,7 +408,7 @@ where
                     width: offset + handle_width / 2.0,
                     height: style.rail.width,
                 },
-                border: Border::rounded(style.rail.border_radius),
+                border: border::rounded(style.rail.border_radius),
                 ..renderer::Quad::default()
             },
             style.rail.colors.0,
@@ -422,7 +422,7 @@ where
                     width: bounds.width - offset - handle_width / 2.0,
                     height: style.rail.width,
                 },
-                border: Border::rounded(style.rail.border_radius),
+                border: border::rounded(style.rail.border_radius),
                 ..renderer::Quad::default()
             },
             style.rail.colors.1,

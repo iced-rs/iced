@@ -1,5 +1,6 @@
 //! Navigate an endless amount of content with a scrollbar.
 use crate::container;
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::layout;
@@ -11,8 +12,8 @@ use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Background, Border, Clipboard, Color, Element, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    self, Background, Clipboard, Color, Element, Layout, Length, Padding,
+    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
@@ -1767,10 +1768,10 @@ pub fn default(theme: &Theme, status: Status) -> Style {
 
     let scrollbar = Rail {
         background: Some(palette.background.weak.color.into()),
-        border: Border::rounded(2),
+        border: border::rounded(2),
         scroller: Scroller {
             color: palette.background.strong.color,
-            border: Border::rounded(2),
+            border: border::rounded(2),
         },
     };
 
