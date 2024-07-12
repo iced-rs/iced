@@ -138,12 +138,12 @@ where
     }
 
     /// Aligns the contents of the [`Container`] to the top.
-    pub fn align_top(self, height: Length) -> Self {
+    pub fn align_top(self, height: impl Into<Length>) -> Self {
         self.height(height).align_y(alignment::Vertical::Top)
     }
 
     /// Aligns the contents of the [`Container`] to the bottom.
-    pub fn align_bottom(self, height: Length) -> Self {
+    pub fn align_bottom(self, height: impl Into<Length>) -> Self {
         self.height(height).align_y(alignment::Vertical::Bottom)
     }
 
