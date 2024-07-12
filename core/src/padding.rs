@@ -1,3 +1,4 @@
+//! Space stuff around the perimeter.
 use crate::{Pixels, Size};
 
 /// An amount of space to pad for each side of a box
@@ -9,7 +10,6 @@ use crate::{Pixels, Size};
 /// #
 /// let padding = Padding::from(20);              // 20px on all sides
 /// let padding = Padding::from([10, 20]);        // top/bottom, left/right
-/// let padding = Padding::from([5, 10, 15, 20]); // top, right, bottom, left
 /// ```
 ///
 /// Normally, the `padding` method of a widget will ask for an `Into<Padding>`,
@@ -31,7 +31,6 @@ use crate::{Pixels, Size};
 ///
 /// let widget = Widget::new().padding(20);              // 20px on all sides
 /// let widget = Widget::new().padding([10, 20]);        // top/bottom, left/right
-/// let widget = Widget::new().padding([5, 10, 15, 20]); // top, right, bottom, left
 /// ```
 #[derive(Debug, Copy, Clone)]
 pub struct Padding {
@@ -43,6 +42,43 @@ pub struct Padding {
     pub bottom: f32,
     /// Left padding
     pub left: f32,
+}
+
+/// Create a [`Padding`] that is equal on all sides.
+pub fn all(padding: impl Into<Pixels>) -> Padding {
+    Padding::new(padding.into().0)
+}
+
+/// Create some top [`Padding`].
+pub fn top(padding: impl Into<Pixels>) -> Padding {
+    Padding {
+        top: padding.into().0,
+        ..Padding::ZERO
+    }
+}
+
+/// Create some bottom [`Padding`].
+pub fn bottom(padding: impl Into<Pixels>) -> Padding {
+    Padding {
+        bottom: padding.into().0,
+        ..Padding::ZERO
+    }
+}
+
+/// Create some left [`Padding`].
+pub fn left(padding: impl Into<Pixels>) -> Padding {
+    Padding {
+        left: padding.into().0,
+        ..Padding::ZERO
+    }
+}
+
+/// Create some right [`Padding`].
+pub fn right(padding: impl Into<Pixels>) -> Padding {
+    Padding {
+        right: padding.into().0,
+        ..Padding::ZERO
+    }
 }
 
 impl Padding {
@@ -64,35 +100,43 @@ impl Padding {
         }
     }
 
-    /// Create some top [`Padding`].
-    pub fn top(padding: impl Into<Pixels>) -> Self {
+    /// Sets the [`top`] of the [`Padding`].
+    ///
+    /// [`top`]: Self::top
+    pub fn top(self, top: impl Into<Pixels>) -> Self {
         Self {
-            top: padding.into().0,
-            ..Self::ZERO
+            top: top.into().0,
+            ..self
         }
     }
 
-    /// Create some right [`Padding`].
-    pub fn right(padding: impl Into<Pixels>) -> Self {
+    /// Sets the [`bottom`] of the [`Padding`].
+    ///
+    /// [`bottom`]: Self::bottom
+    pub fn bottom(self, bottom: impl Into<Pixels>) -> Self {
         Self {
-            right: padding.into().0,
-            ..Self::ZERO
+            bottom: bottom.into().0,
+            ..self
         }
     }
 
-    /// Create some bottom [`Padding`].
-    pub fn bottom(padding: impl Into<Pixels>) -> Self {
+    /// Sets the [`left`] of the [`Padding`].
+    ///
+    /// [`left`]: Self::left
+    pub fn left(self, left: impl Into<Pixels>) -> Self {
         Self {
-            bottom: padding.into().0,
-            ..Self::ZERO
+            left: left.into().0,
+            ..self
         }
     }
 
-    /// Create some left [`Padding`].
-    pub fn left(padding: impl Into<Pixels>) -> Self {
+    /// Sets the [`right`] of the [`Padding`].
+    ///
+    /// [`right`]: Self::right
+    pub fn right(self, right: impl Into<Pixels>) -> Self {
         Self {
-            left: padding.into().0,
-            ..Self::ZERO
+            right: right.into().0,
+            ..self
         }
     }
 
@@ -143,17 +187,6 @@ impl From<[u16; 2]> for Padding {
     }
 }
 
-impl From<[u16; 4]> for Padding {
-    fn from(p: [u16; 4]) -> Self {
-        Padding {
-            top: f32::from(p[0]),
-            right: f32::from(p[1]),
-            bottom: f32::from(p[2]),
-            left: f32::from(p[3]),
-        }
-    }
-}
-
 impl From<f32> for Padding {
     fn from(p: f32) -> Self {
         Padding {
@@ -172,17 +205,6 @@ impl From<[f32; 2]> for Padding {
             right: p[1],
             bottom: p[0],
             left: p[1],
-        }
-    }
-}
-
-impl From<[f32; 4]> for Padding {
-    fn from(p: [f32; 4]) -> Self {
-        Padding {
-            top: p[0],
-            right: p[1],
-            bottom: p[2],
-            left: p[3],
         }
     }
 }

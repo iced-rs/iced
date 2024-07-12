@@ -213,7 +213,7 @@ impl ScrollableDemo {
                         scroll_to_beginning_button(),
                     ]
                     .align_x(Center)
-                    .padding([40, 0, 40, 0])
+                    .padding([40, 0])
                     .spacing(40),
                 )
                 .direction(scrollable::Direction::Vertical(
@@ -239,7 +239,7 @@ impl ScrollableDemo {
                     ]
                     .height(450)
                     .align_y(Center)
-                    .padding([0, 40, 0, 40])
+                    .padding([0, 40])
                     .spacing(40),
                 )
                 .direction(scrollable::Direction::Horizontal(
@@ -281,7 +281,7 @@ impl ScrollableDemo {
                         scroll_to_beginning_button(),
                     ]
                     .align_y(Center)
-                    .padding([0, 40, 0, 40])
+                    .padding([0, 40])
                     .spacing(40),
                 )
                 .direction({

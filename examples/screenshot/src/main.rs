@@ -170,7 +170,7 @@ impl Example {
             column![
                 column![
                     button(centered_text("Screenshot!"))
-                        .padding([10, 20, 10, 20])
+                        .padding([10, 20])
                         .width(Fill)
                         .on_press(Message::Screenshot),
                     if !self.png_saving {
@@ -182,7 +182,7 @@ impl Example {
                             .style(button::secondary)
                     }
                     .style(button::secondary)
-                    .padding([10, 20, 10, 20])
+                    .padding([10, 20])
                     .width(Fill)
                 ]
                 .spacing(10),
@@ -191,7 +191,7 @@ impl Example {
                     button(centered_text("Crop"))
                         .on_press(Message::Crop)
                         .style(button::danger)
-                        .padding([10, 20, 10, 20])
+                        .padding([10, 20])
                         .width(Fill),
                 ]
                 .spacing(10)
