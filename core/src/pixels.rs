@@ -6,7 +6,7 @@
 /// (e.g. `impl Into<Pixels>`) and, since `Pixels` implements `From` both for
 /// `f32` and `u16`, you should be able to provide both integers and float
 /// literals as needed.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
 pub struct Pixels(pub f32);
 
 impl From<f32> for Pixels {
@@ -24,6 +24,30 @@ impl From<u16> for Pixels {
 impl From<Pixels> for f32 {
     fn from(pixels: Pixels) -> Self {
         pixels.0
+    }
+}
+
+impl std::ops::Add for Pixels {
+    type Output = Pixels;
+
+    fn add(self, rhs: Self) -> Self {
+        Pixels(self.0 + rhs.0)
+    }
+}
+
+impl std::ops::Add<f32> for Pixels {
+    type Output = Pixels;
+
+    fn add(self, rhs: f32) -> Self {
+        Pixels(self.0 + rhs)
+    }
+}
+
+impl std::ops::Mul for Pixels {
+    type Output = Pixels;
+
+    fn mul(self, rhs: Self) -> Self {
+        Pixels(self.0 * rhs.0)
     }
 }
 

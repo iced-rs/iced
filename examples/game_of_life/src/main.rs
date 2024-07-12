@@ -9,7 +9,7 @@ use iced::time;
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, slider, text,
 };
-use iced::{Alignment, Element, Length, Subscription, Task, Theme};
+use iced::{Element, Length, Subscription, Task, Theme};
 use std::time::Duration;
 
 pub fn main() -> iced::Result {
@@ -169,7 +169,7 @@ fn view_controls<'a>(
         slider(1.0..=1000.0, speed as f32, Message::SpeedChanged),
         text!("x{speed}").size(16),
     ]
-    .align_items(Alignment::Center)
+    .center_y()
     .spacing(10);
 
     row![
@@ -186,7 +186,7 @@ fn view_controls<'a>(
     ]
     .padding(10)
     .spacing(20)
-    .align_items(Alignment::Center)
+    .center_y()
     .into()
 }
 

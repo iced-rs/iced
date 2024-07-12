@@ -4,7 +4,7 @@ use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text,
     text_editor, tooltip,
 };
-use iced::{Alignment, Element, Font, Length, Subscription, Task, Theme};
+use iced::{Element, Font, Length, Subscription, Task, Theme};
 
 use std::ffi;
 use std::io;
@@ -158,7 +158,7 @@ impl Editor {
             .padding([5, 10])
         ]
         .spacing(10)
-        .align_items(Alignment::Center);
+        .center_y();
 
         let status = row![
             text(if let Some(path) = &self.file {

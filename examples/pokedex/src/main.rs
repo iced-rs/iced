@@ -1,6 +1,6 @@
 use iced::futures;
 use iced::widget::{self, center, column, image, row, text};
-use iced::{Alignment, Element, Length, Task};
+use iced::{Element, Length, Task};
 
 pub fn main() -> iced::Result {
     iced::application(Pokedex::title, Pokedex::update, Pokedex::view)
@@ -74,13 +74,13 @@ impl Pokedex {
             ]
             .max_width(500)
             .spacing(20)
-            .align_items(Alignment::End),
+            .align_right(),
             Pokedex::Errored => column![
                 text("Whoops! Something went wrong...").size(40),
                 button("Try again").on_press(Message::Search)
             ]
             .spacing(20)
-            .align_items(Alignment::End),
+            .align_right(),
         };
 
         center(content).into()
@@ -106,14 +106,14 @@ impl Pokemon {
                     text(&self.name).size(30).width(Length::Fill),
                     text!("#{}", self.number).size(20).color([0.5, 0.5, 0.5]),
                 ]
-                .align_items(Alignment::Center)
+                .center_y()
                 .spacing(20),
                 self.description.as_ref(),
             ]
             .spacing(20),
         ]
         .spacing(20)
-        .align_items(Alignment::Center)
+        .center_y()
         .into()
     }
 

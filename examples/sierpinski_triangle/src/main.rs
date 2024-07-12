@@ -60,7 +60,7 @@ impl SierpinskiEmulator {
             .padding(10)
             .spacing(20),
         ]
-        .align_items(iced::Alignment::Center)
+        .center_x()
         .into()
     }
 }

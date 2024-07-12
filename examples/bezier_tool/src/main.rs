@@ -1,5 +1,4 @@
 //! This example showcases an interactive `Canvas` for drawing Bézier curves.
-use iced::alignment;
 use iced::widget::{button, container, horizontal_space, hover};
 use iced::{Element, Length, Theme};
 
@@ -49,7 +48,7 @@ impl Example {
                 )
                 .padding(10)
                 .width(Length::Fill)
-                .align_x(alignment::Horizontal::Right)
+                .align_right()
             },
         ))
         .padding(20)

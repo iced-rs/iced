@@ -1,4 +1,4 @@
-use iced::alignment::{self, Alignment};
+use iced::alignment;
 use iced::mouse;
 use iced::widget::{
     canvas, checkbox, column, horizontal_space, row, slider, text,
@@ -85,7 +85,7 @@ impl VectorialText {
                 ]
                 .spacing(20),
             ]
-            .align_items(Alignment::Center)
+            .center_x()
             .spacing(10)
         ]
         .spacing(10)

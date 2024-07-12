@@ -34,7 +34,6 @@ impl Component {
 }
 
 mod numeric_input {
-    use iced::alignment::{self, Alignment};
     use iced::widget::{button, component, row, text, text_input, Component};
     use iced::{Element, Length, Size};
 
@@ -108,8 +107,7 @@ mod numeric_input {
                     text(label)
                         .width(Length::Fill)
                         .height(Length::Fill)
-                        .horizontal_alignment(alignment::Horizontal::Center)
-                        .vertical_alignment(alignment::Vertical::Center),
+                        .center(),
                 )
                 .width(40)
                 .height(40)
@@ -130,7 +128,7 @@ mod numeric_input {
                 .padding(10),
                 button("+", Event::IncrementPressed),
             ]
-            .align_items(Alignment::Center)
+            .center_y()
             .spacing(10)
             .into()
         }

@@ -1,4 +1,4 @@
-use iced::alignment::{self, Alignment};
+use iced::alignment;
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
 use iced::widget::{column, row, text, Slider};
@@ -320,7 +320,7 @@ impl<C: ColorSpace + Copy> ColorPicker<C> {
             text(color.to_string()).width(185).size(12),
         ]
         .spacing(10)
-        .align_items(Alignment::Center)
+        .center_y()
         .into()
     }
 }

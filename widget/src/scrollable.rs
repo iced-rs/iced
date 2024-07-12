@@ -109,8 +109,28 @@ where
         self
     }
 
-    /// Sets the alignment of the horizontal direction of the [`Scrollable`], if applicable.
-    pub fn align_x(mut self, alignment: Alignment) -> Self {
+    /// Anchors the vertical [`Scrollable`] direction to the top.
+    pub fn anchor_top(self) -> Self {
+        self.anchor_y(Anchor::Start)
+    }
+
+    /// Anchors the vertical [`Scrollable`] direction to the bottom.
+    pub fn anchor_bottom(self) -> Self {
+        self.anchor_y(Anchor::End)
+    }
+
+    /// Anchors the horizontal [`Scrollable`] direction to the left.
+    pub fn anchor_left(self) -> Self {
+        self.anchor_x(Anchor::Start)
+    }
+
+    /// Anchors the horizontal [`Scrollable`] direction to the right.
+    pub fn anchor_right(self) -> Self {
+        self.anchor_x(Anchor::End)
+    }
+
+    /// Sets the [`Anchor`] of the horizontal direction of the [`Scrollable`], if applicable.
+    pub fn anchor_x(mut self, alignment: Anchor) -> Self {
         match &mut self.direction {
             Direction::Horizontal(horizontal)
             | Direction::Both { horizontal, .. } => {
@@ -122,8 +142,8 @@ where
         self
     }
 
-    /// Sets the alignment of the vertical direction of the [`Scrollable`], if applicable.
-    pub fn align_y(mut self, alignment: Alignment) -> Self {
+    /// Sets the [`Anchor`] of the vertical direction of the [`Scrollable`], if applicable.
+    pub fn anchor_y(mut self, alignment: Anchor) -> Self {
         match &mut self.direction {
             Direction::Vertical(vertical)
             | Direction::Both { vertical, .. } => {
@@ -228,7 +248,7 @@ pub struct Scrollbar {
     width: f32,
     margin: f32,
     scroller_width: f32,
-    alignment: Alignment,
+    alignment: Anchor,
     embedded: bool,
 }
 
@@ -238,7 +258,7 @@ impl Default for Scrollbar {
             width: 10.0,
             margin: 0.0,
             scroller_width: 10.0,
-            alignment: Alignment::Start,
+            alignment: Anchor::Start,
             embedded: false,
         }
     }
@@ -250,26 +270,26 @@ impl Scrollbar {
         Self::default()
     }
 
-    /// Sets the scrollbar width of the [`Scrollable`] .
+    /// Sets the scrollbar width of the [`Scrollbar`] .
     pub fn width(mut self, width: impl Into<Pixels>) -> Self {
         self.width = width.into().0.max(0.0);
         self
     }
 
-    /// Sets the scrollbar margin of the [`Scrollable`] .
+    /// Sets the scrollbar margin of the [`Scrollbar`] .
     pub fn margin(mut self, margin: impl Into<Pixels>) -> Self {
         self.margin = margin.into().0;
         self
     }
 
-    /// Sets the scroller width of the [`Scrollable`] .
+    /// Sets the scroller width of the [`Scrollbar`] .
     pub fn scroller_width(mut self, scroller_width: impl Into<Pixels>) -> Self {
         self.scroller_width = scroller_width.into().0.max(0.0);
         self
     }
 
-    /// Sets the alignment of the [`Scrollable`] .
-    pub fn alignment(mut self, alignment: Alignment) -> Self {
+    /// Sets the [`Anchor`] of the [`Scrollbar`] .
+    pub fn anchor(mut self, alignment: Anchor) -> Self {
         self.alignment = alignment;
         self
     }
@@ -284,13 +304,14 @@ impl Scrollbar {
     }
 }
 
-/// Alignment of the scrollable's content relative to it's [`Viewport`] in one direction.
+/// The anchor of the scroller of the [`Scrollable`] relative to its [`Viewport`]
+/// on a given axis.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum Alignment {
-    /// Content is aligned to the start of the [`Viewport`].
+pub enum Anchor {
+    /// Scroller is anchoer to the start of the [`Viewport`].
     #[default]
     Start,
-    /// Content is aligned to the end of the [`Viewport`]
+    /// Content is aligned to the end of the [`Viewport`].
     End,
 }
 
@@ -1159,13 +1180,13 @@ impl Offset {
         self,
         viewport: f32,
         content: f32,
-        alignment: Alignment,
+        alignment: Anchor,
     ) -> f32 {
         let offset = self.absolute(viewport, content);
 
         match alignment {
-            Alignment::Start => offset,
-            Alignment::End => ((content - viewport).max(0.0) - offset).max(0.0),
+            Anchor::Start => offset,
+            Anchor::End => ((content - viewport).max(0.0) - offset).max(0.0),
         }
     }
 }
@@ -1252,9 +1273,9 @@ impl State {
             .map(|p| p.alignment)
             .unwrap_or_default();
 
-        let align = |alignment: Alignment, delta: f32| match alignment {
-            Alignment::Start => delta,
-            Alignment::End => -delta,
+        let align = |alignment: Anchor, delta: f32| match alignment {
+            Anchor::Start => delta,
+            Anchor::End => -delta,
         };
 
         let delta = Vector::new(
@@ -1592,14 +1613,14 @@ impl Scrollbars {
 pub(super) mod internals {
     use crate::core::{Point, Rectangle};
 
-    use super::Alignment;
+    use super::Anchor;
 
     #[derive(Debug, Copy, Clone)]
     pub struct Scrollbar {
         pub total_bounds: Rectangle,
         pub bounds: Rectangle,
         pub scroller: Option<Scroller>,
-        pub alignment: Alignment,
+        pub alignment: Anchor,
     }
 
     impl Scrollbar {
@@ -1621,8 +1642,8 @@ pub(super) mod internals {
                     / (self.bounds.height - scroller.bounds.height);
 
                 match self.alignment {
-                    Alignment::Start => percentage,
-                    Alignment::End => 1.0 - percentage,
+                    Anchor::Start => percentage,
+                    Anchor::End => 1.0 - percentage,
                 }
             } else {
                 0.0
@@ -1642,8 +1663,8 @@ pub(super) mod internals {
                     / (self.bounds.width - scroller.bounds.width);
 
                 match self.alignment {
-                    Alignment::Start => percentage,
-                    Alignment::End => 1.0 - percentage,
+                    Anchor::Start => percentage,
+                    Anchor::End => 1.0 - percentage,
                 }
             } else {
                 0.0

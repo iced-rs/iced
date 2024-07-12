@@ -5,8 +5,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Alignment, Color, Element, Font, Length, Point, Rectangle, Subscription,
-    Task, Theme,
+    Color, Element, Font, Length, Point, Rectangle, Subscription, Task, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -70,7 +69,7 @@ impl Example {
                     .color_maybe(color),
             ]
             .height(40)
-            .align_items(Alignment::Center)
+            .center_y()
         };
 
         let view_bounds = |label, bounds: Option<Rectangle>| {

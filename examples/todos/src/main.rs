@@ -1,4 +1,3 @@
-use iced::alignment::{self, Alignment};
 use iced::keyboard;
 use iced::widget::{
     self, button, center, checkbox, column, container, keyed_column, row,
@@ -196,7 +195,7 @@ impl Todos {
                     .width(Length::Fill)
                     .size(100)
                     .color([0.5, 0.5, 0.5])
-                    .horizontal_alignment(alignment::Horizontal::Center);
+                    .center_x();
 
                 let input = text_input("What needs to be done?", input_value)
                     .id(INPUT_ID.clone())
@@ -355,7 +354,7 @@ impl Task {
                         .style(button::text),
                 ]
                 .spacing(20)
-                .align_items(Alignment::Center)
+                .center_y()
                 .into()
             }
             TaskState::Editing => {
@@ -369,16 +368,14 @@ impl Task {
                 row![
                     text_input,
                     button(
-                        row![delete_icon(), "Delete"]
-                            .spacing(10)
-                            .align_items(Alignment::Center)
+                        row![delete_icon(), "Delete"].spacing(10).center_y()
                     )
                     .on_press(TaskMessage::Delete)
                     .padding(10)
                     .style(button::danger)
                 ]
                 .spacing(20)
-                .align_items(Alignment::Center)
+                .center_y()
                 .into()
             }
         }
@@ -415,7 +412,7 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
         .spacing(10)
     ]
     .spacing(20)
-    .align_items(Alignment::Center)
+    .center_y()
     .into()
 }
 
@@ -440,12 +437,7 @@ impl Filter {
 }
 
 fn loading_message<'a>() -> Element<'a, Message> {
-    center(
-        text("Loading...")
-            .horizontal_alignment(alignment::Horizontal::Center)
-            .size(50),
-    )
-    .into()
+    center(text("Loading...").center_x().size(50)).into()
 }
 
 fn empty_message(message: &str) -> Element<'_, Message> {
@@ -453,7 +445,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
         text(message)
             .width(Length::Fill)
             .size(25)
-            .horizontal_alignment(alignment::Horizontal::Center)
+            .center_x()
             .color([0.7, 0.7, 0.7]),
     )
     .height(200)
@@ -464,10 +456,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
 const ICONS: Font = Font::with_name("Iced-Todos-Icons");
 
 fn icon(unicode: char) -> Text<'static> {
-    text(unicode.to_string())
-        .font(ICONS)
-        .width(20)
-        .horizontal_alignment(alignment::Horizontal::Center)
+    text(unicode.to_string()).font(ICONS).width(20).center_x()
 }
 
 fn edit_icon() -> Text<'static> {

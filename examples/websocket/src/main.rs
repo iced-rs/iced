@@ -1,6 +1,5 @@
 mod echo;
 
-use iced::alignment::{self, Alignment};
 use iced::widget::{
     self, button, center, column, row, scrollable, text, text_input,
 };
@@ -113,12 +112,8 @@ impl WebSocket {
                 .on_input(Message::NewMessageChanged)
                 .padding(10);
 
-            let mut button = button(
-                text("Send")
-                    .height(40)
-                    .vertical_alignment(alignment::Vertical::Center),
-            )
-            .padding([0, 20]);
+            let mut button =
+                button(text("Send").height(40).center_y()).padding([0, 20]);
 
             if matches!(self.state, State::Connected(_)) {
                 if let Some(message) = echo::Message::new(&self.new_message) {
@@ -127,9 +122,7 @@ impl WebSocket {
                 }
             }
 
-            row![input, button]
-                .spacing(10)
-                .align_items(Alignment::Center)
+            row![input, button].spacing(10).center_y()
         };
 
         column![message_log, new_message_input]

@@ -1,4 +1,3 @@
-use iced::alignment::{self, Alignment};
 use iced::keyboard;
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{
@@ -255,15 +254,10 @@ fn view_content<'a>(
     size: Size,
 ) -> Element<'a, Message> {
     let button = |label, message| {
-        button(
-            text(label)
-                .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center)
-                .size(16),
-        )
-        .width(Length::Fill)
-        .padding(8)
-        .on_press(message)
+        button(text(label).width(Length::Fill).center_x().size(16))
+            .width(Length::Fill)
+            .padding(8)
+            .on_press(message)
     };
 
     let controls = column![
@@ -287,7 +281,7 @@ fn view_content<'a>(
     let content =
         column![text!("{}x{}", size.width, size.height).size(24), controls,]
             .spacing(10)
-            .align_items(Alignment::Center);
+            .center_x();
 
     container(scrollable(content))
         .center_y(Length::Fill)

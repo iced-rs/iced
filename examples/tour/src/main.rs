@@ -1,4 +1,3 @@
-use iced::alignment::{self, Alignment};
 use iced::widget::{
     button, checkbox, column, container, horizontal_space, image, radio, row,
     scrollable, slider, text, text_input, toggler, vertical_space,
@@ -235,11 +234,7 @@ impl Tour {
                  0 to 100:",
             )
             .push(slider(0..=100, self.slider, Message::SliderChanged))
-            .push(
-                text(self.slider.to_string())
-                    .width(Length::Fill)
-                    .horizontal_alignment(alignment::Horizontal::Center),
-            )
+            .push(text(self.slider.to_string()).width(Length::Fill).center_x())
     }
 
     fn rows_and_columns(&self) -> Column<Message> {
@@ -268,9 +263,7 @@ impl Tour {
 
         let spacing_section = column![
             slider(0..=80, self.spacing, Message::SpacingChanged),
-            text!("{} px", self.spacing)
-                .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center),
+            text!("{} px", self.spacing).width(Length::Fill).center_x(),
         ]
         .spacing(10);
 
@@ -381,11 +374,7 @@ impl Tour {
             .push("An image that tries to keep its aspect ratio.")
             .push(ferris(width, filter_method))
             .push(slider(100..=500, width, Message::ImageWidthChanged))
-            .push(
-                text!("Width: {width} px")
-                    .width(Length::Fill)
-                    .horizontal_alignment(alignment::Horizontal::Center),
-            )
+            .push(text!("Width: {width} px").width(Length::Fill).center_x())
             .push(
                 checkbox(
                     "Use nearest interpolation",
@@ -393,7 +382,7 @@ impl Tour {
                 )
                 .on_toggle(Message::ImageUseNearestToggled),
             )
-            .align_items(Alignment::Center)
+            .center_x()
     }
 
     fn scrollable(&self) -> Column<Message> {
@@ -411,16 +400,11 @@ impl Tour {
                 text("You are halfway there!")
                     .width(Length::Fill)
                     .size(30)
-                    .horizontal_alignment(alignment::Horizontal::Center),
+                    .center_x(),
             )
             .push(vertical_space().height(4096))
             .push(ferris(300, image::FilterMethod::Linear))
-            .push(
-                text("You made it!")
-                    .width(Length::Fill)
-                    .size(50)
-                    .horizontal_alignment(alignment::Horizontal::Center),
-            )
+            .push(text("You made it!").width(Length::Fill).size(50).center_x())
     }
 
     fn text_input(&self) -> Column<Message> {
@@ -465,7 +449,7 @@ impl Tour {
                     value
                 })
                 .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center),
+                .center_x(),
             )
     }
 

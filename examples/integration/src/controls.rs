@@ -1,6 +1,5 @@
 use iced_wgpu::Renderer;
 use iced_widget::{column, container, row, slider, text, text_input};
-use iced_winit::core::alignment;
 use iced_winit::core::{Color, Element, Length, Theme};
 use iced_winit::runtime::{Program, Task};
 
@@ -87,7 +86,7 @@ impl Program for Controls {
         )
         .padding(10)
         .height(Length::Fill)
-        .align_y(alignment::Vertical::Bottom)
+        .align_bottom()
         .into()
     }
 }

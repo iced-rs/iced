@@ -94,27 +94,19 @@ where
 
     /// Sets the [`Container`] to fill the available space in the horizontal axis.
     ///
-    /// This can be useful to quickly position content when chained with
-    /// alignment functions—like [`center_x`].
-    ///
     /// Calling this method is equivalent to calling [`width`] with a
     /// [`Length::Fill`].
     ///
-    /// [`center_x`]: Self::center_x
     /// [`width`]: Self::width
     pub fn fill_x(self) -> Self {
         self.width(Length::Fill)
     }
 
-    /// Sets the [`Container`] to fill the available space in the vetical axis.
-    ///
-    /// This can be useful to quickly position content when chained with
-    /// alignment functions—like [`center_y`].
+    /// Sets the [`Container`] to fill the available space in the vertical axis.
     ///
     /// Calling this method is equivalent to calling [`height`] with a
     /// [`Length::Fill`].
     ///
-    /// [`center_y`]: Self::center_x
     /// [`height`]: Self::height
     pub fn fill_y(self) -> Self {
         self.height(Length::Fill)
@@ -125,7 +117,6 @@ where
     /// Calling this method is equivalent to chaining [`fill_x`] and
     /// [`fill_y`].
     ///
-    /// [`center`]: Self::center
     /// [`fill_x`]: Self::fill_x
     /// [`fill_y`]: Self::fill_y
     pub fn fill(self) -> Self {
@@ -141,18 +132,6 @@ where
     /// Sets the maximum height of the [`Container`].
     pub fn max_height(mut self, max_height: impl Into<Pixels>) -> Self {
         self.max_height = max_height.into().0;
-        self
-    }
-
-    /// Sets the content alignment for the horizontal axis of the [`Container`].
-    pub fn align_x(mut self, alignment: alignment::Horizontal) -> Self {
-        self.horizontal_alignment = alignment;
-        self
-    }
-
-    /// Sets the content alignment for the vertical axis of the [`Container`].
-    pub fn align_y(mut self, alignment: alignment::Vertical) -> Self {
-        self.vertical_alignment = alignment;
         self
     }
 
@@ -177,6 +156,44 @@ where
         let length = length.into();
 
         self.center_x(length).center_y(length)
+    }
+
+    /// Aligns the contents of the [`Container`] to the left.
+    pub fn align_left(self) -> Self {
+        self.align_x(alignment::left())
+    }
+
+    /// Aligns the contents of the [`Container`] to the right.
+    pub fn align_right(self) -> Self {
+        self.align_x(alignment::right())
+    }
+
+    /// Aligns the contents of the [`Container`] to the top.
+    pub fn align_top(self) -> Self {
+        self.align_y(alignment::top())
+    }
+
+    /// Aligns the contents of the [`Container`] to the bottom.
+    pub fn align_bottom(self) -> Self {
+        self.align_y(alignment::bottom())
+    }
+
+    /// Sets the content alignment for the horizontal axis of the [`Container`].
+    pub fn align_x(
+        mut self,
+        alignment: impl Into<alignment::Horizontal>,
+    ) -> Self {
+        self.horizontal_alignment = alignment.into();
+        self
+    }
+
+    /// Sets the content alignment for the vertical axis of the [`Container`].
+    pub fn align_y(
+        mut self,
+        alignment: impl Into<alignment::Vertical>,
+    ) -> Self {
+        self.vertical_alignment = alignment.into();
+        self
     }
 
     /// Sets whether the contents of the [`Container`] should be clipped on

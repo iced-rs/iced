@@ -1,11 +1,8 @@
-use iced::alignment;
 use iced::keyboard;
 use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
-use iced::{
-    Alignment, ContentFit, Element, Length, Rectangle, Subscription, Task,
-};
+use iced::{ContentFit, Element, Length, Rectangle, Subscription, Task};
 
 use ::image as img;
 use ::image::ColorType;
@@ -127,32 +124,24 @@ impl Example {
             .style(container::rounded_box);
 
         let crop_origin_controls = row![
-            text("X:")
-                .vertical_alignment(alignment::Vertical::Center)
-                .width(30),
+            text("X:").width(30),
             numeric_input("0", self.x_input_value).map(Message::XInputChanged),
-            text("Y:")
-                .vertical_alignment(alignment::Vertical::Center)
-                .width(30),
+            text("Y:").width(30),
             numeric_input("0", self.y_input_value).map(Message::YInputChanged)
         ]
         .spacing(10)
-        .align_items(Alignment::Center);
+        .center_y();
 
         let crop_dimension_controls = row![
-            text("W:")
-                .vertical_alignment(alignment::Vertical::Center)
-                .width(30),
+            text("W:").width(30),
             numeric_input("0", self.width_input_value)
                 .map(Message::WidthInputChanged),
-            text("H:")
-                .vertical_alignment(alignment::Vertical::Center)
-                .width(30),
+            text("H:").width(30),
             numeric_input("0", self.height_input_value)
                 .map(Message::HeightInputChanged)
         ]
         .spacing(10)
-        .align_items(Alignment::Center);
+        .center_y();
 
         let crop_controls =
             column![crop_origin_controls, crop_dimension_controls]
@@ -162,7 +151,7 @@ impl Example {
                         .map(|error| text!("Crop error! \n{error}")),
                 )
                 .spacing(10)
-                .align_items(Alignment::Center);
+                .center_x();
 
         let controls = {
             let save_result =
@@ -203,7 +192,7 @@ impl Example {
                         .width(Length::Fill),
                 ]
                 .spacing(10)
-                .align_items(Alignment::Center),
+                .center_x(),
             ]
             .push_maybe(save_result.map(text))
             .spacing(40)
@@ -215,7 +204,7 @@ impl Example {
             .spacing(10)
             .width(Length::Fill)
             .height(Length::Fill)
-            .align_items(Alignment::Center);
+            .center_y();
 
         container(content).padding(10).into()
     }
@@ -276,8 +265,5 @@ fn numeric_input(
 }
 
 fn centered_text(content: &str) -> Element<'_, Message> {
-    text(content)
-        .width(Length::Fill)
-        .horizontal_alignment(alignment::Horizontal::Center)
-        .into()
+    text(content).width(Length::Fill).center_x().into()
 }

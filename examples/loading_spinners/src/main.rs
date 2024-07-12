@@ -67,7 +67,7 @@ impl LoadingSpinners {
                         Duration::from_secs_f32(self.cycle_duration)
                     )
                 ]
-                .align_items(iced::Alignment::Center)
+                .center_y()
                 .spacing(20.0),
             )
         })
@@ -83,7 +83,7 @@ impl LoadingSpinners {
                     .width(200.0),
                     text!("{:.2}s", self.cycle_duration),
                 ]
-                .align_items(iced::Alignment::Center)
+                .center_y()
                 .spacing(20.0),
             ),
         )

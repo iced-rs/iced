@@ -1,8 +1,7 @@
-use iced::alignment;
 use iced::event::{self, Event};
 use iced::widget::{button, center, checkbox, text, Column};
 use iced::window;
-use iced::{Alignment, Element, Length, Subscription, Task};
+use iced::{Element, Length, Subscription, Task};
 
 pub fn main() -> iced::Result {
     iced::application("Events - Iced", Events::update, Events::view)
@@ -67,17 +66,13 @@ impl Events {
         let toggle = checkbox("Listen to runtime events", self.enabled)
             .on_toggle(Message::Toggled);
 
-        let exit = button(
-            text("Exit")
-                .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center),
-        )
-        .width(100)
-        .padding(10)
-        .on_press(Message::Exit);
+        let exit = button(text("Exit").width(Length::Fill).center_x())
+            .width(100)
+            .padding(10)
+            .on_press(Message::Exit);
 
         let content = Column::new()
-            .align_items(Alignment::Center)
+            .center_x()
             .spacing(20)
             .push(events)
             .push(toggle)

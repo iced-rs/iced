@@ -1,7 +1,7 @@
 mod download;
 
 use iced::widget::{button, center, column, progress_bar, text, Column};
-use iced::{Alignment, Element, Subscription};
+use iced::{Element, Subscription};
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -69,7 +69,7 @@ impl Example {
                         .padding(10),
                 )
                 .spacing(20)
-                .align_items(Alignment::End);
+                .align_right();
 
         center(downloads).padding(20).into()
     }
@@ -160,7 +160,7 @@ impl Download {
             State::Finished => {
                 column!["Download finished!", button("Start again")]
                     .spacing(10)
-                    .align_items(Alignment::Center)
+                    .center_x()
                     .into()
             }
             State::Downloading { .. } => {
@@ -171,14 +171,14 @@ impl Download {
                 button("Try again").on_press(Message::Download(self.id)),
             ]
             .spacing(10)
-            .align_items(Alignment::Center)
+            .center_x()
             .into(),
         };
 
         Column::new()
             .spacing(10)
             .padding(10)
-            .align_items(Alignment::Center)
+            .center_x()
             .push(progress_bar)
             .push(control)
             .into()

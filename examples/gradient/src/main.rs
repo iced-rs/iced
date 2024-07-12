@@ -3,7 +3,7 @@ use iced::gradient;
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text,
 };
-use iced::{Alignment, Color, Element, Length, Radians, Theme};
+use iced::{Color, Element, Length, Radians, Theme};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -77,7 +77,7 @@ impl Gradient {
         ]
         .spacing(8)
         .padding(8)
-        .align_items(Alignment::Center);
+        .center_y();
 
         let transparency_toggle = iced::widget::Container::new(
             checkbox("Transparent window", transparent)
@@ -129,6 +129,6 @@ fn color_picker(label: &str, color: Color) -> Element<'_, Color> {
     ]
     .spacing(8)
     .padding(8)
-    .align_items(Alignment::Center)
+    .center_y()
     .into()
 }

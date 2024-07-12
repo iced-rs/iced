@@ -5,7 +5,7 @@ use iced::widget::{
     self, button, center, column, container, horizontal_space, mouse_area,
     opaque, pick_list, row, stack, text, text_input,
 };
-use iced::{Alignment, Color, Element, Length, Subscription, Task};
+use iced::{Color, Element, Length, Subscription, Task};
 
 use std::fmt;
 
@@ -96,7 +96,6 @@ impl App {
         let content = container(
             column![
                 row![text("Top Left"), horizontal_space(), text("Top Right")]
-                    .align_items(Alignment::Start)
                     .height(Length::Fill),
                 center(button(text("Show Modal")).on_press(Message::ShowModal)),
                 row![
@@ -104,7 +103,7 @@ impl App {
                     horizontal_space(),
                     text("Bottom Right")
                 ]
-                .align_items(Alignment::End)
+                .align_bottom()
                 .height(Length::Fill),
             ]
             .height(Length::Fill),

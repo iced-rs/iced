@@ -86,21 +86,56 @@ where
         self
     }
 
+    /// Centers the [`Text`], both horizontally and vertically.
+    pub fn center(self) -> Self {
+        self.center_x().center_y()
+    }
+
+    /// Centers the [`Text`] horizontally.
+    pub fn center_x(self) -> Self {
+        self.align_x(alignment::center())
+    }
+
+    /// Aligns the [`Text`] to the left, the default.
+    pub fn align_left(self) -> Self {
+        self.align_x(alignment::left())
+    }
+
+    /// Aligns the [`Text`] to the right.
+    pub fn align_right(self) -> Self {
+        self.align_x(alignment::right())
+    }
+
+    /// Centers the [`Text`] vertically.
+    pub fn center_y(self) -> Self {
+        self.align_y(alignment::center())
+    }
+
+    /// Aligns the [`Text`] to the top, the default.
+    pub fn align_top(self) -> Self {
+        self.align_y(alignment::top())
+    }
+
+    /// Aligns the [`Text`] to the bottom.
+    pub fn align_bottom(self) -> Self {
+        self.align_y(alignment::bottom())
+    }
+
     /// Sets the [`alignment::Horizontal`] of the [`Text`].
-    pub fn horizontal_alignment(
+    pub fn align_x(
         mut self,
-        alignment: alignment::Horizontal,
+        alignment: impl Into<alignment::Horizontal>,
     ) -> Self {
-        self.horizontal_alignment = alignment;
+        self.horizontal_alignment = alignment.into();
         self
     }
 
     /// Sets the [`alignment::Vertical`] of the [`Text`].
-    pub fn vertical_alignment(
+    pub fn align_y(
         mut self,
-        alignment: alignment::Vertical,
+        alignment: impl Into<alignment::Vertical>,
     ) -> Self {
-        self.vertical_alignment = alignment;
+        self.vertical_alignment = alignment.into();
         self
     }
 

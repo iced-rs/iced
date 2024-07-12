@@ -4,7 +4,7 @@ use iced::keyboard::key;
 use iced::widget::{
     self, button, center, column, pick_list, row, slider, text, text_input,
 };
-use iced::{Alignment, Element, Length, Subscription, Task};
+use iced::{Element, Length, Subscription, Task};
 
 use toast::{Status, Toast};
 
@@ -142,7 +142,7 @@ impl App {
                     .spacing(5)
                     .into()
                 ),
-                column![add_toast].align_items(Alignment::End)
+                column![add_toast].center_x()
             ]
             .spacing(10)
             .max_width(200),
@@ -245,7 +245,7 @@ mod toast {
                                     .on_press((on_close)(index))
                                     .padding(3),
                             ]
-                            .align_items(Alignment::Center)
+                            .center_y()
                         )
                         .width(Length::Fill)
                         .padding(5)

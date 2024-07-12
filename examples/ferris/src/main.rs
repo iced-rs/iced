@@ -4,7 +4,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Alignment, Color, ContentFit, Degrees, Element, Length, Radians, Rotation,
+    Color, ContentFit, Degrees, Element, Length, Radians, Rotation,
     Subscription, Theme,
 };
 
@@ -108,7 +108,7 @@ impl Image {
             "I am Ferris!"
         ]
         .spacing(20)
-        .align_items(Alignment::Center);
+        .center_x();
 
         let fit = row![
             pick_list(
@@ -134,7 +134,7 @@ impl Image {
             .width(Length::Fill),
         ]
         .spacing(10)
-        .align_items(Alignment::End);
+        .align_bottom();
 
         let properties = row![
             with_value(
@@ -159,12 +159,12 @@ impl Image {
                         .size(12)
                 ]
                 .spacing(10)
-                .align_items(Alignment::Center),
+                .center_y(),
                 format!("Rotation: {:.0}°", f32::from(self.rotation.degrees()))
             )
         ]
         .spacing(10)
-        .align_items(Alignment::End);
+        .align_bottom();
 
         container(column![fit, center(i_am_ferris), properties].spacing(10))
             .padding(10)
@@ -206,6 +206,6 @@ fn with_value<'a>(
 ) -> Element<'a, Message> {
     column![control.into(), text(value).size(12).line_height(1.0)]
         .spacing(2)
-        .align_items(Alignment::Center)
+        .center_x()
         .into()
 }

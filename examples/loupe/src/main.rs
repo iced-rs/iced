@@ -1,5 +1,5 @@
 use iced::widget::{button, center, column, text};
-use iced::{Alignment, Element};
+use iced::Element;
 
 use loupe::loupe;
 
@@ -39,7 +39,7 @@ impl Loupe {
                 button("Decrement").on_press(Message::Decrement)
             ]
             .padding(20)
-            .align_items(Alignment::Center),
+            .center_x(),
         ))
         .into()
     }

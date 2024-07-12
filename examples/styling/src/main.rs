@@ -3,7 +3,7 @@ use iced::widget::{
     row, scrollable, slider, text, text_input, toggler, vertical_rule,
     vertical_space,
 };
-use iced::{Alignment, Element, Length, Theme};
+use iced::{Element, Length, Theme};
 
 pub fn main() -> iced::Result {
     iced::application("Styling - Iced", Styling::update, Styling::view)
@@ -88,9 +88,7 @@ impl Styling {
         let content = column![
             choose_theme,
             horizontal_rule(38),
-            row![text_input, button]
-                .spacing(10)
-                .align_items(Alignment::Center),
+            row![text_input, button].spacing(10).center_y(),
             slider,
             progress_bar,
             row![
@@ -100,7 +98,7 @@ impl Styling {
             ]
             .spacing(10)
             .height(100)
-            .align_items(Alignment::Center),
+            .center_y(),
         ]
         .spacing(20)
         .padding(20)

@@ -906,7 +906,7 @@ where
         + 'a,
     Theme: text::Catalog + crate::svg::Catalog + 'a,
 {
-    use crate::core::{Alignment, Font};
+    use crate::core::Font;
     use crate::svg;
     use once_cell::sync::Lazy;
 
@@ -921,7 +921,7 @@ where
         text("iced").size(text_size).font(Font::MONOSPACE)
     ]
     .spacing(text_size.0 / 3.0)
-    .align_items(Alignment::Center)
+    .center_y()
     .into()
 }
 

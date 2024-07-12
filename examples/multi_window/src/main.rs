@@ -3,7 +3,7 @@ use iced::widget::{
     text_input,
 };
 use iced::window;
-use iced::{Alignment, Element, Length, Subscription, Task, Theme, Vector};
+use iced::{Element, Length, Subscription, Task, Theme, Vector};
 
 use std::collections::BTreeMap;
 
@@ -189,7 +189,7 @@ impl Window {
             column![scale_input, title_input, new_window_button]
                 .spacing(50)
                 .width(Length::Fill)
-                .align_items(Alignment::Center),
+                .center_x(),
         );
 
         container(content).center_x(200).into()
