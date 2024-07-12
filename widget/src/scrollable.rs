@@ -133,11 +133,14 @@ where
     /// Sets the [`Anchor`] of the horizontal direction of the [`Scrollable`], if applicable.
     pub fn anchor_x(mut self, alignment: Anchor) -> Self {
         match &mut self.direction {
-            Direction::Horizontal(horizontal)
+            Direction::Horizontal {
+                scrollbar: horizontal,
+                ..
+            }
             | Direction::Both { horizontal, .. } => {
                 horizontal.alignment = alignment;
             }
-            Direction::Vertical(_) => {}
+            Direction::Vertical { .. } => {}
         }
 
         self
@@ -146,37 +149,31 @@ where
     /// Sets the [`Anchor`] of the vertical direction of the [`Scrollable`], if applicable.
     pub fn anchor_y(mut self, alignment: Anchor) -> Self {
         match &mut self.direction {
-            Direction::Vertical(vertical)
+            Direction::Vertical {
+                scrollbar: vertical,
+                ..
+            }
             | Direction::Both { vertical, .. } => {
                 vertical.alignment = alignment;
             }
-            Direction::Horizontal(_) => {}
+            Direction::Horizontal { .. } => {}
         }
 
         self
     }
 
-    /// Sets whether the horizontal [`Scrollbar`] should be embedded in the [`Scrollable`].
-    pub fn embed_x(mut self, embedded: bool) -> Self {
+    /// Embeds the [`Scrollbar`] into the [`Scrollable`], instead of floating on top of the
+    /// content.
+    ///
+    /// The `spacing` provided will be used as space between the [`Scrollbar`] and the contents
+    /// of the [`Scrollable`].
+    pub fn spacing(mut self, new_spacing: impl Into<Pixels>) -> Self {
         match &mut self.direction {
-            Direction::Horizontal(horizontal)
-            | Direction::Both { horizontal, .. } => {
-                horizontal.embedded = embedded;
+            Direction::Horizontal { spacing, .. }
+            | Direction::Vertical { spacing, .. } => {
+                *spacing = Some(new_spacing.into().0);
             }
-            Direction::Vertical(_) => {}
-        }
-
-        self
-    }
-
-    /// Sets whether the vertical [`Scrollbar`] should be embedded in the [`Scrollable`].
-    pub fn embed_y(mut self, embedded: bool) -> Self {
-        match &mut self.direction {
-            Direction::Vertical(vertical)
-            | Direction::Both { vertical, .. } => {
-                vertical.embedded = embedded;
-            }
-            Direction::Horizontal(_) => {}
+            Direction::Both { .. } => {}
         }
 
         self
@@ -205,9 +202,19 @@ where
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Direction {
     /// Vertical scrolling
-    Vertical(Scrollbar),
+    Vertical {
+        /// The vertical [`Scrollbar`].
+        scrollbar: Scrollbar,
+        /// The amount of spacing between the [`Scrollbar`] and the contents, if embedded.
+        spacing: Option<f32>,
+    },
     /// Horizontal scrolling
-    Horizontal(Scrollbar),
+    Horizontal {
+        /// The horizontal [`Scrollbar`].
+        scrollbar: Scrollbar,
+        /// The amount of spacing between the [`Scrollbar`] and the contents, if embedded.
+        spacing: Option<f32>,
+    },
     /// Both vertical and horizontal scrolling
     Both {
         /// The properties of the vertical scrollbar.
@@ -221,25 +228,28 @@ impl Direction {
     /// Returns the horizontal [`Scrollbar`], if any.
     pub fn horizontal(&self) -> Option<&Scrollbar> {
         match self {
-            Self::Horizontal(properties) => Some(properties),
+            Self::Horizontal { scrollbar, .. } => Some(scrollbar),
             Self::Both { horizontal, .. } => Some(horizontal),
-            Self::Vertical(_) => None,
+            Self::Vertical { .. } => None,
         }
     }
 
     /// Returns the vertical [`Scrollbar`], if any.
     pub fn vertical(&self) -> Option<&Scrollbar> {
         match self {
-            Self::Vertical(properties) => Some(properties),
+            Self::Vertical { scrollbar, .. } => Some(scrollbar),
             Self::Both { vertical, .. } => Some(vertical),
-            Self::Horizontal(_) => None,
+            Self::Horizontal { .. } => None,
         }
     }
 }
 
 impl Default for Direction {
     fn default() -> Self {
-        Self::Vertical(Scrollbar::default())
+        Self::Vertical {
+            scrollbar: Scrollbar::default(),
+            spacing: None,
+        }
     }
 }
 
@@ -250,7 +260,7 @@ pub struct Scrollbar {
     margin: f32,
     scroller_width: f32,
     alignment: Anchor,
-    embedded: bool,
+    spacing: Option<f32>,
 }
 
 impl Default for Scrollbar {
@@ -260,7 +270,7 @@ impl Default for Scrollbar {
             margin: 0.0,
             scroller_width: 10.0,
             alignment: Anchor::Start,
-            embedded: false,
+            spacing: None,
         }
     }
 }
@@ -295,12 +305,13 @@ impl Scrollbar {
         self
     }
 
-    /// Sets whether the [`Scrollbar`] should be embedded in the [`Scrollable`].
+    /// Sets whether the [`Scrollbar`] should be embedded in the [`Scrollable`], using
+    /// the given spacing between itself and the contents.
     ///
     /// An embedded [`Scrollbar`] will always be displayed, will take layout space,
     /// and will not float over the contents.
-    pub fn embedded(mut self, embedded: bool) -> Self {
-        self.embedded = embedded;
+    pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
+        self.spacing = Some(spacing.into().0);
         self
     }
 }
@@ -352,12 +363,14 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let (right_padding, bottom_padding) = match self.direction {
-            Direction::Vertical(scrollbar) if scrollbar.embedded => {
-                (scrollbar.width + scrollbar.margin * 2.0, 0.0)
-            }
-            Direction::Horizontal(scrollbar) if scrollbar.embedded => {
-                (0.0, scrollbar.width + scrollbar.margin * 2.0)
-            }
+            Direction::Vertical {
+                scrollbar,
+                spacing: Some(spacing),
+            } => (scrollbar.width + scrollbar.margin * 2.0 + spacing, 0.0),
+            Direction::Horizontal {
+                scrollbar,
+                spacing: Some(spacing),
+            } => (0.0, scrollbar.width + scrollbar.margin * 2.0 + spacing),
             _ => (0.0, 0.0),
         };
 
@@ -1407,11 +1420,11 @@ impl Scrollbars {
         let translation = state.translation(direction, bounds, content_bounds);
 
         let show_scrollbar_x = direction.horizontal().filter(|scrollbar| {
-            scrollbar.embedded || content_bounds.width > bounds.width
+            scrollbar.spacing.is_some() || content_bounds.width > bounds.width
         });
 
         let show_scrollbar_y = direction.vertical().filter(|scrollbar| {
-            scrollbar.embedded || content_bounds.height > bounds.height
+            scrollbar.spacing.is_some() || content_bounds.height > bounds.height
         });
 
         let y_scrollbar = if let Some(vertical) = show_scrollbar_y {
