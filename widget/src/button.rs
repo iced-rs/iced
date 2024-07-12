@@ -52,12 +52,26 @@ where
     Theme: Catalog,
 {
     content: Element<'a, Message, Theme, Renderer>,
-    on_press: Option<Message>,
+    on_press: Option<OnPress<'a, Message>>,
     width: Length,
     height: Length,
     padding: Padding,
     clip: bool,
     class: Theme::Class<'a>,
+}
+
+enum OnPress<'a, Message> {
+    Direct(Message),
+    Closure(Box<dyn Fn() -> Message + 'a>),
+}
+
+impl<'a, Message: Clone> OnPress<'a, Message> {
+    fn get(&self) -> Message {
+        match self {
+            OnPress::Direct(message) => message.clone(),
+            OnPress::Closure(f) => f(),
+        }
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
@@ -105,7 +119,23 @@ where
     ///
     /// Unless `on_press` is called, the [`Button`] will be disabled.
     pub fn on_press(mut self, on_press: Message) -> Self {
-        self.on_press = Some(on_press);
+        self.on_press = Some(OnPress::Direct(on_press));
+        self
+    }
+
+    /// Sets the message that will be produced when the [`Button`] is pressed.
+    ///
+    /// This is analogous to [`Button::on_press`], but using a closure to produce
+    /// the message.
+    ///
+    /// This closure will only be called when the [`Button`] is actually pressed and,
+    /// therefore, this method is useful to reduce overhead if creating the resulting
+    /// message is slow.
+    pub fn on_press_with(
+        mut self,
+        on_press: impl Fn() -> Message + 'a,
+    ) -> Self {
+        self.on_press = Some(OnPress::Closure(Box::new(on_press)));
         self
     }
 
@@ -114,7 +144,7 @@ where
     ///
     /// If `None`, the [`Button`] will be disabled.
     pub fn on_press_maybe(mut self, on_press: Option<Message>) -> Self {
-        self.on_press = on_press;
+        self.on_press = on_press.map(OnPress::Direct);
         self
     }
 
@@ -258,7 +288,8 @@ where
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. }) => {
-                if let Some(on_press) = self.on_press.clone() {
+                if let Some(on_press) = self.on_press.as_ref().map(OnPress::get)
+                {
                     let state = tree.state.downcast_mut::<State>();
 
                     if state.is_pressed {
