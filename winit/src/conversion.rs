@@ -132,10 +132,10 @@ pub fn window_event(
         WindowEvent::Resized(new_size) => {
             let logical_size = new_size.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Resized {
+            Some(Event::Window(window::Event::Resized(Size {
                 width: logical_size.width,
                 height: logical_size.height,
-            }))
+            })))
         }
         WindowEvent::CloseRequested => {
             Some(Event::Window(window::Event::CloseRequested))
@@ -277,7 +277,7 @@ pub fn window_event(
             let winit::dpi::LogicalPosition { x, y } =
                 position.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Moved { x, y }))
+            Some(Event::Window(window::Event::Moved(Point::new(x, y))))
         }
         _ => None,
     }
