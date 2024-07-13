@@ -373,6 +373,18 @@ impl Catalog for Theme {
     }
 }
 
+/// The default text styling; color is inherited.
+pub fn default(_theme: &Theme) -> Style {
+    Style { color: None }
+}
+
+/// Text with the default base color.
+pub fn base(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.palette().text),
+    }
+}
+
 /// Text conveying some important information, like an action.
 pub fn primary(theme: &Theme) -> Style {
     Style {
