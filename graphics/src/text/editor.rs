@@ -309,7 +309,8 @@ impl editor::Editor for Editor {
                 editor.set_selection(cosmic_text::Selection::Line(cursor));
             }
             Action::SelectAll => {
-                let buffer = editor.buffer();
+                let buffer = buffer_from_editor(editor);
+
                 if buffer.lines.len() > 1
                     || buffer
                         .lines
@@ -317,15 +318,20 @@ impl editor::Editor for Editor {
                         .is_some_and(|line| !line.text().is_empty())
                 {
                     let cursor = editor.cursor();
-                    editor.set_select_opt(Some(cosmic_text::Cursor {
-                        line: 0,
-                        index: 0,
-                        ..cursor
-                    }));
+
+                    editor.set_selection(cosmic_text::Selection::Normal(
+                        cosmic_text::Cursor {
+                            line: 0,
+                            index: 0,
+                            ..cursor
+                        },
+                    ));
 
                     editor.action(
                         font_system.raw(),
-                        motion_to_action(Motion::DocumentEnd),
+                        cosmic_text::Action::Motion(
+                            cosmic_text::Motion::BufferEnd,
+                        ),
                     );
                 }
             }
