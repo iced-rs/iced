@@ -665,7 +665,8 @@ fn highlight_line(
     let layout = line
         .layout_opt()
         .as_ref()
-        .expect("Line layout should be cached");
+        .map(Vec::as_slice)
+        .unwrap_or_default();
 
     layout.iter().map(move |visual_line| {
         let start = visual_line
@@ -717,10 +718,7 @@ fn visual_lines_offset(line: usize, buffer: &cosmic_text::Buffer) -> i32 {
         .iter()
         .take(end - start)
         .map(|line| {
-            line.layout_opt()
-                .as_ref()
-                .expect("Line layout should be cached")
-                .len()
+            line.layout_opt().as_ref().map(Vec::len).unwrap_or_default()
         })
         .sum();
 
