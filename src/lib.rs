@@ -345,8 +345,6 @@ pub type Result = std::result::Result<(), Error>;
 ///
 /// This is equivalent to chaining [`application()`] with [`Application::run`].
 ///
-/// [`program`]: program()
-///
 /// # Example
 /// ```no_run
 /// use iced::widget::{button, column, text, Column};

@@ -417,6 +417,16 @@ pub trait Update<State, Message> {
     ) -> impl Into<Task<Message>>;
 }
 
+impl<State, Message> Update<State, Message> for () {
+    fn update(
+        &self,
+        _state: &mut State,
+        _message: Message,
+    ) -> impl Into<Task<Message>> {
+        ()
+    }
+}
+
 impl<T, State, Message, C> Update<State, Message> for T
 where
     T: Fn(&mut State, Message) -> C,

@@ -283,10 +283,7 @@ impl<T, E> Task<Result<T, E>> {
     }
 }
 
-impl<T> From<()> for Task<T>
-where
-    T: MaybeSend + 'static,
-{
+impl<T> From<()> for Task<T> {
     fn from(_value: ()) -> Self {
         Self::none()
     }
