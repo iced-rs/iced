@@ -423,7 +423,6 @@ impl<State, Message> Update<State, Message> for () {
         _state: &mut State,
         _message: Message,
     ) -> impl Into<Task<Message>> {
-        ()
     }
 }
 
