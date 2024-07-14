@@ -82,7 +82,7 @@ impl Cache {
         let id = handle.id();
 
         if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
-            let mut svg = match handle.data() {
+            let svg = match handle.data() {
                 Data::Path(path) => {
                     fs::read_to_string(path).ok().and_then(|contents| {
                         usvg::Tree::from_str(
@@ -100,10 +100,6 @@ impl Cache {
                     .ok()
                 }
             };
-
-            if let Some(svg) = &mut svg {
-                if svg.has_text_nodes() {}
-            }
 
             let _ = entry.insert(svg);
         }
