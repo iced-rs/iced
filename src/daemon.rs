@@ -119,7 +119,7 @@ impl<P: Program> Daemon<P> {
     pub fn run_with<I>(self, initialize: I) -> Result
     where
         Self: 'static,
-        I: Fn() -> (P::State, Task<P::Message>) + Clone + 'static,
+        I: FnOnce() -> (P::State, Task<P::Message>) + 'static,
     {
         self.raw.run_with(self.settings, None, initialize)
     }

@@ -92,7 +92,7 @@ pub trait Program: Sized {
     ) -> Result
     where
         Self: 'static,
-        I: Fn() -> (Self::State, Task<Self::Message>) + Clone + 'static,
+        I: FnOnce() -> (Self::State, Task<Self::Message>) + 'static,
     {
         use std::marker::PhantomData;
 
@@ -102,8 +102,8 @@ pub trait Program: Sized {
             _initialize: PhantomData<I>,
         }
 
-        impl<P: Program, I: Fn() -> (P::State, Task<P::Message>)> shell::Program
-            for Instance<P, I>
+        impl<P: Program, I: FnOnce() -> (P::State, Task<P::Message>)>
+            shell::Program for Instance<P, I>
         {
             type Message = P::Message;
             type Theme = P::Theme;
