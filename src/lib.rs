@@ -359,7 +359,7 @@
 //! ```
 //!
 //! A [`Subscription`] is [a _declarative_ builder of streams](Subscription#the-lifetime-of-a-subscription)
-//! that are not allowed to end on its own. Only the `subscription` function
+//! that are not allowed to end on their own. Only the `subscription` function
 //! dictates the active subscriptions—just like `view` fully dictates the
 //! visible widgets of your user interface, at every moment.
 //!
