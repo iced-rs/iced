@@ -216,14 +216,13 @@ impl ScrollableDemo {
                     .padding([40, 0])
                     .spacing(40),
                 )
-                .direction(scrollable::Direction::Vertical {
-                    scrollbar: scrollable::Scrollbar::new()
+                .direction(scrollable::Direction::Vertical(
+                    scrollable::Scrollbar::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
                         .scroller_width(self.scroller_width)
                         .anchor(self.anchor),
-                    spacing: None,
-                })
+                ))
                 .width(Fill)
                 .height(Fill)
                 .id(SCROLLABLE_ID.clone())
@@ -243,14 +242,13 @@ impl ScrollableDemo {
                     .padding([0, 40])
                     .spacing(40),
                 )
-                .direction(scrollable::Direction::Horizontal {
-                    scrollbar: scrollable::Scrollbar::new()
+                .direction(scrollable::Direction::Horizontal(
+                    scrollable::Scrollbar::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
                         .scroller_width(self.scroller_width)
                         .anchor(self.anchor),
-                    spacing: None,
-                })
+                ))
                 .width(Fill)
                 .height(Fill)
                 .id(SCROLLABLE_ID.clone())

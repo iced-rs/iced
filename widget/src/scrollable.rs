@@ -133,10 +133,7 @@ where
     /// Sets the [`Anchor`] of the horizontal direction of the [`Scrollable`], if applicable.
     pub fn anchor_x(mut self, alignment: Anchor) -> Self {
         match &mut self.direction {
-            Direction::Horizontal {
-                scrollbar: horizontal,
-                ..
-            }
+            Direction::Horizontal(horizontal)
             | Direction::Both { horizontal, .. } => {
                 horizontal.alignment = alignment;
             }
@@ -149,10 +146,7 @@ where
     /// Sets the [`Anchor`] of the vertical direction of the [`Scrollable`], if applicable.
     pub fn anchor_y(mut self, alignment: Anchor) -> Self {
         match &mut self.direction {
-            Direction::Vertical {
-                scrollbar: vertical,
-                ..
-            }
+            Direction::Vertical(vertical)
             | Direction::Both { vertical, .. } => {
                 vertical.alignment = alignment;
             }
@@ -169,9 +163,9 @@ where
     /// of the [`Scrollable`].
     pub fn spacing(mut self, new_spacing: impl Into<Pixels>) -> Self {
         match &mut self.direction {
-            Direction::Horizontal { spacing, .. }
-            | Direction::Vertical { spacing, .. } => {
-                *spacing = Some(new_spacing.into().0);
+            Direction::Horizontal(scrollbar)
+            | Direction::Vertical(scrollbar) => {
+                scrollbar.spacing = Some(new_spacing.into().0);
             }
             Direction::Both { .. } => {}
         }
@@ -202,19 +196,9 @@ where
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Direction {
     /// Vertical scrolling
-    Vertical {
-        /// The vertical [`Scrollbar`].
-        scrollbar: Scrollbar,
-        /// The amount of spacing between the [`Scrollbar`] and the contents, if embedded.
-        spacing: Option<f32>,
-    },
+    Vertical(Scrollbar),
     /// Horizontal scrolling
-    Horizontal {
-        /// The horizontal [`Scrollbar`].
-        scrollbar: Scrollbar,
-        /// The amount of spacing between the [`Scrollbar`] and the contents, if embedded.
-        spacing: Option<f32>,
-    },
+    Horizontal(Scrollbar),
     /// Both vertical and horizontal scrolling
     Both {
         /// The properties of the vertical scrollbar.
@@ -228,28 +212,25 @@ impl Direction {
     /// Returns the horizontal [`Scrollbar`], if any.
     pub fn horizontal(&self) -> Option<&Scrollbar> {
         match self {
-            Self::Horizontal { scrollbar, .. } => Some(scrollbar),
+            Self::Horizontal(scrollbar) => Some(scrollbar),
             Self::Both { horizontal, .. } => Some(horizontal),
-            Self::Vertical { .. } => None,
+            Self::Vertical(_) => None,
         }
     }
 
     /// Returns the vertical [`Scrollbar`], if any.
     pub fn vertical(&self) -> Option<&Scrollbar> {
         match self {
-            Self::Vertical { scrollbar, .. } => Some(scrollbar),
+            Self::Vertical(scrollbar) => Some(scrollbar),
             Self::Both { vertical, .. } => Some(vertical),
-            Self::Horizontal { .. } => None,
+            Self::Horizontal(_) => None,
         }
     }
 }
 
 impl Default for Direction {
     fn default() -> Self {
-        Self::Vertical {
-            scrollbar: Scrollbar::default(),
-            spacing: None,
-        }
+        Self::Vertical(Scrollbar::default())
     }
 }
 
@@ -363,14 +344,18 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let (right_padding, bottom_padding) = match self.direction {
-            Direction::Vertical {
-                scrollbar,
+            Direction::Vertical(Scrollbar {
+                width,
+                margin,
                 spacing: Some(spacing),
-            } => (scrollbar.width + scrollbar.margin * 2.0 + spacing, 0.0),
-            Direction::Horizontal {
-                scrollbar,
+                ..
+            }) => (width + margin * 2.0 + spacing, 0.0),
+            Direction::Horizontal(Scrollbar {
+                width,
+                margin,
                 spacing: Some(spacing),
-            } => (0.0, scrollbar.width + scrollbar.margin * 2.0 + spacing),
+                ..
+            }) => (0.0, width + margin * 2.0 + spacing),
             _ => (0.0, 0.0),
         };
 
