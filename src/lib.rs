@@ -410,7 +410,6 @@
 //!     Conversation(Conversation),
 //! }
 //!
-//! #[derive(Debug)]
 //! enum Message {
 //!    Contacts(contacts::Message),
 //!    Conversation(conversation::Message)
