@@ -1,6 +1,8 @@
 //! iced is a cross-platform GUI library focused on simplicity and type-safety.
 //! Inspired by [Elm].
 //!
+//! [Elm]: https://elm-lang.org/
+//!
 //! # Disclaimer
 //! iced is __experimental__ software. If you expect the documentation to hold your hand
 //! as you learn the ropes, you are in for a frustrating experience.
@@ -133,7 +135,7 @@
 //! There is no unified layout system in iced. Instead, each widget implements
 //! its own layout strategy.
 //!
-//! Generally, building your layout will consist in using a combination of
+//! Building your layout will often consist in using a combination of
 //! [rows], [columns], and [containers]:
 //!
 //! ```rust
@@ -318,8 +320,131 @@
 //! }
 //! ```
 //!
-//! [Elm]: https://elm-lang.org/
-//! [`application`]: application()
+//! Tasks can also be used to interact with the iced runtime. Some modules
+//! expose functions that create tasks for different purposes—like [changing
+//! window settings](window#functions), [focusing a widget](widget::focus_next), or
+//! [querying its visible bounds](widget::container::visible_bounds).
+//!
+//! Like futures and streams, tasks expose [a monadic interface](Task::then)—but they can also be
+//! [mapped](Task::map), [chained](Task::chain), [batched](Task::batch), [canceled](Task::abortable),
+//! and more.
+//!
+//! ## Passive Subscriptions
+//! Applications can subscribe to passive sources of data—like time ticks or runtime events.
+//!
+//! You will need to define a `subscription` function and use the [`Application`] builder:
+//!
+//! ```rust,no_run
+//! # #[derive(Default)]
+//! # struct State;
+//! use iced::window;
+//! use iced::{Size, Subscription};
+//!
+//! #[derive(Debug)]
+//! enum Message {
+//!     WindowResized(Size),
+//! }
+//!
+//! pub fn main() -> iced::Result {
+//!     iced::application("A cool application", update, view)
+//!         .subscription(subscription)
+//!         .run()
+//! }
+//!
+//! fn subscription(state: &State) -> Subscription<Message> {
+//!     window::resize_events().map(|(_id, size)| Message::WindowResized(size))
+//! }
+//! # fn update(state: &mut State, message: Message) {}
+//! # fn view(state: &State) -> iced::Element<Message> { iced::widget::text("").into() }
+//! ```
+//!
+//! A [`Subscription`] is [a _declarative_ builder of streams](Subscription#the-lifetime-of-a-subscription)
+//! that are not allowed to end on its own. Only the `subscription` function
+//! dictates the active subscriptions—just like `view` fully dictates the
+//! visible widgets of your user interface, at every moment.
+//!
+//! As with tasks, some modules expose convenient functions that build a [`Subscription`] for you—like
+//! [`time::every`] which can be used to listen to time, or [`keyboard::on_key_press`] which will notify you
+//! of any key presses. But you can also create your own with [`Subscription::run`] and [`run_with_id`].
+//!
+//! [`run_with_id`]: Subscription::run_with_id
+//!
+//! ## Scaling Applications
+//! The `update`, `view`, and `Message` triplet composes very nicely.
+//!
+//! A common pattern is to leverage this composability to split an
+//! application into different screens:
+//!
+//! ```rust
+//! # mod contacts {
+//! #     use iced::{Element, Task};
+//! #     pub struct Contacts;
+//! #     impl Contacts {
+//! #         pub fn update(&mut self, message: Message) -> Task<Message> { unimplemented!() }
+//! #         pub fn view(&self) -> Element<Message> { unimplemented!() }
+//! #     }
+//! #     #[derive(Debug)]
+//! #     pub enum Message {}
+//! # }
+//! # mod conversation {
+//! #     use iced::{Element, Task};
+//! #     pub struct Conversation;
+//! #     impl Conversation {
+//! #         pub fn update(&mut self, message: Message) -> Task<Message> { unimplemented!() }
+//! #         pub fn view(&self) -> Element<Message> { unimplemented!() }
+//! #     }
+//! #     #[derive(Debug)]
+//! #     pub enum Message {}
+//! # }
+//! use contacts::Contacts;
+//! use conversation::Conversation;
+//!
+//! use iced::{Element, Task};
+//!
+//! struct State {
+//!     screen: Screen,
+//! }
+//!
+//! enum Screen {
+//!     Contacts(Contacts),
+//!     Conversation(Conversation),
+//! }
+//!
+//! #[derive(Debug)]
+//! enum Message {
+//!    Contacts(contacts::Message),
+//!    Conversation(conversation::Message)
+//! }
+//!
+//! fn update(state: &mut State, message: Message) -> Task<Message> {
+//!     match message {
+//!         Message::Contacts(message) => {
+//!             if let Screen::Contacts(contacts) = &mut state.screen {
+//!                 contacts.update(message).map(Message::Contacts)
+//!             } else {
+//!                 Task::none()    
+//!             }
+//!         }
+//!         Message::Conversation(message) => {
+//!             if let Screen::Conversation(conversation) = &mut state.screen {
+//!                 conversation.update(message).map(Message::Conversation)
+//!             } else {
+//!                 Task::none()    
+//!             }
+//!         }
+//!     }
+//! }
+//!
+//! fn view(state: &State) -> Element<Message> {
+//!     match &state.screen {
+//!         Screen::Contacts(contacts) => contacts.view().map(Message::Contacts),
+//!         Screen::Conversation(conversation) => conversation.view().map(Message::Conversation),
+//!     }
+//! }
+//! ```
+//!
+//! Functor methods like [`Task::map`], [`Element::map`], and [`Subscription::map`] make this
+//! approach seamless.
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/bdf0430880f5c29443f5f0a0ae4895866dfef4c6/docs/logo.svg"
 )]
