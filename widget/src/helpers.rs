@@ -112,6 +112,19 @@ macro_rules! text {
     };
 }
 
+/// Creates some [`Rich`] text with the given spans.
+///
+/// [`Rich`]: text::Rich
+#[macro_export]
+macro_rules! rich_text {
+    () => (
+        $crate::Column::new()
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::text::Rich::with_spans([$($crate::text::Span::from($x)),+])
+    );
+}
+
 /// Creates a new [`Container`] with the provided content.
 ///
 /// [`Container`]: crate::Container
@@ -646,8 +659,6 @@ where
 }
 
 /// Creates a new [`Text`] widget with the provided content.
-///
-/// [`Text`]: core::widget::Text
 pub fn text<'a, Theme, Renderer>(
     text: impl text::IntoFragment<'a>,
 ) -> Text<'a, Theme, Renderer>
@@ -659,8 +670,6 @@ where
 }
 
 /// Creates a new [`Text`] widget that displays the provided value.
-///
-/// [`Text`]: core::widget::Text
 pub fn value<'a, Theme, Renderer>(
     value: impl ToString,
 ) -> Text<'a, Theme, Renderer>
@@ -669,6 +678,28 @@ where
     Renderer: core::text::Renderer,
 {
     Text::new(value.to_string())
+}
+
+/// Creates a new [`Rich`] text widget with the provided spans.
+///
+/// [`Rich`]: text::Rich
+pub fn rich_text<'a, Theme, Renderer>(
+    spans: impl IntoIterator<Item = text::Span<'a, Renderer::Font>>,
+) -> text::Rich<'a, Theme, Renderer>
+where
+    Theme: text::Catalog + 'a,
+    Renderer: core::text::Renderer,
+{
+    text::Rich::with_spans(spans)
+}
+
+/// Creates a new [`Span`] of text with the provided content.
+///
+/// [`Span`]: text::Span
+pub fn span<'a, Font>(
+    text: impl text::IntoFragment<'a>,
+) -> text::Span<'a, Font> {
+    text::Span::new(text)
 }
 
 /// Creates a new [`Checkbox`].

@@ -1,6 +1,6 @@
 //! Draw paragraphs.
 use crate::alignment;
-use crate::text::{Difference, Hit, Text};
+use crate::text::{Difference, Hit, Span, Text};
 use crate::{Point, Size};
 
 /// A text paragraph.
@@ -10,6 +10,9 @@ pub trait Paragraph: Sized + Default {
 
     /// Creates a new [`Paragraph`] laid out with the given [`Text`].
     fn with_text(text: Text<&str, Self::Font>) -> Self;
+
+    /// Creates a new [`Paragraph`] laid out with the given [`Text`].
+    fn with_spans(text: Text<&[Span<'_, Self::Font>], Self::Font>) -> Self;
 
     /// Lays out the [`Paragraph`] with some new boundaries.
     fn resize(&mut self, new_bounds: Size);

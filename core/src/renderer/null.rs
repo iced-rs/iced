@@ -77,6 +77,11 @@ impl text::Paragraph for () {
 
     fn with_text(_text: Text<&str>) -> Self {}
 
+    fn with_spans(
+        _text: Text<&[text::Span<'_, Self::Font>], Self::Font>,
+    ) -> Self {
+    }
+
     fn resize(&mut self, _new_bounds: Size) {}
 
     fn compare(&self, _text: Text<()>) -> text::Difference {

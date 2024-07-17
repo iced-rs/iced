@@ -1,7 +1,7 @@
 //! Draw paragraphs.
 use crate::core;
 use crate::core::alignment;
-use crate::core::text::{Hit, Shaping, Text};
+use crate::core::text::{Hit, Shaping, Span, Text};
 use crate::core::{Font, Point, Size};
 use crate::text;
 
@@ -60,7 +60,7 @@ impl core::text::Paragraph for Paragraph {
     type Font = Font;
 
     fn with_text(text: Text<&str>) -> Self {
-        log::trace!("Allocating paragraph: {}", text.content);
+        log::trace!("Allocating plain paragraph: {}", text.content);
 
         let mut font_system =
             text::font_system().write().expect("Write font system");
@@ -82,6 +82,82 @@ impl core::text::Paragraph for Paragraph {
         buffer.set_text(
             font_system.raw(),
             text.content,
+            text::to_attributes(text.font),
+            text::to_shaping(text.shaping),
+        );
+
+        let min_bounds = text::measure(&buffer);
+
+        Self(Arc::new(Internal {
+            buffer,
+            font: text.font,
+            horizontal_alignment: text.horizontal_alignment,
+            vertical_alignment: text.vertical_alignment,
+            shaping: text.shaping,
+            bounds: text.bounds,
+            min_bounds,
+            version: font_system.version(),
+        }))
+    }
+
+    fn with_spans(text: Text<&[Span<'_>]>) -> Self {
+        log::trace!("Allocating rich paragraph: {:?}", text.content);
+
+        let mut font_system =
+            text::font_system().write().expect("Write font system");
+
+        let mut buffer = cosmic_text::Buffer::new(
+            font_system.raw(),
+            cosmic_text::Metrics::new(
+                text.size.into(),
+                text.line_height.to_absolute(text.size).into(),
+            ),
+        );
+
+        buffer.set_size(
+            font_system.raw(),
+            Some(text.bounds.width),
+            Some(text.bounds.height),
+        );
+
+        buffer.set_rich_text(
+            font_system.raw(),
+            text.content.iter().map(|span| {
+                let attrs = cosmic_text::Attrs::new();
+
+                let attrs = if let Some(font) = span.font {
+                    attrs
+                        .family(text::to_family(font.family))
+                        .weight(text::to_weight(font.weight))
+                        .stretch(text::to_stretch(font.stretch))
+                        .style(text::to_style(font.style))
+                } else {
+                    text::to_attributes(text.font)
+                };
+
+                let attrs = match (span.size, span.line_height) {
+                    (None, None) => attrs,
+                    _ => {
+                        let size = span.size.unwrap_or(text.size);
+
+                        attrs.metrics(cosmic_text::Metrics::new(
+                            size.into(),
+                            span.line_height
+                                .unwrap_or(text.line_height)
+                                .to_absolute(size)
+                                .into(),
+                        ))
+                    }
+                };
+
+                let attrs = if let Some(color) = span.color {
+                    attrs.color(text::to_color(color))
+                } else {
+                    attrs
+                };
+
+                (span.text.as_ref(), attrs)
+            }),
             text::to_attributes(text.font),
             text::to_shaping(text.shaping),
         );
