@@ -79,7 +79,7 @@ impl text::Paragraph for () {
 
     fn resize(&mut self, _new_bounds: Size) {}
 
-    fn compare(&self, _text: Text<&str>) -> text::Difference {
+    fn compare(&self, _text: Text<()>) -> text::Difference {
         text::Difference::None
     }
 

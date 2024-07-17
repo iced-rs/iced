@@ -19,7 +19,8 @@ use crate::core::keyboard::key;
 use crate::core::layout;
 use crate::core::mouse::{self, click};
 use crate::core::renderer;
-use crate::core::text::{self, Paragraph as _, Text};
+use crate::core::text::paragraph;
+use crate::core::text::{self, Text};
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
@@ -360,7 +361,7 @@ where
             let icon_layout = children_layout.next().unwrap();
 
             renderer.fill_paragraph(
-                &state.icon,
+                state.icon.raw(),
                 icon_layout.bounds().center(),
                 style.icon,
                 *viewport,
@@ -378,7 +379,7 @@ where
                 cursor::State::Index(position) => {
                     let (text_value_width, offset) =
                         measure_cursor_and_scroll_offset(
-                            &state.value,
+                            state.value.raw(),
                             text_bounds,
                             position,
                         );
@@ -415,14 +416,14 @@ where
 
                     let (left_position, left_offset) =
                         measure_cursor_and_scroll_offset(
-                            &state.value,
+                            state.value.raw(),
                             text_bounds,
                             left,
                         );
 
                     let (right_position, right_offset) =
                         measure_cursor_and_scroll_offset(
-                            &state.value,
+                            state.value.raw(),
                             text_bounds,
                             right,
                         );
@@ -469,9 +470,9 @@ where
 
             renderer.fill_paragraph(
                 if text.is_empty() {
-                    &state.placeholder
+                    state.placeholder.raw()
                 } else {
-                    &state.value
+                    state.value.raw()
                 },
                 Point::new(text_bounds.x, text_bounds.center_y())
                     - Vector::new(offset, 0.0),
@@ -1178,9 +1179,9 @@ pub fn select_all<T>(id: Id) -> Task<T> {
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
 pub struct State<P: text::Paragraph> {
-    value: P,
-    placeholder: P,
-    icon: P,
+    value: paragraph::Plain<P>,
+    placeholder: paragraph::Plain<P>,
+    icon: paragraph::Plain<P>,
     is_focused: Option<Focus>,
     is_dragging: bool,
     is_pasting: Option<Value>,
@@ -1212,9 +1213,9 @@ impl<P: text::Paragraph> State<P> {
     /// Creates a new [`State`], representing a focused [`TextInput`].
     pub fn focused() -> Self {
         Self {
-            value: P::default(),
-            placeholder: P::default(),
-            icon: P::default(),
+            value: paragraph::Plain::default(),
+            placeholder: paragraph::Plain::default(),
+            icon: paragraph::Plain::default(),
             is_focused: None,
             is_dragging: false,
             is_pasting: None,
@@ -1319,7 +1320,7 @@ fn offset<P: text::Paragraph>(
         };
 
         let (_, offset) = measure_cursor_and_scroll_offset(
-            &state.value,
+            state.value.raw(),
             text_bounds,
             focus_position,
         );
@@ -1357,6 +1358,7 @@ fn find_cursor_position<P: text::Paragraph>(
 
     let char_offset = state
         .value
+        .raw()
         .hit_test(Point::new(x + offset, text_bounds.height / 2.0))
         .map(text::Hit::cursor)?;
 
@@ -1386,7 +1388,7 @@ fn replace_paragraph<Renderer>(
     let mut children_layout = layout.children();
     let text_bounds = children_layout.next().unwrap().bounds();
 
-    state.value = Renderer::Paragraph::with_text(Text {
+    state.value = paragraph::Plain::new(Text {
         font,
         line_height,
         content: &value.to_string(),

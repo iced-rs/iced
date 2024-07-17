@@ -3,7 +3,8 @@ use crate::alignment;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::text::{self, Paragraph};
+use crate::text;
+use crate::text::paragraph::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
 use crate::{
     Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme,
@@ -155,7 +156,7 @@ where
 
 /// The internal state of a [`Text`] widget.
 #[derive(Debug, Default)]
-pub struct State<P: Paragraph>(P);
+pub struct State<P: Paragraph>(paragraph::Plain<P>);
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Text<'a, Theme, Renderer>
@@ -168,7 +169,9 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State(Renderer::Paragraph::default()))
+        tree::State::new(State::<Renderer::Paragraph>(
+            paragraph::Plain::default(),
+        ))
     }
 
     fn size(&self) -> Size<Length> {
@@ -294,7 +297,7 @@ pub fn draw<Renderer>(
     };
 
     renderer.fill_paragraph(
-        paragraph,
+        paragraph.raw(),
         Point::new(x, y),
         appearance.color.unwrap_or(style.text_color),
         *viewport,

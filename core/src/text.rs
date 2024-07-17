@@ -1,8 +1,7 @@
 //! Draw and interact with text.
-mod paragraph;
-
 pub mod editor;
 pub mod highlighter;
+pub mod paragraph;
 
 pub use editor::Editor;
 pub use highlighter::Highlighter;
