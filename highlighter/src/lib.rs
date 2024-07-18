@@ -1,8 +1,9 @@
 //! A syntax highlighter for iced.
 use iced_core as core;
 
+use crate::core::font::{self, Font};
 use crate::core::text::highlighter::{self, Format};
-use crate::core::{Color, Font};
+use crate::core::Color;
 
 use once_cell::sync::Lazy;
 use std::ops::Range;
@@ -35,7 +36,7 @@ impl highlighter::Highlighter for Highlighter {
 
     fn new(settings: &Self::Settings) -> Self {
         let syntax = SYNTAXES
-            .find_syntax_by_token(&settings.extension)
+            .find_syntax_by_token(&settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
         let highlighter = highlighting::Highlighter::new(
@@ -55,7 +56,7 @@ impl highlighter::Highlighter for Highlighter {
 
     fn update(&mut self, new_settings: &Self::Settings) {
         self.syntax = SYNTAXES
-            .find_syntax_by_token(&new_settings.extension)
+            .find_syntax_by_token(&new_settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
         self.highlighter = highlighting::Highlighter::new(
@@ -141,11 +142,11 @@ pub struct Settings {
     ///
     /// It dictates the color scheme that will be used for highlighting.
     pub theme: Theme,
-    /// The extension of the file to highlight.
+    /// The extension of the file or the name of the language to highlight.
     ///
-    /// The [`Highlighter`] will use the extension to automatically determine
+    /// The [`Highlighter`] will use the token to automatically determine
     /// the grammar to use for highlighting.
-    pub extension: String,
+    pub token: String,
 }
 
 /// A highlight produced by a [`Highlighter`].
@@ -166,7 +167,29 @@ impl Highlight {
     ///
     /// If `None`, the original font should be unchanged.
     pub fn font(&self) -> Option<Font> {
-        None
+        self.0.font_style.and_then(|style| {
+            let bold = style.contains(highlighting::FontStyle::BOLD);
+
+            let italic = style.contains(highlighting::FontStyle::ITALIC);
+
+            if bold || italic {
+                Some(Font {
+                    weight: if bold {
+                        font::Weight::Bold
+                    } else {
+                        font::Weight::Normal
+                    },
+                    style: if italic {
+                        font::Style::Italic
+                    } else {
+                        font::Style::Normal
+                    },
+                    ..Font::MONOSPACE
+                })
+            } else {
+                None
+            }
+        })
     }
 
     /// Returns the [`Format`] of the [`Highlight`].

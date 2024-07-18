@@ -6,7 +6,8 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::text::{self, Paragraph as _, Text};
+use crate::core::text::paragraph;
+use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
@@ -622,8 +623,8 @@ struct State<P: text::Paragraph> {
     keyboard_modifiers: keyboard::Modifiers,
     is_open: bool,
     hovered_option: Option<usize>,
-    options: Vec<P>,
-    placeholder: P,
+    options: Vec<paragraph::Plain<P>>,
+    placeholder: paragraph::Plain<P>,
 }
 
 impl<P: text::Paragraph> State<P> {
@@ -635,7 +636,7 @@ impl<P: text::Paragraph> State<P> {
             is_open: bool::default(),
             hovered_option: Option::default(),
             options: Vec::new(),
-            placeholder: P::default(),
+            placeholder: paragraph::Plain::default(),
         }
     }
 }

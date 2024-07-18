@@ -24,7 +24,7 @@ use crate::tooltip::{self, Tooltip};
 use crate::vertical_slider::{self, VerticalSlider};
 use crate::{Column, MouseArea, Row, Space, Stack, Themer};
 
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 use std::ops::RangeInclusive;
 
 /// Creates a [`Column`] with the given children.
@@ -110,6 +110,19 @@ macro_rules! text {
     ($($arg:tt)*) => {
         $crate::Text::new(format!($($arg)*))
     };
+}
+
+/// Creates some [`Rich`] text with the given spans.
+///
+/// [`Rich`]: text::Rich
+#[macro_export]
+macro_rules! rich_text {
+    () => (
+        $crate::Column::new()
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::text::Rich::with_spans([$($crate::text::Span::from($x)),+])
+    );
 }
 
 /// Creates a new [`Container`] with the provided content.
@@ -646,8 +659,6 @@ where
 }
 
 /// Creates a new [`Text`] widget with the provided content.
-///
-/// [`Text`]: core::widget::Text
 pub fn text<'a, Theme, Renderer>(
     text: impl text::IntoFragment<'a>,
 ) -> Text<'a, Theme, Renderer>
@@ -659,8 +670,6 @@ where
 }
 
 /// Creates a new [`Text`] widget that displays the provided value.
-///
-/// [`Text`]: core::widget::Text
 pub fn value<'a, Theme, Renderer>(
     value: impl ToString,
 ) -> Text<'a, Theme, Renderer>
@@ -670,6 +679,32 @@ where
 {
     Text::new(value.to_string())
 }
+
+/// Creates a new [`Rich`] text widget with the provided spans.
+///
+/// [`Rich`]: text::Rich
+pub fn rich_text<'a, Theme, Renderer>(
+    spans: impl Into<Cow<'a, [text::Span<'a, Renderer::Font>]>>,
+) -> text::Rich<'a, Theme, Renderer>
+where
+    Theme: text::Catalog + 'a,
+    Renderer: core::text::Renderer,
+{
+    text::Rich::with_spans(spans)
+}
+
+/// Creates a new [`Span`] of text with the provided content.
+///
+/// [`Span`]: text::Span
+pub fn span<'a, Font>(
+    text: impl text::IntoFragment<'a>,
+) -> text::Span<'a, Font> {
+    text::Span::new(text)
+}
+
+#[cfg(feature = "markdown")]
+#[doc(inline)]
+pub use crate::markdown::view as markdown;
 
 /// Creates a new [`Checkbox`].
 ///

@@ -22,8 +22,10 @@ lazy = ["ouroboros"]
 image = ["iced_renderer/image"]
 svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
-qr_code = ["canvas", "qrcode"]
+qr_code = ["canvas", "dep:qrcode"]
 wgpu = ["iced_renderer/wgpu"]
+markdown = ["dep:pulldown-cmark"]
+highlighter = ["dep:iced_highlighter"]
 advanced = []
 
 [dependencies]
@@ -41,3 +43,9 @@ ouroboros.optional = true
 
 qrcode.workspace = true
 qrcode.optional = true
+
+pulldown-cmark.workspace = true
+pulldown-cmark.optional = true
+
+iced_highlighter.workspace = true
+iced_highlighter.optional = true
