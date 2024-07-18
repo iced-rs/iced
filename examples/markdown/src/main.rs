@@ -68,6 +68,6 @@ impl Markdown {
     }
 
     fn theme(&self) -> Theme {
-        Theme::TokyoNight
+        self.theme.clone()
     }
 }
