@@ -34,6 +34,7 @@ impl Markdown {
             widget::focus_next(),
         )
     }
+
     fn update(&mut self, message: Message) {
         match message {
             Message::Edit(action) => {

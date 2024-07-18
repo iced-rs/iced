@@ -169,7 +169,6 @@ impl Highlight {
     pub fn font(&self) -> Option<Font> {
         self.0.font_style.and_then(|style| {
             let bold = style.contains(highlighting::FontStyle::BOLD);
-
             let italic = style.contains(highlighting::FontStyle::ITALIC);
 
             if bold || italic {
