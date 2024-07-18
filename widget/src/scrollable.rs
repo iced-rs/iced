@@ -62,18 +62,26 @@ where
         .validate()
     }
 
-    fn validate(self) -> Self {
+    fn validate(mut self) -> Self {
+        let size_hint = self.content.as_widget().size_hint();
+
         debug_assert!(
-            self.direction.vertical().is_none()
-                || !self.content.as_widget().size_hint().height.is_fill(),
+            self.direction.vertical().is_none() || !size_hint.height.is_fill(),
             "scrollable content must not fill its vertical scrolling axis"
         );
 
         debug_assert!(
-            self.direction.horizontal().is_none()
-                || !self.content.as_widget().size_hint().width.is_fill(),
+            self.direction.horizontal().is_none() || !size_hint.width.is_fill(),
             "scrollable content must not fill its horizontal scrolling axis"
         );
+
+        if self.direction.horizontal().is_none() {
+            self.width = self.width.enclose(size_hint.width);
+        }
+
+        if self.direction.vertical().is_none() {
+            self.height = self.height.enclose(size_hint.height);
+        }
 
         self
     }

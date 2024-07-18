@@ -60,13 +60,10 @@ impl Markdown {
 
         let preview = markdown(&self.items);
 
-        row![
-            editor,
-            scrollable(preview).spacing(10).width(Fill).height(Fill)
-        ]
-        .spacing(10)
-        .padding(10)
-        .into()
+        row![editor, scrollable(preview).spacing(10).height(Fill)]
+            .spacing(10)
+            .padding(10)
+            .into()
     }
 
     fn theme(&self) -> Theme {
