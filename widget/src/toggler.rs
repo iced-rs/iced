@@ -289,12 +289,14 @@ where
 
         if self.label.is_some() {
             let label_layout = children.next().unwrap();
+            let state: &widget::text::State<Renderer::Paragraph> =
+                tree.state.downcast_ref();
 
             crate::text::draw(
                 renderer,
                 style,
                 label_layout,
-                tree.state.downcast_ref(),
+                state.0.raw(),
                 crate::text::Style::default(),
                 viewport,
             );

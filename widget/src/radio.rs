@@ -353,12 +353,14 @@ where
 
         {
             let label_layout = children.next().unwrap();
+            let state: &widget::text::State<Renderer::Paragraph> =
+                tree.state.downcast_ref();
 
             crate::text::draw(
                 renderer,
                 defaults,
                 label_layout,
-                tree.state.downcast_ref(),
+                state.0.raw(),
                 crate::text::Style {
                     color: style.text_color,
                 },
