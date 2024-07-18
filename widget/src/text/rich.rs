@@ -11,6 +11,8 @@ use crate::core::{
     self, Color, Element, Length, Pixels, Rectangle, Size, Widget,
 };
 
+use std::borrow::Cow;
+
 /// A bunch of [`Rich`] text.
 #[derive(Debug)]
 pub struct Rich<'a, Theme = crate::Theme, Renderer = crate::Renderer>
@@ -18,7 +20,7 @@ where
     Theme: Catalog,
     Renderer: core::text::Renderer,
 {
-    spans: Vec<Span<'a, Renderer::Font>>,
+    spans: Cow<'a, [Span<'a, Renderer::Font>]>,
     size: Option<Pixels>,
     line_height: LineHeight,
     width: Length,
@@ -37,7 +39,7 @@ where
     /// Creates a new empty [`Rich`] text.
     pub fn new() -> Self {
         Self {
-            spans: Vec::new(),
+            spans: Cow::default(),
             size: None,
             line_height: LineHeight::default(),
             width: Length::Shrink,
@@ -51,10 +53,10 @@ where
 
     /// Creates a new [`Rich`] text with the given text spans.
     pub fn with_spans(
-        spans: impl IntoIterator<Item = Span<'a, Renderer::Font>>,
+        spans: impl Into<Cow<'a, [Span<'a, Renderer::Font>]>>,
     ) -> Self {
         Self {
-            spans: spans.into_iter().collect(),
+            spans: spans.into(),
             ..Self::new()
         }
     }
@@ -151,7 +153,7 @@ where
 
     /// Adds a new text [`Span`] to the [`Rich`] text.
     pub fn push(mut self, span: impl Into<Span<'a, Renderer::Font>>) -> Self {
-        self.spans.push(span.into());
+        self.spans.to_mut().push(span.into());
         self
     }
 }
@@ -207,7 +209,7 @@ where
             limits,
             self.width,
             self.height,
-            self.spans.as_slice(),
+            self.spans.as_ref(),
             self.line_height,
             self.size,
             self.font,
@@ -301,6 +303,22 @@ where
 
         state.paragraph.min_bounds()
     })
+}
+
+impl<'a, Theme, Renderer> FromIterator<Span<'a, Renderer::Font>>
+    for Rich<'a, Theme, Renderer>
+where
+    Theme: Catalog,
+    Renderer: core::text::Renderer,
+{
+    fn from_iter<T: IntoIterator<Item = Span<'a, Renderer::Font>>>(
+        spans: T,
+    ) -> Self {
+        Self {
+            spans: spans.into_iter().collect(),
+            ..Self::new()
+        }
+    }
 }
 
 impl<'a, Message, Theme, Renderer> From<Rich<'a, Theme, Renderer>>

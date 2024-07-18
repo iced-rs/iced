@@ -9,6 +9,7 @@ use crate::core::renderer;
 use crate::core::text::editor::{Cursor, Editor as _};
 use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{self, LineHeight};
+use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
 use crate::core::{
     Background, Border, Color, Element, Length, Padding, Pixels, Rectangle,
@@ -338,6 +339,22 @@ impl<Highlighter: text::Highlighter> State<Highlighter> {
     }
 }
 
+impl<Highlighter: text::Highlighter> operation::Focusable
+    for State<Highlighter>
+{
+    fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    fn unfocus(&mut self) {
+        self.is_focused = false;
+    }
+}
+
 impl<'a, Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for TextEditor<'a, Highlighter, Message, Theme, Renderer>
 where
@@ -639,6 +656,18 @@ where
         } else {
             mouse::Interaction::default()
         }
+    }
+
+    fn operate(
+        &self,
+        tree: &mut widget::Tree,
+        _layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation<()>,
+    ) {
+        let state = tree.state.downcast_mut::<State<Highlighter>>();
+
+        operation.focusable(state, None);
     }
 }
 

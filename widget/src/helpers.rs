@@ -24,7 +24,7 @@ use crate::tooltip::{self, Tooltip};
 use crate::vertical_slider::{self, VerticalSlider};
 use crate::{Column, MouseArea, Row, Space, Stack, Themer};
 
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 use std::ops::RangeInclusive;
 
 /// Creates a [`Column`] with the given children.
@@ -684,7 +684,7 @@ where
 ///
 /// [`Rich`]: text::Rich
 pub fn rich_text<'a, Theme, Renderer>(
-    spans: impl IntoIterator<Item = text::Span<'a, Renderer::Font>>,
+    spans: impl Into<Cow<'a, [text::Span<'a, Renderer::Font>]>>,
 ) -> text::Rich<'a, Theme, Renderer>
 where
     Theme: text::Catalog + 'a,

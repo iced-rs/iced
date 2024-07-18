@@ -189,7 +189,7 @@ impl Editor {
                 .highlight::<Highlighter>(
                     highlighter::Settings {
                         theme: self.theme,
-                        extension: self
+                        token: self
                             .file
                             .as_deref()
                             .and_then(Path::extension)

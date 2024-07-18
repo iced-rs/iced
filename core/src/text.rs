@@ -267,9 +267,21 @@ impl<'a, Font> Span<'a, Font> {
         self
     }
 
+    /// Sets the font of the [`Span`], if any.
+    pub fn font_maybe(mut self, font: Option<impl Into<Font>>) -> Self {
+        self.font = font.map(Into::into);
+        self
+    }
+
     /// Sets the [`Color`] of the [`Span`].
     pub fn color(mut self, color: impl Into<Color>) -> Self {
         self.color = Some(color.into());
+        self
+    }
+
+    /// Sets the [`Color`] of the [`Span`], if any.
+    pub fn color_maybe(mut self, color: Option<impl Into<Color>>) -> Self {
+        self.color = color.map(Into::into);
         self
     }
 
