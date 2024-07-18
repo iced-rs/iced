@@ -7,6 +7,7 @@ use crate::core;
 use crate::core::widget::operation;
 use crate::core::{Element, Length, Pixels, Widget};
 use crate::keyed;
+use crate::markdown::{self};
 use crate::overlay;
 use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
@@ -701,6 +702,10 @@ pub fn span<'a, Font>(
 ) -> text::Span<'a, Font> {
     text::Span::new(text)
 }
+
+#[cfg(feature = "markdown")]
+#[doc(inline)]
+pub use markdown::view as markdown;
 
 /// Creates a new [`Checkbox`].
 ///

@@ -130,5 +130,8 @@ pub mod qr_code;
 #[doc(no_inline)]
 pub use qr_code::QRCode;
 
+#[cfg(feature = "markdown")]
+pub mod markdown;
+
 pub use crate::core::theme::{self, Theme};
 pub use renderer::Renderer;

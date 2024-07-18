@@ -34,6 +34,8 @@ svg = ["iced_widget/svg"]
 canvas = ["iced_widget/canvas"]
 # Enables the `QRCode` widget
 qr_code = ["iced_widget/qr_code"]
+# Enables the `markdown` widget
+markdown = ["iced_widget/markdown"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
@@ -51,7 +53,7 @@ web-colors = ["iced_renderer/web-colors"]
 # Enables the WebGL backend, replacing WebGPU
 webgl = ["iced_renderer/webgl"]
 # Enables the syntax `highlighter` module
-highlighter = ["iced_highlighter"]
+highlighter = ["iced_highlighter", "iced_widget/highlighter"]
 # Enables experimental multi-window support.
 multi-window = ["iced_winit/multi-window"]
 # Enables the advanced module
@@ -155,6 +157,7 @@ num-traits = "0.2"
 once_cell = "1.0"
 ouroboros = "0.18"
 palette = "0.7"
+pulldown-cmark = "0.11"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
 resvg = "0.42"

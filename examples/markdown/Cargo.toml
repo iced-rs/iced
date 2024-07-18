@@ -7,6 +7,4 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["highlighter", "debug"]
-
-pulldown-cmark = "0.11"
+iced.features = ["markdown", "highlighter", "debug"]
