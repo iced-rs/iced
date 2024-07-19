@@ -282,6 +282,7 @@ impl Pipeline {
                         wgpu::PipelineCompilationOptions::default(),
                 }),
                 multiview: None,
+                cache: None,
             });
 
         let depth_pipeline = DepthPipeline::new(
@@ -518,6 +519,7 @@ impl DepthPipeline {
                         wgpu::PipelineCompilationOptions::default(),
                 }),
                 multiview: None,
+                cache: None,
             });
 
         Self {

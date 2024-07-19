@@ -162,6 +162,7 @@ impl Compositor {
                         ),
                         required_features: wgpu::Features::empty(),
                         required_limits: required_limits.clone(),
+                        memory_hints: wgpu::MemoryHints::MemoryUsage,
                     },
                     None,
                 )

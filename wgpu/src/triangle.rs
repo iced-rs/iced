@@ -774,6 +774,7 @@ mod solid {
                         depth_stencil: None,
                         multisample: triangle::multisample_state(antialiasing),
                         multiview: None,
+                        cache: None,
                     },
                 );
 
@@ -955,6 +956,7 @@ mod gradient {
                     depth_stencil: None,
                     multisample: triangle::multisample_state(antialiasing),
                     multiview: None,
+                    cache: None,
                 },
             );
 
