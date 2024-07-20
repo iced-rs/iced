@@ -26,7 +26,7 @@ pub enum Item {
         /// The first number of the list, if it is ordered.
         start: Option<u64>,
         /// The items of the list.
-        items: Vec<Vec<text::Span<'static>>>,
+        items: Vec<Vec<Item>>,
     },
 }
 
@@ -35,46 +35,83 @@ pub fn parse(
     markdown: &str,
     palette: theme::Palette,
 ) -> impl Iterator<Item = Item> + '_ {
+    struct List {
+        start: Option<u64>,
+        items: Vec<Vec<Item>>,
+    }
+
     let mut spans = Vec::new();
     let mut heading = None;
     let mut strong = false;
     let mut emphasis = false;
+    let mut metadata = false;
+    let mut table = false;
     let mut link = false;
-    let mut list = Vec::new();
-    let mut list_start = None;
+    let mut lists = Vec::new();
 
     #[cfg(feature = "highlighter")]
     let mut highlighter = None;
 
-    let parser = pulldown_cmark::Parser::new(markdown);
+    let parser = pulldown_cmark::Parser::new_ext(
+        markdown,
+        pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
+            | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
+            | pulldown_cmark::Options::ENABLE_TABLES,
+    );
+
+    let produce = |lists: &mut Vec<List>, item| {
+        if lists.is_empty() {
+            Some(item)
+        } else {
+            lists
+                .last_mut()
+                .expect("list context")
+                .items
+                .last_mut()
+                .expect("item context")
+                .push(item);
+
+            None
+        }
+    };
 
     // We want to keep the `spans` capacity
     #[allow(clippy::drain_collect)]
     parser.filter_map(move |event| match event {
         pulldown_cmark::Event::Start(tag) => match tag {
-            pulldown_cmark::Tag::Heading { level, .. } => {
+            pulldown_cmark::Tag::Heading { level, .. }
+                if !metadata && !table =>
+            {
                 heading = Some(level);
                 None
             }
-            pulldown_cmark::Tag::Strong => {
+            pulldown_cmark::Tag::Strong if !metadata && !table => {
                 strong = true;
                 None
             }
-            pulldown_cmark::Tag::Emphasis => {
+            pulldown_cmark::Tag::Emphasis if !metadata && !table => {
                 emphasis = true;
                 None
             }
-            pulldown_cmark::Tag::Link { .. } => {
+            pulldown_cmark::Tag::Link { .. } if !metadata && !table => {
                 link = true;
                 None
             }
-            pulldown_cmark::Tag::List(first_item) => {
-                list_start = first_item;
+            pulldown_cmark::Tag::List(first_item) if !metadata && !table => {
+                lists.push(List {
+                    start: first_item,
+                    items: Vec::new(),
+                });
+
+                None
+            }
+            pulldown_cmark::Tag::Item => {
+                lists.last_mut().expect("List").items.push(Vec::new());
                 None
             }
             pulldown_cmark::Tag::CodeBlock(
                 pulldown_cmark::CodeBlockKind::Fenced(_language),
-            ) => {
+            ) if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
                 {
                     use iced_highlighter::{self, Highlighter};
@@ -89,47 +126,76 @@ pub fn parse(
 
                 None
             }
+            pulldown_cmark::Tag::MetadataBlock(_) => {
+                metadata = true;
+                None
+            }
+            pulldown_cmark::Tag::Table(_) => {
+                table = true;
+                None
+            }
             _ => None,
         },
         pulldown_cmark::Event::End(tag) => match tag {
-            pulldown_cmark::TagEnd::Heading(_) => {
+            pulldown_cmark::TagEnd::Heading(_) if !metadata && !table => {
                 heading = None;
-                Some(Item::Heading(spans.drain(..).collect()))
+                produce(&mut lists, Item::Heading(spans.drain(..).collect()))
             }
-            pulldown_cmark::TagEnd::Emphasis => {
+            pulldown_cmark::TagEnd::Emphasis if !metadata && !table => {
                 emphasis = false;
                 None
             }
-            pulldown_cmark::TagEnd::Strong => {
+            pulldown_cmark::TagEnd::Strong if !metadata && !table => {
                 strong = false;
                 None
             }
-            pulldown_cmark::TagEnd::Link => {
+            pulldown_cmark::TagEnd::Link if !metadata && !table => {
                 link = false;
                 None
             }
-            pulldown_cmark::TagEnd::Paragraph => {
-                Some(Item::Paragraph(spans.drain(..).collect()))
+            pulldown_cmark::TagEnd::Paragraph if !metadata && !table => {
+                produce(&mut lists, Item::Paragraph(spans.drain(..).collect()))
             }
-            pulldown_cmark::TagEnd::List(_) => Some(Item::List {
-                start: list_start,
-                items: list.drain(..).collect(),
-            }),
-            pulldown_cmark::TagEnd::Item => {
-                list.push(spans.drain(..).collect());
-                None
+            pulldown_cmark::TagEnd::Item if !metadata && !table => {
+                if spans.is_empty() {
+                    None
+                } else {
+                    produce(
+                        &mut lists,
+                        Item::Paragraph(spans.drain(..).collect()),
+                    )
+                }
             }
-            pulldown_cmark::TagEnd::CodeBlock => {
+            pulldown_cmark::TagEnd::List(_) if !metadata && !table => {
+                let list = lists.pop().expect("List");
+
+                produce(
+                    &mut lists,
+                    Item::List {
+                        start: list.start,
+                        items: list.items,
+                    },
+                )
+            }
+            pulldown_cmark::TagEnd::CodeBlock if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
                 {
                     highlighter = None;
                 }
 
-                Some(Item::CodeBlock(spans.drain(..).collect()))
+                produce(&mut lists, Item::CodeBlock(spans.drain(..).collect()))
+            }
+            pulldown_cmark::TagEnd::MetadataBlock(_) => {
+                metadata = false;
+                None
+            }
+            pulldown_cmark::TagEnd::Table => {
+                table = false;
+                None
             }
             _ => None,
         },
-        pulldown_cmark::Event::Text(text) => {
+        pulldown_cmark::Event::Text(text) if !metadata && !table => {
             #[cfg(feature = "highlighter")]
             if let Some(highlighter) = &mut highlighter {
                 use text::Highlighter as _;
@@ -185,15 +251,15 @@ pub fn parse(
 
             None
         }
-        pulldown_cmark::Event::Code(code) => {
+        pulldown_cmark::Event::Code(code) if !metadata && !table => {
             spans.push(span(code.into_string()).font(Font::MONOSPACE));
             None
         }
-        pulldown_cmark::Event::SoftBreak => {
+        pulldown_cmark::Event::SoftBreak if !metadata && !table => {
             spans.push(span(" "));
             None
         }
-        pulldown_cmark::Event::HardBreak => {
+        pulldown_cmark::Event::HardBreak if !metadata && !table => {
             spans.push(span("\n"));
             None
         }
@@ -219,15 +285,15 @@ where
         Item::List { start: None, items } => column(
             items
                 .iter()
-                .map(|item| row!["•", rich_text(item)].spacing(10).into()),
+                .map(|items| row!["•", view(items)].spacing(10).into()),
         )
         .spacing(10)
         .into(),
         Item::List {
             start: Some(start),
             items,
-        } => column(items.iter().enumerate().map(|(i, item)| {
-            row![text!("{}.", i as u64 + *start), rich_text(item)]
+        } => column(items.iter().enumerate().map(|(i, items)| {
+            row![text!("{}.", i as u64 + *start), view(items)]
                 .spacing(10)
                 .into()
         }))
