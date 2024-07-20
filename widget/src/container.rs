@@ -10,8 +10,9 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Layout, Length, Padding,
-    Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    self, color, Background, Clipboard, Color, Element, Layout, Length,
+    Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
+    Widget,
 };
 use crate::runtime::task::{self, Task};
 
@@ -651,6 +652,15 @@ pub fn bordered_box(theme: &Theme) -> Style {
             radius: 0.0.into(),
             color: palette.background.strong.color,
         },
+        ..Style::default()
+    }
+}
+
+/// A [`Container`] with a dark background and white text.
+pub fn dark(_theme: &Theme) -> Style {
+    Style {
+        background: Some(color!(0x333333).into()),
+        text_color: Some(Color::WHITE),
         ..Style::default()
     }
 }
