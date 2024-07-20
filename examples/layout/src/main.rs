@@ -1,3 +1,4 @@
+use iced::border;
 use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
@@ -85,7 +86,7 @@ impl Layout {
             let palette = theme.extended_palette();
 
             container::Style::default()
-                .with_border(palette.background.strong.color, 4.0)
+                .border(border::color(palette.background.strong.color).width(4))
         })
         .padding(4);
 
@@ -240,7 +241,7 @@ fn application<'a>() -> Element<'a, Message> {
         let palette = theme.extended_palette();
 
         container::Style::default()
-            .with_border(palette.background.strong.color, 1)
+            .border(border::color(palette.background.strong.color).width(1))
     });
 
     let sidebar = container(

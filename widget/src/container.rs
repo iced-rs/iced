@@ -546,26 +546,34 @@ pub struct Style {
 }
 
 impl Style {
-    /// Updates the border of the [`Style`] with the given [`Color`] and `width`.
-    pub fn with_border(
-        self,
-        color: impl Into<Color>,
-        width: impl Into<Pixels>,
-    ) -> Self {
+    /// Updates the text color of the [`Style`].
+    pub fn color(self, color: impl Into<Color>) -> Self {
         Self {
-            border: Border {
-                color: color.into(),
-                width: width.into().0,
-                ..Border::default()
-            },
+            text_color: Some(color.into()),
+            ..self
+        }
+    }
+
+    /// Updates the border of the [`Style`].
+    pub fn border(self, border: impl Into<Border>) -> Self {
+        Self {
+            border: border.into(),
             ..self
         }
     }
 
     /// Updates the background of the [`Style`].
-    pub fn with_background(self, background: impl Into<Background>) -> Self {
+    pub fn background(self, background: impl Into<Background>) -> Self {
         Self {
             background: Some(background.into()),
+            ..self
+        }
+    }
+
+    /// Updates the shadow of the [`Style`].
+    pub fn shadow(self, shadow: impl Into<Shadow>) -> Self {
+        Self {
+            shadow: shadow.into(),
             ..self
         }
     }
@@ -573,19 +581,19 @@ impl Style {
 
 impl From<Color> for Style {
     fn from(color: Color) -> Self {
-        Self::default().with_background(color)
+        Self::default().background(color)
     }
 }
 
 impl From<Gradient> for Style {
     fn from(gradient: Gradient) -> Self {
-        Self::default().with_background(gradient)
+        Self::default().background(gradient)
     }
 }
 
 impl From<gradient::Linear> for Style {
     fn from(gradient: gradient::Linear) -> Self {
-        Self::default().with_background(gradient)
+        Self::default().background(gradient)
     }
 }
 
