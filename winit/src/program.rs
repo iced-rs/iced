@@ -300,6 +300,8 @@ where
                 return;
             };
 
+            event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+
             let window = match event_loop.create_window(
                 winit::window::WindowAttributes::default().with_visible(false),
             ) {
