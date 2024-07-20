@@ -659,8 +659,9 @@ pub fn bordered_box(theme: &Theme) -> Style {
 /// A [`Container`] with a dark background and white text.
 pub fn dark(_theme: &Theme) -> Style {
     Style {
-        background: Some(color!(0x333333).into()),
+        background: Some(color!(0x111111).into()),
         text_color: Some(Color::WHITE),
+        border: border::rounded(2),
         ..Style::default()
     }
 }
