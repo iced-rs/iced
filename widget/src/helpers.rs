@@ -121,7 +121,7 @@ macro_rules! rich_text {
         $crate::Column::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::text::Rich::with_spans([$($crate::text::Span::from($x)),+])
+        $crate::text::Rich::from_iter([$($crate::text::Span::from($x)),+])
     );
 }
 
