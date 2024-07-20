@@ -528,8 +528,8 @@ where
                                 #[cfg(target_arch = "wasm32")]
                                 let window_attributes = {
                                     use winit::platform::web::WindowAttributesExtWebSys;
-                                    log::info!("{:#?}", self.canvas);
-                                    window_attributes.with_canvas(self.canvas.take())
+                                    window_attributes
+                                        .with_canvas(self.canvas.take())
                                 };
 
                                 log::info!("Window attributes for id `{id:#?}`: {window_attributes:#?}");
