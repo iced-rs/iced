@@ -44,5 +44,5 @@ winapi.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys.workspace = true
-web-sys.features = ["Document", "Window"]
+web-sys.features = ["Document", "Window", "HtmlCanvasElement"]
 wasm-bindgen-futures.workspace = true

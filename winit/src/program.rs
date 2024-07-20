@@ -252,6 +252,8 @@ where
         is_booted: std::rc::Rc<std::cell::RefCell<bool>>,
         #[cfg(target_arch = "wasm32")]
         queued_events: Vec<Event<Action<Message>>>,
+        #[cfg(target_arch = "wasm32")]
+        canvas: Option<web_sys::HtmlCanvasElement>,
     }
 
     struct BootConfig<C> {
@@ -277,6 +279,8 @@ where
         is_booted: std::rc::Rc::new(std::cell::RefCell::new(false)),
         #[cfg(target_arch = "wasm32")]
         queued_events: Vec::new(),
+        #[cfg(target_arch = "wasm32")]
+        canvas: None,
     };
 
     impl<Message, F, C> winit::application::ApplicationHandler<Action<Message>>
@@ -306,6 +310,12 @@ where
                     return;
                 }
             };
+
+            #[cfg(target_arch = "wasm32")]
+            {
+                use winit::platform::web::WindowExtWebSys;
+                self.canvas = window.canvas();
+            }
 
             let finish_boot = async move {
                 let mut compositor =
@@ -505,18 +515,27 @@ where
                                 let target =
                                     settings.platform_specific.target.clone();
 
-                                let window = event_loop
-                                    .create_window(
-                                        conversion::window_attributes(
-                                            settings,
-                                            &title,
-                                            monitor
-                                                .or(event_loop
-                                                    .primary_monitor()),
-                                            self.id.clone(),
-                                        )
-                                        .with_visible(false),
+                                let window_attributes =
+                                    conversion::window_attributes(
+                                        settings,
+                                        &title,
+                                        monitor
+                                            .or(event_loop.primary_monitor()),
+                                        self.id.clone(),
                                     )
+                                    .with_visible(false);
+
+                                #[cfg(target_arch = "wasm32")]
+                                let window_attributes = {
+                                    use winit::platform::web::WindowAttributesExtWebSys;
+                                    log::info!("{:#?}", self.canvas);
+                                    window_attributes.with_canvas(self.canvas.take())
+                                };
+
+                                log::info!("Window attributes for id `{id:#?}`: {window_attributes:#?}");
+
+                                let window = event_loop
+                                    .create_window(window_attributes)
                                     .expect("Create window");
 
                                 #[cfg(target_arch = "wasm32")]
