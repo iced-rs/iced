@@ -312,7 +312,7 @@ where
                     {
                         match state.paragraph.hit_span(position) {
                             Some(span) if span == span_pressed => {
-                                if let Some(link) = state
+                                if let Some(link) = self
                                     .spans
                                     .get(span)
                                     .and_then(|span| span.link.clone())
@@ -351,7 +351,7 @@ where
             if let Some(span) = state
                 .paragraph
                 .hit_span(position)
-                .and_then(|span| state.spans.get(span))
+                .and_then(|span| self.spans.get(span))
             {
                 if span.link.is_some() {
                     return mouse::Interaction::Pointer;
