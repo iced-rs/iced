@@ -8,7 +8,7 @@ use crate::core::font::{self, Font};
 use crate::core::padding;
 use crate::core::theme::{self, Theme};
 use crate::core::{self, Element, Length, Pixels};
-use crate::{column, container, rich_text, row, span, text};
+use crate::{column, container, rich_text, row, scrollable, span, text};
 
 pub use pulldown_cmark::HeadingLevel;
 pub use url::Url;
@@ -397,13 +397,23 @@ where
         .spacing(spacing)
         .into(),
         Item::CodeBlock(code) => container(
-            rich_text(code)
-                .font(Font::MONOSPACE)
-                .size(code_size)
-                .on_link(on_link),
+            scrollable(
+                container(
+                    rich_text(code)
+                        .font(Font::MONOSPACE)
+                        .size(code_size)
+                        .on_link(on_link),
+                )
+                .padding(spacing.0 / 2.0),
+            )
+            .direction(scrollable::Direction::Horizontal(
+                scrollable::Scrollbar::default()
+                    .width(spacing.0 / 2.0)
+                    .scroller_width(spacing.0 / 2.0),
+            )),
         )
         .width(Length::Fill)
-        .padding(spacing.0)
+        .padding(spacing.0 / 2.0)
         .style(container::rounded_box)
         .into(),
     });
