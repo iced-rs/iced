@@ -123,15 +123,7 @@ impl core::text::Paragraph for Paragraph {
         buffer.set_rich_text(
             font_system.raw(),
             text.content.iter().enumerate().map(|(i, span)| {
-                let attrs = if let Some(font) = span.font {
-                    cosmic_text::Attrs::new()
-                        .family(text::to_family(font.family))
-                        .weight(text::to_weight(font.weight))
-                        .stretch(text::to_stretch(font.stretch))
-                        .style(text::to_style(font.style))
-                } else {
-                    text::to_attributes(text.font)
-                };
+                let attrs = text::to_attributes(span.font.unwrap_or(text.font));
 
                 let attrs = match (span.size, span.line_height) {
                     (None, None) => attrs,
