@@ -64,7 +64,11 @@ impl Markdown {
             .padding(10)
             .font(Font::MONOSPACE);
 
-        let preview = markdown(&self.items, Message::LinkClicked);
+        let preview = markdown(
+            &self.items,
+            markdown::Settings::default(),
+            Message::LinkClicked,
+        );
 
         row![editor, scrollable(preview).spacing(10).height(Fill)]
             .spacing(10)

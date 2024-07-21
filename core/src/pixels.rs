@@ -9,6 +9,11 @@
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
 pub struct Pixels(pub f32);
 
+impl Pixels {
+    /// Zero pixels.
+    pub const ZERO: Self = Self(0.0);
+}
+
 impl From<f32> for Pixels {
     fn from(amount: f32) -> Self {
         Self(amount)
@@ -56,5 +61,21 @@ impl std::ops::Mul<f32> for Pixels {
 
     fn mul(self, rhs: f32) -> Self {
         Pixels(self.0 * rhs)
+    }
+}
+
+impl std::ops::Div for Pixels {
+    type Output = Pixels;
+
+    fn div(self, rhs: Self) -> Self {
+        Pixels(self.0 / rhs.0)
+    }
+}
+
+impl std::ops::Div<f32> for Pixels {
+    type Output = Pixels;
+
+    fn div(self, rhs: f32) -> Self {
+        Pixels(self.0 / rhs)
     }
 }

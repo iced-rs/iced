@@ -161,6 +161,15 @@ where
         self
     }
 
+    /// Sets the message handler for link clicks on the [`Rich`] text.
+    pub fn on_link_maybe(
+        mut self,
+        on_link: Option<impl Fn(Link) -> Message + 'a>,
+    ) -> Self {
+        self.on_link = on_link.map(|on_link| Box::new(on_link) as _);
+        self
+    }
+
     /// Sets the default style class of the [`Rich`] text.
     #[cfg(feature = "advanced")]
     #[must_use]
