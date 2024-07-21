@@ -12,7 +12,9 @@ pub trait Paragraph: Sized + Default {
     fn with_text(text: Text<&str, Self::Font>) -> Self;
 
     /// Creates a new [`Paragraph`] laid out with the given [`Text`].
-    fn with_spans(text: Text<&[Span<'_, Self::Font>], Self::Font>) -> Self;
+    fn with_spans<Link>(
+        text: Text<&[Span<'_, Link, Self::Font>], Self::Font>,
+    ) -> Self;
 
     /// Lays out the [`Paragraph`] with some new boundaries.
     fn resize(&mut self, new_bounds: Size);
@@ -34,6 +36,11 @@ pub trait Paragraph: Sized + Default {
     /// Tests whether the provided point is within the boundaries of the
     /// [`Paragraph`], returning information about the nearest character.
     fn hit_test(&self, point: Point) -> Option<Hit>;
+
+    /// Tests whether the provided point is within the boundaries of a
+    /// [`Span`] in the [`Paragraph`], returning the index of the [`Span`]
+    /// that was hit.
+    fn hit_span(&self, point: Point) -> Option<usize>;
 
     /// Returns the distance to the given grapheme index in the [`Paragraph`].
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;

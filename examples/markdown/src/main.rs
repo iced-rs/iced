@@ -16,6 +16,7 @@ struct Markdown {
 #[derive(Debug, Clone)]
 enum Message {
     Edit(text_editor::Action),
+    LinkClicked(String),
 }
 
 impl Markdown {
@@ -50,6 +51,9 @@ impl Markdown {
                     .collect();
                 }
             }
+            Message::LinkClicked(link) => {
+                let _ = open::that_in_background(link);
+            }
         }
     }
 
@@ -60,7 +64,7 @@ impl Markdown {
             .padding(10)
             .font(Font::MONOSPACE);
 
-        let preview = markdown(&self.items);
+        let preview = markdown(&self.items, Message::LinkClicked);
 
         row![editor, scrollable(preview).spacing(10).height(Fill)]
             .spacing(10)

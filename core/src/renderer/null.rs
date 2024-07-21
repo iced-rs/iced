@@ -77,8 +77,8 @@ impl text::Paragraph for () {
 
     fn with_text(_text: Text<&str>) -> Self {}
 
-    fn with_spans(
-        _text: Text<&[text::Span<'_, Self::Font>], Self::Font>,
+    fn with_spans<Link>(
+        _text: Text<&[text::Span<'_, Link, Self::Font>], Self::Font>,
     ) -> Self {
     }
 
@@ -105,6 +105,10 @@ impl text::Paragraph for () {
     }
 
     fn hit_test(&self, _point: Point) -> Option<text::Hit> {
+        None
+    }
+
+    fn hit_span(&self, _point: Point) -> Option<usize> {
         None
     }
 }

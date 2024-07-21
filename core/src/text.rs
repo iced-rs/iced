@@ -223,8 +223,8 @@ pub trait Renderer: crate::Renderer {
 }
 
 /// A span of text.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Span<'a, Font = crate::Font> {
+#[derive(Debug, Clone)]
+pub struct Span<'a, Link = (), Font = crate::Font> {
     /// The [`Fragment`] of text.
     pub text: Fragment<'a>,
     /// The size of the [`Span`] in [`Pixels`].
@@ -235,9 +235,11 @@ pub struct Span<'a, Font = crate::Font> {
     pub font: Option<Font>,
     /// The [`Color`] of the [`Span`].
     pub color: Option<Color>,
+    /// The link of the [`Span`].
+    pub link: Option<Link>,
 }
 
-impl<'a, Font> Span<'a, Font> {
+impl<'a, Link, Font> Span<'a, Link, Font> {
     /// Creates a new [`Span`] of text with the given text fragment.
     pub fn new(fragment: impl IntoFragment<'a>) -> Self {
         Self {
@@ -246,6 +248,7 @@ impl<'a, Font> Span<'a, Font> {
             line_height: None,
             font: None,
             color: None,
+            link: None,
         }
     }
 
@@ -285,14 +288,27 @@ impl<'a, Font> Span<'a, Font> {
         self
     }
 
+    /// Sets the link of the [`Span`].
+    pub fn link(mut self, link: impl Into<Link>) -> Self {
+        self.link = Some(link.into());
+        self
+    }
+
+    /// Sets the link of the [`Span`], if any.
+    pub fn link_maybe(mut self, link: Option<impl Into<Link>>) -> Self {
+        self.link = link.map(Into::into);
+        self
+    }
+
     /// Turns the [`Span`] into a static one.
-    pub fn to_static(self) -> Span<'static, Font> {
+    pub fn to_static(self) -> Span<'static, Link, Font> {
         Span {
             text: Cow::Owned(self.text.into_owned()),
             size: self.size,
             line_height: self.line_height,
             font: self.font,
             color: self.color,
+            link: self.link,
         }
     }
 }
@@ -300,6 +316,16 @@ impl<'a, Font> Span<'a, Font> {
 impl<'a, Font> From<&'a str> for Span<'a, Font> {
     fn from(value: &'a str) -> Self {
         Span::new(value)
+    }
+}
+
+impl<'a, Link, Font: PartialEq> PartialEq for Span<'a, Link, Font> {
+    fn eq(&self, other: &Self) -> bool {
+        self.text == other.text
+            && self.size == other.size
+            && self.line_height == other.line_height
+            && self.font == other.font
+            && self.color == other.color
     }
 }
 

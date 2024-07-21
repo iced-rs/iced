@@ -683,10 +683,11 @@ where
 /// Creates a new [`Rich`] text widget with the provided spans.
 ///
 /// [`Rich`]: text::Rich
-pub fn rich_text<'a, Theme, Renderer>(
-    spans: impl Into<Cow<'a, [text::Span<'a, Renderer::Font>]>>,
-) -> text::Rich<'a, Theme, Renderer>
+pub fn rich_text<'a, Message, Link, Theme, Renderer>(
+    spans: impl Into<Cow<'a, [text::Span<'a, Link, Renderer::Font>]>>,
+) -> text::Rich<'a, Message, Link, Theme, Renderer>
 where
+    Link: Clone,
     Theme: text::Catalog + 'a,
     Renderer: core::text::Renderer,
 {
