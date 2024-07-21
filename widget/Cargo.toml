@@ -24,7 +24,7 @@ svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
 qr_code = ["canvas", "dep:qrcode"]
 wgpu = ["iced_renderer/wgpu"]
-markdown = ["dep:pulldown-cmark"]
+markdown = ["dep:pulldown-cmark", "dep:url"]
 highlighter = ["dep:iced_highlighter"]
 advanced = []
 
@@ -49,3 +49,6 @@ pulldown-cmark.optional = true
 
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
+
+url.workspace = true
+url.optional = true

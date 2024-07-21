@@ -10,17 +10,19 @@ use crate::core::theme::{self, Theme};
 use crate::core::{self, Element, Length};
 use crate::{column, container, rich_text, row, span, text};
 
+pub use url::Url;
+
 /// A Markdown item.
 #[derive(Debug, Clone)]
 pub enum Item {
     /// A heading.
-    Heading(Vec<text::Span<'static, String>>),
+    Heading(Vec<text::Span<'static, Url>>),
     /// A paragraph.
-    Paragraph(Vec<text::Span<'static, String>>),
+    Paragraph(Vec<text::Span<'static, Url>>),
     /// A code block.
     ///
     /// You can enable the `highlighter` feature for syntax highligting.
-    CodeBlock(Vec<text::Span<'static, String>>),
+    CodeBlock(Vec<text::Span<'static, Url>>),
     /// A list.
     List {
         /// The first number of the list, if it is ordered.
@@ -96,7 +98,16 @@ pub fn parse(
             pulldown_cmark::Tag::Link { dest_url, .. }
                 if !metadata && !table =>
             {
-                link = Some(dest_url);
+                match Url::parse(&dest_url) {
+                    Ok(url)
+                        if url.scheme() == "http"
+                            || url.scheme() == "https" =>
+                    {
+                        link = Some(url);
+                    }
+                    _ => {}
+                }
+
                 None
             }
             pulldown_cmark::Tag::List(first_item) if !metadata && !table => {
@@ -248,7 +259,7 @@ pub fn parse(
             };
 
             let span = if let Some(link) = link.as_ref() {
-                span.color(palette.primary).link(link.to_string())
+                span.color(palette.primary).link(link.clone())
             } else {
                 span
             };
@@ -278,7 +289,7 @@ pub fn parse(
 /// You can obtain the items with [`parse`].
 pub fn view<'a, Message, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
-    on_link: impl Fn(String) -> Message + Copy + 'a,
+    on_link: impl Fn(Url) -> Message + Copy + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,

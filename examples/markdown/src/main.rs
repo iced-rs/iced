@@ -16,7 +16,7 @@ struct Markdown {
 #[derive(Debug, Clone)]
 enum Message {
     Edit(text_editor::Action),
-    LinkClicked(String),
+    LinkClicked(markdown::Url),
 }
 
 impl Markdown {
@@ -52,7 +52,7 @@ impl Markdown {
                 }
             }
             Message::LinkClicked(link) => {
-                let _ = open::that_in_background(link);
+                let _ = open::that_in_background(link.to_string());
             }
         }
     }
