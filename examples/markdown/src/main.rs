@@ -52,7 +52,7 @@ impl Markdown {
                 }
             }
             Message::LinkClicked(link) => {
-                let _ = open::that(link);
+                let _ = open::that_in_background(link);
             }
         }
     }
