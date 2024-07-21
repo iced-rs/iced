@@ -278,7 +278,7 @@ pub fn parse(
 /// You can obtain the items with [`parse`].
 pub fn view<'a, Message, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
-    on_link_click: impl Fn(String) -> Message + Copy + 'a,
+    on_link: impl Fn(String) -> Message + Copy + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -286,16 +286,16 @@ where
 {
     let blocks = items.into_iter().enumerate().map(|(i, item)| match item {
         Item::Heading(heading) => {
-            container(rich_text(heading).on_link_click(on_link_click))
+            container(rich_text(heading).on_link(on_link))
                 .padding(padding::top(if i > 0 { 8 } else { 0 }))
                 .into()
         }
         Item::Paragraph(paragraph) => {
-            rich_text(paragraph).on_link_click(on_link_click).into()
+            rich_text(paragraph).on_link(on_link).into()
         }
         Item::List { start: None, items } => {
             column(items.iter().map(|items| {
-                row!["•", view(items, on_link_click)].spacing(10).into()
+                row!["•", view(items, on_link)].spacing(10).into()
             }))
             .spacing(10)
             .into()
@@ -304,7 +304,7 @@ where
             start: Some(start),
             items,
         } => column(items.iter().enumerate().map(|(i, items)| {
-            row![text!("{}.", i as u64 + *start), view(items, on_link_click)]
+            row![text!("{}.", i as u64 + *start), view(items, on_link)]
                 .spacing(10)
                 .into()
         }))
@@ -314,7 +314,7 @@ where
             rich_text(code)
                 .font(Font::MONOSPACE)
                 .size(12)
-                .on_link_click(on_link_click),
+                .on_link(on_link),
         )
         .width(Length::Fill)
         .padding(10)

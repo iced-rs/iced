@@ -37,7 +37,7 @@ pub struct Rich<
     align_x: alignment::Horizontal,
     align_y: alignment::Vertical,
     class: Theme::Class<'a>,
-    on_link_click: Option<Box<dyn Fn(Link) -> Message + 'a>>,
+    on_link: Option<Box<dyn Fn(Link) -> Message + 'a>>,
 }
 
 impl<'a, Message, Link, Theme, Renderer>
@@ -59,7 +59,7 @@ where
             align_x: alignment::Horizontal::Left,
             align_y: alignment::Vertical::Top,
             class: Theme::default(),
-            on_link_click: None,
+            on_link: None,
         }
     }
 
@@ -156,11 +156,8 @@ where
     }
 
     /// Sets the message handler for link clicks on the [`Rich`] text.
-    pub fn on_link_click(
-        mut self,
-        on_link_click: impl Fn(Link) -> Message + 'a,
-    ) -> Self {
-        self.on_link_click = Some(Box::new(on_link_click));
+    pub fn on_link(mut self, on_link: impl Fn(Link) -> Message + 'a) -> Self {
+        self.on_link = Some(Box::new(on_link));
         self
     }
 
@@ -285,7 +282,7 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
-        let Some(on_link_click) = self.on_link_click.as_ref() else {
+        let Some(on_link_click) = self.on_link.as_ref() else {
             return event::Status::Ignored;
         };
 
@@ -342,7 +339,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if self.on_link_click.is_none() {
+        if self.on_link.is_none() {
             return mouse::Interaction::None;
         }
 
