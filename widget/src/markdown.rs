@@ -14,13 +14,13 @@ use crate::{column, container, rich_text, row, span, text};
 #[derive(Debug, Clone)]
 pub enum Item {
     /// A heading.
-    Heading(Vec<text::Span<'static>>),
+    Heading(Vec<text::Span<'static, String>>),
     /// A paragraph.
-    Paragraph(Vec<text::Span<'static>>),
+    Paragraph(Vec<text::Span<'static, String>>),
     /// A code block.
     ///
     /// You can enable the `highlighter` feature for syntax highligting.
-    CodeBlock(Vec<text::Span<'static>>),
+    CodeBlock(Vec<text::Span<'static, String>>),
     /// A list.
     List {
         /// The first number of the list, if it is ordered.
@@ -46,7 +46,7 @@ pub fn parse(
     let mut emphasis = false;
     let mut metadata = false;
     let mut table = false;
-    let mut link = false;
+    let mut link = None;
     let mut lists = Vec::new();
 
     #[cfg(feature = "highlighter")]
@@ -93,8 +93,10 @@ pub fn parse(
                 emphasis = true;
                 None
             }
-            pulldown_cmark::Tag::Link { .. } if !metadata && !table => {
-                link = true;
+            pulldown_cmark::Tag::Link { dest_url, .. }
+                if !metadata && !table =>
+            {
+                link = Some(dest_url);
                 None
             }
             pulldown_cmark::Tag::List(first_item) if !metadata && !table => {
@@ -150,7 +152,7 @@ pub fn parse(
                 None
             }
             pulldown_cmark::TagEnd::Link if !metadata && !table => {
-                link = false;
+                link = None;
                 None
             }
             pulldown_cmark::TagEnd::Paragraph if !metadata && !table => {
@@ -245,7 +247,11 @@ pub fn parse(
                 span
             };
 
-            let span = span.color_maybe(link.then_some(palette.primary));
+            let span = if let Some(link) = link.as_ref() {
+                span.color(palette.primary).link(link.to_string())
+            } else {
+                span
+            };
 
             spans.push(span);
 
@@ -272,40 +278,48 @@ pub fn parse(
 /// You can obtain the items with [`parse`].
 pub fn view<'a, Message, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
+    on_link_click: impl Fn(String) -> Message + Copy + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     let blocks = items.into_iter().enumerate().map(|(i, item)| match item {
-        Item::Heading(heading) => container(rich_text(heading))
-            .padding(padding::top(if i > 0 { 8 } else { 0 }))
-            .into(),
-        Item::Paragraph(paragraph) => rich_text(paragraph).into(),
-        Item::List { start: None, items } => column(
-            items
-                .iter()
-                .map(|items| row!["•", view(items)].spacing(10).into()),
-        )
-        .spacing(10)
-        .into(),
+        Item::Heading(heading) => {
+            container(rich_text(heading).on_link_click(on_link_click))
+                .padding(padding::top(if i > 0 { 8 } else { 0 }))
+                .into()
+        }
+        Item::Paragraph(paragraph) => {
+            rich_text(paragraph).on_link_click(on_link_click).into()
+        }
+        Item::List { start: None, items } => {
+            column(items.iter().map(|items| {
+                row!["•", view(items, on_link_click)].spacing(10).into()
+            }))
+            .spacing(10)
+            .into()
+        }
         Item::List {
             start: Some(start),
             items,
         } => column(items.iter().enumerate().map(|(i, items)| {
-            row![text!("{}.", i as u64 + *start), view(items)]
+            row![text!("{}.", i as u64 + *start), view(items, on_link_click)]
                 .spacing(10)
                 .into()
         }))
         .spacing(10)
         .into(),
-        Item::CodeBlock(code) => {
-            container(rich_text(code).font(Font::MONOSPACE).size(12))
-                .width(Length::Fill)
-                .padding(10)
-                .style(container::rounded_box)
-                .into()
-        }
+        Item::CodeBlock(code) => container(
+            rich_text(code)
+                .font(Font::MONOSPACE)
+                .size(12)
+                .on_link_click(on_link_click),
+        )
+        .width(Length::Fill)
+        .padding(10)
+        .style(container::rounded_box)
+        .into(),
     });
 
     Element::new(column(blocks).width(Length::Fill).spacing(16))

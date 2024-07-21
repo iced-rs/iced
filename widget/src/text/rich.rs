@@ -1,5 +1,6 @@
 use crate::core::alignment;
-use crate::core::layout::{self, Layout};
+use crate::core::event;
+use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::{Paragraph, Span};
@@ -8,19 +9,26 @@ use crate::core::widget::text::{
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Color, Element, Length, Pixels, Rectangle, Size, Widget,
+    self, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle,
+    Shell, Size, Widget,
 };
 
 use std::borrow::Cow;
 
 /// A bunch of [`Rich`] text.
-#[derive(Debug)]
-pub struct Rich<'a, Theme = crate::Theme, Renderer = crate::Renderer>
-where
+#[allow(missing_debug_implementations)]
+pub struct Rich<
+    'a,
+    Message,
+    Link = (),
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Link: Clone + 'static,
     Theme: Catalog,
     Renderer: core::text::Renderer,
 {
-    spans: Cow<'a, [Span<'a, Renderer::Font>]>,
+    spans: Cow<'a, [Span<'a, Link, Renderer::Font>]>,
     size: Option<Pixels>,
     line_height: LineHeight,
     width: Length,
@@ -29,10 +37,13 @@ where
     align_x: alignment::Horizontal,
     align_y: alignment::Vertical,
     class: Theme::Class<'a>,
+    on_link_click: Option<Box<dyn Fn(Link) -> Message + 'a>>,
 }
 
-impl<'a, Theme, Renderer> Rich<'a, Theme, Renderer>
+impl<'a, Message, Link, Theme, Renderer>
+    Rich<'a, Message, Link, Theme, Renderer>
 where
+    Link: Clone + 'static,
     Theme: Catalog,
     Renderer: core::text::Renderer,
 {
@@ -48,12 +59,13 @@ where
             align_x: alignment::Horizontal::Left,
             align_y: alignment::Vertical::Top,
             class: Theme::default(),
+            on_link_click: None,
         }
     }
 
     /// Creates a new [`Rich`] text with the given text spans.
     pub fn with_spans(
-        spans: impl Into<Cow<'a, [Span<'a, Renderer::Font>]>>,
+        spans: impl Into<Cow<'a, [Span<'a, Link, Renderer::Font>]>>,
     ) -> Self {
         Self {
             spans: spans.into(),
@@ -143,6 +155,15 @@ where
         self.style(move |_theme| Style { color })
     }
 
+    /// Sets the message handler for link clicks on the [`Rich`] text.
+    pub fn on_link_click(
+        mut self,
+        on_link_click: impl Fn(Link) -> Message + 'a,
+    ) -> Self {
+        self.on_link_click = Some(Box::new(on_link_click));
+        self
+    }
+
     /// Sets the default style class of the [`Rich`] text.
     #[cfg(feature = "advanced")]
     #[must_use]
@@ -152,14 +173,19 @@ where
     }
 
     /// Adds a new text [`Span`] to the [`Rich`] text.
-    pub fn push(mut self, span: impl Into<Span<'a, Renderer::Font>>) -> Self {
+    pub fn push(
+        mut self,
+        span: impl Into<Span<'a, Link, Renderer::Font>>,
+    ) -> Self {
         self.spans.to_mut().push(span.into());
         self
     }
 }
 
-impl<'a, Theme, Renderer> Default for Rich<'a, Theme, Renderer>
+impl<'a, Message, Link, Theme, Renderer> Default
+    for Rich<'a, Message, Link, Theme, Renderer>
 where
+    Link: Clone + 'static,
     Theme: Catalog,
     Renderer: core::text::Renderer,
 {
@@ -168,24 +194,27 @@ where
     }
 }
 
-struct State<P: Paragraph> {
-    spans: Vec<Span<'static, P::Font>>,
+struct State<Link, P: Paragraph> {
+    spans: Vec<Span<'static, Link, P::Font>>,
+    span_pressed: Option<usize>,
     paragraph: P,
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Rich<'a, Theme, Renderer>
+impl<'a, Message, Link, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Rich<'a, Message, Link, Theme, Renderer>
 where
+    Link: Clone + 'static,
     Theme: Catalog,
     Renderer: core::text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State<Renderer::Paragraph>>()
+        tree::Tag::of::<State<Link, Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State {
+        tree::State::new(State::<Link, _> {
             spans: Vec::new(),
+            span_pressed: None,
             paragraph: Renderer::Paragraph::default(),
         })
     }
@@ -204,7 +233,8 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         layout(
-            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
+            tree.state
+                .downcast_mut::<State<Link, Renderer::Paragraph>>(),
             renderer,
             limits,
             self.width,
@@ -228,7 +258,10 @@ where
         _cursor_position: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+        let state = tree
+            .state
+            .downcast_ref::<State<Link, Renderer::Paragraph>>();
+
         let style = theme.style(&self.class);
 
         text::draw(
@@ -240,15 +273,106 @@ where
             viewport,
         );
     }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        _renderer: &Renderer,
+        _clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
+    ) -> event::Status {
+        let Some(on_link_click) = self.on_link_click.as_ref() else {
+            return event::Status::Ignored;
+        };
+
+        match event {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                if let Some(position) = cursor.position_in(layout.bounds()) {
+                    let state = tree
+                        .state
+                        .downcast_mut::<State<Link, Renderer::Paragraph>>();
+
+                    if let Some(span) = state.paragraph.hit_span(position) {
+                        state.span_pressed = Some(span);
+
+                        return event::Status::Captured;
+                    }
+                }
+            }
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                let state = tree
+                    .state
+                    .downcast_mut::<State<Link, Renderer::Paragraph>>();
+
+                if let Some(span_pressed) = state.span_pressed {
+                    state.span_pressed = None;
+
+                    if let Some(position) = cursor.position_in(layout.bounds())
+                    {
+                        match state.paragraph.hit_span(position) {
+                            Some(span) if span == span_pressed => {
+                                if let Some(link) = state
+                                    .spans
+                                    .get(span)
+                                    .and_then(|span| span.link.clone())
+                                {
+                                    shell.publish(on_link_click(link));
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        event::Status::Ignored
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+    ) -> mouse::Interaction {
+        if self.on_link_click.is_none() {
+            return mouse::Interaction::None;
+        }
+
+        if let Some(position) = cursor.position_in(layout.bounds()) {
+            let state = tree
+                .state
+                .downcast_ref::<State<Link, Renderer::Paragraph>>();
+
+            if let Some(span) = state
+                .paragraph
+                .hit_span(position)
+                .and_then(|span| state.spans.get(span))
+            {
+                if span.link.is_some() {
+                    return mouse::Interaction::Pointer;
+                }
+            }
+        }
+
+        mouse::Interaction::None
+    }
 }
 
-fn layout<Renderer>(
-    state: &mut State<Renderer::Paragraph>,
+fn layout<Link, Renderer>(
+    state: &mut State<Link, Renderer::Paragraph>,
     renderer: &Renderer,
     limits: &layout::Limits,
     width: Length,
     height: Length,
-    spans: &[Span<'_, Renderer::Font>],
+    spans: &[Span<'_, Link, Renderer::Font>],
     line_height: LineHeight,
     size: Option<Pixels>,
     font: Option<Renderer::Font>,
@@ -256,6 +380,7 @@ fn layout<Renderer>(
     vertical_alignment: alignment::Vertical,
 ) -> layout::Node
 where
+    Link: Clone,
     Renderer: core::text::Renderer,
 {
     layout::sized(limits, width, height, |limits| {
@@ -305,13 +430,15 @@ where
     })
 }
 
-impl<'a, Theme, Renderer> FromIterator<Span<'a, Renderer::Font>>
-    for Rich<'a, Theme, Renderer>
+impl<'a, Message, Link, Theme, Renderer>
+    FromIterator<Span<'a, Link, Renderer::Font>>
+    for Rich<'a, Message, Link, Theme, Renderer>
 where
+    Link: Clone + 'static,
     Theme: Catalog,
     Renderer: core::text::Renderer,
 {
-    fn from_iter<T: IntoIterator<Item = Span<'a, Renderer::Font>>>(
+    fn from_iter<T: IntoIterator<Item = Span<'a, Link, Renderer::Font>>>(
         spans: T,
     ) -> Self {
         Self {
@@ -321,14 +448,17 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Rich<'a, Theme, Renderer>>
+impl<'a, Message, Link, Theme, Renderer>
+    From<Rich<'a, Message, Link, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
+    Message: 'a,
+    Link: Clone + 'static,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer + 'a,
 {
     fn from(
-        text: Rich<'a, Theme, Renderer>,
+        text: Rich<'a, Message, Link, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text)
     }

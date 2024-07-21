@@ -100,8 +100,8 @@ impl core::text::Paragraph for Paragraph {
         }))
     }
 
-    fn with_spans(text: Text<&[Span<'_>]>) -> Self {
-        log::trace!("Allocating rich paragraph: {:?}", text.content);
+    fn with_spans<Link>(text: Text<&[Span<'_, Link>]>) -> Self {
+        log::trace!("Allocating rich paragraph: {} spans", text.content.len());
 
         let mut font_system =
             text::font_system().write().expect("Write font system");
@@ -122,11 +122,9 @@ impl core::text::Paragraph for Paragraph {
 
         buffer.set_rich_text(
             font_system.raw(),
-            text.content.iter().map(|span| {
-                let attrs = cosmic_text::Attrs::new();
-
+            text.content.iter().enumerate().map(|(i, span)| {
                 let attrs = if let Some(font) = span.font {
-                    attrs
+                    cosmic_text::Attrs::new()
                         .family(text::to_family(font.family))
                         .weight(text::to_weight(font.weight))
                         .stretch(text::to_stretch(font.stretch))
@@ -156,7 +154,7 @@ impl core::text::Paragraph for Paragraph {
                     attrs
                 };
 
-                (span.text.as_ref(), attrs)
+                (span.text.as_ref(), attrs.metadata(i))
             }),
             text::to_attributes(text.font),
             text::to_shaping(text.shaping),
@@ -229,6 +227,36 @@ impl core::text::Paragraph for Paragraph {
         let cursor = self.internal().buffer.hit(point.x, point.y)?;
 
         Some(Hit::CharOffset(cursor.index))
+    }
+
+    fn hit_span(&self, point: Point) -> Option<usize> {
+        let internal = self.internal();
+
+        let cursor = internal.buffer.hit(point.x, point.y)?;
+        let line = internal.buffer.lines.get(cursor.line)?;
+
+        let mut last_glyph = None;
+        let mut glyphs = line
+            .layout_opt()
+            .as_ref()?
+            .iter()
+            .flat_map(|line| line.glyphs.iter())
+            .peekable();
+
+        while let Some(glyph) = glyphs.peek() {
+            if glyph.start <= cursor.index && cursor.index < glyph.end {
+                break;
+            }
+
+            last_glyph = glyphs.next();
+        }
+
+        let glyph = match cursor.affinity {
+            cosmic_text::Affinity::Before => last_glyph,
+            cosmic_text::Affinity::After => glyphs.next(),
+        }?;
+
+        Some(glyph.metadata)
     }
 
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point> {
