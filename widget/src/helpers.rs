@@ -697,9 +697,9 @@ where
 /// Creates a new [`Span`] of text with the provided content.
 ///
 /// [`Span`]: text::Span
-pub fn span<'a, Font>(
+pub fn span<'a, Link, Font>(
     text: impl text::IntoFragment<'a>,
-) -> text::Span<'a, Font> {
+) -> text::Span<'a, Link, Font> {
     text::Span::new(text)
 }
 
