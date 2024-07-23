@@ -313,7 +313,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
     }
 }
 
-impl<'a, Font> From<&'a str> for Span<'a, Font> {
+impl<'a, Link, Font> From<&'a str> for Span<'a, Link, Font> {
     fn from(value: &'a str) -> Self {
         Span::new(value)
     }
