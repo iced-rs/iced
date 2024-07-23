@@ -1,7 +1,7 @@
 //! Draw paragraphs.
 use crate::alignment;
 use crate::text::{Difference, Hit, Span, Text};
-use crate::{Point, Size};
+use crate::{Point, Rectangle, Size};
 
 /// A text paragraph.
 pub trait Paragraph: Sized + Default {
@@ -41,6 +41,10 @@ pub trait Paragraph: Sized + Default {
     /// [`Span`] in the [`Paragraph`], returning the index of the [`Span`]
     /// that was hit.
     fn hit_span(&self, point: Point) -> Option<usize>;
+
+    /// Returns all bounds for the provided [`Span`] index of the [`Paragraph`].
+    /// A [`Span`] can have multiple bounds for each line it's on.
+    fn span_bounds(&self, index: usize) -> Vec<Rectangle>;
 
     /// Returns the distance to the given grapheme index in the [`Paragraph`].
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;

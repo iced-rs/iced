@@ -4,9 +4,12 @@
 //! in code blocks.
 //!
 //! Only the variants of [`Item`] are currently supported.
+use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
-use crate::core::theme::{self, Theme};
+use crate::core::text::Background;
+use crate::core::theme::palette;
+use crate::core::theme::Theme;
 use crate::core::{self, Element, Length, Pixels};
 use crate::{column, container, rich_text, row, scrollable, span, text};
 
@@ -34,10 +37,10 @@ pub enum Item {
 }
 
 /// Parse the given Markdown content.
-pub fn parse(
-    markdown: &str,
-    palette: theme::Palette,
-) -> impl Iterator<Item = Item> + '_ {
+pub fn parse<'a>(
+    markdown: &'a str,
+    palette: &'a palette::Extended,
+) -> impl Iterator<Item = Item> + 'a {
     struct List {
         start: Option<u64>,
         items: Vec<Vec<Item>>,
@@ -247,7 +250,7 @@ pub fn parse(
             };
 
             let span = if let Some(link) = link.as_ref() {
-                span.color(palette.primary).link(link.clone())
+                span.color(palette.primary.base.color).link(link.clone())
             } else {
                 span
             };
@@ -257,10 +260,15 @@ pub fn parse(
             None
         }
         pulldown_cmark::Event::Code(code) if !metadata && !table => {
-            let span = span(code.into_string()).font(Font::MONOSPACE);
+            let span = span(code.into_string())
+                .font(Font::MONOSPACE)
+                .background(Background {
+                    color: palette.background.weak.color,
+                    border: border::rounded(2),
+                });
 
             let span = if let Some(link) = link.as_ref() {
-                span.color(palette.primary).link(link.clone())
+                span.color(palette.primary.base.color).link(link.clone())
             } else {
                 span
             };

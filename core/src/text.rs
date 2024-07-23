@@ -8,7 +8,7 @@ pub use highlighter::Highlighter;
 pub use paragraph::Paragraph;
 
 use crate::alignment;
-use crate::{Color, Pixels, Point, Rectangle, Size};
+use crate::{Border, Color, Pixels, Point, Rectangle, Size};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
@@ -235,6 +235,8 @@ pub struct Span<'a, Link = (), Font = crate::Font> {
     pub font: Option<Font>,
     /// The [`Color`] of the [`Span`].
     pub color: Option<Color>,
+    /// The [`Background`] of the [`Span`].
+    pub background: Option<Background>,
     /// The link of the [`Span`].
     pub link: Option<Link>,
 }
@@ -248,6 +250,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             line_height: None,
             font: None,
             color: None,
+            background: None,
             link: None,
         }
     }
@@ -288,6 +291,21 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
         self
     }
 
+    /// Sets the [`Background`] of the [`Span`].
+    pub fn background(mut self, background: impl Into<Background>) -> Self {
+        self.background = Some(background.into());
+        self
+    }
+
+    /// Sets the [`Background`] of the [`Span`], if any.
+    pub fn background_maybe(
+        mut self,
+        background: Option<impl Into<Background>>,
+    ) -> Self {
+        self.background = background.map(Into::into);
+        self
+    }
+
     /// Sets the link of the [`Span`].
     pub fn link(mut self, link: impl Into<Link>) -> Self {
         self.link = Some(link.into());
@@ -308,6 +326,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             line_height: self.line_height,
             font: self.font,
             color: self.color,
+            background: self.background,
             link: self.link,
         }
     }
@@ -406,3 +425,21 @@ into_fragment!(isize);
 
 into_fragment!(f32);
 into_fragment!(f64);
+
+/// The background style of text
+#[derive(Debug, Clone, Copy)]
+pub struct Background {
+    /// The background [`Color`]
+    pub color: Color,
+    /// The background [`Border`]
+    pub border: Border,
+}
+
+impl From<Color> for Background {
+    fn from(color: Color) -> Self {
+        Background {
+            color,
+            border: Border::default(),
+        }
+    }
+}
