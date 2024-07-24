@@ -33,7 +33,6 @@ log.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-wasm-bindgen-futures.workspace = true
 window_clipboard.workspace = true
 winit.workspace = true
 
@@ -46,4 +45,4 @@ winapi.workspace = true
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys.workspace = true
 web-sys.features = ["Document", "Window"]
-
+wasm-bindgen-futures.workspace = true
