@@ -320,7 +320,6 @@ where
                     .send(Boot {
                         compositor,
                         clipboard,
-                        window: window.id(),
                     })
                     .ok()
                     .expect("Send boot event");
@@ -601,9 +600,9 @@ where
 struct Boot<C> {
     compositor: C,
     clipboard: Clipboard,
-    window: winit::window::WindowId,
 }
 
+#[derive(Debug)]
 enum Event<Message: 'static> {
     WindowCreated {
         id: window::Id,
@@ -615,6 +614,7 @@ enum Event<Message: 'static> {
     EventLoopAwakened(winit::event::Event<Message>),
 }
 
+#[derive(Debug)]
 enum Control {
     ChangeFlow(winit::event_loop::ControlFlow),
     Exit,
@@ -647,10 +647,10 @@ async fn run_instance<P, C>(
     let Boot {
         mut compositor,
         mut clipboard,
-        window: boot_window,
     } = boot.try_recv().ok().flatten().expect("Receive boot");
 
     let mut window_manager = WindowManager::new();
+    let mut boot_window_closed = false;
 
     let mut events = Vec::new();
     let mut messages = Vec::new();
@@ -926,14 +926,16 @@ async fn run_instance<P, C>(
                                 window_event,
                                 winit::event::WindowEvent::Destroyed
                             )
-                            && window_id != boot_window
-                            && window_manager.is_empty()
                         {
-                            control_sender
-                                .start_send(Control::Exit)
-                                .expect("Send control action");
+                            if boot_window_closed && window_manager.is_empty() {
+                                control_sender
+                                    .start_send(Control::Exit)
+                                    .expect("Send control action");
 
-                            continue;
+                                continue;
+                            }
+
+                            boot_window_closed = true;
                         }
 
                         let Some((id, window)) =
