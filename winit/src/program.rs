@@ -661,7 +661,7 @@ async fn run_instance<P, C>(
 
     debug.startup_finished();
 
-    'main: while let Some(event) = event_receiver.next().await {
+    while let Some(event) = event_receiver.next().await {
         match event {
             Event::WindowCreated {
                 id,
@@ -929,7 +929,11 @@ async fn run_instance<P, C>(
                             && window_id != boot_window
                             && window_manager.is_empty()
                         {
-                            break 'main;
+                            control_sender
+                                .start_send(Control::Exit)
+                                .expect("Send control action");
+
+                            continue;
                         }
 
                         let Some((id, window)) =
