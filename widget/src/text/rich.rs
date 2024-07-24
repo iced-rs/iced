@@ -17,13 +17,8 @@ use std::borrow::Cow;
 
 /// A bunch of [`Rich`] text.
 #[allow(missing_debug_implementations)]
-pub struct Rich<
-    'a,
-    Message,
-    Link = (),
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> where
+pub struct Rich<'a, Link, Theme = crate::Theme, Renderer = crate::Renderer>
+where
     Link: Clone + 'static,
     Theme: Catalog,
     Renderer: core::text::Renderer,
@@ -37,11 +32,9 @@ pub struct Rich<
     align_x: alignment::Horizontal,
     align_y: alignment::Vertical,
     class: Theme::Class<'a>,
-    on_link: Option<Box<dyn Fn(Link) -> Message + 'a>>,
 }
 
-impl<'a, Message, Link, Theme, Renderer>
-    Rich<'a, Message, Link, Theme, Renderer>
+impl<'a, Link, Theme, Renderer> Rich<'a, Link, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: Catalog,
@@ -59,7 +52,6 @@ where
             align_x: alignment::Horizontal::Left,
             align_y: alignment::Vertical::Top,
             class: Theme::default(),
-            on_link: None,
         }
     }
 
@@ -155,21 +147,6 @@ where
         self.style(move |_theme| Style { color })
     }
 
-    /// Sets the message handler for link clicks on the [`Rich`] text.
-    pub fn on_link(mut self, on_link: impl Fn(Link) -> Message + 'a) -> Self {
-        self.on_link = Some(Box::new(on_link));
-        self
-    }
-
-    /// Sets the message handler for link clicks on the [`Rich`] text.
-    pub fn on_link_maybe(
-        mut self,
-        on_link: Option<impl Fn(Link) -> Message + 'a>,
-    ) -> Self {
-        self.on_link = on_link.map(|on_link| Box::new(on_link) as _);
-        self
-    }
-
     /// Sets the default style class of the [`Rich`] text.
     #[cfg(feature = "advanced")]
     #[must_use]
@@ -188,10 +165,9 @@ where
     }
 }
 
-impl<'a, Message, Link, Theme, Renderer> Default
-    for Rich<'a, Message, Link, Theme, Renderer>
+impl<'a, Link, Theme, Renderer> Default for Rich<'a, Link, Theme, Renderer>
 where
-    Link: Clone + 'static,
+    Link: Clone + 'a,
     Theme: Catalog,
     Renderer: core::text::Renderer,
 {
@@ -206,8 +182,8 @@ struct State<Link, P: Paragraph> {
     paragraph: P,
 }
 
-impl<'a, Message, Link, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Rich<'a, Message, Link, Theme, Renderer>
+impl<'a, Link, Theme, Renderer> Widget<Link, Theme, Renderer>
+    for Rich<'a, Link, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: Catalog,
@@ -288,13 +264,9 @@ where
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
+        shell: &mut Shell<'_, Link>,
         _viewport: &Rectangle,
     ) -> event::Status {
-        let Some(on_link_click) = self.on_link.as_ref() else {
-            return event::Status::Ignored;
-        };
-
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(position) = cursor.position_in(layout.bounds()) {
@@ -326,7 +298,7 @@ where
                                     .get(span)
                                     .and_then(|span| span.link.clone())
                                 {
-                                    shell.publish(on_link_click(link));
+                                    shell.publish(link);
                                 }
                             }
                             _ => {}
@@ -348,10 +320,6 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if self.on_link.is_none() {
-            return mouse::Interaction::None;
-        }
-
         if let Some(position) = cursor.position_in(layout.bounds()) {
             let state = tree
                 .state
@@ -436,11 +404,10 @@ where
     })
 }
 
-impl<'a, Message, Link, Theme, Renderer>
-    FromIterator<Span<'a, Link, Renderer::Font>>
-    for Rich<'a, Message, Link, Theme, Renderer>
+impl<'a, Link, Theme, Renderer> FromIterator<Span<'a, Link, Renderer::Font>>
+    for Rich<'a, Link, Theme, Renderer>
 where
-    Link: Clone + 'static,
+    Link: Clone + 'a,
     Theme: Catalog,
     Renderer: core::text::Renderer,
 {
@@ -454,18 +421,16 @@ where
     }
 }
 
-impl<'a, Message, Link, Theme, Renderer>
-    From<Rich<'a, Message, Link, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, Link, Theme, Renderer> From<Rich<'a, Link, Theme, Renderer>>
+    for Element<'a, Link, Theme, Renderer>
 where
-    Message: 'a,
-    Link: Clone + 'static,
+    Link: Clone + 'a,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer + 'a,
 {
     fn from(
-        text: Rich<'a, Message, Link, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+        text: Rich<'a, Link, Theme, Renderer>,
+    ) -> Element<'a, Link, Theme, Renderer> {
         Element::new(text)
     }
 }

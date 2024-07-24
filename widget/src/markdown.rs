@@ -332,13 +332,11 @@ impl Default for Settings {
 /// Display a bunch of Markdown items.
 ///
 /// You can obtain the items with [`parse`].
-pub fn view<'a, Message, Renderer>(
+pub fn view<'a, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: Settings,
-    on_link: impl Fn(Url) -> Message + Copy + 'a,
-) -> Element<'a, Message, Theme, Renderer>
+) -> Element<'a, Url, Theme, Renderer>
 where
-    Message: 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     let Settings {
@@ -356,7 +354,7 @@ where
 
     let blocks = items.into_iter().enumerate().map(|(i, item)| match item {
         Item::Heading(level, heading) => {
-            container(rich_text(heading).on_link(on_link).size(match level {
+            container(rich_text(heading).size(match level {
                 pulldown_cmark::HeadingLevel::H1 => h1_size,
                 pulldown_cmark::HeadingLevel::H2 => h2_size,
                 pulldown_cmark::HeadingLevel::H3 => h3_size,
@@ -372,11 +370,11 @@ where
             .into()
         }
         Item::Paragraph(paragraph) => {
-            rich_text(paragraph).on_link(on_link).size(text_size).into()
+            rich_text(paragraph).size(text_size).into()
         }
         Item::List { start: None, items } => {
             column(items.iter().map(|items| {
-                row![text("•").size(text_size), view(items, settings, on_link)]
+                row![text("•").size(text_size), view(items, settings)]
                     .spacing(spacing)
                     .into()
             }))
@@ -389,7 +387,7 @@ where
         } => column(items.iter().enumerate().map(|(i, items)| {
             row![
                 text!("{}.", i as u64 + *start).size(text_size),
-                view(items, settings, on_link)
+                view(items, settings)
             ]
             .spacing(spacing)
             .into()
@@ -399,10 +397,7 @@ where
         Item::CodeBlock(code) => container(
             scrollable(
                 container(
-                    rich_text(code)
-                        .font(Font::MONOSPACE)
-                        .size(code_size)
-                        .on_link(on_link),
+                    rich_text(code).font(Font::MONOSPACE).size(code_size),
                 )
                 .padding(spacing.0 / 2.0),
             )
