@@ -88,7 +88,7 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    /// Sets the placeholder of the [`PickList`].
+    /// Sets the placeholder of the [`TextEditor`].
     pub fn placeholder(
         mut self,
         placeholder: impl text::IntoFragment<'a>,
