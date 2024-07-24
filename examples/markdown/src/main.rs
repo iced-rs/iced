@@ -59,6 +59,7 @@ impl Markdown {
 
     fn view(&self) -> Element<Message> {
         let editor = text_editor(&self.content)
+            .placeholder("Type your Markdown here...")
             .on_action(Message::Edit)
             .height(Fill)
             .padding(10)

@@ -82,6 +82,13 @@ impl editor::Editor for Editor {
         })))
     }
 
+    fn is_empty(&self) -> bool {
+        let buffer = self.buffer();
+
+        buffer.lines.is_empty()
+            || (buffer.lines.len() == 1 && buffer.lines[0].text().is_empty())
+    }
+
     fn line(&self, index: usize) -> Option<&str> {
         self.buffer()
             .lines

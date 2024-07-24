@@ -1,4 +1,5 @@
 //! Display a multi-line text input for text editing.
+use crate::core::alignment;
 use crate::core::clipboard::{self, Clipboard};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
@@ -8,7 +9,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::editor::{Cursor, Editor as _};
 use crate::core::text::highlighter::{self, Highlighter};
-use crate::core::text::{self, LineHeight};
+use crate::core::text::{self, LineHeight, Text};
 use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
 use crate::core::{
@@ -37,6 +38,7 @@ pub struct TextEditor<
     Renderer: text::Renderer,
 {
     content: &'a Content<Renderer>,
+    placeholder: Option<text::Fragment<'a>>,
     font: Option<Renderer::Font>,
     text_size: Option<Pixels>,
     line_height: LineHeight,
@@ -62,6 +64,7 @@ where
     pub fn new(content: &'a Content<Renderer>) -> Self {
         Self {
             content,
+            placeholder: None,
             font: None,
             text_size: None,
             line_height: LineHeight::default(),
@@ -85,6 +88,15 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
+    /// Sets the placeholder of the [`PickList`].
+    pub fn placeholder(
+        mut self,
+        placeholder: impl text::IntoFragment<'a>,
+    ) -> Self {
+        self.placeholder = Some(placeholder.into_fragment());
+        self
+    }
+
     /// Sets the height of the [`TextEditor`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
         self.height = height.into();
@@ -144,6 +156,7 @@ where
     ) -> TextEditor<'a, H, Message, Theme, Renderer> {
         TextEditor {
             content: self.content,
+            placeholder: self.placeholder,
             font: self.font,
             text_size: self.text_size,
             line_height: self.line_height,
@@ -546,8 +559,10 @@ where
         let mut internal = self.content.0.borrow_mut();
         let state = tree.state.downcast_ref::<State<Highlighter>>();
 
+        let font = self.font.unwrap_or_else(|| renderer.default_font());
+
         internal.editor.highlight(
-            self.font.unwrap_or_else(|| renderer.default_font()),
+            font,
             state.highlighter.borrow_mut().deref_mut(),
             |highlight| (self.highlighter_format)(highlight, theme),
         );
@@ -576,13 +591,42 @@ where
             style.background,
         );
 
-        renderer.fill_editor(
-            &internal.editor,
-            bounds.position()
-                + Vector::new(self.padding.left, self.padding.top),
-            defaults.text_color,
-            *viewport,
-        );
+        let position = bounds.position()
+            + Vector::new(self.padding.left, self.padding.top);
+
+        if internal.editor.is_empty() {
+            if let Some(placeholder) = self.placeholder.clone() {
+                renderer.fill_text(
+                    Text {
+                        content: placeholder.into_owned(),
+                        bounds: bounds.size()
+                            - Size::new(
+                                self.padding.right,
+                                self.padding.bottom,
+                            ),
+
+                        size: self
+                            .text_size
+                            .unwrap_or_else(|| renderer.default_size()),
+                        line_height: self.line_height,
+                        font,
+                        horizontal_alignment: alignment::Horizontal::Left,
+                        vertical_alignment: alignment::Vertical::Top,
+                        shaping: text::Shaping::Advanced,
+                    },
+                    position,
+                    style.placeholder,
+                    *viewport,
+                );
+            }
+        } else {
+            renderer.fill_editor(
+                &internal.editor,
+                position,
+                defaults.text_color,
+                *viewport,
+            );
+        }
 
         let translation = Vector::new(
             bounds.x + self.padding.left,

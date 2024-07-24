@@ -118,6 +118,10 @@ impl text::Editor for () {
 
     fn with_text(_text: &str) -> Self {}
 
+    fn is_empty(&self) -> bool {
+        true
+    }
+
     fn cursor(&self) -> text::editor::Cursor {
         text::editor::Cursor::Caret(Point::ORIGIN)
     }
