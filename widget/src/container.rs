@@ -547,7 +547,7 @@ pub struct Style {
 }
 
 impl Style {
-    /// Updates the text color of the [`Style`].
+    /// Updates the text [`Color`] of the [`Style`].
     pub fn color(self, color: impl Into<Color>) -> Self {
         Self {
             text_color: Some(color.into()),
@@ -555,7 +555,7 @@ impl Style {
         }
     }
 
-    /// Updates the border of the [`Style`].
+    /// Updates the [`Border`] of the [`Style`].
     pub fn border(self, border: impl Into<Border>) -> Self {
         Self {
             border: border.into(),
@@ -563,7 +563,7 @@ impl Style {
         }
     }
 
-    /// Updates the background of the [`Style`].
+    /// Updates the [`Background`] of the [`Style`].
     pub fn background(self, background: impl Into<Background>) -> Self {
         Self {
             background: Some(background.into()),
@@ -571,7 +571,7 @@ impl Style {
         }
     }
 
-    /// Updates the shadow of the [`Style`].
+    /// Updates the [`Shadow`] of the [`Style`].
     pub fn shadow(self, shadow: impl Into<Shadow>) -> Self {
         Self {
             shadow: shadow.into(),
@@ -617,7 +617,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(transparent)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>) -> Style {
@@ -625,43 +625,45 @@ impl Catalog for Theme {
     }
 }
 
-/// A transparent [`Container`].
-pub fn transparent<Theme>(_theme: &Theme) -> Style {
-    Style::default()
-}
-
-/// A rounded [`Container`] with a background.
-pub fn rounded_box(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
-
-    Style {
-        background: Some(palette.background.weak.color.into()),
-        border: border::rounded(2),
-        ..Style::default()
+impl Style {
+    /// The standard [`Style`] of a [`Container`].
+    pub fn standard(_theme: &Theme) -> Self {
+        Self::default()
     }
-}
 
-/// A bordered [`Container`] with a background.
-pub fn bordered_box(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    /// A rounded [`Container`] with a background.
+    pub fn rounded_box(theme: &Theme) -> Self {
+        let palette = theme.extended_palette();
 
-    Style {
-        background: Some(palette.background.weak.color.into()),
-        border: Border {
-            width: 1.0,
-            radius: 0.0.into(),
-            color: palette.background.strong.color,
-        },
-        ..Style::default()
+        Self {
+            background: Some(palette.background.weak.color.into()),
+            border: border::rounded(2),
+            ..Self::default()
+        }
     }
-}
 
-/// A [`Container`] with a dark background and white text.
-pub fn dark(_theme: &Theme) -> Style {
-    Style {
-        background: Some(color!(0x111111).into()),
-        text_color: Some(Color::WHITE),
-        border: border::rounded(2),
-        ..Style::default()
+    /// A bordered [`Container`] with a background.
+    pub fn bordered_box(theme: &Theme) -> Self {
+        let palette = theme.extended_palette();
+
+        Self {
+            background: Some(palette.background.weak.color.into()),
+            border: Border {
+                width: 1.0,
+                radius: 0.0.into(),
+                color: palette.background.strong.color,
+            },
+            ..Self::default()
+        }
+    }
+
+    /// A [`Container`] with a dark background and white text.
+    pub fn dark(_theme: &Theme) -> Self {
+        Self {
+            background: Some(color!(0x111111).into()),
+            text_color: Some(Color::WHITE),
+            border: border::rounded(2),
+            ..Self::default()
+        }
     }
 }

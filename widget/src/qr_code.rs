@@ -371,7 +371,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(default)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>) -> Style {
@@ -379,12 +379,14 @@ impl Catalog for Theme {
     }
 }
 
-/// The default style of a [`QRCode`].
-pub fn default(theme: &Theme) -> Style {
-    let palette = theme.palette();
+impl Style {
+    /// The standard style of a [`QRCode`].
+    pub fn standard(theme: &Theme) -> Style {
+        let palette = theme.palette();
 
-    Style {
-        cell: palette.text,
-        background: palette.background,
+        Style {
+            cell: palette.text,
+            background: palette.background,
+        }
     }
 }

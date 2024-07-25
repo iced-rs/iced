@@ -1453,7 +1453,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(default)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
@@ -1461,43 +1461,45 @@ impl Catalog for Theme {
     }
 }
 
-/// The default style of a [`TextInput`].
-pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+impl Style {
+    /// The standard style of a [`TextInput`].
+    pub fn standard(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
 
-    let active = Style {
-        background: Background::Color(palette.background.base.color),
-        border: Border {
-            radius: 2.0.into(),
-            width: 1.0,
-            color: palette.background.strong.color,
-        },
-        icon: palette.background.weak.text,
-        placeholder: palette.background.strong.color,
-        value: palette.background.base.text,
-        selection: palette.primary.weak.color,
-    };
+        let active = Self {
+            background: Background::Color(palette.background.base.color),
+            border: Border {
+                radius: 2.0.into(),
+                width: 1.0,
+                color: palette.background.strong.color,
+            },
+            icon: palette.background.weak.text,
+            placeholder: palette.background.strong.color,
+            value: palette.background.base.text,
+            selection: palette.primary.weak.color,
+        };
 
-    match status {
-        Status::Active => active,
-        Status::Hovered => Style {
-            border: Border {
-                color: palette.background.base.text,
-                ..active.border
+        match status {
+            Status::Active => active,
+            Status::Hovered => Self {
+                border: Border {
+                    color: palette.background.base.text,
+                    ..active.border
+                },
+                ..active
             },
-            ..active
-        },
-        Status::Focused => Style {
-            border: Border {
-                color: palette.primary.strong.color,
-                ..active.border
+            Status::Focused => Self {
+                border: Border {
+                    color: palette.primary.strong.color,
+                    ..active.border
+                },
+                ..active
             },
-            ..active
-        },
-        Status::Disabled => Style {
-            background: Background::Color(palette.background.weak.color),
-            value: active.placeholder,
-            ..active
-        },
+            Status::Disabled => Self {
+                background: Background::Color(palette.background.weak.color),
+                value: active.placeholder,
+                ..active
+            },
+        }
     }
 }

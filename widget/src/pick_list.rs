@@ -747,7 +747,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> StyleFn<'a, Self> {
-        Box::new(default)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &StyleFn<'_, Self>, status: Status) -> Style {
@@ -755,30 +755,32 @@ impl Catalog for Theme {
     }
 }
 
-/// The default style of the field of a [`PickList`].
-pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+impl Style {
+    /// The standard style of the field of a [`PickList`].
+    pub fn standard(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
 
-    let active = Style {
-        text_color: palette.background.weak.text,
-        background: palette.background.weak.color.into(),
-        placeholder_color: palette.background.strong.color,
-        handle_color: palette.background.weak.text,
-        border: Border {
-            radius: 2.0.into(),
-            width: 1.0,
-            color: palette.background.strong.color,
-        },
-    };
-
-    match status {
-        Status::Active => active,
-        Status::Hovered | Status::Opened => Style {
+        let active = Self {
+            text_color: palette.background.weak.text,
+            background: palette.background.weak.color.into(),
+            placeholder_color: palette.background.strong.color,
+            handle_color: palette.background.weak.text,
             border: Border {
-                color: palette.primary.strong.color,
-                ..active.border
+                radius: 2.0.into(),
+                width: 1.0,
+                color: palette.background.strong.color,
             },
-            ..active
-        },
+        };
+
+        match status {
+            Status::Active => active,
+            Status::Hovered | Status::Opened => Style {
+                border: Border {
+                    color: palette.primary.strong.color,
+                    ..active.border
+                },
+                ..active
+            },
+        }
     }
 }

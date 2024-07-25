@@ -1721,6 +1721,19 @@ pub struct Style {
     pub gap: Option<Background>,
 }
 
+impl Style {
+    /// Updates the [`Background`] of the [`Style`].
+    pub fn background(self, background: impl Into<Background>) -> Self {
+        Self {
+            container: container::Style {
+                background: Some(background.into()),
+                ..container::Style::default()
+            },
+            ..self
+        }
+    }
+}
+
 /// The appearance of the scrollbar of a scrollable.
 #[derive(Debug, Clone, Copy)]
 pub struct Rail {
@@ -1760,7 +1773,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(default)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
@@ -1768,78 +1781,100 @@ impl Catalog for Theme {
     }
 }
 
-/// The default style of a [`Scrollable`].
-pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+impl Default for Style {
+    fn default() -> Self {
+        let rail = Rail {
+            background: None,
+            border: Border::default(),
+            scroller: Scroller {
+                color: Color::BLACK,
+                border: border::rounded(2),
+            },
+        };
 
-    let scrollbar = Rail {
-        background: Some(palette.background.weak.color.into()),
-        border: border::rounded(2),
-        scroller: Scroller {
-            color: palette.background.strong.color,
-            border: border::rounded(2),
-        },
-    };
-
-    match status {
-        Status::Active => Style {
+        Self {
             container: container::Style::default(),
-            vertical_rail: scrollbar,
-            horizontal_rail: scrollbar,
+            horizontal_rail: rail,
+            vertical_rail: rail,
             gap: None,
-        },
-        Status::Hovered {
-            is_horizontal_scrollbar_hovered,
-            is_vertical_scrollbar_hovered,
-        } => {
-            let hovered_scrollbar = Rail {
-                scroller: Scroller {
-                    color: palette.primary.strong.color,
-                    ..scrollbar.scroller
-                },
-                ..scrollbar
-            };
-
-            Style {
-                container: container::Style::default(),
-                vertical_rail: if is_vertical_scrollbar_hovered {
-                    hovered_scrollbar
-                } else {
-                    scrollbar
-                },
-                horizontal_rail: if is_horizontal_scrollbar_hovered {
-                    hovered_scrollbar
-                } else {
-                    scrollbar
-                },
-                gap: None,
-            }
         }
-        Status::Dragged {
-            is_horizontal_scrollbar_dragged,
-            is_vertical_scrollbar_dragged,
-        } => {
-            let dragged_scrollbar = Rail {
-                scroller: Scroller {
-                    color: palette.primary.base.color,
-                    ..scrollbar.scroller
-                },
-                ..scrollbar
-            };
+    }
+}
 
-            Style {
+impl Style {
+    /// The standard [`Style`] of a [`Scrollable`].
+    pub fn standard(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
+
+        let scrollbar = Rail {
+            background: Some(palette.background.weak.color.into()),
+            border: border::rounded(2),
+            scroller: Scroller {
+                color: palette.background.strong.color,
+                border: border::rounded(2),
+            },
+        };
+
+        match status {
+            Status::Active => Style {
                 container: container::Style::default(),
-                vertical_rail: if is_vertical_scrollbar_dragged {
-                    dragged_scrollbar
-                } else {
-                    scrollbar
-                },
-                horizontal_rail: if is_horizontal_scrollbar_dragged {
-                    dragged_scrollbar
-                } else {
-                    scrollbar
-                },
+                vertical_rail: scrollbar,
+                horizontal_rail: scrollbar,
                 gap: None,
+            },
+            Status::Hovered {
+                is_horizontal_scrollbar_hovered,
+                is_vertical_scrollbar_hovered,
+            } => {
+                let hovered_scrollbar = Rail {
+                    scroller: Scroller {
+                        color: palette.primary.strong.color,
+                        ..scrollbar.scroller
+                    },
+                    ..scrollbar
+                };
+
+                Self {
+                    container: container::Style::default(),
+                    vertical_rail: if is_vertical_scrollbar_hovered {
+                        hovered_scrollbar
+                    } else {
+                        scrollbar
+                    },
+                    horizontal_rail: if is_horizontal_scrollbar_hovered {
+                        hovered_scrollbar
+                    } else {
+                        scrollbar
+                    },
+                    gap: None,
+                }
+            }
+            Status::Dragged {
+                is_horizontal_scrollbar_dragged,
+                is_vertical_scrollbar_dragged,
+            } => {
+                let dragged_scrollbar = Rail {
+                    scroller: Scroller {
+                        color: palette.primary.base.color,
+                        ..scrollbar.scroller
+                    },
+                    ..scrollbar
+                };
+
+                Self {
+                    container: container::Style::default(),
+                    vertical_rail: if is_vertical_scrollbar_dragged {
+                        dragged_scrollbar
+                    } else {
+                        scrollbar
+                    },
+                    horizontal_rail: if is_horizontal_scrollbar_dragged {
+                        dragged_scrollbar
+                    } else {
+                        scrollbar
+                    },
+                    gap: None,
+                }
             }
         }
     }

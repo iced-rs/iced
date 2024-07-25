@@ -581,7 +581,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(default)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
@@ -589,27 +589,29 @@ impl Catalog for Theme {
     }
 }
 
-/// The default style of a [`Slider`].
-pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+impl Style {
+    /// The standard style of a [`Slider`].
+    pub fn standard(theme: &Theme, status: Status) -> Style {
+        let palette = theme.extended_palette();
 
-    let color = match status {
-        Status::Active => palette.primary.strong.color,
-        Status::Hovered => palette.primary.base.color,
-        Status::Dragged => palette.primary.strong.color,
-    };
+        let color = match status {
+            Status::Active => palette.primary.strong.color,
+            Status::Hovered => palette.primary.base.color,
+            Status::Dragged => palette.primary.strong.color,
+        };
 
-    Style {
-        rail: Rail {
-            colors: (color, palette.secondary.base.color),
-            width: 4.0,
-            border_radius: 2.0.into(),
-        },
-        handle: Handle {
-            shape: HandleShape::Circle { radius: 7.0 },
-            color,
-            border_color: Color::TRANSPARENT,
-            border_width: 0.0,
-        },
+        Style {
+            rail: Rail {
+                colors: (color, palette.secondary.base.color),
+                width: 4.0,
+                border_radius: 2.0.into(),
+            },
+            handle: Handle {
+                shape: HandleShape::Circle { radius: 7.0 },
+                color,
+                border_color: Color::TRANSPARENT,
+                border_width: 0.0,
+            },
+        }
     }
 }

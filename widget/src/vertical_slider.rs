@@ -1,9 +1,7 @@
 //! Display an interactive selector of a single value from a range of values.
 use std::ops::RangeInclusive;
 
-pub use crate::slider::{
-    default, Catalog, Handle, HandleShape, Status, Style, StyleFn,
-};
+pub use crate::slider::{Catalog, Handle, HandleShape, Status, Style, StyleFn};
 
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
