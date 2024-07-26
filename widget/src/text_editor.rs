@@ -1017,20 +1017,17 @@ impl<Message> Update<Message> {
                     Status::Active
                 };
 
+                let key_press = KeyPress {
+                    key,
+                    modifiers,
+                    text,
+                    status,
+                };
+
                 if let Some(key_binding) = key_binding {
-                    key_binding(KeyPress {
-                        key,
-                        modifiers,
-                        text,
-                        status,
-                    })
+                    key_binding(key_press)
                 } else {
-                    Binding::from_key_press(KeyPress {
-                        key,
-                        modifiers,
-                        text,
-                        status,
-                    })
+                    Binding::from_key_press(key_press)
                 }
                 .map(Self::Binding)
             }
