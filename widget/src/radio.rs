@@ -105,7 +105,7 @@ where
     ///   * the label of the [`Radio`] button
     ///   * the current selected value
     ///   * a function that will be called when the [`Radio`] is selected. It
-    ///   receives the value of the radio and must produce a `Message`.
+    ///     receives the value of the radio and must produce a `Message`.
     pub fn new<F, V>(
         label: impl Into<String>,
         value: V,

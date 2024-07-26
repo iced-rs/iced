@@ -27,11 +27,11 @@ use crate::{Clipboard, Length, Rectangle, Shell, Size, Vector};
 /// widget:
 ///
 /// - [`bezier_tool`], a Paint-like tool for drawing Bézier curves using
-/// [`lyon`].
+///   [`lyon`].
 /// - [`custom_widget`], a demonstration of how to build a custom widget that
-/// draws a circle.
+///   draws a circle.
 /// - [`geometry`], a custom widget showcasing how to draw geometry with the
-/// `Mesh2D` primitive in [`iced_wgpu`].
+///   `Mesh2D` primitive in [`iced_wgpu`].
 ///
 /// [examples]: https://github.com/iced-rs/iced/tree/0.12/examples
 /// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.12/examples/bezier_tool

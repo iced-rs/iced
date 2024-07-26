@@ -313,9 +313,9 @@ impl<T> std::fmt::Debug for Subscription<T> {
 /// The repository has a couple of [examples] that use a custom [`Recipe`]:
 ///
 /// - [`download_progress`], a basic application that asynchronously downloads
-/// a dummy file of 100 MB and tracks the download progress.
+///   a dummy file of 100 MB and tracks the download progress.
 /// - [`stopwatch`], a watch with start/stop and reset buttons showcasing how
-/// to listen to time.
+///   to listen to time.
 ///
 /// [examples]: https://github.com/iced-rs/iced/tree/0.12/examples
 /// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.12/examples/download_progress

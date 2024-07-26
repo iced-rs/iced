@@ -183,7 +183,7 @@ window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "254d6b3420ce4e674f516f7a2bd440665e05484d" }
 
 [workspace.lints.rust]
-rust_2018_idioms = "forbid"
+rust_2018_idioms = { level = "forbid", priority = -1 }
 missing_debug_implementations = "deny"
 missing_docs = "deny"
 unsafe_code = "deny"

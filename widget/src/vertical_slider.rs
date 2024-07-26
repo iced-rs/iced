@@ -72,8 +72,8 @@ where
     ///   * an inclusive range of possible values
     ///   * the current value of the [`VerticalSlider`]
     ///   * a function that will be called when the [`VerticalSlider`] is dragged.
-    ///   It receives the new value of the [`VerticalSlider`] and must produce a
-    ///   `Message`.
+    ///     It receives the new value of the [`VerticalSlider`] and must produce a
+    ///     `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
         F: 'a + Fn(T) -> Message,
