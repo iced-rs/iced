@@ -409,7 +409,7 @@ where
         )
         .width(Length::Fill)
         .padding(spacing.0 / 2.0)
-        .style(container::rounded_box)
+        .style(container::dark)
         .into(),
     });
 
