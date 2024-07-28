@@ -28,11 +28,8 @@ impl Markdown {
         (
             Self {
                 content: text_editor::Content::with_text(INITIAL_CONTENT),
-                items: markdown::parse(
-                    INITIAL_CONTENT,
-                    theme.extended_palette(),
-                )
-                .collect(),
+                items: markdown::parse(INITIAL_CONTENT, &theme.palette())
+                    .collect(),
                 theme,
             },
             widget::focus_next(),
@@ -49,7 +46,7 @@ impl Markdown {
                 if is_edit {
                     self.items = markdown::parse(
                         &self.content.text(),
-                        self.theme.extended_palette(),
+                        &self.theme.palette(),
                     )
                     .collect();
                 }
