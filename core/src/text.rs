@@ -8,7 +8,9 @@ pub use highlighter::Highlighter;
 pub use paragraph::Paragraph;
 
 use crate::alignment;
-use crate::{Color, Pixels, Point, Rectangle, Size};
+use crate::{
+    Background, Border, Color, Padding, Pixels, Point, Rectangle, Size,
+};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
@@ -237,6 +239,21 @@ pub struct Span<'a, Link = (), Font = crate::Font> {
     pub color: Option<Color>,
     /// The link of the [`Span`].
     pub link: Option<Link>,
+    /// The [`Highlight`] of the [`Span`].
+    pub highlight: Option<Highlight>,
+    /// The [`Padding`] of the [`Span`].
+    ///
+    /// Currently, it only affects the bounds of the [`Highlight`].
+    pub padding: Padding,
+}
+
+/// A text highlight.
+#[derive(Debug, Clone, Copy)]
+pub struct Highlight {
+    /// The [`Background`] of the highlight.
+    pub background: Background,
+    /// The [`Border`] of the highlight.
+    pub border: Border,
 }
 
 impl<'a, Link, Font> Span<'a, Link, Font> {
@@ -248,7 +265,9 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             line_height: None,
             font: None,
             color: None,
+            highlight: None,
             link: None,
+            padding: Padding::ZERO,
         }
     }
 
@@ -300,6 +319,73 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
         self
     }
 
+    /// Sets the [`Background`] of the [`Span`].
+    pub fn background(self, background: impl Into<Background>) -> Self {
+        self.background_maybe(Some(background))
+    }
+
+    /// Sets the [`Background`] of the [`Span`], if any.
+    pub fn background_maybe(
+        mut self,
+        background: Option<impl Into<Background>>,
+    ) -> Self {
+        let Some(background) = background else {
+            return self;
+        };
+
+        match &mut self.highlight {
+            Some(highlight) => {
+                highlight.background = background.into();
+            }
+            None => {
+                self.highlight = Some(Highlight {
+                    background: background.into(),
+                    border: Border::default(),
+                });
+            }
+        }
+
+        self
+    }
+
+    /// Sets the [`Border`] of the [`Span`].
+    pub fn border(self, border: impl Into<Border>) -> Self {
+        self.border_maybe(Some(border))
+    }
+
+    /// Sets the [`Border`] of the [`Span`], if any.
+    pub fn border_maybe(mut self, border: Option<impl Into<Border>>) -> Self {
+        let Some(border) = border else {
+            return self;
+        };
+
+        match &mut self.highlight {
+            Some(highlight) => {
+                highlight.border = border.into();
+            }
+            None => {
+                self.highlight = Some(Highlight {
+                    border: border.into(),
+                    background: Background::Color(Color::TRANSPARENT),
+                });
+            }
+        }
+
+        self
+    }
+
+    /// Sets the [`Padding`] of the [`Span`].
+    ///
+    /// It only affects the [`background`] and [`border`] of the
+    /// [`Span`], currently.
+    ///
+    /// [`background`]: Self::background
+    /// [`border`]: Self::border
+    pub fn padding(mut self, padding: impl Into<Padding>) -> Self {
+        self.padding = padding.into();
+        self
+    }
+
     /// Turns the [`Span`] into a static one.
     pub fn to_static(self) -> Span<'static, Link, Font> {
         Span {
@@ -309,6 +395,8 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             font: self.font,
             color: self.color,
             link: self.link,
+            highlight: self.highlight,
+            padding: self.padding,
         }
     }
 }

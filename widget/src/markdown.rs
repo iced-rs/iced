@@ -4,10 +4,11 @@
 //! in code blocks.
 //!
 //! Only the variants of [`Item`] are currently supported.
+use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
 use crate::core::theme::{self, Theme};
-use crate::core::{self, Element, Length, Pixels};
+use crate::core::{self, color, Color, Element, Length, Pixels};
 use crate::{column, container, rich_text, row, scrollable, span, text};
 
 pub use pulldown_cmark::HeadingLevel;
@@ -257,7 +258,12 @@ pub fn parse(
             None
         }
         pulldown_cmark::Event::Code(code) if !metadata && !table => {
-            let span = span(code.into_string()).font(Font::MONOSPACE);
+            let span = span(code.into_string())
+                .font(Font::MONOSPACE)
+                .color(Color::WHITE)
+                .background(color!(0x111111))
+                .border(border::rounded(2))
+                .padding(padding::left(2).right(2));
 
             let span = if let Some(link) = link.as_ref() {
                 span.color(palette.primary).link(link.clone())

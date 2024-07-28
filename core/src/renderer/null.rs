@@ -111,6 +111,10 @@ impl text::Paragraph for () {
     fn hit_span(&self, _point: Point) -> Option<usize> {
         None
     }
+
+    fn span_bounds(&self, _index: usize) -> Vec<Rectangle> {
+        vec![]
+    }
 }
 
 impl text::Editor for () {

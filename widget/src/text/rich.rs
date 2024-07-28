@@ -9,8 +9,8 @@ use crate::core::widget::text::{
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle,
-    Shell, Size, Widget,
+    self, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::borrow::Cow;
@@ -245,6 +245,33 @@ where
             .downcast_ref::<State<Link, Renderer::Paragraph>>();
 
         let style = theme.style(&self.class);
+
+        for (index, span) in self.spans.iter().enumerate() {
+            if let Some(highlight) = span.highlight {
+                let translation = layout.position() - Point::ORIGIN;
+
+                for bounds in state.paragraph.span_bounds(index) {
+                    let bounds = Rectangle::new(
+                        bounds.position()
+                            - Vector::new(span.padding.left, span.padding.top),
+                        bounds.size()
+                            + Size::new(
+                                span.padding.horizontal(),
+                                span.padding.vertical(),
+                            ),
+                    );
+
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: bounds + translation,
+                            border: highlight.border,
+                            ..Default::default()
+                        },
+                        highlight.background,
+                    );
+                }
+            }
+        }
 
         text::draw(
             renderer,
