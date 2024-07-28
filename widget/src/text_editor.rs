@@ -424,13 +424,7 @@ impl<Highlighter: text::Highlighter> operation::Focusable
     }
 
     fn focus(&mut self) {
-        let now = Instant::now();
-
-        self.focus = Some(Focus {
-            updated_at: now,
-            now,
-            is_window_focused: true,
-        });
+        self.focus = Some(Focus::now());
     }
 
     fn unfocus(&mut self) {
