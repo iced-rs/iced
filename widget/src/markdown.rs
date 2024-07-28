@@ -262,7 +262,8 @@ pub fn parse<'a>(
                 .font(Font::MONOSPACE)
                 .color(Color::WHITE)
                 .background(color!(0x111111))
-                .border(border::rounded(2));
+                .border(border::rounded(2))
+                .padding(padding::left(2).right(2));
 
             let span = if let Some(link) = link.as_ref() {
                 span.color(palette.primary).link(link.clone())

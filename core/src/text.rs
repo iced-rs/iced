@@ -8,7 +8,9 @@ pub use highlighter::Highlighter;
 pub use paragraph::Paragraph;
 
 use crate::alignment;
-use crate::{Background, Border, Color, Pixels, Point, Rectangle, Size};
+use crate::{
+    Background, Border, Color, Padding, Pixels, Point, Rectangle, Size,
+};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
@@ -239,6 +241,10 @@ pub struct Span<'a, Link = (), Font = crate::Font> {
     pub link: Option<Link>,
     /// The [`Highlight`] of the [`Span`].
     pub highlight: Option<Highlight>,
+    /// The [`Padding`] of the [`Span`].
+    ///
+    /// Currently, it only affects the bounds of the [`Highlight`].
+    pub padding: Padding,
 }
 
 /// A text highlight.
@@ -261,6 +267,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             color: None,
             highlight: None,
             link: None,
+            padding: Padding::ZERO,
         }
     }
 
@@ -297,6 +304,18 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
     /// Sets the [`Color`] of the [`Span`], if any.
     pub fn color_maybe(mut self, color: Option<impl Into<Color>>) -> Self {
         self.color = color.map(Into::into);
+        self
+    }
+
+    /// Sets the link of the [`Span`].
+    pub fn link(mut self, link: impl Into<Link>) -> Self {
+        self.link = Some(link.into());
+        self
+    }
+
+    /// Sets the link of the [`Span`], if any.
+    pub fn link_maybe(mut self, link: Option<impl Into<Link>>) -> Self {
+        self.link = link.map(Into::into);
         self
     }
 
@@ -355,15 +374,15 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
         self
     }
 
-    /// Sets the link of the [`Span`].
-    pub fn link(mut self, link: impl Into<Link>) -> Self {
-        self.link = Some(link.into());
-        self
-    }
-
-    /// Sets the link of the [`Span`], if any.
-    pub fn link_maybe(mut self, link: Option<impl Into<Link>>) -> Self {
-        self.link = link.map(Into::into);
+    /// Sets the [`Padding`] of the [`Span`].
+    ///
+    /// It only affects the [`background`] and [`border`] of the
+    /// [`Span`], currently.
+    ///
+    /// [`background`]: Self::background
+    /// [`border`]: Self::border
+    pub fn padding(mut self, padding: impl Into<Padding>) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -377,6 +396,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             color: self.color,
             link: self.link,
             highlight: self.highlight,
+            padding: self.padding,
         }
     }
 }
