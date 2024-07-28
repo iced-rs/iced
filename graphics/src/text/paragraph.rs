@@ -254,9 +254,10 @@ impl core::text::Paragraph for Paragraph {
     fn span_bounds(&self, index: usize) -> Vec<Rectangle> {
         let internal = self.internal();
 
+        let mut bounds = Vec::new();
         let mut current_bounds = None;
 
-        let mut bounds = internal
+        let glyphs = internal
             .buffer
             .layout_runs()
             .flat_map(|run| {
@@ -268,35 +269,34 @@ impl core::text::Paragraph for Paragraph {
                     .map(move |glyph| (line_top, line_height, glyph))
             })
             .skip_while(|(_, _, glyph)| glyph.metadata != index)
-            .take_while(|(_, _, glyph)| glyph.metadata == index)
-            .fold(vec![], |mut spans, (line_top, line_height, glyph)| {
-                let y = line_top + glyph.y;
+            .take_while(|(_, _, glyph)| glyph.metadata == index);
 
-                let new_bounds = || {
-                    Rectangle::new(
-                        Point::new(glyph.x, y),
-                        Size::new(
-                            glyph.w,
-                            glyph.line_height_opt.unwrap_or(line_height),
-                        ),
-                    )
-                };
+        for (line_top, line_height, glyph) in glyphs {
+            let y = line_top + glyph.y;
 
-                match current_bounds.as_mut() {
-                    None => {
-                        current_bounds = Some(new_bounds());
-                    }
-                    Some(bounds) if y != bounds.y => {
-                        spans.push(*bounds);
-                        *bounds = new_bounds();
-                    }
-                    Some(bounds) => {
-                        bounds.width += glyph.w;
-                    }
+            let new_bounds = || {
+                Rectangle::new(
+                    Point::new(glyph.x, y),
+                    Size::new(
+                        glyph.w,
+                        glyph.line_height_opt.unwrap_or(line_height),
+                    ),
+                )
+            };
+
+            match current_bounds.as_mut() {
+                None => {
+                    current_bounds = Some(new_bounds());
                 }
-
-                spans
-            });
+                Some(current_bounds) if y != current_bounds.y => {
+                    bounds.push(*current_bounds);
+                    *current_bounds = new_bounds();
+                }
+                Some(current_bounds) => {
+                    current_bounds.width += glyph.w;
+                }
+            }
+        }
 
         bounds.extend(current_bounds);
         bounds
