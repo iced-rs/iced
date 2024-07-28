@@ -245,6 +245,8 @@ pub struct Span<'a, Link = (), Font = crate::Font> {
     ///
     /// Currently, it only affects the bounds of the [`Highlight`].
     pub padding: Padding,
+    /// Whether the [`Span`] should be underlined or not.
+    pub underline: bool,
 }
 
 /// A text highlight.
@@ -268,6 +270,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             highlight: None,
             link: None,
             padding: Padding::ZERO,
+            underline: false,
         }
     }
 
@@ -386,6 +389,12 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
         self
     }
 
+    /// Sets whether the [`Span`] shoud be underlined or not.
+    pub fn underline(mut self, underline: bool) -> Self {
+        self.underline = underline;
+        self
+    }
+
     /// Turns the [`Span`] into a static one.
     pub fn to_static(self) -> Span<'static, Link, Font> {
         Span {
@@ -397,6 +406,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             link: self.link,
             highlight: self.highlight,
             padding: self.padding,
+            underline: self.underline,
         }
     }
 }
