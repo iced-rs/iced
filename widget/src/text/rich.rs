@@ -285,14 +285,15 @@ where
                 }
 
                 if span.underline || is_hovered_link {
+                    let size = span
+                        .size
+                        .or(self.size)
+                        .unwrap_or(renderer.default_size());
+
                     let line_height = span
                         .line_height
                         .unwrap_or(self.line_height)
-                        .to_absolute(
-                            span.size
-                                .or(self.size)
-                                .unwrap_or(renderer.default_size()),
-                        );
+                        .to_absolute(size);
 
                     for bounds in regions {
                         renderer.fill_quad(
@@ -302,7 +303,10 @@ where
                                         + translation
                                         + Vector::new(
                                             0.0,
-                                            line_height.0 * 0.8 + 1.0,
+                                            size.0
+                                                + (line_height.0 - size.0)
+                                                    / 2.0
+                                                - size.0 * 0.08,
                                         ),
                                     Size::new(bounds.width, 1.0),
                                 ),
