@@ -1,4 +1,4 @@
-use iced::highlighter::{self, Highlighter};
+use iced::highlighter;
 use iced::widget::{self, markdown, row, scrollable, text_editor};
 use iced::{Element, Fill, Font, Task, Theme};
 
@@ -65,13 +65,7 @@ impl Markdown {
             .height(Fill)
             .padding(10)
             .font(Font::MONOSPACE)
-            .highlight::<Highlighter>(
-                highlighter::Settings {
-                    theme: highlighter::Theme::Base16Ocean,
-                    token: "markdown".to_owned(),
-                },
-                |highlight, _theme| highlight.to_format(),
-            );
+            .highlight("markdown", highlighter::Theme::Base16Ocean);
 
         let preview = markdown(&self.items, markdown::Settings::default())
             .map(Message::LinkClicked);

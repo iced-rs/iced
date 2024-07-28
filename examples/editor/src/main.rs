@@ -1,4 +1,4 @@
-use iced::highlighter::{self, Highlighter};
+use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text,
@@ -186,18 +186,13 @@ impl Editor {
             text_editor(&self.content)
                 .height(Fill)
                 .on_action(Message::ActionPerformed)
-                .highlight::<Highlighter>(
-                    highlighter::Settings {
-                        theme: self.theme,
-                        token: self
-                            .file
-                            .as_deref()
-                            .and_then(Path::extension)
-                            .and_then(ffi::OsStr::to_str)
-                            .map(str::to_string)
-                            .unwrap_or(String::from("rs")),
-                    },
-                    |highlight, _theme| highlight.to_format()
+                .highlight(
+                    self.file
+                        .as_deref()
+                        .and_then(Path::extension)
+                        .and_then(ffi::OsStr::to_str)
+                        .unwrap_or("rs"),
+                    self.theme,
                 ),
             status,
         ]

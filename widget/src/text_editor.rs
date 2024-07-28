@@ -13,7 +13,7 @@ use crate::core::text::{self, LineHeight, Text};
 use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Background, Border, Color, Element, Length, Padding, Pixels, Point,
+    self, Background, Border, Color, Element, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, SmolStr, Theme, Vector,
 };
 
@@ -146,9 +146,28 @@ where
         self
     }
 
+    /// Highlights the [`TextEditor`] using the given syntax and theme.
+    #[cfg(feature = "highlighter")]
+    pub fn highlight(
+        self,
+        syntax: &str,
+        theme: iced_highlighter::Theme,
+    ) -> TextEditor<'a, iced_highlighter::Highlighter, Message, Theme, Renderer>
+    where
+        Renderer: text::Renderer<Font = core::Font>,
+    {
+        self.highlight_with::<iced_highlighter::Highlighter>(
+            iced_highlighter::Settings {
+                theme,
+                token: syntax.to_owned(),
+            },
+            |highlight, _theme| highlight.to_format(),
+        )
+    }
+
     /// Highlights the [`TextEditor`] with the given [`Highlighter`] and
     /// a strategy to turn its highlights into some text format.
-    pub fn highlight<H: text::Highlighter>(
+    pub fn highlight_with<H: text::Highlighter>(
         self,
         settings: H::Settings,
         to_format: fn(
