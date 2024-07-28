@@ -1210,21 +1210,6 @@ impl<P: text::Paragraph> State<P> {
         Self::default()
     }
 
-    /// Creates a new [`State`], representing a focused [`TextInput`].
-    pub fn focused() -> Self {
-        Self {
-            value: paragraph::Plain::default(),
-            placeholder: paragraph::Plain::default(),
-            icon: paragraph::Plain::default(),
-            is_focused: None,
-            is_dragging: false,
-            is_pasting: None,
-            last_click: None,
-            cursor: Cursor::default(),
-            keyboard_modifiers: keyboard::Modifiers::default(),
-        }
-    }
-
     /// Returns whether the [`TextInput`] is currently focused or not.
     pub fn is_focused(&self) -> bool {
         self.is_focused.is_some()

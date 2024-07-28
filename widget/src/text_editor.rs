@@ -10,8 +10,10 @@ use crate::core::renderer;
 use crate::core::text::editor::{Cursor, Editor as _};
 use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{self, LineHeight, Text};
+use crate::core::time::{Duration, Instant};
 use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
+use crate::core::window;
 use crate::core::{
     Background, Border, Color, Element, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, SmolStr, Theme, Vector,
@@ -369,7 +371,7 @@ where
 /// The state of a [`TextEditor`].
 #[derive(Debug)]
 pub struct State<Highlighter: text::Highlighter> {
-    is_focused: bool,
+    focus: Option<Focus>,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
     partial_scroll: f32,
@@ -378,10 +380,39 @@ pub struct State<Highlighter: text::Highlighter> {
     highlighter_format_address: usize,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct Focus {
+    updated_at: Instant,
+    now: Instant,
+    is_window_focused: bool,
+}
+
+impl Focus {
+    const CURSOR_BLINK_INTERVAL_MILLIS: u128 = 500;
+
+    fn now() -> Self {
+        let now = Instant::now();
+
+        Self {
+            updated_at: now,
+            now,
+            is_window_focused: true,
+        }
+    }
+
+    fn is_cursor_visible(&self) -> bool {
+        self.is_window_focused
+            && ((self.now - self.updated_at).as_millis()
+                / Self::CURSOR_BLINK_INTERVAL_MILLIS)
+                % 2
+                == 0
+    }
+}
+
 impl<Highlighter: text::Highlighter> State<Highlighter> {
     /// Returns whether the [`TextEditor`] is currently focused or not.
     pub fn is_focused(&self) -> bool {
-        self.is_focused
+        self.focus.is_some()
     }
 }
 
@@ -389,15 +420,21 @@ impl<Highlighter: text::Highlighter> operation::Focusable
     for State<Highlighter>
 {
     fn is_focused(&self) -> bool {
-        self.is_focused
+        self.focus.is_some()
     }
 
     fn focus(&mut self) {
-        self.is_focused = true;
+        let now = Instant::now();
+
+        self.focus = Some(Focus {
+            updated_at: now,
+            now,
+            is_window_focused: true,
+        });
     }
 
     fn unfocus(&mut self) {
-        self.is_focused = false;
+        self.focus = None;
     }
 }
 
@@ -414,7 +451,7 @@ where
 
     fn state(&self) -> widget::tree::State {
         widget::tree::State::new(State {
-            is_focused: false,
+            focus: None,
             last_click: None,
             drag_click: None,
             partial_scroll: 0.0,
@@ -502,6 +539,41 @@ where
 
         let state = tree.state.downcast_mut::<State<Highlighter>>();
 
+        match event {
+            Event::Window(window::Event::Unfocused) => {
+                if let Some(focus) = &mut state.focus {
+                    focus.is_window_focused = false;
+                }
+            }
+            Event::Window(window::Event::Focused) => {
+                if let Some(focus) = &mut state.focus {
+                    focus.is_window_focused = true;
+                    focus.updated_at = Instant::now();
+
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+            }
+            Event::Window(window::Event::RedrawRequested(now)) => {
+                if let Some(focus) = &mut state.focus {
+                    if focus.is_window_focused {
+                        focus.now = now;
+
+                        let millis_until_redraw =
+                            Focus::CURSOR_BLINK_INTERVAL_MILLIS
+                                - (now - focus.updated_at).as_millis()
+                                    % Focus::CURSOR_BLINK_INTERVAL_MILLIS;
+
+                        shell.request_redraw(window::RedrawRequest::At(
+                            now + Duration::from_millis(
+                                millis_until_redraw as u64,
+                            ),
+                        ));
+                    }
+                }
+            }
+            _ => {}
+        }
+
         let Some(update) = Update::from_event(
             event,
             state,
@@ -523,7 +595,7 @@ where
                     mouse::click::Kind::Triple => Action::SelectLine,
                 };
 
-                state.is_focused = true;
+                state.focus = Some(Focus::now());
                 state.last_click = Some(click);
                 state.drag_click = Some(click.kind());
 
@@ -566,7 +638,7 @@ where
 
                     match binding {
                         Binding::Unfocus => {
-                            state.is_focused = false;
+                            state.focus = None;
                             state.drag_click = None;
                         }
                         Binding::Copy => {
@@ -645,6 +717,10 @@ where
                     clipboard,
                     shell,
                 );
+
+                if let Some(focus) = &mut state.focus {
+                    focus.updated_at = Instant::now();
+                }
             }
         }
 
@@ -679,7 +755,7 @@ where
 
         let status = if is_disabled {
             Status::Disabled
-        } else if state.is_focused {
+        } else if state.focus.is_some() {
             Status::Focused
         } else if is_mouse_over {
             Status::Hovered
@@ -740,9 +816,9 @@ where
             bounds.y + self.padding.top,
         );
 
-        if state.is_focused {
+        if let Some(focus) = state.focus.as_ref() {
             match internal.editor.cursor() {
-                Cursor::Caret(position) => {
+                Cursor::Caret(position) if focus.is_cursor_visible() => {
                     let cursor =
                         Rectangle::new(
                             position + translation,
@@ -784,6 +860,7 @@ where
                         );
                     }
                 }
+                Cursor::Caret(_) => {}
             }
         }
     }
@@ -990,7 +1067,7 @@ impl<Message> Update<Message> {
                         );
 
                         Some(Update::Click(click))
-                    } else if state.is_focused {
+                    } else if state.focus.is_some() {
                         binding(Binding::Unfocus)
                     } else {
                         None
@@ -1030,7 +1107,7 @@ impl<Message> Update<Message> {
                 text,
                 ..
             }) => {
-                let status = if state.is_focused {
+                let status = if state.focus.is_some() {
                     Status::Focused
                 } else {
                     Status::Active
