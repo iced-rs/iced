@@ -247,6 +247,8 @@ pub struct Span<'a, Link = (), Font = crate::Font> {
     pub padding: Padding,
     /// Whether the [`Span`] should be underlined or not.
     pub underline: bool,
+    /// Whether the [`Span`] should be struck through or not.
+    pub strikethrough: bool,
 }
 
 /// A text highlight.
@@ -271,6 +273,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             link: None,
             padding: Padding::ZERO,
             underline: false,
+            strikethrough: false,
         }
     }
 
@@ -395,6 +398,12 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
         self
     }
 
+    /// Sets whether the [`Span`] shoud be struck through or not.
+    pub fn strikethrough(mut self, strikethrough: bool) -> Self {
+        self.strikethrough = strikethrough;
+        self
+    }
+
     /// Turns the [`Span`] into a static one.
     pub fn to_static(self) -> Span<'static, Link, Font> {
         Span {
@@ -407,6 +416,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             highlight: self.highlight,
             padding: self.padding,
             underline: self.underline,
+            strikethrough: self.strikethrough,
         }
     }
 }
