@@ -35,10 +35,10 @@ pub enum Item {
 }
 
 /// Parse the given Markdown content.
-pub fn parse<'a>(
-    markdown: &'a str,
-    palette: &'a theme::Palette,
-) -> impl Iterator<Item = Item> + 'a {
+pub fn parse(
+    markdown: &str,
+    palette: theme::Palette,
+) -> impl Iterator<Item = Item> + '_ {
     struct List {
         start: Option<u64>,
         items: Vec<Vec<Item>>,

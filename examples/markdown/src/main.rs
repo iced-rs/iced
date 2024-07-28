@@ -28,7 +28,7 @@ impl Markdown {
         (
             Self {
                 content: text_editor::Content::with_text(INITIAL_CONTENT),
-                items: markdown::parse(INITIAL_CONTENT, &theme.palette())
+                items: markdown::parse(INITIAL_CONTENT, theme.palette())
                     .collect(),
                 theme,
             },
@@ -46,7 +46,7 @@ impl Markdown {
                 if is_edit {
                     self.items = markdown::parse(
                         &self.content.text(),
-                        &self.theme.palette(),
+                        self.theme.palette(),
                     )
                     .collect();
                 }
