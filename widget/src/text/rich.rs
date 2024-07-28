@@ -246,7 +246,6 @@ where
 
         let style = theme.style(&self.class);
 
-        // Draw backgrounds
         for (index, span) in self.spans.iter().enumerate() {
             if let Some(highlight) = span.highlight {
                 let translation = layout.position() - Point::ORIGIN;
