@@ -254,7 +254,11 @@ where
             let is_hovered_link =
                 span.link.is_some() && Some(index) == hovered_span;
 
-            if span.highlight.is_some() || span.underline || is_hovered_link {
+            if span.highlight.is_some()
+                || span.underline
+                || span.strikethrough
+                || is_hovered_link
+            {
                 let translation = layout.position() - Point::ORIGIN;
                 let regions = state.paragraph.span_bounds(index);
 
@@ -284,7 +288,7 @@ where
                     }
                 }
 
-                if span.underline || is_hovered_link {
+                if span.underline || span.strikethrough || is_hovered_link {
                     let size = span
                         .size
                         .or(self.size)
@@ -295,27 +299,47 @@ where
                         .unwrap_or(self.line_height)
                         .to_absolute(size);
 
-                    for bounds in regions {
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds: Rectangle::new(
-                                    bounds.position()
-                                        + translation
-                                        + Vector::new(
-                                            0.0,
-                                            size.0
-                                                + (line_height.0 - size.0)
-                                                    / 2.0
-                                                - size.0 * 0.08,
-                                        ),
-                                    Size::new(bounds.width, 1.0),
-                                ),
-                                ..Default::default()
-                            },
-                            span.color
-                                .or(style.color)
-                                .unwrap_or(defaults.text_color),
+                    let color = span
+                        .color
+                        .or(style.color)
+                        .unwrap_or(defaults.text_color);
+
+                    let baseline = translation
+                        + Vector::new(
+                            0.0,
+                            size.0 + (line_height.0 - size.0) / 2.0,
                         );
+
+                    if span.underline || is_hovered_link {
+                        for bounds in &regions {
+                            renderer.fill_quad(
+                                renderer::Quad {
+                                    bounds: Rectangle::new(
+                                        bounds.position() + baseline
+                                            - Vector::new(0.0, size.0 * 0.08),
+                                        Size::new(bounds.width, 1.0),
+                                    ),
+                                    ..Default::default()
+                                },
+                                color,
+                            );
+                        }
+                    }
+
+                    if span.strikethrough {
+                        for bounds in &regions {
+                            renderer.fill_quad(
+                                renderer::Quad {
+                                    bounds: Rectangle::new(
+                                        bounds.position() + baseline
+                                            - Vector::new(0.0, size.0 / 2.0),
+                                        Size::new(bounds.width, 1.0),
+                                    ),
+                                    ..Default::default()
+                                },
+                                color,
+                            );
+                        }
                     }
                 }
             }

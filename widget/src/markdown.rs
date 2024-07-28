@@ -47,6 +47,7 @@ pub fn parse(
     let mut spans = Vec::new();
     let mut strong = false;
     let mut emphasis = false;
+    let mut strikethrough = false;
     let mut metadata = false;
     let mut table = false;
     let mut link = None;
@@ -59,7 +60,8 @@ pub fn parse(
         markdown,
         pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
             | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
-            | pulldown_cmark::Options::ENABLE_TABLES,
+            | pulldown_cmark::Options::ENABLE_TABLES
+            | pulldown_cmark::Options::ENABLE_STRIKETHROUGH,
     );
 
     let produce = |lists: &mut Vec<List>, item| {
@@ -88,6 +90,10 @@ pub fn parse(
             }
             pulldown_cmark::Tag::Emphasis if !metadata && !table => {
                 emphasis = true;
+                None
+            }
+            pulldown_cmark::Tag::Strikethrough if !metadata && !table => {
+                strikethrough = true;
                 None
             }
             pulldown_cmark::Tag::Link { dest_url, .. }
@@ -155,12 +161,16 @@ pub fn parse(
                     Item::Heading(level, spans.drain(..).collect()),
                 )
             }
+            pulldown_cmark::TagEnd::Strong if !metadata && !table => {
+                strong = false;
+                None
+            }
             pulldown_cmark::TagEnd::Emphasis if !metadata && !table => {
                 emphasis = false;
                 None
             }
-            pulldown_cmark::TagEnd::Strong if !metadata && !table => {
-                strong = false;
+            pulldown_cmark::TagEnd::Strikethrough if !metadata && !table => {
+                strikethrough = false;
                 None
             }
             pulldown_cmark::TagEnd::Link if !metadata && !table => {
@@ -227,7 +237,7 @@ pub fn parse(
                 return None;
             }
 
-            let span = span(text.into_string());
+            let span = span(text.into_string()).strikethrough(strikethrough);
 
             let span = if strong || emphasis {
                 span.font(Font {
@@ -263,7 +273,8 @@ pub fn parse(
                 .color(Color::WHITE)
                 .background(color!(0x111111))
                 .border(border::rounded(2))
-                .padding(padding::left(2).right(2));
+                .padding(padding::left(2).right(2))
+                .strikethrough(strikethrough);
 
             let span = if let Some(link) = link.as_ref() {
                 span.color(palette.primary).link(link.clone())
@@ -275,7 +286,7 @@ pub fn parse(
             None
         }
         pulldown_cmark::Event::SoftBreak if !metadata && !table => {
-            spans.push(span(" "));
+            spans.push(span(" ").strikethrough(strikethrough));
             None
         }
         pulldown_cmark::Event::HardBreak if !metadata && !table => {
