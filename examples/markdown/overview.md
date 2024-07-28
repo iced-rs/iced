@@ -1,18 +1,13 @@
 # Overview
 
-Inspired by [The Elm Architecture], Iced expects you to split user interfaces
-into four different concepts:
+Inspired by [The Elm Architecture], Iced expects you to split user interfaces into four different concepts:
 
 * __State__ — the state of your application
-* __Messages__ — user interactions or meaningful events that you care
-  about
-* __View logic__ — a way to display your __state__ as widgets that
-  may produce __messages__ on user interaction
-* __Update logic__ — a way to react to __messages__ and update your
-  __state__
+* __Messages__ — user interactions or meaningful events that you care about
+* __View logic__ — a way to display your __state__ as widgets that may produce __messages__ on user interaction
+* __Update logic__ — a way to react to __messages__ and update your __state__
 
-We can build something to see how this works! Let's say we want a simple counter
-that can be incremented and decremented using two buttons.
+We can build something to see how this works! Let's say we want a simple counter that can be incremented and decremented using two buttons.
 
 We start by modelling the __state__ of our application:
 
@@ -23,8 +18,7 @@ struct Counter {
 }
 ```
 
-Next, we need to define the possible user interactions of our counter:
-the button presses. These interactions are our __messages__:
+Next, we need to define the possible user interactions of our counter: the button presses. These interactions are our __messages__:
 
 ```rust
 #[derive(Debug, Clone, Copy)]
@@ -34,8 +28,7 @@ pub enum Message {
 }
 ```
 
-Now, let's show the actual counter by putting it all together in our
-__view logic__:
+Now, let's show the actual counter by putting it all together in our __view logic__:
 
 ```rust
 use iced::widget::{button, column, text, Column};
@@ -59,8 +52,7 @@ impl Counter {
 }
 ```
 
-Finally, we need to be able to react to any produced __messages__ and change our
-__state__ accordingly in our __update logic__:
+Finally, we need to be able to react to any produced __messages__ and change our __state__ accordingly in our __update logic__:
 
 ```rust
 impl Counter {
@@ -90,8 +82,7 @@ fn main() -> iced::Result {
 Iced will automatically:
 
   1. Take the result of our __view logic__ and layout its widgets.
-  1. Process events from our system and produce __messages__ for our
-     __update logic__.
+  1. Process events from our system and produce __messages__ for our __update logic__.
   1. Draw the resulting user interface.
 
 Read the [book], the [documentation], and the [examples] to learn more!
