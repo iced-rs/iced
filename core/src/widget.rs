@@ -4,6 +4,7 @@ pub mod text;
 pub mod tree;
 
 mod id;
+mod void;
 
 pub use id::Id;
 pub use operation::Operation;
