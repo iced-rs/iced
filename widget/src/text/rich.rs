@@ -248,17 +248,17 @@ where
 
         // Draw backgrounds
         for (index, span) in self.spans.iter().enumerate() {
-            if let Some(background) = span.background {
+            if let Some(highlight) = span.highlight {
                 let translation = layout.position() - Point::ORIGIN;
 
                 for bounds in state.paragraph.span_bounds(index) {
                     renderer.fill_quad(
                         renderer::Quad {
                             bounds: bounds + translation,
-                            border: background.border,
+                            border: highlight.border,
                             ..Default::default()
                         },
-                        background.color,
+                        highlight.background,
                     );
                 }
             }

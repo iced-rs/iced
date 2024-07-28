@@ -7,7 +7,6 @@
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
-use crate::core::text::Background;
 use crate::core::theme::{self, Theme};
 use crate::core::{self, color, Color, Element, Length, Pixels};
 use crate::{column, container, rich_text, row, scrollable, span, text};
@@ -262,10 +261,8 @@ pub fn parse<'a>(
             let span = span(code.into_string())
                 .font(Font::MONOSPACE)
                 .color(Color::WHITE)
-                .background(Background {
-                    color: color!(0x111111),
-                    border: border::rounded(2),
-                });
+                .background(color!(0x111111))
+                .border(border::rounded(2));
 
             let span = if let Some(link) = link.as_ref() {
                 span.color(palette.primary).link(link.clone())
