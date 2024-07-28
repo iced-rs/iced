@@ -237,7 +237,7 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let state = tree
@@ -246,8 +246,15 @@ where
 
         let style = theme.style(&self.class);
 
+        let hovered_span = cursor
+            .position_in(layout.bounds())
+            .and_then(|position| state.paragraph.hit_span(position));
+
         for (index, span) in self.spans.iter().enumerate() {
-            if span.highlight.is_some() || span.underline {
+            let is_hovered_link =
+                span.link.is_some() && Some(index) == hovered_span;
+
+            if span.highlight.is_some() || span.underline || is_hovered_link {
                 let translation = layout.position() - Point::ORIGIN;
                 let regions = state.paragraph.span_bounds(index);
 
@@ -277,7 +284,7 @@ where
                     }
                 }
 
-                if span.underline {
+                if span.underline || is_hovered_link {
                     let line_height = span
                         .line_height
                         .unwrap_or(self.line_height)
