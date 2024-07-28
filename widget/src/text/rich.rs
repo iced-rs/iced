@@ -237,7 +237,7 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        _cursor_position: mouse::Cursor,
+        _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let state = tree
@@ -247,28 +247,65 @@ where
         let style = theme.style(&self.class);
 
         for (index, span) in self.spans.iter().enumerate() {
-            if let Some(highlight) = span.highlight {
+            if span.highlight.is_some() || span.underline {
                 let translation = layout.position() - Point::ORIGIN;
+                let regions = state.paragraph.span_bounds(index);
 
-                for bounds in state.paragraph.span_bounds(index) {
-                    let bounds = Rectangle::new(
-                        bounds.position()
-                            - Vector::new(span.padding.left, span.padding.top),
-                        bounds.size()
-                            + Size::new(
-                                span.padding.horizontal(),
-                                span.padding.vertical(),
-                            ),
-                    );
+                if let Some(highlight) = span.highlight {
+                    for bounds in &regions {
+                        let bounds = Rectangle::new(
+                            bounds.position()
+                                - Vector::new(
+                                    span.padding.left,
+                                    span.padding.top,
+                                ),
+                            bounds.size()
+                                + Size::new(
+                                    span.padding.horizontal(),
+                                    span.padding.vertical(),
+                                ),
+                        );
 
-                    renderer.fill_quad(
-                        renderer::Quad {
-                            bounds: bounds + translation,
-                            border: highlight.border,
-                            ..Default::default()
-                        },
-                        highlight.background,
-                    );
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: bounds + translation,
+                                border: highlight.border,
+                                ..Default::default()
+                            },
+                            highlight.background,
+                        );
+                    }
+                }
+
+                if span.underline {
+                    let line_height = span
+                        .line_height
+                        .unwrap_or(self.line_height)
+                        .to_absolute(
+                            span.size
+                                .or(self.size)
+                                .unwrap_or(renderer.default_size()),
+                        );
+
+                    for bounds in regions {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: Rectangle::new(
+                                    bounds.position()
+                                        + translation
+                                        + Vector::new(
+                                            0.0,
+                                            line_height.0 * 0.8 + 1.0,
+                                        ),
+                                    Size::new(bounds.width, 1.0),
+                                ),
+                                ..Default::default()
+                            },
+                            span.color
+                                .or(style.color)
+                                .unwrap_or(defaults.text_color),
+                        );
+                    }
                 }
             }
         }

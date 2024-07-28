@@ -248,7 +248,9 @@ pub fn parse(
             };
 
             let span = if let Some(link) = link.as_ref() {
-                span.color(palette.primary).link(link.clone())
+                span.color(palette.primary)
+                    .link(link.clone())
+                    .underline(true)
             } else {
                 span
             };
