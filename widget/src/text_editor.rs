@@ -13,7 +13,7 @@ use crate::core::text::{self, LineHeight, Text};
 use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    self, Background, Border, Color, Element, Length, Padding, Pixels, Point,
+    Background, Border, Color, Element, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, SmolStr, Theme, Vector,
 };
 
@@ -154,7 +154,7 @@ where
         theme: iced_highlighter::Theme,
     ) -> TextEditor<'a, iced_highlighter::Highlighter, Message, Theme, Renderer>
     where
-        Renderer: text::Renderer<Font = core::Font>,
+        Renderer: text::Renderer<Font = crate::core::Font>,
     {
         self.highlight_with::<iced_highlighter::Highlighter>(
             iced_highlighter::Settings {
