@@ -52,3 +52,5 @@ iced_highlighter.optional = true
 
 url.workspace = true
 url.optional = true
+
+lilt = "0.6.0"

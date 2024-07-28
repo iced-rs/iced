@@ -11,14 +11,19 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Background, Clipboard, Color, Element, Layout, Length, Padding,
     Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
-use crate::runtime::task::{self, Task};
-use crate::runtime::Action;
-
+use crate::runtime::{
+    task::{self, Task},
+    Action,
+};
+use lilt::Animated;
+use lilt::Easing::EaseOut;
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
+use std::time::Instant;
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
@@ -39,6 +44,7 @@ pub struct Scrollable<
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
     class: Theme::Class<'a>,
+    animation_duration_ms: f32,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
@@ -58,6 +64,7 @@ where
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
+            animation_duration_ms: 200.,
         }
         .validate()
     }
@@ -327,7 +334,7 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::new())
+        tree::State::new(State::new(self.animation_duration_ms))
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -421,6 +428,7 @@ where
             state,
             self.id.as_ref().map(|id| &id.0),
             bounds,
+            content_bounds,
             translation,
         );
 
@@ -476,9 +484,9 @@ where
                                 scroller_grabbed_at,
                                 cursor_position,
                             ),
-                            bounds,
-                            content_bounds,
+                            true,
                         );
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
 
                         let _ = notify_on_scroll(
                             state,
@@ -512,9 +520,9 @@ where
                                 scroller_grabbed_at,
                                 cursor_position,
                             ),
-                            bounds,
-                            content_bounds,
+                            false,
                         );
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
 
                         state.y_scroller_grabbed_at = Some(scroller_grabbed_at);
 
@@ -547,9 +555,9 @@ where
                                 scroller_grabbed_at,
                                 cursor_position,
                             ),
-                            bounds,
-                            content_bounds,
+                            true,
                         );
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
 
                         let _ = notify_on_scroll(
                             state,
@@ -583,9 +591,9 @@ where
                                 scroller_grabbed_at,
                                 cursor_position,
                             ),
-                            bounds,
-                            content_bounds,
+                            false,
                         );
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
 
                         state.x_scroller_grabbed_at = Some(scroller_grabbed_at);
 
@@ -690,6 +698,7 @@ where
                 };
 
                 state.scroll(delta, self.direction, bounds, content_bounds);
+                shell.request_redraw(window::RedrawRequest::NextFrame);
 
                 event_status = if notify_on_scroll(
                     state,
@@ -735,6 +744,9 @@ where
                                 bounds,
                                 content_bounds,
                             );
+                            shell.request_redraw(
+                                window::RedrawRequest::NextFrame,
+                            );
 
                             state.scroll_area_touched_at =
                                 Some(cursor_position);
@@ -753,6 +765,13 @@ where
                 }
 
                 event_status = event::Status::Captured;
+            }
+            Event::Window(window::Event::RedrawRequested(now)) => {
+                if state.x_animation.in_progress(now)
+                    || state.y_animation.in_progress(now)
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
             }
             _ => {}
         }
@@ -1095,8 +1114,8 @@ fn notify_on_scroll<Message>(
     }
 
     let viewport = Viewport {
-        offset_x: state.offset_x,
-        offset_y: state.offset_y,
+        offset_x: Offset::Relative(state.offset_x_relative),
+        offset_y: Offset::Relative(state.offset_y_relative),
         bounds,
         content_bounds,
     };
@@ -1130,29 +1149,17 @@ fn notify_on_scroll<Message>(
     true
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct State {
     scroll_area_touched_at: Option<Point>,
-    offset_y: Offset,
+    offset_y_relative: f32,
     y_scroller_grabbed_at: Option<f32>,
-    offset_x: Offset,
+    offset_x_relative: f32,
     x_scroller_grabbed_at: Option<f32>,
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            scroll_area_touched_at: None,
-            offset_y: Offset::Absolute(0.0),
-            y_scroller_grabbed_at: None,
-            offset_x: Offset::Absolute(0.0),
-            x_scroller_grabbed_at: None,
-            keyboard_modifiers: keyboard::Modifiers::default(),
-            last_notified: None,
-        }
-    }
+    y_animation: Animated<f32, Instant>,
+    x_animation: Animated<f32, Instant>,
 }
 
 impl operation::Scrollable for State {
@@ -1160,8 +1167,13 @@ impl operation::Scrollable for State {
         State::snap_to(self, offset);
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        State::scroll_to(self, offset);
+    fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        State::scroll_to(self, offset, bounds, content_bounds);
     }
 }
 
@@ -1180,6 +1192,13 @@ impl Offset {
             Offset::Relative(percentage) => {
                 ((content - viewport) * percentage).max(0.0)
             }
+        }
+    }
+
+    fn relative(self, viewport: f32, content: f32) -> f32 {
+        match self {
+            Offset::Absolute(absolute) => absolute / (content - viewport),
+            Offset::Relative(percentage) => percentage.max(0.0),
         }
     }
 
@@ -1257,8 +1276,22 @@ impl Viewport {
 
 impl State {
     /// Creates a new [`State`] with the scrollbar(s) at the beginning.
-    pub fn new() -> Self {
-        State::default()
+    pub fn new(animation_duration_ms: f32) -> Self {
+        Self {
+            scroll_area_touched_at: None,
+            offset_y_relative: 0.0,
+            y_scroller_grabbed_at: None,
+            offset_x_relative: 0.0,
+            x_scroller_grabbed_at: None,
+            keyboard_modifiers: keyboard::Modifiers::default(),
+            last_notified: None,
+            y_animation: Animated::new(0.0)
+                .easing(EaseOut)
+                .duration(animation_duration_ms),
+            x_animation: Animated::new(0.0)
+                .easing(EaseOut)
+                .duration(animation_duration_ms),
+        }
     }
 
     /// Apply a scrolling offset to the current [`State`], given the bounds of
@@ -1290,20 +1323,25 @@ impl State {
             align(vertical_alignment, delta.y),
         );
 
+        let now = Instant::now();
         if bounds.height < content_bounds.height {
-            self.offset_y = Offset::Absolute(
-                (self.offset_y.absolute(bounds.height, content_bounds.height)
+            self.offset_y_relative =
+                ((Offset::Relative(self.offset_y_relative)
+                    .absolute(bounds.height, content_bounds.height)
                     - delta.y)
-                    .clamp(0.0, content_bounds.height - bounds.height),
-            );
+                    .clamp(0.0, content_bounds.height - bounds.height))
+                    / (content_bounds.height - bounds.height);
+            self.y_animation.transition(self.offset_y_relative, now);
         }
 
         if bounds.width < content_bounds.width {
-            self.offset_x = Offset::Absolute(
-                (self.offset_x.absolute(bounds.width, content_bounds.width)
+            self.offset_x_relative =
+                ((Offset::Relative(self.offset_x_relative)
+                    .absolute(bounds.width, content_bounds.width)
                     - delta.x)
-                    .clamp(0.0, content_bounds.width - bounds.width),
-            );
+                    .clamp(0.0, content_bounds.width - bounds.width))
+                    / (content_bounds.width - bounds.width);
+            self.x_animation.transition(self.offset_x_relative, now);
         }
     }
 
@@ -1311,51 +1349,61 @@ impl State {
     ///
     /// `0` represents scrollbar at the beginning, while `1` represents scrollbar at
     /// the end.
-    pub fn scroll_y_to(
-        &mut self,
-        percentage: f32,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) {
-        self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap(bounds, content_bounds);
+    ///
+    /// When `instantaneous` is set to `true`, the transition uses no animation.
+    pub fn scroll_y_to(&mut self, percentage: f32, instantaneous: bool) {
+        let percentage = percentage.clamp(0.0, 1.0);
+        self.offset_y_relative = percentage;
+        if instantaneous {
+            self.y_animation
+                .transition_instantaneous(percentage, Instant::now());
+        } else {
+            self.y_animation.transition(percentage, Instant::now());
+        }
     }
 
     /// Scrolls the [`Scrollable`] to a relative amount along the x axis.
     ///
     /// `0` represents scrollbar at the beginning, while `1` represents scrollbar at
     /// the end.
-    pub fn scroll_x_to(
-        &mut self,
-        percentage: f32,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) {
-        self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap(bounds, content_bounds);
+    ///
+    /// When `instantaneous` is set to `true`, the transition uses no animation.
+    pub fn scroll_x_to(&mut self, percentage: f32, instantaneous: bool) {
+        let percentage = percentage.clamp(0.0, 1.0);
+        self.offset_x_relative = percentage;
+        if instantaneous {
+            self.x_animation
+                .transition_instantaneous(percentage, Instant::now());
+        } else {
+            self.x_animation.transition(percentage, Instant::now());
+        }
     }
 
     /// Snaps the scroll position to a [`RelativeOffset`].
     pub fn snap_to(&mut self, offset: RelativeOffset) {
-        self.offset_x = Offset::Relative(offset.x.clamp(0.0, 1.0));
-        self.offset_y = Offset::Relative(offset.y.clamp(0.0, 1.0));
+        let now = Instant::now();
+        self.offset_x_relative = offset.x.clamp(0.0, 1.0);
+        self.offset_y_relative = offset.y.clamp(0.0, 1.0);
+        self.x_animation.transition(self.offset_x_relative, now);
+        self.y_animation.transition(self.offset_y_relative, now);
     }
 
     /// Scroll to the provided [`AbsoluteOffset`].
-    pub fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        self.offset_x = Offset::Absolute(offset.x.max(0.0));
-        self.offset_y = Offset::Absolute(offset.y.max(0.0));
-    }
-
-    /// Unsnaps the current scroll position, if snapped, given the bounds of the
-    /// [`Scrollable`] and its contents.
-    pub fn unsnap(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
-        self.offset_x = Offset::Absolute(
-            self.offset_x.absolute(bounds.width, content_bounds.width),
-        );
-        self.offset_y = Offset::Absolute(
-            self.offset_y.absolute(bounds.height, content_bounds.height),
-        );
+    pub fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        let now = Instant::now();
+        self.offset_x_relative = Offset::Absolute(offset.x.max(0.0))
+            .relative(bounds.width, content_bounds.width)
+            .clamp(0.0, 1.0);
+        self.offset_y_relative = Offset::Absolute(offset.y.max(0.0))
+            .relative(bounds.height, content_bounds.height)
+            .clamp(0.0, 1.0);
+        self.x_animation.transition(self.offset_x_relative, now);
+        self.y_animation.transition(self.offset_y_relative, now);
     }
 
     /// Returns the scrolling translation of the [`State`], given a [`Direction`],
@@ -1368,7 +1416,10 @@ impl State {
     ) -> Vector {
         Vector::new(
             if let Some(horizontal) = direction.horizontal() {
-                self.offset_x.translation(
+                Offset::Relative(
+                    self.x_animation.animate(|target| target, Instant::now()),
+                )
+                .translation(
                     bounds.width,
                     content_bounds.width,
                     horizontal.alignment,
@@ -1377,7 +1428,10 @@ impl State {
                 0.0
             },
             if let Some(vertical) = direction.vertical() {
-                self.offset_y.translation(
+                Offset::Relative(
+                    self.y_animation.animate(|target| target, Instant::now()),
+                )
+                .translation(
                     bounds.height,
                     content_bounds.height,
                     vertical.alignment,

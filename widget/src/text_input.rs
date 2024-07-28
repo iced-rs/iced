@@ -7,6 +7,8 @@ mod value;
 pub mod cursor;
 
 pub use cursor::Cursor;
+use iced_runtime::keyboard::Modifiers;
+use lilt::{Animated, FloatRepresentable};
 pub use value::Value;
 
 use editor::Editor;
@@ -19,9 +21,9 @@ use crate::core::keyboard::key;
 use crate::core::layout;
 use crate::core::mouse::{self, click};
 use crate::core::renderer;
-use crate::core::text::paragraph;
-use crate::core::text::{self, Text};
-use crate::core::time::{Duration, Instant};
+use crate::core::text::paragraph::Plain;
+use crate::core::text::{self, paragraph, Text};
+use crate::core::time::Instant;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
@@ -33,6 +35,8 @@ use crate::core::{
 };
 use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
+
+use self::cursor::CursorAnimation;
 
 /// A field that can be filled with text.
 ///
@@ -79,6 +83,35 @@ pub struct TextInput<
     on_submit: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
     class: Theme::Class<'a>,
+    cursor_animation_type: CursorAnimationType,
+    cursor_animation_style: CursorAnimation,
+}
+
+/// Type of animation for the ['TextInput'] cursor.
+#[derive(Debug, Clone, Copy, Default)]
+pub enum CursorAnimationType {
+    /// The cursor fades.
+    #[default]
+    Fade,
+    /// The cursor blinks.
+    Blink,
+}
+
+/// The [`AnimationTarget`] represents, through its ['FloatRepresentable`]
+/// implementation the ratio of opacity of the cursor during it's blink effect.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum AnimationTarget {
+    Shown,
+    Hidden,
+}
+
+impl FloatRepresentable for AnimationTarget {
+    fn float_value(&self) -> f32 {
+        match self {
+            AnimationTarget::Shown => 1.0,
+            AnimationTarget::Hidden => 0.0,
+        }
+    }
 }
 
 /// The default [`Padding`] of a [`TextInput`].
@@ -108,6 +141,8 @@ where
             on_submit: None,
             icon: None,
             class: Theme::default(),
+            cursor_animation_style: CursorAnimation::default(),
+            cursor_animation_type: CursorAnimationType::Fade,
         }
     }
 
@@ -308,6 +343,15 @@ where
         }
     }
 
+    /// Sets the animation style of the [`Cursor`].
+    pub fn set_cursor_animation_style(
+        mut self,
+        cursor_animation_style: CursorAnimation,
+    ) -> Self {
+        self.cursor_animation_style = cursor_animation_style;
+        self
+    }
+
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
     /// [`Value`] if provided.
     ///
@@ -338,7 +382,7 @@ where
 
         let status = if is_disabled {
             Status::Disabled
-        } else if state.is_focused() {
+        } else if state.is_focused {
             Status::Focused
         } else if is_mouse_over {
             Status::Hovered
@@ -370,11 +414,7 @@ where
 
         let text = value.to_string();
 
-        let (cursor, offset, is_selecting) = if let Some(focus) = state
-            .is_focused
-            .as_ref()
-            .filter(|focus| focus.is_window_focused)
-        {
+        let (cursor, offset, is_selecting) = if state.is_focused {
             match state.cursor.state(value) {
                 cursor::State::Index(position) => {
                     let (text_value_width, offset) =
@@ -384,29 +424,22 @@ where
                             position,
                         );
 
-                    let is_cursor_visible = ((focus.now - focus.updated_at)
-                        .as_millis()
-                        / CURSOR_BLINK_INTERVAL_MILLIS)
-                        % 2
-                        == 0;
-
-                    let cursor = if is_cursor_visible {
-                        Some((
-                            renderer::Quad {
-                                bounds: Rectangle {
-                                    x: (text_bounds.x + text_value_width)
-                                        .floor(),
-                                    y: text_bounds.y,
-                                    width: 1.0,
-                                    height: text_bounds.height,
-                                },
-                                ..renderer::Quad::default()
+                    let mut cursor_color = style.value;
+                    cursor_color.a = state
+                        .cursor_animation
+                        .animate(|target| target.float_value(), Instant::now());
+                    let cursor = Some((
+                        renderer::Quad {
+                            bounds: Rectangle {
+                                x: text_bounds.x + text_value_width,
+                                y: text_bounds.y,
+                                width: 1.0,
+                                height: text_bounds.height,
                             },
-                            style.value,
-                        ))
-                    } else {
-                        None
-                    };
+                            ..renderer::Quad::default()
+                        },
+                        cursor_color,
+                    ));
 
                     (cursor, offset, false)
                 }
@@ -492,6 +525,13 @@ where
             draw(renderer, text_bounds);
         }
     }
+
+    fn reset_cursor(&self, state: &mut State<Renderer::Paragraph>) {
+        {
+            state.cursor_animation =
+                cursor_animation(self.cursor_animation_type);
+        };
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -515,7 +555,7 @@ where
         // Unfocus text input if it becomes disabled
         if self.on_input.is_none() {
             state.last_click = None;
-            state.is_focused = None;
+            state.is_focused = false;
             state.is_pasting = None;
             state.is_dragging = false;
         }
@@ -584,19 +624,7 @@ where
                     None
                 };
 
-                state.is_focused = if click_position.is_some() {
-                    state.is_focused.or_else(|| {
-                        let now = Instant::now();
-
-                        Some(Focus {
-                            updated_at: now,
-                            now,
-                            is_window_focused: true,
-                        })
-                    })
-                } else {
-                    None
-                };
+                state.is_focused = click_position.is_some();
 
                 if let Some(cursor_position) = click_position {
                     let text_layout = layout.children().next().unwrap();
@@ -705,13 +733,15 @@ where
             }) => {
                 let state = state::<Renderer>(tree);
 
-                if let Some(focus) = &mut state.is_focused {
+                if state.is_focused {
+                    self.reset_cursor(state);
+                }
+                if state.is_focused {
                     let Some(on_input) = &self.on_input else {
                         return event::Status::Ignored;
                     };
 
                     let modifiers = state.keyboard_modifiers;
-                    focus.updated_at = Instant::now();
 
                     match key.as_ref() {
                         keyboard::Key::Character("c")
@@ -813,7 +843,7 @@ where
                             let message = (on_input)(editor.contents());
                             shell.publish(message);
 
-                            focus.updated_at = Instant::now();
+                            self.reset_cursor(state);
 
                             update_cache(state, &self.value);
 
@@ -957,7 +987,7 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::Escape) => {
-                            state.is_focused = None;
+                            state.is_focused = false;
                             state.is_dragging = false;
                             state.is_pasting = None;
 
@@ -980,7 +1010,7 @@ where
             Event::Keyboard(keyboard::Event::KeyReleased { key, .. }) => {
                 let state = state::<Renderer>(tree);
 
-                if state.is_focused.is_some() {
+                if state.is_focused {
                     match key.as_ref() {
                         keyboard::Key::Character("v") => {
                             state.is_pasting = None;
@@ -1007,38 +1037,20 @@ where
             }
             Event::Window(window::Event::Unfocused) => {
                 let state = state::<Renderer>(tree);
-
-                if let Some(focus) = &mut state.is_focused {
-                    focus.is_window_focused = false;
-                }
+                state.is_focused = false;
             }
             Event::Window(window::Event::Focused) => {
                 let state = state::<Renderer>(tree);
 
-                if let Some(focus) = &mut state.is_focused {
-                    focus.is_window_focused = true;
-                    focus.updated_at = Instant::now();
-
+                if state.is_focused {
                     shell.request_redraw(window::RedrawRequest::NextFrame);
                 }
             }
-            Event::Window(window::Event::RedrawRequested(now)) => {
+            Event::Window(window::Event::RedrawRequested(_now)) => {
                 let state = state::<Renderer>(tree);
 
-                if let Some(focus) = &mut state.is_focused {
-                    if focus.is_window_focused {
-                        focus.now = now;
-
-                        let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
-                            - (now - focus.updated_at).as_millis()
-                                % CURSOR_BLINK_INTERVAL_MILLIS;
-
-                        shell.request_redraw(window::RedrawRequest::At(
-                            now + Duration::from_millis(
-                                millis_until_redraw as u64,
-                            ),
-                        ));
-                    }
+                if state.is_focused {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
                 }
             }
             _ => {}
@@ -1177,31 +1189,72 @@ pub fn select_all<T>(id: Id) -> Task<T> {
 }
 
 /// The state of a [`TextInput`].
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct State<P: text::Paragraph> {
     value: paragraph::Plain<P>,
     placeholder: paragraph::Plain<P>,
     icon: paragraph::Plain<P>,
-    is_focused: Option<Focus>,
+    is_focused: bool,
     is_dragging: bool,
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
+    cursor_animation: Animated<AnimationTarget, Instant>,
     // TODO: Add stateful horizontal scrolling offset
+}
+
+impl<P: text::Paragraph> Default for State<P> {
+    fn default() -> Self {
+        Self {
+            cursor_animation: cursor_animation(CursorAnimationType::default()),
+            value: Plain::default(),
+            placeholder: Plain::default(),
+            icon: Plain::default(),
+            is_focused: false,
+            is_dragging: false,
+            is_pasting: None,
+            last_click: None,
+            cursor: Cursor::default(),
+            keyboard_modifiers: Modifiers::default(),
+        }
+    }
+}
+
+fn cursor_animation(
+    animation_type: CursorAnimationType,
+) -> Animated<AnimationTarget, Instant> {
+    Animated::new(AnimationTarget::Shown)
+        .duration(CURSOR_BLINK_INTERVAL_MILLIS)
+        .repeat_forever()
+        .auto_reverse()
+        .auto_start(AnimationTarget::Hidden, Instant::now())
+        .delay(CURSOR_BLINK_PAUSE_MILLIS)
+        .easing(cursor_blink_easing(animation_type))
+        .asymmetric_easing(cursor_blink_easing(animation_type))
+}
+
+fn cursor_blink_easing(animation_type: CursorAnimationType) -> lilt::Easing {
+    match animation_type {
+        CursorAnimationType::Fade => lilt::Easing::Custom(|x| {
+            if x < 0.3 {
+                0.0
+            } else if x > 0.9 {
+                1.0
+            } else {
+                (x - 0.3) / (0.9 - 0.3)
+            }
+        }),
+        CursorAnimationType::Blink => {
+            lilt::Easing::Custom(|x| if x < 0.5 { 0.0 } else { 1.0 })
+        }
+    }
 }
 
 fn state<Renderer: text::Renderer>(
     tree: &mut Tree,
 ) -> &mut State<Renderer::Paragraph> {
     tree.state.downcast_mut::<State<Renderer::Paragraph>>()
-}
-
-#[derive(Debug, Clone, Copy)]
-struct Focus {
-    updated_at: Instant,
-    now: Instant,
-    is_window_focused: bool,
 }
 
 impl<P: text::Paragraph> State<P> {
@@ -1211,23 +1264,24 @@ impl<P: text::Paragraph> State<P> {
     }
 
     /// Creates a new [`State`], representing a focused [`TextInput`].
-    pub fn focused() -> Self {
+    pub fn focused(cursor_animation_type: CursorAnimationType) -> Self {
         Self {
             value: paragraph::Plain::default(),
             placeholder: paragraph::Plain::default(),
             icon: paragraph::Plain::default(),
-            is_focused: None,
+            is_focused: false,
             is_dragging: false,
             is_pasting: None,
             last_click: None,
             cursor: Cursor::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
+            cursor_animation: cursor_animation(cursor_animation_type),
         }
     }
 
     /// Returns whether the [`TextInput`] is currently focused or not.
     pub fn is_focused(&self) -> bool {
-        self.is_focused.is_some()
+        self.is_focused
     }
 
     /// Returns the [`Cursor`] of the [`TextInput`].
@@ -1237,20 +1291,13 @@ impl<P: text::Paragraph> State<P> {
 
     /// Focuses the [`TextInput`].
     pub fn focus(&mut self) {
-        let now = Instant::now();
-
-        self.is_focused = Some(Focus {
-            updated_at: now,
-            now,
-            is_window_focused: true,
-        });
-
+        self.is_focused = true;
         self.move_cursor_to_end();
     }
 
     /// Unfocuses the [`TextInput`].
     pub fn unfocus(&mut self) {
-        self.is_focused = None;
+        self.is_focused = false;
     }
 
     /// Moves the [`Cursor`] of the [`TextInput`] to the front of the input text.
@@ -1311,7 +1358,7 @@ fn offset<P: text::Paragraph>(
     value: &Value,
     state: &State<P>,
 ) -> f32 {
-    if state.is_focused() {
+    if state.is_focused {
         let cursor = state.cursor();
 
         let focus_position = match cursor.state(value) {
@@ -1400,7 +1447,8 @@ fn replace_paragraph<Renderer>(
     });
 }
 
-const CURSOR_BLINK_INTERVAL_MILLIS: u128 = 500;
+const CURSOR_BLINK_INTERVAL_MILLIS: f32 = 600.0;
+const CURSOR_BLINK_PAUSE_MILLIS: f32 = 250.0;
 
 /// The possible status of a [`TextInput`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
