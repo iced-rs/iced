@@ -30,6 +30,10 @@ use std::rc::Rc;
 ///
 /// Additionally, a [`Component`] is capable of producing a `Message` to notify
 /// the parent application of any relevant interactions.
+///
+/// This trait is available when the `lazy` feature of this crate is enabled.
+/// This feature is *not* enabled by default, so you must enable it before using
+/// `Component`.
 pub trait Component<Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     /// The internal state of this [`Component`].
     type State: Default;
