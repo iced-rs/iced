@@ -650,7 +650,7 @@ async fn run_instance<P, C>(
     } = boot.try_recv().ok().flatten().expect("Receive boot");
 
     let mut window_manager = WindowManager::new();
-    let mut boot_window_closed = false;
+    let mut is_window_opening = !is_daemon;
 
     let mut events = Vec::new();
     let mut messages = Vec::new();
@@ -706,6 +706,7 @@ async fn run_instance<P, C>(
                 ));
 
                 let _ = on_open.send(id);
+                is_window_opening = false;
             }
             Event::EventLoopAwakened(event) => {
                 match event {
@@ -742,6 +743,7 @@ async fn run_instance<P, C>(
                             &mut user_interfaces,
                             &mut window_manager,
                             &mut ui_caches,
+                            &mut is_window_opening,
                         );
                         actions += 1;
                     }
@@ -926,16 +928,14 @@ async fn run_instance<P, C>(
                                 window_event,
                                 winit::event::WindowEvent::Destroyed
                             )
+                            && !is_window_opening
+                            && window_manager.is_empty()
                         {
-                            if boot_window_closed && window_manager.is_empty() {
-                                control_sender
-                                    .start_send(Control::Exit)
-                                    .expect("Send control action");
+                            control_sender
+                                .start_send(Control::Exit)
+                                .expect("Send control action");
 
-                                continue;
-                            }
-
-                            boot_window_closed = true;
+                            continue;
                         }
 
                         let Some((id, window)) =
@@ -1153,6 +1153,7 @@ fn run_action<P, C>(
     >,
     window_manager: &mut WindowManager<P, C>,
     ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
+    is_window_opening: &mut bool,
 ) where
     P: Program,
     C: Compositor<Renderer = P::Renderer> + 'static,
@@ -1187,6 +1188,8 @@ fn run_action<P, C>(
                         on_open: channel,
                     })
                     .expect("Send control action");
+
+                *is_window_opening = true;
             }
             window::Action::Close(id) => {
                 let _ = window_manager.remove(id);
