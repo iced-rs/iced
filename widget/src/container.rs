@@ -627,7 +627,12 @@ impl Catalog for Theme {
 
 impl Style {
     /// The standard [`Style`] of a [`Container`].
-    pub fn standard(_theme: &Theme) -> Self {
+    pub fn standard(theme: &Theme) -> Self {
+        Self::transparent(theme)
+    }
+
+    /// The transparent [`Style`] of a [`Container`].
+    pub fn transparent(_theme: &Theme) -> Self {
         Self::default()
     }
 
