@@ -50,11 +50,19 @@ where
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
+        Self::with_direction(content, Direction::default())
+    }
+
+    /// Creates a new vertical [`Scrollable`].
+    pub fn with_direction(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+        direction: impl Into<Direction>,
+    ) -> Self {
         Scrollable {
             id: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            direction: Direction::default(),
+            direction: direction.into(),
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
