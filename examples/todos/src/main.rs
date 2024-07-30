@@ -202,7 +202,8 @@ impl Todos {
                     .on_input(Message::InputChanged)
                     .on_submit(Message::CreateTask)
                     .padding(15)
-                    .size(30);
+                    .size(30)
+                    .align_x(Center);
 
                 let controls = view_controls(tasks, *filter);
                 let filtered_tasks =
