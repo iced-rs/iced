@@ -218,12 +218,15 @@ pub fn close_requests() -> Subscription<Id> {
 
 /// Opens a new window with the given [`Settings`]; producing the [`Id`]
 /// of the new window on completion.
-pub fn open(settings: Settings) -> Task<Id> {
+pub fn open(settings: Settings) -> (Id, Task<Id>) {
     let id = Id::unique();
 
-    task::oneshot(|channel| {
-        crate::Action::Window(Action::Open(id, settings, channel))
-    })
+    (
+        id,
+        task::oneshot(|channel| {
+            crate::Action::Window(Action::Open(id, settings, channel))
+        }),
+    )
 }
 
 /// Closes the window with `id`.

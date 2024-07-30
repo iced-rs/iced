@@ -207,8 +207,9 @@ where
     let task = if let Some(window_settings) = window_settings {
         let mut task = Some(task);
 
-        runtime::window::open(window_settings)
-            .then(move |_| task.take().unwrap_or(Task::none()))
+        let (_id, open) = runtime::window::open(window_settings);
+
+        open.then(move |_| task.take().unwrap_or(Task::none()))
     } else {
         task
     };
