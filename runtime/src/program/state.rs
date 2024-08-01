@@ -4,7 +4,7 @@ use crate::core::renderer;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::{Clipboard, Size};
 use crate::user_interface::{self, UserInterface};
-use crate::{Command, Debug, Program};
+use crate::{Debug, Program, Task};
 
 /// The execution state of a [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
@@ -84,7 +84,7 @@ where
     /// the widgets of the linked [`Program`] if necessary.
     ///
     /// Returns a list containing the instances of [`Event`] that were not
-    /// captured by any widget, and the [`Command`] obtained from [`Program`]
+    /// captured by any widget, and the [`Task`] obtained from [`Program`]
     /// after updating it, only if an update was necessary.
     pub fn update(
         &mut self,
@@ -95,7 +95,7 @@ where
         style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
         debug: &mut Debug,
-    ) -> (Vec<Event>, Option<Command<P::Message>>) {
+    ) -> (Vec<Event>, Option<Task<P::Message>>) {
         let mut user_interface = build_user_interface(
             &mut self.program,
             self.cache.take().unwrap(),
@@ -129,7 +129,7 @@ where
         messages.append(&mut self.queued_messages);
         debug.event_processing_finished();
 
-        let command = if messages.is_empty() {
+        let task = if messages.is_empty() {
             debug.draw_started();
             self.mouse_interaction =
                 user_interface.draw(renderer, theme, style, cursor);
@@ -143,16 +143,15 @@ where
             // for now :^)
             let temp_cache = user_interface.into_cache();
 
-            let commands =
-                Command::batch(messages.into_iter().map(|message| {
-                    debug.log_message(&message);
+            let tasks = Task::batch(messages.into_iter().map(|message| {
+                debug.log_message(&message);
 
-                    debug.update_started();
-                    let command = self.program.update(message);
-                    debug.update_finished();
+                debug.update_started();
+                let task = self.program.update(message);
+                debug.update_finished();
 
-                    command
-                }));
+                task
+            }));
 
             let mut user_interface = build_user_interface(
                 &mut self.program,
@@ -169,17 +168,17 @@ where
 
             self.cache = Some(user_interface.into_cache());
 
-            Some(commands)
+            Some(tasks)
         };
 
-        (uncaptured_events, command)
+        (uncaptured_events, task)
     }
 
     /// Applies [`Operation`]s to the [`State`]
     pub fn operate(
         &mut self,
         renderer: &mut P::Renderer,
-        operations: impl Iterator<Item = Box<dyn Operation<P::Message>>>,
+        operations: impl Iterator<Item = Box<dyn Operation<()>>>,
         bounds: Size,
         debug: &mut Debug,
     ) {
@@ -199,9 +198,7 @@ where
 
                 match operation.finish() {
                     operation::Outcome::None => {}
-                    operation::Outcome::Some(message) => {
-                        self.queued_messages.push(message);
-                    }
+                    operation::Outcome::Some(()) => {}
                     operation::Outcome::Chain(next) => {
                         current_operation = Some(next);
                     }

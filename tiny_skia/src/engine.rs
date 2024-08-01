@@ -439,9 +439,13 @@ impl Engine {
                 let transformation = transformation * *local_transformation;
                 let (width, height) = buffer.size();
 
-                let physical_bounds =
-                    Rectangle::new(raw.position, Size::new(width, height))
-                        * transformation;
+                let physical_bounds = Rectangle::new(
+                    raw.position,
+                    Size::new(
+                        width.unwrap_or(clip_bounds.width),
+                        height.unwrap_or(clip_bounds.height),
+                    ),
+                ) * transformation;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;

@@ -48,8 +48,8 @@ impl Cache {
 
             buffer.set_size(
                 font_system,
-                key.bounds.width,
-                key.bounds.height.max(key.line_height),
+                Some(key.bounds.width),
+                Some(key.bounds.height.max(key.line_height)),
             );
             buffer.set_text(
                 font_system,

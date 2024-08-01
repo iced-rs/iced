@@ -77,9 +77,14 @@ impl text::Paragraph for () {
 
     fn with_text(_text: Text<&str>) -> Self {}
 
+    fn with_spans<Link>(
+        _text: Text<&[text::Span<'_, Link, Self::Font>], Self::Font>,
+    ) -> Self {
+    }
+
     fn resize(&mut self, _new_bounds: Size) {}
 
-    fn compare(&self, _text: Text<&str>) -> text::Difference {
+    fn compare(&self, _text: Text<()>) -> text::Difference {
         text::Difference::None
     }
 
@@ -102,12 +107,24 @@ impl text::Paragraph for () {
     fn hit_test(&self, _point: Point) -> Option<text::Hit> {
         None
     }
+
+    fn hit_span(&self, _point: Point) -> Option<usize> {
+        None
+    }
+
+    fn span_bounds(&self, _index: usize) -> Vec<Rectangle> {
+        vec![]
+    }
 }
 
 impl text::Editor for () {
     type Font = Font;
 
     fn with_text(_text: &str) -> Self {}
+
+    fn is_empty(&self) -> bool {
+        true
+    }
 
     fn cursor(&self) -> text::editor::Cursor {
         text::editor::Cursor::Caret(Point::ORIGIN)

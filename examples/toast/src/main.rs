@@ -4,12 +4,12 @@ use iced::keyboard::key;
 use iced::widget::{
     self, button, center, column, pick_list, row, slider, text, text_input,
 };
-use iced::{Alignment, Command, Element, Length, Subscription};
+use iced::{Center, Element, Fill, Subscription, Task};
 
 use toast::{Status, Toast};
 
 pub fn main() -> iced::Result {
-    iced::program("Toast - Iced", App::update, App::view)
+    iced::application("Toast - Iced", App::update, App::view)
         .subscription(App::subscription)
         .run()
 }
@@ -49,7 +49,7 @@ impl App {
         event::listen().map(Message::Event)
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Add => {
                 if !self.editing.title.is_empty()
@@ -57,27 +57,27 @@ impl App {
                 {
                     self.toasts.push(std::mem::take(&mut self.editing));
                 }
-                Command::none()
+                Task::none()
             }
             Message::Close(index) => {
                 self.toasts.remove(index);
-                Command::none()
+                Task::none()
             }
             Message::Title(title) => {
                 self.editing.title = title;
-                Command::none()
+                Task::none()
             }
             Message::Body(body) => {
                 self.editing.body = body;
-                Command::none()
+                Task::none()
             }
             Message::Status(status) => {
                 self.editing.status = status;
-                Command::none()
+                Task::none()
             }
             Message::Timeout(timeout) => {
                 self.timeout_secs = timeout as u64;
-                Command::none()
+                Task::none()
             }
             Message::Event(Event::Keyboard(keyboard::Event::KeyPressed {
                 key: keyboard::Key::Named(key::Named::Tab),
@@ -88,7 +88,7 @@ impl App {
                 key: keyboard::Key::Named(key::Named::Tab),
                 ..
             })) => widget::focus_next(),
-            Message::Event(_) => Command::none(),
+            Message::Event(_) => Task::none(),
         }
     }
 
@@ -125,7 +125,7 @@ impl App {
                         Some(self.editing.status),
                         Message::Status
                     )
-                    .width(Length::Fill)
+                    .width(Fill)
                     .into()
                 ),
                 subtitle(
@@ -142,7 +142,7 @@ impl App {
                     .spacing(5)
                     .into()
                 ),
-                column![add_toast].align_items(Alignment::End)
+                column![add_toast].align_x(Center)
             ]
             .spacing(10)
             .max_width(200),
@@ -177,8 +177,8 @@ mod toast {
     };
     use iced::window;
     use iced::{
-        Alignment, Element, Length, Point, Rectangle, Renderer, Size, Theme,
-        Vector,
+        Alignment, Center, Element, Fill, Length, Point, Rectangle, Renderer,
+        Size, Theme, Vector,
     };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
@@ -245,9 +245,9 @@ mod toast {
                                     .on_press((on_close)(index))
                                     .padding(3),
                             ]
-                            .align_items(Alignment::Center)
+                            .align_y(Center)
                         )
-                        .width(Length::Fill)
+                        .width(Fill)
                         .padding(5)
                         .style(match toast.status {
                             Status::Primary => primary,
@@ -257,7 +257,7 @@ mod toast {
                         }),
                         horizontal_rule(1),
                         container(text(toast.body.as_str()))
-                            .width(Length::Fill)
+                            .width(Fill)
                             .padding(5)
                             .style(container::rounded_box),
                     ])
@@ -347,7 +347,7 @@ mod toast {
             state: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn Operation<Message>,
+            operation: &mut dyn Operation<()>,
         ) {
             operation.container(None, layout.bounds(), &mut |operation| {
                 self.content.as_widget().operate(
@@ -479,8 +479,8 @@ mod toast {
                 layout::flex::Axis::Vertical,
                 renderer,
                 &limits,
-                Length::Fill,
-                Length::Fill,
+                Fill,
+                Fill,
                 10.into(),
                 10.0,
                 Alignment::End,
@@ -499,9 +499,7 @@ mod toast {
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
-            if let Event::Window(_, window::Event::RedrawRequested(now)) =
-                &event
-            {
+            if let Event::Window(window::Event::RedrawRequested(now)) = &event {
                 let mut next_redraw: Option<window::RedrawRequest> = None;
 
                 self.instants.iter_mut().enumerate().for_each(
@@ -591,7 +589,7 @@ mod toast {
             &mut self,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn widget::Operation<Message>,
+            operation: &mut dyn widget::Operation<()>,
         ) {
             operation.container(None, layout.bounds(), &mut |operation| {
                 self.toasts

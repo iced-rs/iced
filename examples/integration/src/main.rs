@@ -9,7 +9,6 @@ use iced_wgpu::{wgpu, Engine, Renderer};
 use iced_winit::conversion;
 use iced_winit::core::mouse;
 use iced_winit::core::renderer;
-use iced_winit::core::window;
 use iced_winit::core::{Color, Font, Pixels, Size, Theme};
 use iced_winit::futures;
 use iced_winit::runtime::program;
@@ -317,7 +316,6 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
             // Map window event to iced event
             if let Some(event) = iced_winit::conversion::window_event(
-                window::Id::MAIN,
                 event,
                 window.scale_factor(),
                 *modifiers,

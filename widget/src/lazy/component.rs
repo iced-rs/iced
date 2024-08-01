@@ -59,7 +59,7 @@ pub trait Component<Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     fn operate(
         &self,
         _state: &mut Self::State,
-        _operation: &mut dyn widget::Operation<Message>,
+        _operation: &mut dyn widget::Operation<()>,
     ) {
     }
 
@@ -172,7 +172,7 @@ where
 
     fn rebuild_element_with_operation(
         &self,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation<()>,
     ) {
         let heads = self.state.borrow_mut().take().unwrap().into_heads();
 
@@ -358,62 +358,9 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation<()>,
     ) {
         self.rebuild_element_with_operation(operation);
-
-        struct MapOperation<'a, B> {
-            operation: &'a mut dyn widget::Operation<B>,
-        }
-
-        impl<'a, T, B> widget::Operation<T> for MapOperation<'a, B> {
-            fn container(
-                &mut self,
-                id: Option<&widget::Id>,
-                bounds: Rectangle,
-                operate_on_children: &mut dyn FnMut(
-                    &mut dyn widget::Operation<T>,
-                ),
-            ) {
-                self.operation.container(id, bounds, &mut |operation| {
-                    operate_on_children(&mut MapOperation { operation });
-                });
-            }
-
-            fn focusable(
-                &mut self,
-                state: &mut dyn widget::operation::Focusable,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.focusable(state, id);
-            }
-
-            fn text_input(
-                &mut self,
-                state: &mut dyn widget::operation::TextInput,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.text_input(state, id);
-            }
-
-            fn scrollable(
-                &mut self,
-                state: &mut dyn widget::operation::Scrollable,
-                id: Option<&widget::Id>,
-                bounds: Rectangle,
-                translation: Vector,
-            ) {
-                self.operation.scrollable(state, id, bounds, translation);
-            }
-
-            fn custom(
-                &mut self,
-                state: &mut dyn std::any::Any,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.custom(state, id);
-            }
-        }
 
         let tree = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
         self.with_element(|element| {
@@ -421,7 +368,7 @@ where
                 &mut tree.borrow_mut().as_mut().unwrap().children[0],
                 layout,
                 renderer,
-                &mut MapOperation { operation },
+                operation,
             );
         });
     }

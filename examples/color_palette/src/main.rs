@@ -1,17 +1,17 @@
-use iced::alignment::{self, Alignment};
+use iced::alignment;
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
 use iced::widget::{column, row, text, Slider};
 use iced::{
-    Color, Element, Font, Length, Pixels, Point, Rectangle, Renderer, Size,
-    Vector,
+    Center, Color, Element, Fill, Font, Pixels, Point, Rectangle, Renderer,
+    Size, Vector,
 };
 use palette::{convert::FromColor, rgb::Rgb, Darken, Hsl, Lighten, ShiftHue};
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "Color Palette - Iced",
         ColorPalette::update,
         ColorPalette::view,
@@ -150,10 +150,7 @@ impl Theme {
     }
 
     pub fn view(&self) -> Element<Message> {
-        Canvas::new(self)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        Canvas::new(self).width(Fill).height(Fill).into()
     }
 
     fn draw(&self, frame: &mut Frame, text_color: Color) {
@@ -320,7 +317,7 @@ impl<C: ColorSpace + Copy> ColorPicker<C> {
             text(color.to_string()).width(185).size(12),
         ]
         .spacing(10)
-        .align_items(Alignment::Center)
+        .align_y(Center)
         .into()
     }
 }

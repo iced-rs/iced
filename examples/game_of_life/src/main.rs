@@ -9,18 +9,22 @@ use iced::time;
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, slider, text,
 };
-use iced::{Alignment, Command, Element, Length, Subscription, Theme};
+use iced::{Center, Element, Fill, Subscription, Task, Theme};
 use std::time::Duration;
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("Game of Life - Iced", GameOfLife::update, GameOfLife::view)
-        .subscription(GameOfLife::subscription)
-        .theme(|_| Theme::Dark)
-        .antialiasing(true)
-        .centered()
-        .run()
+    iced::application(
+        "Game of Life - Iced",
+        GameOfLife::update,
+        GameOfLife::view,
+    )
+    .subscription(GameOfLife::subscription)
+    .theme(|_| Theme::Dark)
+    .antialiasing(true)
+    .centered()
+    .run()
 }
 
 struct GameOfLife {
@@ -56,7 +60,7 @@ impl GameOfLife {
         }
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Grid(message, version) => {
                 if version == self.version {
@@ -75,7 +79,7 @@ impl GameOfLife {
 
                     let version = self.version;
 
-                    return Command::perform(task, move |message| {
+                    return Task::perform(task, move |message| {
                         Message::Grid(message, version)
                     });
                 }
@@ -103,7 +107,7 @@ impl GameOfLife {
             }
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -131,12 +135,9 @@ impl GameOfLife {
                 .map(move |message| Message::Grid(message, version)),
             controls,
         ]
-        .height(Length::Fill);
+        .height(Fill);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        container(content).width(Fill).height(Fill).into()
     }
 }
 
@@ -165,7 +166,7 @@ fn view_controls<'a>(
         slider(1.0..=1000.0, speed as f32, Message::SpeedChanged),
         text!("x{speed}").size(16),
     ]
-    .align_items(Alignment::Center)
+    .align_y(Center)
     .spacing(10);
 
     row![
@@ -182,7 +183,7 @@ fn view_controls<'a>(
     ]
     .padding(10)
     .spacing(20)
-    .align_items(Alignment::Center)
+    .align_y(Center)
     .into()
 }
 
@@ -195,7 +196,7 @@ mod grid {
     use iced::widget::canvas::event::{self, Event};
     use iced::widget::canvas::{Cache, Canvas, Frame, Geometry, Path, Text};
     use iced::{
-        Color, Element, Length, Point, Rectangle, Renderer, Size, Theme, Vector,
+        Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
@@ -329,10 +330,7 @@ mod grid {
         }
 
         pub fn view(&self) -> Element<Message> {
-            Canvas::new(self)
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .into()
+            Canvas::new(self).width(Fill).height(Fill).into()
         }
 
         pub fn clear(&mut self) {

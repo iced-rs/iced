@@ -1,6 +1,6 @@
 //! Display a horizontal or vertical rule for dividing content.
 use crate::core;
-use crate::core::border::{self, Border};
+use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -132,7 +132,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border: Border::rounded(style.radius),
+                border: border::rounded(style.radius),
                 ..renderer::Quad::default()
             },
             style.color,

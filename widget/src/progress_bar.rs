@@ -1,11 +1,11 @@
 //! Provide progress feedback to your users.
+use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    self, Background, Border, Element, Layout, Length, Rectangle, Size, Theme,
-    Widget,
+    self, Background, Element, Layout, Length, Rectangle, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -151,7 +151,7 @@ where
                         width: active_progress_width,
                         ..bounds
                     },
-                    border: Border::rounded(style.border.radius),
+                    border: border::rounded(style.border.radius),
                     ..renderer::Quad::default()
                 },
                 style.bar,
@@ -255,6 +255,6 @@ fn styled(
     Style {
         background: background.into(),
         bar: bar.into(),
-        border: Border::rounded(2),
+        border: border::rounded(2),
     }
 }

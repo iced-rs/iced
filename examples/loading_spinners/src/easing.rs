@@ -119,10 +119,7 @@ impl Builder {
 
     fn point(p: impl Into<Point>) -> lyon_algorithms::geom::Point<f32> {
         let p: Point = p.into();
-        lyon_algorithms::geom::point(
-            p.x.min(1.0).max(0.0),
-            p.y.min(1.0).max(0.0),
-        )
+        lyon_algorithms::geom::point(p.x.clamp(0.0, 1.0), p.y.clamp(0.0, 1.0))
     }
 }
 

@@ -1,3 +1,4 @@
+use iced::border;
 use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
@@ -5,12 +6,12 @@ use iced::widget::{
     pick_list, row, scrollable, text,
 };
 use iced::{
-    color, Alignment, Element, Font, Length, Point, Rectangle, Renderer,
+    color, Center, Element, Fill, Font, Length, Point, Rectangle, Renderer,
     Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
-    iced::program(Layout::title, Layout::update, Layout::view)
+    iced::application(Layout::title, Layout::update, Layout::view)
         .subscription(Layout::subscription)
         .theme(Layout::theme)
         .run()
@@ -74,7 +75,7 @@ impl Layout {
             pick_list(Theme::ALL, Some(&self.theme), Message::ThemeSelected),
         ]
         .spacing(20)
-        .align_items(Alignment::Center);
+        .align_y(Center);
 
         let example = center(if self.explain {
             self.example.view().explain(color!(0x0000ff))
@@ -85,7 +86,7 @@ impl Layout {
             let palette = theme.extended_palette();
 
             container::Style::default()
-                .with_border(palette.background.strong.color, 4.0)
+                .border(border::color(palette.background.strong.color).width(4))
         })
         .padding(4);
 
@@ -234,13 +235,13 @@ fn application<'a>() -> Element<'a, Message> {
             square(40),
         ]
         .padding(10)
-        .align_items(Alignment::Center),
+        .align_y(Center),
     )
     .style(|theme| {
         let palette = theme.extended_palette();
 
         container::Style::default()
-            .with_border(palette.background.strong.color, 1)
+            .border(border::color(palette.background.strong.color).width(1))
     });
 
     let sidebar = container(
@@ -248,10 +249,10 @@ fn application<'a>() -> Element<'a, Message> {
             .spacing(40)
             .padding(10)
             .width(200)
-            .align_items(Alignment::Center),
+            .align_x(Center),
     )
     .style(container::rounded_box)
-    .center_y(Length::Fill);
+    .center_y(Fill);
 
     let content = container(
         scrollable(
@@ -263,10 +264,10 @@ fn application<'a>() -> Element<'a, Message> {
                 "The end"
             ]
             .spacing(40)
-            .align_items(Alignment::Center)
-            .width(Length::Fill),
+            .align_x(Center)
+            .width(Fill),
         )
-        .height(Length::Fill),
+        .height(Fill),
     )
     .padding(10);
 

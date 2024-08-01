@@ -12,8 +12,9 @@ mod circle {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
+    use iced::border;
     use iced::mouse;
-    use iced::{Border, Color, Element, Length, Rectangle, Size};
+    use iced::{Color, Element, Length, Rectangle, Size};
 
     pub struct Circle {
         radius: f32,
@@ -62,7 +63,7 @@ mod circle {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
-                    border: Border::rounded(self.radius),
+                    border: border::rounded(self.radius),
                     ..renderer::Quad::default()
                 },
                 Color::BLACK,
@@ -83,7 +84,7 @@ mod circle {
 
 use circle::circle;
 use iced::widget::{center, column, slider, text};
-use iced::{Alignment, Element};
+use iced::{Center, Element};
 
 pub fn main() -> iced::Result {
     iced::run("Custom Widget - Iced", Example::update, Example::view)
@@ -120,7 +121,7 @@ impl Example {
         .padding(20)
         .spacing(20)
         .max_width(500)
-        .align_items(Alignment::Center);
+        .align_x(Center);
 
         center(content).into()
     }

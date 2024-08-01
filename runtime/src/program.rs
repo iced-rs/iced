@@ -1,5 +1,5 @@
 //! Build interactive programs using The Elm Architecture.
-use crate::Command;
+use crate::Task;
 
 use iced_core::text;
 use iced_core::Element;
@@ -25,9 +25,9 @@ pub trait Program: Sized {
     /// produced by either user interactions or commands, will be handled by
     /// this method.
     ///
-    /// Any [`Command`] returned will be executed immediately in the
+    /// Any [`Task`] returned will be executed immediately in the
     /// background by shells.
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
+    fn update(&mut self, message: Self::Message) -> Task<Self::Message>;
 
     /// Returns the widgets to display in the [`Program`].
     ///

@@ -1,13 +1,13 @@
 //! Zoom and pan on an image.
 use crate::core::event::{self, Event};
-use crate::core::image;
+use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Pixels, Point, Radians, Rectangle,
-    Shell, Size, Vector, Widget,
+    Clipboard, ContentFit, Element, Layout, Length, Pixels, Point, Radians,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -20,27 +20,35 @@ pub struct Viewer<Handle> {
     max_scale: f32,
     scale_step: f32,
     handle: Handle,
-    filter_method: image::FilterMethod,
+    filter_method: FilterMethod,
+    content_fit: ContentFit,
 }
 
 impl<Handle> Viewer<Handle> {
     /// Creates a new [`Viewer`] with the given [`State`].
-    pub fn new(handle: Handle) -> Self {
+    pub fn new<T: Into<Handle>>(handle: T) -> Self {
         Viewer {
-            handle,
+            handle: handle.into(),
             padding: 0.0,
             width: Length::Shrink,
             height: Length::Shrink,
             min_scale: 0.25,
             max_scale: 10.0,
             scale_step: 0.10,
-            filter_method: image::FilterMethod::default(),
+            filter_method: FilterMethod::default(),
+            content_fit: ContentFit::default(),
         }
     }
 
-    /// Sets the [`image::FilterMethod`] of the [`Viewer`].
+    /// Sets the [`FilterMethod`] of the [`Viewer`].
     pub fn filter_method(mut self, filter_method: image::FilterMethod) -> Self {
         self.filter_method = filter_method;
+        self
+    }
+
+    /// Sets the [`ContentFit`] of the [`Viewer`].
+    pub fn content_fit(mut self, content_fit: ContentFit) -> Self {
+        self.content_fit = content_fit;
         self
     }
 
@@ -115,36 +123,30 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let Size { width, height } = renderer.measure_image(&self.handle);
+        // The raw w/h of the underlying image
+        let image_size = renderer.measure_image(&self.handle);
+        let image_size =
+            Size::new(image_size.width as f32, image_size.height as f32);
 
-        let mut size = limits.resolve(
-            self.width,
-            self.height,
-            Size::new(width as f32, height as f32),
-        );
+        // The size to be available to the widget prior to `Shrink`ing
+        let raw_size = limits.resolve(self.width, self.height, image_size);
 
-        let expansion_size = if height > width {
-            self.width
-        } else {
-            self.height
+        // The uncropped size of the image when fit to the bounds above
+        let full_size = self.content_fit.fit(image_size, raw_size);
+
+        // Shrink the widget to fit the resized image, if requested
+        let final_size = Size {
+            width: match self.width {
+                Length::Shrink => f32::min(raw_size.width, full_size.width),
+                _ => raw_size.width,
+            },
+            height: match self.height {
+                Length::Shrink => f32::min(raw_size.height, full_size.height),
+                _ => raw_size.height,
+            },
         };
 
-        // Only calculate viewport sizes if the images are constrained to a limited space.
-        // If they are Fill|Portion let them expand within their allotted space.
-        match expansion_size {
-            Length::Shrink | Length::Fixed(_) => {
-                let aspect_ratio = width as f32 / height as f32;
-                let viewport_aspect_ratio = size.width / size.height;
-                if viewport_aspect_ratio > aspect_ratio {
-                    size.width = width as f32 * size.height / height as f32;
-                } else {
-                    size.height = height as f32 * size.width / width as f32;
-                }
-            }
-            Length::Fill | Length::FillPortion(_) => {}
-        }
-
-        layout::Node::new(size)
+        layout::Node::new(final_size)
     }
 
     fn on_event(
@@ -182,11 +184,12 @@ where
                             })
                             .clamp(self.min_scale, self.max_scale);
 
-                            let image_size = image_size(
+                            let scaled_size = scaled_image_size(
                                 renderer,
                                 &self.handle,
                                 state,
                                 bounds.size(),
+                                self.content_fit,
                             );
 
                             let factor = state.scale / previous_scale - 1.0;
@@ -198,12 +201,12 @@ where
                                 + state.current_offset * factor;
 
                             state.current_offset = Vector::new(
-                                if image_size.width > bounds.width {
+                                if scaled_size.width > bounds.width {
                                     state.current_offset.x + adjustment.x
                                 } else {
                                     0.0
                                 },
-                                if image_size.height > bounds.height {
+                                if scaled_size.height > bounds.height {
                                     state.current_offset.y + adjustment.y
                                 } else {
                                     0.0
@@ -242,32 +245,32 @@ where
                 let state = tree.state.downcast_mut::<State>();
 
                 if let Some(origin) = state.cursor_grabbed_at {
-                    let image_size = image_size(
+                    let scaled_size = scaled_image_size(
                         renderer,
                         &self.handle,
                         state,
                         bounds.size(),
+                        self.content_fit,
                     );
-
-                    let hidden_width = (image_size.width - bounds.width / 2.0)
+                    let hidden_width = (scaled_size.width - bounds.width / 2.0)
                         .max(0.0)
                         .round();
 
-                    let hidden_height = (image_size.height
+                    let hidden_height = (scaled_size.height
                         - bounds.height / 2.0)
                         .max(0.0)
                         .round();
 
                     let delta = position - origin;
 
-                    let x = if bounds.width < image_size.width {
+                    let x = if bounds.width < scaled_size.width {
                         (state.starting_offset.x - delta.x)
                             .clamp(-hidden_width, hidden_width)
                     } else {
                         0.0
                     };
 
-                    let y = if bounds.height < image_size.height {
+                    let y = if bounds.height < scaled_size.height {
                         (state.starting_offset.y - delta.y)
                             .clamp(-hidden_height, hidden_height)
                     } else {
@@ -319,33 +322,43 @@ where
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
 
-        let image_size =
-            image_size(renderer, &self.handle, state, bounds.size());
+        let final_size = scaled_image_size(
+            renderer,
+            &self.handle,
+            state,
+            bounds.size(),
+            self.content_fit,
+        );
 
         let translation = {
-            let image_top_left = Vector::new(
-                bounds.width / 2.0 - image_size.width / 2.0,
-                bounds.height / 2.0 - image_size.height / 2.0,
-            );
+            let diff_w = bounds.width - final_size.width;
+            let diff_h = bounds.height - final_size.height;
 
-            image_top_left - state.offset(bounds, image_size)
+            let image_top_left = match self.content_fit {
+                ContentFit::None => {
+                    Vector::new(diff_w.max(0.0) / 2.0, diff_h.max(0.0) / 2.0)
+                }
+                _ => Vector::new(diff_w / 2.0, diff_h / 2.0),
+            };
+
+            image_top_left - state.offset(bounds, final_size)
         };
 
-        renderer.with_layer(bounds, |renderer| {
+        let drawing_bounds = Rectangle::new(bounds.position(), final_size);
+
+        let render = |renderer: &mut Renderer| {
             renderer.with_translation(translation, |renderer| {
                 renderer.draw_image(
                     self.handle.clone(),
                     self.filter_method,
-                    Rectangle {
-                        x: bounds.x,
-                        y: bounds.y,
-                        ..Rectangle::with_size(image_size)
-                    },
+                    drawing_bounds,
                     Radians(0.0),
                     1.0,
                 );
             });
-        });
+        };
+
+        renderer.with_layer(bounds, render);
     }
 }
 
@@ -411,32 +424,23 @@ where
 /// Returns the bounds of the underlying image, given the bounds of
 /// the [`Viewer`]. Scaling will be applied and original aspect ratio
 /// will be respected.
-pub fn image_size<Renderer>(
+pub fn scaled_image_size<Renderer>(
     renderer: &Renderer,
     handle: &<Renderer as image::Renderer>::Handle,
     state: &State,
     bounds: Size,
+    content_fit: ContentFit,
 ) -> Size
 where
     Renderer: image::Renderer,
 {
     let Size { width, height } = renderer.measure_image(handle);
+    let image_size = Size::new(width as f32, height as f32);
 
-    let (width, height) = {
-        let dimensions = (width as f32, height as f32);
+    let adjusted_fit = content_fit.fit(image_size, bounds);
 
-        let width_ratio = bounds.width / dimensions.0;
-        let height_ratio = bounds.height / dimensions.1;
-
-        let ratio = width_ratio.min(height_ratio);
-        let scale = state.scale;
-
-        if ratio < 1.0 {
-            (dimensions.0 * ratio * scale, dimensions.1 * ratio * scale)
-        } else {
-            (dimensions.0 * scale, dimensions.1 * scale)
-        }
-    };
-
-    Size::new(width, height)
+    Size::new(
+        adjusted_fit.width * state.scale,
+        adjusted_fit.height * state.scale,
+    )
 }

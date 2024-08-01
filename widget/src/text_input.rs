@@ -19,7 +19,8 @@ use crate::core::keyboard::key;
 use crate::core::layout;
 use crate::core::mouse::{self, click};
 use crate::core::renderer;
-use crate::core::text::{self, Paragraph as _, Text};
+use crate::core::text::paragraph;
+use crate::core::text::{self, Text};
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
@@ -30,7 +31,8 @@ use crate::core::{
     Background, Border, Color, Element, Layout, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, Theme, Vector, Widget,
 };
-use crate::runtime::Command;
+use crate::runtime::task::{self, Task};
+use crate::runtime::Action;
 
 /// A field that can be filled with text.
 ///
@@ -359,7 +361,7 @@ where
             let icon_layout = children_layout.next().unwrap();
 
             renderer.fill_paragraph(
-                &state.icon,
+                state.icon.raw(),
                 icon_layout.bounds().center(),
                 style.icon,
                 *viewport,
@@ -377,7 +379,7 @@ where
                 cursor::State::Index(position) => {
                     let (text_value_width, offset) =
                         measure_cursor_and_scroll_offset(
-                            &state.value,
+                            state.value.raw(),
                             text_bounds,
                             position,
                         );
@@ -414,14 +416,14 @@ where
 
                     let (left_position, left_offset) =
                         measure_cursor_and_scroll_offset(
-                            &state.value,
+                            state.value.raw(),
                             text_bounds,
                             left,
                         );
 
                     let (right_position, right_offset) =
                         measure_cursor_and_scroll_offset(
-                            &state.value,
+                            state.value.raw(),
                             text_bounds,
                             right,
                         );
@@ -468,9 +470,9 @@ where
 
             renderer.fill_paragraph(
                 if text.is_empty() {
-                    &state.placeholder
+                    state.placeholder.raw()
                 } else {
-                    &state.value
+                    state.value.raw()
                 },
                 Point::new(text_bounds.x, text_bounds.center_y())
                     - Vector::new(offset, 0.0),
@@ -540,7 +542,7 @@ where
         tree: &mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<()>,
     ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
@@ -826,7 +828,7 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::Backspace) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
+                            if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
                                 if self.is_secure {
@@ -850,7 +852,7 @@ where
                             update_cache(state, &self.value);
                         }
                         keyboard::Key::Named(key::Named::Delete) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
+                            if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
                                 if self.is_secure {
@@ -876,44 +878,6 @@ where
 
                             update_cache(state, &self.value);
                         }
-                        keyboard::Key::Named(key::Named::ArrowLeft) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
-                                && !self.is_secure
-                            {
-                                if modifiers.shift() {
-                                    state
-                                        .cursor
-                                        .select_left_by_words(&self.value);
-                                } else {
-                                    state
-                                        .cursor
-                                        .move_left_by_words(&self.value);
-                                }
-                            } else if modifiers.shift() {
-                                state.cursor.select_left(&self.value);
-                            } else {
-                                state.cursor.move_left(&self.value);
-                            }
-                        }
-                        keyboard::Key::Named(key::Named::ArrowRight) => {
-                            if platform::is_jump_modifier_pressed(modifiers)
-                                && !self.is_secure
-                            {
-                                if modifiers.shift() {
-                                    state
-                                        .cursor
-                                        .select_right_by_words(&self.value);
-                                } else {
-                                    state
-                                        .cursor
-                                        .move_right_by_words(&self.value);
-                                }
-                            } else if modifiers.shift() {
-                                state.cursor.select_right(&self.value);
-                            } else {
-                                state.cursor.move_right(&self.value);
-                            }
-                        }
                         keyboard::Key::Named(key::Named::Home) => {
                             if modifiers.shift() {
                                 state.cursor.select_range(
@@ -932,6 +896,64 @@ where
                                 );
                             } else {
                                 state.cursor.move_to(self.value.len());
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowLeft)
+                            if modifiers.macos_command() =>
+                        {
+                            if modifiers.shift() {
+                                state.cursor.select_range(
+                                    state.cursor.start(&self.value),
+                                    0,
+                                );
+                            } else {
+                                state.cursor.move_to(0);
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowRight)
+                            if modifiers.macos_command() =>
+                        {
+                            if modifiers.shift() {
+                                state.cursor.select_range(
+                                    state.cursor.start(&self.value),
+                                    self.value.len(),
+                                );
+                            } else {
+                                state.cursor.move_to(self.value.len());
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowLeft) => {
+                            if modifiers.jump() && !self.is_secure {
+                                if modifiers.shift() {
+                                    state
+                                        .cursor
+                                        .select_left_by_words(&self.value);
+                                } else {
+                                    state
+                                        .cursor
+                                        .move_left_by_words(&self.value);
+                                }
+                            } else if modifiers.shift() {
+                                state.cursor.select_left(&self.value);
+                            } else {
+                                state.cursor.move_left(&self.value);
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::ArrowRight) => {
+                            if modifiers.jump() && !self.is_secure {
+                                if modifiers.shift() {
+                                    state
+                                        .cursor
+                                        .select_right_by_words(&self.value);
+                                } else {
+                                    state
+                                        .cursor
+                                        .move_right_by_words(&self.value);
+                                }
+                            } else if modifiers.shift() {
+                                state.cursor.select_right(&self.value);
+                            } else {
+                                state.cursor.move_right(&self.value);
                             }
                         }
                         keyboard::Key::Named(key::Named::Escape) => {
@@ -983,14 +1005,14 @@ where
 
                 state.keyboard_modifiers = modifiers;
             }
-            Event::Window(_, window::Event::Unfocused) => {
+            Event::Window(window::Event::Unfocused) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
                     focus.is_window_focused = false;
                 }
             }
-            Event::Window(_, window::Event::Focused) => {
+            Event::Window(window::Event::Focused) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
@@ -1000,7 +1022,7 @@ where
                     shell.request_redraw(window::RedrawRequest::NextFrame);
                 }
             }
-            Event::Window(_, window::Event::RedrawRequested(now)) => {
+            Event::Window(window::Event::RedrawRequested(now)) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
@@ -1120,43 +1142,46 @@ impl From<Id> for widget::Id {
     }
 }
 
-/// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
-pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::focusable::focus(id.0))
+/// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
+pub fn focus<T>(id: Id) -> Task<T> {
+    task::effect(Action::widget(operation::focusable::focus(id.0)))
 }
 
-/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// end.
-pub fn move_cursor_to_end<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to_end(id.0))
+pub fn move_cursor_to_end<T>(id: Id) -> Task<T> {
+    task::effect(Action::widget(operation::text_input::move_cursor_to_end(
+        id.0,
+    )))
 }
 
-/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// front.
-pub fn move_cursor_to_front<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to_front(id.0))
+pub fn move_cursor_to_front<T>(id: Id) -> Task<T> {
+    task::effect(Action::widget(operation::text_input::move_cursor_to_front(
+        id.0,
+    )))
 }
 
-/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// provided position.
-pub fn move_cursor_to<Message: 'static>(
-    id: Id,
-    position: usize,
-) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to(id.0, position))
+pub fn move_cursor_to<T>(id: Id, position: usize) -> Task<T> {
+    task::effect(Action::widget(operation::text_input::move_cursor_to(
+        id.0, position,
+    )))
 }
 
-/// Produces a [`Command`] that selects all the content of the [`TextInput`] with the given [`Id`].
-pub fn select_all<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::select_all(id.0))
+/// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`Id`].
+pub fn select_all<T>(id: Id) -> Task<T> {
+    task::effect(Action::widget(operation::text_input::select_all(id.0)))
 }
 
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
 pub struct State<P: text::Paragraph> {
-    value: P,
-    placeholder: P,
-    icon: P,
+    value: paragraph::Plain<P>,
+    placeholder: paragraph::Plain<P>,
+    icon: paragraph::Plain<P>,
     is_focused: Option<Focus>,
     is_dragging: bool,
     is_pasting: Option<Value>,
@@ -1183,21 +1208,6 @@ impl<P: text::Paragraph> State<P> {
     /// Creates a new [`State`], representing an unfocused [`TextInput`].
     pub fn new() -> Self {
         Self::default()
-    }
-
-    /// Creates a new [`State`], representing a focused [`TextInput`].
-    pub fn focused() -> Self {
-        Self {
-            value: P::default(),
-            placeholder: P::default(),
-            icon: P::default(),
-            is_focused: None,
-            is_dragging: false,
-            is_pasting: None,
-            last_click: None,
-            cursor: Cursor::default(),
-            keyboard_modifiers: keyboard::Modifiers::default(),
-        }
     }
 
     /// Returns whether the [`TextInput`] is currently focused or not.
@@ -1281,18 +1291,6 @@ impl<P: text::Paragraph> operation::TextInput for State<P> {
     }
 }
 
-mod platform {
-    use crate::core::keyboard;
-
-    pub fn is_jump_modifier_pressed(modifiers: keyboard::Modifiers) -> bool {
-        if cfg!(target_os = "macos") {
-            modifiers.alt()
-        } else {
-            modifiers.control()
-        }
-    }
-}
-
 fn offset<P: text::Paragraph>(
     text_bounds: Rectangle,
     value: &Value,
@@ -1307,7 +1305,7 @@ fn offset<P: text::Paragraph>(
         };
 
         let (_, offset) = measure_cursor_and_scroll_offset(
-            &state.value,
+            state.value.raw(),
             text_bounds,
             focus_position,
         );
@@ -1345,6 +1343,7 @@ fn find_cursor_position<P: text::Paragraph>(
 
     let char_offset = state
         .value
+        .raw()
         .hit_test(Point::new(x + offset, text_bounds.height / 2.0))
         .map(text::Hit::cursor)?;
 
@@ -1374,7 +1373,7 @@ fn replace_paragraph<Renderer>(
     let mut children_layout = layout.children();
     let text_bounds = children_layout.next().unwrap().bounds();
 
-    state.value = Renderer::Paragraph::with_text(Text {
+    state.value = paragraph::Plain::new(Text {
         font,
         line_height,
         content: &value.to_string(),

@@ -2,28 +2,28 @@ use crate::core::mouse;
 use crate::core::window::Id;
 use crate::core::{Point, Size};
 use crate::graphics::Compositor;
-use crate::multi_window::{Application, DefaultStyle, State};
+use crate::program::{DefaultStyle, Program, State};
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use winit::monitor::MonitorHandle;
 
 #[allow(missing_debug_implementations)]
-pub struct WindowManager<A, C>
+pub struct WindowManager<P, C>
 where
-    A: Application,
-    C: Compositor<Renderer = A::Renderer>,
-    A::Theme: DefaultStyle,
+    P: Program,
+    C: Compositor<Renderer = P::Renderer>,
+    P::Theme: DefaultStyle,
 {
     aliases: BTreeMap<winit::window::WindowId, Id>,
-    entries: BTreeMap<Id, Window<A, C>>,
+    entries: BTreeMap<Id, Window<P, C>>,
 }
 
-impl<A, C> WindowManager<A, C>
+impl<P, C> WindowManager<P, C>
 where
-    A: Application,
-    C: Compositor<Renderer = A::Renderer>,
-    A::Theme: DefaultStyle,
+    P: Program,
+    C: Compositor<Renderer = P::Renderer>,
+    P::Theme: DefaultStyle,
 {
     pub fn new() -> Self {
         Self {
@@ -36,10 +36,10 @@ where
         &mut self,
         id: Id,
         window: Arc<winit::window::Window>,
-        application: &A,
+        application: &P,
         compositor: &mut C,
         exit_on_close_request: bool,
-    ) -> &mut Window<A, C> {
+    ) -> &mut Window<P, C> {
         let state = State::new(application, id, &window);
         let viewport_version = state.viewport_version();
         let physical_size = state.physical_size();
@@ -76,18 +76,18 @@ where
 
     pub fn iter_mut(
         &mut self,
-    ) -> impl Iterator<Item = (Id, &mut Window<A, C>)> {
+    ) -> impl Iterator<Item = (Id, &mut Window<P, C>)> {
         self.entries.iter_mut().map(|(k, v)| (*k, v))
     }
 
-    pub fn get_mut(&mut self, id: Id) -> Option<&mut Window<A, C>> {
+    pub fn get_mut(&mut self, id: Id) -> Option<&mut Window<P, C>> {
         self.entries.get_mut(&id)
     }
 
     pub fn get_mut_alias(
         &mut self,
         id: winit::window::WindowId,
-    ) -> Option<(Id, &mut Window<A, C>)> {
+    ) -> Option<(Id, &mut Window<P, C>)> {
         let id = self.aliases.get(&id).copied()?;
 
         Some((id, self.get_mut(id)?))
@@ -97,7 +97,7 @@ where
         self.entries.values().last()?.raw.current_monitor()
     }
 
-    pub fn remove(&mut self, id: Id) -> Option<Window<A, C>> {
+    pub fn remove(&mut self, id: Id) -> Option<Window<P, C>> {
         let window = self.entries.remove(&id)?;
         let _ = self.aliases.remove(&window.raw.id());
 
@@ -105,11 +105,11 @@ where
     }
 }
 
-impl<A, C> Default for WindowManager<A, C>
+impl<P, C> Default for WindowManager<P, C>
 where
-    A: Application,
-    C: Compositor<Renderer = A::Renderer>,
-    A::Theme: DefaultStyle,
+    P: Program,
+    C: Compositor<Renderer = P::Renderer>,
+    P::Theme: DefaultStyle,
 {
     fn default() -> Self {
         Self::new()
@@ -117,26 +117,26 @@ where
 }
 
 #[allow(missing_debug_implementations)]
-pub struct Window<A, C>
+pub struct Window<P, C>
 where
-    A: Application,
-    C: Compositor<Renderer = A::Renderer>,
-    A::Theme: DefaultStyle,
+    P: Program,
+    C: Compositor<Renderer = P::Renderer>,
+    P::Theme: DefaultStyle,
 {
     pub raw: Arc<winit::window::Window>,
-    pub state: State<A>,
+    pub state: State<P>,
     pub viewport_version: u64,
     pub exit_on_close_request: bool,
     pub mouse_interaction: mouse::Interaction,
     pub surface: C::Surface,
-    pub renderer: A::Renderer,
+    pub renderer: P::Renderer,
 }
 
-impl<A, C> Window<A, C>
+impl<P, C> Window<P, C>
 where
-    A: Application,
-    C: Compositor<Renderer = A::Renderer>,
-    A::Theme: DefaultStyle,
+    P: Program,
+    C: Compositor<Renderer = P::Renderer>,
+    P::Theme: DefaultStyle,
 {
     pub fn position(&self) -> Option<Point> {
         self.raw

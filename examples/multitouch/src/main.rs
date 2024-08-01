@@ -6,14 +6,14 @@ use iced::touch;
 use iced::widget::canvas::event;
 use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{self, Canvas, Geometry};
-use iced::{Color, Element, Length, Point, Rectangle, Renderer, Theme};
+use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Theme};
 
 use std::collections::HashMap;
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("Multitouch - Iced", Multitouch::update, Multitouch::view)
+    iced::application("Multitouch - Iced", Multitouch::update, Multitouch::view)
         .antialiasing(true)
         .centered()
         .run()
@@ -46,10 +46,7 @@ impl Multitouch {
     }
 
     fn view(&self) -> Element<Message> {
-        Canvas::new(self)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        Canvas::new(self).width(Fill).height(Fill).into()
     }
 }
 

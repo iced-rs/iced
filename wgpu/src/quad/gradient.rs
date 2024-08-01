@@ -188,9 +188,6 @@ impl Pipeline {
         layer: &'a Layer,
         range: Range<usize>,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = tracing::info_span!("Wgpu::Quad::Gradient", "DRAW").entered();
-
         #[cfg(not(target_arch = "wasm32"))]
         {
             render_pass.set_pipeline(&self.pipeline);

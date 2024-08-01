@@ -10,7 +10,6 @@ use crate::{
     Widget,
 };
 
-use std::any::Any;
 use std::borrow::Borrow;
 
 /// A generic [`Widget`].
@@ -305,63 +304,9 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<B>,
+        operation: &mut dyn widget::Operation<()>,
     ) {
-        struct MapOperation<'a, B> {
-            operation: &'a mut dyn widget::Operation<B>,
-        }
-
-        impl<'a, T, B> widget::Operation<T> for MapOperation<'a, B> {
-            fn container(
-                &mut self,
-                id: Option<&widget::Id>,
-                bounds: Rectangle,
-                operate_on_children: &mut dyn FnMut(
-                    &mut dyn widget::Operation<T>,
-                ),
-            ) {
-                self.operation.container(id, bounds, &mut |operation| {
-                    operate_on_children(&mut MapOperation { operation });
-                });
-            }
-
-            fn focusable(
-                &mut self,
-                state: &mut dyn widget::operation::Focusable,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.focusable(state, id);
-            }
-
-            fn scrollable(
-                &mut self,
-                state: &mut dyn widget::operation::Scrollable,
-                id: Option<&widget::Id>,
-                bounds: Rectangle,
-                translation: Vector,
-            ) {
-                self.operation.scrollable(state, id, bounds, translation);
-            }
-
-            fn text_input(
-                &mut self,
-                state: &mut dyn widget::operation::TextInput,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.text_input(state, id);
-            }
-
-            fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
-                self.operation.custom(state, id);
-            }
-        }
-
-        self.widget.operate(
-            tree,
-            layout,
-            renderer,
-            &mut MapOperation { operation },
-        );
+        self.widget.operate(tree, layout, renderer, operation);
     }
 
     fn on_event(
@@ -495,7 +440,7 @@ where
         state: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation<()>,
     ) {
         self.element
             .widget

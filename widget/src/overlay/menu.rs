@@ -1,5 +1,6 @@
 //! Build and show dropdown menus.
 use crate::core::alignment;
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -9,8 +10,8 @@ use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
-    Background, Border, Clipboard, Color, Length, Padding, Pixels, Point,
-    Rectangle, Size, Theme, Vector,
+    Background, Clipboard, Color, Length, Padding, Pixels, Point, Rectangle,
+    Size, Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -200,21 +201,18 @@ where
             class,
         } = menu;
 
-        let list = Scrollable::with_direction(
-            List {
-                options,
-                hovered_option,
-                on_selected,
-                on_option_hovered,
-                font,
-                text_size,
-                text_line_height,
-                text_shaping,
-                padding,
-                class,
-            },
-            scrollable::Direction::default(),
-        );
+        let list = Scrollable::new(List {
+            options,
+            hovered_option,
+            on_selected,
+            on_option_hovered,
+            font,
+            text_size,
+            text_line_height,
+            text_shaping,
+            padding,
+            class,
+        });
 
         state.tree.diff(&list as &dyn Widget<_, _, _>);
 
@@ -517,7 +515,7 @@ where
                             width: bounds.width - style.border.width * 2.0,
                             ..bounds
                         },
-                        border: Border::rounded(style.border.radius),
+                        border: border::rounded(style.border.radius),
                         ..renderer::Quad::default()
                     },
                     style.selected_background,

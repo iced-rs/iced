@@ -1,8 +1,7 @@
 use iced_wgpu::Renderer;
 use iced_widget::{column, container, row, slider, text, text_input};
-use iced_winit::core::alignment;
-use iced_winit::core::{Color, Element, Length, Theme};
-use iced_winit::runtime::{Command, Program};
+use iced_winit::core::{Color, Element, Length::*, Theme};
+use iced_winit::runtime::{Program, Task};
 
 pub struct Controls {
     background_color: Color,
@@ -33,7 +32,7 @@ impl Program for Controls {
     type Message = Message;
     type Renderer = Renderer;
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::BackgroundColorChanged(color) => {
                 self.background_color = color;
@@ -43,7 +42,7 @@ impl Program for Controls {
             }
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<Message, Theme, Renderer> {
@@ -86,8 +85,7 @@ impl Program for Controls {
             .spacing(10),
         )
         .padding(10)
-        .height(Length::Fill)
-        .align_y(alignment::Vertical::Bottom)
+        .align_bottom(Fill)
         .into()
     }
 }

@@ -6,7 +6,8 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::text::{self, Paragraph as _, Text};
+use crate::core::text::paragraph;
+use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
@@ -161,6 +162,19 @@ where
         self
     }
 
+    /// Sets the style of the [`Menu`].
+    #[must_use]
+    pub fn menu_style(
+        mut self,
+        style: impl Fn(&Theme) -> menu::Style + 'a,
+    ) -> Self
+    where
+        <Theme as menu::Catalog>::Class<'a>: From<menu::StyleFn<'a, Theme>>,
+    {
+        self.menu_class = (Box::new(style) as menu::StyleFn<'a, Theme>).into();
+        self
+    }
+
     /// Sets the style class of the [`PickList`].
     #[cfg(feature = "advanced")]
     #[must_use]
@@ -169,6 +183,17 @@ where
         class: impl Into<<Theme as Catalog>::Class<'a>>,
     ) -> Self {
         self.class = class.into();
+        self
+    }
+
+    /// Sets the style class of the [`Menu`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn menu_class(
+        mut self,
+        class: impl Into<<Theme as menu::Catalog>::Class<'a>>,
+    ) -> Self {
+        self.menu_class = class.into();
         self
     }
 }
@@ -598,8 +623,8 @@ struct State<P: text::Paragraph> {
     keyboard_modifiers: keyboard::Modifiers,
     is_open: bool,
     hovered_option: Option<usize>,
-    options: Vec<P>,
-    placeholder: P,
+    options: Vec<paragraph::Plain<P>>,
+    placeholder: paragraph::Plain<P>,
 }
 
 impl<P: text::Paragraph> State<P> {
@@ -611,7 +636,7 @@ impl<P: text::Paragraph> State<P> {
             is_open: bool::default(),
             hovered_option: Option::default(),
             options: Vec::new(),
-            placeholder: P::default(),
+            placeholder: paragraph::Plain::default(),
         }
     }
 }

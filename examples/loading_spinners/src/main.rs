@@ -1,5 +1,5 @@
 use iced::widget::{center, column, row, slider, text};
-use iced::Element;
+use iced::{Center, Element};
 
 use std::time::Duration;
 
@@ -11,7 +11,7 @@ use circular::Circular;
 use linear::Linear;
 
 pub fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "Loading Spinners - Iced",
         LoadingSpinners::update,
         LoadingSpinners::view,
@@ -67,7 +67,7 @@ impl LoadingSpinners {
                         Duration::from_secs_f32(self.cycle_duration)
                     )
                 ]
-                .align_items(iced::Alignment::Center)
+                .align_y(Center)
                 .spacing(20.0),
             )
         })
@@ -83,7 +83,7 @@ impl LoadingSpinners {
                     .width(200.0),
                     text!("{:.2}s", self.cycle_duration),
                 ]
-                .align_items(iced::Alignment::Center)
+                .align_y(Center)
                 .spacing(20.0),
             ),
         )

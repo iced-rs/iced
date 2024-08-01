@@ -2,7 +2,7 @@
 use crate::core::text;
 use crate::core::window;
 use crate::core::{Element, Renderer};
-use crate::Command;
+use crate::Task;
 
 /// The core of a user interface for a multi-window application following The Elm Architecture.
 pub trait Program: Sized {
@@ -21,9 +21,9 @@ pub trait Program: Sized {
     /// produced by either user interactions or commands, will be handled by
     /// this method.
     ///
-    /// Any [`Command`] returned will be executed immediately in the
-    /// background by shells.
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
+    /// Any [`Task`] returned will be executed immediately in the background by the
+    /// runtime.
+    fn update(&mut self, message: Self::Message) -> Task<Self::Message>;
 
     /// Returns the widgets to display in the [`Program`] for the `window`.
     ///

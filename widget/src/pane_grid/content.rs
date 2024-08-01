@@ -214,7 +214,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation<()>,
     ) {
         let body_layout = if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();

@@ -280,6 +280,15 @@ where
     }
 }
 
+impl<T> Default for State<T>
+where
+    T: Display + Clone,
+{
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
+}
+
 impl<T> Filtered<T>
 where
     T: Clone,

@@ -99,6 +99,20 @@ impl<T> From<Size<T>> for Vector<T> {
     }
 }
 
+impl<T> std::ops::Add for Size<T>
+where
+    T: std::ops::Add<Output = T>,
+{
+    type Output = Size<T>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Size {
+            width: self.width + rhs.width,
+            height: self.height + rhs.height,
+        }
+    }
+}
+
 impl<T> std::ops::Sub for Size<T>
 where
     T: std::ops::Sub<Output = T>,

@@ -80,7 +80,7 @@ where
             is_toggled,
             on_toggle: Box::new(f),
             label: label.into(),
-            width: Length::Fill,
+            width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
             text_size: None,
             text_line_height: text::LineHeight::default(),
@@ -289,12 +289,14 @@ where
 
         if self.label.is_some() {
             let label_layout = children.next().unwrap();
+            let state: &widget::text::State<Renderer::Paragraph> =
+                tree.state.downcast_ref();
 
             crate::text::draw(
                 renderer,
                 style,
                 label_layout,
-                tree.state.downcast_ref(),
+                state.0.raw(),
                 crate::text::Style::default(),
                 viewport,
             );
