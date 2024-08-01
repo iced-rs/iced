@@ -43,6 +43,7 @@ pub struct ComboBox<
     on_option_hovered: Option<Box<dyn Fn(T) -> Message>>,
     on_close: Option<Message>,
     on_input: Option<Box<dyn Fn(String) -> Message>>,
+    on_open: Option<Message>,
     menu_class: <Theme as menu::Catalog>::Class<'a>,
     padding: Padding,
     size: Option<f32>,
@@ -78,10 +79,17 @@ where
             on_option_hovered: None,
             on_input: None,
             on_close: None,
+            on_open: None,
             menu_class: <Theme as Catalog>::default_menu(),
             padding: text_input::DEFAULT_PADDING,
             size: None,
         }
+    }
+
+    /// Sets the message that will be produced when the [`ComboBox`] is opened.
+    pub fn on_open(mut self, message: Message) -> Self {
+        self.on_open = Some(message);
+        self
     }
 
     /// Sets the message that should be produced when some text is typed into
@@ -216,6 +224,7 @@ struct Inner<T> {
     options: Vec<T>,
     option_matchers: Vec<String>,
     filtered_options: Filtered<T>,
+    is_open: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -252,6 +261,7 @@ where
             options,
             option_matchers,
             filtered_options,
+            is_open: false,
         }))
     }
 
@@ -402,6 +412,16 @@ where
 
             text_input_state.is_focused()
         };
+
+        self.state.with_inner_mut(|state| {
+            if started_focused && !state.is_open {
+                if let Some(message) = self.on_open.take() {
+                    shell.publish(message);
+                }
+                state.is_open = true;
+            }
+        });
+
         // This is intended to check whether or not the message buffer was empty,
         // since `Shell` does not expose such functionality.
         let mut published_message_to_shell = false;
@@ -590,6 +610,7 @@ where
                 // Clear the value and reset the options and menu
                 state.value = String::new();
                 state.filtered_options.update(state.options.clone());
+                state.is_open = false;
                 menu.menu = menu::State::default();
 
                 // Notify the selection
@@ -620,11 +641,14 @@ where
             text_input_state.is_focused()
         };
 
-        if started_focused && !is_focused && !published_message_to_shell {
-            if let Some(message) = self.on_close.take() {
-                shell.publish(message);
+        self.state.with_inner_mut(|state| {
+            if started_focused && !is_focused && !published_message_to_shell {
+                if let Some(message) = self.on_close.take() {
+                    shell.publish(message);
+                }
+                state.is_open = false;
             }
-        }
+        });
 
         // Focus changed, invalidate widget tree to force a fresh `view`
         if started_focused != is_focused {
@@ -722,11 +746,13 @@ where
                     hovered_option,
                     |x| {
                         tree.children[0]
-                    .state
-                    .downcast_mut::<text_input::State<Renderer::Paragraph>>(
-                    )
-                    .unfocus();
+                        .state
+                        .downcast_mut::<text_input::State<Renderer::Paragraph>>(
+                        )
+                        .unfocus();
 
+                        self.state
+                            .with_inner_mut(|state| state.is_open = false);
                         (self.on_selected)(x)
                     },
                     self.on_option_hovered.as_deref(),
