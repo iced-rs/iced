@@ -66,6 +66,7 @@ fn benchmark<'a>(
             label: None,
             required_features: wgpu::Features::empty(),
             required_limits: wgpu::Limits::default(),
+            memory_hints: wgpu::MemoryHints::MemoryUsage,
         },
         None,
     ))

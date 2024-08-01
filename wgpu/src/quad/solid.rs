@@ -114,11 +114,15 @@ impl Pipeline {
                             8 => Float32,
                         ),
                     }],
+                    compilation_options:
+                        wgpu::PipelineCompilationOptions::default(),
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
                     entry_point: "solid_fs_main",
                     targets: &quad::color_target_state(format),
+                    compilation_options:
+                        wgpu::PipelineCompilationOptions::default(),
                 }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,
@@ -132,6 +136,7 @@ impl Pipeline {
                     alpha_to_coverage_enabled: false,
                 },
                 multiview: None,
+                cache: None,
             });
 
         Self { pipeline }

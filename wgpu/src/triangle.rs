@@ -760,16 +760,21 @@ mod solid {
                                     1 => Float32x4,
                                 ),
                             }],
+                            compilation_options:
+                                wgpu::PipelineCompilationOptions::default(),
                         },
                         fragment: Some(wgpu::FragmentState {
                             module: &shader,
                             entry_point: "solid_fs_main",
                             targets: &[Some(triangle::fragment_target(format))],
+                            compilation_options:
+                                wgpu::PipelineCompilationOptions::default(),
                         }),
                         primitive: triangle::primitive_state(),
                         depth_stencil: None,
                         multisample: triangle::multisample_state(antialiasing),
                         multiview: None,
+                        cache: None,
                     },
                 );
 
@@ -937,16 +942,21 @@ mod gradient {
                                 6 => Float32x4
                             ),
                         }],
+                        compilation_options:
+                            wgpu::PipelineCompilationOptions::default(),
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
                         entry_point: "gradient_fs_main",
                         targets: &[Some(triangle::fragment_target(format))],
+                        compilation_options:
+                            wgpu::PipelineCompilationOptions::default(),
                     }),
                     primitive: triangle::primitive_state(),
                     depth_stencil: None,
                     multisample: triangle::multisample_state(antialiasing),
                     multiview: None,
+                    cache: None,
                 },
             );
 
