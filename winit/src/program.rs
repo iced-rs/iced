@@ -414,6 +414,23 @@ where
             );
         }
 
+        fn received_url(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            url: String,
+        ) {
+            self.process_event(
+                event_loop,
+                Event::EventLoopAwakened(
+                    winit::event::Event::PlatformSpecific(
+                        winit::event::PlatformSpecific::MacOS(
+                            winit::event::MacOS::ReceivedUrl(url),
+                        ),
+                    ),
+                ),
+            );
+        }
+
         fn about_to_wait(
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
