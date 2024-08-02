@@ -5,7 +5,7 @@ pub use crate::slider::{
     default, Catalog, Handle, HandleShape, Status, Style, StyleFn,
 };
 
-use crate::core::border::{self, Border};
+use crate::core::border::Border;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
