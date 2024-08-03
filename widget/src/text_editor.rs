@@ -729,7 +729,7 @@ where
         defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
+        _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
 
@@ -793,7 +793,7 @@ where
                     },
                     position,
                     style.placeholder,
-                    *viewport,
+                    bounds,
                 );
             }
         } else {
@@ -801,7 +801,7 @@ where
                 &internal.editor,
                 position,
                 defaults.text_color,
-                *viewport,
+                bounds,
             );
         }
 
