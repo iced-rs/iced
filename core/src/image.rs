@@ -101,6 +101,12 @@ where
     }
 }
 
+impl From<&Handle> for Handle {
+    fn from(value: &Handle) -> Self {
+        value.clone()
+    }
+}
+
 impl std::fmt::Debug for Handle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
