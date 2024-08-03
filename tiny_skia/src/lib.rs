@@ -178,6 +178,16 @@ impl Renderer {
                     engine::adjust_clip_mask(clip_mask, clip_bounds);
                 }
 
+                for image in &layer.images {
+                    self.engine.draw_image(
+                        image,
+                        Transformation::scale(scale_factor),
+                        pixels,
+                        clip_mask,
+                        clip_bounds,
+                    );
+                }
+
                 for group in &layer.text {
                     for text in group.as_slice() {
                         self.engine.draw_text(
@@ -189,16 +199,6 @@ impl Renderer {
                             clip_bounds,
                         );
                     }
-                }
-
-                for image in &layer.images {
-                    self.engine.draw_image(
-                        image,
-                        Transformation::scale(scale_factor),
-                        pixels,
-                        clip_mask,
-                        clip_bounds,
-                    );
                 }
             }
 

@@ -182,19 +182,6 @@ impl Renderer {
                 }
             }
 
-            if !layer.text.is_empty() {
-                engine.text_pipeline.prepare(
-                    device,
-                    queue,
-                    &self.text_viewport,
-                    encoder,
-                    &mut self.text_storage,
-                    &layer.text,
-                    layer.bounds,
-                    Transformation::scale(scale_factor),
-                );
-            }
-
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
                 engine.image_pipeline.prepare(
@@ -205,6 +192,19 @@ impl Renderer {
                     &layer.images,
                     viewport.projection(),
                     scale_factor,
+                );
+            }
+
+            if !layer.text.is_empty() {
+                engine.text_pipeline.prepare(
+                    device,
+                    queue,
+                    &self.text_viewport,
+                    encoder,
+                    &mut self.text_storage,
+                    &layer.text,
+                    layer.bounds,
+                    Transformation::scale(scale_factor),
                 );
             }
         }
@@ -359,17 +359,6 @@ impl Renderer {
                 ));
             }
 
-            if !layer.text.is_empty() {
-                text_layer += engine.text_pipeline.render(
-                    &self.text_viewport,
-                    &self.text_storage,
-                    text_layer,
-                    &layer.text,
-                    scissor_rect,
-                    &mut render_pass,
-                );
-            }
-
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
                 engine.image_pipeline.render(
@@ -380,6 +369,17 @@ impl Renderer {
                 );
 
                 image_layer += 1;
+            }
+
+            if !layer.text.is_empty() {
+                text_layer += engine.text_pipeline.render(
+                    &self.text_viewport,
+                    &self.text_storage,
+                    text_layer,
+                    &layer.text,
+                    scissor_rect,
+                    &mut render_pass,
+                );
             }
         }
 

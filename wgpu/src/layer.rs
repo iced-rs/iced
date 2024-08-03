@@ -20,8 +20,8 @@ pub struct Layer {
     pub quads: quad::Batch,
     pub triangles: triangle::Batch,
     pub primitives: primitive::Batch,
-    pub text: text::Batch,
     pub images: image::Batch,
+    pub text: text::Batch,
     pending_meshes: Vec<Mesh>,
     pending_text: Vec<Text>,
 }
