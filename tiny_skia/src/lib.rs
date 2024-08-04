@@ -341,7 +341,7 @@ impl graphics::geometry::Renderer for Renderer {
                 );
 
                 for image in images {
-                    layer.draw_image(&image, transformation);
+                    layer.draw_image(image, transformation);
                 }
 
                 layer.draw_text_group(text, clip_bounds, transformation);
@@ -354,7 +354,7 @@ impl graphics::geometry::Renderer for Renderer {
                 );
 
                 for image in cache.images.iter() {
-                    layer.draw_image(image, transformation);
+                    layer.draw_image(image.clone(), transformation);
                 }
 
                 layer.draw_text_cache(
@@ -381,23 +381,9 @@ impl core::image::Renderer for Renderer {
         self.engine.raster_pipeline.dimensions(handle)
     }
 
-    fn draw_image(
-        &mut self,
-        handle: Self::Handle,
-        filter_method: core::image::FilterMethod,
-        bounds: Rectangle,
-        rotation: core::Radians,
-        opacity: f32,
-    ) {
+    fn draw_image(&mut self, image: core::Image, bounds: Rectangle) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_raster(
-            handle,
-            filter_method,
-            bounds,
-            transformation,
-            rotation,
-            opacity,
-        );
+        layer.draw_raster(image, bounds, transformation);
     }
 }
 

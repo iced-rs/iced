@@ -1,12 +1,11 @@
-use crate::core::image;
 use crate::core::svg;
 use crate::core::text::LineHeight;
 use crate::core::{Color, Pixels, Point, Radians, Rectangle, Size, Vector};
 use crate::graphics::cache::{self, Cached};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
-use crate::graphics::geometry::{self, Path, Style};
-use crate::graphics::{Gradient, Image, Text};
+use crate::graphics::geometry::{self, Image, Path, Style};
+use crate::graphics::{self, Gradient, Text};
 use crate::Primitive;
 
 use std::rc::Rc;
@@ -15,7 +14,7 @@ use std::rc::Rc;
 pub enum Geometry {
     Live {
         text: Vec<Text>,
-        images: Vec<Image>,
+        images: Vec<graphics::Image>,
         primitives: Vec<Primitive>,
         clip_bounds: Rectangle,
     },
@@ -25,7 +24,7 @@ pub enum Geometry {
 #[derive(Debug, Clone)]
 pub struct Cache {
     pub text: Rc<[Text]>,
-    pub images: Rc<[Image]>,
+    pub images: Rc<[graphics::Image]>,
     pub primitives: Rc<[Primitive]>,
     pub clip_bounds: Rectangle,
 }
@@ -61,7 +60,7 @@ pub struct Frame {
     transform: tiny_skia::Transform,
     stack: Vec<tiny_skia::Transform>,
     primitives: Vec<Primitive>,
-    images: Vec<Image>,
+    images: Vec<graphics::Image>,
     text: Vec<Text>,
 }
 
@@ -283,25 +282,15 @@ impl geometry::frame::Backend for Frame {
         }
     }
 
-    fn draw_image(
-        &mut self,
-        handle: &image::Handle,
-        bounds: Rectangle,
-        filter_method: image::FilterMethod,
-        rotation: Radians,
-        opacity: f32,
-    ) {
+    fn draw_image(&mut self, bounds: Rectangle, image: impl Into<Image>) {
+        let mut image = image.into();
+
         let (bounds, external_rotation) =
             transform_rectangle(bounds, self.transform);
 
-        self.images.push(Image::Raster {
-            handle: handle.clone(),
-            filter_method,
-            bounds,
-            rotation: rotation + external_rotation,
-            opacity,
-            snap: false,
-        });
+        image.rotation += external_rotation;
+
+        self.images.push(graphics::Image::Raster(image, bounds));
     }
 
     fn draw_svg(
@@ -315,7 +304,7 @@ impl geometry::frame::Backend for Frame {
         let (bounds, external_rotation) =
             transform_rectangle(bounds, self.transform);
 
-        self.images.push(Image::Vector {
+        self.images.push(graphics::Image::Vector {
             handle: handle.clone(),
             bounds,
             color,

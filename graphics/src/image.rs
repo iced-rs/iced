@@ -8,28 +8,8 @@ use crate::core::{image, svg, Color, Radians, Rectangle};
 #[derive(Debug, Clone, PartialEq)]
 pub enum Image {
     /// A raster image.
-    Raster {
-        /// The handle of a raster image.
-        handle: image::Handle,
+    Raster(image::Image, Rectangle),
 
-        /// The filter method of a raster image.
-        filter_method: image::FilterMethod,
-
-        /// The bounds of the image.
-        bounds: Rectangle,
-
-        /// The rotation of the image.
-        rotation: Radians,
-
-        /// The opacity of the image.
-        opacity: f32,
-
-        /// If set to `true`, the image will be snapped to the pixel grid.
-        ///
-        /// This can avoid graphical glitches, specially when using a
-        /// [`image::FilterMethod::Nearest`].
-        snap: bool,
-    },
     /// A vector image.
     Vector {
         /// The handle of a vector image.
@@ -53,10 +33,8 @@ impl Image {
     /// Returns the bounds of the [`Image`].
     pub fn bounds(&self) -> Rectangle {
         match self {
-            Image::Raster {
-                bounds, rotation, ..
-            }
-            | Image::Vector {
+            Image::Raster(image, bounds) => bounds.rotate(image.rotation),
+            Image::Vector {
                 bounds, rotation, ..
             } => bounds.rotate(*rotation),
         }

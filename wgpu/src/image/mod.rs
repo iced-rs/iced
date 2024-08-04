@@ -220,25 +220,18 @@ impl Pipeline {
         for image in images {
             match &image {
                 #[cfg(feature = "image")]
-                Image::Raster {
-                    handle,
-                    filter_method,
-                    bounds,
-                    rotation,
-                    opacity,
-                    snap,
-                } => {
+                Image::Raster(image, bounds) => {
                     if let Some(atlas_entry) =
-                        cache.upload_raster(device, encoder, handle)
+                        cache.upload_raster(device, encoder, &image.handle)
                     {
                         add_instances(
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
-                            f32::from(*rotation),
-                            *opacity,
-                            *snap,
+                            f32::from(image.rotation),
+                            image.opacity,
+                            image.snap,
                             atlas_entry,
-                            match filter_method {
+                            match image.filter_method {
                                 crate::core::image::FilterMethod::Nearest => {
                                     nearest_instances
                                 }

@@ -7,6 +7,73 @@ use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
+/// A raster image that can be drawn.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Image<H = Handle> {
+    /// The handle of the image.
+    pub handle: H,
+
+    /// The filter method of the image.
+    pub filter_method: FilterMethod,
+
+    /// The rotation to be applied to the image, from its center.
+    pub rotation: Radians,
+
+    /// The opacity of the image.
+    ///
+    /// 0 means transparent. 1 means opaque.
+    pub opacity: f32,
+
+    /// If set to `true`, the image will be snapped to the pixel grid.
+    ///
+    /// This can avoid graphical glitches, specially when using a
+    /// [`FilterMethod::Nearest`].
+    pub snap: bool,
+}
+
+impl Image<Handle> {
+    /// Creates a new [`Image`] with the given handle.
+    pub fn new(handle: impl Into<Handle>) -> Self {
+        Self {
+            handle: handle.into(),
+            filter_method: FilterMethod::default(),
+            rotation: Radians(0.0),
+            opacity: 1.0,
+            snap: false,
+        }
+    }
+
+    /// Sets the filter method of the [`Image`].
+    pub fn filter_method(mut self, filter_method: FilterMethod) -> Self {
+        self.filter_method = filter_method;
+        self
+    }
+
+    /// Sets the rotation of the [`Image`].
+    pub fn rotation(mut self, rotation: impl Into<Radians>) -> Self {
+        self.rotation = rotation.into();
+        self
+    }
+
+    /// Sets the opacity of the [`Image`].
+    pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
+        self.opacity = opacity.into();
+        self
+    }
+
+    /// Sets whether the [`Image`] should be snapped to the pixel grid.
+    pub fn snap(mut self, snap: bool) -> Self {
+        self.snap = snap;
+        self
+    }
+}
+
+impl From<&Handle> for Image {
+    fn from(handle: &Handle) -> Self {
+        Image::new(handle.clone())
+    }
+}
+
 /// A handle of some image data.
 #[derive(Clone, PartialEq, Eq)]
 pub enum Handle {
@@ -172,14 +239,6 @@ pub trait Renderer: crate::Renderer {
     /// Returns the dimensions of an image for the given [`Handle`].
     fn measure_image(&self, handle: &Self::Handle) -> Size<u32>;
 
-    /// Draws an image with the given [`Handle`] and inside the provided
-    /// `bounds`.
-    fn draw_image(
-        &mut self,
-        handle: Self::Handle,
-        filter_method: FilterMethod,
-        bounds: Rectangle,
-        rotation: Radians,
-        opacity: f32,
-    );
+    /// Draws an [`Image`] inside the provided `bounds`.
+    fn draw_image(&mut self, image: Image<Self::Handle>, bounds: Rectangle);
 }

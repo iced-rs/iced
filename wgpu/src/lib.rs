@@ -527,24 +527,9 @@ impl core::image::Renderer for Renderer {
         self.image_cache.borrow_mut().measure_image(handle)
     }
 
-    fn draw_image(
-        &mut self,
-        handle: Self::Handle,
-        filter_method: core::image::FilterMethod,
-        bounds: Rectangle,
-        rotation: core::Radians,
-        opacity: f32,
-    ) {
+    fn draw_image(&mut self, image: core::Image, bounds: Rectangle) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_raster(
-            handle,
-            filter_method,
-            bounds,
-            transformation,
-            rotation,
-            opacity,
-            true,
-        );
+        layer.draw_raster(image, bounds, transformation);
     }
 }
 
@@ -602,7 +587,7 @@ impl graphics::geometry::Renderer for Renderer {
                 layer.draw_mesh_group(meshes, transformation);
 
                 for image in images {
-                    layer.draw_image(&image, transformation);
+                    layer.draw_image(image, transformation);
                 }
 
                 layer.draw_text_group(text, transformation);
@@ -613,7 +598,7 @@ impl graphics::geometry::Renderer for Renderer {
                 }
 
                 if let Some(images) = cache.images {
-                    for image in images.iter() {
+                    for image in images.iter().cloned() {
                         layer.draw_image(image, transformation);
                     }
                 }

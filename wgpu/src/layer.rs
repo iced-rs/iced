@@ -1,5 +1,6 @@
 use crate::core::{
-    renderer, Background, Color, Point, Radians, Rectangle, Transformation,
+    self, renderer, Background, Color, Point, Radians, Rectangle,
+    Transformation,
 };
 use crate::graphics;
 use crate::graphics::color;
@@ -112,29 +113,10 @@ impl Layer {
         self.pending_text.push(text);
     }
 
-    pub fn draw_image(
-        &mut self,
-        image: &Image,
-        transformation: Transformation,
-    ) {
+    pub fn draw_image(&mut self, image: Image, transformation: Transformation) {
         match image {
-            Image::Raster {
-                handle,
-                filter_method,
-                bounds,
-                rotation,
-                opacity,
-                snap,
-            } => {
-                self.draw_raster(
-                    handle.clone(),
-                    *filter_method,
-                    *bounds,
-                    transformation,
-                    *rotation,
-                    *opacity,
-                    *snap,
-                );
+            Image::Raster(image, bounds) => {
+                self.draw_raster(image, bounds, transformation);
             }
             Image::Vector {
                 handle,
@@ -145,11 +127,11 @@ impl Layer {
             } => {
                 self.draw_svg(
                     handle.clone(),
-                    *color,
-                    *bounds,
+                    color,
+                    bounds,
                     transformation,
-                    *rotation,
-                    *opacity,
+                    rotation,
+                    opacity,
                 );
             }
         }
@@ -157,22 +139,11 @@ impl Layer {
 
     pub fn draw_raster(
         &mut self,
-        handle: crate::core::image::Handle,
-        filter_method: crate::core::image::FilterMethod,
+        image: core::Image,
         bounds: Rectangle,
         transformation: Transformation,
-        rotation: Radians,
-        opacity: f32,
-        snap: bool,
     ) {
-        let image = Image::Raster {
-            handle,
-            filter_method,
-            bounds: bounds * transformation,
-            rotation,
-            opacity,
-            snap,
-        };
+        let image = Image::Raster(image, bounds * transformation);
 
         self.images.push(image);
     }

@@ -57,6 +57,7 @@ pub use element::Element;
 pub use event::Event;
 pub use font::Font;
 pub use gradient::Gradient;
+pub use image::Image;
 pub use layout::Layout;
 pub use length::Length;
 pub use overlay::Overlay;

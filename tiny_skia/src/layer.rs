@@ -1,11 +1,12 @@
+use crate::core::renderer::Quad;
+use crate::core::svg;
 use crate::core::{
-    image, renderer::Quad, svg, Background, Color, Point, Radians, Rectangle,
-    Transformation,
+    Background, Color, Image, Point, Radians, Rectangle, Transformation,
 };
+use crate::graphics;
 use crate::graphics::damage;
 use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph, Text};
-use crate::graphics::{self, Image};
 use crate::Primitive;
 
 use std::rc::Rc;
@@ -18,7 +19,7 @@ pub struct Layer {
     pub quads: Vec<(Quad, Background)>,
     pub primitives: Vec<Item<Primitive>>,
     pub text: Vec<Item<Text>>,
-    pub images: Vec<Image>,
+    pub images: Vec<graphics::Image>,
 }
 
 impl Layer {
@@ -117,28 +118,14 @@ impl Layer {
 
     pub fn draw_image(
         &mut self,
-        image: &Image,
+        image: graphics::Image,
         transformation: Transformation,
     ) {
         match image {
-            Image::Raster {
-                handle,
-                filter_method,
-                bounds,
-                rotation,
-                opacity,
-                snap: _,
-            } => {
-                self.draw_raster(
-                    handle.clone(),
-                    *filter_method,
-                    *bounds,
-                    transformation,
-                    *rotation,
-                    *opacity,
-                );
+            graphics::Image::Raster(raster, bounds) => {
+                self.draw_raster(raster.clone(), bounds, transformation);
             }
-            Image::Vector {
+            graphics::Image::Vector {
                 handle,
                 color,
                 bounds,
@@ -147,11 +134,11 @@ impl Layer {
             } => {
                 self.draw_svg(
                     handle.clone(),
-                    *color,
-                    *bounds,
+                    color,
+                    bounds,
                     transformation,
-                    *rotation,
-                    *opacity,
+                    rotation,
+                    opacity,
                 );
             }
         }
@@ -159,21 +146,11 @@ impl Layer {
 
     pub fn draw_raster(
         &mut self,
-        handle: image::Handle,
-        filter_method: image::FilterMethod,
+        image: Image,
         bounds: Rectangle,
         transformation: Transformation,
-        rotation: Radians,
-        opacity: f32,
     ) {
-        let image = Image::Raster {
-            handle,
-            filter_method,
-            bounds: bounds * transformation,
-            rotation,
-            opacity,
-            snap: false,
-        };
+        let image = graphics::Image::Raster(image, bounds * transformation);
 
         self.images.push(image);
     }
@@ -187,7 +164,7 @@ impl Layer {
         rotation: Radians,
         opacity: f32,
     ) {
-        let svg = Image::Vector {
+        let svg = graphics::Image::Vector {
             handle,
             color,
             bounds: bounds * transformation,
@@ -304,7 +281,7 @@ impl Layer {
             &previous.images,
             &current.images,
             |image| vec![image.bounds().expand(1.0)],
-            Image::eq,
+            graphics::Image::eq,
         );
 
         damage.extend(text);

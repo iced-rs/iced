@@ -1,5 +1,5 @@
 use crate::alignment;
-use crate::image;
+use crate::image::{self, Image};
 use crate::renderer::{self, Renderer};
 use crate::svg;
 use crate::text::{self, Text};
@@ -178,20 +178,14 @@ impl text::Editor for () {
 }
 
 impl image::Renderer for () {
-    type Handle = ();
+    type Handle = image::Handle;
 
     fn measure_image(&self, _handle: &Self::Handle) -> Size<u32> {
         Size::default()
     }
 
-    fn draw_image(
-        &mut self,
-        _handle: Self::Handle,
-        _filter_method: image::FilterMethod,
-        _bounds: Rectangle,
-        _rotation: Radians,
-        _opacity: f32,
-    ) {
+    fn draw_image(&mut self, _image: Image, _bounds: Rectangle) {
+        todo!()
     }
 }
 

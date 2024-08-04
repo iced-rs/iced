@@ -160,11 +160,8 @@ impl<Message> canvas::Program<Message> for State {
             frame.translate(Vector::new(center.x, center.y));
 
             frame.draw_image(
-                &self.sun,
                 Rectangle::with_radius(Self::SUN_RADIUS),
-                image::FilterMethod::Linear,
-                0,
-                1.0,
+                &self.sun,
             );
 
             let orbit = Path::circle(Point::ORIGIN, Self::ORBIT_RADIUS);
@@ -189,22 +186,16 @@ impl<Message> canvas::Program<Message> for State {
             frame.translate(Vector::new(Self::ORBIT_RADIUS, 0.0));
 
             frame.draw_image(
-                &self.earth,
                 Rectangle::with_radius(Self::EARTH_RADIUS),
-                image::FilterMethod::Linear,
-                rotation * 20.0,
-                1.0,
+                canvas::Image::new(&self.earth).rotation(rotation * 20.0),
             );
 
             frame.rotate(rotation * 10.0);
             frame.translate(Vector::new(0.0, Self::MOON_DISTANCE));
 
             frame.draw_image(
-                &self.moon,
                 Rectangle::with_radius(Self::MOON_RADIUS),
-                image::FilterMethod::Linear,
-                0,
-                1.0,
+                &self.moon,
             );
         });
 

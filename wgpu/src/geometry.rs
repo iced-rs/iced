@@ -1,5 +1,4 @@
 //! Build and draw geometry.
-use crate::core::image;
 use crate::core::svg;
 use crate::core::text::LineHeight;
 use crate::core::{
@@ -9,11 +8,11 @@ use crate::graphics::cache::{self, Cached};
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
-    self, LineCap, LineDash, LineJoin, Path, Stroke, Style,
+    self, Image, LineCap, LineDash, LineJoin, Path, Stroke, Style,
 };
 use crate::graphics::gradient::{self, Gradient};
 use crate::graphics::mesh::{self, Mesh};
-use crate::graphics::{self, Image, Text};
+use crate::graphics::{self, Text};
 use crate::text;
 use crate::triangle;
 
@@ -27,7 +26,7 @@ use std::sync::Arc;
 pub enum Geometry {
     Live {
         meshes: Vec<Mesh>,
-        images: Vec<Image>,
+        images: Vec<graphics::Image>,
         text: Vec<Text>,
     },
     Cached(Cache),
@@ -36,7 +35,7 @@ pub enum Geometry {
 #[derive(Debug, Clone)]
 pub struct Cache {
     pub meshes: Option<triangle::Cache>,
-    pub images: Option<Arc<[Image]>>,
+    pub images: Option<Arc<[graphics::Image]>>,
     pub text: Option<text::Cache>,
 }
 
@@ -99,7 +98,7 @@ pub struct Frame {
     clip_bounds: Rectangle,
     buffers: BufferStack,
     meshes: Vec<Mesh>,
-    images: Vec<Image>,
+    images: Vec<graphics::Image>,
     text: Vec<Text>,
     transforms: Transforms,
     fill_tessellator: tessellation::FillTessellator,
@@ -377,25 +376,15 @@ impl geometry::frame::Backend for Frame {
         }
     }
 
-    fn draw_image(
-        &mut self,
-        handle: &image::Handle,
-        bounds: Rectangle,
-        filter_method: image::FilterMethod,
-        rotation: Radians,
-        opacity: f32,
-    ) {
+    fn draw_image(&mut self, bounds: Rectangle, image: impl Into<Image>) {
+        let mut image = image.into();
+
         let (bounds, external_rotation) =
             self.transforms.current.transform_rectangle(bounds);
 
-        self.images.push(Image::Raster {
-            handle: handle.clone(),
-            filter_method,
-            bounds,
-            rotation: rotation + external_rotation,
-            opacity,
-            snap: false,
-        });
+        image.rotation += external_rotation;
+
+        self.images.push(graphics::Image::Raster(image, bounds));
     }
 
     fn draw_svg(
@@ -409,7 +398,7 @@ impl geometry::frame::Backend for Frame {
         let (bounds, external_rotation) =
             self.transforms.current.transform_rectangle(bounds);
 
-        self.images.push(Image::Vector {
+        self.images.push(graphics::Image::Vector {
             handle: handle.clone(),
             color,
             bounds,
