@@ -75,10 +75,16 @@ where
         self.raw.fill_text(text);
     }
 
-    /// Draws the given image on the [`Frame`] inside the given bounds.
+    /// Draws the given [`Image`] on the [`Frame`] inside the given bounds.
     #[cfg(feature = "image")]
     pub fn draw_image(&mut self, bounds: Rectangle, image: impl Into<Image>) {
         self.raw.draw_image(bounds, image);
+    }
+
+    /// Draws the given [`Svg`] on the [`Frame`] inside the given bounds.
+    #[cfg(feature = "svg")]
+    pub fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>) {
+        self.raw.draw_svg(bounds, svg);
     }
 
     /// Stores the current transform of the [`Frame`] and executes the given
