@@ -192,7 +192,7 @@ impl<Message> canvas::Program<Message> for State {
                 &self.earth,
                 Rectangle::with_radius(Self::EARTH_RADIUS),
                 image::FilterMethod::Linear,
-                rotation * 10.0,
+                rotation * 20.0,
                 1.0,
             );
 
