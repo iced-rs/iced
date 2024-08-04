@@ -7,10 +7,9 @@
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::mouse;
-use iced::widget::canvas;
-use iced::widget::canvas::gradient;
 use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{Geometry, Path};
+use iced::widget::{canvas, image};
 use iced::window;
 use iced::{
     Color, Element, Fill, Point, Rectangle, Renderer, Size, Subscription,
@@ -66,6 +65,9 @@ impl SolarSystem {
 
 #[derive(Debug)]
 struct State {
+    sun: image::Handle,
+    earth: image::Handle,
+    moon: image::Handle,
     space_cache: canvas::Cache,
     system_cache: canvas::Cache,
     start: Instant,
@@ -85,6 +87,15 @@ impl State {
         let size = window::Settings::default().size;
 
         State {
+            sun: image::Handle::from_bytes(
+                include_bytes!("../assets/sun.png").as_slice(),
+            ),
+            earth: image::Handle::from_bytes(
+                include_bytes!("../assets/earth.png").as_slice(),
+            ),
+            moon: image::Handle::from_bytes(
+                include_bytes!("../assets/moon.png").as_slice(),
+            ),
             space_cache: canvas::Cache::default(),
             system_cache: canvas::Cache::default(),
             start: now,
@@ -132,6 +143,8 @@ impl<Message> canvas::Program<Message> for State {
 
         let background =
             self.space_cache.draw(renderer, bounds.size(), |frame| {
+                frame.fill_rectangle(Point::ORIGIN, frame.size(), Color::BLACK);
+
                 let stars = Path::new(|path| {
                     for (p, size) in &self.stars {
                         path.rectangle(*p, Size::new(*size, *size));
@@ -144,17 +157,21 @@ impl<Message> canvas::Program<Message> for State {
 
         let system = self.system_cache.draw(renderer, bounds.size(), |frame| {
             let center = frame.center();
+            frame.translate(Vector::new(center.x, center.y));
 
-            let sun = Path::circle(center, Self::SUN_RADIUS);
-            let orbit = Path::circle(center, Self::ORBIT_RADIUS);
+            frame.draw_image(
+                &self.sun,
+                Rectangle::with_radius(Self::SUN_RADIUS),
+                image::FilterMethod::Linear,
+                0,
+                1.0,
+            );
 
-            frame.fill(&sun, Color::from_rgb8(0xF9, 0xD7, 0x1C));
+            let orbit = Path::circle(Point::ORIGIN, Self::ORBIT_RADIUS);
             frame.stroke(
                 &orbit,
                 Stroke {
-                    style: stroke::Style::Solid(Color::from_rgba8(
-                        0, 153, 255, 0.1,
-                    )),
+                    style: stroke::Style::Solid(Color::WHITE.scale_alpha(0.1)),
                     width: 1.0,
                     line_dash: canvas::LineDash {
                         offset: 0,
@@ -169,27 +186,28 @@ impl<Message> canvas::Program<Message> for State {
                 + (2.0 * PI / 60_000.0) * elapsed.subsec_millis() as f32;
 
             frame.with_save(|frame| {
-                frame.translate(Vector::new(center.x, center.y));
                 frame.rotate(rotation);
                 frame.translate(Vector::new(Self::ORBIT_RADIUS, 0.0));
 
-                let earth = Path::circle(Point::ORIGIN, Self::EARTH_RADIUS);
-
-                let earth_fill = gradient::Linear::new(
-                    Point::new(-Self::EARTH_RADIUS, 0.0),
-                    Point::new(Self::EARTH_RADIUS, 0.0),
-                )
-                .add_stop(0.2, Color::from_rgb(0.15, 0.50, 1.0))
-                .add_stop(0.8, Color::from_rgb(0.0, 0.20, 0.47));
-
-                frame.fill(&earth, earth_fill);
+                frame.draw_image(
+                    &self.earth,
+                    Rectangle::with_radius(Self::EARTH_RADIUS),
+                    image::FilterMethod::Linear,
+                    rotation * 10.0,
+                    1.0,
+                );
 
                 frame.with_save(|frame| {
                     frame.rotate(rotation * 10.0);
                     frame.translate(Vector::new(0.0, Self::MOON_DISTANCE));
 
-                    let moon = Path::circle(Point::ORIGIN, Self::MOON_RADIUS);
-                    frame.fill(&moon, Color::WHITE);
+                    frame.draw_image(
+                        &self.moon,
+                        Rectangle::with_radius(Self::MOON_RADIUS),
+                        image::FilterMethod::Linear,
+                        0,
+                        1.0,
+                    );
                 });
             });
         });
