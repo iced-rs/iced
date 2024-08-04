@@ -1,11 +1,10 @@
-use crate::core::svg;
 use crate::core::text::LineHeight;
-use crate::core::{Color, Pixels, Point, Radians, Rectangle, Size, Vector};
+use crate::core::{self, Pixels, Point, Radians, Rectangle, Size, Svg, Vector};
 use crate::graphics::cache::{self, Cached};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
-use crate::graphics::geometry::{self, Image, Path, Style};
-use crate::graphics::{self, Gradient, Text};
+use crate::graphics::geometry::{self, Path, Style};
+use crate::graphics::{self, Gradient, Image, Text};
 use crate::Primitive;
 
 use std::rc::Rc;
@@ -282,7 +281,7 @@ impl geometry::frame::Backend for Frame {
         }
     }
 
-    fn draw_image(&mut self, bounds: Rectangle, image: impl Into<Image>) {
+    fn draw_image(&mut self, bounds: Rectangle, image: impl Into<core::Image>) {
         let mut image = image.into();
 
         let (bounds, external_rotation) =
@@ -293,24 +292,15 @@ impl geometry::frame::Backend for Frame {
         self.images.push(graphics::Image::Raster(image, bounds));
     }
 
-    fn draw_svg(
-        &mut self,
-        handle: &svg::Handle,
-        bounds: Rectangle,
-        color: Option<Color>,
-        rotation: Radians,
-        opacity: f32,
-    ) {
+    fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>) {
+        let mut svg = svg.into();
+
         let (bounds, external_rotation) =
             transform_rectangle(bounds, self.transform);
 
-        self.images.push(graphics::Image::Vector {
-            handle: handle.clone(),
-            bounds,
-            color,
-            rotation: rotation + external_rotation,
-            opacity,
-        });
+        svg.rotation += external_rotation;
+
+        self.images.push(Image::Vector(svg, bounds));
     }
 }
 

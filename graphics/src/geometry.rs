@@ -16,7 +16,7 @@ pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use style::Style;
 pub use text::Text;
 
-pub use crate::core::Image;
+pub use crate::core::{Image, Svg};
 pub use crate::gradient::{self, Gradient};
 
 use crate::cache::Cached;

@@ -70,6 +70,7 @@ pub use rotation::Rotation;
 pub use shadow::Shadow;
 pub use shell::Shell;
 pub use size::Size;
+pub use svg::Svg;
 pub use text::Text;
 pub use theme::Theme;
 pub use transformation::Transformation;

@@ -8,8 +8,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    self, ContentFit, Element, Layout, Length, Point, Rectangle, Rotation,
-    Size, Vector, Widget,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size,
+    Vector, Widget,
 };
 
 pub use image::{FilterMethod, Handle};
@@ -181,7 +181,7 @@ pub fn draw<Renderer, Handle>(
 
     let render = |renderer: &mut Renderer| {
         renderer.draw_image(
-            core::Image {
+            image::Image {
                 handle: handle.clone(),
                 filter_method,
                 rotation: rotation.radians(),

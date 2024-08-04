@@ -16,7 +16,7 @@ pub struct Image<H = Handle> {
     /// The filter method of the image.
     pub filter_method: FilterMethod,
 
-    /// The rotation to be applied to the image, from its center.
+    /// The rotation to be applied to the image; on its center.
     pub rotation: Radians,
 
     /// The opacity of the image.
@@ -26,7 +26,7 @@ pub struct Image<H = Handle> {
 
     /// If set to `true`, the image will be snapped to the pixel grid.
     ///
-    /// This can avoid graphical glitches, specially when using a
+    /// This can avoid graphical glitches, specially when using
     /// [`FilterMethod::Nearest`].
     pub snap: bool,
 }

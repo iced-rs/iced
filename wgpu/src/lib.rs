@@ -539,23 +539,9 @@ impl core::svg::Renderer for Renderer {
         self.image_cache.borrow_mut().measure_svg(handle)
     }
 
-    fn draw_svg(
-        &mut self,
-        handle: core::svg::Handle,
-        color_filter: Option<Color>,
-        bounds: Rectangle,
-        rotation: core::Radians,
-        opacity: f32,
-    ) {
+    fn draw_svg(&mut self, svg: core::Svg, bounds: Rectangle) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_svg(
-            handle,
-            color_filter,
-            bounds,
-            transformation,
-            rotation,
-            opacity,
-        );
+        layer.draw_svg(svg, bounds, transformation);
     }
 }
 

@@ -4,8 +4,7 @@ use crate::renderer::{self, Renderer};
 use crate::svg;
 use crate::text::{self, Text};
 use crate::{
-    Background, Color, Font, Pixels, Point, Radians, Rectangle, Size,
-    Transformation,
+    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
 
 impl Renderer for () {
@@ -192,13 +191,5 @@ impl svg::Renderer for () {
         Size::default()
     }
 
-    fn draw_svg(
-        &mut self,
-        _handle: svg::Handle,
-        _color: Option<Color>,
-        _bounds: Rectangle,
-        _rotation: Radians,
-        _opacity: f32,
-    ) {
-    }
+    fn draw_svg(&mut self, _svg: svg::Svg, _bounds: Rectangle) {}
 }

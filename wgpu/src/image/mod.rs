@@ -246,23 +246,22 @@ impl Pipeline {
                 Image::Raster { .. } => {}
 
                 #[cfg(feature = "svg")]
-                Image::Vector {
-                    handle,
-                    color,
-                    bounds,
-                    rotation,
-                    opacity,
-                } => {
+                Image::Vector(svg, bounds) => {
                     let size = [bounds.width, bounds.height];
 
                     if let Some(atlas_entry) = cache.upload_vector(
-                        device, encoder, handle, *color, size, scale,
+                        device,
+                        encoder,
+                        &svg.handle,
+                        svg.color,
+                        size,
+                        scale,
                     ) {
                         add_instances(
                             [bounds.x, bounds.y],
                             size,
-                            f32::from(*rotation),
-                            *opacity,
+                            f32::from(svg.rotation),
+                            svg.opacity,
                             true,
                             atlas_entry,
                             nearest_instances,

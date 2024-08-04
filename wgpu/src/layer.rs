@@ -1,6 +1,5 @@
 use crate::core::{
-    self, renderer, Background, Color, Point, Radians, Rectangle,
-    Transformation,
+    self, renderer, Background, Color, Point, Rectangle, Svg, Transformation,
 };
 use crate::graphics;
 use crate::graphics::color;
@@ -118,21 +117,8 @@ impl Layer {
             Image::Raster(image, bounds) => {
                 self.draw_raster(image, bounds, transformation);
             }
-            Image::Vector {
-                handle,
-                color,
-                bounds,
-                rotation,
-                opacity,
-            } => {
-                self.draw_svg(
-                    handle.clone(),
-                    color,
-                    bounds,
-                    transformation,
-                    rotation,
-                    opacity,
-                );
+            Image::Vector(svg, bounds) => {
+                self.draw_svg(svg, bounds, transformation);
             }
         }
     }
@@ -150,20 +136,11 @@ impl Layer {
 
     pub fn draw_svg(
         &mut self,
-        handle: crate::core::svg::Handle,
-        color: Option<Color>,
+        svg: Svg,
         bounds: Rectangle,
         transformation: Transformation,
-        rotation: Radians,
-        opacity: f32,
     ) {
-        let svg = Image::Vector {
-            handle,
-            color,
-            bounds: bounds * transformation,
-            rotation,
-            opacity,
-        };
+        let svg = Image::Vector(svg, bounds * transformation);
 
         self.images.push(svg);
     }

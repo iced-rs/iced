@@ -1,7 +1,6 @@
 //! Draw and generate geometry.
-use crate::core::svg;
-use crate::core::{Color, Point, Radians, Rectangle, Size, Vector};
-use crate::geometry::{self, Fill, Image, Path, Stroke, Text};
+use crate::core::{Point, Radians, Rectangle, Size, Vector};
+use crate::geometry::{self, Fill, Image, Path, Stroke, Svg, Text};
 
 /// The region of a surface that can be used to draw geometry.
 #[allow(missing_debug_implementations)]
@@ -206,15 +205,7 @@ pub trait Backend: Sized {
     );
 
     fn draw_image(&mut self, bounds: Rectangle, image: impl Into<Image>);
-
-    fn draw_svg(
-        &mut self,
-        handle: &svg::Handle,
-        bounds: Rectangle,
-        color: Option<Color>,
-        rotation: Radians,
-        opacity: f32,
-    );
+    fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>);
 
     fn into_geometry(self) -> Self::Geometry;
 }
@@ -262,17 +253,8 @@ impl Backend for () {
     ) {
     }
 
-    fn into_geometry(self) -> Self::Geometry {}
-
     fn draw_image(&mut self, _bounds: Rectangle, _image: impl Into<Image>) {}
+    fn draw_svg(&mut self, _bounds: Rectangle, _svg: impl Into<Svg>) {}
 
-    fn draw_svg(
-        &mut self,
-        _handle: &svg::Handle,
-        _bounds: Rectangle,
-        _color: Option<Color>,
-        _rotation: Radians,
-        _opacity: f32,
-    ) {
-    }
+    fn into_geometry(self) -> Self::Geometry {}
 }
