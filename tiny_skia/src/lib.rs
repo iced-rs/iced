@@ -330,6 +330,7 @@ impl graphics::geometry::Renderer for Renderer {
         match geometry {
             Geometry::Live {
                 primitives,
+                images,
                 text,
                 clip_bounds,
             } => {
@@ -339,6 +340,10 @@ impl graphics::geometry::Renderer for Renderer {
                     transformation,
                 );
 
+                for image in images {
+                    layer.draw_image(&image, transformation);
+                }
+
                 layer.draw_text_group(text, clip_bounds, transformation);
             }
             Geometry::Cache(cache) => {
@@ -347,6 +352,10 @@ impl graphics::geometry::Renderer for Renderer {
                     cache.clip_bounds,
                     transformation,
                 );
+
+                for image in cache.images.iter() {
+                    layer.draw_image(image, transformation);
+                }
 
                 layer.draw_text_cache(
                     cache.text,
@@ -381,7 +390,7 @@ impl core::image::Renderer for Renderer {
         opacity: f32,
     ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_image(
+        layer.draw_raster(
             handle,
             filter_method,
             bounds,

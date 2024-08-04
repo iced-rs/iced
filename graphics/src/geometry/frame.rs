@@ -1,5 +1,7 @@
 //! Draw and generate geometry.
-use crate::core::{Point, Radians, Rectangle, Size, Vector};
+use crate::core::image;
+use crate::core::svg;
+use crate::core::{Color, Point, Radians, Rectangle, Size, Vector};
 use crate::geometry::{self, Fill, Path, Stroke, Text};
 
 /// The region of a surface that can be used to draw geometry.
@@ -75,6 +77,25 @@ where
         self.raw.fill_text(text);
     }
 
+    /// Draws the given image on the [`Frame`] inside the given bounds.
+    #[cfg(feature = "image")]
+    pub fn draw_image(
+        &mut self,
+        handle: &image::Handle,
+        bounds: Rectangle,
+        filter_method: image::FilterMethod,
+        rotation: impl Into<Radians>,
+        opacity: f32,
+    ) {
+        self.raw.draw_image(
+            handle,
+            bounds,
+            filter_method,
+            rotation.into(),
+            opacity,
+        );
+    }
+
     /// Stores the current transform of the [`Frame`] and executes the given
     /// drawing operations, restoring the transform afterwards.
     ///
@@ -116,8 +137,7 @@ where
         let mut frame = self.draft(region);
 
         let result = f(&mut frame);
-
-        self.paste(frame, Point::new(region.x, region.y));
+        self.paste(frame);
 
         result
     }
@@ -134,8 +154,8 @@ where
     }
 
     /// Draws the contents of the given [`Frame`] with origin at the given [`Point`].
-    fn paste(&mut self, frame: Self, at: Point) {
-        self.raw.paste(frame.raw, at);
+    fn paste(&mut self, frame: Self) {
+        self.raw.paste(frame.raw);
     }
 
     /// Applies a translation to the current transform of the [`Frame`].
@@ -186,7 +206,7 @@ pub trait Backend: Sized {
     fn scale_nonuniform(&mut self, scale: impl Into<Vector>);
 
     fn draft(&mut self, clip_bounds: Rectangle) -> Self;
-    fn paste(&mut self, frame: Self, at: Point);
+    fn paste(&mut self, frame: Self);
 
     fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>);
 
@@ -197,6 +217,24 @@ pub trait Backend: Sized {
         top_left: Point,
         size: Size,
         fill: impl Into<Fill>,
+    );
+
+    fn draw_image(
+        &mut self,
+        handle: &image::Handle,
+        bounds: Rectangle,
+        filter_method: image::FilterMethod,
+        rotation: Radians,
+        opacity: f32,
+    );
+
+    fn draw_svg(
+        &mut self,
+        handle: &svg::Handle,
+        bounds: Rectangle,
+        color: Option<Color>,
+        rotation: Radians,
+        opacity: f32,
     );
 
     fn into_geometry(self) -> Self::Geometry;
@@ -231,7 +269,7 @@ impl Backend for () {
     fn scale_nonuniform(&mut self, _scale: impl Into<Vector>) {}
 
     fn draft(&mut self, _clip_bounds: Rectangle) -> Self {}
-    fn paste(&mut self, _frame: Self, _at: Point) {}
+    fn paste(&mut self, _frame: Self) {}
 
     fn stroke<'a>(&mut self, _path: &Path, _stroke: impl Into<Stroke<'a>>) {}
 
@@ -246,4 +284,24 @@ impl Backend for () {
     }
 
     fn into_geometry(self) -> Self::Geometry {}
+
+    fn draw_image(
+        &mut self,
+        _handle: &image::Handle,
+        _bounds: Rectangle,
+        _filter_method: image::FilterMethod,
+        _rotation: Radians,
+        _opacity: f32,
+    ) {
+    }
+
+    fn draw_svg(
+        &mut self,
+        _handle: &svg::Handle,
+        _bounds: Rectangle,
+        _color: Option<Color>,
+        _rotation: Radians,
+        _opacity: f32,
+    ) {
+    }
 }

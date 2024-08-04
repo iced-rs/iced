@@ -1,10 +1,12 @@
+use crate::core::image;
+use crate::core::svg;
 use crate::core::text::LineHeight;
-use crate::core::{Pixels, Point, Radians, Rectangle, Size, Vector};
+use crate::core::{Color, Pixels, Point, Radians, Rectangle, Size, Vector};
 use crate::graphics::cache::{self, Cached};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{self, Path, Style};
-use crate::graphics::{Gradient, Text};
+use crate::graphics::{Gradient, Image, Text};
 use crate::Primitive;
 
 use std::rc::Rc;
@@ -13,6 +15,7 @@ use std::rc::Rc;
 pub enum Geometry {
     Live {
         text: Vec<Text>,
+        images: Vec<Image>,
         primitives: Vec<Primitive>,
         clip_bounds: Rectangle,
     },
@@ -22,6 +25,7 @@ pub enum Geometry {
 #[derive(Debug, Clone)]
 pub struct Cache {
     pub text: Rc<[Text]>,
+    pub images: Rc<[Image]>,
     pub primitives: Rc<[Primitive]>,
     pub clip_bounds: Rectangle,
 }
@@ -37,10 +41,12 @@ impl Cached for Geometry {
         match self {
             Self::Live {
                 primitives,
+                images,
                 text,
                 clip_bounds,
             } => Cache {
                 primitives: Rc::from(primitives),
+                images: Rc::from(images),
                 text: Rc::from(text),
                 clip_bounds,
             },
@@ -55,6 +61,7 @@ pub struct Frame {
     transform: tiny_skia::Transform,
     stack: Vec<tiny_skia::Transform>,
     primitives: Vec<Primitive>,
+    images: Vec<Image>,
     text: Vec<Text>,
 }
 
@@ -68,6 +75,7 @@ impl Frame {
             clip_bounds,
             stack: Vec::new(),
             primitives: Vec::new(),
+            images: Vec::new(),
             text: Vec::new(),
             transform: tiny_skia::Transform::from_translate(
                 clip_bounds.x,
@@ -238,7 +246,7 @@ impl geometry::frame::Backend for Frame {
         Self::with_clip(clip_bounds)
     }
 
-    fn paste(&mut self, frame: Self, _at: Point) {
+    fn paste(&mut self, frame: Self) {
         self.primitives.extend(frame.primitives);
         self.text.extend(frame.text);
     }
@@ -269,10 +277,82 @@ impl geometry::frame::Backend for Frame {
     fn into_geometry(self) -> Geometry {
         Geometry::Live {
             primitives: self.primitives,
+            images: self.images,
             text: self.text,
             clip_bounds: self.clip_bounds,
         }
     }
+
+    fn draw_image(
+        &mut self,
+        handle: &image::Handle,
+        bounds: Rectangle,
+        filter_method: image::FilterMethod,
+        rotation: Radians,
+        opacity: f32,
+    ) {
+        let (bounds, external_rotation) =
+            transform_rectangle(bounds, self.transform);
+
+        self.images.push(Image::Raster {
+            handle: handle.clone(),
+            filter_method,
+            bounds,
+            rotation: rotation + external_rotation,
+            opacity,
+            snap: false,
+        });
+    }
+
+    fn draw_svg(
+        &mut self,
+        handle: &svg::Handle,
+        bounds: Rectangle,
+        color: Option<Color>,
+        rotation: Radians,
+        opacity: f32,
+    ) {
+        let (bounds, external_rotation) =
+            transform_rectangle(bounds, self.transform);
+
+        self.images.push(Image::Vector {
+            handle: handle.clone(),
+            bounds,
+            color,
+            rotation: rotation + external_rotation,
+            opacity,
+        });
+    }
+}
+
+fn transform_rectangle(
+    rectangle: Rectangle,
+    transform: tiny_skia::Transform,
+) -> (Rectangle, Radians) {
+    let mut top_left = tiny_skia::Point {
+        x: rectangle.x,
+        y: rectangle.y,
+    };
+
+    let mut top_right = tiny_skia::Point {
+        x: rectangle.x + rectangle.width,
+        y: rectangle.y,
+    };
+
+    let mut bottom_left = tiny_skia::Point {
+        x: rectangle.x,
+        y: rectangle.y + rectangle.height,
+    };
+
+    transform.map_point(&mut top_left);
+    transform.map_point(&mut top_right);
+    transform.map_point(&mut bottom_left);
+
+    Rectangle::with_vertices(
+        Point::new(top_left.x, top_left.y),
+        Point::new(top_right.x, top_right.y),
+        Point::new(bottom_left.x, bottom_left.y),
+    )
 }
 
 fn convert_path(path: &Path) -> Option<tiny_skia::Path> {

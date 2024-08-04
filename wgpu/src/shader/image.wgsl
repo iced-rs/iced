@@ -1,5 +1,6 @@
 struct Globals {
     transform: mat4x4<f32>,
+    scale_factor: f32,
 }
 
 @group(0) @binding(0) var<uniform> globals: Globals;
@@ -16,6 +17,7 @@ struct VertexInput {
     @location(5) atlas_pos: vec2<f32>,
     @location(6) atlas_scale: vec2<f32>,
     @location(7) layer: i32,
+    @location(8) snap: u32,
 }
 
 struct VertexOutput {
@@ -38,7 +40,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     out.opacity = input.opacity;
 
     // Calculate the vertex position and move the center to the origin
-    v_pos = round(input.pos) + v_pos * input.scale - input.center;
+    v_pos = input.pos + v_pos * input.scale - input.center;
 
     // Apply the rotation around the center of the image
     let cos_rot = cos(input.rotation);
@@ -51,7 +53,13 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     );
 
     // Calculate the final position of the vertex
-    out.position = globals.transform * (vec4<f32>(input.center, 0.0, 0.0) + rotate * vec4<f32>(v_pos, 0.0, 1.0));
+    out.position = vec4(vec2(globals.scale_factor), 1.0, 1.0) * (vec4<f32>(input.center, 0.0, 0.0) + rotate * vec4<f32>(v_pos, 0.0, 1.0));
+
+    if bool(input.snap) {
+        out.position = round(out.position);
+    }
+
+    out.position = globals.transform * out.position;
 
     return out;
 }

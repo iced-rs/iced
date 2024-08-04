@@ -1,7 +1,9 @@
 //! Build and draw geometry.
+use crate::core::image;
+use crate::core::svg;
 use crate::core::text::LineHeight;
 use crate::core::{
-    Pixels, Point, Radians, Rectangle, Size, Transformation, Vector,
+    Color, Pixels, Point, Radians, Rectangle, Size, Transformation, Vector,
 };
 use crate::graphics::cache::{self, Cached};
 use crate::graphics::color;
@@ -11,7 +13,7 @@ use crate::graphics::geometry::{
 };
 use crate::graphics::gradient::{self, Gradient};
 use crate::graphics::mesh::{self, Mesh};
-use crate::graphics::{self, Text};
+use crate::graphics::{self, Image, Text};
 use crate::text;
 use crate::triangle;
 
@@ -19,16 +21,22 @@ use lyon::geom::euclid;
 use lyon::tessellation;
 
 use std::borrow::Cow;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub enum Geometry {
-    Live { meshes: Vec<Mesh>, text: Vec<Text> },
+    Live {
+        meshes: Vec<Mesh>,
+        images: Vec<Image>,
+        text: Vec<Text>,
+    },
     Cached(Cache),
 }
 
 #[derive(Debug, Clone)]
 pub struct Cache {
     pub meshes: Option<triangle::Cache>,
+    pub images: Option<Arc<[Image]>>,
     pub text: Option<text::Cache>,
 }
 
@@ -45,7 +53,17 @@ impl Cached for Geometry {
         previous: Option<Self::Cache>,
     ) -> Self::Cache {
         match self {
-            Self::Live { meshes, text } => {
+            Self::Live {
+                meshes,
+                images,
+                text,
+            } => {
+                let images = if images.is_empty() {
+                    None
+                } else {
+                    Some(Arc::from(images))
+                };
+
                 if let Some(mut previous) = previous {
                     if let Some(cache) = &mut previous.meshes {
                         cache.update(meshes);
@@ -59,10 +77,13 @@ impl Cached for Geometry {
                         previous.text = text::Cache::new(group, text);
                     }
 
+                    previous.images = images;
+
                     previous
                 } else {
                     Cache {
                         meshes: triangle::Cache::new(meshes),
+                        images,
                         text: text::Cache::new(group, text),
                     }
                 }
@@ -78,6 +99,7 @@ pub struct Frame {
     clip_bounds: Rectangle,
     buffers: BufferStack,
     meshes: Vec<Mesh>,
+    images: Vec<Image>,
     text: Vec<Text>,
     transforms: Transforms,
     fill_tessellator: tessellation::FillTessellator,
@@ -96,6 +118,7 @@ impl Frame {
             clip_bounds: bounds,
             buffers: BufferStack::new(),
             meshes: Vec::new(),
+            images: Vec::new(),
             text: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
@@ -335,10 +358,11 @@ impl geometry::frame::Backend for Frame {
         Frame::with_clip(clip_bounds)
     }
 
-    fn paste(&mut self, frame: Frame, _at: Point) {
+    fn paste(&mut self, frame: Frame) {
         self.meshes
             .extend(frame.buffers.into_meshes(frame.clip_bounds));
 
+        self.images.extend(frame.images);
         self.text.extend(frame.text);
     }
 
@@ -348,8 +372,50 @@ impl geometry::frame::Backend for Frame {
 
         Geometry::Live {
             meshes: self.meshes,
+            images: self.images,
             text: self.text,
         }
+    }
+
+    fn draw_image(
+        &mut self,
+        handle: &image::Handle,
+        bounds: Rectangle,
+        filter_method: image::FilterMethod,
+        rotation: Radians,
+        opacity: f32,
+    ) {
+        let (bounds, external_rotation) =
+            self.transforms.current.transform_rectangle(bounds);
+
+        self.images.push(Image::Raster {
+            handle: handle.clone(),
+            filter_method,
+            bounds,
+            rotation: rotation + external_rotation,
+            opacity,
+            snap: false,
+        });
+    }
+
+    fn draw_svg(
+        &mut self,
+        handle: &svg::Handle,
+        bounds: Rectangle,
+        color: Option<Color>,
+        rotation: Radians,
+        opacity: f32,
+    ) {
+        let (bounds, external_rotation) =
+            self.transforms.current.transform_rectangle(bounds);
+
+        self.images.push(Image::Vector {
+            handle: handle.clone(),
+            color,
+            bounds,
+            rotation: rotation + external_rotation,
+            opacity,
+        });
     }
 }
 
@@ -517,6 +583,21 @@ impl Transform {
         }
 
         gradient
+    }
+
+    fn transform_rectangle(
+        &self,
+        rectangle: Rectangle,
+    ) -> (Rectangle, Radians) {
+        let top_left = self.transform_point(rectangle.position());
+        let top_right = self.transform_point(
+            rectangle.position() + Vector::new(rectangle.width, 0.0),
+        );
+        let bottom_left = self.transform_point(
+            rectangle.position() + Vector::new(0.0, rectangle.height),
+        );
+
+        Rectangle::with_vertices(top_left, top_right, bottom_left)
     }
 }
 struct GradientVertex2DBuilder {

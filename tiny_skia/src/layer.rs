@@ -117,6 +117,48 @@ impl Layer {
 
     pub fn draw_image(
         &mut self,
+        image: &Image,
+        transformation: Transformation,
+    ) {
+        match image {
+            Image::Raster {
+                handle,
+                filter_method,
+                bounds,
+                rotation,
+                opacity,
+                snap: _,
+            } => {
+                self.draw_raster(
+                    handle.clone(),
+                    *filter_method,
+                    *bounds,
+                    transformation,
+                    *rotation,
+                    *opacity,
+                );
+            }
+            Image::Vector {
+                handle,
+                color,
+                bounds,
+                rotation,
+                opacity,
+            } => {
+                self.draw_svg(
+                    handle.clone(),
+                    *color,
+                    *bounds,
+                    transformation,
+                    *rotation,
+                    *opacity,
+                );
+            }
+        }
+    }
+
+    pub fn draw_raster(
+        &mut self,
         handle: image::Handle,
         filter_method: image::FilterMethod,
         bounds: Rectangle,
@@ -130,6 +172,7 @@ impl Layer {
             bounds: bounds * transformation,
             rotation,
             opacity,
+            snap: false,
         };
 
         self.images.push(image);

@@ -572,6 +572,42 @@ mod geometry {
             delegate!(self, frame, frame.fill_text(text));
         }
 
+        fn draw_image(
+            &mut self,
+            handle: &iced_wgpu::core::image::Handle,
+            bounds: Rectangle,
+            filter_method: iced_wgpu::core::image::FilterMethod,
+            rotation: Radians,
+            opacity: f32,
+        ) {
+            delegate!(
+                self,
+                frame,
+                frame.draw_image(
+                    handle,
+                    bounds,
+                    filter_method,
+                    rotation,
+                    opacity
+                )
+            );
+        }
+
+        fn draw_svg(
+            &mut self,
+            handle: &iced_wgpu::core::svg::Handle,
+            bounds: Rectangle,
+            color: Option<iced_wgpu::core::Color>,
+            rotation: Radians,
+            opacity: f32,
+        ) {
+            delegate!(
+                self,
+                frame,
+                frame.draw_svg(handle, bounds, color, rotation, opacity)
+            );
+        }
+
         fn push_transform(&mut self) {
             delegate!(self, frame, frame.push_transform());
         }
@@ -587,13 +623,13 @@ mod geometry {
             }
         }
 
-        fn paste(&mut self, frame: Self, at: Point) {
+        fn paste(&mut self, frame: Self) {
             match (self, frame) {
                 (Self::Primary(target), Self::Primary(source)) => {
-                    target.paste(source, at);
+                    target.paste(source);
                 }
                 (Self::Secondary(target), Self::Secondary(source)) => {
-                    target.paste(source, at);
+                    target.paste(source);
                 }
                 _ => unreachable!(),
             }

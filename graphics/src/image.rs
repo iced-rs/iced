@@ -23,6 +23,12 @@ pub enum Image {
 
         /// The opacity of the image.
         opacity: f32,
+
+        /// If set to `true`, the image will be snapped to the pixel grid.
+        ///
+        /// This can avoid graphical glitches, specially when using a
+        /// [`image::FilterMethod::Nearest`].
+        snap: bool,
     },
     /// A vector image.
     Vector {

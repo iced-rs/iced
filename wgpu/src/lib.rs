@@ -536,13 +536,14 @@ impl core::image::Renderer for Renderer {
         opacity: f32,
     ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_image(
+        layer.draw_raster(
             handle,
             filter_method,
             bounds,
             transformation,
             rotation,
             opacity,
+            true,
         );
     }
 }
@@ -593,13 +594,28 @@ impl graphics::geometry::Renderer for Renderer {
         let (layer, transformation) = self.layers.current_mut();
 
         match geometry {
-            Geometry::Live { meshes, text } => {
+            Geometry::Live {
+                meshes,
+                images,
+                text,
+            } => {
                 layer.draw_mesh_group(meshes, transformation);
+
+                for image in images {
+                    layer.draw_image(&image, transformation);
+                }
+
                 layer.draw_text_group(text, transformation);
             }
             Geometry::Cached(cache) => {
                 if let Some(meshes) = cache.meshes {
                     layer.draw_mesh_cache(meshes, transformation);
+                }
+
+                if let Some(images) = cache.images {
+                    for image in images.iter() {
+                        layer.draw_image(image, transformation);
+                    }
                 }
 
                 if let Some(text) = cache.text {

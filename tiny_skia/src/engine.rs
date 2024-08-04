@@ -556,6 +556,7 @@ impl Engine {
                 bounds,
                 rotation,
                 opacity,
+                snap: _,
             } => {
                 let physical_bounds = *bounds * _transformation;
 
