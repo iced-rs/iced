@@ -184,9 +184,7 @@ impl image::Renderer for () {
         Size::default()
     }
 
-    fn draw_image(&mut self, _image: Image, _bounds: Rectangle) {
-        todo!()
-    }
+    fn draw_image(&mut self, _image: Image, _bounds: Rectangle) {}
 }
 
 impl svg::Renderer for () {
