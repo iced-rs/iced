@@ -187,7 +187,7 @@ impl<Message> canvas::Program<Message> for State {
 
             frame.draw_image(
                 Rectangle::with_radius(Self::EARTH_RADIUS),
-                canvas::Image::new(&self.earth).rotation(rotation * 20.0),
+                canvas::Image::new(&self.earth).rotation(-rotation * 20.0),
             );
 
             frame.rotate(rotation * 10.0);
