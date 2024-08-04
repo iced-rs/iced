@@ -441,7 +441,9 @@ where
 #[cfg(feature = "geometry")]
 mod geometry {
     use super::Renderer;
-    use crate::core::{Point, Radians, Rectangle, Size, Vector};
+    use crate::core::image;
+    use crate::core::svg;
+    use crate::core::{Color, Point, Radians, Rectangle, Size, Vector};
     use crate::graphics::cache::{self, Cached};
     use crate::graphics::geometry::{self, Fill, Path, Stroke, Text};
 
@@ -574,9 +576,9 @@ mod geometry {
 
         fn draw_image(
             &mut self,
-            handle: &iced_wgpu::core::image::Handle,
+            handle: &image::Handle,
             bounds: Rectangle,
-            filter_method: iced_wgpu::core::image::FilterMethod,
+            filter_method: image::FilterMethod,
             rotation: Radians,
             opacity: f32,
         ) {
@@ -595,9 +597,9 @@ mod geometry {
 
         fn draw_svg(
             &mut self,
-            handle: &iced_wgpu::core::svg::Handle,
+            handle: &svg::Handle,
             bounds: Rectangle,
-            color: Option<iced_wgpu::core::Color>,
+            color: Option<Color>,
             rotation: Radians,
             opacity: f32,
         ) {
