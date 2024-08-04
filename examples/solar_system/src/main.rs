@@ -185,31 +185,27 @@ impl<Message> canvas::Program<Message> for State {
             let rotation = (2.0 * PI / 60.0) * elapsed.as_secs() as f32
                 + (2.0 * PI / 60_000.0) * elapsed.subsec_millis() as f32;
 
-            frame.with_save(|frame| {
-                frame.rotate(rotation);
-                frame.translate(Vector::new(Self::ORBIT_RADIUS, 0.0));
+            frame.rotate(rotation);
+            frame.translate(Vector::new(Self::ORBIT_RADIUS, 0.0));
 
-                frame.draw_image(
-                    &self.earth,
-                    Rectangle::with_radius(Self::EARTH_RADIUS),
-                    image::FilterMethod::Linear,
-                    rotation * 10.0,
-                    1.0,
-                );
+            frame.draw_image(
+                &self.earth,
+                Rectangle::with_radius(Self::EARTH_RADIUS),
+                image::FilterMethod::Linear,
+                rotation * 10.0,
+                1.0,
+            );
 
-                frame.with_save(|frame| {
-                    frame.rotate(rotation * 10.0);
-                    frame.translate(Vector::new(0.0, Self::MOON_DISTANCE));
+            frame.rotate(rotation * 10.0);
+            frame.translate(Vector::new(0.0, Self::MOON_DISTANCE));
 
-                    frame.draw_image(
-                        &self.moon,
-                        Rectangle::with_radius(Self::MOON_RADIUS),
-                        image::FilterMethod::Linear,
-                        0,
-                        1.0,
-                    );
-                });
-            });
+            frame.draw_image(
+                &self.moon,
+                Rectangle::with_radius(Self::MOON_RADIUS),
+                image::FilterMethod::Linear,
+                0,
+                1.0,
+            );
         });
 
         vec![background, system]
