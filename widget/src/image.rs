@@ -43,7 +43,7 @@ pub struct Image<Handle> {
 
 impl<Handle> Image<Handle> {
     /// Creates a new [`Image`] with the given path.
-    pub fn new<T: Into<Handle>>(handle: T) -> Self {
+    pub fn new(handle: impl Into<Handle>) -> Self {
         Image {
             handle: handle.into(),
             width: Length::Shrink,
@@ -181,11 +181,14 @@ pub fn draw<Renderer, Handle>(
 
     let render = |renderer: &mut Renderer| {
         renderer.draw_image(
-            handle.clone(),
-            filter_method,
+            image::Image {
+                handle: handle.clone(),
+                filter_method,
+                rotation: rotation.radians(),
+                opacity,
+                snap: true,
+            },
             drawing_bounds,
-            rotation.radians(),
-            opacity,
         );
     };
 

@@ -149,6 +149,8 @@ impl Pipeline {
                             6 => Float32x2,
                             // Layer
                             7 => Sint32,
+                            // Snap
+                            8 => Uint32,
                         ),
                     }],
                 },
@@ -212,31 +214,24 @@ impl Pipeline {
         transformation: Transformation,
         scale: f32,
     ) {
-        let transformation = transformation * Transformation::scale(scale);
-
         let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
         let linear_instances: &mut Vec<Instance> = &mut Vec::new();
 
         for image in images {
             match &image {
                 #[cfg(feature = "image")]
-                Image::Raster {
-                    handle,
-                    filter_method,
-                    bounds,
-                    rotation,
-                    opacity,
-                } => {
+                Image::Raster(image, bounds) => {
                     if let Some(atlas_entry) =
-                        cache.upload_raster(device, encoder, handle)
+                        cache.upload_raster(device, encoder, &image.handle)
                     {
                         add_instances(
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
-                            f32::from(*rotation),
-                            *opacity,
+                            f32::from(image.rotation),
+                            image.opacity,
+                            image.snap,
                             atlas_entry,
-                            match filter_method {
+                            match image.filter_method {
                                 crate::core::image::FilterMethod::Nearest => {
                                     nearest_instances
                                 }
@@ -251,23 +246,23 @@ impl Pipeline {
                 Image::Raster { .. } => {}
 
                 #[cfg(feature = "svg")]
-                Image::Vector {
-                    handle,
-                    color,
-                    bounds,
-                    rotation,
-                    opacity,
-                } => {
+                Image::Vector(svg, bounds) => {
                     let size = [bounds.width, bounds.height];
 
                     if let Some(atlas_entry) = cache.upload_vector(
-                        device, encoder, handle, *color, size, scale,
+                        device,
+                        encoder,
+                        &svg.handle,
+                        svg.color,
+                        size,
+                        scale,
                     ) {
                         add_instances(
                             [bounds.x, bounds.y],
                             size,
-                            f32::from(*rotation),
-                            *opacity,
+                            f32::from(svg.rotation),
+                            svg.opacity,
+                            true,
                             atlas_entry,
                             nearest_instances,
                         );
@@ -300,6 +295,7 @@ impl Pipeline {
             nearest_instances,
             linear_instances,
             transformation,
+            scale,
         );
 
         self.prepare_layer += 1;
@@ -375,9 +371,12 @@ impl Layer {
         nearest_instances: &[Instance],
         linear_instances: &[Instance],
         transformation: Transformation,
+        scale_factor: f32,
     ) {
         let uniforms = Uniforms {
             transform: transformation.into(),
+            scale_factor,
+            _padding: [0.0; 3],
         };
 
         let bytes = bytemuck::bytes_of(&uniforms);
@@ -492,6 +491,7 @@ struct Instance {
     _position_in_atlas: [f32; 2],
     _size_in_atlas: [f32; 2],
     _layer: u32,
+    _snap: u32,
 }
 
 impl Instance {
@@ -502,6 +502,10 @@ impl Instance {
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 struct Uniforms {
     transform: [f32; 16],
+    scale_factor: f32,
+    // Uniforms must be aligned to their largest member,
+    // this uses a mat4x4<f32> which aligns to 16, so align to that
+    _padding: [f32; 3],
 }
 
 fn add_instances(
@@ -509,6 +513,7 @@ fn add_instances(
     image_size: [f32; 2],
     rotation: f32,
     opacity: f32,
+    snap: bool,
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
@@ -525,6 +530,7 @@ fn add_instances(
                 image_size,
                 rotation,
                 opacity,
+                snap,
                 allocation,
                 instances,
             );
@@ -554,8 +560,8 @@ fn add_instances(
                 ];
 
                 add_instance(
-                    position, center, size, rotation, opacity, allocation,
-                    instances,
+                    position, center, size, rotation, opacity, snap,
+                    allocation, instances,
                 );
             }
         }
@@ -569,6 +575,7 @@ fn add_instance(
     size: [f32; 2],
     rotation: f32,
     opacity: f32,
+    snap: bool,
     allocation: &atlas::Allocation,
     instances: &mut Vec<Instance>,
 ) {
@@ -591,6 +598,7 @@ fn add_instance(
             (height as f32 - 1.0) / atlas::SIZE as f32,
         ],
         _layer: layer as u32,
+        _snap: snap as u32,
     };
 
     instances.push(instance);

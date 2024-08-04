@@ -550,13 +550,7 @@ impl Engine {
     ) {
         match image {
             #[cfg(feature = "image")]
-            Image::Raster {
-                handle,
-                filter_method,
-                bounds,
-                rotation,
-                opacity,
-            } => {
+            Image::Raster(raster, bounds) => {
                 let physical_bounds = *bounds * _transformation;
 
                 if !_clip_bounds.intersects(&physical_bounds) {
@@ -567,7 +561,7 @@ impl Engine {
                     .then_some(_clip_mask as &_);
 
                 let center = physical_bounds.center();
-                let radians = f32::from(*rotation);
+                let radians = f32::from(raster.rotation);
 
                 let transform = into_transform(_transformation).post_rotate_at(
                     radians.to_degrees(),
@@ -576,23 +570,17 @@ impl Engine {
                 );
 
                 self.raster_pipeline.draw(
-                    handle,
-                    *filter_method,
+                    &raster.handle,
+                    raster.filter_method,
                     *bounds,
-                    *opacity,
+                    raster.opacity,
                     _pixels,
                     transform,
                     clip_mask,
                 );
             }
             #[cfg(feature = "svg")]
-            Image::Vector {
-                handle,
-                color,
-                bounds,
-                rotation,
-                opacity,
-            } => {
+            Image::Vector(svg, bounds) => {
                 let physical_bounds = *bounds * _transformation;
 
                 if !_clip_bounds.intersects(&physical_bounds) {
@@ -603,7 +591,7 @@ impl Engine {
                     .then_some(_clip_mask as &_);
 
                 let center = physical_bounds.center();
-                let radians = f32::from(*rotation);
+                let radians = f32::from(svg.rotation);
 
                 let transform = into_transform(_transformation).post_rotate_at(
                     radians.to_degrees(),
@@ -612,10 +600,10 @@ impl Engine {
                 );
 
                 self.vector_pipeline.draw(
-                    handle,
-                    *color,
+                    &svg.handle,
+                    svg.color,
                     physical_bounds,
-                    *opacity,
+                    svg.opacity,
                     _pixels,
                     transform,
                     clip_mask,

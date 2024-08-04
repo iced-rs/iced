@@ -20,7 +20,7 @@ fn main() -> iced::Result {
 
 #[derive(Default)]
 struct Example {
-    screenshot: Option<Screenshot>,
+    screenshot: Option<(Screenshot, image::Handle)>,
     saved_png_path: Option<Result<String, PngError>>,
     png_saving: bool,
     crop_error: Option<screenshot::CropError>,
@@ -52,10 +52,17 @@ impl Example {
                     .map(Message::Screenshotted);
             }
             Message::Screenshotted(screenshot) => {
-                self.screenshot = Some(screenshot);
+                self.screenshot = Some((
+                    screenshot.clone(),
+                    image::Handle::from_rgba(
+                        screenshot.size.width,
+                        screenshot.size.height,
+                        screenshot.bytes,
+                    ),
+                ));
             }
             Message::Png => {
-                if let Some(screenshot) = &self.screenshot {
+                if let Some((screenshot, _handle)) = &self.screenshot {
                     self.png_saving = true;
 
                     return Task::perform(
@@ -81,7 +88,7 @@ impl Example {
                 self.height_input_value = new_value;
             }
             Message::Crop => {
-                if let Some(screenshot) = &self.screenshot {
+                if let Some((screenshot, _handle)) = &self.screenshot {
                     let cropped = screenshot.crop(Rectangle::<u32> {
                         x: self.x_input_value.unwrap_or(0),
                         y: self.y_input_value.unwrap_or(0),
@@ -91,7 +98,14 @@ impl Example {
 
                     match cropped {
                         Ok(screenshot) => {
-                            self.screenshot = Some(screenshot);
+                            self.screenshot = Some((
+                                screenshot.clone(),
+                                image::Handle::from_rgba(
+                                    screenshot.size.width,
+                                    screenshot.size.height,
+                                    screenshot.bytes,
+                                ),
+                            ));
                             self.crop_error = None;
                         }
                         Err(crop_error) => {
@@ -106,20 +120,16 @@ impl Example {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let image: Element<Message> = if let Some(screenshot) = &self.screenshot
-        {
-            image(image::Handle::from_rgba(
-                screenshot.size.width,
-                screenshot.size.height,
-                screenshot.clone(),
-            ))
-            .content_fit(ContentFit::Contain)
-            .width(Fill)
-            .height(Fill)
-            .into()
-        } else {
-            text("Press the button to take a screenshot!").into()
-        };
+        let image: Element<Message> =
+            if let Some((_screenshot, handle)) = &self.screenshot {
+                image(handle)
+                    .content_fit(ContentFit::Contain)
+                    .width(Fill)
+                    .height(Fill)
+                    .into()
+            } else {
+                text("Press the button to take a screenshot!").into()
+            };
 
         let image = container(image)
             .center_y(FillPortion(2))
