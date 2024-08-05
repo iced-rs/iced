@@ -208,12 +208,14 @@ where
 
 /// The local state of a [`ComboBox`].
 #[derive(Debug, Clone)]
-pub struct State<T>(RefCell<Inner<T>>);
+pub struct State<T> {
+    options: Vec<T>,
+    inner: RefCell<Inner<T>>,
+}
 
 #[derive(Debug, Clone)]
 struct Inner<T> {
     value: String,
-    options: Vec<T>,
     option_matchers: Vec<String>,
     filtered_options: Filtered<T>,
 }
@@ -247,34 +249,44 @@ where
                 .collect(),
         );
 
-        Self(RefCell::new(Inner {
-            value,
+        Self {
             options,
-            option_matchers,
-            filtered_options,
-        }))
+            inner: RefCell::new(Inner {
+                value,
+                option_matchers,
+                filtered_options,
+            }),
+        }
+    }
+
+    /// Returns the options of the [`State`].
+    ///
+    /// These are the options provided when the [`State`]
+    /// was constructed with [`State::new`].
+    pub fn options(&self) -> &[T] {
+        &self.options
     }
 
     fn value(&self) -> String {
-        let inner = self.0.borrow();
+        let inner = self.inner.borrow();
 
         inner.value.clone()
     }
 
     fn with_inner<O>(&self, f: impl FnOnce(&Inner<T>) -> O) -> O {
-        let inner = self.0.borrow();
+        let inner = self.inner.borrow();
 
         f(&inner)
     }
 
     fn with_inner_mut(&self, f: impl FnOnce(&mut Inner<T>)) {
-        let mut inner = self.0.borrow_mut();
+        let mut inner = self.inner.borrow_mut();
 
         f(&mut inner);
     }
 
     fn sync_filtered_options(&self, options: &mut Filtered<T>) {
-        let inner = self.0.borrow();
+        let inner = self.inner.borrow();
 
         inner.filtered_options.sync(options);
     }
@@ -440,7 +452,7 @@ where
 
                 state.filtered_options.update(
                     search(
-                        &state.options,
+                        &self.state.options,
                         &state.option_matchers,
                         &state.value,
                     )
@@ -589,7 +601,7 @@ where
             if let Some(selection) = menu.new_selection.take() {
                 // Clear the value and reset the options and menu
                 state.value = String::new();
-                state.filtered_options.update(state.options.clone());
+                state.filtered_options.update(self.state.options.clone());
                 menu.menu = menu::State::default();
 
                 // Notify the selection
