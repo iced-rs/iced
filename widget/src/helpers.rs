@@ -523,6 +523,7 @@ where
                         | mouse::Event::ButtonReleased(_)
                 )
             ) || cursor.is_over(layout.bounds())
+                || self.is_top_overlay_active
             {
                 let (top_layout, top_tree) = children.next().unwrap();
 
