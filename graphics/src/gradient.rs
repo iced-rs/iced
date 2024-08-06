@@ -9,7 +9,7 @@ use bytemuck::{Pod, Zeroable};
 use half::f16;
 use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 /// A fill which linearly interpolates colors along a direction.
 ///
 /// For a gradient which can be used as a fill for a background of a widget, see [`crate::core::Gradient`].

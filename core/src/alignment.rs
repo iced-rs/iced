@@ -46,6 +46,16 @@ pub enum Horizontal {
     Right,
 }
 
+impl From<Alignment> for Horizontal {
+    fn from(alignment: Alignment) -> Self {
+        match alignment {
+            Alignment::Start => Self::Left,
+            Alignment::Center => Self::Center,
+            Alignment::End => Self::Right,
+        }
+    }
+}
+
 /// The vertical [`Alignment`] of some resource.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Vertical {
@@ -57,4 +67,14 @@ pub enum Vertical {
 
     /// Align bottom
     Bottom,
+}
+
+impl From<Alignment> for Vertical {
+    fn from(alignment: Alignment) -> Self {
+        match alignment {
+            Alignment::Start => Self::Top,
+            Alignment::Center => Self::Center,
+            Alignment::End => Self::Bottom,
+        }
+    }
 }

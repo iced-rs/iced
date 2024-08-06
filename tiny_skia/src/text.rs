@@ -169,7 +169,13 @@ impl Pipeline {
             font_system.raw(),
             &mut self.glyph_cache,
             buffer,
-            Rectangle::new(position, Size::new(width, height)),
+            Rectangle::new(
+                position,
+                Size::new(
+                    width.unwrap_or(pixels.width() as f32),
+                    height.unwrap_or(pixels.height() as f32),
+                ),
+            ),
             color,
             alignment::Horizontal::Left,
             alignment::Vertical::Top,

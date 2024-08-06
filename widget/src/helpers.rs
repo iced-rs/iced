@@ -12,7 +12,8 @@ use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::rule::{self, Rule};
-use crate::runtime::{Action, Task};
+use crate::runtime::task::{self, Task};
+use crate::runtime::Action;
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
 use crate::text::{self, Text};
@@ -23,7 +24,7 @@ use crate::tooltip::{self, Tooltip};
 use crate::vertical_slider::{self, VerticalSlider};
 use crate::{Column, MouseArea, Row, Space, Stack, Themer};
 
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 use std::ops::RangeInclusive;
 
 /// Creates a [`Column`] with the given children.
@@ -109,6 +110,19 @@ macro_rules! text {
     ($($arg:tt)*) => {
         $crate::Text::new(format!($($arg)*))
     };
+}
+
+/// Creates some [`Rich`] text with the given spans.
+///
+/// [`Rich`]: text::Rich
+#[macro_export]
+macro_rules! rich_text {
+    () => (
+        $crate::Column::new()
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::text::Rich::from_iter([$($crate::text::Span::from($x)),+])
+    );
 }
 
 /// Creates a new [`Container`] with the provided content.
@@ -509,6 +523,7 @@ where
                         | mouse::Event::ButtonReleased(_)
                 )
             ) || cursor.is_over(layout.bounds())
+                || self.is_top_overlay_active
             {
                 let (top_layout, top_tree) = children.next().unwrap();
 
@@ -645,8 +660,6 @@ where
 }
 
 /// Creates a new [`Text`] widget with the provided content.
-///
-/// [`Text`]: core::widget::Text
 pub fn text<'a, Theme, Renderer>(
     text: impl text::IntoFragment<'a>,
 ) -> Text<'a, Theme, Renderer>
@@ -658,8 +671,6 @@ where
 }
 
 /// Creates a new [`Text`] widget that displays the provided value.
-///
-/// [`Text`]: core::widget::Text
 pub fn value<'a, Theme, Renderer>(
     value: impl ToString,
 ) -> Text<'a, Theme, Renderer>
@@ -669,6 +680,33 @@ where
 {
     Text::new(value.to_string())
 }
+
+/// Creates a new [`Rich`] text widget with the provided spans.
+///
+/// [`Rich`]: text::Rich
+pub fn rich_text<'a, Link, Theme, Renderer>(
+    spans: impl Into<Cow<'a, [text::Span<'a, Link, Renderer::Font>]>>,
+) -> text::Rich<'a, Link, Theme, Renderer>
+where
+    Link: Clone + 'static,
+    Theme: text::Catalog + 'a,
+    Renderer: core::text::Renderer,
+{
+    text::Rich::with_spans(spans)
+}
+
+/// Creates a new [`Span`] of text with the provided content.
+///
+/// [`Span`]: text::Span
+pub fn span<'a, Link, Font>(
+    text: impl text::IntoFragment<'a>,
+) -> text::Span<'a, Link, Font> {
+    text::Span::new(text)
+}
+
+#[cfg(feature = "markdown")]
+#[doc(inline)]
+pub use crate::markdown::view as markdown;
 
 /// Creates a new [`Checkbox`].
 ///
@@ -889,6 +927,41 @@ where
     crate::Svg::new(handle)
 }
 
+/// Creates an [`Element`] that displays the iced logo with the given `text_size`.
+///
+/// Useful for showing some love to your favorite GUI library in your "About" screen,
+/// for instance.
+#[cfg(feature = "svg")]
+pub fn iced<'a, Message, Theme, Renderer>(
+    text_size: impl Into<Pixels>,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Renderer: core::Renderer
+        + core::text::Renderer<Font = core::Font>
+        + core::svg::Renderer
+        + 'a,
+    Theme: text::Catalog + crate::svg::Catalog + 'a,
+{
+    use crate::core::{Alignment, Font};
+    use crate::svg;
+    use once_cell::sync::Lazy;
+
+    static LOGO: Lazy<svg::Handle> = Lazy::new(|| {
+        svg::Handle::from_memory(include_bytes!("../assets/iced-logo.svg"))
+    });
+
+    let text_size = text_size.into();
+
+    row![
+        svg(LOGO.clone()).width(text_size * 1.3),
+        text("iced").size(text_size).font(Font::MONOSPACE)
+    ]
+    .spacing(text_size.0 / 3.0)
+    .align_y(Alignment::Center)
+    .into()
+}
+
 /// Creates a new [`Canvas`].
 ///
 /// [`Canvas`]: crate::Canvas
@@ -930,12 +1003,12 @@ where
 
 /// Focuses the previous focusable widget.
 pub fn focus_previous<T>() -> Task<T> {
-    Task::effect(Action::widget(operation::focusable::focus_previous()))
+    task::effect(Action::widget(operation::focusable::focus_previous()))
 }
 
 /// Focuses the next focusable widget.
 pub fn focus_next<T>() -> Task<T> {
-    Task::effect(Action::widget(operation::focusable::focus_next()))
+    task::effect(Action::widget(operation::focusable::focus_next()))
 }
 
 /// A container intercepting mouse events.

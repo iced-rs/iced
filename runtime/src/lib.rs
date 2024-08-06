@@ -15,13 +15,12 @@ pub mod keyboard;
 pub mod overlay;
 pub mod program;
 pub mod system;
+pub mod task;
 pub mod user_interface;
 pub mod window;
 
 #[cfg(feature = "multi-window")]
 pub mod multi_window;
-
-mod task;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.
@@ -60,7 +59,7 @@ pub enum Action<T> {
     },
 
     /// Run a widget operation.
-    Widget(Box<dyn widget::Operation<()> + Send>),
+    Widget(Box<dyn widget::Operation<()>>),
 
     /// Run a clipboard action.
     Clipboard(clipboard::Action),
@@ -70,6 +69,12 @@ pub enum Action<T> {
 
     /// Run a system action.
     System(system::Action),
+
+    /// Exits the runtime.
+    ///
+    /// This will normally close any application windows and
+    /// terminate the runtime loop.
+    Exit,
 }
 
 impl<T> Action<T> {
@@ -88,6 +93,7 @@ impl<T> Action<T> {
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
+            Action::Exit => Err(Action::Exit),
         }
     }
 }
@@ -110,6 +116,15 @@ where
             }
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
+            Action::Exit => write!(f, "Action::Exit"),
         }
     }
+}
+
+/// Creates a [`Task`] that exits the iced runtime.
+///
+/// This will normally close any application windows and
+/// terminate the runtime loop.
+pub fn exit<T>() -> Task<T> {
+    task::effect(Action::Exit)
 }

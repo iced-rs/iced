@@ -1,21 +1,20 @@
-use iced::executor;
-use iced::multi_window::{self, Application};
 use iced::widget::{
     button, center, column, container, horizontal_space, scrollable, text,
     text_input,
 };
 use iced::window;
-use iced::{
-    Alignment, Element, Length, Settings, Subscription, Task, Theme, Vector,
-};
+use iced::{Center, Element, Fill, Subscription, Task, Theme, Vector};
 
 use std::collections::BTreeMap;
 
 fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::daemon(Example::title, Example::update, Example::view)
+        .subscription(Example::subscription)
+        .theme(Example::theme)
+        .scale_factor(Example::scale_factor)
+        .run_with(Example::new)
 }
 
-#[derive(Default)]
 struct Example {
     windows: BTreeMap<window::Id, Window>,
 }
@@ -39,18 +38,15 @@ enum Message {
     TitleChanged(window::Id, String),
 }
 
-impl multi_window::Application for Example {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
+impl Example {
+    fn new() -> (Self, Task<Message>) {
+        let (_id, open) = window::open(window::Settings::default());
 
-    fn new(_flags: ()) -> (Self, Task<Message>) {
         (
-            Example {
-                windows: BTreeMap::from([(window::Id::MAIN, Window::new(1))]),
+            Self {
+                windows: BTreeMap::new(),
             },
-            Task::none(),
+            open.map(Message::WindowOpened),
         )
     }
 
@@ -68,7 +64,7 @@ impl multi_window::Application for Example {
                     return Task::none();
                 };
 
-                window::fetch_position(*last_window)
+                window::get_position(*last_window)
                     .then(|last_position| {
                         let position = last_position.map_or(
                             window::Position::Default,
@@ -79,10 +75,12 @@ impl multi_window::Application for Example {
                             },
                         );
 
-                        window::open(window::Settings {
+                        let (_id, open) = window::open(window::Settings {
                             position,
                             ..window::Settings::default()
-                        })
+                        });
+
+                        open
                     })
                     .map(Message::WindowOpened)
             }
@@ -97,7 +95,11 @@ impl multi_window::Application for Example {
             Message::WindowClosed(id) => {
                 self.windows.remove(&id);
 
-                Task::none()
+                if self.windows.is_empty() {
+                    iced::exit()
+                } else {
+                    Task::none()
+                }
             }
             Message::ScaleInputChanged(id, scale) => {
                 if let Some(window) = self.windows.get_mut(&id) {
@@ -149,7 +151,7 @@ impl multi_window::Application for Example {
             .unwrap_or(1.0)
     }
 
-    fn subscription(&self) -> Subscription<Self::Message> {
+    fn subscription(&self) -> Subscription<Message> {
         window::close_events().map(Message::WindowClosed)
     }
 }
@@ -189,8 +191,8 @@ impl Window {
         let content = scrollable(
             column![scale_input, title_input, new_window_button]
                 .spacing(50)
-                .width(Length::Fill)
-                .align_items(Alignment::Center),
+                .width(Fill)
+                .align_x(Center),
         );
 
         container(content).center_x(200).into()

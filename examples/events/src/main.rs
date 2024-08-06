@@ -1,11 +1,10 @@
-use iced::alignment;
 use iced::event::{self, Event};
 use iced::widget::{button, center, checkbox, text, Column};
 use iced::window;
-use iced::{Alignment, Element, Length, Subscription, Task};
+use iced::{Center, Element, Fill, Subscription, Task};
 
 pub fn main() -> iced::Result {
-    iced::program("Events - Iced", Events::update, Events::view)
+    iced::application("Events - Iced", Events::update, Events::view)
         .subscription(Events::subscription)
         .exit_on_close_request(false)
         .run()
@@ -38,7 +37,7 @@ impl Events {
             }
             Message::EventOccurred(event) => {
                 if let Event::Window(window::Event::CloseRequested) = event {
-                    window::close(window::Id::MAIN)
+                    window::get_latest().and_then(window::close)
                 } else {
                     Task::none()
                 }
@@ -48,7 +47,7 @@ impl Events {
 
                 Task::none()
             }
-            Message::Exit => window::close(window::Id::MAIN),
+            Message::Exit => window::get_latest().and_then(window::close),
         }
     }
 
@@ -67,17 +66,13 @@ impl Events {
         let toggle = checkbox("Listen to runtime events", self.enabled)
             .on_toggle(Message::Toggled);
 
-        let exit = button(
-            text("Exit")
-                .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center),
-        )
-        .width(100)
-        .padding(10)
-        .on_press(Message::Exit);
+        let exit = button(text("Exit").width(Fill).align_x(Center))
+            .width(100)
+            .padding(10)
+            .on_press(Message::Exit);
 
         let content = Column::new()
-            .align_items(Alignment::Center)
+            .align_x(Center)
             .spacing(20)
             .push(events)
             .push(toggle)

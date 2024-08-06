@@ -232,13 +232,14 @@ impl PartialEq for Raw {
 
 /// Measures the dimensions of the given [`cosmic_text::Buffer`].
 pub fn measure(buffer: &cosmic_text::Buffer) -> Size {
-    let (width, total_lines) = buffer
-        .layout_runs()
-        .fold((0.0, 0usize), |(width, total_lines), run| {
-            (run.line_w.max(width), total_lines + 1)
-        });
+    let (width, height) =
+        buffer
+            .layout_runs()
+            .fold((0.0, 0.0), |(width, height), run| {
+                (run.line_w.max(width), height + run.line_height)
+            });
 
-    Size::new(width, total_lines as f32 * buffer.metrics().line_height)
+    Size::new(width, height)
 }
 
 /// Returns the attributes of the given [`Font`].

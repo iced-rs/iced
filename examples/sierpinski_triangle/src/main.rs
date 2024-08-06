@@ -2,13 +2,13 @@ use iced::mouse;
 use iced::widget::canvas::event::{self, Event};
 use iced::widget::canvas::{self, Canvas, Geometry};
 use iced::widget::{column, row, slider, text};
-use iced::{Color, Length, Point, Rectangle, Renderer, Size, Theme};
+use iced::{Center, Color, Fill, Point, Rectangle, Renderer, Size, Theme};
 
 use rand::Rng;
 use std::fmt::Debug;
 
 fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "Sierpinski Triangle - Iced",
         SierpinskiEmulator::update,
         SierpinskiEmulator::view,
@@ -50,9 +50,7 @@ impl SierpinskiEmulator {
 
     fn view(&self) -> iced::Element<'_, Message> {
         column![
-            Canvas::new(&self.graph)
-                .width(Length::Fill)
-                .height(Length::Fill),
+            Canvas::new(&self.graph).width(Fill).height(Fill),
             row![
                 text!("Iteration: {:?}", self.graph.iteration),
                 slider(0..=10000, self.graph.iteration, Message::IterationSet)
@@ -60,7 +58,7 @@ impl SierpinskiEmulator {
             .padding(10)
             .spacing(20),
         ]
-        .align_items(iced::Alignment::Center)
+        .align_x(Center)
         .into()
     }
 }

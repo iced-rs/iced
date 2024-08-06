@@ -1,7 +1,7 @@
 //! Access the clipboard.
 use crate::core::clipboard::Kind;
 use crate::futures::futures::channel::oneshot;
-use crate::Task;
+use crate::task::{self, Task};
 
 /// A clipboard action to be performed by some [`Task`].
 ///
@@ -27,7 +27,7 @@ pub enum Action {
 
 /// Read the current contents of the clipboard.
 pub fn read() -> Task<Option<String>> {
-    Task::oneshot(|channel| {
+    task::oneshot(|channel| {
         crate::Action::Clipboard(Action::Read {
             target: Kind::Standard,
             channel,
@@ -37,7 +37,7 @@ pub fn read() -> Task<Option<String>> {
 
 /// Read the current contents of the primary clipboard.
 pub fn read_primary() -> Task<Option<String>> {
-    Task::oneshot(|channel| {
+    task::oneshot(|channel| {
         crate::Action::Clipboard(Action::Read {
             target: Kind::Primary,
             channel,
@@ -47,7 +47,7 @@ pub fn read_primary() -> Task<Option<String>> {
 
 /// Write the given contents to the clipboard.
 pub fn write<T>(contents: String) -> Task<T> {
-    Task::effect(crate::Action::Clipboard(Action::Write {
+    task::effect(crate::Action::Clipboard(Action::Write {
         target: Kind::Standard,
         contents,
     }))
@@ -55,7 +55,7 @@ pub fn write<T>(contents: String) -> Task<T> {
 
 /// Write the given contents to the primary clipboard.
 pub fn write_primary<Message>(contents: String) -> Task<Message> {
-    Task::effect(crate::Action::Clipboard(Action::Write {
+    task::effect(crate::Action::Clipboard(Action::Write {
         target: Kind::Primary,
         contents,
     }))

@@ -34,6 +34,8 @@ svg = ["iced_widget/svg"]
 canvas = ["iced_widget/canvas"]
 # Enables the `QRCode` widget
 qr_code = ["iced_widget/qr_code"]
+# Enables the `markdown` widget
+markdown = ["iced_widget/markdown"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
@@ -51,7 +53,7 @@ web-colors = ["iced_renderer/web-colors"]
 # Enables the WebGL backend, replacing WebGPU
 webgl = ["iced_renderer/webgl"]
 # Enables the syntax `highlighter` module
-highlighter = ["iced_highlighter"]
+highlighter = ["iced_highlighter", "iced_widget/highlighter"]
 # Enables experimental multi-window support.
 multi-window = ["iced_winit/multi-window"]
 # Enables the advanced module
@@ -66,7 +68,7 @@ iced_core.workspace = true
 iced_futures.workspace = true
 iced_renderer.workspace = true
 iced_widget.workspace = true
-iced_winit.features = ["application"]
+iced_winit.features = ["program"]
 iced_winit.workspace = true
 
 iced_highlighter.workspace = true
@@ -138,11 +140,11 @@ async-std = "1.0"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
-cosmic-text = "0.10"
+cosmic-text = "0.12"
 dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
-glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "f07e7bab705e69d39a5e6e52c73039a93c4552f8" }
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "feef9f5630c2adb3528937e55f7bfad2da561a65" }
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
@@ -155,10 +157,11 @@ num-traits = "0.2"
 once_cell = "1.0"
 ouroboros = "0.18"
 palette = "0.7"
+pulldown-cmark = "0.11"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
-resvg = "0.36"
-rustc-hash = "1.0"
+resvg = "0.42"
+rustc-hash = "2.0"
 smol = "1.0"
 smol_str = "0.2"
 softbuffer = "0.4"
@@ -169,9 +172,10 @@ tiny-skia = "0.11"
 tokio = "1.0"
 tracing = "0.1"
 unicode-segmentation = "1.0"
+url = "2.5"
 wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
-web-sys = "=0.3.67"
+web-sys = "0.3.69"
 web-time = "1.1"
 wgpu = "0.19"
 winapi = "0.3"
@@ -179,7 +183,7 @@ window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "254d6b3420ce4e674f516f7a2bd440665e05484d" }
 
 [workspace.lints.rust]
-rust_2018_idioms = "forbid"
+rust_2018_idioms = { level = "forbid", priority = -1 }
 missing_debug_implementations = "deny"
 missing_docs = "deny"
 unsafe_code = "deny"

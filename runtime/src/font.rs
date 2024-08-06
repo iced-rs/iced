@@ -1,5 +1,6 @@
 //! Load and use fonts.
-use crate::{Action, Task};
+use crate::task::{self, Task};
+use crate::Action;
 use std::borrow::Cow;
 
 /// An error while loading a font.
@@ -8,7 +9,7 @@ pub enum Error {}
 
 /// Load a font from its bytes.
 pub fn load(bytes: impl Into<Cow<'static, [u8]>>) -> Task<Result<(), Error>> {
-    Task::oneshot(|channel| Action::LoadFont {
+    task::oneshot(|channel| Action::LoadFont {
         bytes: bytes.into(),
         channel,
     })

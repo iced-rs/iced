@@ -15,7 +15,7 @@ workspace = true
 
 [features]
 image = ["iced_graphics/image"]
-svg = ["resvg"]
+svg = ["iced_graphics/svg", "resvg"]
 geometry = ["iced_graphics/geometry"]
 
 [dependencies]

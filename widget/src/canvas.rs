@@ -8,8 +8,8 @@ pub use program::Program;
 
 pub use crate::graphics::cache::Group;
 pub use crate::graphics::geometry::{
-    fill, gradient, path, stroke, Fill, Gradient, LineCap, LineDash, LineJoin,
-    Path, Stroke, Style, Text,
+    fill, gradient, path, stroke, Fill, Gradient, Image, LineCap, LineDash,
+    LineJoin, Path, Stroke, Style, Text,
 };
 
 use crate::core;

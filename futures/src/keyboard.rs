@@ -6,7 +6,7 @@ use crate::subscription::{self, Subscription};
 use crate::MaybeSend;
 
 /// Listens to keyboard key presses and calls the given function
-/// map them into actual messages.
+/// to map them into actual messages.
 ///
 /// If the function returns `None`, the key press will be simply
 /// ignored.
@@ -31,7 +31,7 @@ where
 }
 
 /// Listens to keyboard key releases and calls the given function
-/// map them into actual messages.
+/// to map them into actual messages.
 ///
 /// If the function returns `None`, the key release will be simply
 /// ignored.

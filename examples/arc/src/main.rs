@@ -4,10 +4,10 @@ use iced::mouse;
 use iced::widget::canvas::{
     self, stroke, Cache, Canvas, Geometry, Path, Stroke,
 };
-use iced::{Element, Length, Point, Rectangle, Renderer, Subscription, Theme};
+use iced::{Element, Fill, Point, Rectangle, Renderer, Subscription, Theme};
 
 pub fn main() -> iced::Result {
-    iced::program("Arc - Iced", Arc::update, Arc::view)
+    iced::application("Arc - Iced", Arc::update, Arc::view)
         .subscription(Arc::subscription)
         .theme(|_| Theme::Dark)
         .antialiasing(true)
@@ -30,10 +30,7 @@ impl Arc {
     }
 
     fn view(&self) -> Element<Message> {
-        Canvas::new(self)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        Canvas::new(self).width(Fill).height(Fill).into()
     }
 
     fn subscription(&self) -> Subscription<Message> {
