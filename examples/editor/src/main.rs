@@ -1,10 +1,10 @@
-use iced::highlighter::{self, Highlighter};
+use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text,
     text_editor, tooltip,
 };
-use iced::{Alignment, Element, Font, Length, Subscription, Task, Theme};
+use iced::{Center, Element, Fill, Font, Subscription, Task, Theme};
 
 use std::ffi;
 use std::io;
@@ -12,13 +12,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub fn main() -> iced::Result {
-    iced::program("Editor - Iced", Editor::update, Editor::view)
-        .load(Editor::load)
+    iced::application("Editor - Iced", Editor::update, Editor::view)
         .subscription(Editor::subscription)
         .theme(Editor::theme)
         .font(include_bytes!("../fonts/icons.ttf").as_slice())
         .default_font(Font::MONOSPACE)
-        .run()
+        .run_with(Editor::new)
 }
 
 struct Editor {
@@ -41,20 +40,22 @@ enum Message {
 }
 
 impl Editor {
-    fn new() -> Self {
-        Self {
-            file: None,
-            content: text_editor::Content::new(),
-            theme: highlighter::Theme::SolarizedDark,
-            is_loading: true,
-            is_dirty: false,
-        }
-    }
-
-    fn load() -> Task<Message> {
-        Task::perform(
-            load_file(format!("{}/src/main.rs", env!("CARGO_MANIFEST_DIR"))),
-            Message::FileOpened,
+    fn new() -> (Self, Task<Message>) {
+        (
+            Self {
+                file: None,
+                content: text_editor::Content::new(),
+                theme: highlighter::Theme::SolarizedDark,
+                is_loading: true,
+                is_dirty: false,
+            },
+            Task::perform(
+                load_file(format!(
+                    "{}/src/main.rs",
+                    env!("CARGO_MANIFEST_DIR")
+                )),
+                Message::FileOpened,
+            ),
         )
     }
 
@@ -157,7 +158,7 @@ impl Editor {
             .padding([5, 10])
         ]
         .spacing(10)
-        .align_items(Alignment::Center);
+        .align_y(Center);
 
         let status = row![
             text(if let Some(path) = &self.file {
@@ -183,20 +184,15 @@ impl Editor {
         column![
             controls,
             text_editor(&self.content)
-                .height(Length::Fill)
+                .height(Fill)
                 .on_action(Message::ActionPerformed)
-                .highlight::<Highlighter>(
-                    highlighter::Settings {
-                        theme: self.theme,
-                        extension: self
-                            .file
-                            .as_deref()
-                            .and_then(Path::extension)
-                            .and_then(ffi::OsStr::to_str)
-                            .map(str::to_string)
-                            .unwrap_or(String::from("rs")),
-                    },
-                    |highlight, _theme| highlight.to_format()
+                .highlight(
+                    self.file
+                        .as_deref()
+                        .and_then(Path::extension)
+                        .and_then(ffi::OsStr::to_str)
+                        .unwrap_or("rs"),
+                    self.theme,
                 ),
             status,
         ]
@@ -211,12 +207,6 @@ impl Editor {
         } else {
             Theme::Light
         }
-    }
-}
-
-impl Default for Editor {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

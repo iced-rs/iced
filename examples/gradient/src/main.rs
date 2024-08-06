@@ -1,14 +1,14 @@
+use iced::application;
 use iced::gradient;
-use iced::program;
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text,
 };
-use iced::{Alignment, Color, Element, Length, Radians, Theme};
+use iced::{Center, Color, Element, Fill, Radians, Theme};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("Gradient - Iced", Gradient::update, Gradient::view)
+    iced::application("Gradient - Iced", Gradient::update, Gradient::view)
         .style(Gradient::style)
         .transparent(true)
         .run()
@@ -67,8 +67,8 @@ impl Gradient {
 
                 gradient.into()
             })
-            .width(Length::Fill)
-            .height(Length::Fill);
+            .width(Fill)
+            .height(Fill);
 
         let angle_picker = row![
             text("Angle").width(64),
@@ -77,7 +77,7 @@ impl Gradient {
         ]
         .spacing(8)
         .padding(8)
-        .align_items(Alignment::Center);
+        .align_y(Center);
 
         let transparency_toggle = iced::widget::Container::new(
             checkbox("Transparent window", transparent)
@@ -95,11 +95,11 @@ impl Gradient {
         .into()
     }
 
-    fn style(&self, theme: &Theme) -> program::Appearance {
-        use program::DefaultStyle;
+    fn style(&self, theme: &Theme) -> application::Appearance {
+        use application::DefaultStyle;
 
         if self.transparent {
-            program::Appearance {
+            application::Appearance {
                 background_color: Color::TRANSPARENT,
                 text_color: theme.palette().text,
             }
@@ -129,6 +129,6 @@ fn color_picker(label: &str, color: Color) -> Element<'_, Color> {
     ]
     .spacing(8)
     .padding(8)
-    .align_items(Alignment::Center)
+    .align_y(Center)
     .into()
 }

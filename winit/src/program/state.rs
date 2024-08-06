@@ -1,41 +1,57 @@
-use crate::application;
 use crate::conversion;
-use crate::core::mouse;
+use crate::core::{mouse, window};
 use crate::core::{Color, Size};
 use crate::graphics::Viewport;
-use crate::runtime::Debug;
-use crate::Application;
+use crate::program::{self, Program};
+use std::fmt::{Debug, Formatter};
 
-use std::marker::PhantomData;
 use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 
-/// The state of a windowed [`Application`].
-#[allow(missing_debug_implementations)]
-pub struct State<A: Application>
+/// The state of a multi-windowed [`Program`].
+pub struct State<P: Program>
 where
-    A::Theme: application::DefaultStyle,
+    P::Theme: program::DefaultStyle,
 {
     title: String,
     scale_factor: f64,
     viewport: Viewport,
-    viewport_version: usize,
+    viewport_version: u64,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
-    theme: A::Theme,
-    appearance: application::Appearance,
-    application: PhantomData<A>,
+    theme: P::Theme,
+    appearance: program::Appearance,
 }
 
-impl<A: Application> State<A>
+impl<P: Program> Debug for State<P>
 where
-    A::Theme: application::DefaultStyle,
+    P::Theme: program::DefaultStyle,
 {
-    /// Creates a new [`State`] for the provided [`Application`] and window.
-    pub fn new(application: &A, window: &Window) -> Self {
-        let title = application.title();
-        let scale_factor = application.scale_factor();
-        let theme = application.theme();
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("multi_window::State")
+            .field("title", &self.title)
+            .field("scale_factor", &self.scale_factor)
+            .field("viewport", &self.viewport)
+            .field("viewport_version", &self.viewport_version)
+            .field("cursor_position", &self.cursor_position)
+            .field("appearance", &self.appearance)
+            .finish()
+    }
+}
+
+impl<P: Program> State<P>
+where
+    P::Theme: program::DefaultStyle,
+{
+    /// Creates a new [`State`] for the provided [`Program`]'s `window`.
+    pub fn new(
+        application: &P,
+        window_id: window::Id,
+        window: &Window,
+    ) -> Self {
+        let title = application.title(window_id);
+        let scale_factor = application.scale_factor(window_id);
+        let theme = application.theme(window_id);
         let appearance = application.style(&theme);
 
         let viewport = {
@@ -56,7 +72,6 @@ where
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
             appearance,
-            application: PhantomData,
         }
     }
 
@@ -68,7 +83,7 @@ where
     /// Returns the version of the [`Viewport`] of the [`State`].
     ///
     /// The version is incremented every time the [`Viewport`] changes.
-    pub fn viewport_version(&self) -> usize {
+    pub fn viewport_version(&self) -> u64 {
         self.viewport_version
     }
 
@@ -106,7 +121,7 @@ where
     }
 
     /// Returns the current theme of the [`State`].
-    pub fn theme(&self) -> &A::Theme {
+    pub fn theme(&self) -> &P::Theme {
         &self.theme
     }
 
@@ -120,13 +135,12 @@ where
         self.appearance.text_color
     }
 
-    /// Processes the provided window event and updates the [`State`]
-    /// accordingly.
+    /// Processes the provided window event and updates the [`State`] accordingly.
     pub fn update(
         &mut self,
         window: &Window,
         event: &WindowEvent,
-        _debug: &mut Debug,
+        _debug: &mut crate::runtime::Debug,
     ) {
         match event {
             WindowEvent::Resized(new_size) => {
@@ -181,23 +195,27 @@ where
         }
     }
 
-    /// Synchronizes the [`State`] with its [`Application`] and its respective
+    /// Synchronizes the [`State`] with its [`Program`] and its respective
     /// window.
     ///
-    /// Normally an [`Application`] should be synchronized with its [`State`]
-    /// and window after calling [`crate::application::update`].
-    pub fn synchronize(&mut self, application: &A, window: &Window) {
+    /// Normally, a [`Program`] should be synchronized with its [`State`]
+    /// and window after calling [`State::update`].
+    pub fn synchronize(
+        &mut self,
+        application: &P,
+        window_id: window::Id,
+        window: &Window,
+    ) {
         // Update window title
-        let new_title = application.title();
+        let new_title = application.title(window_id);
 
         if self.title != new_title {
             window.set_title(&new_title);
-
             self.title = new_title;
         }
 
         // Update scale factor and size
-        let new_scale_factor = application.scale_factor();
+        let new_scale_factor = application.scale_factor(window_id);
         let new_size = window.inner_size();
         let current_size = self.viewport.physical_size();
 
@@ -215,7 +233,7 @@ where
         }
 
         // Update theme and appearance
-        self.theme = application.theme();
+        self.theme = application.theme(window_id);
         self.appearance = application.style(&self.theme);
     }
 }

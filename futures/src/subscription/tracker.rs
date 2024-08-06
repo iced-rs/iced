@@ -42,10 +42,10 @@ impl Tracker {
     /// method:
     ///
     /// - If the provided [`Subscription`] contains a new [`Recipe`] that is
-    /// currently not being run, it will spawn a new stream and keep it alive.
+    ///   currently not being run, it will spawn a new stream and keep it alive.
     /// - On the other hand, if a [`Recipe`] is currently in execution and the
-    /// provided [`Subscription`] does not contain it anymore, then the
-    /// [`Tracker`] will close and drop the relevant stream.
+    ///   provided [`Subscription`] does not contain it anymore, then the
+    ///   [`Tracker`] will close and drop the relevant stream.
     ///
     /// It returns a list of futures that need to be spawned to materialize
     /// the [`Tracker`] changes.

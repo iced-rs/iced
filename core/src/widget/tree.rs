@@ -46,7 +46,7 @@ impl Tree {
         }
     }
 
-    /// Reconciliates the current tree with the provided [`Widget`].
+    /// Reconciles the current tree with the provided [`Widget`].
     ///
     /// If the tag of the [`Widget`] matches the tag of the [`Tree`], then the
     /// [`Widget`] proceeds with the reconciliation (i.e. [`Widget::diff`] is called).
@@ -81,7 +81,7 @@ impl Tree {
         );
     }
 
-    /// Reconciliates the children of the tree with the provided list of widgets using custom
+    /// Reconciles the children of the tree with the provided list of widgets using custom
     /// logic both for diffing and creating new widget state.
     pub fn diff_children_custom<T>(
         &mut self,
@@ -107,7 +107,7 @@ impl Tree {
     }
 }
 
-/// Reconciliates the `current_children` with the provided list of widgets using
+/// Reconciles the `current_children` with the provided list of widgets using
 /// custom logic both for diffing and creating new widget state.
 ///
 /// The algorithm will try to minimize the impact of diffing by querying the

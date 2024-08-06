@@ -1,5 +1,6 @@
 //! Create choices using radio buttons.
 use crate::core::alignment;
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -9,8 +10,8 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Theme, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Pixels, Rectangle,
+    Shell, Size, Theme, Widget,
 };
 
 /// A circular button representing a choice.
@@ -104,7 +105,7 @@ where
     ///   * the label of the [`Radio`] button
     ///   * the current selected value
     ///   * a function that will be called when the [`Radio`] is selected. It
-    ///   receives the value of the radio and must produce a `Message`.
+    ///     receives the value of the radio and must produce a `Message`.
     pub fn new<F, V>(
         label: impl Into<String>,
         value: V,
@@ -342,7 +343,7 @@ where
                             width: bounds.width - dot_size,
                             height: bounds.height - dot_size,
                         },
-                        border: Border::rounded(dot_size / 2.0),
+                        border: border::rounded(dot_size / 2.0),
                         ..renderer::Quad::default()
                     },
                     style.dot_color,
@@ -352,12 +353,14 @@ where
 
         {
             let label_layout = children.next().unwrap();
+            let state: &widget::text::State<Renderer::Paragraph> =
+                tree.state.downcast_ref();
 
             crate::text::draw(
                 renderer,
                 defaults,
                 label_layout,
-                tree.state.downcast_ref(),
+                state.0.raw(),
                 crate::text::Style {
                     color: style.text_color,
                 },

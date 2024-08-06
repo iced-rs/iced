@@ -6,8 +6,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, ContentFit, Element, Layout, Length, Pixels, Point, Rectangle,
-    Rotation, Shell, Size, Vector, Widget,
+    Clipboard, ContentFit, Element, Image, Layout, Length, Pixels, Point,
+    Radians, Rectangle, Rotation, Shell, Size, Vector, Widget,
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -363,11 +363,14 @@ where
         let render = |renderer: &mut Renderer| {
             renderer.with_translation(translation, |renderer| {
                 renderer.draw_image(
-                    self.handle.clone(),
-                    self.filter_method,
+                    Image {
+                        handle: self.handle.clone(),
+                        filter_method: self.filter_method,
+                        rotation: Radians(0.0),
+                        opacity: 1.0,
+                        snap: true,
+                    },
                     drawing_bounds,
-                    self.rotation.radians(),
-                    1.0,
                 );
             });
         };

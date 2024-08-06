@@ -1,4 +1,5 @@
-use iced::subscription;
+use iced::futures;
+use iced::Subscription;
 
 use std::hash::Hash;
 
@@ -7,9 +8,14 @@ pub fn file<I: 'static + Hash + Copy + Send + Sync, T: ToString>(
     id: I,
     url: T,
 ) -> iced::Subscription<(I, Progress)> {
-    subscription::unfold(id, State::Ready(url.to_string()), move |state| {
-        download(id, state)
-    })
+    Subscription::run_with_id(
+        id,
+        futures::stream::unfold(State::Ready(url.to_string()), move |state| {
+            use iced::futures::FutureExt;
+
+            download(id, state).map(Some)
+        }),
+    )
 }
 
 async fn download<I: Copy>(id: I, state: State) -> ((I, Progress), State) {

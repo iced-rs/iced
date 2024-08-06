@@ -1,11 +1,10 @@
 use crate::alignment;
-use crate::image;
+use crate::image::{self, Image};
 use crate::renderer::{self, Renderer};
 use crate::svg;
 use crate::text::{self, Text};
 use crate::{
-    Background, Color, Font, Pixels, Point, Radians, Rectangle, Size,
-    Transformation,
+    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
 
 impl Renderer for () {
@@ -77,9 +76,14 @@ impl text::Paragraph for () {
 
     fn with_text(_text: Text<&str>) -> Self {}
 
+    fn with_spans<Link>(
+        _text: Text<&[text::Span<'_, Link, Self::Font>], Self::Font>,
+    ) -> Self {
+    }
+
     fn resize(&mut self, _new_bounds: Size) {}
 
-    fn compare(&self, _text: Text<&str>) -> text::Difference {
+    fn compare(&self, _text: Text<()>) -> text::Difference {
         text::Difference::None
     }
 
@@ -102,12 +106,24 @@ impl text::Paragraph for () {
     fn hit_test(&self, _point: Point) -> Option<text::Hit> {
         None
     }
+
+    fn hit_span(&self, _point: Point) -> Option<usize> {
+        None
+    }
+
+    fn span_bounds(&self, _index: usize) -> Vec<Rectangle> {
+        vec![]
+    }
 }
 
 impl text::Editor for () {
     type Font = Font;
 
     fn with_text(_text: &str) -> Self {}
+
+    fn is_empty(&self) -> bool {
+        true
+    }
 
     fn cursor(&self) -> text::editor::Cursor {
         text::editor::Cursor::Caret(Point::ORIGIN)
@@ -161,21 +177,13 @@ impl text::Editor for () {
 }
 
 impl image::Renderer for () {
-    type Handle = ();
+    type Handle = image::Handle;
 
     fn measure_image(&self, _handle: &Self::Handle) -> Size<u32> {
         Size::default()
     }
 
-    fn draw_image(
-        &mut self,
-        _handle: Self::Handle,
-        _filter_method: image::FilterMethod,
-        _bounds: Rectangle,
-        _rotation: Radians,
-        _opacity: f32,
-    ) {
-    }
+    fn draw_image(&mut self, _image: Image, _bounds: Rectangle) {}
 }
 
 impl svg::Renderer for () {
@@ -183,13 +191,5 @@ impl svg::Renderer for () {
         Size::default()
     }
 
-    fn draw_svg(
-        &mut self,
-        _handle: svg::Handle,
-        _color: Option<Color>,
-        _bounds: Rectangle,
-        _rotation: Radians,
-        _opacity: f32,
-    ) {
-    }
+    fn draw_svg(&mut self, _svg: svg::Svg, _bounds: Rectangle) {}
 }

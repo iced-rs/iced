@@ -69,7 +69,7 @@ pub struct Quad {
     /// The bounds of the [`Quad`].
     pub bounds: Rectangle,
 
-    /// The [`Border`] of the [`Quad`].
+    /// The [`Border`] of the [`Quad`]. The border is drawn on the inside of the [`Quad`].
     pub border: Border,
 
     /// The [`Shadow`] of the [`Quad`].

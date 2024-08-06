@@ -211,11 +211,13 @@ where
 
         let render = |renderer: &mut Renderer| {
             renderer.draw_svg(
-                self.handle.clone(),
-                style.color,
+                svg::Svg {
+                    handle: self.handle.clone(),
+                    color: style.color,
+                    rotation: self.rotation.radians(),
+                    opacity: self.opacity,
+                },
                 drawing_bounds,
-                self.rotation.radians(),
-                self.opacity,
             );
         };
 

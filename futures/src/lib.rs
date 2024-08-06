@@ -15,6 +15,7 @@ pub mod backend;
 pub mod event;
 pub mod executor;
 pub mod keyboard;
+pub mod stream;
 pub mod subscription;
 
 pub use executor::Executor;

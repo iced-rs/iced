@@ -4,12 +4,12 @@ use iced::keyboard::key;
 use iced::widget::{
     self, button, center, column, pick_list, row, slider, text, text_input,
 };
-use iced::{Alignment, Element, Length, Subscription, Task};
+use iced::{Center, Element, Fill, Subscription, Task};
 
 use toast::{Status, Toast};
 
 pub fn main() -> iced::Result {
-    iced::program("Toast - Iced", App::update, App::view)
+    iced::application("Toast - Iced", App::update, App::view)
         .subscription(App::subscription)
         .run()
 }
@@ -125,7 +125,7 @@ impl App {
                         Some(self.editing.status),
                         Message::Status
                     )
-                    .width(Length::Fill)
+                    .width(Fill)
                     .into()
                 ),
                 subtitle(
@@ -142,7 +142,7 @@ impl App {
                     .spacing(5)
                     .into()
                 ),
-                column![add_toast].align_items(Alignment::End)
+                column![add_toast].align_x(Center)
             ]
             .spacing(10)
             .max_width(200),
@@ -177,8 +177,8 @@ mod toast {
     };
     use iced::window;
     use iced::{
-        Alignment, Element, Length, Point, Rectangle, Renderer, Size, Theme,
-        Vector,
+        Alignment, Center, Element, Fill, Length, Point, Rectangle, Renderer,
+        Size, Theme, Vector,
     };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
@@ -245,9 +245,9 @@ mod toast {
                                     .on_press((on_close)(index))
                                     .padding(3),
                             ]
-                            .align_items(Alignment::Center)
+                            .align_y(Center)
                         )
-                        .width(Length::Fill)
+                        .width(Fill)
                         .padding(5)
                         .style(match toast.status {
                             Status::Primary => primary,
@@ -257,7 +257,7 @@ mod toast {
                         }),
                         horizontal_rule(1),
                         container(text(toast.body.as_str()))
-                            .width(Length::Fill)
+                            .width(Fill)
                             .padding(5)
                             .style(container::rounded_box),
                     ])
@@ -479,8 +479,8 @@ mod toast {
                 layout::flex::Axis::Vertical,
                 renderer,
                 &limits,
-                Length::Fill,
-                Length::Fill,
+                Fill,
+                Fill,
                 10.into(),
                 10.0,
                 Alignment::End,

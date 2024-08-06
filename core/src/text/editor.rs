@@ -13,6 +13,9 @@ pub trait Editor: Sized + Default {
     /// Creates a new [`Editor`] laid out with the given text.
     fn with_text(text: &str) -> Self;
 
+    /// Returns true if the [`Editor`] has no contents.
+    fn is_empty(&self) -> bool;
+
     /// Returns the current [`Cursor`] of the [`Editor`].
     fn cursor(&self) -> Cursor;
 
@@ -70,6 +73,8 @@ pub enum Action {
     SelectWord,
     /// Select the line at the current cursor.
     SelectLine,
+    /// Select the entire buffer.
+    SelectAll,
     /// Perform an [`Edit`].
     Edit(Edit),
     /// Click the [`Editor`] at the given [`Point`].

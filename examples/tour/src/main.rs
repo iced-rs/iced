@@ -1,10 +1,9 @@
-use iced::alignment::{self, Alignment};
 use iced::widget::{
     button, checkbox, column, container, horizontal_space, image, radio, row,
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{Color, Element, Font, Length, Pixels};
+use iced::{Center, Color, Element, Fill, Font, Pixels};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -16,7 +15,7 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    iced::program(Tour::title, Tour::update, Tour::view)
+    iced::application(Tour::title, Tour::update, Tour::view)
         .centered()
         .run()
 }
@@ -173,10 +172,10 @@ impl Tour {
             } else {
                 content
             })
-            .center_x(Length::Fill),
+            .center_x(Fill),
         );
 
-        container(scrollable).center_y(Length::Fill).into()
+        container(scrollable).center_y(Fill).into()
     }
 
     fn can_continue(&self) -> bool {
@@ -235,11 +234,7 @@ impl Tour {
                  0 to 100:",
             )
             .push(slider(0..=100, self.slider, Message::SliderChanged))
-            .push(
-                text(self.slider.to_string())
-                    .width(Length::Fill)
-                    .horizontal_alignment(alignment::Horizontal::Center),
-            )
+            .push(text(self.slider.to_string()).width(Fill).align_x(Center))
     }
 
     fn rows_and_columns(&self) -> Column<Message> {
@@ -268,9 +263,7 @@ impl Tour {
 
         let spacing_section = column![
             slider(0..=80, self.spacing, Message::SpacingChanged),
-            text!("{} px", self.spacing)
-                .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center),
+            text!("{} px", self.spacing).width(Fill).align_x(Center),
         ]
         .spacing(10);
 
@@ -381,11 +374,7 @@ impl Tour {
             .push("An image that tries to keep its aspect ratio.")
             .push(ferris(width, filter_method))
             .push(slider(100..=500, width, Message::ImageWidthChanged))
-            .push(
-                text!("Width: {width} px")
-                    .width(Length::Fill)
-                    .horizontal_alignment(alignment::Horizontal::Center),
-            )
+            .push(text!("Width: {width} px").width(Fill).align_x(Center))
             .push(
                 checkbox(
                     "Use nearest interpolation",
@@ -393,7 +382,7 @@ impl Tour {
                 )
                 .on_toggle(Message::ImageUseNearestToggled),
             )
-            .align_items(Alignment::Center)
+            .align_x(Center)
     }
 
     fn scrollable(&self) -> Column<Message> {
@@ -409,18 +398,13 @@ impl Tour {
             .push(vertical_space().height(4096))
             .push(
                 text("You are halfway there!")
-                    .width(Length::Fill)
+                    .width(Fill)
                     .size(30)
-                    .horizontal_alignment(alignment::Horizontal::Center),
+                    .align_x(Center),
             )
             .push(vertical_space().height(4096))
             .push(ferris(300, image::FilterMethod::Linear))
-            .push(
-                text("You made it!")
-                    .width(Length::Fill)
-                    .size(50)
-                    .horizontal_alignment(alignment::Horizontal::Center),
-            )
+            .push(text("You made it!").width(Fill).size(50).align_x(Center))
     }
 
     fn text_input(&self) -> Column<Message> {
@@ -464,8 +448,8 @@ impl Tour {
                 } else {
                     value
                 })
-                .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center),
+                .width(Fill)
+                .align_x(Center),
             )
     }
 
@@ -570,7 +554,7 @@ fn ferris<'a>(
         .filter_method(filter_method)
         .width(width),
     )
-    .center_x(Length::Fill)
+    .center_x(Fill)
 }
 
 fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {

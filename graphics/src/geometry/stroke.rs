@@ -6,7 +6,7 @@ pub use crate::geometry::Style;
 use iced_core::Color;
 
 /// The style of a stroke.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Stroke<'a> {
     /// The color or gradient of the stroke.
     ///

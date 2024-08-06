@@ -52,7 +52,7 @@ where
     ///   * the computed [`Layout`] of the [`Overlay`]
     ///   * the current cursor position
     ///   * a mutable `Message` list, allowing the [`Overlay`] to produce
-    ///   new messages based on user interaction.
+    ///     new messages based on user interaction.
     ///   * the `Renderer`
     ///   * a [`Clipboard`], if available
     ///

@@ -1,5 +1,5 @@
 //! Display an interactive selector of a single value from a range of values.
-use crate::core::border;
+use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
@@ -9,8 +9,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Border, Clipboard, Color, Element, Layout, Length, Pixels, Point,
-    Rectangle, Shell, Size, Theme, Widget,
+    self, Clipboard, Color, Element, Layout, Length, Pixels, Point, Rectangle,
+    Shell, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -70,8 +70,8 @@ where
     ///   * an inclusive range of possible values
     ///   * the current value of the [`Slider`]
     ///   * a function that will be called when the [`Slider`] is dragged.
-    ///   It receives the new value of the [`Slider`] and must produce a
-    ///   `Message`.
+    ///     It receives the new value of the [`Slider`] and must produce a
+    ///     `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
         F: 'a + Fn(T) -> Message,
@@ -237,7 +237,7 @@ where
                 let steps = (percent * (end - start) / step).round();
                 let value = steps * step + start;
 
-                T::from_f64(value)
+                T::from_f64(value.min(end))
             };
 
             new_value
@@ -408,7 +408,7 @@ where
                     width: offset + handle_width / 2.0,
                     height: style.rail.width,
                 },
-                border: Border::rounded(style.rail.border_radius),
+                border: border::rounded(style.rail.border_radius),
                 ..renderer::Quad::default()
             },
             style.rail.colors.0,
@@ -422,7 +422,7 @@ where
                     width: bounds.width - offset - handle_width / 2.0,
                     height: style.rail.width,
                 },
-                border: Border::rounded(style.rail.border_radius),
+                border: border::rounded(style.rail.border_radius),
                 ..renderer::Quad::default()
             },
             style.rail.colors.1,

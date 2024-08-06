@@ -1,11 +1,10 @@
-use iced::alignment::{self, Alignment};
 use iced::keyboard;
 use iced::widget::{
     self, button, center, checkbox, column, container, keyed_column, row,
     scrollable, text, text_input, Text,
 };
 use iced::window;
-use iced::{Element, Font, Length, Subscription, Task as Command};
+use iced::{Center, Element, Fill, Font, Subscription, Task as Command};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -17,17 +16,15 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    iced::program(Todos::title, Todos::update, Todos::view)
-        .load(Todos::load)
+    iced::application(Todos::title, Todos::update, Todos::view)
         .subscription(Todos::subscription)
         .font(include_bytes!("../fonts/icons.ttf").as_slice())
         .window_size((500.0, 800.0))
-        .run()
+        .run_with(Todos::new)
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 enum Todos {
-    #[default]
     Loading,
     Loaded(State),
 }
@@ -54,8 +51,11 @@ enum Message {
 }
 
 impl Todos {
-    fn load() -> Command<Message> {
-        Command::perform(SavedState::load(), Message::Loaded)
+    fn new() -> (Self, Command<Message>) {
+        (
+            Self::Loading,
+            Command::perform(SavedState::load(), Message::Loaded),
+        )
     }
 
     fn title(&self) -> String {
@@ -149,9 +149,10 @@ impl Todos {
                             widget::focus_next()
                         }
                     }
-                    Message::ToggleFullscreen(mode) => {
-                        window::change_mode(window::Id::MAIN, mode)
-                    }
+                    Message::ToggleFullscreen(mode) => window::get_latest()
+                        .and_then(move |window| {
+                            window::change_mode(window, mode)
+                        }),
                     Message::Loaded(_) => Command::none(),
                 };
 
@@ -191,10 +192,10 @@ impl Todos {
                 ..
             }) => {
                 let title = text("todos")
-                    .width(Length::Fill)
+                    .width(Fill)
                     .size(100)
                     .color([0.5, 0.5, 0.5])
-                    .horizontal_alignment(alignment::Horizontal::Center);
+                    .align_x(Center);
 
                 let input = text_input("What needs to be done?", input_value)
                     .id(INPUT_ID.clone())
@@ -238,10 +239,7 @@ impl Todos {
                     .spacing(20)
                     .max_width(800);
 
-                scrollable(
-                    container(content).center_x(Length::Fill).padding(40),
-                )
-                .into()
+                scrollable(container(content).center_x(Fill).padding(40)).into()
             }
         }
     }
@@ -341,7 +339,7 @@ impl Task {
             TaskState::Idle => {
                 let checkbox = checkbox(&self.description, self.completed)
                     .on_toggle(TaskMessage::Completed)
-                    .width(Length::Fill)
+                    .width(Fill)
                     .size(17)
                     .text_shaping(text::Shaping::Advanced);
 
@@ -353,7 +351,7 @@ impl Task {
                         .style(button::text),
                 ]
                 .spacing(20)
-                .align_items(Alignment::Center)
+                .align_y(Center)
                 .into()
             }
             TaskState::Editing => {
@@ -369,14 +367,14 @@ impl Task {
                     button(
                         row![delete_icon(), "Delete"]
                             .spacing(10)
-                            .align_items(Alignment::Center)
+                            .align_y(Center)
                     )
                     .on_press(TaskMessage::Delete)
                     .padding(10)
                     .style(button::danger)
                 ]
                 .spacing(20)
-                .align_items(Alignment::Center)
+                .align_y(Center)
                 .into()
             }
         }
@@ -403,17 +401,16 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
             "{tasks_left} {} left",
             if tasks_left == 1 { "task" } else { "tasks" }
         )
-        .width(Length::Fill),
+        .width(Fill),
         row![
             filter_button("All", Filter::All, current_filter),
             filter_button("Active", Filter::Active, current_filter),
             filter_button("Completed", Filter::Completed, current_filter,),
         ]
-        .width(Length::Shrink)
         .spacing(10)
     ]
     .spacing(20)
-    .align_items(Alignment::Center)
+    .align_y(Center)
     .into()
 }
 
@@ -438,20 +435,15 @@ impl Filter {
 }
 
 fn loading_message<'a>() -> Element<'a, Message> {
-    center(
-        text("Loading...")
-            .horizontal_alignment(alignment::Horizontal::Center)
-            .size(50),
-    )
-    .into()
+    center(text("Loading...").width(Fill).align_x(Center).size(50)).into()
 }
 
 fn empty_message(message: &str) -> Element<'_, Message> {
     center(
         text(message)
-            .width(Length::Fill)
+            .width(Fill)
             .size(25)
-            .horizontal_alignment(alignment::Horizontal::Center)
+            .align_x(Center)
             .color([0.7, 0.7, 0.7]),
     )
     .height(200)
@@ -465,7 +457,7 @@ fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())
         .font(ICONS)
         .width(20)
-        .horizontal_alignment(alignment::Horizontal::Center)
+        .align_x(Center)
 }
 
 fn edit_icon() -> Text<'static> {

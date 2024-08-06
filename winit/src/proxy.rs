@@ -81,8 +81,19 @@ impl<T: 'static> Proxy<T> {
     where
         T: std::fmt::Debug,
     {
+        self.send_action(Action::Output(value));
+    }
+
+    /// Sends an action to the event loop.
+    ///
+    /// Note: This skips the backpressure mechanism with an unbounded
+    /// channel. Use sparingly!
+    pub fn send_action(&mut self, action: Action<T>)
+    where
+        T: std::fmt::Debug,
+    {
         self.raw
-            .send_event(Action::Output(value))
+            .send_event(action)
             .expect("Send message to event loop");
     }
 

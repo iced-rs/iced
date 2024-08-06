@@ -5,12 +5,12 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Alignment, Color, Element, Font, Length, Point, Rectangle, Subscription,
-    Task, Theme,
+    Center, Color, Element, Fill, Font, Point, Rectangle, Subscription, Task,
+    Theme,
 };
 
 pub fn main() -> iced::Result {
-    iced::program("Visible Bounds - Iced", Example::update, Example::view)
+    iced::application("Visible Bounds - Iced", Example::update, Example::view)
         .subscription(Example::subscription)
         .theme(|_| Theme::Dark)
         .run()
@@ -70,7 +70,7 @@ impl Example {
                     .color_maybe(color),
             ]
             .height(40)
-            .align_items(Alignment::Center)
+            .align_y(Center)
         };
 
         let view_bounds = |label, bounds: Option<Rectangle>| {
@@ -130,13 +130,13 @@ impl Example {
                         .padding(20)
                     )
                     .on_scroll(|_| Message::Scrolled)
-                    .width(Length::Fill)
+                    .width(Fill)
                     .height(300),
                 ]
                 .padding(20)
             )
             .on_scroll(|_| Message::Scrolled)
-            .width(Length::Fill)
+            .width(Fill)
             .height(300),
         ]
         .spacing(10)
