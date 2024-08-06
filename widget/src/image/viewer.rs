@@ -366,7 +366,7 @@ where
                     Image {
                         handle: self.handle.clone(),
                         filter_method: self.filter_method,
-                        rotation: Radians(0.0),
+                        rotation: self.rotation.radians(),
                         opacity: 1.0,
                         snap: true,
                     },
