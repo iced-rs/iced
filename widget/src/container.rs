@@ -245,7 +245,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<()>,
+        operation: &mut dyn Operation,
     ) {
         operation.container(
             self.id.as_ref().map(|id| &id.0),

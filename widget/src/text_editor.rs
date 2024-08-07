@@ -885,7 +885,7 @@ where
         tree: &mut widget::Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        operation: &mut dyn widget::Operation<()>,
+        operation: &mut dyn widget::Operation,
     ) {
         let state = tree.state.downcast_mut::<State<Highlighter>>();
 

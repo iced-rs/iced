@@ -289,7 +289,7 @@ where
             state: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn operation::Operation<()>,
+            operation: &mut dyn operation::Operation,
         ) {
             self.content
                 .as_widget()
@@ -491,7 +491,7 @@ where
             tree: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn operation::Operation<()>,
+            operation: &mut dyn operation::Operation,
         ) {
             let children = [&self.base, &self.top]
                 .into_iter()

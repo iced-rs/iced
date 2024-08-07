@@ -178,7 +178,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<()>,
+        operation: &mut dyn Operation,
     ) {
         self.content.as_widget().operate(
             &mut tree.children[0],
