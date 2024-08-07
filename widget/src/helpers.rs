@@ -4,7 +4,8 @@ use crate::checkbox::{self, Checkbox};
 use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
-use crate::core::widget::operation;
+use crate::core::widget::operation::{self, Operation};
+use crate::core::window;
 use crate::core::{Element, Length, Pixels, Widget};
 use crate::keyed;
 use crate::overlay;
@@ -289,7 +290,7 @@ where
             state: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn operation::Operation<()>,
+            operation: &mut dyn operation::Operation,
         ) {
             self.content
                 .as_widget()
@@ -397,6 +398,7 @@ where
     struct Hover<'a, Message, Theme, Renderer> {
         base: Element<'a, Message, Theme, Renderer>,
         top: Element<'a, Message, Theme, Renderer>,
+        is_top_focused: bool,
         is_top_overlay_active: bool,
     }
 
@@ -472,7 +474,9 @@ where
                     viewport,
                 );
 
-                if cursor.is_over(layout.bounds()) || self.is_top_overlay_active
+                if cursor.is_over(layout.bounds())
+                    || self.is_top_focused
+                    || self.is_top_overlay_active
                 {
                     let (top_layout, top_tree) = children.next().unwrap();
 
@@ -491,7 +495,7 @@ where
             tree: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn operation::Operation<()>,
+            operation: &mut dyn operation::Operation,
         ) {
             let children = [&self.base, &self.top]
                 .into_iter()
@@ -515,6 +519,24 @@ where
         ) -> event::Status {
             let mut children = layout.children().zip(&mut tree.children);
             let (base_layout, base_tree) = children.next().unwrap();
+            let (top_layout, top_tree) = children.next().unwrap();
+
+            if matches!(event, Event::Window(window::Event::RedrawRequested(_)))
+            {
+                let mut count_focused = operation::focusable::count();
+
+                self.top.as_widget_mut().operate(
+                    top_tree,
+                    top_layout,
+                    renderer,
+                    &mut operation::black_box(&mut count_focused),
+                );
+
+                self.is_top_focused = match count_focused.finish() {
+                    operation::Outcome::Some(count) => count.focused.is_some(),
+                    _ => false,
+                };
+            }
 
             let top_status = if matches!(
                 event,
@@ -523,10 +545,9 @@ where
                         | mouse::Event::ButtonReleased(_)
                 )
             ) || cursor.is_over(layout.bounds())
+                || self.is_top_focused
                 || self.is_top_overlay_active
             {
-                let (top_layout, top_tree) = children.next().unwrap();
-
                 self.top.as_widget_mut().on_event(
                     top_tree,
                     event.clone(),
@@ -612,6 +633,7 @@ where
     Element::new(Hover {
         base: base.into(),
         top: top.into(),
+        is_top_focused: false,
         is_top_overlay_active: false,
     })
 }

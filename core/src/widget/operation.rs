@@ -12,11 +12,12 @@ use crate::{Rectangle, Vector};
 
 use std::any::Any;
 use std::fmt;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 /// A piece of logic that can traverse the widget tree of an application in
 /// order to query or update some widget state.
-pub trait Operation<T>: Send {
+pub trait Operation<T = ()>: Send {
     /// Operates on a widget that contains other widgets.
     ///
     /// The `operate_on_children` function can be called to return control to
@@ -53,6 +54,46 @@ pub trait Operation<T>: Send {
     }
 }
 
+impl<T, O> Operation<O> for Box<T>
+where
+    T: Operation<O> + ?Sized,
+{
+    fn container(
+        &mut self,
+        id: Option<&Id>,
+        bounds: Rectangle,
+        operate_on_children: &mut dyn FnMut(&mut dyn Operation<O>),
+    ) {
+        self.as_mut().container(id, bounds, operate_on_children);
+    }
+
+    fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
+        self.as_mut().focusable(state, id);
+    }
+
+    fn scrollable(
+        &mut self,
+        state: &mut dyn Scrollable,
+        id: Option<&Id>,
+        bounds: Rectangle,
+        translation: Vector,
+    ) {
+        self.as_mut().scrollable(state, id, bounds, translation);
+    }
+
+    fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
+        self.as_mut().text_input(state, id);
+    }
+
+    fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
+        self.as_mut().custom(state, id);
+    }
+
+    fn finish(&self) -> Outcome<O> {
+        self.as_ref().finish()
+    }
+}
+
 /// The result of an [`Operation`].
 pub enum Outcome<T> {
     /// The [`Operation`] produced no result.
@@ -78,9 +119,62 @@ where
     }
 }
 
+/// Wraps the [`Operation`] in a black box, erasing its returning type.
+pub fn black_box<'a, T, O>(
+    operation: &'a mut dyn Operation<T>,
+) -> impl Operation<O> + 'a
+where
+    T: 'a,
+{
+    struct BlackBox<'a, T> {
+        operation: &'a mut dyn Operation<T>,
+    }
+
+    impl<'a, T, O> Operation<O> for BlackBox<'a, T> {
+        fn container(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<O>),
+        ) {
+            self.operation.container(id, bounds, &mut |operation| {
+                operate_on_children(&mut BlackBox { operation });
+            });
+        }
+
+        fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
+            self.operation.focusable(state, id);
+        }
+
+        fn scrollable(
+            &mut self,
+            state: &mut dyn Scrollable,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            translation: Vector,
+        ) {
+            self.operation.scrollable(state, id, bounds, translation);
+        }
+
+        fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
+            self.operation.text_input(state, id);
+        }
+
+        fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
+            self.operation.custom(state, id);
+        }
+
+        fn finish(&self) -> Outcome<O> {
+            Outcome::None
+        }
+    }
+
+    BlackBox { operation }
+}
+
 /// Maps the output of an [`Operation`] using the given function.
 pub fn map<A, B>(
-    operation: Box<dyn Operation<A>>,
+    operation: impl Operation<A>,
     f: impl Fn(A) -> B + Send + Sync + 'static,
 ) -> impl Operation<B>
 where
@@ -88,13 +182,14 @@ where
     B: 'static,
 {
     #[allow(missing_debug_implementations)]
-    struct Map<A, B> {
-        operation: Box<dyn Operation<A>>,
+    struct Map<O, A, B> {
+        operation: O,
         f: Arc<dyn Fn(A) -> B + Send + Sync>,
     }
 
-    impl<A, B> Operation<B> for Map<A, B>
+    impl<O, A, B> Operation<B> for Map<O, A, B>
     where
+        O: Operation<A>,
         A: 'static,
         B: 'static,
     {
@@ -155,10 +250,7 @@ where
 
             let Self { operation, .. } = self;
 
-            MapRef {
-                operation: operation.as_mut(),
-            }
-            .container(id, bounds, operate_on_children);
+            MapRef { operation }.container(id, bounds, operate_on_children);
         }
 
         fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
@@ -198,6 +290,87 @@ where
     Map {
         operation,
         f: Arc::new(f),
+    }
+}
+
+/// Chains the output of an [`Operation`] with the provided function to
+/// build a new [`Operation`].
+pub fn chain<A, B, O>(
+    operation: impl Operation<A> + 'static,
+    f: fn(A) -> O,
+) -> impl Operation<B>
+where
+    A: 'static,
+    B: Send + 'static,
+    O: Operation<B> + 'static,
+{
+    struct Chain<T, O, A, B>
+    where
+        T: Operation<A>,
+        O: Operation<B>,
+    {
+        operation: T,
+        next: fn(A) -> O,
+        _result: PhantomData<B>,
+    }
+
+    impl<T, O, A, B> Operation<B> for Chain<T, O, A, B>
+    where
+        T: Operation<A> + 'static,
+        O: Operation<B> + 'static,
+        A: 'static,
+        B: Send + 'static,
+    {
+        fn container(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<B>),
+        ) {
+            self.operation.container(id, bounds, &mut |operation| {
+                operate_on_children(&mut black_box(operation));
+            });
+        }
+
+        fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
+            self.operation.focusable(state, id);
+        }
+
+        fn scrollable(
+            &mut self,
+            state: &mut dyn Scrollable,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            translation: crate::Vector,
+        ) {
+            self.operation.scrollable(state, id, bounds, translation);
+        }
+
+        fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
+            self.operation.text_input(state, id);
+        }
+
+        fn custom(&mut self, state: &mut dyn std::any::Any, id: Option<&Id>) {
+            self.operation.custom(state, id);
+        }
+
+        fn finish(&self) -> Outcome<B> {
+            match self.operation.finish() {
+                Outcome::None => Outcome::None,
+                Outcome::Some(value) => {
+                    Outcome::Chain(Box::new((self.next)(value)))
+                }
+                Outcome::Chain(operation) => {
+                    Outcome::Chain(Box::new(chain(operation, self.next)))
+                }
+            }
+        }
+    }
+
+    Chain {
+        operation,
+        next: f,
+        _result: PhantomData,
     }
 }
 

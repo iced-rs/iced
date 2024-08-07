@@ -59,7 +59,7 @@ pub trait Component<Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     fn operate(
         &self,
         _state: &mut Self::State,
-        _operation: &mut dyn widget::Operation<()>,
+        _operation: &mut dyn widget::Operation,
     ) {
     }
 
@@ -172,7 +172,7 @@ where
 
     fn rebuild_element_with_operation(
         &self,
-        operation: &mut dyn widget::Operation<()>,
+        operation: &mut dyn widget::Operation,
     ) {
         let heads = self.state.borrow_mut().take().unwrap().into_heads();
 
@@ -358,7 +358,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<()>,
+        operation: &mut dyn widget::Operation,
     ) {
         self.rebuild_element_with_operation(operation);
 

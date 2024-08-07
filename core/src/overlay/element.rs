@@ -92,7 +92,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<()>,
+        operation: &mut dyn widget::Operation,
     ) {
         self.overlay.operate(layout, renderer, operation);
     }
@@ -144,7 +144,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<()>,
+        operation: &mut dyn widget::Operation,
     ) {
         self.content.operate(layout, renderer, operation);
     }
