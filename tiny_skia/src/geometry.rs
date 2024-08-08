@@ -168,6 +168,31 @@ impl geometry::frame::Backend for Frame {
         });
     }
 
+    fn stroke_rectangle<'a>(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        stroke: impl Into<Stroke<'a>>,
+    ) {
+        let Some(path) = convert_path(&Path::rectangle(top_left, size))
+            .and_then(|path| path.transform(self.transform))
+        else {
+            return;
+        };
+
+        let stroke = stroke.into();
+        let skia_stroke = into_stroke(&stroke);
+
+        let mut paint = into_paint(stroke.style);
+        paint.shader.transform(self.transform);
+
+        self.primitives.push(Primitive::Stroke {
+            path,
+            paint,
+            stroke: skia_stroke,
+        });
+    }
+
     fn fill_text(&mut self, text: impl Into<geometry::Text>) {
         let text = text.into();
 

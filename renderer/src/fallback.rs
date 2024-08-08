@@ -540,6 +540,19 @@ mod geometry {
             delegate!(self, frame, frame.stroke(path, stroke));
         }
 
+        fn stroke_rectangle<'a>(
+            &mut self,
+            top_left: Point,
+            size: Size,
+            stroke: impl Into<Stroke<'a>>,
+        ) {
+            delegate!(
+                self,
+                frame,
+                frame.stroke_rectangle(top_left, size, stroke)
+            );
+        }
+
         fn fill_text(&mut self, text: impl Into<Text>) {
             delegate!(self, frame, frame.fill_text(text));
         }
