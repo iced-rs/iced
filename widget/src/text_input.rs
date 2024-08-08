@@ -74,6 +74,7 @@ pub struct TextInput<
     padding: Padding,
     size: Option<Pixels>,
     line_height: text::LineHeight,
+    alignment: Alignment,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
@@ -103,6 +104,7 @@ where
             padding: DEFAULT_PADDING,
             size: None,
             line_height: text::LineHeight::default(),
+            alignment: Alignment::Left,
             on_input: None,
             on_paste: None,
             on_submit: None,
@@ -193,6 +195,12 @@ where
         self
     }
 
+    /// Sets the [`Alignment`] of the [`TextInput`].
+    pub fn alignment(mut self, alignment: Alignment) -> Self {
+        self.alignment = alignment;
+        self
+    }
+
     /// Sets the style of the [`TextInput`].
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
@@ -237,7 +245,7 @@ where
             content: self.placeholder.as_str(),
             bounds: Size::new(f32::INFINITY, text_bounds.height),
             size: text_size,
-            horizontal_alignment: alignment::Horizontal::Left,
+            horizontal_alignment: self.alignment.as_horizontal(),
             vertical_alignment: alignment::Vertical::Center,
             shaping: text::Shaping::Advanced,
         };
@@ -377,11 +385,12 @@ where
         {
             match state.cursor.state(value) {
                 cursor::State::Index(position) => {
-                    let (text_value_width, offset) =
+                    let (grapheme_pos, offset) =
                         measure_cursor_and_scroll_offset(
                             state.value.raw(),
                             text_bounds,
                             position,
+                            self.alignment,
                         );
 
                     let is_cursor_visible = ((focus.now - focus.updated_at)
@@ -390,12 +399,27 @@ where
                         % 2
                         == 0;
 
+                    let x = match self.alignment {
+                        Alignment::Left => {
+                            (text_bounds.x + grapheme_pos).floor()
+                        }
+                        Alignment::Right => {
+                            if offset > 0.0 {
+                                text_bounds.x
+                            } else {
+                                (text_bounds.x + text_bounds.width
+                                    - state.value.min_width()
+                                    + grapheme_pos)
+                                    .floor()
+                            }
+                        }
+                    };
+
                     let cursor = if is_cursor_visible {
                         Some((
                             renderer::Quad {
                                 bounds: Rectangle {
-                                    x: (text_bounds.x + text_value_width)
-                                        .floor(),
+                                    x,
                                     y: text_bounds.y,
                                     width: 1.0,
                                     height: text_bounds.height,
@@ -419,6 +443,7 @@ where
                             state.value.raw(),
                             text_bounds,
                             left,
+                            self.alignment,
                         );
 
                     let (right_position, right_offset) =
@@ -426,15 +451,25 @@ where
                             state.value.raw(),
                             text_bounds,
                             right,
+                            self.alignment,
                         );
 
                     let width = right_position - left_position;
+
+                    let x = match self.alignment {
+                        Alignment::Left => text_bounds.x + left_position,
+                        Alignment::Right => {
+                            text_bounds.x + text_bounds.width
+                                - state.value.min_width()
+                                + left_position
+                        }
+                    };
 
                     (
                         Some((
                             renderer::Quad {
                                 bounds: Rectangle {
-                                    x: text_bounds.x + left_position,
+                                    x,
                                     y: text_bounds.y,
                                     width,
                                     height: text_bounds.height,
@@ -458,15 +493,32 @@ where
 
         let draw = |renderer: &mut Renderer, viewport| {
             if let Some((cursor, color)) = cursor {
-                renderer.with_translation(
-                    Vector::new(-offset, 0.0),
-                    |renderer| {
-                        renderer.fill_quad(cursor, color);
-                    },
-                );
+                if let Alignment::Left = self.alignment {
+                    renderer.with_translation(
+                        Vector::new(-offset, 0.0),
+                        |renderer| {
+                            renderer.fill_quad(cursor, color);
+                        },
+                    );
+                } else {
+                    renderer.fill_quad(cursor, color);
+                }
             } else {
                 renderer.with_translation(Vector::ZERO, |_| {});
             }
+
+            let text_pos = match self.alignment {
+                Alignment::Left => {
+                    Point::new(text_bounds.x, text_bounds.center_y())
+                        - Vector::new(offset, 0.0)
+                }
+                Alignment::Right => {
+                    Point::new(
+                        text_bounds.x + text_bounds.width,
+                        text_bounds.center_y(),
+                    ) + Vector::new(offset, 0.0)
+                }
+            };
 
             renderer.fill_paragraph(
                 if text.is_empty() {
@@ -474,8 +526,7 @@ where
                 } else {
                     state.value.raw()
                 },
-                Point::new(text_bounds.x, text_bounds.center_y())
-                    - Vector::new(offset, 0.0),
+                text_pos,
                 if text.is_empty() {
                     style.placeholder
                 } else {
@@ -570,6 +621,7 @@ where
                 self.font,
                 self.size,
                 self.line_height,
+                self.alignment,
             );
         };
 
@@ -600,7 +652,18 @@ where
 
                 if let Some(cursor_position) = click_position {
                     let text_layout = layout.children().next().unwrap();
-                    let target = cursor_position.x - text_layout.bounds().x;
+
+                    let target = match self.alignment {
+                        Alignment::Left => {
+                            cursor_position.x - text_layout.bounds().x
+                        }
+                        Alignment::Right => {
+                            cursor_position.x
+                                - text_layout.bounds().x
+                                - (text_layout.bounds().width
+                                    - state.value.min_bounds().width)
+                        }
+                    };
 
                     let click =
                         mouse::Click::new(cursor_position, state.last_click);
@@ -619,6 +682,7 @@ where
                                     &value,
                                     state,
                                     target,
+                                    self.alignment,
                                 )
                             } else {
                                 None
@@ -644,6 +708,7 @@ where
                                     &self.value,
                                     state,
                                     target,
+                                    self.alignment,
                                 )
                                 .unwrap_or(0);
 
@@ -677,7 +742,16 @@ where
 
                 if state.is_dragging {
                     let text_layout = layout.children().next().unwrap();
-                    let target = position.x - text_layout.bounds().x;
+
+                    let target = match self.alignment {
+                        Alignment::Left => position.x - text_layout.bounds().x,
+                        Alignment::Right => {
+                            position.x
+                                - text_layout.bounds().x
+                                - (text_layout.bounds().width
+                                    - state.value.min_bounds().width)
+                        }
+                    };
 
                     let value = if self.is_secure {
                         self.value.secure()
@@ -690,6 +764,7 @@ where
                         &value,
                         state,
                         target,
+                        self.alignment,
                     )
                     .unwrap_or(0);
 
@@ -1295,6 +1370,7 @@ fn offset<P: text::Paragraph>(
     text_bounds: Rectangle,
     value: &Value,
     state: &State<P>,
+    alignment: Alignment,
 ) -> f32 {
     if state.is_focused() {
         let cursor = state.cursor();
@@ -1308,6 +1384,7 @@ fn offset<P: text::Paragraph>(
             state.value.raw(),
             text_bounds,
             focus_position,
+            alignment,
         );
 
         offset
@@ -1320,12 +1397,21 @@ fn measure_cursor_and_scroll_offset(
     paragraph: &impl text::Paragraph,
     text_bounds: Rectangle,
     cursor_index: usize,
+    alignment: Alignment,
 ) -> (f32, f32) {
     let grapheme_position = paragraph
         .grapheme_position(0, cursor_index)
         .unwrap_or(Point::ORIGIN);
 
-    let offset = ((grapheme_position.x + 5.0) - text_bounds.width).max(0.0);
+    let offset = match alignment {
+        Alignment::Left => {
+            ((grapheme_position.x + 5.0) - text_bounds.width).max(0.0)
+        }
+        Alignment::Right => (grapheme_position.x
+            - (paragraph.min_bounds().width - text_bounds.width))
+            .min(0.0)
+            .abs(),
+    };
 
     (grapheme_position.x, offset)
 }
@@ -1337,8 +1423,9 @@ fn find_cursor_position<P: text::Paragraph>(
     value: &Value,
     state: &State<P>,
     x: f32,
+    alignment: Alignment,
 ) -> Option<usize> {
-    let offset = offset(text_bounds, value, state);
+    let offset = offset(text_bounds, value, state, alignment);
     let value = value.to_string();
 
     let char_offset = state
@@ -1364,6 +1451,7 @@ fn replace_paragraph<Renderer>(
     font: Option<Renderer::Font>,
     text_size: Option<Pixels>,
     line_height: text::LineHeight,
+    alignment: Alignment,
 ) where
     Renderer: text::Renderer,
 {
@@ -1379,7 +1467,7 @@ fn replace_paragraph<Renderer>(
         content: &value.to_string(),
         bounds: Size::new(f32::INFINITY, text_bounds.height),
         size: text_size,
-        horizontal_alignment: alignment::Horizontal::Left,
+        horizontal_alignment: alignment.as_horizontal(),
         vertical_alignment: alignment::Vertical::Top,
         shaping: text::Shaping::Advanced,
     });
@@ -1484,5 +1572,23 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             value: active.placeholder,
             ..active
         },
+    }
+}
+
+/// Horizontal text alignment of the [`TextInput`].
+#[derive(Debug, Clone, Copy)]
+pub enum Alignment {
+    /// Left
+    Left,
+    /// Right
+    Right,
+}
+
+impl Alignment {
+    fn as_horizontal(self) -> alignment::Horizontal {
+        match self {
+            Alignment::Left => alignment::Horizontal::Left,
+            Alignment::Right => alignment::Horizontal::Right,
+        }
     }
 }
