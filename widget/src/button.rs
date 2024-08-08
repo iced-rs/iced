@@ -462,8 +462,8 @@ pub struct Style {
 }
 
 impl Style {
-    /// Updates the [`Style`] with the given [`Background`].
-    pub fn with_background(self, background: impl Into<Background>) -> Self {
+    /// Updates the [`Background`] of the [`Style`].
+    pub fn background(self, background: impl Into<Background>) -> Self {
         Self {
             background: Some(background.into()),
             ..self
@@ -501,7 +501,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(primary)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
@@ -509,100 +509,113 @@ impl Catalog for Theme {
     }
 }
 
-/// A primary button; denoting a main action.
-pub fn primary(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
-    let base = styled(palette.primary.strong);
-
-    match status {
-        Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
-            background: Some(Background::Color(palette.primary.base.color)),
-            ..base
-        },
-        Status::Disabled => disabled(base),
+impl Style {
+    /// A standard button
+    pub fn standard(theme: &Theme, status: Status) -> Self {
+        Self::primary(theme, status)
     }
-}
 
-/// A secondary button; denoting a complementary action.
-pub fn secondary(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
-    let base = styled(palette.secondary.base);
+    /// A primary button; denoting a main action.
+    pub fn primary(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
+        let base = Self::styled(palette.primary.strong);
 
-    match status {
-        Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
-            background: Some(Background::Color(palette.secondary.strong.color)),
-            ..base
-        },
-        Status::Disabled => disabled(base),
+        match status {
+            Status::Active | Status::Pressed => base,
+            Status::Hovered => Self {
+                background: Some(Background::Color(palette.primary.base.color)),
+                ..base
+            },
+            Status::Disabled => Self::disabled(base),
+        }
     }
-}
 
-/// A success button; denoting a good outcome.
-pub fn success(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
-    let base = styled(palette.success.base);
+    /// A secondary button; denoting a complementary action.
+    pub fn secondary(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
+        let base = Self::styled(palette.secondary.base);
 
-    match status {
-        Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
-            background: Some(Background::Color(palette.success.strong.color)),
-            ..base
-        },
-        Status::Disabled => disabled(base),
+        match status {
+            Status::Active | Status::Pressed => base,
+            Status::Hovered => Self {
+                background: Some(Background::Color(
+                    palette.secondary.strong.color,
+                )),
+                ..base
+            },
+            Status::Disabled => Self::disabled(base),
+        }
     }
-}
 
-/// A danger button; denoting a destructive action.
-pub fn danger(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
-    let base = styled(palette.danger.base);
+    /// A success button; denoting a good outcome.
+    pub fn success(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
+        let base = Self::styled(palette.success.base);
 
-    match status {
-        Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
-            background: Some(Background::Color(palette.danger.strong.color)),
-            ..base
-        },
-        Status::Disabled => disabled(base),
+        match status {
+            Status::Active | Status::Pressed => base,
+            Status::Hovered => Self {
+                background: Some(Background::Color(
+                    palette.success.strong.color,
+                )),
+                ..base
+            },
+            Status::Disabled => Self::disabled(base),
+        }
     }
-}
 
-/// A text button; useful for links.
-pub fn text(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    /// A danger button; denoting a destructive action.
+    pub fn danger(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
+        let base = Self::styled(palette.danger.base);
 
-    let base = Style {
-        text_color: palette.background.base.text,
-        ..Style::default()
-    };
-
-    match status {
-        Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
-            text_color: palette.background.base.text.scale_alpha(0.8),
-            ..base
-        },
-        Status::Disabled => disabled(base),
+        match status {
+            Status::Active | Status::Pressed => base,
+            Status::Hovered => Self {
+                background: Some(Background::Color(
+                    palette.danger.strong.color,
+                )),
+                ..base
+            },
+            Status::Disabled => Self::disabled(base),
+        }
     }
-}
 
-fn styled(pair: palette::Pair) -> Style {
-    Style {
-        background: Some(Background::Color(pair.color)),
-        text_color: pair.text,
-        border: border::rounded(2),
-        ..Style::default()
+    /// A text button; useful for links.
+    pub fn text(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
+
+        let base = Self {
+            text_color: palette.background.base.text,
+            ..Self::default()
+        };
+
+        match status {
+            Status::Active | Status::Pressed => base,
+            Status::Hovered => Self {
+                text_color: palette.background.base.text.scale_alpha(0.8),
+                ..base
+            },
+            Status::Disabled => Self::disabled(base),
+        }
     }
-}
 
-fn disabled(style: Style) -> Style {
-    Style {
-        background: style
-            .background
-            .map(|background| background.scale_alpha(0.5)),
-        text_color: style.text_color.scale_alpha(0.5),
-        ..style
+    fn styled(pair: palette::Pair) -> Self {
+        Self {
+            background: Some(Background::Color(pair.color)),
+            text_color: pair.text,
+            border: border::rounded(2),
+            ..Self::default()
+        }
+    }
+
+    fn disabled(style: Self) -> Self {
+        Self {
+            background: style
+                .background
+                .map(|background| background.scale_alpha(0.5)),
+            text_color: style.text_color.scale_alpha(0.5),
+            ..style
+        }
     }
 }

@@ -1182,7 +1182,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> StyleFn<'a, Self> {
-        Box::new(default)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &StyleFn<'_, Self>) -> Style {
@@ -1190,29 +1190,31 @@ impl Catalog for Theme {
     }
 }
 
-/// The default style of a [`PaneGrid`].
-pub fn default(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+impl Style {
+    /// The standard style of a [`PaneGrid`].
+    pub fn standard(theme: &Theme) -> Self {
+        let palette = theme.extended_palette();
 
-    Style {
-        hovered_region: Highlight {
-            background: Background::Color(Color {
-                a: 0.5,
-                ..palette.primary.base.color
-            }),
-            border: Border {
-                width: 2.0,
-                color: palette.primary.strong.color,
-                radius: 0.0.into(),
+        Self {
+            hovered_region: Highlight {
+                background: Background::Color(Color {
+                    a: 0.5,
+                    ..palette.primary.base.color
+                }),
+                border: Border {
+                    width: 2.0,
+                    color: palette.primary.strong.color,
+                    radius: 0.0.into(),
+                },
             },
-        },
-        hovered_split: Line {
-            color: palette.primary.base.color,
-            width: 2.0,
-        },
-        picked_split: Line {
-            color: palette.primary.strong.color,
-            width: 2.0,
-        },
+            hovered_split: Line {
+                color: palette.primary.base.color,
+                width: 2.0,
+            },
+            picked_split: Line {
+                color: palette.primary.strong.color,
+                width: 2.0,
+            },
+        }
     }
 }

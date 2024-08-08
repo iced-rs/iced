@@ -250,7 +250,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(default)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>) -> Style {
@@ -258,14 +258,16 @@ impl Catalog for Theme {
     }
 }
 
-/// The default styling of a [`Rule`].
-pub fn default(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+impl Style {
+    /// The standard styling of a [`Rule`].
+    pub fn standard(theme: &Theme) -> Style {
+        let palette = theme.extended_palette();
 
-    Style {
-        color: palette.background.strong.color,
-        width: 1,
-        radius: 0.0.into(),
-        fill_mode: FillMode::Full,
+        Style {
+            color: palette.background.strong.color,
+            width: 1,
+            radius: 0.0.into(),
+            fill_mode: FillMode::Full,
+        }
     }
 }

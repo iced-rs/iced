@@ -433,7 +433,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(default)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
@@ -441,24 +441,26 @@ impl Catalog for Theme {
     }
 }
 
-/// The default style of a [`Radio`] button.
-pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+impl Style {
+    /// The standard style of a [`Radio`] button.
+    pub fn standard(theme: &Theme, status: Status) -> Style {
+        let palette = theme.extended_palette();
 
-    let active = Style {
-        background: Color::TRANSPARENT.into(),
-        dot_color: palette.primary.strong.color,
-        border_width: 1.0,
-        border_color: palette.primary.strong.color,
-        text_color: None,
-    };
-
-    match status {
-        Status::Active { .. } => active,
-        Status::Hovered { .. } => Style {
+        let active = Style {
+            background: Color::TRANSPARENT.into(),
             dot_color: palette.primary.strong.color,
-            background: palette.primary.weak.color.into(),
-            ..active
-        },
+            border_width: 1.0,
+            border_color: palette.primary.strong.color,
+            text_color: None,
+        };
+
+        match status {
+            Status::Active { .. } => active,
+            Status::Hovered { .. } => Style {
+                dot_color: palette.primary.strong.color,
+                background: palette.primary.weak.color.into(),
+                ..active
+            },
+        }
     }
 }

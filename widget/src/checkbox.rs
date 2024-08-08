@@ -458,7 +458,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(primary)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
@@ -466,128 +466,135 @@ impl Catalog for Theme {
     }
 }
 
-/// A primary checkbox; denoting a main toggle.
-pub fn primary(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
-
-    match status {
-        Status::Active { is_checked } => styled(
-            palette.primary.strong.text,
-            palette.background.base,
-            palette.primary.strong,
-            is_checked,
-        ),
-        Status::Hovered { is_checked } => styled(
-            palette.primary.strong.text,
-            palette.background.weak,
-            palette.primary.base,
-            is_checked,
-        ),
-        Status::Disabled { is_checked } => styled(
-            palette.primary.strong.text,
-            palette.background.weak,
-            palette.background.strong,
-            is_checked,
-        ),
+impl Style {
+    /// A standard checkbox
+    pub fn standard(theme: &Theme, status: Status) -> Self {
+        Self::primary(theme, status)
     }
-}
 
-/// A secondary checkbox; denoting a complementary toggle.
-pub fn secondary(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    /// A primary checkbox; denoting a main toggle.
+    pub fn primary(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
 
-    match status {
-        Status::Active { is_checked } => styled(
-            palette.background.base.text,
-            palette.background.base,
-            palette.background.strong,
-            is_checked,
-        ),
-        Status::Hovered { is_checked } => styled(
-            palette.background.base.text,
-            palette.background.weak,
-            palette.background.strong,
-            is_checked,
-        ),
-        Status::Disabled { is_checked } => styled(
-            palette.background.strong.color,
-            palette.background.weak,
-            palette.background.weak,
-            is_checked,
-        ),
+        match status {
+            Status::Active { is_checked } => Self::styled(
+                palette.primary.strong.text,
+                palette.background.base,
+                palette.primary.strong,
+                is_checked,
+            ),
+            Status::Hovered { is_checked } => Self::styled(
+                palette.primary.strong.text,
+                palette.background.weak,
+                palette.primary.base,
+                is_checked,
+            ),
+            Status::Disabled { is_checked } => Self::styled(
+                palette.primary.strong.text,
+                palette.background.weak,
+                palette.background.strong,
+                is_checked,
+            ),
+        }
     }
-}
 
-/// A success checkbox; denoting a positive toggle.
-pub fn success(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    /// A secondary checkbox; denoting a complementary toggle.
+    pub fn secondary(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
 
-    match status {
-        Status::Active { is_checked } => styled(
-            palette.success.base.text,
-            palette.background.base,
-            palette.success.base,
-            is_checked,
-        ),
-        Status::Hovered { is_checked } => styled(
-            palette.success.base.text,
-            palette.background.weak,
-            palette.success.base,
-            is_checked,
-        ),
-        Status::Disabled { is_checked } => styled(
-            palette.success.base.text,
-            palette.background.weak,
-            palette.success.weak,
-            is_checked,
-        ),
+        match status {
+            Status::Active { is_checked } => Self::styled(
+                palette.background.base.text,
+                palette.background.base,
+                palette.background.strong,
+                is_checked,
+            ),
+            Status::Hovered { is_checked } => Self::styled(
+                palette.background.base.text,
+                palette.background.weak,
+                palette.background.strong,
+                is_checked,
+            ),
+            Status::Disabled { is_checked } => Self::styled(
+                palette.background.strong.color,
+                palette.background.weak,
+                palette.background.weak,
+                is_checked,
+            ),
+        }
     }
-}
 
-/// A danger checkbox; denoting a negaive toggle.
-pub fn danger(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    /// A success checkbox; denoting a positive toggle.
+    pub fn success(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
 
-    match status {
-        Status::Active { is_checked } => styled(
-            palette.danger.base.text,
-            palette.background.base,
-            palette.danger.base,
-            is_checked,
-        ),
-        Status::Hovered { is_checked } => styled(
-            palette.danger.base.text,
-            palette.background.weak,
-            palette.danger.base,
-            is_checked,
-        ),
-        Status::Disabled { is_checked } => styled(
-            palette.danger.base.text,
-            palette.background.weak,
-            palette.danger.weak,
-            is_checked,
-        ),
+        match status {
+            Status::Active { is_checked } => Self::styled(
+                palette.success.base.text,
+                palette.background.base,
+                palette.success.base,
+                is_checked,
+            ),
+            Status::Hovered { is_checked } => Self::styled(
+                palette.success.base.text,
+                palette.background.weak,
+                palette.success.base,
+                is_checked,
+            ),
+            Status::Disabled { is_checked } => Self::styled(
+                palette.success.base.text,
+                palette.background.weak,
+                palette.success.weak,
+                is_checked,
+            ),
+        }
     }
-}
 
-fn styled(
-    icon_color: Color,
-    base: palette::Pair,
-    accent: palette::Pair,
-    is_checked: bool,
-) -> Style {
-    Style {
-        background: Background::Color(if is_checked {
-            accent.color
-        } else {
-            base.color
-        }),
-        icon_color,
-        border: Border {
-            radius: 2.0.into(),
-            width: 1.0,
-            color: accent.color,
-        },
-        text_color: None,
+    /// A danger checkbox; denoting a negaive toggle.
+    pub fn danger(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
+
+        match status {
+            Status::Active { is_checked } => Self::styled(
+                palette.danger.base.text,
+                palette.background.base,
+                palette.danger.base,
+                is_checked,
+            ),
+            Status::Hovered { is_checked } => Self::styled(
+                palette.danger.base.text,
+                palette.background.weak,
+                palette.danger.base,
+                is_checked,
+            ),
+            Status::Disabled { is_checked } => Self::styled(
+                palette.danger.base.text,
+                palette.background.weak,
+                palette.danger.weak,
+                is_checked,
+            ),
+        }
+    }
+
+    fn styled(
+        icon_color: Color,
+        base: palette::Pair,
+        accent: palette::Pair,
+        is_checked: bool,
+    ) -> Self {
+        Self {
+            background: Background::Color(if is_checked {
+                accent.color
+            } else {
+                base.color
+            }),
+            icon_color,
+            border: Border {
+                radius: 2.0.into(),
+                width: 1.0,
+                color: accent.color,
+            },
+            text_color: None,
+        }
     }
 }

@@ -206,7 +206,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(primary)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>) -> Style {
@@ -214,47 +214,57 @@ impl Catalog for Theme {
     }
 }
 
-/// The primary style of a [`ProgressBar`].
-pub fn primary(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+impl Style {
+    /// The standard style of a [`ProgressBar`].
+    pub fn standard(theme: &Theme) -> Self {
+        Self::primary(theme)
+    }
 
-    styled(
-        palette.background.strong.color,
-        palette.primary.strong.color,
-    )
-}
+    /// The primary style of a [`ProgressBar`].
+    pub fn primary(theme: &Theme) -> Self {
+        let palette = theme.extended_palette();
 
-/// The secondary style of a [`ProgressBar`].
-pub fn secondary(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+        Self::styled(
+            palette.background.strong.color,
+            palette.primary.strong.color,
+        )
+    }
 
-    styled(
-        palette.background.strong.color,
-        palette.secondary.base.color,
-    )
-}
+    /// The secondary style of a [`ProgressBar`].
+    pub fn secondary(theme: &Theme) -> Self {
+        let palette = theme.extended_palette();
 
-/// The success style of a [`ProgressBar`].
-pub fn success(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+        Self::styled(
+            palette.background.strong.color,
+            palette.secondary.base.color,
+        )
+    }
 
-    styled(palette.background.strong.color, palette.success.base.color)
-}
+    /// The success style of a [`ProgressBar`].
+    pub fn success(theme: &Theme) -> Self {
+        let palette = theme.extended_palette();
 
-/// The danger style of a [`ProgressBar`].
-pub fn danger(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+        Self::styled(
+            palette.background.strong.color,
+            palette.success.base.color,
+        )
+    }
 
-    styled(palette.background.strong.color, palette.danger.base.color)
-}
+    /// The danger style of a [`ProgressBar`].
+    pub fn danger(theme: &Theme) -> Self {
+        let palette = theme.extended_palette();
 
-fn styled(
-    background: impl Into<Background>,
-    bar: impl Into<Background>,
-) -> Style {
-    Style {
-        background: background.into(),
-        bar: bar.into(),
-        border: border::rounded(2),
+        Self::styled(palette.background.strong.color, palette.danger.base.color)
+    }
+
+    fn styled(
+        background: impl Into<Background>,
+        bar: impl Into<Background>,
+    ) -> Self {
+        Self {
+            background: background.into(),
+            bar: bar.into(),
+            border: border::rounded(2),
+        }
     }
 }

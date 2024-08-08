@@ -434,7 +434,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(default)
+        Box::new(Style::standard)
     }
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
@@ -442,46 +442,48 @@ impl Catalog for Theme {
     }
 }
 
-/// The default style of a [`Toggler`].
-pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+impl Style {
+    /// The standard style of a [`Toggler`].
+    pub fn standard(theme: &Theme, status: Status) -> Self {
+        let palette = theme.extended_palette();
 
-    let background = match status {
-        Status::Active { is_toggled } | Status::Hovered { is_toggled } => {
-            if is_toggled {
-                palette.primary.strong.color
-            } else {
-                palette.background.strong.color
-            }
-        }
-    };
-
-    let foreground = match status {
-        Status::Active { is_toggled } => {
-            if is_toggled {
-                palette.primary.strong.text
-            } else {
-                palette.background.base.color
-            }
-        }
-        Status::Hovered { is_toggled } => {
-            if is_toggled {
-                Color {
-                    a: 0.5,
-                    ..palette.primary.strong.text
+        let background = match status {
+            Status::Active { is_toggled } | Status::Hovered { is_toggled } => {
+                if is_toggled {
+                    palette.primary.strong.color
+                } else {
+                    palette.background.strong.color
                 }
-            } else {
-                palette.background.weak.color
             }
-        }
-    };
+        };
 
-    Style {
-        background,
-        foreground,
-        foreground_border_width: 0.0,
-        foreground_border_color: Color::TRANSPARENT,
-        background_border_width: 0.0,
-        background_border_color: Color::TRANSPARENT,
+        let foreground = match status {
+            Status::Active { is_toggled } => {
+                if is_toggled {
+                    palette.primary.strong.text
+                } else {
+                    palette.background.base.color
+                }
+            }
+            Status::Hovered { is_toggled } => {
+                if is_toggled {
+                    Color {
+                        a: 0.5,
+                        ..palette.primary.strong.text
+                    }
+                } else {
+                    palette.background.weak.color
+                }
+            }
+        };
+
+        Self {
+            background,
+            foreground,
+            foreground_border_width: 0.0,
+            foreground_border_color: Color::TRANSPARENT,
+            background_border_width: 0.0,
+            background_border_color: Color::TRANSPARENT,
+        }
     }
 }
