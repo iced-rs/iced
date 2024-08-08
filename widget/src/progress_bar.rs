@@ -5,7 +5,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    self, Background, Element, Layout, Length, Rectangle, Size, Theme, Widget,
+    self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme,
+    Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -151,7 +152,10 @@ where
                         width: active_progress_width,
                         ..bounds
                     },
-                    border: border::rounded(style.border.radius),
+                    border: Border {
+                        color: Color::TRANSPARENT,
+                        ..style.border
+                    },
                     ..renderer::Quad::default()
                 },
                 style.bar,
