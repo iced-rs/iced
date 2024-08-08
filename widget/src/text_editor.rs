@@ -24,6 +24,7 @@ use std::fmt;
 use std::ops::DerefMut;
 use std::sync::Arc;
 
+use crate::text::Wrapping;
 pub use text::editor::{Action, Edit, Motion};
 
 /// A multi-line text input.
@@ -49,6 +50,7 @@ pub struct TextEditor<
     padding: Padding,
     class: Theme::Class<'a>,
     key_binding: Option<Box<dyn Fn(KeyPress) -> Option<Binding<Message>> + 'a>>,
+    wrapping: Wrapping,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format: fn(
@@ -76,6 +78,7 @@ where
             padding: Padding::new(5.0),
             class: Theme::default(),
             key_binding: None,
+            wrapping: Wrapping::default(),
             on_edit: None,
             highlighter_settings: (),
             highlighter_format: |_highlight, _theme| {
@@ -148,6 +151,12 @@ where
         self
     }
 
+    /// Sets the [`Wrapping`] strategy of the [`TextEditor`].
+    pub fn wrapping(mut self, wrapping: Wrapping) -> Self {
+        self.wrapping = wrapping;
+        self
+    }
+
     /// Highlights the [`TextEditor`] using the given syntax and theme.
     #[cfg(feature = "highlighter")]
     pub fn highlight(
@@ -188,6 +197,7 @@ where
             padding: self.padding,
             class: self.class,
             key_binding: self.key_binding,
+            wrapping: self.wrapping,
             on_edit: self.on_edit,
             highlighter_settings: settings,
             highlighter_format: to_format,
@@ -494,6 +504,7 @@ where
         internal.editor.update(
             limits.shrink(self.padding).max(),
             self.font.unwrap_or_else(|| renderer.default_font()),
+            self.wrapping,
             self.text_size.unwrap_or_else(|| renderer.default_size()),
             self.line_height,
             state.highlighter.borrow_mut().deref_mut(),
@@ -790,6 +801,7 @@ where
                         horizontal_alignment: alignment::Horizontal::Left,
                         vertical_alignment: alignment::Vertical::Top,
                         shaping: text::Shaping::Advanced,
+                        wrapping: text::Wrapping::WordOrGlyph,
                     },
                     position,
                     style.placeholder,

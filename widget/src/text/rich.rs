@@ -1,3 +1,5 @@
+use iced_runtime::core::text::Wrapping;
+
 use crate::core::alignment;
 use crate::core::event;
 use crate::core::layout;
@@ -471,6 +473,7 @@ where
             horizontal_alignment,
             vertical_alignment,
             shaping: Shaping::Advanced,
+            wrapping: Wrapping::default(),
         };
 
         if state.spans != spans {
@@ -487,6 +490,7 @@ where
                 horizontal_alignment,
                 vertical_alignment,
                 shaping: Shaping::Advanced,
+                wrapping: Wrapping::default(),
             }) {
                 core::text::Difference::None => {}
                 core::text::Difference::Bounds => {
