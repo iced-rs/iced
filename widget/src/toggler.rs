@@ -39,6 +39,7 @@ pub struct Toggler<
     Renderer: text::Renderer,
 {
     is_toggled: bool,
+    is_disabled: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
     width: Length,
@@ -78,6 +79,7 @@ where
     {
         Toggler {
             is_toggled,
+            is_disabled: false, // By default, set to false
             on_toggle: Box::new(f),
             label: label.into(),
             width: Length::Shrink,
@@ -142,6 +144,11 @@ where
     /// [`Renderer::Font`]: crate::core::text::Renderer
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = Some(font.into());
+        self
+    }
+    /// Sets the disabled state for the [`Toggler`].
+    pub fn disabled(mut self, is_disabled: bool) -> Self {
+        self.is_disabled = is_disabled;
         self
     }
 
@@ -241,9 +248,12 @@ where
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {
-                    shell.publish((self.on_toggle)(!self.is_toggled));
-
-                    event::Status::Captured
+                    if self.is_disabled {
+                        event::Status::Ignored
+                    } else {
+                        shell.publish((self.on_toggle)(!self.is_toggled));
+                        event::Status::Captured
+                    }
                 } else {
                     event::Status::Ignored
                 }
@@ -261,7 +271,11 @@ where
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         if cursor.is_over(layout.bounds()) {
-            mouse::Interaction::Pointer
+            if self.is_disabled {
+                mouse::Interaction::NotAllowed
+            } else {
+                mouse::Interaction::Pointer
+            }
         } else {
             mouse::Interaction::default()
         }
@@ -305,7 +319,9 @@ where
         let bounds = toggler_layout.bounds();
         let is_mouse_over = cursor.is_over(layout.bounds());
 
-        let status = if is_mouse_over {
+        let status = if self.is_disabled {
+            Status::Disabled
+        } else if is_mouse_over {
             Status::Hovered {
                 is_toggled: self.is_toggled,
             }
@@ -394,6 +410,9 @@ pub enum Status {
         /// Indicates whether the [`Toggler`] is toggled.
         is_toggled: bool,
     },
+
+    /// The [`Toggler`] is disabled.
+    Disabled,
 }
 
 /// The appearance of a toggler.
@@ -454,6 +473,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 palette.background.strong.color
             }
         }
+        Status::Disabled => palette.background.weak.color,
     };
 
     let foreground = match status {
@@ -474,6 +494,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 palette.background.weak.color
             }
         }
+        Status::Disabled => palette.background.weak.color,
     };
 
     Style {
