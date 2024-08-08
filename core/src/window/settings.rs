@@ -27,7 +27,11 @@ mod platform;
 use crate::window::{Icon, Level, Position};
 use crate::Size;
 
+#[cfg(target_os = "macos")]
+pub use platform::ActivationPolicy;
+
 pub use platform::PlatformSpecific;
+
 /// The window settings of an application.
 #[derive(Debug, Clone)]
 pub struct Settings {

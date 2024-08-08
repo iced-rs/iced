@@ -187,9 +187,41 @@ where
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let event_loop = EventLoop::with_user_event()
-        .build()
-        .expect("Create event loop");
+    let mut event_loop_builder = EventLoop::with_user_event();
+
+    #[cfg(target_os = "macos")]
+    let event_loop_builder = {
+        use winit::platform::macos::{
+            ActivationPolicy, EventLoopBuilderExtMacOS,
+        };
+
+        if let Some(window_settings) = &window_settings {
+            let activation_policy =
+                match window_settings.platform_specific.activation_policy {
+                    window::settings::ActivationPolicy::Regular => {
+                        ActivationPolicy::Regular
+                    }
+                    window::settings::ActivationPolicy::Accessory => {
+                        ActivationPolicy::Accessory
+                    }
+                    window::settings::ActivationPolicy::Prohibited => {
+                        ActivationPolicy::Prohibited
+                    }
+                };
+
+            let activate_ignoring_other_apps = window_settings
+                .platform_specific
+                .activate_ignoring_other_apps;
+
+            event_loop_builder
+                .with_activation_policy(activation_policy)
+                .with_activate_ignoring_other_apps(activate_ignoring_other_apps)
+        } else {
+            &mut event_loop_builder
+        }
+    };
+
+    let event_loop = event_loop_builder.build().expect("Create event loop");
 
     let (proxy, worker) = Proxy::new(event_loop.create_proxy());
 
