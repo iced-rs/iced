@@ -7,6 +7,7 @@ use crate::core::mouse;
 use crate::core::touch;
 use crate::core::window;
 use crate::core::{Event, Point, Size};
+use winit::keyboard::{KeyCode, NativeKeyCode, PhysicalKey};
 
 /// Converts some [`window::Settings`] into some `WindowAttributes` from `winit`.
 pub fn window_attributes(
@@ -215,9 +216,13 @@ pub fn window_event(
             }.filter(|text| !text.as_str().chars().any(is_private_use));
 
             let winit::event::KeyEvent {
-                state, location, ..
+                state,
+                location,
+                physical_key,
+                ..
             } = event;
             let key = key(logical_key);
+            let physical_key = self::physical_key(physical_key);
             let modifiers = self::modifiers(modifiers);
 
             let location = match location {
@@ -237,6 +242,7 @@ pub fn window_event(
                 winit::event::ElementState::Pressed => {
                     keyboard::Event::KeyPressed {
                         key,
+                        physical_key,
                         modifiers,
                         location,
                         text,
@@ -245,6 +251,7 @@ pub fn window_event(
                 winit::event::ElementState::Released => {
                     keyboard::Event::KeyReleased {
                         key,
+                        physical_key,
                         modifiers,
                         location,
                     }
@@ -828,6 +835,616 @@ pub fn key(key: winit::keyboard::Key) -> keyboard::Key {
             })
         }
         _ => keyboard::Key::Unidentified,
+    }
+}
+
+/// Converts physical key code from winit to an iced key code.
+pub fn physical_key(key: PhysicalKey) -> keyboard::PhysicalKey {
+    match key {
+        PhysicalKey::Code(KeyCode::Backquote) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Backquote)
+        }
+        PhysicalKey::Code(KeyCode::Backslash) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Backslash)
+        }
+        PhysicalKey::Code(KeyCode::BracketLeft) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::BracketLeft)
+        }
+        PhysicalKey::Code(KeyCode::BracketRight) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::BracketRight)
+        }
+        PhysicalKey::Code(KeyCode::Comma) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Comma)
+        }
+        PhysicalKey::Code(KeyCode::Digit0) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Digit0)
+        }
+        PhysicalKey::Code(KeyCode::Digit1) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Digit1)
+        }
+        PhysicalKey::Code(KeyCode::Digit2) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Digit2)
+        }
+        PhysicalKey::Code(KeyCode::Digit3) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Digit3)
+        }
+        PhysicalKey::Code(KeyCode::Digit4) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Digit4)
+        }
+        PhysicalKey::Code(KeyCode::Digit5) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Digit5)
+        }
+        PhysicalKey::Code(KeyCode::Digit6) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Digit6)
+        }
+        PhysicalKey::Code(KeyCode::Digit7) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Digit7)
+        }
+        PhysicalKey::Code(KeyCode::Digit8) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Digit8)
+        }
+        PhysicalKey::Code(KeyCode::Digit9) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Digit9)
+        }
+        PhysicalKey::Code(KeyCode::Equal) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Equal)
+        }
+        PhysicalKey::Code(KeyCode::IntlBackslash) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::IntlBackslash)
+        }
+        PhysicalKey::Code(KeyCode::IntlRo) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::IntlRo)
+        }
+        PhysicalKey::Code(KeyCode::IntlYen) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::IntlYen)
+        }
+        PhysicalKey::Code(KeyCode::KeyA) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyA)
+        }
+        PhysicalKey::Code(KeyCode::KeyB) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyB)
+        }
+        PhysicalKey::Code(KeyCode::KeyC) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyC)
+        }
+        PhysicalKey::Code(KeyCode::KeyD) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyD)
+        }
+        PhysicalKey::Code(KeyCode::KeyE) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyE)
+        }
+        PhysicalKey::Code(KeyCode::KeyF) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyF)
+        }
+        PhysicalKey::Code(KeyCode::KeyG) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyG)
+        }
+        PhysicalKey::Code(KeyCode::KeyH) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyH)
+        }
+        PhysicalKey::Code(KeyCode::KeyI) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyI)
+        }
+        PhysicalKey::Code(KeyCode::KeyJ) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyJ)
+        }
+        PhysicalKey::Code(KeyCode::KeyK) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyK)
+        }
+        PhysicalKey::Code(KeyCode::KeyL) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyL)
+        }
+        PhysicalKey::Code(KeyCode::KeyM) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyM)
+        }
+        PhysicalKey::Code(KeyCode::KeyN) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyN)
+        }
+        PhysicalKey::Code(KeyCode::KeyO) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyO)
+        }
+        PhysicalKey::Code(KeyCode::KeyP) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyP)
+        }
+        PhysicalKey::Code(KeyCode::KeyQ) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyQ)
+        }
+        PhysicalKey::Code(KeyCode::KeyR) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyR)
+        }
+        PhysicalKey::Code(KeyCode::KeyS) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyS)
+        }
+        PhysicalKey::Code(KeyCode::KeyT) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyT)
+        }
+        PhysicalKey::Code(KeyCode::KeyU) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyU)
+        }
+        PhysicalKey::Code(KeyCode::KeyV) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyV)
+        }
+        PhysicalKey::Code(KeyCode::KeyW) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyW)
+        }
+        PhysicalKey::Code(KeyCode::KeyX) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyX)
+        }
+        PhysicalKey::Code(KeyCode::KeyY) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyY)
+        }
+        PhysicalKey::Code(KeyCode::KeyZ) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KeyZ)
+        }
+        PhysicalKey::Code(KeyCode::Minus) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Minus)
+        }
+        PhysicalKey::Code(KeyCode::Period) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Period)
+        }
+        PhysicalKey::Code(KeyCode::Quote) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Quote)
+        }
+        PhysicalKey::Code(KeyCode::Semicolon) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Semicolon)
+        }
+        PhysicalKey::Code(KeyCode::Slash) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Slash)
+        }
+        PhysicalKey::Code(KeyCode::AltLeft) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::AltLeft)
+        }
+        PhysicalKey::Code(KeyCode::AltRight) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::AltRight)
+        }
+        PhysicalKey::Code(KeyCode::Backspace) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Backspace)
+        }
+        PhysicalKey::Code(KeyCode::CapsLock) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::CapsLock)
+        }
+        PhysicalKey::Code(KeyCode::ContextMenu) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::ContextMenu)
+        }
+        PhysicalKey::Code(KeyCode::ControlLeft) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::ControlLeft)
+        }
+        PhysicalKey::Code(KeyCode::ControlRight) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::ControlRight)
+        }
+        PhysicalKey::Code(KeyCode::Enter) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Enter)
+        }
+        PhysicalKey::Code(KeyCode::SuperLeft) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::SuperLeft)
+        }
+        PhysicalKey::Code(KeyCode::SuperRight) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::SuperRight)
+        }
+        PhysicalKey::Code(KeyCode::ShiftLeft) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::ShiftLeft)
+        }
+        PhysicalKey::Code(KeyCode::ShiftRight) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::ShiftRight)
+        }
+        PhysicalKey::Code(KeyCode::Space) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Space)
+        }
+        PhysicalKey::Code(KeyCode::Tab) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Tab)
+        }
+        PhysicalKey::Code(KeyCode::Convert) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Convert)
+        }
+        PhysicalKey::Code(KeyCode::KanaMode) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::KanaMode)
+        }
+        PhysicalKey::Code(KeyCode::Lang1) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Lang1)
+        }
+        PhysicalKey::Code(KeyCode::Lang2) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Lang2)
+        }
+        PhysicalKey::Code(KeyCode::Lang3) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Lang3)
+        }
+        PhysicalKey::Code(KeyCode::Lang4) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Lang4)
+        }
+        PhysicalKey::Code(KeyCode::Lang5) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Lang5)
+        }
+        PhysicalKey::Code(KeyCode::NonConvert) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NonConvert)
+        }
+        PhysicalKey::Code(KeyCode::Delete) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Delete)
+        }
+        PhysicalKey::Code(KeyCode::End) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::End)
+        }
+        PhysicalKey::Code(KeyCode::Help) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Help)
+        }
+        PhysicalKey::Code(KeyCode::Home) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Home)
+        }
+        PhysicalKey::Code(KeyCode::Insert) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Insert)
+        }
+        PhysicalKey::Code(KeyCode::PageDown) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::PageDown)
+        }
+        PhysicalKey::Code(KeyCode::PageUp) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::PageUp)
+        }
+        PhysicalKey::Code(KeyCode::ArrowDown) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::ArrowDown)
+        }
+        PhysicalKey::Code(KeyCode::ArrowLeft) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::ArrowLeft)
+        }
+        PhysicalKey::Code(KeyCode::ArrowRight) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::ArrowRight)
+        }
+        PhysicalKey::Code(KeyCode::ArrowUp) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::ArrowUp)
+        }
+        PhysicalKey::Code(KeyCode::NumLock) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumLock)
+        }
+        PhysicalKey::Code(KeyCode::Numpad0) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Numpad0)
+        }
+        PhysicalKey::Code(KeyCode::Numpad1) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Numpad1)
+        }
+        PhysicalKey::Code(KeyCode::Numpad2) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Numpad2)
+        }
+        PhysicalKey::Code(KeyCode::Numpad3) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Numpad3)
+        }
+        PhysicalKey::Code(KeyCode::Numpad4) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Numpad4)
+        }
+        PhysicalKey::Code(KeyCode::Numpad5) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Numpad5)
+        }
+        PhysicalKey::Code(KeyCode::Numpad6) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Numpad6)
+        }
+        PhysicalKey::Code(KeyCode::Numpad7) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Numpad7)
+        }
+        PhysicalKey::Code(KeyCode::Numpad8) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Numpad8)
+        }
+        PhysicalKey::Code(KeyCode::Numpad9) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Numpad9)
+        }
+        PhysicalKey::Code(KeyCode::NumpadAdd) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadAdd)
+        }
+        PhysicalKey::Code(KeyCode::NumpadBackspace) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadBackspace)
+        }
+        PhysicalKey::Code(KeyCode::NumpadClear) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadClear)
+        }
+        PhysicalKey::Code(KeyCode::NumpadClearEntry) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadClearEntry)
+        }
+        PhysicalKey::Code(KeyCode::NumpadComma) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadComma)
+        }
+        PhysicalKey::Code(KeyCode::NumpadDecimal) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadDecimal)
+        }
+        PhysicalKey::Code(KeyCode::NumpadDivide) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadDivide)
+        }
+        PhysicalKey::Code(KeyCode::NumpadEnter) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadEnter)
+        }
+        PhysicalKey::Code(KeyCode::NumpadEqual) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadEqual)
+        }
+        PhysicalKey::Code(KeyCode::NumpadHash) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadHash)
+        }
+        PhysicalKey::Code(KeyCode::NumpadMemoryAdd) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadMemoryAdd)
+        }
+        PhysicalKey::Code(KeyCode::NumpadMemoryClear) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadMemoryClear)
+        }
+        PhysicalKey::Code(KeyCode::NumpadMemoryRecall) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadMemoryRecall)
+        }
+        PhysicalKey::Code(KeyCode::NumpadMemoryStore) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadMemoryStore)
+        }
+        PhysicalKey::Code(KeyCode::NumpadMemorySubtract) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadMemorySubtract)
+        }
+        PhysicalKey::Code(KeyCode::NumpadMultiply) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadMultiply)
+        }
+        PhysicalKey::Code(KeyCode::NumpadParenLeft) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadParenLeft)
+        }
+        PhysicalKey::Code(KeyCode::NumpadParenRight) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadParenRight)
+        }
+        PhysicalKey::Code(KeyCode::NumpadStar) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadStar)
+        }
+        PhysicalKey::Code(KeyCode::NumpadSubtract) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::NumpadSubtract)
+        }
+        PhysicalKey::Code(KeyCode::Escape) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Escape)
+        }
+        PhysicalKey::Code(KeyCode::Fn) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Fn)
+        }
+        PhysicalKey::Code(KeyCode::FnLock) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::FnLock)
+        }
+        PhysicalKey::Code(KeyCode::PrintScreen) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::PrintScreen)
+        }
+        PhysicalKey::Code(KeyCode::ScrollLock) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::ScrollLock)
+        }
+        PhysicalKey::Code(KeyCode::Pause) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Pause)
+        }
+        PhysicalKey::Code(KeyCode::BrowserBack) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::BrowserBack)
+        }
+        PhysicalKey::Code(KeyCode::BrowserFavorites) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::BrowserFavorites)
+        }
+        PhysicalKey::Code(KeyCode::BrowserForward) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::BrowserForward)
+        }
+        PhysicalKey::Code(KeyCode::BrowserHome) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::BrowserHome)
+        }
+        PhysicalKey::Code(KeyCode::BrowserRefresh) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::BrowserRefresh)
+        }
+        PhysicalKey::Code(KeyCode::BrowserSearch) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::BrowserSearch)
+        }
+        PhysicalKey::Code(KeyCode::BrowserStop) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::BrowserStop)
+        }
+        PhysicalKey::Code(KeyCode::Eject) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Eject)
+        }
+        PhysicalKey::Code(KeyCode::LaunchApp1) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::LaunchApp1)
+        }
+        PhysicalKey::Code(KeyCode::LaunchApp2) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::LaunchApp2)
+        }
+        PhysicalKey::Code(KeyCode::LaunchMail) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::LaunchMail)
+        }
+        PhysicalKey::Code(KeyCode::MediaPlayPause) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::MediaPlayPause)
+        }
+        PhysicalKey::Code(KeyCode::MediaSelect) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::MediaSelect)
+        }
+        PhysicalKey::Code(KeyCode::MediaStop) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::MediaStop)
+        }
+        PhysicalKey::Code(KeyCode::MediaTrackNext) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::MediaTrackNext)
+        }
+        PhysicalKey::Code(KeyCode::MediaTrackPrevious) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::MediaTrackPrevious)
+        }
+        PhysicalKey::Code(KeyCode::Power) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Power)
+        }
+        PhysicalKey::Code(KeyCode::Sleep) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Sleep)
+        }
+        PhysicalKey::Code(KeyCode::AudioVolumeDown) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::AudioVolumeDown)
+        }
+        PhysicalKey::Code(KeyCode::AudioVolumeMute) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::AudioVolumeMute)
+        }
+        PhysicalKey::Code(KeyCode::AudioVolumeUp) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::AudioVolumeUp)
+        }
+        PhysicalKey::Code(KeyCode::WakeUp) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::WakeUp)
+        }
+        PhysicalKey::Code(KeyCode::Meta) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Meta)
+        }
+        PhysicalKey::Code(KeyCode::Hyper) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Hyper)
+        }
+        PhysicalKey::Code(KeyCode::Turbo) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Turbo)
+        }
+        PhysicalKey::Code(KeyCode::Abort) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Abort)
+        }
+        PhysicalKey::Code(KeyCode::Resume) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Resume)
+        }
+        PhysicalKey::Code(KeyCode::Suspend) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Suspend)
+        }
+        PhysicalKey::Code(KeyCode::Again) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Again)
+        }
+        PhysicalKey::Code(KeyCode::Copy) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Copy)
+        }
+        PhysicalKey::Code(KeyCode::Cut) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Cut)
+        }
+        PhysicalKey::Code(KeyCode::Find) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Find)
+        }
+        PhysicalKey::Code(KeyCode::Open) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Open)
+        }
+        PhysicalKey::Code(KeyCode::Paste) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Paste)
+        }
+        PhysicalKey::Code(KeyCode::Props) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Props)
+        }
+        PhysicalKey::Code(KeyCode::Select) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Select)
+        }
+        PhysicalKey::Code(KeyCode::Undo) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Undo)
+        }
+        PhysicalKey::Code(KeyCode::Hiragana) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Hiragana)
+        }
+        PhysicalKey::Code(KeyCode::Katakana) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::Katakana)
+        }
+        PhysicalKey::Code(KeyCode::F1) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F1)
+        }
+        PhysicalKey::Code(KeyCode::F2) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F2)
+        }
+        PhysicalKey::Code(KeyCode::F3) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F3)
+        }
+        PhysicalKey::Code(KeyCode::F4) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F4)
+        }
+        PhysicalKey::Code(KeyCode::F5) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F5)
+        }
+        PhysicalKey::Code(KeyCode::F6) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F6)
+        }
+        PhysicalKey::Code(KeyCode::F7) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F7)
+        }
+        PhysicalKey::Code(KeyCode::F8) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F8)
+        }
+        PhysicalKey::Code(KeyCode::F9) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F9)
+        }
+        PhysicalKey::Code(KeyCode::F10) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F10)
+        }
+        PhysicalKey::Code(KeyCode::F11) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F11)
+        }
+        PhysicalKey::Code(KeyCode::F12) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F12)
+        }
+        PhysicalKey::Code(KeyCode::F13) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F13)
+        }
+        PhysicalKey::Code(KeyCode::F14) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F14)
+        }
+        PhysicalKey::Code(KeyCode::F15) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F15)
+        }
+        PhysicalKey::Code(KeyCode::F16) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F16)
+        }
+        PhysicalKey::Code(KeyCode::F17) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F17)
+        }
+        PhysicalKey::Code(KeyCode::F18) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F18)
+        }
+        PhysicalKey::Code(KeyCode::F19) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F19)
+        }
+        PhysicalKey::Code(KeyCode::F20) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F20)
+        }
+        PhysicalKey::Code(KeyCode::F21) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F21)
+        }
+        PhysicalKey::Code(KeyCode::F22) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F22)
+        }
+        PhysicalKey::Code(KeyCode::F23) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F23)
+        }
+        PhysicalKey::Code(KeyCode::F24) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F24)
+        }
+        PhysicalKey::Code(KeyCode::F25) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F25)
+        }
+        PhysicalKey::Code(KeyCode::F26) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F26)
+        }
+        PhysicalKey::Code(KeyCode::F27) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F27)
+        }
+        PhysicalKey::Code(KeyCode::F28) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F28)
+        }
+        PhysicalKey::Code(KeyCode::F29) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F29)
+        }
+        PhysicalKey::Code(KeyCode::F30) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F30)
+        }
+        PhysicalKey::Code(KeyCode::F31) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F31)
+        }
+        PhysicalKey::Code(KeyCode::F32) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F32)
+        }
+        PhysicalKey::Code(KeyCode::F33) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F33)
+        }
+        PhysicalKey::Code(KeyCode::F34) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F34)
+        }
+        PhysicalKey::Code(KeyCode::F35) => {
+            keyboard::PhysicalKey::Code(keyboard::KeyCode::F35)
+        }
+        PhysicalKey::Code(_) => unreachable!(), // needed because of #[non_exhaustive] in winit
+        PhysicalKey::Unidentified(native_key_code) => {
+            let native_key_code = match native_key_code {
+                NativeKeyCode::Unidentified => {
+                    keyboard::NativeKeyCode::Unidentified
+                }
+                NativeKeyCode::Android(scancode) => {
+                    keyboard::NativeKeyCode::Android(scancode)
+                }
+                NativeKeyCode::MacOS(scancode) => {
+                    keyboard::NativeKeyCode::MacOS(scancode)
+                }
+                NativeKeyCode::Windows(scancode) => {
+                    keyboard::NativeKeyCode::Windows(scancode)
+                }
+                NativeKeyCode::Xkb(keycode) => {
+                    keyboard::NativeKeyCode::Xkb(keycode)
+                }
+            };
+
+            keyboard::PhysicalKey::Unidentified(native_key_code)
+        }
     }
 }
 

@@ -4,3 +4,5 @@ pkg/
 Cargo.lock
 dist/
 traces/
+
+.idea/
