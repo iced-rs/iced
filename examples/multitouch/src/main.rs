@@ -126,7 +126,7 @@ impl canvas::Program<Message> for Multitouch {
 
                 let path = builder.build();
 
-                let color_r = (10 % zone.0) as f32 / 20.0;
+                let color_r = (10 % (zone.0 + 1)) as f32 / 20.0;
                 let color_g = (10 % (zone.0 + 8)) as f32 / 20.0;
                 let color_b = (10 % (zone.0 + 3)) as f32 / 20.0;
 
