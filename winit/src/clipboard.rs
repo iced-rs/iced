@@ -1,6 +1,8 @@
 //! Access the clipboard.
 
 use crate::core::clipboard::Kind;
+use winit::window::Window;
+use std::sync::Arc;
 
 /// A buffer for short-term storage and transfer within and between
 /// applications.
@@ -10,18 +12,31 @@ pub struct Clipboard {
 }
 
 enum State {
-    Connected(window_clipboard::Clipboard),
+    Connected {
+        clipboard: window_clipboard::Clipboard,
+        // Held until drop to satisfy the safety invariants of
+        // `window_clipboard::Clipboard`.
+        //
+        // Note that the field ordering is load-bearing.
+        #[allow(dead_code)]
+        window: Arc<Window>,
+    },
     Unavailable,
 }
 
 impl Clipboard {
     /// Creates a new [`Clipboard`] for the given window.
-    pub fn connect(window: &winit::window::Window) -> Clipboard {
+    pub fn connect(window: Arc<Window>) -> Clipboard {
         #[allow(unsafe_code)]
-        let state = unsafe { window_clipboard::Clipboard::connect(window) }
-            .ok()
-            .map(State::Connected)
-            .unwrap_or(State::Unavailable);
+        // SAFETY: The window handle will stay alive throughout the entire
+        // lifetime of the `window_clipboard::Clipboard` because we hold
+        // the `Arc<Window>` together with `State`, and enum variant fields
+        // get dropped in declaration order.
+        let clipboard = unsafe { window_clipboard::Clipboard::connect(&window) };
+        let state = match clipboard {
+            Ok(clipboard) => State::Connected { clipboard, window },
+            Err(_) => State::Unavailable,
+        };
 
         Clipboard { state }
     }
@@ -37,7 +52,7 @@ impl Clipboard {
     /// Reads the current content of the [`Clipboard`] as text.
     pub fn read(&self, kind: Kind) -> Option<String> {
         match &self.state {
-            State::Connected(clipboard) => match kind {
+            State::Connected { clipboard, .. } => match kind {
                 Kind::Standard => clipboard.read().ok(),
                 Kind::Primary => clipboard.read_primary().and_then(Result::ok),
             },
@@ -48,7 +63,7 @@ impl Clipboard {
     /// Writes the given text contents to the [`Clipboard`].
     pub fn write(&mut self, kind: Kind, contents: String) {
         match &mut self.state {
-            State::Connected(clipboard) => {
+            State::Connected { clipboard, .. } => {
                 let result = match kind {
                     Kind::Standard => clipboard.write(contents),
                     Kind::Primary => {
