@@ -307,7 +307,7 @@ where
                 }
             };
 
-            let clipboard = Clipboard::connect(&window);
+            let clipboard = Clipboard::connect(window.clone());
 
             let finish_boot = async move {
                 let mut compositor =
