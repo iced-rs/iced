@@ -159,6 +159,17 @@ impl<T> Task<T> {
         }
     }
 
+    /// Creates a new [`Task`] that discards the result of the current one.
+    ///
+    /// Useful if you only care about the side effects of a [`Task`].
+    pub fn discard<O>(self) -> Task<O>
+    where
+        T: MaybeSend + 'static,
+        O: MaybeSend + 'static,
+    {
+        self.then(|_| Task::none())
+    }
+
     /// Creates a new [`Task`] that can be aborted with the returned [`Handle`].
     pub fn abortable(self) -> (Self, Handle)
     where

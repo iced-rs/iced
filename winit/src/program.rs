@@ -1209,9 +1209,11 @@ fn run_action<P, C>(
 
                 *is_window_opening = true;
             }
-            window::Action::Close(id) => {
+            window::Action::Close(id, channel) => {
                 let _ = window_manager.remove(id);
                 let _ = ui_caches.remove(&id);
+
+                let _ = channel.send(id);
             }
             window::Action::GetOldest(channel) => {
                 let id =

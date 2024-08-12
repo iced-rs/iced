@@ -24,7 +24,7 @@ pub enum Action {
     Open(Id, Settings, oneshot::Sender<Id>),
 
     /// Close the window and exits the application.
-    Close(Id),
+    Close(Id, oneshot::Sender<Id>),
 
     /// Gets the [`Id`] of the oldest window.
     GetOldest(oneshot::Sender<Option<Id>>),
@@ -230,8 +230,8 @@ pub fn open(settings: Settings) -> (Id, Task<Id>) {
 }
 
 /// Closes the window with `id`.
-pub fn close<T>(id: Id) -> Task<T> {
-    task::effect(crate::Action::Window(Action::Close(id)))
+pub fn close(id: Id) -> Task<Id> {
+    task::oneshot(|channel| crate::Action::Window(Action::Close(id, channel)))
 }
 
 /// Gets the window [`Id`] of the oldest window.
