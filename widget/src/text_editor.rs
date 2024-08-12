@@ -729,7 +729,7 @@ where
         defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
+        _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
 
@@ -768,20 +768,14 @@ where
             style.background,
         );
 
-        let position = bounds.position()
-            + Vector::new(self.padding.left, self.padding.top);
+        let text_bounds = bounds.shrink(self.padding);
 
         if internal.editor.is_empty() {
             if let Some(placeholder) = self.placeholder.clone() {
                 renderer.fill_text(
                     Text {
                         content: placeholder.into_owned(),
-                        bounds: bounds.size()
-                            - Size::new(
-                                self.padding.right,
-                                self.padding.bottom,
-                            ),
-
+                        bounds: text_bounds.size(),
                         size: self
                             .text_size
                             .unwrap_or_else(|| renderer.default_size()),
@@ -791,24 +785,21 @@ where
                         vertical_alignment: alignment::Vertical::Top,
                         shaping: text::Shaping::Advanced,
                     },
-                    position,
+                    text_bounds.position(),
                     style.placeholder,
-                    *viewport,
+                    text_bounds,
                 );
             }
         } else {
             renderer.fill_editor(
                 &internal.editor,
-                position,
+                text_bounds.position(),
                 defaults.text_color,
-                *viewport,
+                text_bounds,
             );
         }
 
-        let translation = Vector::new(
-            bounds.x + self.padding.left,
-            bounds.y + self.padding.top,
-        );
+        let translation = text_bounds.position() - Point::ORIGIN;
 
         if let Some(focus) = state.focus.as_ref() {
             match internal.editor.cursor() {
@@ -826,11 +817,13 @@ where
                             ),
                         );
 
-                    if let Some(clipped_cursor) = bounds.intersection(&cursor) {
+                    if let Some(clipped_cursor) =
+                        text_bounds.intersection(&cursor)
+                    {
                         renderer.fill_quad(
                             renderer::Quad {
                                 bounds: Rectangle {
-                                    x: clipped_cursor.x.floor(),
+                                    x: clipped_cursor.x,
                                     y: clipped_cursor.y,
                                     width: clipped_cursor.width,
                                     height: clipped_cursor.height,
@@ -843,7 +836,7 @@ where
                 }
                 Cursor::Selection(ranges) => {
                     for range in ranges.into_iter().filter_map(|range| {
-                        bounds.intersection(&(range + translation))
+                        text_bounds.intersection(&(range + translation))
                     }) {
                         renderer.fill_quad(
                             renderer::Quad {
