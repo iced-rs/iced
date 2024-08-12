@@ -787,7 +787,7 @@ where
                     },
                     text_bounds.position(),
                     style.placeholder,
-                    bounds,
+                    text_bounds,
                 );
             }
         } else {
