@@ -20,9 +20,7 @@ enum Message {
 impl Exit {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Confirm => {
-                window::get_latest().and_then(window::close).discard()
-            }
+            Message::Confirm => window::get_latest().and_then(window::close),
             Message::Exit => {
                 self.show_confirm = true;
 
