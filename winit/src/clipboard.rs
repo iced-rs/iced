@@ -1,8 +1,8 @@
 //! Access the clipboard.
 
 use crate::core::clipboard::Kind;
-use winit::window::Window;
 use std::sync::Arc;
+use winit::window::Window;
 
 /// A buffer for short-term storage and transfer within and between
 /// applications.
@@ -27,12 +27,14 @@ enum State {
 impl Clipboard {
     /// Creates a new [`Clipboard`] for the given window.
     pub fn connect(window: Arc<Window>) -> Clipboard {
-        #[allow(unsafe_code)]
         // SAFETY: The window handle will stay alive throughout the entire
         // lifetime of the `window_clipboard::Clipboard` because we hold
         // the `Arc<Window>` together with `State`, and enum variant fields
         // get dropped in declaration order.
-        let clipboard = unsafe { window_clipboard::Clipboard::connect(&window) };
+        #[allow(unsafe_code)]
+        let clipboard =
+            unsafe { window_clipboard::Clipboard::connect(&window) };
+
         let state = match clipboard {
             Ok(clipboard) => State::Connected { clipboard, window },
             Err(_) => State::Unavailable,
