@@ -1,7 +1,7 @@
 use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
-    button, column, container, horizontal_space, pick_list, row, text,
+    self, button, column, container, horizontal_space, pick_list, row, text,
     text_editor, tooltip,
 };
 use iced::{Center, Element, Fill, Font, Subscription, Task, Theme};
@@ -49,13 +49,16 @@ impl Editor {
                 is_loading: true,
                 is_dirty: false,
             },
-            Task::perform(
-                load_file(format!(
-                    "{}/src/main.rs",
-                    env!("CARGO_MANIFEST_DIR")
-                )),
-                Message::FileOpened,
-            ),
+            Task::batch([
+                Task::perform(
+                    load_file(format!(
+                        "{}/src/main.rs",
+                        env!("CARGO_MANIFEST_DIR")
+                    )),
+                    Message::FileOpened,
+                ),
+                widget::focus_next(),
+            ]),
         )
     }
 
