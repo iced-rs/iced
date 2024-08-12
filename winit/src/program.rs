@@ -754,6 +754,7 @@ async fn run_instance<P, C>(
                             action,
                             &program,
                             &mut compositor,
+                            &mut events,
                             &mut messages,
                             &mut clipboard,
                             &mut control_sender,
@@ -1161,6 +1162,7 @@ fn run_action<P, C>(
     action: Action<P::Message>,
     program: &P,
     compositor: &mut C,
+    events: &mut Vec<(window::Id, core::Event)>,
     messages: &mut Vec<P::Message>,
     clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
@@ -1212,8 +1214,12 @@ fn run_action<P, C>(
             window::Action::Close(id, channel) => {
                 let _ = window_manager.remove(id);
                 let _ = ui_caches.remove(&id);
-
                 let _ = channel.send(id);
+
+                events.push((
+                    id,
+                    core::Event::Window(core::window::Event::Closed),
+                ));
             }
             window::Action::GetOldest(channel) => {
                 let id =
