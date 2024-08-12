@@ -823,7 +823,7 @@ where
                         renderer.fill_quad(
                             renderer::Quad {
                                 bounds: Rectangle {
-                                    x: clipped_cursor.x.floor(),
+                                    x: clipped_cursor.x,
                                     y: clipped_cursor.y,
                                     width: clipped_cursor.width,
                                     height: clipped_cursor.height,
