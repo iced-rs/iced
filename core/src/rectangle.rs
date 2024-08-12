@@ -1,4 +1,4 @@
-use crate::{Point, Radians, Size, Vector};
+use crate::{Padding, Point, Radians, Size, Vector};
 
 /// An axis-aligned rectangle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -164,12 +164,26 @@ impl Rectangle<f32> {
     }
 
     /// Expands the [`Rectangle`] a given amount.
-    pub fn expand(self, amount: f32) -> Self {
+    pub fn expand(self, padding: impl Into<Padding>) -> Self {
+        let padding = padding.into();
+
         Self {
-            x: self.x - amount,
-            y: self.y - amount,
-            width: self.width + amount * 2.0,
-            height: self.height + amount * 2.0,
+            x: self.x - padding.left,
+            y: self.y - padding.top,
+            width: self.width + padding.horizontal(),
+            height: self.height + padding.vertical(),
+        }
+    }
+
+    /// Shrinks the [`Rectangle`] a given amount.
+    pub fn shrink(self, padding: impl Into<Padding>) -> Self {
+        let padding = padding.into();
+
+        Self {
+            x: self.x + padding.left,
+            y: self.y + padding.top,
+            width: self.width - padding.horizontal(),
+            height: self.height - padding.vertical(),
         }
     }
 
