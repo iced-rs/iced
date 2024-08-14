@@ -269,9 +269,7 @@ where
         viewport: &Rectangle,
     ) {
         if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
-            let layers_below = if cursor == mouse::Cursor::Unavailable {
-                self.children.len()
-            } else {
+            let layers_below = if cursor.is_over(layout.bounds()) {
                 self.children
                     .iter()
                     .rev()
@@ -286,6 +284,8 @@ where
                     })
                     .map(|i| self.children.len() - i - 1)
                     .unwrap_or(self.children.len())
+            } else {
+                self.children.len()
             };
 
             let mut layers = self
