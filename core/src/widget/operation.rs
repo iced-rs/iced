@@ -295,7 +295,7 @@ where
 
 /// Chains the output of an [`Operation`] with the provided function to
 /// build a new [`Operation`].
-pub fn chain<A, B, O>(
+pub fn then<A, B, O>(
     operation: impl Operation<A> + 'static,
     f: fn(A) -> O,
 ) -> impl Operation<B>
@@ -361,7 +361,7 @@ where
                     Outcome::Chain(Box::new((self.next)(value)))
                 }
                 Outcome::Chain(operation) => {
-                    Outcome::Chain(Box::new(chain(operation, self.next)))
+                    Outcome::Chain(Box::new(then(operation, self.next)))
                 }
             }
         }

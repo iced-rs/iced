@@ -94,7 +94,10 @@ pub fn count() -> impl Operation<Count> {
 /// Produces an [`Operation`] that searches for the current focused widget, and
 /// - if found, focuses the previous focusable widget.
 /// - if not found, focuses the last focusable widget.
-pub fn focus_previous() -> impl Operation {
+pub fn focus_previous<T>() -> impl Operation<T>
+where
+    T: Send + 'static,
+{
     struct FocusPrevious {
         count: Count,
         current: usize,
@@ -128,13 +131,16 @@ pub fn focus_previous() -> impl Operation {
         }
     }
 
-    operation::chain(count(), |count| FocusPrevious { count, current: 0 })
+    operation::then(count(), |count| FocusPrevious { count, current: 0 })
 }
 
 /// Produces an [`Operation`] that searches for the current focused widget, and
 /// - if found, focuses the next focusable widget.
 /// - if not found, focuses the first focusable widget.
-pub fn focus_next() -> impl Operation {
+pub fn focus_next<T>() -> impl Operation<T>
+where
+    T: Send + 'static,
+{
     struct FocusNext {
         count: Count,
         current: usize,
@@ -162,7 +168,7 @@ pub fn focus_next() -> impl Operation {
         }
     }
 
-    operation::chain(count(), |count| FocusNext { count, current: 0 })
+    operation::then(count(), |count| FocusNext { count, current: 0 })
 }
 
 /// Produces an [`Operation`] that searches for the current focused widget
