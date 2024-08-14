@@ -236,7 +236,7 @@ where
                     viewport,
                 );
 
-                if is_over_scroll {
+                if is_over_scroll && cursor != mouse::Cursor::Unavailable {
                     let interaction = child.as_widget().mouse_interaction(
                         state, layout, cursor, viewport, renderer,
                     );
