@@ -650,7 +650,7 @@ async fn run_instance<P, C>(
     mut runtime: Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
     mut proxy: Proxy<P::Message>,
     mut debug: Debug,
-    mut boot: oneshot::Receiver<Boot<C>>,
+    boot: oneshot::Receiver<Boot<C>>,
     mut event_receiver: mpsc::UnboundedReceiver<Event<Action<P::Message>>>,
     mut control_sender: mpsc::UnboundedSender<Control>,
     is_daemon: bool,
@@ -665,7 +665,7 @@ async fn run_instance<P, C>(
     let Boot {
         mut compositor,
         mut clipboard,
-    } = boot.try_recv().ok().flatten().expect("Receive boot");
+    } = boot.await.expect("Receive boot");
 
     let mut window_manager = WindowManager::new();
     let mut is_window_opening = !is_daemon;
@@ -679,7 +679,18 @@ async fn run_instance<P, C>(
 
     debug.startup_finished();
 
-    while let Some(event) = event_receiver.next().await {
+    loop {
+        // Empty the queue if possible
+        let event = if let Ok(event) = event_receiver.try_next() {
+            event
+        } else {
+            event_receiver.next().await
+        };
+
+        let Some(event) = event else {
+            break;
+        };
+
         match event {
             Event::WindowCreated {
                 id,
