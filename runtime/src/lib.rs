@@ -59,7 +59,7 @@ pub enum Action<T> {
     },
 
     /// Run a widget operation.
-    Widget(Box<dyn widget::Operation<()>>),
+    Widget(Box<dyn widget::Operation>),
 
     /// Run a clipboard action.
     Clipboard(clipboard::Action),
@@ -79,7 +79,7 @@ pub enum Action<T> {
 
 impl<T> Action<T> {
     /// Creates a new [`Action::Widget`] with the given [`widget::Operation`].
-    pub fn widget(operation: impl widget::Operation<()> + 'static) -> Self {
+    pub fn widget(operation: impl widget::Operation + 'static) -> Self {
         Self::Widget(Box::new(operation))
     }
 

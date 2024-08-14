@@ -258,9 +258,10 @@ fn application<'a>() -> Element<'a, Message> {
         scrollable(
             column![
                 "Content!",
-                square(400),
-                square(200),
-                square(400),
+                row((1..10).map(|i| square(if i % 2 == 0 { 80 } else { 160 })))
+                    .spacing(20)
+                    .align_y(Center)
+                    .wrap(),
                 "The end"
             ]
             .spacing(40)

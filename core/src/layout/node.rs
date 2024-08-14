@@ -103,12 +103,13 @@ impl Node {
     }
 
     /// Translates the [`Node`] by the given translation.
-    pub fn translate(self, translation: impl Into<Vector>) -> Self {
-        let translation = translation.into();
+    pub fn translate(mut self, translation: impl Into<Vector>) -> Self {
+        self.translate_mut(translation);
+        self
+    }
 
-        Self {
-            bounds: self.bounds + translation,
-            ..self
-        }
+    /// Translates the [`Node`] by the given translation.
+    pub fn translate_mut(&mut self, translation: impl Into<Vector>) {
+        self.bounds = self.bounds + translation.into();
     }
 }

@@ -41,7 +41,7 @@ where
         &mut self,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        _operation: &mut dyn widget::Operation<()>,
+        _operation: &mut dyn widget::Operation,
     ) {
     }
 

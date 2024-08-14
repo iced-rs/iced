@@ -205,7 +205,7 @@ where
     pub fn operate(
         &mut self,
         renderer: &mut P::Renderer,
-        operations: impl Iterator<Item = Box<dyn Operation<()>>>,
+        operations: impl Iterator<Item = Box<dyn Operation>>,
         bounds: Size,
         debug: &mut Debug,
     ) {

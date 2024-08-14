@@ -68,7 +68,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     Size::new(physical_size.width, physical_size.height),
                     window.scale_factor(),
                 );
-                let clipboard = Clipboard::connect(&window);
+                let clipboard = Clipboard::connect(window.clone());
 
                 let backend =
                     wgpu::util::backend_bits_from_env().unwrap_or_default();
