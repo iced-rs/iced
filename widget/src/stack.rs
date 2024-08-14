@@ -209,19 +209,23 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mut cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
+        let is_over_scroll =
+            matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
+                && cursor.is_over(layout.bounds());
+
         self.children
             .iter_mut()
             .rev()
             .zip(tree.children.iter_mut().rev())
             .zip(layout.children().rev())
             .map(|((child, state), layout)| {
-                child.as_widget_mut().on_event(
+                let status = child.as_widget_mut().on_event(
                     state,
                     event.clone(),
                     layout,
@@ -230,7 +234,19 @@ where
                     clipboard,
                     shell,
                     viewport,
-                )
+                );
+
+                if is_over_scroll {
+                    let interaction = child.as_widget().mouse_interaction(
+                        state, layout, cursor, viewport, renderer,
+                    );
+
+                    if interaction != mouse::Interaction::None {
+                        cursor = mouse::Cursor::Unavailable;
+                    }
+                }
+
+                status
             })
             .find(|&status| status == event::Status::Captured)
             .unwrap_or(event::Status::Ignored)
@@ -283,9 +299,9 @@ where
                         interaction != mouse::Interaction::None
                     })
                     .map(|i| self.children.len() - i - 1)
-                    .unwrap_or(self.children.len())
+                    .unwrap_or_default()
             } else {
-                self.children.len()
+                0
             };
 
             let mut layers = self
