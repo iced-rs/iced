@@ -269,15 +269,53 @@ where
         viewport: &Rectangle,
     ) {
         if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
-            for (i, ((layer, state), layout)) in self
+            let layers_below = if cursor == mouse::Cursor::Unavailable {
+                self.children.len()
+            } else {
+                self.children
+                    .iter()
+                    .rev()
+                    .zip(tree.children.iter().rev())
+                    .zip(layout.children().rev())
+                    .position(|((layer, state), layout)| {
+                        let interaction = layer.as_widget().mouse_interaction(
+                            state, layout, cursor, viewport, renderer,
+                        );
+
+                        interaction != mouse::Interaction::None
+                    })
+                    .map(|i| self.children.len() - i - 1)
+                    .unwrap_or(self.children.len())
+            };
+
+            let mut layers = self
                 .children
                 .iter()
                 .zip(&tree.children)
                 .zip(layout.children())
-                .enumerate()
-            {
-                if i > 0 {
-                    renderer.with_layer(clipped_viewport, |renderer| {
+                .enumerate();
+
+            let layers = layers.by_ref();
+
+            let mut draw_layer =
+                |i,
+                 layer: &Element<'a, Message, Theme, Renderer>,
+                 state,
+                 layout,
+                 cursor| {
+                    if i > 0 {
+                        renderer.with_layer(clipped_viewport, |renderer| {
+                            layer.as_widget().draw(
+                                state,
+                                renderer,
+                                theme,
+                                style,
+                                layout,
+                                cursor,
+                                &clipped_viewport,
+                            );
+                        });
+                    } else {
                         layer.as_widget().draw(
                             state,
                             renderer,
@@ -287,18 +325,15 @@ where
                             cursor,
                             &clipped_viewport,
                         );
-                    });
-                } else {
-                    layer.as_widget().draw(
-                        state,
-                        renderer,
-                        theme,
-                        style,
-                        layout,
-                        cursor,
-                        &clipped_viewport,
-                    );
-                }
+                    }
+                };
+
+            for (i, ((layer, state), layout)) in layers.take(layers_below) {
+                draw_layer(i, layer, state, layout, mouse::Cursor::Unavailable);
+            }
+
+            for (i, ((layer, state), layout)) in layers {
+                draw_layer(i, layer, state, layout, cursor);
             }
         }
     }
