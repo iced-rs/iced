@@ -1223,13 +1223,15 @@ fn run_action<P, C>(
                 *is_window_opening = true;
             }
             window::Action::Close(id) => {
-                let _ = window_manager.remove(id);
+                let window = window_manager.remove(id);
                 let _ = ui_caches.remove(&id);
 
-                events.push((
-                    id,
-                    core::Event::Window(core::window::Event::Closed),
-                ));
+                if window.is_some() {
+                    events.push((
+                        id,
+                        core::Event::Window(core::window::Event::Closed),
+                    ));
+                }
             }
             window::Action::GetOldest(channel) => {
                 let id =
