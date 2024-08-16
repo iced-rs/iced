@@ -423,8 +423,17 @@ pub fn mouse_interaction(
             winit::window::CursorIcon::EwResize
         }
         Interaction::ResizingVertically => winit::window::CursorIcon::NsResize,
+        Interaction::ResizingDiagonalUp => {
+            winit::window::CursorIcon::NeswResize
+        }
+        Interaction::ResizingDiagonalDown => {
+            winit::window::CursorIcon::NwseResize
+        }
         Interaction::NotAllowed => winit::window::CursorIcon::NotAllowed,
         Interaction::ZoomIn => winit::window::CursorIcon::ZoomIn,
+        Interaction::ZoomOut => winit::window::CursorIcon::ZoomOut,
+        Interaction::Cell => winit::window::CursorIcon::Cell,
+        Interaction::Move => winit::window::CursorIcon::Move,
     }
 }
 

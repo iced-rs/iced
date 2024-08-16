@@ -13,6 +13,11 @@ pub enum Interaction {
     Grabbing,
     ResizingHorizontally,
     ResizingVertically,
+    ResizingDiagonalUp,
+    ResizingDiagonalDown,
     NotAllowed,
     ZoomIn,
+    ZoomOut,
+    Cell,
+    Move,
 }
