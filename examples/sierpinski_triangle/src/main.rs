@@ -80,6 +80,7 @@ impl canvas::Program<Message> for SierpinskiGraph {
         event: Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
+        _clipboard: &mut dyn iced::advanced::Clipboard,
     ) -> (event::Status, Option<Message>) {
         let Some(cursor_position) = cursor.position_in(bounds) else {
             return (event::Status::Ignored, None);

@@ -59,6 +59,7 @@ impl canvas::Program<Message> for Multitouch {
         event: event::Event,
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
+        _clipboard: &mut dyn iced::advanced::Clipboard,
     ) -> (event::Status, Option<Message>) {
         match event {
             event::Event::Touch(touch_event) => match touch_event {

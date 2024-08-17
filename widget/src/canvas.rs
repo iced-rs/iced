@@ -160,7 +160,7 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
+        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
@@ -178,8 +178,13 @@ where
         if let Some(canvas_event) = canvas_event {
             let state = tree.state.downcast_mut::<P::State>();
 
-            let (event_status, message) =
-                self.program.update(state, canvas_event, bounds, cursor);
+            let (event_status, message) = self.program.update(
+                state,
+                canvas_event,
+                bounds,
+                cursor,
+                clipboard,
+            );
 
             if let Some(message) = message {
                 shell.publish(message);

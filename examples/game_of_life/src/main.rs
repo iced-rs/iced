@@ -383,6 +383,7 @@ mod grid {
             event: Event,
             bounds: Rectangle,
             cursor: mouse::Cursor,
+            _clipboard: &mut dyn iced::advanced::Clipboard,
         ) -> (event::Status, Option<Message>) {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
                 *interaction = Interaction::None;
