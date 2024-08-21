@@ -7,8 +7,8 @@
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
-use crate::core::theme::{self, Theme};
-use crate::core::{self, color, Color, Element, Length, Pixels};
+use crate::core::theme;
+use crate::core::{self, color, Color, Element, Length, Pixels, Theme};
 use crate::{column, container, rich_text, row, scrollable, span, text};
 
 pub use pulldown_cmark::HeadingLevel;
@@ -349,11 +349,12 @@ impl Default for Settings {
 /// Display a bunch of Markdown items.
 ///
 /// You can obtain the items with [`parse`].
-pub fn view<'a, Renderer>(
+pub fn view<'a, Theme, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: Settings,
 ) -> Element<'a, Url, Theme, Renderer>
 where
+    Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     let Settings {
@@ -426,9 +427,23 @@ where
         )
         .width(Length::Fill)
         .padding(spacing.0 / 2.0)
-        .style(container::dark)
+        .class(Theme::code_block())
         .into(),
     });
 
     Element::new(column(blocks).width(Length::Fill).spacing(text_size))
+}
+
+/// The theme catalog of Markdown items.
+pub trait Catalog:
+    container::Catalog + scrollable::Catalog + text::Catalog
+{
+    /// The styling class of a Markdown code block.
+    fn code_block<'a>() -> <Self as container::Catalog>::Class<'a>;
+}
+
+impl Catalog for Theme {
+    fn code_block<'a>() -> <Self as container::Catalog>::Class<'a> {
+        Box::new(container::dark)
+    }
 }
