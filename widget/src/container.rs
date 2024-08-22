@@ -184,7 +184,6 @@ where
     }
 
     /// Sets the style class of the [`Container`].
-    #[cfg(feature = "advanced")]
     #[must_use]
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
         self.class = class.into();

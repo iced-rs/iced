@@ -252,7 +252,7 @@ pub struct Span<'a, Link = (), Font = crate::Font> {
 }
 
 /// A text highlight.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Highlight {
     /// The [`Background`] of the highlight.
     pub background: Background,

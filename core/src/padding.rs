@@ -32,7 +32,7 @@ use crate::{Pixels, Size};
 /// let widget = Widget::new().padding(20);              // 20px on all sides
 /// let widget = Widget::new().padding([10, 20]);        // top/bottom, left/right
 /// ```
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub struct Padding {
     /// Top padding
     pub top: f32,
