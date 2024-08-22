@@ -154,11 +154,23 @@ impl Example {
             .spacing(5);
 
             let title_bar = pane_grid::TitleBar::new(title)
-                .controls(view_controls(
-                    id,
-                    total_panes,
-                    pane.is_pinned,
-                    is_maximized,
+                .controls(pane_grid::Controls::dynamic(
+                    view_controls(
+                        id,
+                        total_panes,
+                        pane.is_pinned,
+                        is_maximized,
+                    ),
+                    button(text("X").size(14))
+                        .style(button::danger)
+                        .padding(3)
+                        .on_press_maybe(
+                            if total_panes > 1 && !pane.is_pinned {
+                                Some(Message::Close(id))
+                            } else {
+                                None
+                            },
+                        ),
                 ))
                 .padding(10)
                 .style(if is_focused {
