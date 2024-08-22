@@ -57,7 +57,7 @@ impl Text {
         }
     }
 
-    /// Returns the [`rich_text`] spans ready to be used for the given style.
+    /// Returns the [`rich_text()`] spans ready to be used for the given style.
     ///
     /// This method performs caching for you. It will only reallocate if the [`Style`]
     /// provided changes.
