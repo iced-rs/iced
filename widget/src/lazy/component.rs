@@ -31,6 +31,19 @@ use std::rc::Rc;
 ///
 /// Additionally, a [`Component`] is capable of producing a `Message` to notify
 /// the parent application of any relevant interactions.
+///
+/// # State
+/// A component can store its state in one of two ways: either as data within the
+/// implementor of the trait, or in a type [`State`][Component::State] that is managed
+/// by the runtime and provided to the trait methods. These two approaches are not
+/// mutually exclusive and have opposite pros and cons.
+///
+/// For instance, if a piece of state is needed by multiple components that reside
+/// in different branches of the tree, then it's more convenient to let a common
+/// ancestor store it and pass it down.
+///
+/// On the other hand, if a piece of state is only needed by the component itself,
+/// you can store it as part of its internal [`State`][Component::State].
 #[cfg(feature = "lazy")]
 #[deprecated(
     since = "0.13.0",
