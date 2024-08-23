@@ -9,6 +9,7 @@ use crate::core::{
     self, Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
     Vector,
 };
+use crate::pane_grid::controls::Controls;
 
 /// The title bar of a [`Pane`].
 ///
@@ -24,7 +25,7 @@ pub struct TitleBar<
     Renderer: core::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
-    controls: Option<Element<'a, Message, Theme, Renderer>>,
+    controls: Option<Controls<'a, Message, Theme, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
     class: Theme::Class<'a>,
@@ -51,7 +52,7 @@ where
     /// Sets the controls of the [`TitleBar`].
     pub fn controls(
         mut self,
-        controls: impl Into<Element<'a, Message, Theme, Renderer>>,
+        controls: impl Into<Controls<'a, Message, Theme, Renderer>>,
     ) -> Self {
         self.controls = Some(controls.into());
         self
@@ -104,10 +105,22 @@ where
     Renderer: core::Renderer,
 {
     pub(super) fn state(&self) -> Tree {
-        let children = if let Some(controls) = self.controls.as_ref() {
-            vec![Tree::new(&self.content), Tree::new(controls)]
-        } else {
-            vec![Tree::new(&self.content), Tree::empty()]
+        let children = match self.controls.as_ref() {
+            Some(controls) => match controls.compact.as_ref() {
+                Some(compact) => vec![
+                    Tree::new(&self.content),
+                    Tree::new(&controls.full),
+                    Tree::new(compact),
+                ],
+                None => vec![
+                    Tree::new(&self.content),
+                    Tree::new(&controls.full),
+                    Tree::empty(),
+                ],
+            },
+            None => {
+                vec![Tree::new(&self.content), Tree::empty(), Tree::empty()]
+            }
         };
 
         Tree {
@@ -117,9 +130,13 @@ where
     }
 
     pub(super) fn diff(&self, tree: &mut Tree) {
-        if tree.children.len() == 2 {
+        if tree.children.len() == 3 {
             if let Some(controls) = self.controls.as_ref() {
-                tree.children[1].diff(controls);
+                if let Some(compact) = controls.compact.as_ref() {
+                    tree.children[2].diff(compact);
+                }
+
+                tree.children[1].diff(&controls.full);
             }
 
             tree.children[0].diff(&self.content);
@@ -164,18 +181,42 @@ where
                 if title_layout.bounds().width + controls_layout.bounds().width
                     > padded.bounds().width
                 {
-                    show_title = false;
-                }
+                    if let Some(compact) = controls.compact.as_ref() {
+                        let compact_layout = children.next().unwrap();
 
-                controls.as_widget().draw(
-                    &tree.children[1],
-                    renderer,
-                    theme,
-                    &inherited_style,
-                    controls_layout,
-                    cursor,
-                    viewport,
-                );
+                        compact.as_widget().draw(
+                            &tree.children[2],
+                            renderer,
+                            theme,
+                            &inherited_style,
+                            compact_layout,
+                            cursor,
+                            viewport,
+                        );
+                    } else {
+                        show_title = false;
+
+                        controls.full.as_widget().draw(
+                            &tree.children[1],
+                            renderer,
+                            theme,
+                            &inherited_style,
+                            controls_layout,
+                            cursor,
+                            viewport,
+                        );
+                    }
+                } else {
+                    controls.full.as_widget().draw(
+                        &tree.children[1],
+                        renderer,
+                        theme,
+                        &inherited_style,
+                        controls_layout,
+                        cursor,
+                        viewport,
+                    );
+                }
             }
         }
 
@@ -207,13 +248,20 @@ where
             let mut children = padded.children();
             let title_layout = children.next().unwrap();
 
-            if self.controls.is_some() {
+            if let Some(controls) = self.controls.as_ref() {
                 let controls_layout = children.next().unwrap();
 
                 if title_layout.bounds().width + controls_layout.bounds().width
                     > padded.bounds().width
                 {
-                    !controls_layout.bounds().contains(cursor_position)
+                    if controls.compact.is_some() {
+                        let compact_layout = children.next().unwrap();
+
+                        !compact_layout.bounds().contains(cursor_position)
+                            && !title_layout.bounds().contains(cursor_position)
+                    } else {
+                        !controls_layout.bounds().contains(cursor_position)
+                    }
                 } else {
                     !controls_layout.bounds().contains(cursor_position)
                         && !title_layout.bounds().contains(cursor_position)
@@ -244,25 +292,73 @@ where
         let title_size = title_layout.size();
 
         let node = if let Some(controls) = &self.controls {
-            let controls_layout = controls.as_widget().layout(
+            let controls_layout = controls.full.as_widget().layout(
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
             );
 
-            let controls_size = controls_layout.size();
-            let space_before_controls = max_size.width - controls_size.width;
+            if title_layout.bounds().width + controls_layout.bounds().width
+                > max_size.width
+            {
+                if let Some(compact) = controls.compact.as_ref() {
+                    let compact_layout = compact.as_widget().layout(
+                        &mut tree.children[2],
+                        renderer,
+                        &layout::Limits::new(Size::ZERO, max_size),
+                    );
 
-            let height = title_size.height.max(controls_size.height);
+                    let compact_size = compact_layout.size();
+                    let space_before_controls =
+                        max_size.width - compact_size.width;
 
-            layout::Node::with_children(
-                Size::new(max_size.width, height),
-                vec![
-                    title_layout,
-                    controls_layout
-                        .move_to(Point::new(space_before_controls, 0.0)),
-                ],
-            )
+                    let height = title_size.height.max(compact_size.height);
+
+                    layout::Node::with_children(
+                        Size::new(max_size.width, height),
+                        vec![
+                            title_layout,
+                            controls_layout,
+                            compact_layout.move_to(Point::new(
+                                space_before_controls,
+                                0.0,
+                            )),
+                        ],
+                    )
+                } else {
+                    let controls_size = controls_layout.size();
+                    let space_before_controls =
+                        max_size.width - controls_size.width;
+
+                    let height = title_size.height.max(controls_size.height);
+
+                    layout::Node::with_children(
+                        Size::new(max_size.width, height),
+                        vec![
+                            title_layout,
+                            controls_layout.move_to(Point::new(
+                                space_before_controls,
+                                0.0,
+                            )),
+                        ],
+                    )
+                }
+            } else {
+                let controls_size = controls_layout.size();
+                let space_before_controls =
+                    max_size.width - controls_size.width;
+
+                let height = title_size.height.max(controls_size.height);
+
+                layout::Node::with_children(
+                    Size::new(max_size.width, height),
+                    vec![
+                        title_layout,
+                        controls_layout
+                            .move_to(Point::new(space_before_controls, 0.0)),
+                    ],
+                )
+            }
         } else {
             layout::Node::with_children(
                 Size::new(max_size.width, title_size.height),
@@ -293,15 +389,33 @@ where
             if title_layout.bounds().width + controls_layout.bounds().width
                 > padded.bounds().width
             {
-                show_title = false;
-            }
+                if let Some(compact) = controls.compact.as_ref() {
+                    let compact_layout = children.next().unwrap();
 
-            controls.as_widget().operate(
-                &mut tree.children[1],
-                controls_layout,
-                renderer,
-                operation,
-            );
+                    compact.as_widget().operate(
+                        &mut tree.children[2],
+                        compact_layout,
+                        renderer,
+                        operation,
+                    );
+                } else {
+                    show_title = false;
+
+                    controls.full.as_widget().operate(
+                        &mut tree.children[1],
+                        controls_layout,
+                        renderer,
+                        operation,
+                    );
+                }
+            } else {
+                controls.full.as_widget().operate(
+                    &mut tree.children[1],
+                    controls_layout,
+                    renderer,
+                    operation,
+                );
+            }
         };
 
         if show_title {
@@ -337,19 +451,45 @@ where
             if title_layout.bounds().width + controls_layout.bounds().width
                 > padded.bounds().width
             {
-                show_title = false;
-            }
+                if let Some(compact) = controls.compact.as_mut() {
+                    let compact_layout = children.next().unwrap();
 
-            controls.as_widget_mut().on_event(
-                &mut tree.children[1],
-                event.clone(),
-                controls_layout,
-                cursor,
-                renderer,
-                clipboard,
-                shell,
-                viewport,
-            )
+                    compact.as_widget_mut().on_event(
+                        &mut tree.children[2],
+                        event.clone(),
+                        compact_layout,
+                        cursor,
+                        renderer,
+                        clipboard,
+                        shell,
+                        viewport,
+                    )
+                } else {
+                    show_title = false;
+
+                    controls.full.as_widget_mut().on_event(
+                        &mut tree.children[1],
+                        event.clone(),
+                        controls_layout,
+                        cursor,
+                        renderer,
+                        clipboard,
+                        shell,
+                        viewport,
+                    )
+                }
+            } else {
+                controls.full.as_widget_mut().on_event(
+                    &mut tree.children[1],
+                    event.clone(),
+                    controls_layout,
+                    cursor,
+                    renderer,
+                    clipboard,
+                    shell,
+                    viewport,
+                )
+            }
         } else {
             event::Status::Ignored
         };
@@ -396,18 +536,33 @@ where
 
         if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
-            let controls_interaction = controls.as_widget().mouse_interaction(
-                &tree.children[1],
-                controls_layout,
-                cursor,
-                viewport,
-                renderer,
-            );
+            let controls_interaction =
+                controls.full.as_widget().mouse_interaction(
+                    &tree.children[1],
+                    controls_layout,
+                    cursor,
+                    viewport,
+                    renderer,
+                );
 
             if title_layout.bounds().width + controls_layout.bounds().width
                 > padded.bounds().width
             {
-                controls_interaction
+                if let Some(compact) = controls.compact.as_ref() {
+                    let compact_layout = children.next().unwrap();
+                    let compact_interaction =
+                        compact.as_widget().mouse_interaction(
+                            &tree.children[2],
+                            compact_layout,
+                            cursor,
+                            viewport,
+                            renderer,
+                        );
+
+                    compact_interaction.max(title_interaction)
+                } else {
+                    controls_interaction
+                }
             } else {
                 controls_interaction.max(title_interaction)
             }
@@ -444,12 +599,36 @@ where
                 controls.as_mut().and_then(|controls| {
                     let controls_layout = children.next()?;
 
-                    controls.as_widget_mut().overlay(
-                        controls_state,
-                        controls_layout,
-                        renderer,
-                        translation,
-                    )
+                    if title_layout.bounds().width
+                        + controls_layout.bounds().width
+                        > padded.bounds().width
+                    {
+                        if let Some(compact) = controls.compact.as_mut() {
+                            let compact_state = states.next().unwrap();
+                            let compact_layout = children.next()?;
+
+                            compact.as_widget_mut().overlay(
+                                compact_state,
+                                compact_layout,
+                                renderer,
+                                translation,
+                            )
+                        } else {
+                            controls.full.as_widget_mut().overlay(
+                                controls_state,
+                                controls_layout,
+                                renderer,
+                                translation,
+                            )
+                        }
+                    } else {
+                        controls.full.as_widget_mut().overlay(
+                            controls_state,
+                            controls_layout,
+                            renderer,
+                            translation,
+                        )
+                    }
                 })
             })
     }

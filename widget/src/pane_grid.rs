@@ -10,6 +10,7 @@
 mod axis;
 mod configuration;
 mod content;
+mod controls;
 mod direction;
 mod draggable;
 mod node;
@@ -22,6 +23,7 @@ pub mod state;
 pub use axis::Axis;
 pub use configuration::Configuration;
 pub use content::Content;
+pub use controls::Controls;
 pub use direction::Direction;
 pub use draggable::Draggable;
 pub use node::Node;
