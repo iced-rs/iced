@@ -19,7 +19,7 @@ use crate::core::keyboard::key;
 use crate::core::layout;
 use crate::core::mouse::{self, click};
 use crate::core::renderer;
-use crate::core::text::paragraph;
+use crate::core::text::paragraph::{self, Paragraph as _};
 use crate::core::text::{self, Text};
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
@@ -74,6 +74,7 @@ pub struct TextInput<
     padding: Padding,
     size: Option<Pixels>,
     line_height: text::LineHeight,
+    alignment: alignment::Horizontal,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
@@ -103,6 +104,7 @@ where
             padding: DEFAULT_PADDING,
             size: None,
             line_height: text::LineHeight::default(),
+            alignment: alignment::Horizontal::Left,
             on_input: None,
             on_paste: None,
             on_submit: None,
@@ -190,6 +192,15 @@ where
         line_height: impl Into<text::LineHeight>,
     ) -> Self {
         self.line_height = line_height.into();
+        self
+    }
+
+    /// Sets the horizontal alignment of the [`TextInput`].
+    pub fn align_x(
+        mut self,
+        alignment: impl Into<alignment::Horizontal>,
+    ) -> Self {
+        self.alignment = alignment.into();
         self
     }
 
@@ -457,9 +468,21 @@ where
         };
 
         let draw = |renderer: &mut Renderer, viewport| {
+            let paragraph = if text.is_empty() {
+                state.placeholder.raw()
+            } else {
+                state.value.raw()
+            };
+
+            let alignment_offset = alignment_offset(
+                text_bounds.width,
+                paragraph.min_width(),
+                self.alignment,
+            );
+
             if let Some((cursor, color)) = cursor {
                 renderer.with_translation(
-                    Vector::new(-offset, 0.0),
+                    Vector::new(alignment_offset - offset, 0.0),
                     |renderer| {
                         renderer.fill_quad(cursor, color);
                     },
@@ -469,13 +492,9 @@ where
             }
 
             renderer.fill_paragraph(
-                if text.is_empty() {
-                    state.placeholder.raw()
-                } else {
-                    state.value.raw()
-                },
+                paragraph,
                 Point::new(text_bounds.x, text_bounds.center_y())
-                    - Vector::new(offset, 0.0),
+                    + Vector::new(alignment_offset - offset, 0.0),
                 if text.is_empty() {
                     style.placeholder
                 } else {
@@ -600,7 +619,18 @@ where
 
                 if let Some(cursor_position) = click_position {
                     let text_layout = layout.children().next().unwrap();
-                    let target = cursor_position.x - text_layout.bounds().x;
+
+                    let target = {
+                        let text_bounds = text_layout.bounds();
+
+                        let alignment_offset = alignment_offset(
+                            text_bounds.width,
+                            state.value.raw().min_width(),
+                            self.alignment,
+                        );
+
+                        cursor_position.x - text_bounds.x - alignment_offset
+                    };
 
                     let click =
                         mouse::Click::new(cursor_position, state.last_click);
@@ -677,7 +707,18 @@ where
 
                 if state.is_dragging {
                     let text_layout = layout.children().next().unwrap();
-                    let target = position.x - text_layout.bounds().x;
+
+                    let target = {
+                        let text_bounds = text_layout.bounds();
+
+                        let alignment_offset = alignment_offset(
+                            text_bounds.width,
+                            state.value.raw().min_width(),
+                            self.alignment,
+                        );
+
+                        position.x - text_bounds.x - alignment_offset
+                    };
 
                     let value = if self.is_secure {
                         self.value.secure()
@@ -1484,5 +1525,23 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             value: active.placeholder,
             ..active
         },
+    }
+}
+
+fn alignment_offset(
+    text_bounds_width: f32,
+    text_min_width: f32,
+    alignment: alignment::Horizontal,
+) -> f32 {
+    if text_min_width > text_bounds_width {
+        0.0
+    } else {
+        match alignment {
+            alignment::Horizontal::Left => 0.0,
+            alignment::Horizontal::Center => {
+                (text_bounds_width - text_min_width) / 2.0
+            }
+            alignment::Horizontal::Right => text_bounds_width - text_min_width,
+        }
     }
 }
