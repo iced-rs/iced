@@ -63,6 +63,9 @@ pub enum Action {
     /// Get the current logical coordinates of the window.
     GetPosition(Id, oneshot::Sender<Option<Point>>),
 
+    /// Get the current scale factor (DPI) of the window.
+    GetScaleFactor(Id, oneshot::Sender<f32>),
+
     /// Move the window to the given logical coordinates.
     ///
     /// Unsupported on Wayland.
@@ -289,6 +292,13 @@ pub fn minimize<T>(id: Id, minimized: bool) -> Task<T> {
 pub fn get_position(id: Id) -> Task<Option<Point>> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetPosition(id, channel))
+    })
+}
+
+/// Gets the scale factor of the window with the given [`Id`].
+pub fn get_scale_factor(id: Id) -> Task<f32> {
+    task::oneshot(move |channel| {
+        crate::Action::Window(Action::GetScaleFactor(id, channel))
     })
 }
 

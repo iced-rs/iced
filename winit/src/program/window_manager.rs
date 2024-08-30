@@ -80,6 +80,10 @@ where
         self.entries.iter_mut().map(|(k, v)| (*k, v))
     }
 
+    pub fn get(&self, id: Id) -> Option<&Window<P, C>> {
+        self.entries.get(&id)
+    }
+
     pub fn get_mut(&mut self, id: Id) -> Option<&mut Window<P, C>> {
         self.entries.get_mut(&id)
     }

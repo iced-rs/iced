@@ -1291,7 +1291,7 @@ fn run_action<P, C>(
                 }
             }
             window::Action::GetPosition(id, channel) => {
-                if let Some(window) = window_manager.get_mut(id) {
+                if let Some(window) = window_manager.get(id) {
                     let position = window
                         .raw
                         .inner_position()
@@ -1304,6 +1304,13 @@ fn run_action<P, C>(
                         .ok();
 
                     let _ = channel.send(position);
+                }
+            }
+            window::Action::GetScaleFactor(id, channel) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    let scale_factor = window.raw.scale_factor();
+
+                    let _ = channel.send(scale_factor as f32);
                 }
             }
             window::Action::Move(id, position) => {
