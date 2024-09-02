@@ -629,6 +629,11 @@ pub fn transparent<Theme>(_theme: &Theme) -> Style {
     Style::default()
 }
 
+/// A [`Container`] with the given [`Background`].
+pub fn background(background: impl Into<Background>) -> Style {
+    Style::default().background(background)
+}
+
 /// A rounded [`Container`] with a background.
 pub fn rounded_box(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
