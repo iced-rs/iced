@@ -27,7 +27,9 @@ wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enable the `tiny-skia` software renderer backend
 tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `Image` widget
-image = ["iced_widget/image", "dep:image"]
+image = ["image-without-codecs", "image/default"]
+# Enables the `Image` widget, without any built-in codecs of the `image` crate
+image-without-codecs = ["iced_widget/image", "dep:image"]
 # Enables the `Svg` widget
 svg = ["iced_widget/svg"]
 # Enables the `Canvas` widget
@@ -147,7 +149,7 @@ glam = "0.25"
 glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "feef9f5630c2adb3528937e55f7bfad2da561a65" }
 guillotiere = "0.6"
 half = "2.2"
-image = "0.24"
+image = { version = "0.24", default-features = false }
 kamadak-exif = "0.5"
 kurbo = "0.10"
 log = "0.4"
