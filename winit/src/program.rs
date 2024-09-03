@@ -307,8 +307,6 @@ where
                 }
             };
 
-            let clipboard = Clipboard::connect(window.clone());
-
             let finish_boot = async move {
                 let mut compositor =
                     C::new(graphics_settings, window.clone()).await?;
@@ -318,10 +316,7 @@ where
                 }
 
                 sender
-                    .send(Boot {
-                        compositor,
-                        clipboard,
-                    })
+                    .send(Boot { compositor })
                     .ok()
                     .expect("Send boot event");
 
@@ -617,7 +612,6 @@ where
 
 struct Boot<C> {
     compositor: C,
-    clipboard: Clipboard,
 }
 
 #[derive(Debug)]
@@ -662,10 +656,7 @@ async fn run_instance<P, C>(
     use winit::event;
     use winit::event_loop::ControlFlow;
 
-    let Boot {
-        mut compositor,
-        mut clipboard,
-    } = boot.await.expect("Receive boot");
+    let Boot { mut compositor } = boot.await.expect("Receive boot");
 
     let mut window_manager = WindowManager::new();
     let mut is_window_opening = !is_daemon;
@@ -676,6 +667,7 @@ async fn run_instance<P, C>(
 
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
+    let mut clipboard = Clipboard::unconnected();
 
     debug.startup_finished();
 
@@ -733,6 +725,10 @@ async fn run_instance<P, C>(
                         size: window.size(),
                     }),
                 ));
+
+                if clipboard.window_id().is_none() {
+                    clipboard = Clipboard::connect(window.raw.clone());
+                }
 
                 let _ = on_open.send(id);
                 is_window_opening = false;
@@ -979,14 +975,22 @@ async fn run_instance<P, C>(
                             winit::event::WindowEvent::CloseRequested
                         ) && window.exit_on_close_request
                         {
-                            let _ = window_manager.remove(id);
-                            let _ = user_interfaces.remove(&id);
-                            let _ = ui_caches.remove(&id);
-
-                            events.push((
-                                id,
-                                core::Event::Window(window::Event::Closed),
-                            ));
+                            run_action(
+                                Action::Window(runtime::window::Action::Close(
+                                    id,
+                                )),
+                                &program,
+                                &mut compositor,
+                                &mut events,
+                                &mut messages,
+                                &mut clipboard,
+                                &mut control_sender,
+                                &mut debug,
+                                &mut user_interfaces,
+                                &mut window_manager,
+                                &mut ui_caches,
+                                &mut is_window_opening,
+                            );
                         } else {
                             window.state.update(
                                 &window.raw,
@@ -1223,10 +1227,18 @@ fn run_action<P, C>(
                 *is_window_opening = true;
             }
             window::Action::Close(id) => {
-                let window = window_manager.remove(id);
                 let _ = ui_caches.remove(&id);
+                let _ = interfaces.remove(&id);
 
-                if window.is_some() {
+                if let Some(window) = window_manager.remove(id) {
+                    if clipboard.window_id() == Some(window.raw.id()) {
+                        *clipboard = window_manager
+                            .first()
+                            .map(|window| window.raw.clone())
+                            .map(Clipboard::connect)
+                            .unwrap_or_else(Clipboard::unconnected);
+                    }
+
                     events.push((
                         id,
                         core::Event::Window(core::window::Event::Closed),

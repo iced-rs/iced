@@ -2,7 +2,7 @@
 
 use crate::core::clipboard::Kind;
 use std::sync::Arc;
-use winit::window::Window;
+use winit::window::{Window, WindowId};
 
 /// A buffer for short-term storage and transfer within and between
 /// applications.
@@ -81,6 +81,14 @@ impl Clipboard {
                 }
             }
             State::Unavailable => {}
+        }
+    }
+
+    /// Returns the identifier of the window used to create the [`Clipboard`], if any.
+    pub fn window_id(&self) -> Option<WindowId> {
+        match &self.state {
+            State::Connected { window, .. } => Some(window.id()),
+            State::Unavailable => None,
         }
     }
 }
