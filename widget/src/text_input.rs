@@ -395,11 +395,11 @@ where
                             position,
                         );
 
-                    let is_cursor_visible = ((focus.now - focus.updated_at)
-                        .as_millis()
-                        / CURSOR_BLINK_INTERVAL_MILLIS)
-                        % 2
-                        == 0;
+                    let is_cursor_visible = !is_disabled
+                        && ((focus.now - focus.updated_at).as_millis()
+                            / CURSOR_BLINK_INTERVAL_MILLIS)
+                            % 2
+                            == 0;
 
                     let cursor = if is_cursor_visible {
                         Some((
@@ -531,12 +531,9 @@ where
     fn diff(&self, tree: &mut Tree) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
-        // Unfocus text input if it becomes disabled
+        // Stop pasting if input becomes disabled
         if self.on_input.is_none() {
-            state.last_click = None;
-            state.is_focused = None;
             state.is_pasting = None;
-            state.is_dragging = false;
         }
     }
 
@@ -597,11 +594,7 @@ where
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let state = state::<Renderer>(tree);
 
-                let click_position = if self.on_input.is_some() {
-                    cursor.position_over(layout.bounds())
-                } else {
-                    None
-                };
+                let click_position = cursor.position_over(layout.bounds());
 
                 state.is_focused = if click_position.is_some() {
                     state.is_focused.or_else(|| {
@@ -747,10 +740,6 @@ where
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
-                    let Some(on_input) = &self.on_input else {
-                        return event::Status::Ignored;
-                    };
-
                     let modifiers = state.keyboard_modifiers;
                     focus.updated_at = Instant::now();
 
@@ -774,6 +763,10 @@ where
                             if state.keyboard_modifiers.command()
                                 && !self.is_secure =>
                         {
+                            let Some(on_input) = &self.on_input else {
+                                return event::Status::Ignored;
+                            };
+
                             if let Some((start, end)) =
                                 state.cursor.selection(&self.value)
                             {
@@ -798,6 +791,10 @@ where
                             if state.keyboard_modifiers.command()
                                 && !state.keyboard_modifiers.alt() =>
                         {
+                            let Some(on_input) = &self.on_input else {
+                                return event::Status::Ignored;
+                            };
+
                             let content = match state.is_pasting.take() {
                                 Some(content) => content,
                                 None => {
@@ -841,6 +838,10 @@ where
                     }
 
                     if let Some(text) = text {
+                        let Some(on_input) = &self.on_input else {
+                            return event::Status::Ignored;
+                        };
+
                         state.is_pasting = None;
 
                         if let Some(c) =
@@ -869,6 +870,10 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::Backspace) => {
+                            let Some(on_input) = &self.on_input else {
+                                return event::Status::Ignored;
+                            };
+
                             if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
@@ -893,6 +898,10 @@ where
                             update_cache(state, &self.value);
                         }
                         keyboard::Key::Named(key::Named::Delete) => {
+                            let Some(on_input) = &self.on_input else {
+                                return event::Status::Ignored;
+                            };
+
                             if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
@@ -1111,7 +1120,7 @@ where
     ) -> mouse::Interaction {
         if cursor.is_over(layout.bounds()) {
             if self.on_input.is_none() {
-                mouse::Interaction::NotAllowed
+                mouse::Interaction::Idle
             } else {
                 mouse::Interaction::Text
             }
