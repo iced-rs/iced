@@ -767,7 +767,7 @@ where
 ///
 /// [`Toggler`]: crate::Toggler
 pub fn toggler<'a, Message, Theme, Renderer>(
-    label: impl Into<Option<String>>,
+    label: Option<impl text::IntoFragment<'a>>,
     is_checked: bool,
     f: impl Fn(bool) -> Message + 'a,
 ) -> Toggler<'a, Message, Theme, Renderer>

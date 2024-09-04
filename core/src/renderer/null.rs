@@ -161,6 +161,7 @@ impl text::Editor for () {
         _new_font: Self::Font,
         _new_size: Pixels,
         _new_line_height: text::LineHeight,
+        _new_wrapping: text::Wrapping,
         _new_highlighter: &mut impl text::Highlighter,
     ) {
     }

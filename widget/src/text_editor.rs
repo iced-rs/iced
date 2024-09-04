@@ -9,7 +9,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::editor::{Cursor, Editor as _};
 use crate::core::text::highlighter::{self, Highlighter};
-use crate::core::text::{self, LineHeight, Text};
+use crate::core::text::{self, LineHeight, Text, Wrapping};
 use crate::core::time::{Duration, Instant};
 use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
@@ -47,6 +47,7 @@ pub struct TextEditor<
     width: Length,
     height: Length,
     padding: Padding,
+    wrapping: Wrapping,
     class: Theme::Class<'a>,
     key_binding: Option<Box<dyn Fn(KeyPress) -> Option<Binding<Message>> + 'a>>,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
@@ -74,6 +75,7 @@ where
             width: Length::Fill,
             height: Length::Shrink,
             padding: Padding::new(5.0),
+            wrapping: Wrapping::default(),
             class: Theme::default(),
             key_binding: None,
             on_edit: None,
@@ -148,6 +150,12 @@ where
         self
     }
 
+    /// Sets the [`Wrapping`] strategy of the [`TextEditor`].
+    pub fn wrapping(mut self, wrapping: Wrapping) -> Self {
+        self.wrapping = wrapping;
+        self
+    }
+
     /// Highlights the [`TextEditor`] using the given syntax and theme.
     #[cfg(feature = "highlighter")]
     pub fn highlight(
@@ -186,6 +194,7 @@ where
             width: self.width,
             height: self.height,
             padding: self.padding,
+            wrapping: self.wrapping,
             class: self.class,
             key_binding: self.key_binding,
             on_edit: self.on_edit,
@@ -496,6 +505,7 @@ where
             self.font.unwrap_or_else(|| renderer.default_font()),
             self.text_size.unwrap_or_else(|| renderer.default_size()),
             self.line_height,
+            self.wrapping,
             state.highlighter.borrow_mut().deref_mut(),
         );
 
@@ -784,6 +794,7 @@ where
                         horizontal_alignment: alignment::Horizontal::Left,
                         vertical_alignment: alignment::Vertical::Top,
                         shaping: text::Shaping::Advanced,
+                        wrapping: self.wrapping,
                     },
                     text_bounds.position(),
                     style.placeholder,

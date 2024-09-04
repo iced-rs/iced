@@ -78,7 +78,7 @@ impl Styling {
             .on_toggle(Message::CheckboxToggled);
 
         let toggler = toggler(
-            String::from("Toggle me!"),
+            Some("Toggle me!"),
             self.toggler_value,
             Message::TogglerToggled,
         )

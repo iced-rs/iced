@@ -5,7 +5,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::{Paragraph, Span};
 use crate::core::widget::text::{
-    self, Catalog, LineHeight, Shaping, Style, StyleFn,
+    self, Catalog, LineHeight, Shaping, Style, StyleFn, Wrapping,
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
@@ -29,6 +29,7 @@ where
     font: Option<Renderer::Font>,
     align_x: alignment::Horizontal,
     align_y: alignment::Vertical,
+    wrapping: Wrapping,
     class: Theme::Class<'a>,
 }
 
@@ -50,6 +51,7 @@ where
             font: None,
             align_x: alignment::Horizontal::Left,
             align_y: alignment::Vertical::Top,
+            wrapping: Wrapping::default(),
             class: Theme::default(),
         }
     }
@@ -115,6 +117,12 @@ where
         alignment: impl Into<alignment::Vertical>,
     ) -> Self {
         self.align_y = alignment.into();
+        self
+    }
+
+    /// Sets the [`Wrapping`] strategy of the [`Rich`] text.
+    pub fn wrapping(mut self, wrapping: Wrapping) -> Self {
+        self.wrapping = wrapping;
         self
     }
 
@@ -218,6 +226,7 @@ where
             self.font,
             self.align_x,
             self.align_y,
+            self.wrapping,
         )
     }
 
@@ -444,6 +453,7 @@ fn layout<Link, Renderer>(
     font: Option<Renderer::Font>,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
+    wrapping: Wrapping,
 ) -> layout::Node
 where
     Link: Clone,
@@ -464,6 +474,7 @@ where
             horizontal_alignment,
             vertical_alignment,
             shaping: Shaping::Advanced,
+            wrapping,
         };
 
         if state.spans != spans {
@@ -480,6 +491,7 @@ where
                 horizontal_alignment,
                 vertical_alignment,
                 shaping: Shaping::Advanced,
+                wrapping,
             }) {
                 core::text::Difference::None => {}
                 core::text::Difference::Bounds => {

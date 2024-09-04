@@ -2,7 +2,7 @@ use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
     self, button, column, container, horizontal_space, pick_list, row, text,
-    text_editor, tooltip,
+    text_editor, toggler, tooltip,
 };
 use iced::{Center, Element, Fill, Font, Subscription, Task, Theme};
 
@@ -24,6 +24,7 @@ struct Editor {
     file: Option<PathBuf>,
     content: text_editor::Content,
     theme: highlighter::Theme,
+    word_wrap: bool,
     is_loading: bool,
     is_dirty: bool,
 }
@@ -32,6 +33,7 @@ struct Editor {
 enum Message {
     ActionPerformed(text_editor::Action),
     ThemeSelected(highlighter::Theme),
+    WordWrapToggled(bool),
     NewFile,
     OpenFile,
     FileOpened(Result<(PathBuf, Arc<String>), Error>),
@@ -46,6 +48,7 @@ impl Editor {
                 file: None,
                 content: text_editor::Content::new(),
                 theme: highlighter::Theme::SolarizedDark,
+                word_wrap: true,
                 is_loading: true,
                 is_dirty: false,
             },
@@ -73,6 +76,11 @@ impl Editor {
             }
             Message::ThemeSelected(theme) => {
                 self.theme = theme;
+
+                Task::none()
+            }
+            Message::WordWrapToggled(word_wrap) => {
+                self.word_wrap = word_wrap;
 
                 Task::none()
             }
@@ -152,6 +160,11 @@ impl Editor {
                 self.is_dirty.then_some(Message::SaveFile)
             ),
             horizontal_space(),
+            toggler(
+                Some("Word Wrap"),
+                self.word_wrap,
+                Message::WordWrapToggled
+            ),
             pick_list(
                 highlighter::Theme::ALL,
                 Some(self.theme),
@@ -189,6 +202,11 @@ impl Editor {
             text_editor(&self.content)
                 .height(Fill)
                 .on_action(Message::ActionPerformed)
+                .wrapping(if self.word_wrap {
+                    text::Wrapping::Word
+                } else {
+                    text::Wrapping::None
+                })
                 .highlight(
                     self.file
                         .as_deref()

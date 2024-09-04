@@ -3,7 +3,7 @@ use crate::core::text::editor::{
     self, Action, Cursor, Direction, Edit, Motion,
 };
 use crate::core::text::highlighter::{self, Highlighter};
-use crate::core::text::LineHeight;
+use crate::core::text::{LineHeight, Wrapping};
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
@@ -437,6 +437,7 @@ impl editor::Editor for Editor {
         new_font: Font,
         new_size: Pixels,
         new_line_height: LineHeight,
+        new_wrapping: Wrapping,
         new_highlighter: &mut impl Highlighter,
     ) {
         let editor =
@@ -448,13 +449,12 @@ impl editor::Editor for Editor {
         let mut font_system =
             text::font_system().write().expect("Write font system");
 
+        let buffer = buffer_mut_from_editor(&mut internal.editor);
+
         if font_system.version() != internal.version {
             log::trace!("Updating `FontSystem` of `Editor`...");
 
-            for line in buffer_mut_from_editor(&mut internal.editor)
-                .lines
-                .iter_mut()
-            {
+            for line in buffer.lines.iter_mut() {
                 line.reset();
             }
 
@@ -465,10 +465,7 @@ impl editor::Editor for Editor {
         if new_font != internal.font {
             log::trace!("Updating font of `Editor`...");
 
-            for line in buffer_mut_from_editor(&mut internal.editor)
-                .lines
-                .iter_mut()
-            {
+            for line in buffer.lines.iter_mut() {
                 let _ = line.set_attrs_list(cosmic_text::AttrsList::new(
                     text::to_attributes(new_font),
                 ));
@@ -478,7 +475,7 @@ impl editor::Editor for Editor {
             internal.topmost_line_changed = Some(0);
         }
 
-        let metrics = buffer_from_editor(&internal.editor).metrics();
+        let metrics = buffer.metrics();
         let new_line_height = new_line_height.to_absolute(new_size);
 
         if new_size.0 != metrics.font_size
@@ -486,10 +483,18 @@ impl editor::Editor for Editor {
         {
             log::trace!("Updating `Metrics` of `Editor`...");
 
-            buffer_mut_from_editor(&mut internal.editor).set_metrics(
+            buffer.set_metrics(
                 font_system.raw(),
                 cosmic_text::Metrics::new(new_size.0, new_line_height.0),
             );
+        }
+
+        let new_wrap = text::to_wrap(new_wrapping);
+
+        if new_wrap != buffer.wrap() {
+            log::trace!("Updating `Wrap` strategy of `Editor`...");
+
+            buffer.set_wrap(font_system.raw(), new_wrap);
         }
 
         if new_bounds != internal.bounds {

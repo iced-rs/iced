@@ -11,7 +11,7 @@ use crate::{
     Widget,
 };
 
-pub use text::{LineHeight, Shaping};
+pub use text::{LineHeight, Shaping, Wrapping};
 
 /// A paragraph of text.
 #[allow(missing_debug_implementations)]
@@ -29,6 +29,7 @@ where
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
     shaping: Shaping,
+    wrapping: Wrapping,
     class: Theme::Class<'a>,
 }
 
@@ -48,7 +49,8 @@ where
             height: Length::Shrink,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            shaping: Shaping::Basic,
+            shaping: Shaping::default(),
+            wrapping: Wrapping::default(),
             class: Theme::default(),
         }
     }
@@ -112,6 +114,12 @@ where
     /// Sets the [`Shaping`] strategy of the [`Text`].
     pub fn shaping(mut self, shaping: Shaping) -> Self {
         self.shaping = shaping;
+        self
+    }
+
+    /// Sets the [`Wrapping`] strategy of the [`Text`].
+    pub fn wrapping(mut self, wrapping: Wrapping) -> Self {
+        self.wrapping = wrapping;
         self
     }
 
@@ -198,6 +206,7 @@ where
             self.horizontal_alignment,
             self.vertical_alignment,
             self.shaping,
+            self.wrapping,
         )
     }
 
@@ -232,6 +241,7 @@ pub fn layout<Renderer>(
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     shaping: Shaping,
+    wrapping: Wrapping,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
@@ -253,6 +263,7 @@ where
             horizontal_alignment,
             vertical_alignment,
             shaping,
+            wrapping,
         });
 
         paragraph.min_bounds()
