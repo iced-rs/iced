@@ -26,7 +26,7 @@ use crate::core::{
 ///
 /// let is_toggled = true;
 ///
-/// Toggler::new(String::from("Toggle me!"), is_toggled, |b| Message::TogglerToggled(b));
+/// Toggler::new(Some("Toggle me!"), is_toggled, |b| Message::TogglerToggled(b));
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Toggler<
