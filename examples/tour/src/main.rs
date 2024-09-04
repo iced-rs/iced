@@ -358,7 +358,7 @@ impl Tour {
             .push("A toggler is mostly used to enable or disable something.")
             .push(
                 Container::new(toggler(
-                    "Toggle me to continue...".to_owned(),
+                    Some("Toggle me to continue..."),
                     self.toggler,
                     Message::TogglerChanged,
                 ))

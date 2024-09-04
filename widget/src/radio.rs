@@ -82,6 +82,7 @@ where
     text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
+    text_wrapping: text::Wrapping,
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
 }
@@ -122,10 +123,11 @@ where
             label: label.into(),
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
-            spacing: Self::DEFAULT_SPACING, //15
+            spacing: Self::DEFAULT_SPACING,
             text_size: None,
             text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::default(),
+            text_wrapping: text::Wrapping::default(),
             font: None,
             class: Theme::default(),
         }
@@ -167,6 +169,12 @@ where
     /// Sets the [`text::Shaping`] strategy of the [`Radio`] button.
     pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
         self.text_shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Wrapping`] strategy of the [`Radio`] button.
+    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.text_wrapping = wrapping;
         self
     }
 
@@ -245,6 +253,7 @@ where
                     alignment::Horizontal::Left,
                     alignment::Vertical::Top,
                     self.text_shaping,
+                    self.text_wrapping,
                 )
             },
         )

@@ -50,6 +50,7 @@ pub struct Checkbox<
     text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
+    text_wrapping: text::Wrapping,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
     class: Theme::Class<'a>,
@@ -81,7 +82,8 @@ where
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
             text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::default(),
+            text_wrapping: text::Wrapping::default(),
             font: None,
             icon: Icon {
                 font: Renderer::ICON_FONT,
@@ -155,6 +157,12 @@ where
     /// Sets the [`text::Shaping`] strategy of the [`Checkbox`].
     pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
         self.text_shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Wrapping`] strategy of the [`Checkbox`].
+    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.text_wrapping = wrapping;
         self
     }
 
@@ -240,6 +248,7 @@ where
                     alignment::Horizontal::Left,
                     alignment::Vertical::Top,
                     self.text_shaping,
+                    self.text_wrapping,
                 )
             },
         )
@@ -348,6 +357,7 @@ where
                         horizontal_alignment: alignment::Horizontal::Center,
                         vertical_alignment: alignment::Vertical::Center,
                         shaping: *shaping,
+                        wrapping: text::Wrapping::default(),
                     },
                     bounds.center(),
                     style.icon_color,

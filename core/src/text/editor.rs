@@ -1,6 +1,6 @@
 //! Edit text.
 use crate::text::highlighter::{self, Highlighter};
-use crate::text::LineHeight;
+use crate::text::{LineHeight, Wrapping};
 use crate::{Pixels, Point, Rectangle, Size};
 
 use std::sync::Arc;
@@ -50,6 +50,7 @@ pub trait Editor: Sized + Default {
         new_font: Self::Font,
         new_size: Pixels,
         new_line_height: LineHeight,
+        new_wrapping: Wrapping,
         new_highlighter: &mut impl Highlighter,
     );
 

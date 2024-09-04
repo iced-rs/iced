@@ -81,7 +81,7 @@ where
             padding: crate::button::DEFAULT_PADDING,
             text_size: None,
             text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::default(),
             font: None,
             handle: Handle::default(),
             class: <Theme as Catalog>::default(),
@@ -250,6 +250,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
             shaping: self.text_shaping,
+            wrapping: text::Wrapping::default(),
         };
 
         for (option, paragraph) in options.iter().zip(state.options.iter_mut())
@@ -515,6 +516,7 @@ where
                     horizontal_alignment: alignment::Horizontal::Right,
                     vertical_alignment: alignment::Vertical::Center,
                     shaping,
+                    wrapping: text::Wrapping::default(),
                 },
                 Point::new(
                     bounds.x + bounds.width - self.padding.right,
@@ -544,6 +546,7 @@ where
                     horizontal_alignment: alignment::Horizontal::Left,
                     vertical_alignment: alignment::Vertical::Center,
                     shaping: self.text_shaping,
+                    wrapping: text::Wrapping::default(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if is_selected {

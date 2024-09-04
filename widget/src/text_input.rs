@@ -251,6 +251,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
             shaping: text::Shaping::Advanced,
+            wrapping: text::Wrapping::default(),
         };
 
         state.placeholder.update(placeholder_text);
@@ -275,6 +276,7 @@ where
                 horizontal_alignment: alignment::Horizontal::Center,
                 vertical_alignment: alignment::Vertical::Center,
                 shaping: text::Shaping::Advanced,
+                wrapping: text::Wrapping::default(),
             };
 
             state.icon.update(icon_text);
@@ -1432,6 +1434,7 @@ fn replace_paragraph<Renderer>(
         horizontal_alignment: alignment::Horizontal::Left,
         vertical_alignment: alignment::Vertical::Top,
         shaping: text::Shaping::Advanced,
+        wrapping: text::Wrapping::default(),
     });
 }
 

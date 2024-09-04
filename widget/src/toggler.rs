@@ -26,7 +26,7 @@ use crate::core::{
 ///
 /// let is_toggled = true;
 ///
-/// Toggler::new(String::from("Toggle me!"), is_toggled, |b| Message::TogglerToggled(b));
+/// Toggler::new(Some("Toggle me!"), is_toggled, |b| Message::TogglerToggled(b));
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Toggler<
@@ -40,13 +40,14 @@ pub struct Toggler<
 {
     is_toggled: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
-    label: Option<String>,
+    label: Option<text::Fragment<'a>>,
     width: Length,
     size: f32,
     text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_alignment: alignment::Horizontal,
     text_shaping: text::Shaping,
+    text_wrapping: text::Wrapping,
     spacing: f32,
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
@@ -69,7 +70,7 @@ where
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
     pub fn new<F>(
-        label: impl Into<Option<String>>,
+        label: Option<impl text::IntoFragment<'a>>,
         is_toggled: bool,
         f: F,
     ) -> Self
@@ -79,13 +80,14 @@ where
         Toggler {
             is_toggled,
             on_toggle: Box::new(f),
-            label: label.into(),
+            label: label.map(text::IntoFragment::into_fragment),
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
             text_size: None,
             text_line_height: text::LineHeight::default(),
             text_alignment: alignment::Horizontal::Left,
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::default(),
+            text_wrapping: text::Wrapping::default(),
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
             class: Theme::default(),
@@ -128,6 +130,12 @@ where
     /// Sets the [`text::Shaping`] strategy of the [`Toggler`].
     pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
         self.text_shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Wrapping`] strategy of the [`Toggler`].
+    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.text_wrapping = wrapping;
         self
     }
 
@@ -216,6 +224,7 @@ where
                         self.text_alignment,
                         alignment::Vertical::Top,
                         self.text_shaping,
+                        self.text_wrapping,
                     )
                 } else {
                     layout::Node::new(Size::ZERO)
