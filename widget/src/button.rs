@@ -53,6 +53,8 @@ where
     Theme: Catalog,
 {
     content: Element<'a, Message, Theme, Renderer>,
+    on_down: Option<Message>,
+    on_release: Option<Message>,
     on_press: Option<OnPress<'a, Message>>,
     width: Length,
     height: Length,
@@ -89,6 +91,8 @@ where
 
         Button {
             content,
+            on_down: None,
+            on_release: None,
             on_press: None,
             width: size.width.fluid(),
             height: size.height.fluid(),
@@ -116,9 +120,45 @@ where
         self
     }
 
+    /// Sets the message that will be produced when the mouse clicks on the [`Button`],
+    ///
+    /// Unless `on_press`, `on_down` or `on_release` is called, the [`Button`] will be disabled.
+    pub fn on_down(mut self, on_down: Message) -> Self {
+        self.on_down = Some(on_down);
+        self
+    }
+
+    /// Sets the message that will be produced when the mouse clicks on the [`Button`],
+    /// if `Some`.
+    pub fn on_down_maybe(mut self, on_down: Option<Message>) -> Self {
+        self.on_down = on_down;
+        self
+    }
+
+    /// Sets the message that will be produced when the mouse releases the [`Button`].
+    ///
+    /// This differs from ['on_press'] in that it will be produced even if the mouse is
+    /// released outside the bounds of the [`Button`].
+    ///
+    /// Unless `on_press`, `on_down` or `on_release` is called, the [`Button`] will be disabled.
+    pub fn on_release(mut self, on_release: Message) -> Self {
+        self.on_release = Some(on_release);
+        self
+    }
+
+    /// Sets the message that will be produced when the mouse releases the [`Button`],
+    /// if `Some`.
+    ///
+    /// This differs from ['on_press_maybe'] in that it will be produced even if the mouse is
+    /// released outside the bounds of the [`Button`].
+    pub fn on_release_maybe(mut self, on_release: Option<Message>) -> Self {
+        self.on_release = on_release;
+        self
+    }
+
     /// Sets the message that will be produced when the [`Button`] is pressed.
     ///
-    /// Unless `on_press` is called, the [`Button`] will be disabled.
+    /// Unless `on_press`, `on_down` or `on_release` is called, the [`Button`] will be disabled.
     pub fn on_press(mut self, on_press: Message) -> Self {
         self.on_press = Some(OnPress::Direct(on_press));
         self
@@ -142,8 +182,6 @@ where
 
     /// Sets the message that will be produced when the [`Button`] is pressed,
     /// if `Some`.
-    ///
-    /// If `None`, the [`Button`] will be disabled.
     pub fn on_press_maybe(mut self, on_press: Option<Message>) -> Self {
         self.on_press = on_press.map(OnPress::Direct);
         self
@@ -275,7 +313,10 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if self.on_press.is_some() {
+                if self.on_press.is_some()
+                    || self.on_down.is_some()
+                    || self.on_release.is_some()
+                {
                     let bounds = layout.bounds();
 
                     if cursor.is_over(bounds) {
@@ -283,27 +324,37 @@ where
 
                         state.is_pressed = true;
 
+                        if let Some(on_down) = self.on_down.clone() {
+                            shell.publish(on_down);
+                        }
+
                         return event::Status::Captured;
                     }
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. }) => {
-                if let Some(on_press) = self.on_press.as_ref().map(OnPress::get)
-                {
-                    let state = tree.state.downcast_mut::<State>();
+                let state = tree.state.downcast_mut::<State>();
 
-                    if state.is_pressed {
-                        state.is_pressed = false;
+                if state.is_pressed {
+                    // state.is_pressed can never be true if the button is disabled
+                    state.is_pressed = false;
 
+                    if let Some(on_press) =
+                        self.on_press.as_ref().map(OnPress::get)
+                    {
                         let bounds = layout.bounds();
 
                         if cursor.is_over(bounds) {
                             shell.publish(on_press);
                         }
-
-                        return event::Status::Captured;
                     }
+
+                    if let Some(on_release) = self.on_release.clone() {
+                        shell.publish(on_release);
+                    }
+
+                    return event::Status::Captured;
                 }
             }
             Event::Touch(touch::Event::FingerLost { .. }) => {
@@ -331,7 +382,10 @@ where
         let content_layout = layout.children().next().unwrap();
         let is_mouse_over = cursor.is_over(bounds);
 
-        let status = if self.on_press.is_none() {
+        let status = if self.on_press.is_none()
+            && self.on_down.is_none()
+            && self.on_release.is_none()
+        {
             Status::Disabled
         } else if is_mouse_over {
             let state = tree.state.downcast_ref::<State>();
