@@ -500,7 +500,7 @@ impl editor::Editor for Editor {
         if new_bounds != internal.bounds {
             log::trace!("Updating size of `Editor`...");
 
-            buffer_mut_from_editor(&mut internal.editor).set_size(
+            buffer.set_size(
                 font_system.raw(),
                 Some(new_bounds.width),
                 Some(new_bounds.height),
