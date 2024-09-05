@@ -43,9 +43,6 @@ pub use helpers::*;
 mod lazy;
 
 #[cfg(feature = "lazy")]
-pub use crate::lazy::{Component, Lazy, Responsive};
-
-#[cfg(feature = "lazy")]
 pub use crate::lazy::helpers::*;
 
 #[doc(no_inline)]

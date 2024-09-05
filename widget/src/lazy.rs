@@ -29,6 +29,7 @@ use std::hash::{Hash, Hasher as H};
 use std::rc::Rc;
 
 /// A widget that only rebuilds its contents when necessary.
+#[cfg(feature = "lazy")]
 #[allow(missing_debug_implementations)]
 pub struct Lazy<'a, Message, Theme, Renderer, Dependency, View> {
     dependency: Dependency,
