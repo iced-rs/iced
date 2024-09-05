@@ -30,6 +30,7 @@ use std::rc::Rc;
 ///
 /// Additionally, a [`Component`] is capable of producing a `Message` to notify
 /// the parent application of any relevant interactions.
+#[cfg(feature = "lazy")]
 pub trait Component<Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     /// The internal state of this [`Component`].
     type State: Default;

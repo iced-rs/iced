@@ -1,8 +1,9 @@
 use crate::core::{self, Element, Size};
-use crate::lazy::component::{self, Component};
-use crate::lazy::{Lazy, Responsive};
+use crate::lazy::component;
 
 use std::hash::Hash;
+
+pub use crate::lazy::{Component, Lazy, Responsive};
 
 /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
 /// closure that can turn this data into a widget tree.
