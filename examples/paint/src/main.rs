@@ -1,6 +1,9 @@
 use iced::{
     alignment::{Horizontal, Vertical},
-    widget::{button, column, container, row, text, vertical_space, Container},
+    widget::{
+        button, column, container, row, text, vertical_rule, vertical_space,
+        Container,
+    },
     Element, Font, Length, Theme,
 };
 
@@ -15,15 +18,26 @@ fn main() -> iced::Result {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
+enum Tool {
+    Pencil,
+    Eraser,
+    Text,
+    #[default]
+    Brush,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 enum Action {
     #[default]
     Draw,
     Select,
+    Tool(Tool),
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     Selector,
+    Tool(Tool),
 }
 
 #[derive(Debug, Default)]
@@ -49,11 +63,37 @@ impl Paint {
                 .height(Length::Fill)
         };
 
+        let tools = {
+            let tool_btn = |code: char, message: Message| {
+                let icon = text(code).font(ICON_FONT);
+
+                button(icon).on_press(message).style(styles::toolbar_btn)
+            };
+
+            let rw1 = row!(
+                tool_btn('\u{E800}', Message::Tool(Tool::Pencil)),
+                tool_btn('\u{F12D}', Message::Tool(Tool::Eraser))
+            );
+            let rw2 = row!(
+                tool_btn('\u{E801}', Message::Tool(Tool::Text)),
+                tool_btn('\u{F1FC}', Message::Tool(Tool::Brush))
+            );
+
+            let description = text("Tools");
+
+            let tools = column!(rw1, rw2);
+
+            column!(tools, vertical_space(), description)
+                .align_x(Horizontal::Center)
+                .width(75)
+                .height(Length::Fill)
+        };
+
         container(
-            row!(selector)
+            row!(selector, vertical_rule(2), tools)
                 .width(Length::Fill)
                 .height(Length::Fixed(100.0))
-                .spacing(5.0)
+                .spacing(7.0)
                 .padding([5, 8])
                 .align_y(Vertical::Center),
         )
@@ -63,6 +103,7 @@ impl Paint {
     fn update(&mut self, message: Message) {
         match message {
             Message::Selector => self.action = Action::Select,
+            Message::Tool(tool) => self.action = Action::Tool(tool),
         }
     }
 
