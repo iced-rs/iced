@@ -147,6 +147,18 @@ pub enum Action {
 
     /// Screenshot the viewport of the window.
     Screenshot(Id, oneshot::Sender<Screenshot>),
+
+    /// Enables mouse passthrough for the given window.
+    ///
+    /// This disables mouse events for the window and passes mouse events
+    /// through to whatever window is underneath.
+    EnableMousePassthrough(Id),
+
+    /// Disable mouse passthrough for the given window.
+    ///
+    /// This enables mouse events for the window and stops mouse events
+    /// from being passed to whatever is underneath.
+    DisableMousePassthrough(Id),
 }
 
 /// Subscribes to the frames of the window of the running application.
@@ -405,4 +417,20 @@ pub fn screenshot(id: Id) -> Task<Screenshot> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::Screenshot(id, channel))
     })
+}
+
+/// Enables mouse passthrough for the given window.
+///
+/// This disables mouse events for the window and passes mouse events
+/// through to whatever window is underneath.
+pub fn enable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
+    task::effect(crate::Action::Window(Action::EnableMousePassthrough(id)))
+}
+
+/// Disable mouse passthrough for the given window.
+///
+/// This enables mouse events for the window and stops mouse events
+/// from being passed to whatever is underneath.
+pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
+    task::effect(crate::Action::Window(Action::DisableMousePassthrough(id)))
 }
