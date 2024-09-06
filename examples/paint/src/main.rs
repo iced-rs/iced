@@ -2,11 +2,13 @@
 
 use iced::{
     alignment::{Horizontal, Vertical},
+    color,
+    theme::palette,
     widget::{
         button, column, container, row, text, vertical_rule, vertical_space,
-        Container,
+        Column, Container,
     },
-    Element, Font, Length, Theme,
+    Color, Element, Font, Length, Theme,
 };
 
 const ICON_FONT: Font = Font::with_name("paint-icons");
@@ -17,6 +19,75 @@ fn main() -> iced::Result {
         .antialiasing(true)
         .font(include_bytes!("../fonts/paint-icons.ttf").as_slice())
         .run()
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+enum PaintColor {
+    #[default]
+    Black,
+    White,
+    Grey,
+    Ivory,
+    Red,
+    Orange,
+    Yellow,
+    Green,
+    Blue,
+    Indigo,
+    Violet,
+    Rose,
+    Cyan,
+    Fuchsia,
+    Empty,
+    Custom(Color),
+}
+
+impl PaintColor {
+    const ALL: [PaintColor; 14] = [
+        Self::White,
+        Self::Black,
+        Self::Grey,
+        Self::Ivory,
+        Self::Red,
+        Self::Orange,
+        Self::Yellow,
+        Self::Green,
+        Self::Blue,
+        Self::Indigo,
+        Self::Violet,
+        Self::Fuchsia,
+        Self::Rose,
+        Self::Cyan,
+    ];
+}
+
+impl From<PaintColor> for Color {
+    fn from(value: PaintColor) -> Self {
+        match value {
+            PaintColor::Black => color!(0, 0, 0),
+            PaintColor::White => color!(255, 255, 255),
+            PaintColor::Grey => color!(71, 85, 105),
+            PaintColor::Ivory => color!(240, 234, 214),
+            PaintColor::Red => color!(255, 0, 0),
+            PaintColor::Green => color!(0, 255, 0),
+            PaintColor::Blue => color!(0, 0, 255),
+            PaintColor::Orange => color!(234, 88, 12),
+            PaintColor::Yellow => color!(234, 179, 8),
+            PaintColor::Indigo => color!(79, 70, 229),
+            PaintColor::Violet => color!(124, 58, 237),
+            PaintColor::Rose => color!(225, 29, 72),
+            PaintColor::Cyan => color!(8, 145, 178),
+            PaintColor::Fuchsia => color!(192, 38, 211),
+            PaintColor::Empty => color!(115, 115, 115),
+            PaintColor::Custom(color) => color,
+        }
+    }
+}
+
+impl From<Color> for PaintColor {
+    fn from(value: Color) -> Self {
+        PaintColor::Custom(value)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -56,14 +127,95 @@ enum Message {
     Selector,
     Tool(Tool),
     Shape(Shapes),
+    Color(PaintColor),
+    None,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Paint {
     action: Action,
+    color: PaintColor,
+    palette: [PaintColor; 18],
+}
+
+impl Default for Paint {
+    fn default() -> Self {
+        let palette = [
+            PaintColor::White,
+            PaintColor::Black,
+            PaintColor::Grey,
+            PaintColor::Ivory,
+            PaintColor::Red,
+            PaintColor::Orange,
+            PaintColor::Yellow,
+            PaintColor::Green,
+            PaintColor::Blue,
+            PaintColor::Indigo,
+            PaintColor::Violet,
+            PaintColor::Fuchsia,
+            PaintColor::Rose,
+            PaintColor::Cyan,
+            PaintColor::Empty,
+            PaintColor::Empty,
+            PaintColor::Empty,
+            PaintColor::Empty,
+        ];
+
+        Self {
+            palette,
+            action: Action::default(),
+            color: PaintColor::default(),
+        }
+    }
 }
 
 impl Paint {
+    fn colors(&self) -> Column<'_, Message> {
+        let description = text("Colors");
+
+        let colors = {
+            let mut rw1 = row!().spacing(15);
+            let mut rw2 = row!().spacing(15);
+            let mut rw3 = row!().spacing(15);
+
+            let colors = self
+                .palette
+                .iter()
+                .map(|color| match color {
+                    PaintColor::Empty => (*color, Message::None),
+                    _ => (*color, Message::Color(*color)),
+                })
+                .enumerate();
+
+            for (idx, (color, msg)) in colors {
+                let btn = button("").width(20).height(20).on_press(msg).style(
+                    move |_, status| styles::color_btn(color.into(), status),
+                );
+
+                match idx / 6 {
+                    0 => rw1 = rw1.push(btn),
+                    1 => rw2 = rw2.push(btn),
+                    _ => rw3 = rw3.push(btn),
+                }
+            }
+
+            column!(rw1, rw2, rw3).spacing(5)
+        };
+
+        let current = button("")
+            .width(35)
+            .height(35)
+            .on_press(Message::None)
+            .style(|_, status| styles::color_btn(self.color.into(), status));
+
+        let colors =
+            row!(current, colors).align_y(Vertical::Center).spacing(10);
+
+        column!(colors, vertical_space(), description)
+            .align_x(Horizontal::Center)
+            .height(Length::Fill)
+    }
+
     fn toolbar(&self) -> Container<'_, Message> {
         let selector = {
             let icon = text('\u{E847}').size(40.0).font(ICON_FONT);
@@ -135,12 +287,20 @@ impl Paint {
         };
 
         container(
-            row!(selector, vertical_rule(2), tools, vertical_rule(2), shapes)
-                .width(Length::Fill)
-                .height(Length::Fixed(100.0))
-                .spacing(10.0)
-                .padding([5, 8])
-                .align_y(Vertical::Center),
+            row!(
+                selector,
+                vertical_rule(2),
+                tools,
+                vertical_rule(2),
+                shapes,
+                vertical_rule(2),
+                self.colors()
+            )
+            .width(Length::Fill)
+            .height(Length::Fixed(110.0))
+            .spacing(10.0)
+            .padding([5, 8])
+            .align_y(Vertical::Center),
         )
         .style(styles::toolbar)
     }
@@ -150,6 +310,8 @@ impl Paint {
             Message::Selector => self.action = Action::Select,
             Message::Tool(tool) => self.action = Action::Tool(tool),
             Message::Shape(shape) => self.action = Action::Shape(shape),
+            Message::Color(color) => self.color = color,
+            Message::None => {}
         }
     }
 
@@ -159,7 +321,7 @@ impl Paint {
 }
 
 mod styles {
-    use iced::{widget, Background, Border, Theme};
+    use iced::{widget, Background, Border, Color, Theme};
 
     pub fn toolbar(theme: &Theme) -> widget::container::Style {
         let background = theme.extended_palette().background.weak;
@@ -202,6 +364,34 @@ mod styles {
                     ..Default::default()
                 }
             }
+        }
+    }
+
+    pub fn color_btn(
+        color: Color,
+        status: widget::button::Status,
+    ) -> widget::button::Style {
+        let background = color;
+
+        match status {
+            widget::button::Status::Hovered => widget::button::Style {
+                background: Some(Background::Color(background)),
+                border: Border {
+                    width: 0.0,
+                    radius: 100.0.into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            _ => widget::button::Style {
+                background: Some(Background::Color(background)),
+                border: Border {
+                    width: 0.5,
+                    radius: 100.0.into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
         }
     }
 }
