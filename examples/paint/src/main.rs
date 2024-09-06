@@ -5,8 +5,8 @@ use iced::{
     color,
     theme::palette,
     widget::{
-        button, column, container, row, text, vertical_rule, vertical_space,
-        Column, Container,
+        button, column, container, row, text, tooltip, vertical_rule,
+        vertical_slider, vertical_space, Column, Container,
     },
     Color, Element, Font, Length, Theme,
 };
@@ -116,6 +116,25 @@ enum Action {
     Shape(Shapes),
 }
 
+impl Action {
+    fn has_opacity(&self) -> bool {
+        match self {
+            Self::Select => false,
+            Self::Shape(_) => true,
+            Self::Tool(Tool::Eraser) => false,
+            Self::Tool(_) => true,
+        }
+    }
+
+    fn has_scale(&self) -> bool {
+        if let Self::Tool(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+}
+
 impl Default for Action {
     fn default() -> Self {
         Self::Tool(Tool::default())
@@ -128,6 +147,9 @@ enum Message {
     Tool(Tool),
     Shape(Shapes),
     Color(PaintColor),
+    Clear,
+    Opacity(f32),
+    Scale(f32),
     None,
 }
 
@@ -136,6 +158,8 @@ struct Paint {
     action: Action,
     color: PaintColor,
     palette: [PaintColor; 18],
+    opacity: f32,
+    scale: f32,
 }
 
 impl Default for Paint {
@@ -165,11 +189,69 @@ impl Default for Paint {
             palette,
             action: Action::default(),
             color: PaintColor::default(),
+            opacity: 1.0,
+            scale: 1.0,
         }
     }
 }
 
 impl Paint {
+    fn side_panel(&self) -> Container<'_, Message> {
+        let clear = button("Clear")
+            .on_press(Message::Clear)
+            .style(styles::toolbar_btn);
+
+        let opacity = {
+            let slider =
+                vertical_slider(0.0..=1.0, self.opacity, Message::Opacity)
+                    .default(1.0)
+                    .step(0.05)
+                    .shift_step(0.1);
+
+            let desc = text("Opacity").size(15.0);
+
+            tooltip(slider, desc, tooltip::Position::Bottom).gap(8.0)
+        };
+
+        let scale = {
+            let slider = vertical_slider(0.0..=3.0, self.scale, Message::Scale)
+                .default(1.0)
+                .step(0.1)
+                .shift_step(0.1);
+
+            let desc = text("Scale");
+
+            tooltip(slider, desc, tooltip::Position::Bottom).gap(8.0)
+        };
+
+        let mut controls = row!().spacing(10);
+
+        if self.action.has_opacity() {
+            controls = controls.push(opacity);
+        }
+
+        if self.action.has_scale() {
+            controls = controls.push(scale);
+        }
+
+        let mut content = column!(clear, controls,)
+            .padding([8, 3])
+            .align_x(Horizontal::Center);
+
+        if self.action.has_scale() || self.action.has_opacity() {
+            content = content.spacing(20.0)
+        }
+
+        let content =
+            container(content).max_height(400.0).style(styles::controls);
+
+        container(content)
+            .padding([2, 10])
+            .align_y(Vertical::Center)
+            .align_x(Horizontal::Center)
+            .height(Length::Fill)
+    }
+
     fn colors(&self) -> Column<'_, Message> {
         let description = text("Colors");
 
@@ -311,12 +393,19 @@ impl Paint {
             Message::Tool(tool) => self.action = Action::Tool(tool),
             Message::Shape(shape) => self.action = Action::Shape(shape),
             Message::Color(color) => self.color = color,
+            Message::Clear => {}
+            Message::Opacity(opacity) => self.opacity = opacity,
+            Message::Scale(scale) => self.scale = scale,
             Message::None => {}
         }
     }
 
     fn view(&self) -> Element<Message> {
-        container(self.toolbar()).into()
+        let stage = row!(self.side_panel());
+
+        let content = column!(self.toolbar(), stage);
+
+        container(content).into()
     }
 }
 
@@ -330,6 +419,16 @@ mod styles {
             background: Some(Background::Color(background.color)),
             text_color: Some(background.text),
             ..Default::default()
+        }
+    }
+
+    pub fn controls(theme: &Theme) -> widget::container::Style {
+        widget::container::Style {
+            border: Border {
+                radius: 5.0.into(),
+                ..Default::default()
+            },
+            ..toolbar(theme)
         }
     }
 
