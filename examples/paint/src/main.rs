@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use iced::{
     alignment::{Horizontal, Vertical},
     widget::{
@@ -17,6 +19,16 @@ fn main() -> iced::Result {
         .run()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Shapes {
+    Line,
+    Bezier,
+    Rectangle,
+    Circle,
+    Triangle,
+    Bestagon,
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 enum Tool {
     Pencil,
@@ -26,18 +38,24 @@ enum Tool {
     Brush,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Action {
-    #[default]
-    Draw,
-    Select,
     Tool(Tool),
+    Select,
+    Shape(Shapes),
+}
+
+impl Default for Action {
+    fn default() -> Self {
+        Self::Tool(Tool::default())
+    }
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     Selector,
     Tool(Tool),
+    Shape(Shapes),
 }
 
 #[derive(Debug, Default)]
@@ -85,15 +103,42 @@ impl Paint {
 
             column!(tools, vertical_space(), description)
                 .align_x(Horizontal::Center)
-                .width(75)
+                .height(Length::Fill)
+        };
+
+        let shapes = {
+            let shape_btn = |code: char, msg: Message| {
+                let icon = text(code).font(ICON_FONT);
+
+                button(icon).on_press(msg).style(styles::toolbar_btn)
+            };
+
+            let rw1 = row!(
+                shape_btn('\u{E802}', Message::Shape(Shapes::Line)),
+                shape_btn('\u{E803}', Message::Shape(Shapes::Bezier)),
+                shape_btn('\u{E804}', Message::Shape(Shapes::Triangle)),
+            );
+
+            let rw2 = row!(
+                shape_btn('\u{E805}', Message::Shape(Shapes::Rectangle)),
+                shape_btn('\u{E806}', Message::Shape(Shapes::Circle)),
+                shape_btn('\u{E807}', Message::Shape(Shapes::Bestagon)),
+            );
+
+            let description = text("Shapes");
+
+            let shapes = column!(rw1, rw2);
+
+            column!(shapes, vertical_space(), description)
+                .align_x(Horizontal::Center)
                 .height(Length::Fill)
         };
 
         container(
-            row!(selector, vertical_rule(2), tools)
+            row!(selector, vertical_rule(2), tools, vertical_rule(2), shapes)
                 .width(Length::Fill)
                 .height(Length::Fixed(100.0))
-                .spacing(7.0)
+                .spacing(10.0)
                 .padding([5, 8])
                 .align_y(Vertical::Center),
         )
@@ -104,6 +149,7 @@ impl Paint {
         match message {
             Message::Selector => self.action = Action::Select,
             Message::Tool(tool) => self.action = Action::Tool(tool),
+            Message::Shape(shape) => self.action = Action::Shape(shape),
         }
     }
 
