@@ -976,6 +976,7 @@ mod canvas {
     pub enum Painting {
         FreeForm {
             points: Vec<Point>,
+            is_pencil: bool,
             color: Color,
             scale: f32,
         },
@@ -1052,11 +1053,13 @@ mod canvas {
                 },
                 Action::Tool(Tool::Brush) => Self::FreeForm {
                     points: vec![from, to],
+                    is_pencil: false,
                     color,
                     scale,
                 },
                 Action::Tool(Tool::Pencil) => Self::FreeForm {
                     points: vec![from, to],
+                    is_pencil: true,
                     color,
                     scale,
                 },
@@ -1114,13 +1117,18 @@ mod canvas {
             scale: f32,
         ) -> Option<Self> {
             match action {
-                Action::Tool(Tool::Pencil) | Action::Tool(Tool::Brush) => {
-                    Some(Self::FreeForm {
-                        points,
-                        color,
-                        scale,
-                    })
-                }
+                Action::Tool(Tool::Pencil) => Some(Self::FreeForm {
+                    points,
+                    color,
+                    scale,
+                    is_pencil: true,
+                }),
+                Action::Tool(Tool::Brush) => Some(Self::FreeForm {
+                    points,
+                    color,
+                    scale,
+                    is_pencil: false,
+                }),
                 _ => None,
             }
         }
@@ -1206,7 +1214,10 @@ mod canvas {
                         points,
                         color,
                         scale,
-                    } => Painting::draw_freeform(frame, points, *color, *scale),
+                        is_pencil,
+                    } => Painting::draw_freeform(
+                        frame, points, *color, *scale, *is_pencil,
+                    ),
 
                     _ => {}
                 }
@@ -1389,8 +1400,28 @@ mod canvas {
             points: &[Point],
             color: Color,
             scale: f32,
+            is_pencil: bool,
         ) {
-            let scale = SHAPE_DEFAULT_THICKNESS * scale;
+            let scale = if is_pencil {
+                1.5 * scale
+            } else {
+                SHAPE_DEFAULT_THICKNESS * scale
+            };
+
+            let stroke = if is_pencil {
+                Stroke {
+                    width: scale,
+                    style: stroke::Style::Solid(color),
+                    ..Default::default()
+                }
+            } else {
+                Stroke {
+                    width: scale,
+                    line_cap: stroke::LineCap::Round,
+                    style: stroke::Style::Solid(color),
+                    ..Default::default()
+                }
+            };
 
             let freeform = Path::new(|builder| {
                 for (idx, point) in points.iter().enumerate() {
@@ -1403,10 +1434,7 @@ mod canvas {
                 }
             });
 
-            frame.stroke(
-                &freeform,
-                Stroke::default().with_color(color).with_width(scale),
-            );
+            frame.stroke(&freeform, stroke);
         }
     }
 
@@ -1552,7 +1580,15 @@ mod canvas {
 
                 Action::Tool(Tool::Brush) => match self {
                     Self::FreeForm(points) => Painting::draw_freeform(
-                        &mut frame, points, color, scale,
+                        &mut frame, points, color, scale, false,
+                    ),
+
+                    _ => {}
+                },
+
+                Action::Tool(Tool::Pencil) => match self {
+                    Self::FreeForm(points) => Painting::draw_freeform(
+                        &mut frame, points, color, scale, true,
                     ),
 
                     _ => {}
