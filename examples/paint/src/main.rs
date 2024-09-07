@@ -675,6 +675,57 @@ mod canvas {
                     _ => {}
                 },
 
+                (
+                    Some(cursor_position),
+                    Some(Pending::FreeForm(prev_points)),
+                ) => match event {
+                    Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                        let updated = {
+                            let mut points = prev_points;
+
+                            if points.len() <= 1 {
+                                points.push(cursor_position);
+                            } else {
+                                match points.pop() {
+                                    Some(prev) => {
+                                        if prev.x == cursor_position.x {
+                                            points.push(cursor_position);
+                                        } else if prev.y == cursor_position.y {
+                                            points.push(cursor_position);
+                                        } else {
+                                            points.push(prev);
+                                            points.push(cursor_position)
+                                        }
+                                    }
+                                    None => points.push(cursor_position),
+                                };
+                            }
+
+                            Pending::FreeForm(points)
+                        };
+
+                        state.replace(updated);
+
+                        return (event::Status::Captured, None);
+                    }
+
+                    Event::Mouse(mouse::Event::ButtonReleased(
+                        mouse::Button::Left,
+                    )) => {
+                        let painting = Painting::new_freeform(
+                            self.state.current_action,
+                            prev_points.clone(),
+                            self.state.color,
+                            self.state.scale,
+                        );
+
+                        state.take();
+
+                        return (event::Status::Captured, painting);
+                    }
+                    _ => {}
+                },
+
                 (Some(cursor_position), _unused_state) => match event {
                     Event::Mouse(mouse::Event::ButtonReleased(
                         mouse::Button::Left,
@@ -775,6 +826,7 @@ mod canvas {
 
                             return (event::Status::Captured, Some(painting));
                         }
+                        Some(Pending::FreeForm(_points)) => {}
                         Some(Pending::Text(_)) => {
                             panic!("Typing when text tool not selected")
                         }
@@ -834,16 +886,19 @@ mod canvas {
                         }
                         Some(_) => {}
                         None => {
-                            let pending = if self.state.current_action
-                                == Action::Tool(Tool::Text)
-                            {
-                                Pending::Text(TextPending::One {
-                                    from: cursor_position,
-                                })
-                            } else {
-                                Pending::One {
-                                    from: cursor_position,
+                            let pending = match self.state.current_action {
+                                Action::Tool(Tool::Text) => {
+                                    Pending::Text(TextPending::One {
+                                        from: cursor_position,
+                                    })
                                 }
+                                Action::Tool(Tool::Brush)
+                                | Action::Tool(Tool::Pencil) => {
+                                    Pending::FreeForm(vec![cursor_position])
+                                }
+                                _ => Pending::One {
+                                    from: cursor_position,
+                                },
                             };
 
                             state.replace(pending);
@@ -920,6 +975,7 @@ mod canvas {
     #[derive(Debug, Clone, PartialEq)]
     pub enum Painting {
         FreeForm {
+            points: Vec<Point>,
             color: Color,
             scale: f32,
         },
@@ -994,8 +1050,16 @@ mod canvas {
                     color,
                     scale,
                 },
-                Action::Tool(Tool::Brush) => Self::FreeForm { color, scale },
-                Action::Tool(Tool::Pencil) => Self::FreeForm { color, scale },
+                Action::Tool(Tool::Brush) => Self::FreeForm {
+                    points: vec![from, to],
+                    color,
+                    scale,
+                },
+                Action::Tool(Tool::Pencil) => Self::FreeForm {
+                    points: vec![from, to],
+                    color,
+                    scale,
+                },
                 Action::Tool(Tool::Eraser) => Self::Eraser { scale },
                 Action::Select => Self::Select {
                     top_left: from,
@@ -1040,6 +1104,24 @@ mod canvas {
                     color,
                     scale,
                 },
+            }
+        }
+
+        fn new_freeform(
+            action: Action,
+            points: Vec<Point>,
+            color: Color,
+            scale: f32,
+        ) -> Option<Self> {
+            match action {
+                Action::Tool(Tool::Pencil) | Action::Tool(Tool::Brush) => {
+                    Some(Self::FreeForm {
+                        points,
+                        color,
+                        scale,
+                    })
+                }
+                _ => None,
             }
         }
 
@@ -1119,6 +1201,12 @@ mod canvas {
                     } => Painting::draw_bestagon(
                         frame, *top, *top_right, *color, *scale,
                     ),
+
+                    Painting::FreeForm {
+                        points,
+                        color,
+                        scale,
+                    } => Painting::draw_freeform(frame, points, *color, *scale),
 
                     _ => {}
                 }
@@ -1295,11 +1383,37 @@ mod canvas {
                 Stroke::default().with_color(color).with_width(scale),
             );
         }
+
+        fn draw_freeform(
+            frame: &mut Frame,
+            points: &[Point],
+            color: Color,
+            scale: f32,
+        ) {
+            let scale = SHAPE_DEFAULT_THICKNESS * scale;
+
+            let freeform = Path::new(|builder| {
+                for (idx, point) in points.iter().enumerate() {
+                    let point = *point;
+                    if idx == 0 {
+                        builder.move_to(point);
+                    }
+
+                    builder.line_to(point);
+                }
+            });
+
+            frame.stroke(
+                &freeform,
+                Stroke::default().with_color(color).with_width(scale),
+            );
+        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
     enum Pending {
         Text(TextPending),
+        FreeForm(Vec<Point>),
         One { from: Point },
         Two { from: Point, to: Point },
     }
@@ -1433,6 +1547,14 @@ mod canvas {
                     Self::Two { from, to } => Painting::draw_bestagon(
                         &mut frame, *from, *to, color, scale,
                     ),
+                    _ => {}
+                },
+
+                Action::Tool(Tool::Brush) => match self {
+                    Self::FreeForm(points) => Painting::draw_freeform(
+                        &mut frame, points, color, scale,
+                    ),
+
                     _ => {}
                 },
                 _ => {}
