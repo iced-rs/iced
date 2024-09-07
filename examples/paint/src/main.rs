@@ -727,18 +727,18 @@ mod canvas {
                         mouse::Button::Left,
                     )) => match state {
                         Some(Pending::One { from }) => {
-                            let (from, to) =
-                                orient_points(*from, cursor_position);
-
                             let bounds = Rectangle::new(
-                                from,
-                                Size::new(to.x - from.x, to.y - from.y),
+                                *from,
+                                Size::new(
+                                    cursor_position.x - from.x,
+                                    cursor_position.y - from.y,
+                                ),
                             );
 
                             let painting = Painting::new(
                                 self.state.current_action,
-                                from,
-                                to,
+                                *from,
+                                cursor_position,
                                 self.state.color,
                                 self.state.scale,
                             );
@@ -751,18 +751,18 @@ mod canvas {
                             return (event::Status::Captured, Some(painting));
                         }
                         Some(Pending::Two { from, .. }) => {
-                            let (from, to) =
-                                orient_points(*from, cursor_position);
-
                             let bounds = Rectangle::new(
-                                from,
-                                Size::new(to.x - from.x, to.y - from.y),
+                                *from,
+                                Size::new(
+                                    cursor_position.x - from.x,
+                                    cursor_position.y - from.y,
+                                ),
                             );
 
                             let painting = Painting::new(
                                 self.state.current_action,
-                                from,
-                                to,
+                                *from,
+                                cursor_position,
                                 self.state.color,
                                 self.state.scale,
                             );
@@ -1073,6 +1073,12 @@ mod canvas {
                     } => Painting::draw_bezier(
                         frame, *from, *to, *control, *color, *scale,
                     ),
+                    Painting::Line {
+                        from,
+                        to,
+                        color,
+                        scale,
+                    } => Painting::draw_line(frame, *from, *to, *color, *scale),
 
                     _ => {}
                 }
@@ -1129,6 +1135,21 @@ mod canvas {
                 Stroke::default().with_width(scale).with_color(color),
             )
         }
+
+        fn draw_line(
+            frame: &mut Frame,
+            from: Point,
+            to: Point,
+            color: Color,
+            scale: f32,
+        ) {
+            let line = Path::line(from, to);
+
+            frame.stroke(
+                &line,
+                Stroke::default().with_color(color).with_width(scale),
+            )
+        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -1159,7 +1180,7 @@ mod canvas {
                 },
 
                 Action::Shape(Shapes::Bezier) => match self {
-                    Self::One { from } => Pending::draw_bezier(
+                    Self::One { from } => Pending::draw_line(
                         &mut frame, bounds, cursor, *from, color, scale,
                     ),
                     Self::Two { from, to } => {
@@ -1172,13 +1193,22 @@ mod canvas {
                     _ => {}
                 },
 
+                Action::Shape(Shapes::Line) => match self {
+                    Self::One { from } => Pending::draw_line(
+                        &mut frame, bounds, cursor, *from, color, scale,
+                    ),
+                    Self::Two { from, to } => Painting::draw_line(
+                        &mut frame, *from, *to, color, scale,
+                    ),
+                    _ => {}
+                },
                 _ => {}
             }
 
             frame.into_geometry()
         }
 
-        fn draw_bezier(
+        fn draw_line(
             frame: &mut Frame,
             bounds: Rectangle,
             cursor: mouse::Cursor,
