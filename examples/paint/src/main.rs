@@ -956,14 +956,14 @@ mod canvas {
             scale: f32,
         },
         Triangle {
-            left: Point,
+            top: Point,
             right: Point,
             color: Color,
             scale: f32,
         },
         Bestagon {
-            top_left: Point,
-            bottom_right: Point,
+            top: Point,
+            top_right: Point,
             color: Color,
             scale: f32,
         },
@@ -1016,7 +1016,7 @@ mod canvas {
                     scale,
                 },
                 Action::Shape(Shapes::Triangle) => Self::Triangle {
-                    left: from,
+                    top: from,
                     right: to,
                     color,
                     scale,
@@ -1028,8 +1028,8 @@ mod canvas {
                     scale,
                 },
                 Action::Shape(Shapes::Bestagon) => Self::Bestagon {
-                    top_left: from,
-                    bottom_right: to,
+                    top: from,
+                    top_right: to,
                     color,
                     scale,
                 },
@@ -1100,6 +1100,24 @@ mod canvas {
                         scale,
                     } => Painting::draw_circle(
                         frame, *center, *radius, *color, *scale,
+                    ),
+
+                    Painting::Triangle {
+                        top,
+                        right,
+                        color,
+                        scale,
+                    } => Painting::draw_triangle(
+                        frame, *top, *right, *color, *scale,
+                    ),
+
+                    Painting::Bestagon {
+                        top,
+                        top_right,
+                        color,
+                        scale,
+                    } => Painting::draw_bestagon(
+                        frame, *top, *top_right, *color, *scale,
                     ),
 
                     _ => {}
@@ -1218,6 +1236,65 @@ mod canvas {
                     .with_color(color),
             )
         }
+
+        fn draw_triangle(
+            frame: &mut Frame,
+            top: Point,
+            right: Point,
+            color: Color,
+            scale: f32,
+        ) {
+            let scale = SHAPE_DEFAULT_THICKNESS * scale;
+            let triangle = Path::new(|builder| {
+                let left_x = (right.x - top.x) * 2.0;
+                let left = Point::new(right.x - left_x, right.y);
+
+                builder.move_to(top);
+                builder.line_to(right);
+                builder.line_to(left);
+                builder.line_to(top);
+            });
+
+            frame.stroke(
+                &triangle,
+                Stroke::default().with_color(color).with_width(scale),
+            );
+        }
+
+        fn draw_bestagon(
+            frame: &mut Frame,
+            top: Point,
+            right: Point,
+            color: Color,
+            scale: f32,
+        ) {
+            let scale = SHAPE_DEFAULT_THICKNESS * scale;
+
+            let bestagon = Path::new(|builder| {
+                let x_diff = right.x - top.x;
+                let y_diff = right.y - top.y;
+
+                builder.move_to(top);
+                builder.line_to(right);
+                builder.line_to(Point::new(right.x, right.y + y_diff));
+                builder.line_to(Point::new(
+                    right.x - x_diff,
+                    right.y + (y_diff * 2.0),
+                ));
+                builder.line_to(Point::new(
+                    right.x - (x_diff * 2.0),
+                    right.y + y_diff,
+                ));
+                builder.line_to(Point::new(right.x - (x_diff * 2.0), right.y));
+
+                builder.line_to(top);
+            });
+
+            frame.stroke(
+                &bestagon,
+                Stroke::default().with_color(color).with_width(scale),
+            );
+        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -1314,6 +1391,46 @@ mod canvas {
                         }
                     }
                     Self::Two { from, to } => Painting::draw_circle(
+                        &mut frame, *from, *to, color, scale,
+                    ),
+                    _ => {}
+                },
+
+                Action::Shape(Shapes::Triangle) => match self {
+                    Self::One { from } => {
+                        if let Some(cursor_position) =
+                            cursor.position_in(bounds)
+                        {
+                            Painting::draw_triangle(
+                                &mut frame,
+                                *from,
+                                cursor_position,
+                                color,
+                                scale,
+                            )
+                        }
+                    }
+                    Self::Two { from, to } => Painting::draw_triangle(
+                        &mut frame, *from, *to, color, scale,
+                    ),
+                    _ => {}
+                },
+
+                Action::Shape(Shapes::Bestagon) => match self {
+                    Self::One { from } => {
+                        if let Some(cursor_position) =
+                            cursor.position_in(bounds)
+                        {
+                            Painting::draw_bestagon(
+                                &mut frame,
+                                *from,
+                                cursor_position,
+                                color,
+                                scale,
+                            )
+                        }
+                    }
+                    Self::Two { from, to } => Painting::draw_bestagon(
                         &mut frame, *from, *to, color, scale,
                     ),
                     _ => {}
