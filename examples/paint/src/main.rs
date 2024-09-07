@@ -10,7 +10,7 @@ use iced::{
     Color, Element, Font, Length, Theme,
 };
 
-use canvas::{Painting, State};
+use canvas::{CanvasMessage, Painting, State};
 
 const ICON_FONT: Font = Font::with_name("paint-icons");
 
@@ -157,7 +157,7 @@ enum Message {
     Clear,
     Opacity(f32),
     Scale(f32),
-    AddPainting(Painting),
+    CanvasMessage(CanvasMessage),
     None,
 }
 
@@ -491,10 +491,13 @@ impl Paint {
                 self.scale = scale;
                 self.canvas.scale(scale);
             }
-            Message::AddPainting(painting) => {
-                self.drawings.push(painting);
-                self.canvas.redraw();
-            }
+            Message::CanvasMessage(message) => match message {
+                CanvasMessage::Painting(painting) => {
+                    self.drawings.push(painting);
+                    self.canvas.redraw();
+                }
+                CanvasMessage::Selection(_) => {}
+            },
             Message::None => {}
         }
     }
@@ -502,7 +505,7 @@ impl Paint {
     fn view(&self) -> Element<Message> {
         let stage = row!(
             self.side_panel(),
-            self.canvas.view(&self.drawings).map(Message::AddPainting)
+            self.canvas.view(&self.drawings).map(Message::CanvasMessage)
         )
         .width(Length::Fill)
         .spacing(10.0)
@@ -561,7 +564,7 @@ mod canvas {
         pub fn view<'a>(
             &'a self,
             paintings: &'a [Painting],
-        ) -> Element<'a, Painting> {
+        ) -> Element<'a, CanvasMessage> {
             Canvas::new(PaintingCanvas {
                 state: &self,
                 paintings,
@@ -577,7 +580,7 @@ mod canvas {
         paintings: &'a [Painting],
     }
 
-    impl<'a> canvas::Program<Painting> for PaintingCanvas<'a> {
+    impl<'a> canvas::Program<CanvasMessage> for PaintingCanvas<'a> {
         type State = Option<Pending>;
 
         fn update(
@@ -586,7 +589,7 @@ mod canvas {
             event: Event,
             bounds: Rectangle,
             cursor: mouse::Cursor,
-        ) -> (event::Status, Option<Painting>) {
+        ) -> (event::Status, Option<CanvasMessage>) {
             match (cursor.position_in(bounds), state.clone()) {
                 (
                     Some(cursor_position),
@@ -641,7 +644,7 @@ mod canvas {
 
                                 return (
                                     event::Status::Captured,
-                                    Some(painting),
+                                    Some(painting.into()),
                                 );
                             }
                         }
@@ -721,7 +724,10 @@ mod canvas {
 
                         state.take();
 
-                        return (event::Status::Captured, painting);
+                        return (
+                            event::Status::Captured,
+                            painting.map(CanvasMessage::Painting),
+                        );
                     }
                     _ => {}
                 },
@@ -800,7 +806,10 @@ mod canvas {
                                 return (event::Status::Captured, None);
                             }
 
-                            return (event::Status::Captured, Some(painting));
+                            return (
+                                event::Status::Captured,
+                                painting.map(CanvasMessage::Painting),
+                            );
                         }
                         Some(Pending::Two { from, .. }) => {
                             let bounds = Rectangle::new(
@@ -824,7 +833,10 @@ mod canvas {
                                 return (event::Status::Captured, None);
                             }
 
-                            return (event::Status::Captured, Some(painting));
+                            return (
+                                event::Status::Captured,
+                                painting.map(CanvasMessage::Painting),
+                            );
                         }
                         Some(Pending::FreeForm(_points)) => {}
                         Some(Pending::Text(_)) => {
@@ -850,7 +862,10 @@ mod canvas {
                             };
                             state.take();
 
-                            return (event::Status::Captured, Some(painting));
+                            return (
+                                event::Status::Captured,
+                                Some(painting.into()),
+                            );
                         }
                         Some(Pending::Text(TextPending::Typing {
                             from,
@@ -880,7 +895,7 @@ mod canvas {
 
                                 return (
                                     event::Status::Captured,
-                                    Some(painting),
+                                    Some(painting.into()),
                                 );
                             }
                         }
@@ -973,6 +988,18 @@ mod canvas {
     }
 
     #[derive(Debug, Clone, PartialEq)]
+    pub enum CanvasMessage {
+        Painting(Painting),
+        Selection(Rectangle),
+    }
+
+    impl From<Painting> for CanvasMessage {
+        fn from(value: Painting) -> Self {
+            CanvasMessage::Painting(value)
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
     pub enum Painting {
         FreeForm {
             points: Vec<Point>,
@@ -1024,15 +1051,6 @@ mod canvas {
             color: Color,
             scale: f32,
         },
-        Eraser {
-            scale: f32,
-        },
-        Select {
-            top_left: Point,
-            bottom_right: Point,
-            color: Color,
-            scale: f32,
-        },
     }
 
     impl Painting {
@@ -1042,8 +1060,8 @@ mod canvas {
             to: Point,
             color: Color,
             scale: f32,
-        ) -> Self {
-            match action {
+        ) -> Option<Self> {
+            let painting = match action {
                 Action::Tool(Tool::Text) => Self::Text {
                     top_left: from,
                     bottom_right: to,
@@ -1060,13 +1078,6 @@ mod canvas {
                 Action::Tool(Tool::Pencil) => Self::FreeForm {
                     points: vec![from, to],
                     is_pencil: true,
-                    color,
-                    scale,
-                },
-                Action::Tool(Tool::Eraser) => Self::Eraser { scale },
-                Action::Select => Self::Select {
-                    top_left: from,
-                    bottom_right: to,
                     color,
                     scale,
                 },
@@ -1107,7 +1118,11 @@ mod canvas {
                     color,
                     scale,
                 },
-            }
+                Action::Select => return None,
+                Action::Tool(Tool::Eraser) => return None,
+            };
+
+            Some(painting)
         }
 
         fn new_freeform(
@@ -1218,8 +1233,6 @@ mod canvas {
                     } => Painting::draw_freeform(
                         frame, points, *color, *scale, *is_pencil,
                     ),
-
-                    _ => {}
                 }
             }
         }
