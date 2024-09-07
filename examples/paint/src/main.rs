@@ -531,6 +531,7 @@ mod canvas {
 
     const TEXT_LEFT_PADDING: f32 = 0.005;
     const TEXT_TOP_PADDING: f32 = 0.005;
+    const SHAPE_DEFAULT_THICKNESS: f32 = 3.0;
 
     #[derive(Default, Debug)]
     pub struct State {
@@ -1092,6 +1093,14 @@ mod canvas {
                         *color,
                         *scale,
                     ),
+                    Painting::Circle {
+                        center,
+                        radius,
+                        color,
+                        scale,
+                    } => Painting::draw_circle(
+                        frame, *center, *radius, *color, *scale,
+                    ),
 
                     _ => {}
                 }
@@ -1145,7 +1154,9 @@ mod canvas {
 
             frame.stroke(
                 &curve,
-                Stroke::default().with_width(scale).with_color(color),
+                Stroke::default()
+                    .with_width(SHAPE_DEFAULT_THICKNESS * scale)
+                    .with_color(color),
             )
         }
 
@@ -1160,7 +1171,9 @@ mod canvas {
 
             frame.stroke(
                 &line,
-                Stroke::default().with_color(color).with_width(scale),
+                Stroke::default()
+                    .with_color(color)
+                    .with_width(SHAPE_DEFAULT_THICKNESS * scale),
             )
         }
 
@@ -1179,7 +1192,30 @@ mod canvas {
 
             frame.stroke(
                 &rect,
-                Stroke::default().with_width(scale).with_color(color),
+                Stroke::default()
+                    .with_width(SHAPE_DEFAULT_THICKNESS * scale)
+                    .with_color(color),
+            )
+        }
+
+        fn draw_circle(
+            frame: &mut Frame,
+            center: Point,
+            to: Point,
+            color: Color,
+            scale: f32,
+        ) {
+            let (center, to) = orient_points(center, to);
+
+            let radius = center.distance(to);
+
+            let cirlce = Path::circle(center, radius);
+
+            frame.stroke(
+                &cirlce,
+                Stroke::default()
+                    .with_width(SHAPE_DEFAULT_THICKNESS * scale)
+                    .with_color(color),
             )
         }
     }
@@ -1258,6 +1294,26 @@ mod canvas {
                         }
                     }
                     Self::Two { from, to } => Painting::draw_rect(
+                        &mut frame, *from, *to, color, scale,
+                    ),
+                    _ => {}
+                },
+
+                Action::Shape(Shapes::Circle) => match self {
+                    Self::One { from } => {
+                        if let Some(cursor_position) =
+                            cursor.position_in(bounds)
+                        {
+                            Painting::draw_circle(
+                                &mut frame,
+                                *from,
+                                cursor_position,
+                                color,
+                                scale,
+                            )
+                        }
+                    }
+                    Self::Two { from, to } => Painting::draw_circle(
                         &mut frame, *from, *to, color, scale,
                     ),
                     _ => {}
