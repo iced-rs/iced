@@ -1080,6 +1080,19 @@ mod canvas {
                         scale,
                     } => Painting::draw_line(frame, *from, *to, *color, *scale),
 
+                    Painting::Rectangle {
+                        top_left,
+                        bottom_right,
+                        color,
+                        scale,
+                    } => Painting::draw_rect(
+                        frame,
+                        *top_left,
+                        *bottom_right,
+                        *color,
+                        *scale,
+                    ),
+
                     _ => {}
                 }
             }
@@ -1150,6 +1163,25 @@ mod canvas {
                 Stroke::default().with_color(color).with_width(scale),
             )
         }
+
+        fn draw_rect(
+            frame: &mut Frame,
+            from: Point,
+            to: Point,
+            color: Color,
+            scale: f32,
+        ) {
+            let (from, to) = orient_points(from, to);
+
+            let size = Size::new(to.x - from.x, to.y - from.y);
+
+            let rect = Path::rectangle(from, size);
+
+            frame.stroke(
+                &rect,
+                Stroke::default().with_width(scale).with_color(color),
+            )
+        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -1180,9 +1212,13 @@ mod canvas {
                 },
 
                 Action::Shape(Shapes::Bezier) => match self {
-                    Self::One { from } => Pending::draw_line(
-                        &mut frame, bounds, cursor, *from, color, scale,
-                    ),
+                    Self::One { from } => {
+                        if let Some(to) = cursor.position_in(bounds) {
+                            Painting::draw_line(
+                                &mut frame, *from, to, color, scale,
+                            )
+                        }
+                    }
                     Self::Two { from, to } => {
                         if let Some(control) = cursor.position_in(bounds) {
                             Painting::draw_bezier(
@@ -1194,10 +1230,34 @@ mod canvas {
                 },
 
                 Action::Shape(Shapes::Line) => match self {
-                    Self::One { from } => Pending::draw_line(
-                        &mut frame, bounds, cursor, *from, color, scale,
-                    ),
+                    Self::One { from } => {
+                        if let Some(to) = cursor.position_in(bounds) {
+                            Painting::draw_line(
+                                &mut frame, *from, to, color, scale,
+                            )
+                        }
+                    }
                     Self::Two { from, to } => Painting::draw_line(
+                        &mut frame, *from, *to, color, scale,
+                    ),
+                    _ => {}
+                },
+
+                Action::Shape(Shapes::Rectangle) => match self {
+                    Self::One { from } => {
+                        if let Some(cursor_position) =
+                            cursor.position_in(bounds)
+                        {
+                            Painting::draw_rect(
+                                &mut frame,
+                                *from,
+                                cursor_position,
+                                color,
+                                scale,
+                            )
+                        }
+                    }
+                    Self::Two { from, to } => Painting::draw_rect(
                         &mut frame, *from, *to, color, scale,
                     ),
                     _ => {}
@@ -1206,26 +1266,6 @@ mod canvas {
             }
 
             frame.into_geometry()
-        }
-
-        fn draw_line(
-            frame: &mut Frame,
-            bounds: Rectangle,
-            cursor: mouse::Cursor,
-            from: Point,
-            color: Color,
-            scale: f32,
-        ) {
-            let Some(cursor_position) = cursor.position_in(bounds) else {
-                return;
-            };
-
-            let line = Path::line(from, cursor_position);
-
-            frame.stroke(
-                &line,
-                Stroke::default().with_color(color).with_width(scale),
-            );
         }
     }
 
