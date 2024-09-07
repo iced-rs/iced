@@ -707,14 +707,11 @@ mod canvas {
                         == Action::Shape(Shapes::Bezier) =>
                     {
                         match state {
-                            Some(Pending::Drawing(DrawingPending::One {
-                                from,
-                            })) => {
-                                let pending =
-                                    Pending::Drawing(DrawingPending::Two {
-                                        from: *from,
-                                        to: cursor_position,
-                                    });
+                            Some(Pending::One { from }) => {
+                                let pending = Pending::Two {
+                                    from: *from,
+                                    to: cursor_position,
+                                };
 
                                 state.replace(pending);
                                 return (event::Status::Captured, None);
@@ -729,9 +726,7 @@ mod canvas {
                     Event::Mouse(mouse::Event::ButtonReleased(
                         mouse::Button::Left,
                     )) => match state {
-                        Some(Pending::Drawing(DrawingPending::One {
-                            from,
-                        })) => {
+                        Some(Pending::One { from }) => {
                             let (from, to) =
                                 orient_points(*from, cursor_position);
 
@@ -755,10 +750,7 @@ mod canvas {
 
                             return (event::Status::Captured, Some(painting));
                         }
-                        Some(Pending::Drawing(DrawingPending::Two {
-                            from,
-                            ..
-                        })) => {
+                        Some(Pending::Two { from, .. }) => {
                             let (from, to) =
                                 orient_points(*from, cursor_position);
 
@@ -792,11 +784,9 @@ mod canvas {
                     Event::Mouse(mouse::Event::ButtonPressed(
                         mouse::Button::Left,
                     )) => match state {
-                        Some(Pending::Drawing(DrawingPending::Two {
-                            from,
-                            to,
-                        })) if self.state.current_action
-                            == Action::Shape(Shapes::Bezier) =>
+                        Some(Pending::Two { from, to })
+                            if self.state.current_action
+                                == Action::Shape(Shapes::Bezier) =>
                         {
                             let painting = Painting::Bezier {
                                 from: *from,
@@ -850,9 +840,9 @@ mod canvas {
                                     from: cursor_position,
                                 })
                             } else {
-                                Pending::Drawing(DrawingPending::One {
+                                Pending::One {
                                     from: cursor_position,
-                                })
+                                }
                             };
 
                             state.replace(pending);
@@ -1144,7 +1134,8 @@ mod canvas {
     #[derive(Debug, Clone, PartialEq)]
     enum Pending {
         Text(TextPending),
-        Drawing(DrawingPending),
+        One { from: Point },
+        Two { from: Point, to: Point },
     }
 
     impl Pending {
@@ -1157,24 +1148,36 @@ mod canvas {
             color: Color,
             scale: f32,
         ) -> Geometry {
-            match self {
-                Self::Text(text) => {
-                    text.draw(renderer, bounds, cursor, color, scale)
-                }
-                Self::Drawing(drawing) => {
-                    drawing.draw(renderer, bounds, cursor, action, color, scale)
-                }
+            let mut frame = Frame::new(renderer, bounds.size());
+
+            match action {
+                Action::Tool(Tool::Text) => match self {
+                    Self::Text(text) => {
+                        text.draw(&mut frame, bounds, cursor, color, scale)
+                    }
+                    _ => {}
+                },
+
+                Action::Shape(Shapes::Bezier) => match self {
+                    Self::One { from } => Pending::draw_bezier(
+                        &mut frame, bounds, cursor, *from, color, scale,
+                    ),
+                    Self::Two { from, to } => {
+                        if let Some(control) = cursor.position_in(bounds) {
+                            Painting::draw_bezier(
+                                &mut frame, *from, *to, control, color, scale,
+                            )
+                        }
+                    }
+                    _ => {}
+                },
+
+                _ => {}
             }
+
+            frame.into_geometry()
         }
-    }
 
-    #[derive(Debug, Clone, PartialEq)]
-    enum DrawingPending {
-        One { from: Point },
-        Two { from: Point, to: Point },
-    }
-
-    impl DrawingPending {
         fn draw_bezier(
             frame: &mut Frame,
             bounds: Rectangle,
@@ -1194,36 +1197,6 @@ mod canvas {
                 Stroke::default().with_color(color).with_width(scale),
             );
         }
-
-        fn draw(
-            &self,
-            renderer: &Renderer,
-            bounds: Rectangle,
-            cursor: mouse::Cursor,
-            action: Action,
-            color: Color,
-            scale: f32,
-        ) -> Geometry {
-            let mut frame = Frame::new(renderer, bounds.size());
-
-            match action {
-                Action::Shape(Shapes::Bezier) => match self {
-                    Self::One { from } => DrawingPending::draw_bezier(
-                        &mut frame, bounds, cursor, *from, color, scale,
-                    ),
-                    Self::Two { from, to } => {
-                        if let Some(control) = cursor.position_in(bounds) {
-                            Painting::draw_bezier(
-                                &mut frame, *from, *to, control, color, scale,
-                            )
-                        }
-                    }
-                },
-                _ => {}
-            }
-
-            frame.into_geometry()
-        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -1241,14 +1214,12 @@ mod canvas {
     impl TextPending {
         fn draw(
             &self,
-            renderer: &Renderer,
+            frame: &mut Frame,
             bounds: Rectangle,
             cursor: mouse::Cursor,
             color: Color,
             scale: f32,
-        ) -> Geometry {
-            let mut frame = Frame::new(renderer, bounds.size());
-
+        ) {
             let line_dash = LineDash {
                 offset: 0,
                 segments: &[4.0, 0.0, 4.0],
@@ -1278,7 +1249,7 @@ mod canvas {
                     frame.stroke(&rect, stroke);
 
                     Painting::draw_text(
-                        &mut frame,
+                        frame,
                         bounds,
                         text.clone(),
                         *from,
@@ -1287,8 +1258,6 @@ mod canvas {
                     );
                 }
             }
-
-            frame.into_geometry()
         }
     }
 
