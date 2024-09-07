@@ -497,6 +497,8 @@ impl Paint {
                     self.canvas.redraw();
                 }
                 CanvasMessage::Selection(_) => {}
+                CanvasMessage::SelectionMoved(_) => {}
+                CanvasMessage::SelectionDone => {}
             },
             Message::None => {}
         }
@@ -732,6 +734,77 @@ mod canvas {
                     _ => {}
                 },
 
+                (
+                    Some(cursor_position),
+                    Some(Pending::Selection(SelectionPending::Two {
+                        top_left,
+                        bounds,
+                        dragging,
+                        prev_cursor,
+                    })),
+                ) => match event {
+                    Event::Mouse(mouse::Event::CursorMoved { .. })
+                        if dragging =>
+                    {
+                        let position_diff = cursor_position - prev_cursor;
+                        let top_left = top_left + position_diff;
+                        let bounds = Rectangle::new(top_left, bounds.size());
+
+                        let selection =
+                            Pending::Selection(SelectionPending::Two {
+                                top_left,
+                                bounds,
+                                dragging,
+                                prev_cursor: cursor_position,
+                            });
+
+                        state.replace(selection);
+
+                        return (
+                            event::Status::Captured,
+                            Some(CanvasMessage::SelectionMoved(
+                                cursor_position,
+                            )),
+                        );
+                    }
+                    Event::Mouse(mouse::Event::ButtonReleased(
+                        mouse::Button::Left,
+                    )) => {
+                        let selection =
+                            Pending::Selection(SelectionPending::Two {
+                                top_left,
+                                bounds,
+                                prev_cursor,
+                                dragging: false,
+                            });
+                        state.replace(selection);
+                        return (event::Status::Captured, None);
+                    }
+                    Event::Mouse(mouse::Event::ButtonPressed(
+                        mouse::Button::Left,
+                    )) => {
+                        if bounds.contains(cursor_position) {
+                            let selection =
+                                Pending::Selection(SelectionPending::Two {
+                                    top_left,
+                                    bounds,
+                                    prev_cursor: cursor_position,
+                                    dragging: true,
+                                });
+
+                            state.replace(selection);
+                            return (event::Status::Captured, None);
+                        } else {
+                            state.take();
+                            return (
+                                event::Status::Captured,
+                                Some(CanvasMessage::SelectionDone),
+                            );
+                        }
+                    }
+                    _ => {}
+                },
+
                 (Some(cursor_position), _unused_state) => match event {
                     Event::Mouse(mouse::Event::ButtonReleased(
                         mouse::Button::Left,
@@ -839,9 +912,40 @@ mod canvas {
                             );
                         }
                         Some(Pending::FreeForm(_points)) => {}
+
                         Some(Pending::Text(_)) => {
                             panic!("Typing when text tool not selected")
                         }
+
+                        Some(Pending::Selection(SelectionPending::One {
+                            from,
+                        })) => {
+                            let (from, to) =
+                                orient_points(*from, cursor_position);
+
+                            let size = Size::new(to.x - from.x, to.y - from.y);
+
+                            let bounds = Rectangle::new(from, size);
+
+                            let selection =
+                                Pending::Selection(SelectionPending::Two {
+                                    top_left: from,
+                                    dragging: false,
+                                    prev_cursor: bounds.center(),
+                                    bounds,
+                                });
+
+                            state.replace(selection);
+
+                            return (
+                                event::Status::Captured,
+                                Some(CanvasMessage::Selection(bounds)),
+                            );
+                        }
+
+                        Some(Pending::Selection(SelectionPending::Two {
+                            ..
+                        })) => {}
 
                         None => {}
                     },
@@ -899,6 +1003,9 @@ mod canvas {
                                 );
                             }
                         }
+                        Some(Pending::Selection(SelectionPending::Two {
+                            ..
+                        })) => {}
                         Some(_) => {}
                         None => {
                             let pending = match self.state.current_action {
@@ -910,6 +1017,11 @@ mod canvas {
                                 Action::Tool(Tool::Brush)
                                 | Action::Tool(Tool::Pencil) => {
                                     Pending::FreeForm(vec![cursor_position])
+                                }
+                                Action::Select => {
+                                    Pending::Selection(SelectionPending::One {
+                                        from: cursor_position,
+                                    })
                                 }
                                 _ => Pending::One {
                                     from: cursor_position,
@@ -978,6 +1090,10 @@ mod canvas {
                 {
                     mouse::Interaction::Text
                 }
+                Some(Pending::Selection(SelectionPending::Two {
+                    dragging: true,
+                    ..
+                })) => mouse::Interaction::Grabbing,
                 Some(_) | None if cursor.is_over(bounds) => {
                     mouse::Interaction::Crosshair
                 }
@@ -991,6 +1107,8 @@ mod canvas {
     pub enum CanvasMessage {
         Painting(Painting),
         Selection(Rectangle),
+        SelectionMoved(Point),
+        SelectionDone,
     }
 
     impl From<Painting> for CanvasMessage {
@@ -1455,6 +1573,7 @@ mod canvas {
     enum Pending {
         Text(TextPending),
         FreeForm(Vec<Point>),
+        Selection(SelectionPending),
         One { from: Point },
         Two { from: Point, to: Point },
     }
@@ -1606,6 +1725,13 @@ mod canvas {
 
                     _ => {}
                 },
+
+                Action::Select => match self {
+                    Self::Selection(selection) => {
+                        selection.draw(&mut frame, bounds, cursor, color)
+                    }
+                    _ => {}
+                },
                 _ => {}
             }
 
@@ -1670,6 +1796,60 @@ mod canvas {
                         color,
                         scale,
                     );
+                }
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    enum SelectionPending {
+        One {
+            from: Point,
+        },
+        Two {
+            top_left: Point,
+            bounds: Rectangle,
+            dragging: bool,
+            prev_cursor: Point,
+        },
+    }
+
+    impl SelectionPending {
+        fn draw(
+            &self,
+            frame: &mut Frame,
+            bounds: Rectangle,
+            cursor: mouse::Cursor,
+            color: Color,
+        ) {
+            let line_dash = LineDash {
+                offset: 0,
+                segments: &[4.0, 0.0, 4.0],
+            };
+
+            let stroke = Stroke {
+                line_dash,
+                style: stroke::Style::Solid(color),
+                width: 2.0,
+                ..Default::default()
+            };
+
+            match self {
+                Self::One { from } => {
+                    if let Some(cursor_position) = cursor.position_in(bounds) {
+                        let size = Size::new(
+                            cursor_position.x - from.x,
+                            cursor_position.y - from.y,
+                        );
+                        let rect = Path::rectangle(*from, size);
+                        frame.stroke(&rect, stroke);
+                    }
+                }
+                Self::Two {
+                    top_left, bounds, ..
+                } => {
+                    let rect = Path::rectangle(*top_left, bounds.size());
+                    frame.stroke(&rect, stroke);
                 }
             }
         }
