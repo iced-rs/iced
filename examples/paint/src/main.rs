@@ -140,11 +140,7 @@ impl Action {
     }
 
     fn has_scale(&self) -> bool {
-        if let Self::Tool(_) = self {
-            true
-        } else {
-            false
-        }
+        self != &Self::Select
     }
 }
 
@@ -714,13 +710,10 @@ mod canvas {
                             Some(Pending::Drawing(DrawingPending::One {
                                 from,
                             })) => {
-                                let (from, to) =
-                                    orient_points(*from, cursor_position);
-
                                 let pending =
                                     Pending::Drawing(DrawingPending::Two {
-                                        from,
-                                        to,
+                                        from: *from,
+                                        to: cursor_position,
                                     });
 
                                 state.replace(pending);
@@ -793,10 +786,6 @@ mod canvas {
                             panic!("Typing when text tool not selected")
                         }
 
-                        Some(Pending::Drawing(DrawingPending::Bezier {
-                            ..
-                        })) => {}
-
                         None => {}
                     },
 
@@ -809,51 +798,14 @@ mod canvas {
                         })) if self.state.current_action
                             == Action::Shape(Shapes::Bezier) =>
                         {
-                            let (from, to) = orient_points(*from, *to);
-
-                            let bounds = Rectangle::new(
-                                from,
-                                Size::new(to.x - from.x, to.y - from.y),
-                            );
-
                             let painting = Painting::Bezier {
-                                from,
-                                to,
+                                from: *from,
+                                to: *to,
                                 control: cursor_position,
                                 scale: self.state.scale,
                                 color: self.state.color,
                             };
                             state.take();
-
-                            if bounds.area() == 0.0 {
-                                return (event::Status::Captured, None);
-                            }
-
-                            return (event::Status::Captured, Some(painting));
-                        }
-                        Some(Pending::Drawing(DrawingPending::Bezier {
-                            from,
-                            to,
-                            ..
-                        })) => {
-                            let (from, to) = orient_points(*from, *to);
-                            let bounds = Rectangle::new(
-                                from,
-                                Size::new(to.x - from.x, to.y - from.y),
-                            );
-
-                            let painting = Painting::Bezier {
-                                from,
-                                to,
-                                control: cursor_position,
-                                scale: self.state.scale,
-                                color: self.state.color,
-                            };
-                            state.take();
-
-                            if bounds.area() == 0.0 {
-                                return (event::Status::Captured, None);
-                            }
 
                             return (event::Status::Captured, Some(painting));
                         }
@@ -927,13 +879,13 @@ mod canvas {
         ) -> Vec<Geometry<Renderer>> {
             let content =
                 self.state.cache.draw(renderer, bounds.size(), |frame| {
-                    Painting::draw_all(self.paintings, frame, bounds, theme);
-
                     frame.fill_rectangle(
                         Point::ORIGIN,
                         frame.size(),
                         color!(240, 234, 214),
                     );
+
+                    Painting::draw_all(self.paintings, frame, bounds, theme);
                 });
 
             if let Some(pending) = state {
@@ -941,7 +893,6 @@ mod canvas {
                     content,
                     pending.draw(
                         renderer,
-                        theme,
                         bounds,
                         cursor,
                         self.state.current_action,
@@ -1123,6 +1074,15 @@ mod canvas {
                         *color,
                         *scale,
                     ),
+                    Painting::Bezier {
+                        from,
+                        to,
+                        control,
+                        color,
+                        scale,
+                    } => Painting::draw_bezier(
+                        frame, *from, *to, *control, *color, *scale,
+                    ),
 
                     _ => {}
                 }
@@ -1160,6 +1120,25 @@ mod canvas {
 
             frame.fill_text(text)
         }
+
+        fn draw_bezier(
+            frame: &mut Frame,
+            from: Point,
+            to: Point,
+            control: Point,
+            color: Color,
+            scale: f32,
+        ) {
+            let curve = Path::new(|builder| {
+                builder.move_to(from);
+                builder.quadratic_curve_to(control, to)
+            });
+
+            frame.stroke(
+                &curve,
+                Stroke::default().with_width(scale).with_color(color),
+            )
+        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -1172,7 +1151,6 @@ mod canvas {
         fn draw(
             &self,
             renderer: &Renderer,
-            theme: &Theme,
             bounds: Rectangle,
             cursor: mouse::Cursor,
             action: Action,
@@ -1183,41 +1161,66 @@ mod canvas {
                 Self::Text(text) => {
                     text.draw(renderer, bounds, cursor, color, scale)
                 }
-                Self::Drawing(drawing) => drawing.draw(
-                    renderer, theme, bounds, cursor, action, color, scale,
-                ),
+                Self::Drawing(drawing) => {
+                    drawing.draw(renderer, bounds, cursor, action, color, scale)
+                }
             }
         }
     }
 
     #[derive(Debug, Clone, PartialEq)]
     enum DrawingPending {
-        One {
-            from: Point,
-        },
-        Two {
-            from: Point,
-            to: Point,
-        },
-        Bezier {
-            from: Point,
-            to: Point,
-            control: Point,
-        },
+        One { from: Point },
+        Two { from: Point, to: Point },
     }
 
     impl DrawingPending {
+        fn draw_bezier(
+            frame: &mut Frame,
+            bounds: Rectangle,
+            cursor: mouse::Cursor,
+            from: Point,
+            color: Color,
+            scale: f32,
+        ) {
+            let Some(cursor_position) = cursor.position_in(bounds) else {
+                return;
+            };
+
+            let line = Path::line(from, cursor_position);
+
+            frame.stroke(
+                &line,
+                Stroke::default().with_color(color).with_width(scale),
+            );
+        }
+
         fn draw(
             &self,
             renderer: &Renderer,
-            _theme: &Theme,
             bounds: Rectangle,
-            _cursor: mouse::Cursor,
-            _action: Action,
-            _color: Color,
-            _scale: f32,
+            cursor: mouse::Cursor,
+            action: Action,
+            color: Color,
+            scale: f32,
         ) -> Geometry {
-            let frame = Frame::new(renderer, bounds.size());
+            let mut frame = Frame::new(renderer, bounds.size());
+
+            match action {
+                Action::Shape(Shapes::Bezier) => match self {
+                    Self::One { from } => DrawingPending::draw_bezier(
+                        &mut frame, bounds, cursor, *from, color, scale,
+                    ),
+                    Self::Two { from, to } => {
+                        if let Some(control) = cursor.position_in(bounds) {
+                            Painting::draw_bezier(
+                                &mut frame, *from, *to, control, color, scale,
+                            )
+                        }
+                    }
+                },
+                _ => {}
+            }
 
             frame.into_geometry()
         }
