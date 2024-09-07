@@ -161,6 +161,7 @@ enum Message {
     Clear,
     Opacity(f32),
     Scale(f32),
+    AddPainting(Painting),
     None,
 }
 
@@ -484,7 +485,7 @@ impl Paint {
             }
             Message::Clear => {
                 self.drawings.clear();
-                self.canvas.clear()
+                self.canvas.redraw()
             }
             Message::Opacity(opacity) => {
                 self.opacity = opacity;
@@ -494,6 +495,10 @@ impl Paint {
                 self.scale = scale;
                 self.canvas.scale(scale);
             }
+            Message::AddPainting(painting) => {
+                self.drawings.push(painting);
+                self.canvas.redraw();
+            }
             Message::None => {}
         }
     }
@@ -501,9 +506,7 @@ impl Paint {
     fn view(&self) -> Element<Message> {
         let stage = row!(
             self.side_panel(),
-            self.canvas
-                .view(&self.drawings)
-                .map(|_drawing| Message::None)
+            self.canvas.view(&self.drawings).map(Message::AddPainting)
         )
         .width(Length::Fill)
         .spacing(10.0)
@@ -530,6 +533,9 @@ mod canvas {
 
     use super::{Action, Shapes, Tool};
 
+    const TEXT_LEFT_PADDING: f32 = 0.005;
+    const TEXT_TOP_PADDING: f32 = 0.005;
+
     #[derive(Default, Debug)]
     pub struct State {
         cache: canvas::Cache,
@@ -539,7 +545,7 @@ mod canvas {
     }
 
     impl State {
-        pub fn clear(&mut self) {
+        pub fn redraw(&mut self) {
             self.cache.clear()
         }
 
@@ -631,6 +637,11 @@ mod canvas {
                                 };
 
                                 state.take();
+
+                                if bounds.area() == 0.0 {
+                                    return (event::Status::Captured, None);
+                                }
+
                                 return (
                                     event::Status::Captured,
                                     Some(painting),
@@ -675,10 +686,12 @@ mod canvas {
                     {
                         match state {
                             Some(Pending::Text(TextPending::One { from })) => {
+                                let (from, to) =
+                                    orient_points(*from, cursor_position);
                                 let typing =
                                     Pending::Text(TextPending::Typing {
-                                        from: *from,
-                                        to: cursor_position,
+                                        from,
+                                        to,
                                         text: String::default(),
                                     });
 
@@ -701,10 +714,13 @@ mod canvas {
                             Some(Pending::Drawing(DrawingPending::One {
                                 from,
                             })) => {
+                                let (from, to) =
+                                    orient_points(*from, cursor_position);
+
                                 let pending =
                                     Pending::Drawing(DrawingPending::Two {
-                                        from: *from,
-                                        to: cursor_position,
+                                        from,
+                                        to,
                                     });
 
                                 state.replace(pending);
@@ -723,28 +739,54 @@ mod canvas {
                         Some(Pending::Drawing(DrawingPending::One {
                             from,
                         })) => {
+                            let (from, to) =
+                                orient_points(*from, cursor_position);
+
+                            let bounds = Rectangle::new(
+                                from,
+                                Size::new(to.x - from.x, to.y - from.y),
+                            );
+
                             let painting = Painting::new(
                                 self.state.current_action,
-                                *from,
-                                cursor_position,
+                                from,
+                                to,
                                 self.state.color,
                                 self.state.scale,
                             );
                             state.take();
+
+                            if bounds.area() == 0.0 {
+                                return (event::Status::Captured, None);
+                            }
+
                             return (event::Status::Captured, Some(painting));
                         }
                         Some(Pending::Drawing(DrawingPending::Two {
                             from,
                             ..
                         })) => {
+                            let (from, to) =
+                                orient_points(*from, cursor_position);
+
+                            let bounds = Rectangle::new(
+                                from,
+                                Size::new(to.x - from.x, to.y - from.y),
+                            );
+
                             let painting = Painting::new(
                                 self.state.current_action,
-                                *from,
-                                cursor_position,
+                                from,
+                                to,
                                 self.state.color,
                                 self.state.scale,
                             );
                             state.take();
+
+                            if bounds.area() == 0.0 {
+                                return (event::Status::Captured, None);
+                            }
+
                             return (event::Status::Captured, Some(painting));
                         }
                         Some(Pending::Text(_)) => {
@@ -767,14 +809,26 @@ mod canvas {
                         })) if self.state.current_action
                             == Action::Shape(Shapes::Bezier) =>
                         {
+                            let (from, to) = orient_points(*from, *to);
+
+                            let bounds = Rectangle::new(
+                                from,
+                                Size::new(to.x - from.x, to.y - from.y),
+                            );
+
                             let painting = Painting::Bezier {
-                                from: *from,
-                                to: *to,
+                                from,
+                                to,
                                 control: cursor_position,
                                 scale: self.state.scale,
                                 color: self.state.color,
                             };
                             state.take();
+
+                            if bounds.area() == 0.0 {
+                                return (event::Status::Captured, None);
+                            }
+
                             return (event::Status::Captured, Some(painting));
                         }
                         Some(Pending::Drawing(DrawingPending::Bezier {
@@ -782,14 +836,25 @@ mod canvas {
                             to,
                             ..
                         })) => {
+                            let (from, to) = orient_points(*from, *to);
+                            let bounds = Rectangle::new(
+                                from,
+                                Size::new(to.x - from.x, to.y - from.y),
+                            );
+
                             let painting = Painting::Bezier {
-                                from: *from,
-                                to: *to,
+                                from,
+                                to,
                                 control: cursor_position,
                                 scale: self.state.scale,
                                 color: self.state.color,
                             };
                             state.take();
+
+                            if bounds.area() == 0.0 {
+                                return (event::Status::Captured, None);
+                            }
+
                             return (event::Status::Captured, Some(painting));
                         }
                         Some(Pending::Text(TextPending::Typing {
@@ -813,6 +878,11 @@ mod canvas {
                                 };
 
                                 state.take();
+
+                                if bounds.area() == 0.0 {
+                                    return (event::Status::Captured, None);
+                                }
+
                                 return (
                                     event::Status::Captured,
                                     Some(painting),
@@ -857,7 +927,7 @@ mod canvas {
         ) -> Vec<Geometry<Renderer>> {
             let content =
                 self.state.cache.draw(renderer, bounds.size(), |frame| {
-                    Painting::draw_all(self.paintings, frame, theme);
+                    Painting::draw_all(self.paintings, frame, bounds, theme);
 
                     frame.fill_rectangle(
                         Point::ORIGIN,
@@ -1031,7 +1101,65 @@ mod canvas {
             }
         }
 
-        fn draw_all(_paintings: &[Self], _frame: &mut Frame, _theme: &Theme) {}
+        fn draw_all(
+            paintings: &[Self],
+            frame: &mut Frame,
+            bounds: Rectangle,
+            _theme: &Theme,
+        ) {
+            for painting in paintings.iter() {
+                match painting {
+                    Painting::Text {
+                        top_left,
+                        text,
+                        color,
+                        scale,
+                        ..
+                    } => Painting::draw_text(
+                        frame,
+                        bounds,
+                        text.clone(),
+                        *top_left,
+                        *color,
+                        *scale,
+                    ),
+
+                    _ => {}
+                }
+            }
+        }
+
+        fn draw_text(
+            frame: &mut Frame,
+            bounds: Rectangle,
+            text: String,
+            top_left: Point,
+            color: Color,
+            scale: f32,
+        ) {
+            if text.is_empty() || bounds.area() == 0.0 {
+                return;
+            }
+
+            let size = (16.0 * scale.max(0.1)).into();
+
+            let position = {
+                let left = bounds.width * TEXT_LEFT_PADDING;
+                let top = bounds.height * TEXT_TOP_PADDING;
+
+                Point::new(top_left.x + left, top_left.y + top)
+            };
+
+            let text = Text {
+                content: text.clone(),
+                position,
+                color,
+                size,
+                ..Default::default()
+            };
+
+            frame.fill_text(text)
+        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -1146,28 +1274,31 @@ mod canvas {
                     let rect = Path::rectangle(*from, size);
                     frame.stroke(&rect, stroke);
 
-                    let size = (16.0 * scale.max(0.1)).into();
-
-                    let position = {
-                        let left = bounds.width * 0.005;
-                        let top = bounds.height * 0.005;
-
-                        Point::new(from.x + left, from.y + top)
-                    };
-
-                    let text = Text {
-                        content: text.clone(),
-                        position,
+                    Painting::draw_text(
+                        &mut frame,
+                        bounds,
+                        text.clone(),
+                        *from,
                         color,
-                        size,
-                        ..Default::default()
-                    };
-
-                    frame.fill_text(text)
+                        scale,
+                    );
                 }
             }
 
             frame.into_geometry()
+        }
+    }
+
+    /// Determines the top left and bottom right points
+    fn orient_points(iden: Point, other: Point) -> (Point, Point) {
+        if other.y <= iden.y {
+            let top_left = Point::new(f32::min(iden.x, other.x), other.y);
+            let bottom_right = Point::new(f32::max(iden.x, other.x), iden.y);
+            (top_left, bottom_right)
+        } else {
+            let top_left = Point::new(f32::min(iden.x, other.x), iden.y);
+            let bottom_right = Point::new(f32::max(iden.x, other.x), other.y);
+            (top_left, bottom_right)
         }
     }
 }
