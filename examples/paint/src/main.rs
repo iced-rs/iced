@@ -2141,14 +2141,18 @@ mod canvas {
                     _ => {}
                 },
 
-                Action::Tool(Tool::Eraser) => match self {
-                    Self::Erase(bounds) => frame.fill_rectangle(
-                        bounds.position(),
-                        bounds.size(),
-                        color!(225, 29, 72),
-                    ),
-                    _ => {}
-                },
+                Action::Tool(Tool::Eraser) => {
+                    if cursor.position_in(bounds).is_some() {
+                        match self {
+                            Self::Erase(bounds) => frame.fill_rectangle(
+                                bounds.position(),
+                                bounds.size(),
+                                color!(225, 29, 72),
+                            ),
+                            _ => {}
+                        }
+                    }
+                }
             }
 
             frame.into_geometry()
