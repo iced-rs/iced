@@ -171,6 +171,7 @@ struct Paint {
     drawings: Vec<Painting>,
     selection_bounds: Option<Rectangle>,
     canvas: State,
+    is_erasing: bool,
 }
 
 impl Default for Paint {
@@ -212,6 +213,7 @@ impl Default for Paint {
             scale,
             drawings: Vec::default(),
             selection_bounds: None,
+            is_erasing: false,
             canvas,
         }
     }
@@ -475,6 +477,8 @@ impl Paint {
         match message {
             Message::Action(action) => {
                 self.action = action;
+                self.canvas
+                    .is_erasing_tool(self.action == Action::Tool(Tool::Eraser));
                 self.canvas.action(action);
             }
             Message::Color(color) => {
@@ -513,6 +517,16 @@ impl Paint {
                     }
                 }
                 CanvasMessage::SelectionDone => self.selection_bounds = None,
+                CanvasMessage::Erasing(bounds) => {
+                    if self.is_erasing {
+                        self.drawings
+                            .retain(|drawing| !drawing.is_selected(bounds));
+                        self.canvas.redraw()
+                    }
+                }
+                CanvasMessage::Erase => {
+                    self.is_erasing = !self.is_erasing;
+                }
             },
             Message::None => {}
         }
@@ -551,6 +565,7 @@ mod canvas {
     const TEXT_LEFT_PADDING: f32 = 0.005;
     const TEXT_TOP_PADDING: f32 = 0.005;
     const SHAPE_DEFAULT_THICKNESS: f32 = 3.0;
+    const DEFAULT_ERASER_WIDTH: f32 = 20.0;
 
     #[derive(Default, Debug)]
     pub struct State {
@@ -558,6 +573,7 @@ mod canvas {
         current_action: Action,
         color: Color,
         scale: f32,
+        is_erasing_tool: bool,
     }
 
     impl State {
@@ -575,6 +591,10 @@ mod canvas {
 
         pub fn scale(&mut self, scale: f32) {
             self.scale = scale;
+        }
+
+        pub fn is_erasing_tool(&mut self, erasing: bool) {
+            self.is_erasing_tool = erasing;
         }
 
         pub fn view<'a>(
@@ -606,6 +626,12 @@ mod canvas {
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> (event::Status, Option<CanvasMessage>) {
+            if let Some(Pending::Erase(_)) = &state {
+                if !self.state.is_erasing_tool {
+                    state.take();
+                }
+            };
+
             match (cursor.position_in(bounds), state.clone()) {
                 (
                     Some(cursor_position),
@@ -817,6 +843,54 @@ mod canvas {
                     _ => {}
                 },
 
+                (Some(cursor_position), _)
+                    if self.state.current_action
+                        == Action::Tool(Tool::Eraser) =>
+                {
+                    if state.is_none() {
+                        let bounds =
+                            eraser_bounds(cursor_position, self.state.scale);
+                        let eraser = Pending::Erase(bounds);
+
+                        state.replace(eraser);
+                        return (event::Status::Captured, None);
+                    }
+
+                    match event {
+                        Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                            let bounds = eraser_bounds(
+                                cursor_position,
+                                self.state.scale,
+                            );
+
+                            let eraser = Pending::Erase(bounds);
+
+                            state.replace(eraser);
+                            return (
+                                event::Status::Captured,
+                                Some(CanvasMessage::Erasing(bounds)),
+                            );
+                        }
+                        Event::Mouse(mouse::Event::ButtonReleased(
+                            mouse::Button::Left,
+                        )) => {
+                            return (
+                                event::Status::Captured,
+                                Some(CanvasMessage::Erase),
+                            )
+                        }
+                        Event::Mouse(mouse::Event::ButtonPressed(
+                            mouse::Button::Left,
+                        )) => {
+                            return (
+                                event::Status::Captured,
+                                Some(CanvasMessage::Erase),
+                            )
+                        }
+                        _ => {}
+                    }
+                }
+
                 (Some(cursor_position), _unused_state) => match event {
                     Event::Mouse(mouse::Event::ButtonReleased(
                         mouse::Button::Left,
@@ -958,6 +1032,8 @@ mod canvas {
                         Some(Pending::Selection(SelectionPending::Two {
                             ..
                         })) => {}
+
+                        Some(Pending::Erase(_)) => {}
 
                         None => {}
                     },
@@ -1120,6 +1196,8 @@ mod canvas {
         Painting(Painting),
         Selection(Rectangle),
         SelectionMoved(Vector),
+        Erasing(Rectangle),
+        Erase,
         SelectionDone,
     }
 
@@ -1740,6 +1818,7 @@ mod canvas {
         Text(TextPending),
         FreeForm(Vec<Point>),
         Selection(SelectionPending),
+        Erase(Rectangle),
         One { from: Point },
         Two { from: Point, to: Point },
     }
@@ -1898,7 +1977,15 @@ mod canvas {
                     }
                     _ => {}
                 },
-                _ => {}
+
+                Action::Tool(Tool::Eraser) => match self {
+                    Self::Erase(bounds) => frame.fill_rectangle(
+                        bounds.position(),
+                        bounds.size(),
+                        color!(225, 29, 72),
+                    ),
+                    _ => {}
+                },
             }
 
             frame.into_geometry()
@@ -2032,6 +2119,16 @@ mod canvas {
             let bottom_right = Point::new(f32::max(iden.x, other.x), other.y);
             (top_left, bottom_right)
         }
+    }
+
+    fn eraser_bounds(cursor: Point, scale: f32) -> Rectangle {
+        let width = DEFAULT_ERASER_WIDTH * scale;
+
+        let top_left = Point::new(cursor.x - width, cursor.y - width);
+
+        let size = Size::new(width * 2.0, width * 2.0);
+
+        Rectangle::new(top_left, size)
     }
 }
 
