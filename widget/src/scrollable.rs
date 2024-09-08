@@ -7,6 +7,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
@@ -470,6 +471,24 @@ where
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
             scrollbars.is_mouse_over(cursor);
 
+        if let Some(last_scrolled) = state.last_scrolled {
+            let clear_transaction = match event {
+                Event::Mouse(
+                    mouse::Event::ButtonPressed(_)
+                    | mouse::Event::ButtonReleased(_)
+                    | mouse::Event::CursorLeft,
+                ) => true,
+                Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                    last_scrolled.elapsed() > Duration::from_millis(100)
+                }
+                _ => last_scrolled.elapsed() > Duration::from_millis(1500),
+            };
+
+            if clear_transaction {
+                state.last_scrolled = None;
+            }
+        }
+
         if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at {
             match event {
                 Event::Mouse(mouse::Event::CursorMoved { .. })
@@ -612,7 +631,11 @@ where
             }
         }
 
-        let mut event_status = {
+        let content_status = if state.last_scrolled.is_some()
+            && matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
+        {
+            event::Status::Ignored
+        } else {
             let cursor = match cursor_over_scrollable {
                 Some(cursor_position)
                     if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
@@ -660,10 +683,10 @@ where
             state.x_scroller_grabbed_at = None;
             state.y_scroller_grabbed_at = None;
 
-            return event_status;
+            return content_status;
         }
 
-        if let event::Status::Captured = event_status {
+        if let event::Status::Captured = content_status {
             return event::Status::Captured;
         }
 
@@ -699,7 +722,7 @@ where
 
                 state.scroll(delta, self.direction, bounds, content_bounds);
 
-                event_status = if notify_on_scroll(
+                if notify_on_scroll(
                     state,
                     &self.on_scroll,
                     bounds,
@@ -709,7 +732,7 @@ where
                     event::Status::Captured
                 } else {
                     event::Status::Ignored
-                };
+                }
             }
             Event::Touch(event)
                 if state.scroll_area_touched_at.is_some()
@@ -760,12 +783,10 @@ where
                     _ => {}
                 }
 
-                event_status = event::Status::Captured;
+                event::Status::Captured
             }
-            _ => {}
+            _ => event::Status::Ignored,
         }
-
-        event_status
     }
 
     fn draw(
@@ -1133,7 +1154,9 @@ fn notify_on_scroll<Message>(
     if let Some(on_scroll) = on_scroll {
         shell.publish(on_scroll(viewport));
     }
+
     state.last_notified = Some(viewport);
+    state.last_scrolled = Some(Instant::now());
 
     true
 }
@@ -1147,6 +1170,7 @@ struct State {
     x_scroller_grabbed_at: Option<f32>,
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
+    last_scrolled: Option<Instant>,
 }
 
 impl Default for State {
@@ -1159,6 +1183,7 @@ impl Default for State {
             x_scroller_grabbed_at: None,
             keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,
+            last_scrolled: None,
         }
     }
 }
