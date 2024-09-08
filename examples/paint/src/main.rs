@@ -7,7 +7,7 @@ use iced::{
         button, column, container, row, text, tooltip, vertical_rule,
         vertical_slider, vertical_space, Column, Container,
     },
-    Color, Element, Font, Length, Theme,
+    Color, Element, Font, Length, Rectangle, Theme,
 };
 
 use canvas::{CanvasMessage, Painting, State};
@@ -169,6 +169,7 @@ struct Paint {
     opacity: f32,
     scale: f32,
     drawings: Vec<Painting>,
+    selection_bounds: Option<Rectangle>,
     canvas: State,
 }
 
@@ -210,6 +211,7 @@ impl Default for Paint {
             opacity,
             scale,
             drawings: Vec::default(),
+            selection_bounds: None,
             canvas,
         }
     }
@@ -496,9 +498,21 @@ impl Paint {
                     self.drawings.push(painting);
                     self.canvas.redraw();
                 }
-                CanvasMessage::Selection(_) => {}
-                CanvasMessage::SelectionMoved(_) => {}
-                CanvasMessage::SelectionDone => {}
+                CanvasMessage::Selection(bounds) => {
+                    self.selection_bounds = Some(bounds)
+                }
+                CanvasMessage::SelectionMoved(position_diff) => {
+                    if let Some(selection) = self.selection_bounds {
+                        self.drawings
+                            .iter_mut()
+                            .filter(|drawing| drawing.is_selected(selection))
+                            .for_each(|drawing| {
+                                drawing.translate(position_diff)
+                            });
+                        self.canvas.redraw();
+                    }
+                }
+                CanvasMessage::SelectionDone => self.selection_bounds = None,
             },
             Message::None => {}
         }
@@ -529,7 +543,7 @@ mod canvas {
             event::{self, Event},
             stroke, Canvas, Frame, Geometry, LineDash, Path, Stroke, Text,
         },
-        Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme,
+        Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
 
     use super::{Action, Shapes, Tool};
@@ -762,9 +776,7 @@ mod canvas {
 
                         return (
                             event::Status::Captured,
-                            Some(CanvasMessage::SelectionMoved(
-                                cursor_position,
-                            )),
+                            Some(CanvasMessage::SelectionMoved(position_diff)),
                         );
                     }
                     Event::Mouse(mouse::Event::ButtonReleased(
@@ -1107,7 +1119,7 @@ mod canvas {
     pub enum CanvasMessage {
         Painting(Painting),
         Selection(Rectangle),
-        SelectionMoved(Point),
+        SelectionMoved(Vector),
         SelectionDone,
     }
 
@@ -1566,6 +1578,160 @@ mod canvas {
             });
 
             frame.stroke(&freeform, stroke);
+        }
+
+        pub fn is_selected(&self, bounds: Rectangle) -> bool {
+            match self {
+                Self::Line { from, to, .. } => {
+                    let size = Size::new(to.x - from.x, to.y - from.y);
+                    let own = Rectangle::new(*from, size);
+
+                    bounds.intersects(&own) || bounds.is_within(&own)
+                }
+                Self::Text {
+                    top_left,
+                    bottom_right,
+                    ..
+                } => {
+                    let size = Size::new(
+                        bottom_right.x - top_left.x,
+                        bottom_right.y - top_left.y,
+                    );
+                    let own = Rectangle::new(*top_left, size);
+
+                    bounds.intersects(&own) || bounds.is_within(&own)
+                }
+                Self::Bezier {
+                    from, to, control, ..
+                } => {
+                    let (x1, y1) = (
+                        f32::min(from.x, to.x.min(control.x)),
+                        f32::min(from.y, to.y.min(control.y)),
+                    );
+                    let (x2, y2) = (
+                        f32::max(from.x, to.x.max(control.x)),
+                        f32::max(from.y, to.y.max(control.y)),
+                    );
+
+                    let size = Size::new(x2 - x1, y2 - y1);
+
+                    let own = Rectangle::new(Point::new(x1, y2), size);
+
+                    bounds.intersects(&own) || bounds.is_within(&own)
+                }
+                Self::Rectangle {
+                    top_left,
+                    bottom_right,
+                    ..
+                } => {
+                    let size = Size::new(
+                        bottom_right.x - top_left.x,
+                        bottom_right.y - top_left.y,
+                    );
+                    let own = Rectangle::new(*top_left, size);
+
+                    bounds.intersects(&own) || bounds.is_within(&own)
+                }
+                Self::Circle { center, radius, .. } => {
+                    let radius = center.distance(*radius);
+                    let size = Size::new(radius * 2.0, radius * 2.0);
+
+                    let own = Rectangle::new(
+                        Point::new(center.x - radius, center.y - radius),
+                        size,
+                    );
+
+                    bounds.intersects(&own) || bounds.is_within(&own)
+                }
+
+                Self::Triangle { top, right, .. } => {
+                    let diff = right.x - top.x;
+
+                    let size = Size::new(diff * 2.0, right.y - top.y);
+
+                    let own = Rectangle::new(
+                        Point::new(
+                            top.x + diff,
+                            if top.y <= right.y { top.y } else { right.y },
+                        ),
+                        size,
+                    );
+
+                    bounds.intersects(&own) || bounds.is_within(&own)
+                }
+                Self::Bestagon { top, top_right, .. } => {
+                    let x_diff = top_right.x - top.x;
+                    let y_diff = top_right.y - top.y;
+
+                    let size = Size::new(
+                        f32::abs(x_diff * 2.0),
+                        f32::abs(y_diff * 3.0),
+                    );
+
+                    let own = Rectangle::new(
+                        Point::new(
+                            top_right.x - (x_diff * 2.0),
+                            if top.y <= top_right.y {
+                                top.y
+                            } else {
+                                top_right.y + (y_diff * 2.0)
+                            },
+                        ),
+                        size,
+                    );
+
+                    bounds.intersects(&own) || bounds.is_within(&own)
+                }
+                Self::FreeForm { points, .. } => {
+                    points.iter().any(|point| bounds.contains(*point))
+                }
+            }
+        }
+
+        pub fn translate(&mut self, translation: Vector) {
+            match self {
+                Self::Line { from, to, .. } => {
+                    *from = *from + translation;
+                    *to = *to + translation;
+                }
+                Self::Text {
+                    top_left,
+                    bottom_right,
+                    ..
+                } => {
+                    *top_left = *top_left + translation;
+                    *bottom_right = *bottom_right + translation;
+                }
+                Self::Bezier { from, to, .. } => {
+                    *from = *from + translation;
+                    *to = *to + translation;
+                }
+                Self::Rectangle {
+                    top_left,
+                    bottom_right,
+                    ..
+                } => {
+                    *top_left = *top_left + translation;
+                    *bottom_right = *bottom_right + translation;
+                }
+                Self::Circle { center, radius, .. } => {
+                    *center = *center + translation;
+                    *radius = *radius + translation;
+                }
+                Self::Triangle { top, right, .. } => {
+                    *top = *top + translation;
+                    *right = *right + translation
+                }
+                Self::Bestagon { top, top_right, .. } => {
+                    *top = *top + translation;
+                    *top_right = *top_right + translation;
+                }
+                Self::FreeForm { points, .. } => {
+                    points
+                        .iter_mut()
+                        .for_each(|point| *point = *point + translation);
+                }
+            };
         }
     }
 
