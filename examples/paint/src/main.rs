@@ -1471,6 +1471,7 @@ mod canvas {
                 position,
                 color,
                 size,
+                shaping: iced::widget::text::Shaping::Advanced,
                 ..Default::default()
             };
 
@@ -2041,13 +2042,11 @@ mod canvas {
                     let rect = Path::rectangle(*from, size);
                     frame.stroke(&rect, stroke);
 
+                    let mut text = text.clone();
+                    text.push_str("▸");
+
                     Painting::draw_text(
-                        frame,
-                        bounds,
-                        text.clone(),
-                        *from,
-                        color,
-                        scale,
+                        frame, bounds, text, *from, color, scale,
                     );
                 }
             }
