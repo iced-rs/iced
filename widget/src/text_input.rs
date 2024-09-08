@@ -129,11 +129,23 @@ where
     /// the [`TextInput`].
     ///
     /// If this method is not called, the [`TextInput`] will be disabled.
-    pub fn on_input<F>(mut self, callback: F) -> Self
-    where
-        F: 'a + Fn(String) -> Message,
-    {
-        self.on_input = Some(Box::new(callback));
+    pub fn on_input(
+        mut self,
+        on_input: impl Fn(String) -> Message + 'a,
+    ) -> Self {
+        self.on_input = Some(Box::new(on_input));
+        self
+    }
+
+    /// Sets the message that should be produced when some text is typed into
+    /// the [`TextInput`], if `Some`.
+    ///
+    /// If `None`, the [`TextInput`] will be disabled.
+    pub fn on_input_maybe(
+        mut self,
+        on_input: Option<impl Fn(String) -> Message + 'a>,
+    ) -> Self {
+        self.on_input = on_input.map(|f| Box::new(f) as _);
         self
     }
 
@@ -144,6 +156,13 @@ where
         self
     }
 
+    /// Sets the message that should be produced when the [`TextInput`] is
+    /// focused and the enter key is pressed, if `Some`.
+    pub fn on_submit_maybe(mut self, on_submit: Option<Message>) -> Self {
+        self.on_submit = on_submit;
+        self
+    }
+
     /// Sets the message that should be produced when some text is pasted into
     /// the [`TextInput`].
     pub fn on_paste(
@@ -151,6 +170,16 @@ where
         on_paste: impl Fn(String) -> Message + 'a,
     ) -> Self {
         self.on_paste = Some(Box::new(on_paste));
+        self
+    }
+
+    /// Sets the message that should be produced when some text is pasted into
+    /// the [`TextInput`], if `Some`.
+    pub fn on_paste_maybe(
+        mut self,
+        on_paste: Option<impl Fn(String) -> Message + 'a>,
+    ) -> Self {
+        self.on_paste = on_paste.map(|f| Box::new(f) as _);
         self
     }
 
