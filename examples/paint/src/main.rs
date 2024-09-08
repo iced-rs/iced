@@ -1,10 +1,8 @@
-#![allow(dead_code, unused_imports)]
 use std::fmt::Display;
 
 use iced::{
     alignment::{Horizontal, Vertical},
     color,
-    theme::palette,
     widget::{
         button, column, container, row, text, tooltip, vertical_rule,
         vertical_slider, vertical_space, Column, Container,
@@ -45,23 +43,6 @@ enum PaintColor {
 }
 
 impl PaintColor {
-    const ALL: [PaintColor; 14] = [
-        Self::White(1.0),
-        Self::Black(1.0),
-        Self::Grey(1.0),
-        Self::Ivory(1.0),
-        Self::Red(1.0),
-        Self::Orange(1.0),
-        Self::Yellow(1.0),
-        Self::Green(1.0),
-        Self::Blue(1.0),
-        Self::Indigo(1.0),
-        Self::Violet(1.0),
-        Self::Fuchsia(1.0),
-        Self::Rose(1.0),
-        Self::Cyan(1.0),
-    ];
-
     fn opacity(&mut self, opacity: f32) -> Self {
         match self {
             Self::Black(_) => Self::Black(opacity),
@@ -707,7 +688,6 @@ impl Paint {
 mod canvas {
 
     use iced::{
-        advanced::graphics::core::SmolStr,
         color, mouse,
         widget::canvas::{
             self,
