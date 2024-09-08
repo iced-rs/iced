@@ -158,13 +158,16 @@ enum Message {
     Opacity(f32),
     Scale(f32),
     CanvasMessage(CanvasMessage),
+    DrawingColor(bool),
     None,
 }
 
 #[derive(Debug)]
 struct Paint {
     action: Action,
-    color: PaintColor,
+    drawing_color: PaintColor,
+    canvas_color: PaintColor,
+    is_drawing_color: bool,
     palette: [PaintColor; 18],
     opacity: f32,
     scale: f32,
@@ -178,7 +181,8 @@ impl Default for Paint {
     fn default() -> Self {
         let opacity = 1.0;
         let scale = 1.0;
-        let color = PaintColor::default();
+        let drawing_color = PaintColor::default();
+        let canvas_color = PaintColor::Custom(color!(240, 234, 214));
 
         let palette = [
             PaintColor::White,
@@ -203,14 +207,17 @@ impl Default for Paint {
 
         let mut canvas = State::default();
         canvas.scale(scale);
-        canvas.color(color.into());
+        canvas.color(drawing_color.into());
+        canvas.canvas_color(canvas_color.into());
 
         Self {
             palette,
             action: Action::default(),
-            color,
+            drawing_color,
+            canvas_color,
             opacity,
             scale,
+            is_drawing_color: true,
             drawings: Vec::default(),
             selection_bounds: None,
             is_erasing: false,
@@ -307,11 +314,25 @@ impl Paint {
             column!(rw1, rw2, rw3).spacing(5)
         };
 
-        let current = button("")
+        let drawing_color = button("")
             .width(35)
             .height(35)
-            .on_press(Message::None)
-            .style(|_, status| styles::color_btn(self.color.into(), status));
+            .on_press(Message::DrawingColor(true))
+            .style(|_, status| {
+                styles::color_btn(self.drawing_color.into(), status)
+            });
+
+        let canvas_color = button("")
+            .width(35)
+            .height(35)
+            .on_press(Message::DrawingColor(false))
+            .style(|_, status| {
+                styles::color_btn(self.canvas_color.into(), status)
+            });
+
+        let current = column!(drawing_color, canvas_color)
+            .align_x(Horizontal::Center)
+            .spacing(10.0);
 
         let colors =
             row!(current, colors).align_y(Vertical::Center).spacing(10);
@@ -482,8 +503,14 @@ impl Paint {
                 self.canvas.action(action);
             }
             Message::Color(color) => {
-                self.color = color;
-                self.canvas.color(self.color.opacity(self.opacity).into());
+                if self.is_drawing_color {
+                    self.drawing_color = color;
+                    self.canvas
+                        .color(self.drawing_color.opacity(self.opacity).into());
+                } else {
+                    self.canvas_color = color;
+                    self.canvas.canvas_color(color.into());
+                }
             }
             Message::Clear => {
                 self.drawings.clear();
@@ -491,7 +518,8 @@ impl Paint {
             }
             Message::Opacity(opacity) => {
                 self.opacity = opacity;
-                self.canvas.color(self.color.opacity(self.opacity).into());
+                self.canvas
+                    .color(self.drawing_color.opacity(self.opacity).into());
             }
             Message::Scale(scale) => {
                 self.scale = scale;
@@ -528,6 +556,9 @@ impl Paint {
                     self.is_erasing = !self.is_erasing;
                 }
             },
+            Message::DrawingColor(flag) => {
+                self.is_drawing_color = flag;
+            }
             Message::None => {}
         }
     }
@@ -574,6 +605,7 @@ mod canvas {
         color: Color,
         scale: f32,
         is_erasing_tool: bool,
+        canvas_color: Color,
     }
 
     impl State {
@@ -587,6 +619,10 @@ mod canvas {
 
         pub fn color(&mut self, color: Color) {
             self.color = color;
+        }
+
+        pub fn canvas_color(&mut self, color: Color) {
+            self.canvas_color = color;
         }
 
         pub fn scale(&mut self, scale: f32) {
@@ -1143,7 +1179,7 @@ mod canvas {
                     frame.fill_rectangle(
                         Point::ORIGIN,
                         frame.size(),
-                        color!(240, 234, 214),
+                        self.state.canvas_color,
                     );
 
                     Painting::draw_all(self.paintings, frame, bounds, theme);
