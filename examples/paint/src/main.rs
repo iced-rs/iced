@@ -1,4 +1,6 @@
 #![allow(dead_code, unused_imports)]
+use std::fmt::Display;
+
 use iced::{
     alignment::{Horizontal, Vertical},
     color,
@@ -119,6 +121,35 @@ impl From<Color> for PaintColor {
     }
 }
 
+impl Display for PaintColor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Black(_) => write!(f, "Black"),
+            Self::White(_) => write!(f, "White"),
+            Self::Grey(_) => write!(f, "Grey"),
+            Self::Ivory(_) => write!(f, "Ivory"),
+            Self::Red(_) => write!(f, "Red"),
+            Self::Orange(_) => write!(f, "Orange"),
+            Self::Yellow(_) => write!(f, "Yellow"),
+            Self::Green(_) => write!(f, "Green"),
+            Self::Blue(_) => write!(f, "Blue"),
+            Self::Indigo(_) => write!(f, "Indigo"),
+            Self::Violet(_) => write!(f, "Violet"),
+            Self::Rose(_) => write!(f, "Rose"),
+            Self::Cyan(_) => write!(f, "Cyan"),
+            Self::Fuchsia(_) => write!(f, "Fuchsia"),
+            Self::Empty => write!(f, "Empty"),
+            Self::Custom(color) => {
+                write!(
+                    f,
+                    "rgba({}, {}, {}, {})",
+                    color.r, color.g, color.b, color.a
+                )
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Shapes {
     Line,
@@ -127,6 +158,23 @@ enum Shapes {
     Circle,
     Triangle,
     Bestagon,
+}
+
+impl Display for Shapes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Line => "Line",
+                Self::Bezier => "Bezier",
+                Self::Rectangle => "Rectangle",
+                Self::Circle => "Circle",
+                Self::Triangle => "Triangle",
+                Self::Bestagon => "Bestagon",
+            }
+        )
+    }
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -138,11 +186,36 @@ enum Tool {
     Brush,
 }
 
+impl Display for Tool {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Brush => "Brush",
+                Self::Pencil => "Pencil",
+                Self::Eraser => "Eraser",
+                Self::Text => "Text",
+            }
+        )
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Action {
     Tool(Tool),
     Select,
     Shape(Shapes),
+}
+
+impl Display for Action {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Select => write!(f, "Select"),
+            Self::Tool(tool) => write!(f, "{}", tool),
+            Self::Shape(shape) => write!(f, "{}", shape),
+        }
+    }
 }
 
 impl Action {
@@ -320,6 +393,12 @@ impl Paint {
                     move |_, status| styles::color_btn(color.into(), status),
                 );
 
+                let tip = container(text(color.to_string()).size(15.0))
+                    .padding([2, 6])
+                    .style(styles::tooltip_style);
+
+                let btn = tooltip(btn, tip, tooltip::Position::Right);
+
                 match idx / 6 {
                     0 => rw1 = rw1.push(btn),
                     1 => rw2 = rw2.push(btn),
@@ -330,21 +409,37 @@ impl Paint {
             column!(rw1, rw2, rw3).spacing(5)
         };
 
-        let drawing_color = button("")
-            .width(35)
-            .height(35)
-            .on_press(Message::DrawingColor(true))
-            .style(|_, status| {
-                styles::color_btn(self.drawing_color.into(), status)
-            });
+        let drawing_color = {
+            let btn = button("")
+                .width(35)
+                .height(35)
+                .on_press(Message::DrawingColor(true))
+                .style(|_, status| {
+                    styles::color_btn(self.drawing_color.into(), status)
+                });
 
-        let canvas_color = button("")
-            .width(35)
-            .height(35)
-            .on_press(Message::DrawingColor(false))
-            .style(|_, status| {
-                styles::color_btn(self.canvas_color.into(), status)
-            });
+            let tip = container(text("Drawing color").size(15.0))
+                .padding([2, 6])
+                .style(styles::tooltip_style);
+
+            tooltip(btn, tip, tooltip::Position::Bottom)
+        };
+
+        let canvas_color = {
+            let btn = button("")
+                .width(35)
+                .height(35)
+                .on_press(Message::DrawingColor(false))
+                .style(|_, status| {
+                    styles::color_btn(self.canvas_color.into(), status)
+                });
+
+            let tip = container(text("Canvas Color").size(15.0))
+                .padding([2, 6])
+                .style(styles::tooltip_style);
+
+            tooltip(btn, tip, tooltip::Position::Bottom)
+        };
 
         let current = column!(drawing_color, canvas_color)
             .align_x(Horizontal::Center)
@@ -385,13 +480,21 @@ impl Paint {
             let tool_btn = |code: char, message: Message, tool: Tool| {
                 let icon = text(code).font(ICON_FONT);
 
-                button(icon).on_press(message).style(move |theme, status| {
-                    styles::toolbar_btn(
-                        theme,
-                        status,
-                        self.action == Action::Tool(tool),
-                    )
-                })
+                let tip = container(text(tool.to_string()).size(15.0))
+                    .padding([2, 6])
+                    .style(styles::tooltip_style);
+
+                let btn = button(icon).on_press(message).style(
+                    move |theme, status| {
+                        styles::toolbar_btn(
+                            theme,
+                            status,
+                            self.action == Action::Tool(tool),
+                        )
+                    },
+                );
+
+                tooltip(btn, tip, tooltip::Position::Right)
             };
 
             let rw1 = row!(
@@ -435,13 +538,20 @@ impl Paint {
             let shape_btn = |code: char, msg: Message, shape: Shapes| {
                 let icon = text(code).font(ICON_FONT);
 
-                button(icon).on_press(msg).style(move |theme, status| {
-                    styles::toolbar_btn(
-                        theme,
-                        status,
-                        self.action == Action::Shape(shape),
-                    )
-                })
+                let tip = container(text(shape.to_string()).size(15.0))
+                    .padding([2, 6])
+                    .style(styles::tooltip_style);
+
+                let btn =
+                    button(icon).on_press(msg).style(move |theme, status| {
+                        styles::toolbar_btn(
+                            theme,
+                            status,
+                            self.action == Action::Shape(shape),
+                        )
+                    });
+
+                tooltip(btn, tip, tooltip::Position::Right)
             };
 
             let rw1 = row!(
@@ -2203,6 +2313,20 @@ mod styles {
                 ..Default::default()
             },
             ..toolbar(theme)
+        }
+    }
+
+    pub fn tooltip_style(theme: &Theme) -> widget::container::Style {
+        let background = theme.extended_palette().background.strong;
+
+        widget::container::Style {
+            background: Some(Background::Color(background.color)),
+            text_color: Some(background.text),
+            border: Border {
+                radius: 5.into(),
+                ..Default::default()
+            },
+            ..Default::default()
         }
     }
 
