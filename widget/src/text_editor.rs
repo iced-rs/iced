@@ -1056,6 +1056,7 @@ impl<Message> Update<Message> {
 
                         let click = mouse::Click::new(
                             cursor_position,
+                            mouse::Button::Left,
                             state.last_click,
                         );
 
