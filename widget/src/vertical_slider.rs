@@ -5,7 +5,7 @@ pub use crate::slider::{
     default, Catalog, Handle, HandleShape, Status, Style, StyleFn,
 };
 
-use crate::core::border::{self, Border};
+use crate::core::border::Border;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
@@ -413,10 +413,10 @@ where
                     width: style.rail.width,
                     height: offset + handle_width / 2.0,
                 },
-                border: border::rounded(style.rail.border_radius),
+                border: style.rail.border,
                 ..renderer::Quad::default()
             },
-            style.rail.colors.1,
+            style.rail.backgrounds.1,
         );
 
         renderer.fill_quad(
@@ -427,10 +427,10 @@ where
                     width: style.rail.width,
                     height: bounds.height - offset - handle_width / 2.0,
                 },
-                border: border::rounded(style.rail.border_radius),
+                border: style.rail.border,
                 ..renderer::Quad::default()
             },
-            style.rail.colors.0,
+            style.rail.backgrounds.0,
         );
 
         renderer.fill_quad(
@@ -448,7 +448,7 @@ where
                 },
                 ..renderer::Quad::default()
             },
-            style.handle.color,
+            style.handle.background,
         );
     }
 
