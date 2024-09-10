@@ -108,6 +108,53 @@ impl Color {
         }
     }
 
+    /// Parses a [`Color`] from a hex string.
+    ///
+    /// Supported formats are `#rrggbb`, `#rrggbbaa`, `#rgb`, and `#rgba`.
+    /// The starting "#" is optional. Both uppercase and lowercase are supported.
+    ///
+    /// If you have a static color string, using the [`color!`] macro should be preferred
+    /// since it leverages hexadecimal literal notation and arithmetic directly.
+    ///
+    /// [`color!`]: crate::color!
+    pub fn parse(s: &str) -> Option<Color> {
+        let hex = s.strip_prefix('#').unwrap_or(s);
+
+        let parse_channel = |from: usize, to: usize| {
+            let num =
+                usize::from_str_radix(&hex[from..=to], 16).ok()? as f32 / 255.0;
+
+            // If we only got half a byte (one letter), expand it into a full byte (two letters)
+            Some(if from == to { num + num * 16.0 } else { num })
+        };
+
+        Some(match hex.len() {
+            3 => Color::from_rgb(
+                parse_channel(0, 0)?,
+                parse_channel(1, 1)?,
+                parse_channel(2, 2)?,
+            ),
+            4 => Color::from_rgba(
+                parse_channel(0, 0)?,
+                parse_channel(1, 1)?,
+                parse_channel(2, 2)?,
+                parse_channel(3, 3)?,
+            ),
+            6 => Color::from_rgb(
+                parse_channel(0, 1)?,
+                parse_channel(2, 3)?,
+                parse_channel(4, 5)?,
+            ),
+            8 => Color::from_rgba(
+                parse_channel(0, 1)?,
+                parse_channel(2, 3)?,
+                parse_channel(4, 5)?,
+                parse_channel(6, 7)?,
+            ),
+            _ => None?,
+        })
+    }
+
     /// Converts the [`Color`] into its RGBA8 equivalent.
     #[must_use]
     pub fn into_rgba8(self) -> [u8; 4] {
@@ -178,34 +225,65 @@ impl From<[f32; 4]> for Color {
 ///
 /// ```
 /// # use iced_core::{Color, color};
-/// assert_eq!(color!(0, 0, 0), Color::from_rgb(0., 0., 0.));
-/// assert_eq!(color!(0, 0, 0, 0.), Color::from_rgba(0., 0., 0., 0.));
-/// assert_eq!(color!(0xffffff), Color::from_rgb(1., 1., 1.));
-/// assert_eq!(color!(0xffffff, 0.), Color::from_rgba(1., 1., 1., 0.));
+/// assert_eq!(color!(0, 0, 0), Color::BLACK);
+/// assert_eq!(color!(0, 0, 0, 0.0), Color::TRANSPARENT);
+/// assert_eq!(color!(0xffffff), Color::from_rgb(1.0, 1.0, 1.0));
+/// assert_eq!(color!(0xffffff, 0.), Color::from_rgba(1.0, 1.0, 1.0, 0.0));
+/// assert_eq!(color!(0x123), Color::from_rgba8(0x11, 0x22, 0x33, 1.0));
+/// assert_eq!(color!(0x123), color!(0x112233));
 /// ```
 #[macro_export]
 macro_rules! color {
     ($r:expr, $g:expr, $b:expr) => {
         color!($r, $g, $b, 1.0)
     };
-    ($r:expr, $g:expr, $b:expr, $a:expr) => {
-        $crate::Color {
-            r: $r as f32 / 255.0,
-            g: $g as f32 / 255.0,
-            b: $b as f32 / 255.0,
-            a: $a,
+    ($r:expr, $g:expr, $b:expr, $a:expr) => {{
+        let r = $r as f32 / 255.0;
+        let g = $g as f32 / 255.0;
+        let b = $b as f32 / 255.0;
+
+        #[allow(clippy::manual_range_contains)]
+        {
+            debug_assert!(
+                r >= 0.0 && r <= 1.0,
+                "R channel must be in [0, 255] range."
+            );
+            debug_assert!(
+                g >= 0.0 && g <= 1.0,
+                "G channel must be in [0, 255] range."
+            );
+            debug_assert!(
+                b >= 0.0 && b <= 1.0,
+                "B channel must be in [0, 255] range."
+            );
         }
-    };
+
+        $crate::Color { r, g, b, a: $a }
+    }};
     ($hex:expr) => {{
         color!($hex, 1.0)
     }};
     ($hex:expr, $a:expr) => {{
         let hex = $hex as u32;
-        let r = (hex & 0xff0000) >> 16;
-        let g = (hex & 0xff00) >> 8;
-        let b = (hex & 0xff);
 
-        color!(r, g, b, $a)
+        if hex <= 0xfff {
+            let r = (hex & 0xf00) >> 8;
+            let g = (hex & 0x0f0) >> 4;
+            let b = (hex & 0x00f);
+
+            color!((r << 4 | r), (g << 4 | g), (b << 4 | b), $a)
+        } else {
+            debug_assert!(
+                hex <= 0xffffff,
+                "color! value must not exceed 0xffffff"
+            );
+
+            let r = (hex & 0xff0000) >> 16;
+            let g = (hex & 0xff00) >> 8;
+            let b = (hex & 0xff);
+
+            color!(r, g, b, $a)
+        }
     }};
 }
 
@@ -272,5 +350,24 @@ mod tests {
         assert_relative_eq!(result.g, 0.5);
         assert_relative_eq!(result.b, 0.3);
         assert_relative_eq!(result.a, 1.0);
+    }
+
+    #[test]
+    fn parse() {
+        let tests = [
+            ("#ff0000", [255, 0, 0, 255]),
+            ("00ff0080", [0, 255, 0, 128]),
+            ("#F80", [255, 136, 0, 255]),
+            ("#00f1", [0, 0, 255, 17]),
+        ];
+
+        for (arg, expected) in tests {
+            assert_eq!(
+                Color::parse(arg).expect("color must parse").into_rgba8(),
+                expected
+            );
+        }
+
+        assert!(Color::parse("invalid").is_none());
     }
 }
