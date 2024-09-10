@@ -26,7 +26,8 @@ use crate::core::{
 ///
 /// let is_toggled = true;
 ///
-/// Toggler::new(Some("Toggle me!"), is_toggled)
+/// Toggler::new(is_toggled)
+///     .label("Toggle me!")
 ///     .on_toggle(Message::TogglerToggled);
 /// ```
 #[allow(missing_debug_implementations)]
@@ -70,14 +71,11 @@ where
     ///   * a function that will be called when the [`Toggler`] is toggled. It
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
-    pub fn new(
-        label: Option<impl text::IntoFragment<'a>>,
-        is_toggled: bool,
-    ) -> Self {
+    pub fn new(is_toggled: bool) -> Self {
         Toggler {
             is_toggled,
             on_toggle: None,
-            label: label.map(text::IntoFragment::into_fragment),
+            label: None,
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
             text_size: None,
@@ -89,6 +87,12 @@ where
             font: None,
             class: Theme::default(),
         }
+    }
+
+    /// Sets the label of the [`Toggler`].
+    pub fn label(mut self, label: impl text::IntoFragment<'a>) -> Self {
+        self.label = Some(label.into_fragment());
+        self
     }
 
     /// Sets the message that should be produced when a user toggles
