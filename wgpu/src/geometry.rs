@@ -253,6 +253,44 @@ impl geometry::frame::Backend for Frame {
         .expect("Stroke path");
     }
 
+    fn stroke_rectangle<'a>(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        stroke: impl Into<Stroke<'a>>,
+    ) {
+        let stroke = stroke.into();
+
+        let mut buffer = self
+            .buffers
+            .get_stroke(&self.transforms.current.transform_style(stroke.style));
+
+        let top_left = self
+            .transforms
+            .current
+            .0
+            .transform_point(lyon::math::Point::new(top_left.x, top_left.y));
+
+        let size =
+            self.transforms.current.0.transform_vector(
+                lyon::math::Vector::new(size.width, size.height),
+            );
+
+        let mut options = tessellation::StrokeOptions::default();
+        options.line_width = stroke.width;
+        options.start_cap = into_line_cap(stroke.line_cap);
+        options.end_cap = into_line_cap(stroke.line_cap);
+        options.line_join = into_line_join(stroke.line_join);
+
+        self.stroke_tessellator
+            .tessellate_rectangle(
+                &lyon::math::Box2D::new(top_left, top_left + size),
+                &options,
+                buffer.as_mut(),
+            )
+            .expect("Stroke rectangle");
+    }
+
     fn fill_text(&mut self, text: impl Into<geometry::Text>) {
         let text = text.into();
 

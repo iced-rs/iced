@@ -168,6 +168,15 @@ impl geometry::frame::Backend for Frame {
         });
     }
 
+    fn stroke_rectangle<'a>(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        stroke: impl Into<Stroke<'a>>,
+    ) {
+        self.stroke(&Path::rectangle(top_left, size), stroke);
+    }
+
     fn fill_text(&mut self, text: impl Into<geometry::Text>) {
         let text = text.into();
 
