@@ -1,5 +1,4 @@
 //! A container for capturing mouse events.
-
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -123,6 +122,8 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 #[derive(Default)]
 struct State {
     is_hovered: bool,
+    bounds: Rectangle,
+    cursor_position: Option<Point>,
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
@@ -313,13 +314,17 @@ fn update<Message: Clone, Theme, Renderer>(
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
 ) -> event::Status {
-    if let Event::Mouse(mouse::Event::CursorMoved { .. })
-    | Event::Touch(touch::Event::FingerMoved { .. }) = event
-    {
-        let state: &mut State = tree.state.downcast_mut();
+    let state: &mut State = tree.state.downcast_mut();
 
+    let cursor_position = cursor.position();
+    let bounds = layout.bounds();
+
+    if state.cursor_position != cursor_position && state.bounds != bounds {
         let was_hovered = state.is_hovered;
+
         state.is_hovered = cursor.is_over(layout.bounds());
+        state.cursor_position = cursor_position;
+        state.bounds = bounds;
 
         match (
             widget.on_enter.as_ref(),
