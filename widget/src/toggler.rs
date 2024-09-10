@@ -26,7 +26,8 @@ use crate::core::{
 ///
 /// let is_toggled = true;
 ///
-/// Toggler::new(Some("Toggle me!"), is_toggled, |b| Message::TogglerToggled(b));
+/// Toggler::new(Some("Toggle me!"), is_toggled)
+///     .on_toggle(Message::TogglerToggled);
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Toggler<
@@ -39,7 +40,7 @@ pub struct Toggler<
     Renderer: text::Renderer,
 {
     is_toggled: bool,
-    on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
+    on_toggle: Option<Box<dyn Fn(bool) -> Message + 'a>>,
     label: Option<text::Fragment<'a>>,
     width: Length,
     size: f32,
@@ -69,17 +70,13 @@ where
     ///   * a function that will be called when the [`Toggler`] is toggled. It
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
-    pub fn new<F>(
+    pub fn new(
         label: Option<impl text::IntoFragment<'a>>,
         is_toggled: bool,
-        f: F,
-    ) -> Self
-    where
-        F: 'a + Fn(bool) -> Message,
-    {
+    ) -> Self {
         Toggler {
             is_toggled,
-            on_toggle: Box::new(f),
+            on_toggle: None,
             label: label.map(text::IntoFragment::into_fragment),
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
@@ -92,6 +89,30 @@ where
             font: None,
             class: Theme::default(),
         }
+    }
+
+    /// Sets the message that should be produced when a user toggles
+    /// the [`Toggler`].
+    ///
+    /// If this method is not called, the [`Toggler`] will be disabled.
+    pub fn on_toggle(
+        mut self,
+        on_toggle: impl Fn(bool) -> Message + 'a,
+    ) -> Self {
+        self.on_toggle = Some(Box::new(on_toggle));
+        self
+    }
+
+    /// Sets the message that should be produced when a user toggles
+    /// the [`Toggler`], if `Some`.
+    ///
+    /// If `None`, the [`Toggler`] will be disabled.
+    pub fn on_toggle_maybe(
+        mut self,
+        on_toggle: Option<impl Fn(bool) -> Message + 'a>,
+    ) -> Self {
+        self.on_toggle = on_toggle.map(|on_toggle| Box::new(on_toggle) as _);
+        self
     }
 
     /// Sets the size of the [`Toggler`].
@@ -244,13 +265,17 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
+        let Some(on_toggle) = &self.on_toggle else {
+            return event::Status::Ignored;
+        };
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {
-                    shell.publish((self.on_toggle)(!self.is_toggled));
+                    shell.publish(on_toggle(!self.is_toggled));
 
                     event::Status::Captured
                 } else {
@@ -270,7 +295,11 @@ where
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         if cursor.is_over(layout.bounds()) {
-            mouse::Interaction::Pointer
+            if self.on_toggle.is_some() {
+                mouse::Interaction::Pointer
+            } else {
+                mouse::Interaction::NotAllowed
+            }
         } else {
             mouse::Interaction::default()
         }
@@ -314,7 +343,9 @@ where
         let bounds = toggler_layout.bounds();
         let is_mouse_over = cursor.is_over(layout.bounds());
 
-        let status = if is_mouse_over {
+        let status = if self.on_toggle.is_none() {
+            Status::Disabled
+        } else if is_mouse_over {
             Status::Hovered {
                 is_toggled: self.is_toggled,
             }
@@ -403,6 +434,8 @@ pub enum Status {
         /// Indicates whether the [`Toggler`] is toggled.
         is_toggled: bool,
     },
+    /// The [`Toggler`] is disabled.
+    Disabled,
 }
 
 /// The appearance of a toggler.
@@ -463,6 +496,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 palette.background.strong.color
             }
         }
+        Status::Disabled => palette.background.weak.color,
     };
 
     let foreground = match status {
@@ -483,6 +517,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 palette.background.weak.color
             }
         }
+        Status::Disabled => palette.background.base.color,
     };
 
     Style {

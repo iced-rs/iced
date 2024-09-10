@@ -150,11 +150,8 @@ impl Editor {
                 self.is_dirty.then_some(Message::SaveFile)
             ),
             horizontal_space(),
-            toggler(
-                Some("Word Wrap"),
-                self.word_wrap,
-                Message::WordWrapToggled
-            ),
+            toggler(Some("Word Wrap"), self.word_wrap)
+                .on_toggle(Message::WordWrapToggled),
             pick_list(
                 highlighter::Theme::ALL,
                 Some(self.theme),
