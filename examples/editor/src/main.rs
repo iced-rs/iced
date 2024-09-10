@@ -4,7 +4,7 @@ use iced::widget::{
     self, button, column, container, horizontal_space, pick_list, row, text,
     text_editor, toggler, tooltip,
 };
-use iced::{Center, Element, Fill, Font, Subscription, Task, Theme};
+use iced::{Center, Element, Fill, Font, Task, Theme};
 
 use std::ffi;
 use std::io;
@@ -13,7 +13,6 @@ use std::sync::Arc;
 
 pub fn main() -> iced::Result {
     iced::application("Editor - Iced", Editor::update, Editor::view)
-        .subscription(Editor::subscription)
         .theme(Editor::theme)
         .font(include_bytes!("../fonts/icons.ttf").as_slice())
         .default_font(Font::MONOSPACE)
@@ -137,15 +136,6 @@ impl Editor {
         }
     }
 
-    fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key, modifiers| match key.as_ref() {
-            keyboard::Key::Character("s") if modifiers.command() => {
-                Some(Message::SaveFile)
-            }
-            _ => None,
-        })
-    }
-
     fn view(&self) -> Element<Message> {
         let controls = row![
             action(new_icon(), "New file", Some(Message::NewFile)),
@@ -214,7 +204,19 @@ impl Editor {
                         .and_then(ffi::OsStr::to_str)
                         .unwrap_or("rs"),
                     self.theme,
-                ),
+                )
+                .key_binding(|key_press| {
+                    match key_press.key.as_ref() {
+                        keyboard::Key::Character("s")
+                            if key_press.modifiers.command() =>
+                        {
+                            Some(text_editor::Binding::Custom(
+                                Message::SaveFile,
+                            ))
+                        }
+                        _ => text_editor::Binding::from_key_press(key_press),
+                    }
+                }),
             status,
         ]
         .spacing(10)
