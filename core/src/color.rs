@@ -88,10 +88,35 @@ impl Color {
         }
     }
 
+    /// Creates a [`Color`] from its linear RGBA components.
+    pub fn from_linear_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
+        // As described in:
+        // https://en.wikipedia.org/wiki/SRGB
+        fn gamma_component(u: f32) -> f32 {
+            if u < 0.0031308 {
+                12.92 * u
+            } else {
+                1.055 * u.powf(1.0 / 2.4) - 0.055
+            }
+        }
+
+        Self {
+            r: gamma_component(r),
+            g: gamma_component(g),
+            b: gamma_component(b),
+            a,
+        }
+    }
+
     /// Parses a [`Color`] from a hex string.
     ///
-    /// Supported formats are #rrggbb, #rrggbbaa, #rgb, and #rgba.
+    /// Supported formats are `#rrggbb`, `#rrggbbaa`, `#rgb`, and `#rgba`.
     /// The starting "#" is optional. Both uppercase and lowercase are supported.
+    ///
+    /// If you have a static color string, using the [`color!`] macro should be preferred
+    /// since it leverages hexadecimal literal notation and arithmetic directly.
+    ///
+    /// [`color!`]: crate::color!
     pub fn parse(s: &str) -> Option<Color> {
         let hex = s.strip_prefix('#').unwrap_or(s);
 
@@ -128,26 +153,6 @@ impl Color {
             ),
             _ => None?,
         })
-    }
-
-    /// Creates a [`Color`] from its linear RGBA components.
-    pub fn from_linear_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
-        // As described in:
-        // https://en.wikipedia.org/wiki/SRGB
-        fn gamma_component(u: f32) -> f32 {
-            if u < 0.0031308 {
-                12.92 * u
-            } else {
-                1.055 * u.powf(1.0 / 2.4) - 0.055
-            }
-        }
-
-        Self {
-            r: gamma_component(r),
-            g: gamma_component(g),
-            b: gamma_component(b),
-            a,
-        }
     }
 
     /// Converts the [`Color`] into its RGBA8 equivalent.
