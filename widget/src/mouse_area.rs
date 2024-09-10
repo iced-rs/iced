@@ -28,7 +28,7 @@ pub struct MouseArea<
     on_middle_release: Option<Message>,
     on_scroll: Option<Box<dyn Fn(mouse::ScrollDelta) -> Message + 'a>>,
     on_enter: Option<Message>,
-    on_move: Option<Box<dyn Fn(Point) -> Message>>,
+    on_move: Option<Box<dyn Fn(Point) -> Message + 'a>>,
     on_exit: Option<Message>,
     interaction: Option<mouse::Interaction>,
 }
@@ -78,10 +78,10 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 
     /// The message to emit when scroll wheel is used
     #[must_use]
-    pub fn on_scroll<F>(mut self, on_scroll: F) -> Self
-    where
-        F: Fn(mouse::ScrollDelta) -> Message + 'static,
-    {
+    pub fn on_scroll(
+        mut self,
+        on_scroll: impl Fn(mouse::ScrollDelta) -> Message + 'a,
+    ) -> Self {
         self.on_scroll = Some(Box::new(on_scroll));
         self
     }
@@ -95,11 +95,8 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 
     /// The message to emit when the mouse moves in the area.
     #[must_use]
-    pub fn on_move<F>(mut self, build_message: F) -> Self
-    where
-        F: Fn(Point) -> Message + 'static,
-    {
-        self.on_move = Some(Box::new(build_message));
+    pub fn on_move(mut self, on_move: impl Fn(Point) -> Message + 'a) -> Self {
+        self.on_move = Some(Box::new(on_move));
         self
     }
 
