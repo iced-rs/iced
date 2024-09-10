@@ -1,7 +1,4 @@
 //! A container for capturing mouse events.
-
-use iced_renderer::core::Point;
-
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -10,7 +7,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{tree, Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// Emit messages on mouse events.
@@ -28,8 +26,9 @@ pub struct MouseArea<
     on_right_release: Option<Message>,
     on_middle_press: Option<Message>,
     on_middle_release: Option<Message>,
+    on_scroll: Option<Box<dyn Fn(mouse::ScrollDelta) -> Message + 'a>>,
     on_enter: Option<Message>,
-    on_move: Option<Box<dyn Fn(Point) -> Message>>,
+    on_move: Option<Box<dyn Fn(Point) -> Message + 'a>>,
     on_exit: Option<Message>,
     interaction: Option<mouse::Interaction>,
 }
@@ -77,6 +76,16 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
         self
     }
 
+    /// The message to emit when scroll wheel is used
+    #[must_use]
+    pub fn on_scroll(
+        mut self,
+        on_scroll: impl Fn(mouse::ScrollDelta) -> Message + 'a,
+    ) -> Self {
+        self.on_scroll = Some(Box::new(on_scroll));
+        self
+    }
+
     /// The message to emit when the mouse enters the area.
     #[must_use]
     pub fn on_enter(mut self, message: Message) -> Self {
@@ -86,11 +95,8 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 
     /// The message to emit when the mouse moves in the area.
     #[must_use]
-    pub fn on_move<F>(mut self, build_message: F) -> Self
-    where
-        F: Fn(Point) -> Message + 'static,
-    {
-        self.on_move = Some(Box::new(build_message));
+    pub fn on_move(mut self, on_move: impl Fn(Point) -> Message + 'a) -> Self {
+        self.on_move = Some(Box::new(on_move));
         self
     }
 
@@ -113,6 +119,8 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 #[derive(Default)]
 struct State {
     is_hovered: bool,
+    bounds: Rectangle,
+    cursor_position: Option<Point>,
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
@@ -128,6 +136,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
             on_right_release: None,
             on_middle_press: None,
             on_middle_release: None,
+            on_scroll: None,
             on_enter: None,
             on_move: None,
             on_exit: None,
@@ -302,13 +311,17 @@ fn update<Message: Clone, Theme, Renderer>(
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
 ) -> event::Status {
-    if let Event::Mouse(mouse::Event::CursorMoved { .. })
-    | Event::Touch(touch::Event::FingerMoved { .. }) = event
-    {
-        let state: &mut State = tree.state.downcast_mut();
+    let state: &mut State = tree.state.downcast_mut();
 
+    let cursor_position = cursor.position();
+    let bounds = layout.bounds();
+
+    if state.cursor_position != cursor_position && state.bounds != bounds {
         let was_hovered = state.is_hovered;
+
         state.is_hovered = cursor.is_over(layout.bounds());
+        state.cursor_position = cursor_position;
+        state.bounds = bounds;
 
         match (
             widget.on_enter.as_ref(),
@@ -392,6 +405,14 @@ fn update<Message: Clone, Theme, Renderer>(
         )) = event
         {
             shell.publish(message.clone());
+
+            return event::Status::Captured;
+        }
+    }
+
+    if let Some(on_scroll) = widget.on_scroll.as_ref() {
+        if let Event::Mouse(mouse::Event::WheelScrolled { delta }) = event {
+            shell.publish(on_scroll(delta));
 
             return event::Status::Captured;
         }
