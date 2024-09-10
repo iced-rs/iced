@@ -1,91 +1,62 @@
-use iced::futures;
+use iced::futures::{SinkExt, Stream, StreamExt};
+use iced::stream::try_channel;
 use iced::Subscription;
 
 use std::hash::Hash;
+use std::sync::Arc;
 
 // Just a little utility function
 pub fn file<I: 'static + Hash + Copy + Send + Sync, T: ToString>(
     id: I,
     url: T,
-) -> iced::Subscription<(I, Progress)> {
+) -> iced::Subscription<(I, Result<Progress, Error>)> {
     Subscription::run_with_id(
         id,
-        futures::stream::unfold(State::Ready(url.to_string()), move |state| {
-            use iced::futures::FutureExt;
-
-            download(id, state).map(Some)
-        }),
+        download(url.to_string()).map(move |progress| (id, progress)),
     )
 }
 
-async fn download<I: Copy>(id: I, state: State) -> ((I, Progress), State) {
-    match state {
-        State::Ready(url) => {
-            let response = reqwest::get(&url).await;
+fn download(url: String) -> impl Stream<Item = Result<Progress, Error>> {
+    try_channel(1, move |mut output| async move {
+        let response = reqwest::get(&url).await?;
+        let total = response.content_length().ok_or(Error::NoContentLength)?;
 
-            match response {
-                Ok(response) => {
-                    if let Some(total) = response.content_length() {
-                        (
-                            (id, Progress::Started),
-                            State::Downloading {
-                                response,
-                                total,
-                                downloaded: 0,
-                            },
-                        )
-                    } else {
-                        ((id, Progress::Errored), State::Finished)
-                    }
-                }
-                Err(_) => ((id, Progress::Errored), State::Finished),
-            }
+        let _ = output.send(Progress::Downloading { percent: 0.0 }).await;
+
+        let mut byte_stream = response.bytes_stream();
+        let mut downloaded = 0;
+
+        while let Some(next_bytes) = byte_stream.next().await {
+            let bytes = next_bytes?;
+            downloaded += bytes.len();
+
+            let _ = output
+                .send(Progress::Downloading {
+                    percent: 100.0 * downloaded as f32 / total as f32,
+                })
+                .await;
         }
-        State::Downloading {
-            mut response,
-            total,
-            downloaded,
-        } => match response.chunk().await {
-            Ok(Some(chunk)) => {
-                let downloaded = downloaded + chunk.len() as u64;
 
-                let percentage = (downloaded as f32 / total as f32) * 100.0;
+        let _ = output.send(Progress::Finished).await;
 
-                (
-                    (id, Progress::Advanced(percentage)),
-                    State::Downloading {
-                        response,
-                        total,
-                        downloaded,
-                    },
-                )
-            }
-            Ok(None) => ((id, Progress::Finished), State::Finished),
-            Err(_) => ((id, Progress::Errored), State::Finished),
-        },
-        State::Finished => {
-            // We do not let the stream die, as it would start a
-            // new download repeatedly if the user is not careful
-            // in case of errors.
-            iced::futures::future::pending().await
-        }
-    }
+        Ok(())
+    })
 }
 
 #[derive(Debug, Clone)]
 pub enum Progress {
-    Started,
-    Advanced(f32),
+    Downloading { percent: f32 },
     Finished,
-    Errored,
 }
 
-pub enum State {
-    Ready(String),
-    Downloading {
-        response: reqwest::Response,
-        total: u64,
-        downloaded: u64,
-    },
-    Finished,
+#[derive(Debug, Clone)]
+pub enum Error {
+    RequestFailed(Arc<reqwest::Error>),
+    NoContentLength,
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(error: reqwest::Error) -> Self {
+        Error::RequestFailed(Arc::new(error))
+    }
 }
