@@ -38,6 +38,7 @@ pub trait Operation<T = ()>: Send {
         _state: &mut dyn Scrollable,
         _id: Option<&Id>,
         _bounds: Rectangle,
+        _content_bounds: Rectangle,
         _translation: Vector,
     ) {
     }
@@ -76,9 +77,16 @@ where
         state: &mut dyn Scrollable,
         id: Option<&Id>,
         bounds: Rectangle,
+        content_bounds: Rectangle,
         translation: Vector,
     ) {
-        self.as_mut().scrollable(state, id, bounds, translation);
+        self.as_mut().scrollable(
+            state,
+            id,
+            bounds,
+            content_bounds,
+            translation,
+        );
     }
 
     fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
@@ -151,9 +159,16 @@ where
             state: &mut dyn Scrollable,
             id: Option<&Id>,
             bounds: Rectangle,
+            content_bounds: Rectangle,
             translation: Vector,
         ) {
-            self.operation.scrollable(state, id, bounds, translation);
+            self.operation.scrollable(
+                state,
+                id,
+                bounds,
+                content_bounds,
+                translation,
+            );
         }
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
@@ -222,9 +237,16 @@ where
                     state: &mut dyn Scrollable,
                     id: Option<&Id>,
                     bounds: Rectangle,
+                    content_bounds: Rectangle,
                     translation: Vector,
                 ) {
-                    self.operation.scrollable(state, id, bounds, translation);
+                    self.operation.scrollable(
+                        state,
+                        id,
+                        bounds,
+                        content_bounds,
+                        translation,
+                    );
                 }
 
                 fn focusable(
@@ -262,9 +284,16 @@ where
             state: &mut dyn Scrollable,
             id: Option<&Id>,
             bounds: Rectangle,
+            content_bounds: Rectangle,
             translation: Vector,
         ) {
-            self.operation.scrollable(state, id, bounds, translation);
+            self.operation.scrollable(
+                state,
+                id,
+                bounds,
+                content_bounds,
+                translation,
+            );
         }
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
@@ -341,9 +370,16 @@ where
             state: &mut dyn Scrollable,
             id: Option<&Id>,
             bounds: Rectangle,
+            content_bounds: Rectangle,
             translation: crate::Vector,
         ) {
-            self.operation.scrollable(state, id, bounds, translation);
+            self.operation.scrollable(
+                state,
+                id,
+                bounds,
+                content_bounds,
+                translation,
+            );
         }
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {

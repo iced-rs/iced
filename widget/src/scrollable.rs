@@ -243,6 +243,24 @@ impl Direction {
             Self::Horizontal(_) => None,
         }
     }
+
+    fn align(&self, delta: Vector) -> Vector {
+        let horizontal_alignment =
+            self.horizontal().map(|p| p.alignment).unwrap_or_default();
+
+        let vertical_alignment =
+            self.vertical().map(|p| p.alignment).unwrap_or_default();
+
+        let align = |alignment: Anchor, delta: f32| match alignment {
+            Anchor::Start => delta,
+            Anchor::End => -delta,
+        };
+
+        Vector::new(
+            align(horizontal_alignment, delta.x),
+            align(vertical_alignment, delta.y),
+        )
+    }
 }
 
 impl Default for Direction {
@@ -430,6 +448,7 @@ where
             state,
             self.id.as_ref().map(|id| &id.0),
             bounds,
+            content_bounds,
             translation,
         );
 
@@ -729,12 +748,16 @@ where
                         };
 
                         // TODO: Configurable speed/friction (?)
-                        movement * 60.0
+                        -movement * 60.0
                     }
                     mouse::ScrollDelta::Pixels { x, y } => Vector::new(x, y),
                 };
 
-                state.scroll(delta, self.direction, bounds, content_bounds);
+                state.scroll(
+                    self.direction.align(delta),
+                    bounds,
+                    content_bounds,
+                );
 
                 if notify_on_scroll(
                     state,
@@ -770,13 +793,12 @@ where
                             };
 
                             let delta = Vector::new(
-                                cursor_position.x - scroll_box_touched_at.x,
-                                cursor_position.y - scroll_box_touched_at.y,
+                                scroll_box_touched_at.x - cursor_position.x,
+                                scroll_box_touched_at.y - cursor_position.y,
                             );
 
                             state.scroll(
-                                delta,
-                                self.direction,
+                                self.direction.align(delta),
                                 bounds,
                                 content_bounds,
                             );
@@ -1110,15 +1132,23 @@ impl From<Id> for widget::Id {
 }
 
 /// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`Id`]
-/// to the provided `percentage` along the x & y axis.
+/// to the provided [`RelativeOffset`].
 pub fn snap_to<T>(id: Id, offset: RelativeOffset) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::snap_to(id.0, offset)))
 }
 
 /// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
-/// to the provided [`AbsoluteOffset`] along the x & y axis.
+/// to the provided [`AbsoluteOffset`].
 pub fn scroll_to<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::scroll_to(
+        id.0, offset,
+    )))
+}
+
+/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
+/// by the provided [`AbsoluteOffset`].
+pub fn scroll_by<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
+    task::effect(Action::widget(operation::scrollable::scroll_by(
         id.0, offset,
     )))
 }
@@ -1209,6 +1239,15 @@ impl operation::Scrollable for State {
 
     fn scroll_to(&mut self, offset: AbsoluteOffset) {
         State::scroll_to(self, offset);
+    }
+
+    fn scroll_by(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        State::scroll_by(self, offset, bounds, content_bounds);
     }
 }
 
@@ -1313,34 +1352,13 @@ impl State {
     pub fn scroll(
         &mut self,
         delta: Vector<f32>,
-        direction: Direction,
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
-        let horizontal_alignment = direction
-            .horizontal()
-            .map(|p| p.alignment)
-            .unwrap_or_default();
-
-        let vertical_alignment = direction
-            .vertical()
-            .map(|p| p.alignment)
-            .unwrap_or_default();
-
-        let align = |alignment: Anchor, delta: f32| match alignment {
-            Anchor::Start => delta,
-            Anchor::End => -delta,
-        };
-
-        let delta = Vector::new(
-            align(horizontal_alignment, delta.x),
-            align(vertical_alignment, delta.y),
-        );
-
         if bounds.height < content_bounds.height {
             self.offset_y = Offset::Absolute(
                 (self.offset_y.absolute(bounds.height, content_bounds.height)
-                    - delta.y)
+                    + delta.y)
                     .clamp(0.0, content_bounds.height - bounds.height),
             );
         }
@@ -1348,7 +1366,7 @@ impl State {
         if bounds.width < content_bounds.width {
             self.offset_x = Offset::Absolute(
                 (self.offset_x.absolute(bounds.width, content_bounds.width)
-                    - delta.x)
+                    + delta.x)
                     .clamp(0.0, content_bounds.width - bounds.width),
             );
         }
@@ -1392,6 +1410,16 @@ impl State {
     pub fn scroll_to(&mut self, offset: AbsoluteOffset) {
         self.offset_x = Offset::Absolute(offset.x.max(0.0));
         self.offset_y = Offset::Absolute(offset.y.max(0.0));
+    }
+
+    /// Scroll by the provided [`AbsoluteOffset`].
+    pub fn scroll_by(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        self.scroll(Vector::new(offset.x, offset.y), bounds, content_bounds);
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the
