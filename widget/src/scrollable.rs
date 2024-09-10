@@ -12,6 +12,7 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Background, Clipboard, Color, Element, Layout, Length, Padding,
     Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
@@ -526,7 +527,7 @@ where
                             content_bounds,
                         );
 
-                        let _ = notify_on_scroll(
+                        let _ = notify_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -564,7 +565,7 @@ where
 
                         state.y_scroller_grabbed_at = Some(scroller_grabbed_at);
 
-                        let _ = notify_on_scroll(
+                        let _ = notify_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -597,7 +598,7 @@ where
                             content_bounds,
                         );
 
-                        let _ = notify_on_scroll(
+                        let _ = notify_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -635,7 +636,7 @@ where
 
                         state.x_scroller_grabbed_at = Some(scroller_grabbed_at);
 
-                        let _ = notify_on_scroll(
+                        let _ = notify_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -759,7 +760,7 @@ where
                     content_bounds,
                 );
 
-                if notify_on_scroll(
+                if notify_scroll(
                     state,
                     &self.on_scroll,
                     bounds,
@@ -807,7 +808,7 @@ where
                                 Some(cursor_position);
 
                             // TODO: bubble up touch movements if not consumed.
-                            let _ = notify_on_scroll(
+                            let _ = notify_scroll(
                                 state,
                                 &self.on_scroll,
                                 bounds,
@@ -820,6 +821,17 @@ where
                 }
 
                 event::Status::Captured
+            }
+            Event::Window(window::Event::RedrawRequested(_)) => {
+                let _ = notify_viewport(
+                    state,
+                    &self.on_scroll,
+                    bounds,
+                    content_bounds,
+                    shell,
+                );
+
+                event::Status::Ignored
             }
             _ => event::Status::Ignored,
         }
@@ -1153,8 +1165,23 @@ pub fn scroll_by<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
     )))
 }
 
-/// Returns [`true`] if the viewport actually changed.
-fn notify_on_scroll<Message>(
+fn notify_scroll<Message>(
+    state: &mut State,
+    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
+    bounds: Rectangle,
+    content_bounds: Rectangle,
+    shell: &mut Shell<'_, Message>,
+) -> bool {
+    if notify_viewport(state, on_scroll, bounds, content_bounds, shell) {
+        state.last_scrolled = Some(Instant::now());
+
+        true
+    } else {
+        false
+    }
+}
+
+fn notify_viewport<Message>(
     state: &mut State,
     on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
     bounds: Rectangle,
@@ -1166,6 +1193,11 @@ fn notify_on_scroll<Message>(
     {
         return false;
     }
+
+    let Some(on_scroll) = on_scroll else {
+        state.last_notified = None;
+        return false;
+    };
 
     let viewport = Viewport {
         offset_x: state.offset_x,
@@ -1186,7 +1218,9 @@ fn notify_on_scroll<Message>(
             (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
         };
 
-        if unchanged(last_relative_offset.x, current_relative_offset.x)
+        if last_notified.bounds == bounds
+            && last_notified.content_bounds == content_bounds
+            && unchanged(last_relative_offset.x, current_relative_offset.x)
             && unchanged(last_relative_offset.y, current_relative_offset.y)
             && unchanged(last_absolute_offset.x, current_absolute_offset.x)
             && unchanged(last_absolute_offset.y, current_absolute_offset.y)
@@ -1195,12 +1229,8 @@ fn notify_on_scroll<Message>(
         }
     }
 
-    if let Some(on_scroll) = on_scroll {
-        shell.publish(on_scroll(viewport));
-    }
-
+    shell.publish(on_scroll(viewport));
     state.last_notified = Some(viewport);
-    state.last_scrolled = Some(Instant::now());
 
     true
 }
