@@ -767,15 +767,13 @@ where
 ///
 /// [`Toggler`]: crate::Toggler
 pub fn toggler<'a, Message, Theme, Renderer>(
-    label: Option<impl text::IntoFragment<'a>>,
     is_checked: bool,
-    f: impl Fn(bool) -> Message + 'a,
 ) -> Toggler<'a, Message, Theme, Renderer>
 where
     Theme: toggler::Catalog + 'a,
     Renderer: core::text::Renderer,
 {
-    Toggler::new(label, is_checked, f)
+    Toggler::new(is_checked)
 }
 
 /// Creates a new [`TextInput`].
