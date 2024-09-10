@@ -23,7 +23,7 @@ struct Example {
 pub enum Message {
     Add,
     Download(usize),
-    DownloadProgressed((usize, download::Progress)),
+    DownloadProgressed((usize, Result<download::Progress, download::Error>)),
 }
 
 impl Example {
@@ -114,19 +114,19 @@ impl Download {
         }
     }
 
-    pub fn progress(&mut self, new_progress: download::Progress) {
+    pub fn progress(
+        &mut self,
+        new_progress: Result<download::Progress, download::Error>,
+    ) {
         if let State::Downloading { progress } = &mut self.state {
             match new_progress {
-                download::Progress::Started => {
-                    *progress = 0.0;
+                Ok(download::Progress::Downloading { percent }) => {
+                    *progress = percent;
                 }
-                download::Progress::Advanced(percentage) => {
-                    *progress = percentage;
-                }
-                download::Progress::Finished => {
+                Ok(download::Progress::Finished) => {
                     self.state = State::Finished;
                 }
-                download::Progress::Errored => {
+                Err(_error) => {
                     self.state = State::Errored;
                 }
             }
@@ -136,7 +136,7 @@ impl Download {
     pub fn subscription(&self) -> Subscription<Message> {
         match self.state {
             State::Downloading { .. } => {
-                download::file(self.id, "https://speed.hetzner.de/100MB.bin?")
+                download::file(self.id, "https://huggingface.co/mattshumer/Reflection-Llama-3.1-70B/resolve/main/model-00001-of-00162.safetensors")
                     .map(Message::DownloadProgressed)
             }
             _ => Subscription::none(),
