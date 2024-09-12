@@ -1,6 +1,7 @@
 //! Cache computations and efficiently reuse them.
 use std::cell::RefCell;
 use std::fmt;
+use std::mem;
 use std::sync::atomic::{self, AtomicU64};
 
 /// A simple cache that stores generated values to avoid recomputation.
@@ -58,18 +59,18 @@ impl<T> Cache<T> {
     }
 
     /// Clears the [`Cache`].
-    pub fn clear(&self)
-    where
-        T: Clone,
-    {
-        use std::ops::Deref;
+    pub fn clear(&self) {
+        let mut state = self.state.borrow_mut();
 
-        let previous = match self.state.borrow().deref() {
-            State::Empty { previous } => previous.clone(),
-            State::Filled { current } => Some(current.clone()),
+        let previous =
+            mem::replace(&mut *state, State::Empty { previous: None });
+
+        let previous = match previous {
+            State::Empty { previous } => previous,
+            State::Filled { current } => Some(current),
         };
 
-        *self.state.borrow_mut() = State::Empty { previous };
+        *state = State::Empty { previous };
     }
 }
 
