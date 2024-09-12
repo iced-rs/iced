@@ -219,7 +219,7 @@ where
     }
 
     runtime.track(subscription::into_recipes(
-        program.subscription().map(Action::Output),
+        runtime.enter(|| program.subscription().map(Action::Output)),
     ));
 
     let (boot_sender, boot_receiver) = oneshot::channel();
@@ -1169,7 +1169,7 @@ fn update<P: Program, E: Executor>(
         }
     }
 
-    let subscription = program.subscription();
+    let subscription = runtime.enter(|| program.subscription());
     runtime.track(subscription::into_recipes(subscription.map(Action::Output)));
 }
 
