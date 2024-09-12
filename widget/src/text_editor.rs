@@ -504,7 +504,7 @@ where
             state.highlighter_settings = self.highlighter_settings.clone();
         }
 
-        let limits = limits.height(self.height);
+        let limits = limits.width(self.width).height(self.height);
 
         internal.editor.update(
             limits.shrink(self.padding).max(),
