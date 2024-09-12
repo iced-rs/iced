@@ -981,7 +981,9 @@ impl<Message> Binding<Message> {
             keyboard::Key::Named(key::Named::Backspace) => {
                 Some(Self::Backspace)
             }
-            keyboard::Key::Named(key::Named::Delete) => Some(Self::Delete),
+            keyboard::Key::Named(key::Named::Delete) if text.is_none() => {
+                Some(Self::Delete)
+            }
             keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
             keyboard::Key::Character("c") if modifiers.command() => {
                 Some(Self::Copy)
