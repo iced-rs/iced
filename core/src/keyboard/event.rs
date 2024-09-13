@@ -15,6 +15,9 @@ pub enum Event {
         /// The key pressed.
         key: Key,
 
+        /// The key pressed with all keyboard modifiers applied, except Ctrl.
+        modified_key: Key,
+
         /// The physical key pressed.
         physical_key: key::Physical,
 

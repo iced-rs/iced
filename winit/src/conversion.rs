@@ -192,7 +192,7 @@ pub fn window_event(
             }
         },
         WindowEvent::KeyboardInput { event, .. } => Some(Event::Keyboard({
-            let logical_key = {
+            let key = {
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
@@ -202,7 +202,7 @@ pub fn window_event(
                 #[cfg(target_arch = "wasm32")]
                 {
                     // TODO: Fix inconsistent API on Wasm
-                    event.logical_key
+                    event.logical_key.clone()
                 }
             };
 
@@ -225,10 +225,13 @@ pub fn window_event(
             let winit::event::KeyEvent {
                 state,
                 location,
+                logical_key,
                 physical_key,
                 ..
             } = event;
-            let key = key(logical_key);
+
+            let key = self::key(key);
+            let modified_key = self::key(logical_key);
             let physical_key = self::physical_key(physical_key);
             let modifiers = self::modifiers(modifiers);
 
@@ -249,6 +252,7 @@ pub fn window_event(
                 winit::event::ElementState::Pressed => {
                     keyboard::Event::KeyPressed {
                         key,
+                        modified_key,
                         physical_key,
                         modifiers,
                         location,
