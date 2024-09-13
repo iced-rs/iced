@@ -324,8 +324,26 @@ where
                     return event::Status::Captured;
                 }
             }
+            Event::Mouse(mouse::Event::WheelScrolled { delta })
+                if state.keyboard_modifiers.control() =>
+            {
+                if cursor.is_over(layout.bounds()) {
+                    let delta = match delta {
+                        mouse::ScrollDelta::Lines { x: _, y } => y,
+                        mouse::ScrollDelta::Pixels { x: _, y } => y,
+                    };
+
+                    if delta < 0.0 {
+                        let _ = decrement(current_value).map(change);
+                    } else {
+                        let _ = increment(current_value).map(change);
+                    }
+
+                    return event::Status::Captured;
+                }
+            }
             Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
-                if cursor.position_over(layout.bounds()).is_some() {
+                if cursor.is_over(layout.bounds()) {
                     match key {
                         Key::Named(key::Named::ArrowUp) => {
                             let _ = increment(current_value).map(change);
