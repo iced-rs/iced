@@ -20,4 +20,6 @@ pub enum Interaction {
     ZoomOut,
     Cell,
     Move,
+    Copy,
+    Help,
 }
