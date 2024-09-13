@@ -1201,14 +1201,14 @@ pub enum Code {
     F35,
 }
 
-/// Contains the platform-native physical key identifier
+/// Contains the platform-native physical key identifier.
 ///
 /// The exact values vary from platform to platform (which is part of why this is a per-platform
 /// enum), but the values are primarily tied to the key's physical location on the keyboard.
 ///
 /// This enum is primarily used to store raw keycodes when Winit doesn't map a given native
-/// physical key identifier to a meaningful [`KeyCode`] variant. In the presence of identifiers we
-/// haven't mapped for you yet, this lets you use use [`KeyCode`] to:
+/// physical key identifier to a meaningful [`Code`] variant. In the presence of identifiers we
+/// haven't mapped for you yet, this lets you use use [`Code`] to:
 ///
 /// - Correctly match key press and release events.
 /// - On non-web platforms, support assigning keybinds to virtually any key through a UI.
@@ -1228,16 +1228,16 @@ pub enum NativeCode {
 
 /// Represents the location of a physical key.
 ///
-/// This type is a superset of [`KeyCode`], including an [`Unidentified`][Self::Unidentified]
+/// This type is a superset of [`Code`], including an [`Unidentified`][Self::Unidentified]
 /// variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Physical {
     /// A known key code
     Code(Code),
-    /// This variant is used when the key cannot be translated to a [`KeyCode`]
+    /// This variant is used when the key cannot be translated to a [`Code`]
     ///
     /// The native keycode is provided (if available) so you're able to more reliably match
-    /// key-press and key-release events by hashing the [`PhysicalKey`]. It is also possible to use
+    /// key-press and key-release events by hashing the [`Physical`] key. It is also possible to use
     /// this for keybinds for non-standard keys, but such keybinds are tied to a given platform.
     Unidentified(NativeCode),
 }
