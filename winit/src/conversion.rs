@@ -423,10 +423,10 @@ pub fn mouse_interaction(
             winit::window::CursorIcon::EwResize
         }
         Interaction::ResizingVertically => winit::window::CursorIcon::NsResize,
-        Interaction::ResizingDiagonalUp => {
+        Interaction::ResizingDiagonallyUp => {
             winit::window::CursorIcon::NeswResize
         }
-        Interaction::ResizingDiagonalDown => {
+        Interaction::ResizingDiagonallyDown => {
             winit::window::CursorIcon::NwseResize
         }
         Interaction::NotAllowed => winit::window::CursorIcon::NotAllowed,
