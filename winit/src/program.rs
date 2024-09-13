@@ -251,7 +251,7 @@ where
         #[cfg(target_arch = "wasm32")]
         is_booted: std::rc::Rc<std::cell::RefCell<bool>>,
         #[cfg(target_arch = "wasm32")]
-        queued_events: Vec<Event<Action<Message>>>,
+        canvas: Option<web_sys::HtmlCanvasElement>,
     }
 
     struct BootConfig<C> {
@@ -276,7 +276,7 @@ where
         #[cfg(target_arch = "wasm32")]
         is_booted: std::rc::Rc::new(std::cell::RefCell::new(false)),
         #[cfg(target_arch = "wasm32")]
-        queued_events: Vec::new(),
+        canvas: None,
     };
 
     impl<Message, F, C> winit::application::ApplicationHandler<Action<Message>>
@@ -306,6 +306,12 @@ where
                     return;
                 }
             };
+
+            #[cfg(target_arch = "wasm32")]
+            {
+                use winit::platform::web::WindowExtWebSys;
+                self.canvas = window.canvas();
+            }
 
             let finish_boot = async move {
                 let mut compositor =
@@ -340,6 +346,9 @@ where
 
                     *is_booted.borrow_mut() = true;
                 });
+
+                event_loop
+                    .set_control_flow(winit::event_loop::ControlFlow::Poll);
             }
         }
 
@@ -349,6 +358,11 @@ where
             cause: winit::event::StartCause,
         ) {
             if self.boot.is_some() {
+                return;
+            }
+
+            #[cfg(target_arch = "wasm32")]
+            if !*self.is_booted.borrow() {
                 return;
             }
 
@@ -430,6 +444,11 @@ where
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if !*self.is_booted.borrow() {
+                return;
+            }
+
             self.process_event(
                 event_loop,
                 Event::EventLoopAwakened(winit::event::Event::AboutToWait),
@@ -447,19 +466,6 @@ where
             event_loop: &winit::event_loop::ActiveEventLoop,
             event: Event<Action<Message>>,
         ) {
-            #[cfg(target_arch = "wasm32")]
-            if !*self.is_booted.borrow() {
-                self.queued_events.push(event);
-                return;
-            } else if !self.queued_events.is_empty() {
-                let queued_events = std::mem::take(&mut self.queued_events);
-
-                // This won't infinitely recurse, since we `mem::take`
-                for event in queued_events {
-                    self.process_event(event_loop, event);
-                }
-            }
-
             if event_loop.exiting() {
                 return;
             }
@@ -505,18 +511,27 @@ where
                                 let target =
                                     settings.platform_specific.target.clone();
 
-                                let window = event_loop
-                                    .create_window(
-                                        conversion::window_attributes(
-                                            settings,
-                                            &title,
-                                            monitor
-                                                .or(event_loop
-                                                    .primary_monitor()),
-                                            self.id.clone(),
-                                        )
-                                        .with_visible(false),
+                                let window_attributes =
+                                    conversion::window_attributes(
+                                        settings,
+                                        &title,
+                                        monitor
+                                            .or(event_loop.primary_monitor()),
+                                        self.id.clone(),
                                     )
+                                    .with_visible(false);
+
+                                #[cfg(target_arch = "wasm32")]
+                                let window_attributes = {
+                                    use winit::platform::web::WindowAttributesExtWebSys;
+                                    window_attributes
+                                        .with_canvas(self.canvas.take())
+                                };
+
+                                log::info!("Window attributes for id `{id:#?}`: {window_attributes:#?}");
+
+                                let window = event_loop
+                                    .create_window(window_attributes)
                                     .expect("Create window");
 
                                 #[cfg(target_arch = "wasm32")]
