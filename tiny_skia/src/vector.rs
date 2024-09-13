@@ -8,6 +8,7 @@ use tiny_skia::Transform;
 use std::cell::RefCell;
 use std::collections::hash_map;
 use std::fs;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -68,6 +69,7 @@ struct Cache {
     tree_hits: FxHashSet<u64>,
     rasters: FxHashMap<RasterKey, tiny_skia::Pixmap>,
     raster_hits: FxHashSet<RasterKey>,
+    fontdb: Option<Arc<usvg::fontdb::Database>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -80,6 +82,14 @@ struct RasterKey {
 impl Cache {
     fn load(&mut self, handle: &Handle) -> Option<&usvg::Tree> {
         let id = handle.id();
+
+        // TODO: Reuse `cosmic-text` font database
+        if self.fontdb.is_none() {
+            let mut fontdb = usvg::fontdb::Database::new();
+            fontdb.load_system_fonts();
+
+            self.fontdb = Some(Arc::new(fontdb));
+        }
 
         if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
             let svg = match handle.data() {
