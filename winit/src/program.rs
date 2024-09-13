@@ -296,14 +296,22 @@ where
                 return;
             };
 
-            let window = match event_loop.create_window(
-                winit::window::WindowAttributes::default().with_visible(false),
-            ) {
-                Ok(window) => Arc::new(window),
-                Err(error) => {
-                    self.error = Some(Error::WindowCreationFailed(error));
-                    event_loop.exit();
-                    return;
+            let window = {
+                let attributes = winit::window::WindowAttributes::default();
+
+                #[cfg(target_os = "windows")]
+                let attributes = {
+                    use winit::platform::windows::WindowAttributesExtWindows;
+                    attributes.with_drag_and_drop(false)
+                };
+
+                match event_loop.create_window(attributes.with_visible(false)) {
+                    Ok(window) => Arc::new(window),
+                    Err(error) => {
+                        self.error = Some(Error::WindowCreationFailed(error));
+                        event_loop.exit();
+                        return;
+                    }
                 }
             };
 
