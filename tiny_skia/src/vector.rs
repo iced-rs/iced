@@ -8,6 +8,7 @@ use tiny_skia::Transform;
 use std::cell::RefCell;
 use std::collections::hash_map;
 use std::fs;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -68,6 +69,7 @@ struct Cache {
     tree_hits: FxHashSet<u64>,
     rasters: FxHashMap<RasterKey, tiny_skia::Pixmap>,
     raster_hits: FxHashSet<RasterKey>,
+    fontdb: Option<Arc<usvg::fontdb::Database>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -81,23 +83,32 @@ impl Cache {
     fn load(&mut self, handle: &Handle) -> Option<&usvg::Tree> {
         let id = handle.id();
 
+        // TODO: Reuse `cosmic-text` font database
+        if self.fontdb.is_none() {
+            let mut fontdb = usvg::fontdb::Database::new();
+            fontdb.load_system_fonts();
+
+            self.fontdb = Some(Arc::new(fontdb));
+        }
+
+        let options = usvg::Options {
+            fontdb: self
+                .fontdb
+                .as_ref()
+                .expect("fontdb must be initialized")
+                .clone(),
+            ..usvg::Options::default()
+        };
+
         if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
             let svg = match handle.data() {
                 Data::Path(path) => {
                     fs::read_to_string(path).ok().and_then(|contents| {
-                        usvg::Tree::from_str(
-                            &contents,
-                            &usvg::Options::default(), // TODO: Set usvg::Options::fontdb
-                        )
-                        .ok()
+                        usvg::Tree::from_str(&contents, &options).ok()
                     })
                 }
                 Data::Bytes(bytes) => {
-                    usvg::Tree::from_data(
-                        bytes,
-                        &usvg::Options::default(), // TODO: Set usvg::Options::fontdb
-                    )
-                    .ok()
+                    usvg::Tree::from_data(bytes, &options).ok()
                 }
             };
 
