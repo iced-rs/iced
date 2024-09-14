@@ -119,6 +119,7 @@ members = [
 version = "0.13.0-dev"
 authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
 edition = "2021"
+rust-version = "1.75.0"
 license = "MIT"
 repository = "https://github.com/iced-rs/iced"
 homepage = "https://iced.rs"
