@@ -3,6 +3,7 @@ name = "iced"
 description = "A cross-platform GUI library inspired by Elm"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
