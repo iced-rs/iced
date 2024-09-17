@@ -1,36 +1,33 @@
 mod changelog;
-mod icon;
 
 use crate::changelog::Changelog;
 
-use iced::clipboard;
 use iced::font;
 use iced::widget::{
     button, center, column, container, markdown, pick_list, progress_bar,
     rich_text, row, scrollable, span, stack, text, text_input,
 };
-use iced::{Element, Fill, FillPortion, Font, Task, Theme};
+use iced::{Center, Element, Fill, FillPortion, Font, Task, Theme};
 
 pub fn main() -> iced::Result {
     iced::application("Changelog Generator", Generator::update, Generator::view)
-        .font(icon::FONT_BYTES)
         .theme(Generator::theme)
         .run_with(Generator::new)
 }
 
 enum Generator {
     Loading,
-    Empty,
     Reviewing {
         changelog: Changelog,
-        pending: Vec<changelog::Candidate>,
+        pending: Vec<changelog::Contribution>,
         state: State,
         preview: Vec<markdown::Item>,
     },
+    Done,
 }
 
 enum State {
-    Loading(changelog::Candidate),
+    Loading(changelog::Contribution),
     Loaded {
         pull_request: changelog::PullRequest,
         description: Vec<markdown::Item>,
@@ -42,7 +39,7 @@ enum State {
 #[derive(Debug, Clone)]
 enum Message {
     ChangelogListed(
-        Result<(Changelog, Vec<changelog::Candidate>), changelog::Error>,
+        Result<(Changelog, Vec<changelog::Contribution>), changelog::Error>,
     ),
     PullRequestFetched(Result<changelog::PullRequest, changelog::Error>),
     UrlClicked(markdown::Url),
@@ -50,7 +47,8 @@ enum Message {
     CategorySelected(changelog::Category),
     Next,
     OpenPullRequest(u64),
-    CopyPreview,
+    ChangelogSaved(Result<(), changelog::Error>),
+    Quit,
 }
 
 impl Generator {
@@ -64,23 +62,23 @@ impl Generator {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ChangelogListed(Ok((changelog, mut pending))) => {
-                if let Some(candidate) = pending.pop() {
+                if let Some(contribution) = pending.pop() {
                     let preview =
                         markdown::parse(&changelog.to_string()).collect();
 
                     *self = Self::Reviewing {
                         changelog,
                         pending,
-                        state: State::Loading(candidate.clone()),
+                        state: State::Loading(contribution.clone()),
                         preview,
                     };
 
                     Task::perform(
-                        candidate.fetch(),
+                        changelog::PullRequest::fetch(contribution),
                         Message::PullRequestFetched,
                     )
                 } else {
-                    *self = Self::Empty;
+                    *self = Self::Done;
 
                     Task::none()
                 }
@@ -105,12 +103,6 @@ impl Generator {
                     pull_request,
                     description,
                 };
-
-                Task::none()
-            }
-            Message::ChangelogListed(Err(error))
-            | Message::PullRequestFetched(Err(error)) => {
-                log::error!("{error}");
 
                 Task::none()
             }
@@ -172,19 +164,27 @@ impl Generator {
                 {
                     changelog.push(entry);
 
+                    let save = Task::perform(
+                        changelog.clone().save(),
+                        Message::ChangelogSaved,
+                    );
+
                     *preview =
                         markdown::parse(&changelog.to_string()).collect();
 
-                    if let Some(candidate) = pending.pop() {
-                        *state = State::Loading(candidate.clone());
+                    if let Some(contribution) = pending.pop() {
+                        *state = State::Loading(contribution.clone());
 
-                        Task::perform(
-                            candidate.fetch(),
-                            Message::PullRequestFetched,
-                        )
+                        Task::batch([
+                            save,
+                            Task::perform(
+                                changelog::PullRequest::fetch(contribution),
+                                Message::PullRequestFetched,
+                            ),
+                        ])
                     } else {
-                        // TODO: We are done!
-                        Task::none()
+                        *self = Self::Done;
+                        save
                     }
                 } else {
                     Task::none()
@@ -197,20 +197,32 @@ impl Generator {
 
                 Task::none()
             }
-            Message::CopyPreview => {
-                let Self::Reviewing { changelog, .. } = self else {
-                    return Task::none();
-                };
+            Message::ChangelogSaved(Ok(())) => Task::none(),
 
-                clipboard::write(changelog.to_string())
+            Message::ChangelogListed(Err(error))
+            | Message::PullRequestFetched(Err(error))
+            | Message::ChangelogSaved(Err(error)) => {
+                log::error!("{error}");
+
+                Task::none()
             }
+            Message::Quit => iced::exit(),
         }
     }
 
     fn view(&self) -> Element<Message> {
         match self {
             Self::Loading => center("Loading...").into(),
-            Self::Empty => center("No changes found!").into(),
+            Self::Done => center(
+                column![
+                    text("Changelog is up-to-date! 🎉")
+                        .shaping(text::Shaping::Advanced),
+                    button("Quit").on_press(Message::Quit),
+                ]
+                .spacing(10)
+                .align_x(Center),
+            )
+            .into(),
             Self::Reviewing {
                 changelog,
                 pending,
@@ -237,8 +249,8 @@ impl Generator {
                 };
 
                 let form: Element<_> = match state {
-                    State::Loading(candidate) => {
-                        text!("Loading #{}...", candidate.id).into()
+                    State::Loading(contribution) => {
+                        text!("Loading #{}...", contribution.id).into()
                     }
                     State::Loaded {
                         pull_request,
@@ -318,7 +330,7 @@ impl Generator {
                     }
                 };
 
-                let preview: Element<_> = if preview.is_empty() {
+                let preview = if preview.is_empty() {
                     center(
                         container(
                             text("The changelog is empty... so far!").size(12),
@@ -326,9 +338,8 @@ impl Generator {
                         .padding(10)
                         .style(container::rounded_box),
                     )
-                    .into()
                 } else {
-                    let content = container(
+                    container(
                         scrollable(
                             markdown::view(
                                 preview,
@@ -343,14 +354,7 @@ impl Generator {
                     )
                     .width(Fill)
                     .padding(10)
-                    .style(container::rounded_box);
-
-                    let copy = button(icon::copy().size(12))
-                        .on_press(Message::CopyPreview)
-                        .style(button::text);
-
-                    center(stack![content, container(copy).align_right(Fill)])
-                        .into()
+                    .style(container::rounded_box)
                 };
 
                 let review = column![container(form).height(Fill), progress]

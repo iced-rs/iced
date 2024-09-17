@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix `block_on` in `iced_wgpu` hanging Wasm builds. [#2313](https://github.com/iced-rs/iced/pull/2313)
 
 Many thanks to...
-- @hecrj
 - @n1ght-hunter
 
 ## [0.12.1] - 2024-02-22

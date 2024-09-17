@@ -29,7 +29,7 @@ impl Changelog {
         }
     }
 
-    pub async fn list() -> Result<(Self, Vec<Candidate>), Error> {
+    pub async fn list() -> Result<(Self, Vec<Contribution>), Error> {
         let mut changelog = Self::new();
 
         {
@@ -97,13 +97,37 @@ impl Changelog {
             }
         }
 
-        let mut candidates = Candidate::list().await?;
+        let mut candidates = Contribution::list().await?;
 
         for reviewed_entry in changelog.entries() {
             candidates.retain(|candidate| candidate.id != reviewed_entry);
         }
 
         Ok((changelog, candidates))
+    }
+
+    pub async fn save(self) -> Result<(), Error> {
+        let markdown = fs::read_to_string("CHANGELOG.md").await?;
+
+        let Some((header, rest)) = markdown.split_once("\n## ") else {
+            return Err(Error::InvalidFormat);
+        };
+
+        let Some((_unreleased, rest)) = rest.split_once("\n## ") else {
+            return Err(Error::InvalidFormat);
+        };
+
+        let unreleased = format!(
+            "\n## [Unreleased]\n{changelog}",
+            changelog = self.to_string()
+        );
+
+        let rest = format!("\n## {rest}");
+
+        let changelog = [header, &unreleased, &rest].concat();
+        fs::write("CHANGELOG.md", changelog).await?;
+
+        Ok(())
     }
 
     pub fn len(&self) -> usize {
@@ -132,7 +156,7 @@ impl Changelog {
 
         target.push(item);
 
-        if !self.authors.contains(&entry.author) {
+        if entry.author != "hecrj" && !self.authors.contains(&entry.author) {
             self.authors.push(entry.author);
             self.authors.sort_by_key(|author| author.to_lowercase());
         }
@@ -238,21 +262,12 @@ impl fmt::Display for Category {
 }
 
 #[derive(Debug, Clone)]
-pub struct Candidate {
+pub struct Contribution {
     pub id: u64,
 }
 
-#[derive(Debug, Clone)]
-pub struct PullRequest {
-    pub id: u64,
-    pub title: String,
-    pub description: String,
-    pub labels: Vec<String>,
-    pub author: String,
-}
-
-impl Candidate {
-    pub async fn list() -> Result<Vec<Candidate>, Error> {
+impl Contribution {
+    pub async fn list() -> Result<Vec<Contribution>, Error> {
         let output = process::Command::new("git")
             .args([
                 "log",
@@ -273,20 +288,31 @@ impl Candidate {
                 let (_, pull_request) = title.split_once("#")?;
                 let (pull_request, _) = pull_request.split_once([')', ' '])?;
 
-                Some(Candidate {
+                Some(Contribution {
                     id: pull_request.parse().ok()?,
                 })
             })
             .collect())
     }
+}
 
-    pub async fn fetch(self) -> Result<PullRequest, Error> {
+#[derive(Debug, Clone)]
+pub struct PullRequest {
+    pub id: u64,
+    pub title: String,
+    pub description: String,
+    pub labels: Vec<String>,
+    pub author: String,
+}
+
+impl PullRequest {
+    pub async fn fetch(contribution: Contribution) -> Result<Self, Error> {
         let request = reqwest::Client::new()
             .request(
                 reqwest::Method::GET,
                 format!(
                     "https://api.github.com/repos/iced-rs/iced/pulls/{}",
-                    self.id
+                    contribution.id
                 ),
             )
             .header("User-Agent", "iced changelog generator")
@@ -319,8 +345,8 @@ impl Candidate {
 
         let schema: Schema = request.send().await?.json().await?;
 
-        Ok(PullRequest {
-            id: self.id,
+        Ok(Self {
+            id: contribution.id,
             title: schema.title,
             description: schema.body,
             labels: schema.labels.into_iter().map(|label| label.name).collect(),
@@ -339,6 +365,9 @@ pub enum Error {
 
     #[error("no GITHUB_TOKEN variable was set")]
     GitHubTokenNotFound,
+
+    #[error("the changelog format is not valid")]
+    InvalidFormat,
 }
 
 impl From<io::Error> for Error {
