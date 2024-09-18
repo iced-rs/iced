@@ -34,13 +34,12 @@ Inspired by [Elm].
 * Custom widget support (create your own!)
 * [Debug overlay with performance metrics]
 * First-class support for async actions (use futures!)
-* [Modular ecosystem] split into reusable parts:
+* Modular ecosystem split into reusable parts:
   * A [renderer-agnostic native runtime] enabling integration with existing systems
-  * Two [built-in renderers] leveraging [`wgpu`] and [`tiny-skia`]
+  * Two built-in renderers leveraging [`wgpu`] and [`tiny-skia`]
     * [`iced_wgpu`] supporting Vulkan, Metal and DX12
     * [`iced_tiny_skia`] offering a software alternative as a fallback
   * A [windowing shell]
-  * A [web runtime] leveraging the DOM
 
 __Iced is currently experimental software.__ [Take a look at the roadmap],
 [check out the issues], and [feel free to contribute!]
@@ -49,16 +48,12 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 [text inputs]: https://iced.rs/examples/text_input.mp4
 [scrollables]: https://iced.rs/examples/scrollable.mp4
 [Debug overlay with performance metrics]: https://iced.rs/examples/debug.mp4
-[Modular ecosystem]: ECOSYSTEM.md
 [renderer-agnostic native runtime]: runtime/
 [`wgpu`]: https://github.com/gfx-rs/wgpu
 [`tiny-skia`]: https://github.com/RazrFalcon/tiny-skia
 [`iced_wgpu`]: wgpu/
 [`iced_tiny_skia`]: tiny_skia/
-[built-in renderers]: ECOSYSTEM.md#Renderers
 [windowing shell]: winit/
-[`dodrio`]: https://github.com/fitzgen/dodrio
-[web runtime]: https://github.com/iced-rs/iced_web
 [Take a look at the roadmap]: ROADMAP.md
 [check out the issues]: https://github.com/iced-rs/iced/issues
 [feel free to contribute!]: #contributing--feedback
@@ -164,7 +159,7 @@ Read the [book], the [documentation], and the [examples] to learn more!
 ## Implementation details
 
 Iced was originally born as an attempt at bringing the simplicity of [Elm] and
-[The Elm Architecture] into [Coffee], a 2D game engine I am working on.
+[The Elm Architecture] into [Coffee], a 2D game library I am working on.
 
 The core of the library was implemented during May 2019 in [this pull request].
 [The first alpha version] was eventually released as
@@ -172,25 +167,17 @@ The core of the library was implemented during May 2019 in [this pull request].
 implemented the current [tour example] on top of [`ggez`], a game library.
 
 Since then, the focus has shifted towards providing a batteries-included,
-end-user-oriented GUI library, while keeping [the ecosystem] modular:
-
-<p align="center">
-  <a href="ECOSYSTEM.md">
-    <img alt="The Iced Ecosystem" src="docs/graphs/ecosystem.png" width="80%">
-  </a>
-</p>
+end-user-oriented GUI library, while keeping the ecosystem modular.
 
 [this pull request]: https://github.com/hecrj/coffee/pull/35
 [The first alpha version]: https://github.com/iced-rs/iced/tree/0.1.0-alpha
 [a renderer-agnostic GUI library]: https://www.reddit.com/r/rust/comments/czzjnv/iced_a_rendereragnostic_gui_library_focused_on/
 [tour example]: examples/README.md#tour
 [`ggez`]: https://github.com/ggez/ggez
-[the ecosystem]: ECOSYSTEM.md
 
 ## Contributing / Feedback
 
-Contributions are greatly appreciated! If you want to contribute, please
-read our [contributing guidelines] for more details.
+If you want to contribute, please read our [contributing guidelines] for more details.
 
 Feedback is also welcome! You can create a new topic in [our Discourse forum] or
 come chat to [our Discord server].
