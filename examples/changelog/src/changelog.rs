@@ -87,7 +87,7 @@ impl Changelog {
 
                         let target = match category {
                             Category::Added => &mut changelog.added,
-                            Category::Changed => &mut changelog.added,
+                            Category::Changed => &mut changelog.changed,
                             Category::Fixed => &mut changelog.fixed,
                             Category::Removed => &mut changelog.removed,
                         };
@@ -150,7 +150,7 @@ impl Changelog {
 
         let target = match entry.category {
             Category::Added => &mut self.added,
-            Category::Changed => &mut self.added,
+            Category::Changed => &mut self.changed,
             Category::Fixed => &mut self.fixed,
             Category::Removed => &mut self.removed,
         };
