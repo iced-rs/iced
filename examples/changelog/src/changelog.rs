@@ -2,6 +2,7 @@ use serde::Deserialize;
 use tokio::fs;
 use tokio::process;
 
+use std::collections::BTreeSet;
 use std::env;
 use std::fmt;
 use std::io;
@@ -261,7 +262,7 @@ impl fmt::Display for Category {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Contribution {
     pub id: u64,
 }
@@ -281,7 +282,7 @@ impl Contribution {
 
         let log = String::from_utf8_lossy(&output.stdout);
 
-        Ok(log
+        let mut contributions: Vec<_> = log
             .lines()
             .filter(|title| !title.is_empty())
             .filter_map(|title| {
@@ -292,7 +293,12 @@ impl Contribution {
                     id: pull_request.parse().ok()?,
                 })
             })
-            .collect())
+            .collect();
+
+        let mut unique = BTreeSet::from_iter(contributions.clone());
+        contributions.retain_mut(|contribution| unique.remove(contribution));
+
+        Ok(contributions)
     }
 }
 
