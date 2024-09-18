@@ -6,11 +6,8 @@ use iced::widget::{
 use iced::window;
 use iced::{Center, Element, Fill, Font, Subscription, Task as Command};
 
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-static INPUT_ID: Lazy<text_input::Id> = Lazy::new(text_input::Id::unique);
 
 pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
@@ -85,7 +82,7 @@ impl Todos {
                     _ => {}
                 }
 
-                text_input::focus(INPUT_ID.clone())
+                text_input::focus("new-task")
             }
             Todos::Loaded(state) => {
                 let mut saved = false;
@@ -198,7 +195,7 @@ impl Todos {
                     .align_x(Center);
 
                 let input = text_input("What needs to be done?", input_value)
-                    .id(INPUT_ID.clone())
+                    .id("new-task")
                     .on_input(Message::InputChanged)
                     .on_submit(Message::CreateTask)
                     .padding(15)
