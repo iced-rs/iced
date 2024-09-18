@@ -30,11 +30,11 @@
 //!     ]
 //! }
 //! ```
-use iced_futures::Executor;
-
 use crate::program::{self, Program};
 use crate::window;
-use crate::{Element, Font, Result, Settings, Size, Subscription, Task};
+use crate::{
+    Element, Executor, Font, Result, Settings, Size, Subscription, Task,
+};
 
 use std::borrow::Cow;
 
