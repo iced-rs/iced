@@ -239,7 +239,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
             ) if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
                 {
-                    use iced_highlighter::{self, Highlighter};
+                    use iced_highlighter::Highlighter;
                     use text::Highlighter as _;
 
                     highlighter =
