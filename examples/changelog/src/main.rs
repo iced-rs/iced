@@ -10,6 +10,8 @@ use iced::widget::{
 use iced::{Center, Element, Fill, FillPortion, Font, Task, Theme};
 
 pub fn main() -> iced::Result {
+    tracing_subscriber::fmt::init();
+
     iced::application("Changelog Generator", Generator::update, Generator::view)
         .theme(Generator::theme)
         .run_with(Generator::new)
