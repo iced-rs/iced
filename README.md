@@ -41,8 +41,8 @@ Inspired by [Elm].
     * [`iced_tiny_skia`] offering a software alternative as a fallback
   * A [windowing shell]
 
-__Iced is currently experimental software.__ [Take a look at the roadmap],
-[check out the issues], and [feel free to contribute!]
+__Iced is currently experimental software.__ [Take a look at the roadmap] and
+[check out the issues].
 
 [Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg
 [text inputs]: https://iced.rs/examples/text_input.mp4
@@ -56,7 +56,6 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 [windowing shell]: winit/
 [Take a look at the roadmap]: ROADMAP.md
 [check out the issues]: https://github.com/iced-rs/iced/issues
-[feel free to contribute!]: #contributing--feedback
 
 ## Overview
 
