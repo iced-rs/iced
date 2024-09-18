@@ -190,7 +190,7 @@ impl<T> Subscription<T> {
     /// Check out the [`websocket`] example, which showcases this pattern to maintain a `WebSocket`
     /// connection open.
     ///
-    /// [`websocket`]: https://github.com/iced-rs/iced/tree/0.12/examples/websocket
+    /// [`websocket`]: https://github.com/iced-rs/iced/tree/0.13/examples/websocket
     pub fn run<S>(builder: fn() -> S) -> Self
     where
         S: Stream<Item = T> + MaybeSend + 'static,
@@ -317,9 +317,9 @@ impl<T> std::fmt::Debug for Subscription<T> {
 /// - [`stopwatch`], a watch with start/stop and reset buttons showcasing how
 ///   to listen to time.
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.12/examples
-/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.12/examples/download_progress
-/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.12/examples/stopwatch
+/// [examples]: https://github.com/iced-rs/iced/tree/0.13/examples
+/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.13/examples/download_progress
+/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.13/examples/stopwatch
 pub trait Recipe {
     /// The events that will be produced by a [`Subscription`] with this
     /// [`Recipe`].
