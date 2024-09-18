@@ -751,7 +751,7 @@ where
                         // TODO: Configurable speed/friction (?)
                         -movement * 60.0
                     }
-                    mouse::ScrollDelta::Pixels { x, y } => Vector::new(x, y),
+                    mouse::ScrollDelta::Pixels { x, y } => -Vector::new(x, y),
                 };
 
                 state.scroll(
