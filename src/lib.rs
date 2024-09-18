@@ -380,16 +380,18 @@
 //! #     use iced::{Element, Task};
 //! #     pub struct Contacts;
 //! #     impl Contacts {
-//! #         pub fn update(&mut self, message: Message) -> Task<Message> { unimplemented!() }
+//! #         pub fn update(&mut self, message: Message) -> Action { unimplemented!() }
 //! #         pub fn view(&self) -> Element<Message> { unimplemented!() }
 //! #     }
 //! #     #[derive(Debug)]
 //! #     pub enum Message {}
+//! #     pub enum Action { None, Run(Task<Message>), Chat(()) }
 //! # }
 //! # mod conversation {
 //! #     use iced::{Element, Task};
 //! #     pub struct Conversation;
 //! #     impl Conversation {
+//! #         pub fn new(contact: ()) -> (Self, Task<Message>) { unimplemented!() }
 //! #         pub fn update(&mut self, message: Message) -> Task<Message> { unimplemented!() }
 //! #         pub fn view(&self) -> Element<Message> { unimplemented!() }
 //! #     }
@@ -419,7 +421,19 @@
 //!     match message {
 //!         Message::Contacts(message) => {
 //!             if let Screen::Contacts(contacts) = &mut state.screen {
-//!                 contacts.update(message).map(Message::Contacts)
+//!                 let action = contacts.update(message);
+//!
+//!                 match action {
+//!                     contacts::Action::None => Task::none(),
+//!                     contacts::Action::Run(task) => task.map(Message::Contacts),
+//!                     contacts::Action::Chat(contact) => {
+//!                         let (conversation, task) = Conversation::new(contact);
+//!
+//!                         state.screen = Screen::Conversation(conversation);
+//!
+//!                         task.map(Message::Conversation)
+//!                     }
+//!                  }
 //!             } else {
 //!                 Task::none()    
 //!             }
