@@ -550,6 +550,80 @@ pub fn with_scale_factor<P: Program>(
     }
 }
 
+pub fn with_executor<P: Program, E: Executor>(
+    program: P,
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+    use std::marker::PhantomData;
+
+    struct WithExecutor<P, E> {
+        program: P,
+        executor: PhantomData<E>,
+    }
+
+    impl<P: Program, E> Program for WithExecutor<P, E>
+    where
+        E: Executor,
+    {
+        type State = P::State;
+        type Message = P::Message;
+        type Theme = P::Theme;
+        type Renderer = P::Renderer;
+        type Executor = E;
+
+        fn theme(
+            &self,
+            state: &Self::State,
+            window: window::Id,
+        ) -> Self::Theme {
+            self.program.theme(state, window)
+        }
+
+        fn title(&self, state: &Self::State, window: window::Id) -> String {
+            self.program.title(state, window)
+        }
+
+        fn update(
+            &self,
+            state: &mut Self::State,
+            message: Self::Message,
+        ) -> Task<Self::Message> {
+            self.program.update(state, message)
+        }
+
+        fn view<'a>(
+            &self,
+            state: &'a Self::State,
+            window: window::Id,
+        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+            self.program.view(state, window)
+        }
+
+        fn subscription(
+            &self,
+            state: &Self::State,
+        ) -> Subscription<Self::Message> {
+            self.program.subscription(state)
+        }
+
+        fn style(
+            &self,
+            state: &Self::State,
+            theme: &Self::Theme,
+        ) -> Appearance {
+            self.program.style(state, theme)
+        }
+
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+            self.program.scale_factor(state, window)
+        }
+    }
+
+    WithExecutor {
+        program,
+        executor: PhantomData::<E>,
+    }
+}
+
 /// The renderer of some [`Program`].
 pub trait Renderer: text::Renderer + compositor::Default {}
 
