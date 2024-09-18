@@ -570,14 +570,6 @@ pub fn with_executor<P: Program, E: Executor>(
         type Renderer = P::Renderer;
         type Executor = E;
 
-        fn theme(
-            &self,
-            state: &Self::State,
-            window: window::Id,
-        ) -> Self::Theme {
-            self.program.theme(state, window)
-        }
-
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             self.program.title(state, window)
         }
@@ -603,6 +595,14 @@ pub fn with_executor<P: Program, E: Executor>(
             state: &Self::State,
         ) -> Subscription<Self::Message> {
             self.program.subscription(state)
+        }
+
+        fn theme(
+            &self,
+            state: &Self::State,
+            window: window::Id,
+        ) -> Self::Theme {
+            self.program.theme(state, window)
         }
 
         fn style(
