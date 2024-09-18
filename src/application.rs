@@ -32,7 +32,9 @@
 //! ```
 use crate::program::{self, Program};
 use crate::window;
-use crate::{Element, Font, Result, Settings, Size, Subscription, Task};
+use crate::{
+    Element, Executor, Font, Result, Settings, Size, Subscription, Task,
+};
 
 use std::borrow::Cow;
 
@@ -372,6 +374,22 @@ impl<P: Program> Application<P> {
             raw: program::with_scale_factor(self.raw, move |state, _window| {
                 f(state)
             }),
+            settings: self.settings,
+            window: self.window,
+        }
+    }
+
+    /// Sets the executor of the [`Application`].
+    pub fn executor<E>(
+        self,
+    ) -> Application<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
+    >
+    where
+        E: Executor,
+    {
+        Application {
+            raw: program::with_executor::<P, E>(self.raw),
             settings: self.settings,
             window: self.window,
         }
