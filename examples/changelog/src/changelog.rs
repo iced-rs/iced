@@ -118,10 +118,7 @@ impl Changelog {
             return Err(Error::InvalidFormat);
         };
 
-        let unreleased = format!(
-            "\n## [Unreleased]\n{changelog}",
-            changelog = self.to_string()
-        );
+        let unreleased = format!("\n## [Unreleased]\n{self}");
 
         let rest = format!("\n## {rest}");
 
