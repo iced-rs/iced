@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.13.0] - 2024-09-18
 ### Added
 - Introductory chapters to the [official guide book](https://book.iced.rs/).
-- [Pocket guide](https://docs.rs/iced/latest/iced/#the-pocket-guide) in API reference.
+- [Pocket guide](https://docs.rs/iced/0.13.0/iced/#the-pocket-guide) in API reference.
 - `Program` API. [#2331](https://github.com/iced-rs/iced/pull/2331)
 - `Task` API. [#2463](https://github.com/iced-rs/iced/pull/2463)
 - `Daemon` API and Shell Runtime Unification. [#2469](https://github.com/iced-rs/iced/pull/2469)
