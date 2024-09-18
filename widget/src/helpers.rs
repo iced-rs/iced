@@ -653,7 +653,21 @@ where
 
 /// Creates a new [`Button`] with the provided content.
 ///
-/// [`Button`]: crate::Button
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::button;
+///
+/// #[derive(Clone)]
+/// enum Message {
+///     ButtonPressed,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     button("Press me!").on_press(Message::ButtonPressed).into()
+/// }
+/// ```
 pub fn button<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Button<'a, Message, Theme, Renderer>
