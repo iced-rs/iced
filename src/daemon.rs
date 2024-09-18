@@ -2,7 +2,7 @@
 use crate::application;
 use crate::program::{self, Program};
 use crate::window;
-use crate::{Element, Font, Result, Settings, Subscription, Task};
+use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
 
 use std::borrow::Cow;
 
@@ -220,6 +220,21 @@ impl<P: Program> Daemon<P> {
     > {
         Daemon {
             raw: program::with_scale_factor(self.raw, f),
+            settings: self.settings,
+        }
+    }
+
+    /// Sets the executor of the [`Daemon`].
+    pub fn executor<E>(
+        self,
+    ) -> Daemon<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
+    >
+    where
+        E: Executor,
+    {
+        Daemon {
+            raw: program::with_executor::<P, E>(self.raw),
             settings: self.settings,
         }
     }
