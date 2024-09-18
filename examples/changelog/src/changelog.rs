@@ -71,7 +71,7 @@ impl Changelog {
                     };
 
                     for entry in rest.lines() {
-                        let Some((_, id)) = entry.split_once('#') else {
+                        let Some((_, id)) = entry.split_once("[#") else {
                             continue;
                         };
 
