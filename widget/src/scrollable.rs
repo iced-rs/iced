@@ -760,13 +760,17 @@ where
                     content_bounds,
                 );
 
-                if notify_scroll(
+                let has_scrolled = notify_scroll(
                     state,
                     &self.on_scroll,
                     bounds,
                     content_bounds,
                     shell,
-                ) {
+                );
+
+                let in_transaction = state.last_scrolled.is_some();
+
+                if has_scrolled || in_transaction {
                     event::Status::Captured
                 } else {
                     event::Status::Ignored
@@ -1194,11 +1198,6 @@ fn notify_viewport<Message>(
         return false;
     }
 
-    let Some(on_scroll) = on_scroll else {
-        state.last_notified = None;
-        return false;
-    };
-
     let viewport = Viewport {
         offset_x: state.offset_x,
         offset_y: state.offset_y,
@@ -1229,8 +1228,11 @@ fn notify_viewport<Message>(
         }
     }
 
-    shell.publish(on_scroll(viewport));
     state.last_notified = Some(viewport);
+
+    if let Some(on_scroll) = on_scroll {
+        shell.publish(on_scroll(viewport));
+    }
 
     true
 }
