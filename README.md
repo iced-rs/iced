@@ -15,11 +15,11 @@
 A cross-platform GUI library for Rust focused on simplicity and type-safety.
 Inspired by [Elm].
 
-<a href="https://iced.rs/examples/todos.mp4">
-  <img src="https://iced.rs/examples/todos.gif" width="275px">
+<a href="https://github.com/squidowl/halloy">
+  <img src="https://iced.rs/showcase/halloy.gif" width="460px">
 </a>
-<a href="https://iced.rs/examples/tour.mp4">
-  <img src="https://iced.rs/examples/tour.gif" width="273px">
+<a href="https://github.com/hecrj/icebreaker">
+  <img src="https://iced.rs/showcase/icebreaker.gif" width="360px">
 </a>
 
 </div>
