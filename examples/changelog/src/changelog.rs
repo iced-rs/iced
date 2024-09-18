@@ -306,7 +306,7 @@ impl Contribution {
 pub struct PullRequest {
     pub id: u64,
     pub title: String,
-    pub description: String,
+    pub description: Option<String>,
     pub labels: Vec<String>,
     pub author: String,
 }
@@ -334,7 +334,7 @@ impl PullRequest {
         #[derive(Deserialize)]
         struct Schema {
             title: String,
-            body: String,
+            body: Option<String>,
             user: User,
             labels: Vec<Label>,
         }

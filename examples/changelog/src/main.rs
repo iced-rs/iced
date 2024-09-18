@@ -90,8 +90,13 @@ impl Generator {
                     return Task::none();
                 };
 
-                let description =
-                    markdown::parse(&pull_request.description).collect();
+                let description = markdown::parse(
+                    pull_request
+                        .description
+                        .as_deref()
+                        .unwrap_or("*No description provided*"),
+                )
+                .collect();
 
                 *state = State::Loaded {
                     title: pull_request.title.clone(),
