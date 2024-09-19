@@ -1,6 +1,6 @@
 //! Draw 2D graphics for your users.
 //!
-//! ## Drawing a simple circle
+//! # Example: Drawing a Simple Circle
 //! Here's how we can use a [`Canvas`] to draw a simple circle:
 //!
 //! ```no_run
@@ -90,7 +90,7 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 
 /// A widget capable of drawing 2D graphics.
 ///
-/// ## Drawing a simple circle
+/// # Example: Drawing a Simple Circle
 /// Here's how we can use a [`Canvas`] to draw a simple circle:
 ///
 /// ```no_run

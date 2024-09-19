@@ -653,6 +653,7 @@ where
 
 /// Creates a new [`Button`] with the provided content.
 ///
+/// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
@@ -747,7 +748,36 @@ pub use crate::markdown::view as markdown;
 
 /// Creates a new [`Checkbox`].
 ///
-/// [`Checkbox`]: crate::Checkbox
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::checkbox;
+///
+/// struct State {
+///    is_checked: bool,
+/// }
+///
+/// enum Message {
+///     CheckboxToggled(bool),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     checkbox("Toggle me!", state.is_checked)
+///         .on_toggle(Message::CheckboxToggled)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::CheckboxToggled(is_checked) => {
+///             state.is_checked = is_checked;
+///         }
+///     }
+/// }
+/// ```
+/// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 pub fn checkbox<'a, Message, Theme, Renderer>(
     label: impl Into<String>,
     is_checked: bool,
@@ -1001,7 +1031,7 @@ where
 ///
 /// [`Canvas`]: crate::Canvas
 ///
-/// ## Drawing a simple circle
+/// # Example: Drawing a Simple Circle
 /// Here's how we can use a [`Canvas`] to draw a simple circle:
 ///
 /// ```no_run

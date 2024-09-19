@@ -1,5 +1,6 @@
 //! Buttons allow your users to perform actions by pressing them.
 //!
+//! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } }
 //! # pub type State = ();
@@ -32,6 +33,7 @@ use crate::core::{
 
 /// A generic widget that produces a message when pressed.
 ///
+/// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
