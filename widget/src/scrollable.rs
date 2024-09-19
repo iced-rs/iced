@@ -1,4 +1,24 @@
-//! Navigate an endless amount of content with a scrollbar.
+//! Scrollables let users navigate an endless amount of content with a scrollbar.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::{column, scrollable, vertical_space};
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     scrollable(column![
+//!         "Scroll me!",
+//!         vertical_space().height(3000),
+//!         "You did it!",
+//!     ]).into()
+//! }
+//! ```
 use crate::container;
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
@@ -24,6 +44,26 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{column, scrollable, vertical_space};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     scrollable(column![
+///         "Scroll me!",
+///         vertical_space().height(3000),
+///         "You did it!",
+///     ]).into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Scrollable<
     'a,
