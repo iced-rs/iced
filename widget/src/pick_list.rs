@@ -1,4 +1,65 @@
-//! Display a dropdown list of selectable values.
+//! Pick lists display a dropdown list of selectable options.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::pick_list;
+//!
+//! struct State {
+//!    favorite: Option<Fruit>,
+//! }
+//!
+//! #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+//! enum Fruit {
+//!     Apple,
+//!     Orange,
+//!     Strawberry,
+//!     Tomato,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     FruitSelected(Fruit),
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     let fruits = [
+//!         Fruit::Apple,
+//!         Fruit::Orange,
+//!         Fruit::Strawberry,
+//!         Fruit::Tomato,
+//!     ];
+//!
+//!     pick_list(
+//!         fruits,
+//!         state.favorite,
+//!         Message::FruitSelected,
+//!     )
+//!     .placeholder("Select your favorite fruit...")
+//!     .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::FruitSelected(fruit) => {
+//!             state.favorite = Some(fruit);
+//!         }
+//!     }
+//! }
+//!
+//! impl std::fmt::Display for Fruit {
+//!     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//!         f.write_str(match self {
+//!             Self::Apple => "Apple",
+//!             Self::Orange => "Orange",
+//!             Self::Strawberry => "Strawberry",
+//!             Self::Tomato => "Tomato",
+//!         })
+//!     }
+//! }
+//! ```
 use crate::core::alignment;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
@@ -20,6 +81,67 @@ use std::borrow::Borrow;
 use std::f32;
 
 /// A widget for selecting a single value from a list of options.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::pick_list;
+///
+/// struct State {
+///    favorite: Option<Fruit>,
+/// }
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// enum Fruit {
+///     Apple,
+///     Orange,
+///     Strawberry,
+///     Tomato,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     FruitSelected(Fruit),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     let fruits = [
+///         Fruit::Apple,
+///         Fruit::Orange,
+///         Fruit::Strawberry,
+///         Fruit::Tomato,
+///     ];
+///
+///     pick_list(
+///         fruits,
+///         state.favorite,
+///         Message::FruitSelected,
+///     )
+///     .placeholder("Select your favorite fruit...")
+///     .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::FruitSelected(fruit) => {
+///             state.favorite = Some(fruit);
+///         }
+///     }
+/// }
+///
+/// impl std::fmt::Display for Fruit {
+///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+///         f.write_str(match self {
+///             Self::Apple => "Apple",
+///             Self::Orange => "Orange",
+///             Self::Strawberry => "Strawberry",
+///             Self::Tomato => "Tomato",
+///         })
+///     }
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct PickList<
     'a,
