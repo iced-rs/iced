@@ -153,6 +153,8 @@ impl Pipeline {
                             8 => Uint32,
                         ),
                     }],
+                    compilation_options:
+                        wgpu::PipelineCompilationOptions::default(),
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
@@ -173,6 +175,8 @@ impl Pipeline {
                         }),
                         write_mask: wgpu::ColorWrites::ALL,
                     })],
+                    compilation_options:
+                        wgpu::PipelineCompilationOptions::default(),
                 }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,
@@ -186,6 +190,7 @@ impl Pipeline {
                     alpha_to_coverage_enabled: false,
                 },
                 multiview: None,
+                cache: None,
             });
 
         Pipeline {

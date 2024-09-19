@@ -23,6 +23,7 @@ image = ["iced_graphics/image"]
 svg = ["iced_graphics/svg", "resvg/text"]
 web-colors = ["iced_graphics/web-colors"]
 webgl = ["wgpu/webgl"]
+strict-assertions = []
 
 [dependencies]
 iced_graphics.workspace = true

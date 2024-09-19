@@ -65,6 +65,8 @@ advanced = ["iced_core/advanced", "iced_widget/advanced"]
 fira-sans = ["iced_renderer/fira-sans"]
 # Enables auto-detecting light/dark mode for the built-in theme
 auto-detect-theme = ["iced_core/auto-detect-theme"]
+# Enables strict assertions for debugging purposes at the expense of performance
+strict-assertions = ["iced_renderer/strict-assertions"]
 
 [dependencies]
 iced_core.workspace = true
@@ -148,7 +150,7 @@ cosmic-text = "0.12"
 dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
-glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "feef9f5630c2adb3528937e55f7bfad2da561a65" }
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "0d7ba1bba4dd71eb88d2cface5ce649db2413cb7" }
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.24", default-features = false }
@@ -181,7 +183,7 @@ wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
 web-sys = "0.3.69"
 web-time = "1.1"
-wgpu = "0.19"
+wgpu = "22.0"
 winapi = "0.3"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "254d6b3420ce4e674f516f7a2bd440665e05484d" }

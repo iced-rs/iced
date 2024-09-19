@@ -110,6 +110,8 @@ pub fn convert(
                 module: &shader,
                 entry_point: "vs_main",
                 buffers: &[],
+                compilation_options: wgpu::PipelineCompilationOptions::default(
+                ),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -130,6 +132,8 @@ pub fn convert(
                     }),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(
+                ),
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -139,6 +143,7 @@ pub fn convert(
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
+            cache: None,
         });
 
     let texture = device.create_texture(&wgpu::TextureDescriptor {
