@@ -743,8 +743,29 @@ where
 /// Creates a new [`Tooltip`] for the provided content with the given
 /// [`Element`] and [`tooltip::Position`].
 ///
-/// [`Tooltip`]: crate::Tooltip
-/// [`tooltip::Position`]: crate::tooltip::Position
+/// Tooltips display a hint of information over some element when hovered.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{container, tooltip};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(_state: &State) -> Element<'_, Message> {
+///     tooltip(
+///         "Hover me to display the tooltip!",
+///         container("This is the tooltip contents!")
+///             .padding(10)
+///             .style(container::rounded_box),
+///         tooltip::Position::Bottom,
+///     ).into()
+/// }
+/// ```
 pub fn tooltip<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
     tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
