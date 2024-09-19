@@ -1,4 +1,24 @@
-//! Decorate content and apply alignment.
+//! Containers let you align a widget inside their boundaries.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::container;
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     container("This text is centered inside a rounded box!")
+//!         .padding(10)
+//!         .center(800)
+//!         .style(container::rounded_box)
+//!         .into()
+//! }
+//! ```
 use crate::core::alignment::{self, Alignment};
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
@@ -16,9 +36,27 @@ use crate::core::{
 };
 use crate::runtime::task::{self, Task};
 
-/// An element decorating some content.
+/// A widget that aligns its contents inside of its boundaries.
 ///
-/// It is normally used for alignment purposes.
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::container;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     container("This text is centered inside a rounded box!")
+///         .padding(10)
+///         .center(800)
+///         .style(container::rounded_box)
+///         .into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Container<
     'a,

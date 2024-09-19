@@ -1,4 +1,33 @@
-//! Display an interactive selector of a single value from a range of values.
+//! Sliders let users set a value by moving an indicator.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::slider;
+//!
+//! struct State {
+//!    value: f32,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     ValueChanged(f32),
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::ValueChanged(value) => {
+//!             state.value = value;
+//!         }
+//!     }
+//! }
+//! ```
 use std::ops::RangeInclusive;
 
 pub use crate::slider::{
@@ -29,16 +58,31 @@ use crate::core::{
 ///
 /// # Example
 /// ```no_run
-/// # type VerticalSlider<'a, T, Message> = iced_widget::VerticalSlider<'a, T, Message>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// #[derive(Clone)]
-/// pub enum Message {
-///     SliderChanged(f32),
+/// use iced::widget::vertical_slider;
+///
+/// struct State {
+///    value: f32,
 /// }
 ///
-/// let value = 50.0;
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ValueChanged(f32),
+/// }
 ///
-/// VerticalSlider::new(0.0..=100.0, value, Message::SliderChanged);
+/// fn view(state: &State) -> Element<'_, Message> {
+///     vertical_slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ValueChanged(value) => {
+///             state.value = value;
+///         }
+///     }
+/// }
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct VerticalSlider<'a, T, Message, Theme = crate::Theme>

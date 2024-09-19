@@ -1,4 +1,21 @@
-//! Display a horizontal or vertical rule for dividing content.
+//! Rules divide space horizontally or vertically.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::horizontal_rule;
+//!
+//! #[derive(Clone)]
+//! enum Message {
+//!     // ...,
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     horizontal_rule(2).into()
+//! }
+//! ```
 use crate::core;
 use crate::core::border;
 use crate::core::layout;
@@ -10,6 +27,23 @@ use crate::core::{
 };
 
 /// Display a horizontal or vertical rule for dividing content.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::horizontal_rule;
+///
+/// #[derive(Clone)]
+/// enum Message {
+///     // ...,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     horizontal_rule(2).into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Rule<'a, Theme = crate::Theme>
 where

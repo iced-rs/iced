@@ -1,4 +1,53 @@
-//! Draw 2D graphics for your users.
+//! Canvases can be leveraged to draw interactive 2D graphics.
+//!
+//! # Example: Drawing a Simple Circle
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::mouse;
+//! use iced::widget::canvas;
+//! use iced::{Color, Rectangle, Renderer, Theme};
+//!
+//! // First, we define the data we need for drawing
+//! #[derive(Debug)]
+//! struct Circle {
+//!     radius: f32,
+//! }
+//!
+//! // Then, we implement the `Program` trait
+//! impl<Message> canvas::Program<Message> for Circle {
+//!     // No internal state
+//!     type State = ();
+//!
+//!     fn draw(
+//!         &self,
+//!         _state: &(),
+//!         renderer: &Renderer,
+//!         _theme: &Theme,
+//!         bounds: Rectangle,
+//!         _cursor: mouse::Cursor
+//!     ) -> Vec<canvas::Geometry> {
+//!         // We prepare a new `Frame`
+//!         let mut frame = canvas::Frame::new(renderer, bounds.size());
+//!
+//!         // We create a `Path` representing a simple circle
+//!         let circle = canvas::Path::circle(frame.center(), self.radius);
+//!
+//!         // And fill it with some color
+//!         frame.fill(&circle, Color::BLACK);
+//!
+//!         // Then, we produce the geometry
+//!         vec![frame.into_geometry()]
+//!     }
+//! }
+//!
+//! // Finally, we simply use our `Circle` to create the `Canvas`!
+//! fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
+//!     canvas(Circle { radius: 50.0 }).into()
+//! }
+//! ```
 pub mod event;
 
 mod program;
@@ -39,15 +88,16 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 
 /// A widget capable of drawing 2D graphics.
 ///
-/// ## Drawing a simple circle
-/// If you want to get a quick overview, here's how we can draw a simple circle:
-///
+/// # Example: Drawing a Simple Circle
 /// ```no_run
-/// # use iced_widget::canvas::{self, Canvas, Fill, Frame, Geometry, Path, Program};
-/// # use iced_widget::core::{Color, Rectangle};
-/// # use iced_widget::core::mouse;
-/// # use iced_widget::{Renderer, Theme};
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
+/// use iced::mouse;
+/// use iced::widget::canvas;
+/// use iced::{Color, Rectangle, Renderer, Theme};
+///
 /// // First, we define the data we need for drawing
 /// #[derive(Debug)]
 /// struct Circle {
@@ -55,26 +105,36 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 /// }
 ///
 /// // Then, we implement the `Program` trait
-/// impl Program<()> for Circle {
+/// impl<Message> canvas::Program<Message> for Circle {
+///     // No internal state
 ///     type State = ();
 ///
-///     fn draw(&self, _state: &(), renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) -> Vec<Geometry> {
+///     fn draw(
+///         &self,
+///         _state: &(),
+///         renderer: &Renderer,
+///         _theme: &Theme,
+///         bounds: Rectangle,
+///         _cursor: mouse::Cursor
+///     ) -> Vec<canvas::Geometry> {
 ///         // We prepare a new `Frame`
-///         let mut frame = Frame::new(renderer, bounds.size());
+///         let mut frame = canvas::Frame::new(renderer, bounds.size());
 ///
 ///         // We create a `Path` representing a simple circle
-///         let circle = Path::circle(frame.center(), self.radius);
+///         let circle = canvas::Path::circle(frame.center(), self.radius);
 ///
 ///         // And fill it with some color
 ///         frame.fill(&circle, Color::BLACK);
 ///
-///         // Finally, we produce the geometry
+///         // Then, we produce the geometry
 ///         vec![frame.into_geometry()]
 ///     }
 /// }
 ///
 /// // Finally, we simply use our `Circle` to create the `Canvas`!
-/// let canvas = Canvas::new(Circle { radius: 50.0 });
+/// fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
+///     canvas(Circle { radius: 50.0 }).into()
+/// }
 /// ```
 #[derive(Debug)]
 pub struct Canvas<P, Message, Theme = crate::Theme, Renderer = crate::Renderer>

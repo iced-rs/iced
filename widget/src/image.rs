@@ -1,4 +1,21 @@
-//! Display images in your user interface.
+//! Images display raster graphics in different formats (PNG, JPG, etc.).
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::image;
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     image("ferris.png").into()
+//! }
+//! ```
+//! <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 pub mod viewer;
 pub use viewer::Viewer;
 
@@ -22,16 +39,23 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 /// A frame that displays an image while keeping aspect ratio.
 ///
 /// # Example
-///
 /// ```no_run
-/// # use iced_widget::image::{self, Image};
-/// #
-/// let image = Image::<image::Handle>::new("resources/ferris.png");
-/// ```
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::image;
 ///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     image("ferris.png").into()
+/// }
+/// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[derive(Debug)]
-pub struct Image<Handle> {
+pub struct Image<Handle = image::Handle> {
     handle: Handle,
     width: Length,
     height: Length,
