@@ -113,7 +113,7 @@ pub type Hasher = rustc_hash::FxHasher;
 /// ```
 ///
 /// [`Future`]: std::future::Future
-#[must_use = "`Subscription` must be returned to runtime to take effect"]
+#[must_use = "`Subscription` must be returned to the runtime to take effect; normally in your `subscription` function."]
 pub struct Subscription<T> {
     recipes: Vec<Box<dyn Recipe<Output = T>>>,
 }
