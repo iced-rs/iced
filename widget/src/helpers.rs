@@ -81,7 +81,6 @@ macro_rules! stack {
 ///
 /// ```no_run
 /// # mod iced {
-/// #     pub struct Element<Message>(pub std::marker::PhantomData<Message>);
 /// #     pub mod widget {
 /// #         macro_rules! text {
 /// #           ($($arg:tt)*) => {unimplemented!()}
@@ -89,22 +88,23 @@ macro_rules! stack {
 /// #         pub(crate) use text;
 /// #     }
 /// # }
-/// # struct Example;
-/// # enum Message {}
-/// use iced::Element;
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::core::Theme, ()>;
 /// use iced::widget::text;
 ///
-/// impl Example {
-///     fn view(&self) -> Element<Message> {
-///         let simple = text!("Hello, world!");
+/// enum Message {
+///     // ...
+/// }
 ///
-///         let keyword = text!("Hello, {}", "world!");
+/// fn view(_state: &State) -> Element<Message> {
+///     let simple = text!("Hello, world!");
 ///
-///         let planet = "Earth";
-///         let local_variable = text!("Hello, {planet}!");
-///         // ...
-///         # iced::Element(std::marker::PhantomData)
-///     }
+///     let keyword = text!("Hello, {}", "world!");
+///
+///     let planet = "Earth";
+///     let local_variable = text!("Hello, {planet}!");
+///     // ...
+///     # unimplemented!()
 /// }
 /// ```
 #[macro_export]
@@ -758,6 +758,26 @@ where
 }
 
 /// Creates a new [`Text`] widget with the provided content.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::core::Theme, ()>;
+/// use iced::widget::text;
+/// use iced::color;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text("Hello, this is iced!")
+///         .size(20)
+///         .color(color!(0x0000ff))
+///         .into()
+/// }
+/// ```
 pub fn text<'a, Theme, Renderer>(
     text: impl text::IntoFragment<'a>,
 ) -> Text<'a, Theme, Renderer>
