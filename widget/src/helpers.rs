@@ -1341,8 +1341,26 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
 
 /// Creates a new [`Svg`] widget from the given [`Handle`].
 ///
+/// Svg widgets display vector graphics in your application.
+///
 /// [`Svg`]: crate::Svg
 /// [`Handle`]: crate::svg::Handle
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::svg;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     svg("tiger.svg").into()
+/// }
+/// ```
 #[cfg(feature = "svg")]
 pub fn svg<'a, Theme>(
     handle: impl Into<core::svg::Handle>,

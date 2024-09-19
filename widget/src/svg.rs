@@ -1,4 +1,20 @@
-//! Display vector graphics in your application.
+//! Svg widgets display vector graphics in your application.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::svg;
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     svg("tiger.svg").into()
+//! }
+//! ```
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -19,6 +35,22 @@ pub use crate::core::svg::Handle;
 ///
 /// [`Svg`] images can have a considerable rendering cost when resized,
 /// specially when they are complex.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::svg;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     svg("tiger.svg").into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Svg<'a, Theme = crate::Theme>
 where
