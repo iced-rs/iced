@@ -1290,8 +1290,31 @@ where
 
 /// Creates a new [`QRCode`] widget from the given [`Data`].
 ///
+/// QR codes display information in a type of two-dimensional matrix barcode.
+///
 /// [`QRCode`]: crate::QRCode
 /// [`Data`]: crate::qr_code::Data
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::qr_code;
+///
+/// struct State {
+///    data: qr_code::Data,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     qr_code(&state.data).into()
+/// }
+/// ```
 #[cfg(feature = "qr_code")]
 pub fn qr_code<'a, Theme>(
     data: &'a crate::qr_code::Data,

@@ -1,4 +1,25 @@
-//! Encode and display information in a QR code.
+//! QR codes display information in a type of two-dimensional matrix barcode.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::qr_code;
+//!
+//! struct State {
+//!    data: qr_code::Data,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     qr_code(&state.data).into()
+//! }
+//! ```
 use crate::canvas;
 use crate::core::layout;
 use crate::core::mouse;
@@ -18,6 +39,27 @@ const QUIET_ZONE: usize = 2;
 
 /// A type of matrix barcode consisting of squares arranged in a grid which
 /// can be read by an imaging device, such as a camera.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::qr_code;
+///
+/// struct State {
+///    data: qr_code::Data,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     qr_code(&state.data).into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct QRCode<'a, Theme = crate::Theme>
 where
