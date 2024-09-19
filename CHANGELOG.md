@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] - 2024-09-19
+### Added
+- Some `From` trait implementations for `text_input::Id`. [#2582](https://github.com/iced-rs/iced/pull/2582)
+- Custom `Executor` support for `Application` and `Daemon`. [#2580](https://github.com/iced-rs/iced/pull/2580)
+- `rust-version` metadata to `Cargo.toml`. [#2579](https://github.com/iced-rs/iced/pull/2579)
+- Widget examples to API reference. [#2587](https://github.com/iced-rs/iced/pull/2587)
+
+### Fixed
+- Inverted scrolling direction with trackpad in `scrollable`. [#2583](https://github.com/iced-rs/iced/pull/2583)
+- `scrollable` transactions when `on_scroll` is not set. [#2584](https://github.com/iced-rs/iced/pull/2584)
+- Incorrect text color styling in `text_editor` widget. [#2586](https://github.com/iced-rs/iced/pull/2586)
+
+Many thanks to...
+- @dcampbell24
+- @lufte
+- @mtkennerly
+
 ## [0.13.0] - 2024-09-18
 ### Added
 - Introductory chapters to the [official guide book](https://book.iced.rs/).
@@ -971,7 +988,8 @@ Many thanks to...
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.13.0...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.13.1...HEAD
+[0.13.1]: https://github.com/iced-rs/iced/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/iced-rs/iced/compare/0.12.1...0.13.0
 [0.12.1]: https://github.com/iced-rs/iced/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/iced-rs/iced/compare/0.10.0...0.12.0
