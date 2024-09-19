@@ -975,7 +975,39 @@ where
 
 /// Creates a new [`TextEditor`].
 ///
-/// [`TextEditor`]: crate::TextEditor
+/// Text editors display a multi-line text input for text editing.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::text_editor;
+///
+/// struct State {
+///    content: text_editor::Content,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     Edit(text_editor::Action)
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text_editor(&state.content)
+///         .placeholder("Type something here...")
+///         .on_action(Message::Edit)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::Edit(action) => {
+///             state.content.perform(action);
+///         }
+///     }
+/// }
+/// ```
 pub fn text_editor<'a, Message, Theme, Renderer>(
     content: &'a text_editor::Content<Renderer>,
 ) -> TextEditor<'a, core::text::highlighter::PlainText, Message, Theme, Renderer>

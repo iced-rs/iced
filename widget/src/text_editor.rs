@@ -1,4 +1,36 @@
-//! Display a multi-line text input for text editing.
+//! Text editors display a multi-line text input for text editing.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::text_editor;
+//!
+//! struct State {
+//!    content: text_editor::Content,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     Edit(text_editor::Action)
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     text_editor(&state.content)
+//!         .placeholder("Type something here...")
+//!         .on_action(Message::Edit)
+//!         .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::Edit(action) => {
+//!             state.content.perform(action);
+//!         }
+//!     }
+//! }
+//! ```
 use crate::core::alignment;
 use crate::core::clipboard::{self, Clipboard};
 use crate::core::event::{self, Event};
@@ -27,6 +59,38 @@ use std::sync::Arc;
 pub use text::editor::{Action, Edit, Motion};
 
 /// A multi-line text input.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::text_editor;
+///
+/// struct State {
+///    content: text_editor::Content,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     Edit(text_editor::Action)
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text_editor(&state.content)
+///         .placeholder("Type something here...")
+///         .on_action(Message::Edit)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::Edit(action) => {
+///             state.content.perform(action);
+///         }
+///     }
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct TextEditor<
     'a,
