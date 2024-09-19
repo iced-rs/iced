@@ -117,6 +117,31 @@ macro_rules! text {
 /// Creates some [`Rich`] text with the given spans.
 ///
 /// [`Rich`]: text::Rich
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::font;
+/// use iced::widget::{rich_text, span};
+/// use iced::{color, Font};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     rich_text![
+///         span("I am red!").color(color!(0xff0000)),
+///         " ",
+///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
+///     ]
+///     .size(20)
+///     .into()
+/// }
+/// ```
 #[macro_export]
 macro_rules! rich_text {
     () => (
@@ -823,6 +848,31 @@ where
 /// Creates a new [`Rich`] text widget with the provided spans.
 ///
 /// [`Rich`]: text::Rich
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::font;
+/// use iced::widget::{rich_text, span};
+/// use iced::{color, Font};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     rich_text([
+///         span("I am red!").color(color!(0xff0000)),
+///         span(" "),
+///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
+///     ])
+///     .size(20)
+///     .into()
+/// }
+/// ```
 pub fn rich_text<'a, Link, Theme, Renderer>(
     spans: impl AsRef<[text::Span<'a, Link, Renderer::Font>]> + 'a,
 ) -> text::Rich<'a, Link, Theme, Renderer>
@@ -837,7 +887,35 @@ where
 
 /// Creates a new [`Span`] of text with the provided content.
 ///
+/// A [`Span`] is a fragment of some [`Rich`] text.
+///
 /// [`Span`]: text::Span
+/// [`Rich`]: text::Rich
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::font;
+/// use iced::widget::{rich_text, span};
+/// use iced::{color, Font};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     rich_text![
+///         span("I am red!").color(color!(0xff0000)),
+///         " ",
+///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
+///     ]
+///     .size(20)
+///     .into()
+/// }
+/// ```
 pub fn span<'a, Link, Font>(
     text: impl text::IntoFragment<'a>,
 ) -> text::Span<'a, Link, Font> {
