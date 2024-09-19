@@ -12,6 +12,27 @@ use crate::core::{
 };
 
 /// A container that distributes its contents horizontally.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{button, row};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     row![
+///         "I am to the left!",
+///         button("I am in the middle!"),
+///         "I am to the right!",
+///     ].into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Row<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,

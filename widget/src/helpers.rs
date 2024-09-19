@@ -31,7 +31,28 @@ use std::ops::RangeInclusive;
 
 /// Creates a [`Column`] with the given children.
 ///
-/// [`Column`]: crate::Column
+/// Columns distribute their children vertically.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{button, column};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     column![
+///         "I am on top!",
+///         button("I am in the center!"),
+///         "I am below.",
+///     ].into()
+/// }
+/// ```
 #[macro_export]
 macro_rules! column {
     () => (
@@ -44,7 +65,28 @@ macro_rules! column {
 
 /// Creates a [`Row`] with the given children.
 ///
-/// [`Row`]: crate::Row
+/// Rows distribute their children horizontally.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{button, row};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     row![
+///         "I am to the left!",
+///         button("I am in the middle!"),
+///         "I am to the right!",
+///     ].into()
+/// }
+/// ```
 #[macro_export]
 macro_rules! row {
     () => (
@@ -208,6 +250,24 @@ where
 }
 
 /// Creates a new [`Column`] with the given children.
+///
+/// Columns distribute their children vertically.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{column, text};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     column((0..5).map(|i| text!("Item {i}").into())).into()
+/// }
+/// ```
 pub fn column<'a, Message, Theme, Renderer>(
     children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
 ) -> Column<'a, Message, Theme, Renderer>
@@ -248,9 +308,25 @@ where
     keyed::Column::with_children(children)
 }
 
-/// Creates a new [`Row`] with the given children.
+/// Creates a new [`Row`] from an iterator.
 ///
-/// [`Row`]: crate::Row
+/// Rows distribute their children horizontally.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{row, text};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     row((0..5).map(|i| text!("Item {i}").into())).into()
+/// }
+/// ```
 pub fn row<'a, Message, Theme, Renderer>(
     children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
 ) -> Row<'a, Message, Theme, Renderer>
