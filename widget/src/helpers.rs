@@ -1149,7 +1149,22 @@ pub fn vertical_space() -> Space {
 
 /// Creates a horizontal [`Rule`] with the given height.
 ///
-/// [`Rule`]: crate::Rule
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::horizontal_rule;
+///
+/// #[derive(Clone)]
+/// enum Message {
+///     // ...,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     horizontal_rule(2).into()
+/// }
+/// ```
 pub fn horizontal_rule<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
 where
     Theme: rule::Catalog + 'a,
@@ -1159,7 +1174,22 @@ where
 
 /// Creates a vertical [`Rule`] with the given width.
 ///
-/// [`Rule`]: crate::Rule
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::vertical_rule;
+///
+/// #[derive(Clone)]
+/// enum Message {
+///     // ...,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     vertical_rule(2).into()
+/// }
+/// ```
 pub fn vertical_rule<'a, Theme>(width: impl Into<Pixels>) -> Rule<'a, Theme>
 where
     Theme: rule::Catalog + 'a,
