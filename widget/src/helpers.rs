@@ -960,7 +960,38 @@ where
 
 /// Creates a new [`TextInput`].
 ///
-/// [`TextInput`]: crate::TextInput
+/// Text inputs display fields that can be filled with text.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::text_input;
+///
+/// struct State {
+///    content: String,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ContentChanged(String)
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text_input("Type something here...", &state.content)
+///         .on_input(Message::ContentChanged)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ContentChanged(content) => {
+///             state.content = content;
+///         }
+///     }
+/// }
+/// ```
 pub fn text_input<'a, Message, Theme, Renderer>(
     placeholder: &str,
     value: &str,

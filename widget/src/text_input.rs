@@ -1,6 +1,35 @@
-//! Display fields that can be filled with text.
+//! Text inputs display fields that can be filled with text.
 //!
-//! A [`TextInput`] has some local [`State`].
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::text_input;
+//!
+//! struct State {
+//!    content: String,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     ContentChanged(String)
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     text_input("Type something here...", &state.content)
+//!         .on_input(Message::ContentChanged)
+//!         .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::ContentChanged(content) => {
+//!             state.content = content;
+//!         }
+//!     }
+//! }
+//! ```
 mod editor;
 mod value;
 
@@ -38,23 +67,34 @@ use crate::runtime::Action;
 ///
 /// # Example
 /// ```no_run
-/// # pub type TextInput<'a, Message> = iced_widget::TextInput<'a, Message>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// #[derive(Debug, Clone)]
-/// enum Message {
-///     TextInputChanged(String),
+/// use iced::widget::text_input;
+///
+/// struct State {
+///    content: String,
 /// }
 ///
-/// let value = "Some text";
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ContentChanged(String)
+/// }
 ///
-/// let input = TextInput::new(
-///     "This is the placeholder...",
-///     value,
-/// )
-/// .on_input(Message::TextInputChanged)
-/// .padding(10);
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text_input("Type something here...", &state.content)
+///         .on_input(Message::ContentChanged)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ContentChanged(content) => {
+///             state.content = content;
+///         }
+///     }
+/// }
 /// ```
-/// ![Text input drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct TextInput<
     'a,
