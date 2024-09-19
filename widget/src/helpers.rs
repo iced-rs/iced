@@ -1112,11 +1112,31 @@ where
 
 /// Creates a new [`ProgressBar`].
 ///
+/// Progress bars visualize the progression of an extended computer operation, such as a download, file transfer, or installation.
+///
 /// It expects:
 ///   * an inclusive range of possible values, and
 ///   * the current value of the [`ProgressBar`].
 ///
-/// [`ProgressBar`]: crate::ProgressBar
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::progress_bar;
+///
+/// struct State {
+///    progress: f32,
+/// }
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     progress_bar(0.0..=100.0, state.progress).into()
+/// }
+/// ```
 pub fn progress_bar<'a, Theme>(
     range: RangeInclusive<f32>,
     value: f32,
