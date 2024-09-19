@@ -1,9 +1,52 @@
-//! Parse and display Markdown.
+//! Markdown widgets can parse and display Markdown.
 //!
 //! You can enable the `highlighter` feature for syntax highligting
 //! in code blocks.
 //!
 //! Only the variants of [`Item`] are currently supported.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::markdown;
+//! use iced::Theme;
+//!
+//! struct State {
+//!    markdown: Vec<markdown::Item>,
+//! }
+//!
+//! enum Message {
+//!     LinkClicked(markdown::Url),
+//! }
+//!
+//! impl State {
+//!     pub fn new() -> Self {
+//!         Self {
+//!             markdown: markdown::parse("This is some **Markdown**!").collect(),
+//!         }
+//!     }
+//!
+//!     fn view(&self) -> Element<'_, Message> {
+//!         markdown::view(
+//!             &self.markdown,
+//!             markdown::Settings::default(),
+//!             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
+//!         )
+//!         .map(Message::LinkClicked)
+//!         .into()
+//!     }
+//!
+//!     fn update(state: &mut State, message: Message) {
+//!         match message {
+//!             Message::LinkClicked(url) => {
+//!                 println!("The following url was clicked: {url}");
+//!             }
+//!         }
+//!     }
+//! }
+//! ```
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
@@ -145,6 +188,49 @@ impl Span {
 }
 
 /// Parse the given Markdown content.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::markdown;
+/// use iced::Theme;
+///
+/// struct State {
+///    markdown: Vec<markdown::Item>,
+/// }
+///
+/// enum Message {
+///     LinkClicked(markdown::Url),
+/// }
+///
+/// impl State {
+///     pub fn new() -> Self {
+///         Self {
+///             markdown: markdown::parse("This is some **Markdown**!").collect(),
+///         }
+///     }
+///
+///     fn view(&self) -> Element<'_, Message> {
+///         markdown::view(
+///             &self.markdown,
+///             markdown::Settings::default(),
+///             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
+///         )
+///         .map(Message::LinkClicked)
+///         .into()
+///     }
+///
+///     fn update(state: &mut State, message: Message) {
+///         match message {
+///             Message::LinkClicked(url) => {
+///                 println!("The following url was clicked: {url}");
+///             }
+///         }
+///     }
+/// }
+/// ```
 pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
     struct List {
         start: Option<u64>,
@@ -484,6 +570,49 @@ impl Style {
 /// Display a bunch of Markdown items.
 ///
 /// You can obtain the items with [`parse`].
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::markdown;
+/// use iced::Theme;
+///
+/// struct State {
+///    markdown: Vec<markdown::Item>,
+/// }
+///
+/// enum Message {
+///     LinkClicked(markdown::Url),
+/// }
+///
+/// impl State {
+///     pub fn new() -> Self {
+///         Self {
+///             markdown: markdown::parse("This is some **Markdown**!").collect(),
+///         }
+///     }
+///
+///     fn view(&self) -> Element<'_, Message> {
+///         markdown::view(
+///             &self.markdown,
+///             markdown::Settings::default(),
+///             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
+///         )
+///         .map(Message::LinkClicked)
+///         .into()
+///     }
+///
+///     fn update(state: &mut State, message: Message) {
+///         match message {
+///             Message::LinkClicked(url) => {
+///                 println!("The following url was clicked: {url}");
+///             }
+///         }
+///     }
+/// }
+/// ```
 pub fn view<'a, Theme, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: Settings,
