@@ -191,7 +191,27 @@ where
     Column::with_children(children)
 }
 
-/// Creates a new [`keyed::Column`] with the given children.
+/// Creates a new [`keyed::Column`] from an iterator of elements.
+///
+/// Keyed columns distribute content vertically while keeping continuity.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{keyed_column, text};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     keyed_column((0..=100).map(|i| {
+///         (i, text!("Item {i}").into())
+///     })).into()
+/// }
+/// ```
 pub fn keyed_column<'a, Key, Message, Theme, Renderer>(
     children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
 ) -> keyed::Column<'a, Key, Message, Theme, Renderer>

@@ -1,4 +1,4 @@
-//! Use widgets that can provide hints to ensure continuity.
+//! Keyed widgets can provide hints to ensure continuity.
 //!
 //! # What is continuity?
 //! Continuity is the feeling of persistence of state.
@@ -41,13 +41,35 @@ pub mod column;
 
 pub use column::Column;
 
-/// Creates a [`Column`] with the given children.
+/// Creates a keyed [`Column`] with the given children.
+///
+/// Keyed columns distribute content vertically while keeping continuity.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::keyed_column;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     keyed_column![
+///         (0, "Item 0"),
+///         (1, "Item 1"),
+///         (2, "Item 2"),
+///     ].into()
+/// }
+/// ```
 #[macro_export]
 macro_rules! keyed_column {
     () => (
-        $crate::Column::new()
+        $crate::keyed::Column::new()
     );
-    ($($x:expr),+ $(,)?) => (
-        $crate::keyed::Column::with_children(vec![$($crate::core::Element::from($x)),+])
+    ($(($key:expr, $x:expr)),+ $(,)?) => (
+        $crate::keyed::Column::with_children(vec![$(($key, $crate::core::Element::from($x))),+])
     );
 }
