@@ -9,6 +9,7 @@ use crate::core::window;
 use crate::core::{Element, Length, Pixels, Widget};
 use crate::keyed;
 use crate::overlay;
+use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
@@ -1268,4 +1269,56 @@ where
     NewTheme: Clone,
 {
     Themer::new(move |_| new_theme.clone(), content)
+}
+
+/// Creates a [`PaneGrid`] with the given [`pane_grid::State`] and view function.
+///
+/// Pane grids let your users split regions of your application and organize layout dynamically.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::{pane_grid, text};
+///
+/// struct State {
+///     panes: pane_grid::State<Pane>,
+/// }
+///
+/// enum Pane {
+///     SomePane,
+///     AnotherKindOfPane,
+/// }
+///
+/// enum Message {
+///     PaneDragged(pane_grid::DragEvent),
+///     PaneResized(pane_grid::ResizeEvent),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     pane_grid(&state.panes, |pane, state, is_maximized| {
+///         pane_grid::Content::new(match state {
+///             Pane::SomePane => text("This is some pane"),
+///             Pane::AnotherKindOfPane => text("This is another kind of pane"),
+///         })
+///     })
+///     .on_drag(Message::PaneDragged)
+///     .on_resize(10, Message::PaneResized)
+///     .into()
+/// }
+/// ```
+pub fn pane_grid<'a, T, Message, Theme, Renderer>(
+    state: &'a pane_grid::State<T>,
+    view: impl Fn(
+        pane_grid::Pane,
+        &'a T,
+        bool,
+    ) -> pane_grid::Content<'a, Message, Theme, Renderer>,
+) -> PaneGrid<'a, Message, Theme, Renderer>
+where
+    Theme: pane_grid::Catalog,
+    Renderer: core::Renderer,
+{
+    PaneGrid::new(state, view)
 }
