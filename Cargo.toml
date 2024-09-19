@@ -65,6 +65,8 @@ advanced = ["iced_core/advanced", "iced_widget/advanced"]
 fira-sans = ["iced_renderer/fira-sans"]
 # Enables auto-detecting light/dark mode for the built-in theme
 auto-detect-theme = ["iced_core/auto-detect-theme"]
+# Enables strict assertions for debugging purposes at the expense of performance
+strict-assertions = ["iced_renderer/strict-assertions"]
 
 [dependencies]
 iced_core.workspace = true

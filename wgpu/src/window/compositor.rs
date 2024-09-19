@@ -56,6 +56,11 @@ impl Compositor {
     ) -> Result<Self, Error> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: settings.backends,
+            flags: if cfg!(feature = "strict-assertions") {
+                wgpu::InstanceFlags::debugging()
+            } else {
+                wgpu::InstanceFlags::empty()
+            },
             ..Default::default()
         });
 
