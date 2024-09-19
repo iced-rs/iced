@@ -969,7 +969,36 @@ where
 
 /// Creates a new [`Slider`].
 ///
-/// [`Slider`]: crate::Slider
+/// Sliders let users set a value by moving an indicator.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::slider;
+///
+/// struct State {
+///    value: f32,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ValueChanged(f32),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ValueChanged(value) => {
+///             state.value = value;
+///         }
+///     }
+/// }
+/// ```
 pub fn slider<'a, T, Message, Theme>(
     range: std::ops::RangeInclusive<T>,
     value: T,
@@ -985,7 +1014,36 @@ where
 
 /// Creates a new [`VerticalSlider`].
 ///
-/// [`VerticalSlider`]: crate::VerticalSlider
+/// Sliders let users set a value by moving an indicator.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::vertical_slider;
+///
+/// struct State {
+///    value: f32,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ValueChanged(f32),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     vertical_slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ValueChanged(value) => {
+///             state.value = value;
+///         }
+///     }
+/// }
+/// ```
 pub fn vertical_slider<'a, T, Message, Theme>(
     range: std::ops::RangeInclusive<T>,
     value: T,
