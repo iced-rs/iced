@@ -117,11 +117,16 @@ impl<T> Subscription<T> {
     /// and returning the `Sender` as a `Message` for the `Application`:
     ///
     /// ```
-    /// use iced_futures::subscription::{self, Subscription};
-    /// use iced_futures::stream;
-    /// use iced_futures::futures::channel::mpsc;
-    /// use iced_futures::futures::sink::SinkExt;
-    /// use iced_futures::futures::Stream;
+    /// # mod iced {
+    /// #     pub use iced_futures::Subscription;   
+    /// #     pub use iced_futures::futures;
+    /// #     pub use iced_futures::stream;
+    /// # }
+    /// use iced::futures::channel::mpsc;
+    /// use iced::futures::sink::SinkExt;
+    /// use iced::futures::Stream;
+    /// use iced::stream;
+    /// use iced::Subscription;
     ///
     /// pub enum Event {
     ///     Ready(mpsc::Sender<Input>),

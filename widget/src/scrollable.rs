@@ -1,4 +1,24 @@
-//! Navigate an endless amount of content with a scrollbar.
+//! Scrollables let users navigate an endless amount of content with a scrollbar.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::{column, scrollable, vertical_space};
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     scrollable(column![
+//!         "Scroll me!",
+//!         vertical_space().height(3000),
+//!         "You did it!",
+//!     ]).into()
+//! }
+//! ```
 use crate::container;
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
@@ -24,6 +44,26 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{column, scrollable, vertical_space};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     scrollable(column![
+///         "Scroll me!",
+///         vertical_space().height(3000),
+///         "You did it!",
+///     ]).into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Scrollable<
     'a,
@@ -751,7 +791,7 @@ where
                         // TODO: Configurable speed/friction (?)
                         -movement * 60.0
                     }
-                    mouse::ScrollDelta::Pixels { x, y } => Vector::new(x, y),
+                    mouse::ScrollDelta::Pixels { x, y } => -Vector::new(x, y),
                 };
 
                 state.scroll(
@@ -760,13 +800,17 @@ where
                     content_bounds,
                 );
 
-                if notify_scroll(
+                let has_scrolled = notify_scroll(
                     state,
                     &self.on_scroll,
                     bounds,
                     content_bounds,
                     shell,
-                ) {
+                );
+
+                let in_transaction = state.last_scrolled.is_some();
+
+                if has_scrolled || in_transaction {
                     event::Status::Captured
                 } else {
                     event::Status::Ignored
@@ -1194,11 +1238,6 @@ fn notify_viewport<Message>(
         return false;
     }
 
-    let Some(on_scroll) = on_scroll else {
-        state.last_notified = None;
-        return false;
-    };
-
     let viewport = Viewport {
         offset_x: state.offset_x,
         offset_y: state.offset_y,
@@ -1229,8 +1268,11 @@ fn notify_viewport<Message>(
         }
     }
 
-    shell.publish(on_scroll(viewport));
     state.last_notified = Some(viewport);
+
+    if let Some(on_scroll) = on_scroll {
+        shell.publish(on_scroll(viewport));
+    }
 
     true
 }

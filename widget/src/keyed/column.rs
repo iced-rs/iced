@@ -1,4 +1,4 @@
-//! Distribute content vertically.
+//! Keyed columns distribute content vertically while keeping continuity.
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -11,7 +11,25 @@ use crate::core::{
     Shell, Size, Vector, Widget,
 };
 
-/// A container that distributes its contents vertically.
+/// A container that distributes its contents vertically while keeping continuity.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{keyed_column, text};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     keyed_column((0..=100).map(|i| {
+///         (i, text!("Item {i}").into())
+///     })).into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Column<
     'a,

@@ -1,4 +1,21 @@
-//! Allow your users to perform actions by pressing a button.
+//! Buttons allow your users to perform actions by pressing them.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::button;
+//!
+//! #[derive(Clone)]
+//! enum Message {
+//!     ButtonPressed,
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     button("Press me!").on_press(Message::ButtonPressed).into()
+//! }
+//! ```
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::layout;
@@ -16,34 +33,39 @@ use crate::core::{
 
 /// A generic widget that produces a message when pressed.
 ///
+/// # Example
 /// ```no_run
-/// # type Button<'a, Message> = iced_widget::Button<'a, Message>;
-/// #
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::button;
+///
 /// #[derive(Clone)]
 /// enum Message {
 ///     ButtonPressed,
 /// }
 ///
-/// let button = Button::new("Press me!").on_press(Message::ButtonPressed);
+/// fn view(state: &State) -> Element<'_, Message> {
+///     button("Press me!").on_press(Message::ButtonPressed).into()
+/// }
 /// ```
 ///
 /// If a [`Button::on_press`] handler is not set, the resulting [`Button`] will
 /// be disabled:
 ///
-/// ```
-/// # type Button<'a, Message> = iced_widget::Button<'a, Message>;
-/// #
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::button;
+///
 /// #[derive(Clone)]
 /// enum Message {
 ///     ButtonPressed,
 /// }
 ///
-/// fn disabled_button<'a>() -> Button<'a, Message> {
-///     Button::new("I'm disabled!")
-/// }
-///
-/// fn enabled_button<'a>() -> Button<'a, Message> {
-///     disabled_button().on_press(Message::ButtonPressed)
+/// fn view(state: &State) -> Element<'_, Message> {
+///     button("I am disabled!").into()
 /// }
 /// ```
 #[allow(missing_debug_implementations)]

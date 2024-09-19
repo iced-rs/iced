@@ -1,4 +1,25 @@
-//! Write some text for your users to read.
+//! Text widgets display information through writing.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme, ()> { unimplemented!() } }
+//! #            pub use iced_core::color; }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
+//! use iced::widget::text;
+//! use iced::color;
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     text("Hello, this is iced!")
+//!         .size(20)
+//!         .color(color!(0x0000ff))
+//!         .into()
+//! }
+//! ```
 use crate::alignment;
 use crate::layout;
 use crate::mouse;
@@ -13,7 +34,28 @@ use crate::{
 
 pub use text::{LineHeight, Shaping, Wrapping};
 
-/// A paragraph of text.
+/// A bunch of text.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme, ()> { unimplemented!() } }
+/// #            pub use iced_core::color; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
+/// use iced::widget::text;
+/// use iced::color;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text("Hello, this is iced!")
+///         .size(20)
+///         .color(color!(0x0000ff))
+///         .into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Text<'a, Theme, Renderer>
 where

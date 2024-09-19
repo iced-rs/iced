@@ -1,6 +1,35 @@
-//! Display fields that can be filled with text.
+//! Text inputs display fields that can be filled with text.
 //!
-//! A [`TextInput`] has some local [`State`].
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::text_input;
+//!
+//! struct State {
+//!    content: String,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     ContentChanged(String)
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     text_input("Type something here...", &state.content)
+//!         .on_input(Message::ContentChanged)
+//!         .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::ContentChanged(content) => {
+//!             state.content = content;
+//!         }
+//!     }
+//! }
+//! ```
 mod editor;
 mod value;
 
@@ -38,23 +67,34 @@ use crate::runtime::Action;
 ///
 /// # Example
 /// ```no_run
-/// # pub type TextInput<'a, Message> = iced_widget::TextInput<'a, Message>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// #[derive(Debug, Clone)]
-/// enum Message {
-///     TextInputChanged(String),
+/// use iced::widget::text_input;
+///
+/// struct State {
+///    content: String,
 /// }
 ///
-/// let value = "Some text";
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ContentChanged(String)
+/// }
 ///
-/// let input = TextInput::new(
-///     "This is the placeholder...",
-///     value,
-/// )
-/// .on_input(Message::TextInputChanged)
-/// .padding(10);
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text_input("Type something here...", &state.content)
+///         .on_input(Message::ContentChanged)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ContentChanged(content) => {
+///             state.content = content;
+///         }
+///     }
+/// }
 /// ```
-/// ![Text input drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct TextInput<
     'a,
@@ -114,8 +154,8 @@ where
     }
 
     /// Sets the [`Id`] of the [`TextInput`].
-    pub fn id(mut self, id: Id) -> Self {
-        self.id = Some(id);
+    pub fn id(mut self, id: impl Into<Id>) -> Self {
+        self.id = Some(id.into());
         self
     }
 
@@ -1226,38 +1266,53 @@ impl From<Id> for widget::Id {
     }
 }
 
+impl From<&'static str> for Id {
+    fn from(id: &'static str) -> Self {
+        Self::new(id)
+    }
+}
+
+impl From<String> for Id {
+    fn from(id: String) -> Self {
+        Self::new(id)
+    }
+}
+
 /// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
-pub fn focus<T>(id: Id) -> Task<T> {
-    task::effect(Action::widget(operation::focusable::focus(id.0)))
+pub fn focus<T>(id: impl Into<Id>) -> Task<T> {
+    task::effect(Action::widget(operation::focusable::focus(id.into().0)))
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// end.
-pub fn move_cursor_to_end<T>(id: Id) -> Task<T> {
+pub fn move_cursor_to_end<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to_end(
-        id.0,
+        id.into().0,
     )))
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// front.
-pub fn move_cursor_to_front<T>(id: Id) -> Task<T> {
+pub fn move_cursor_to_front<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to_front(
-        id.0,
+        id.into().0,
     )))
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// provided position.
-pub fn move_cursor_to<T>(id: Id, position: usize) -> Task<T> {
+pub fn move_cursor_to<T>(id: impl Into<Id>, position: usize) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to(
-        id.0, position,
+        id.into().0,
+        position,
     )))
 }
 
 /// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`Id`].
-pub fn select_all<T>(id: Id) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::select_all(id.0)))
+pub fn select_all<T>(id: impl Into<Id>) -> Task<T> {
+    task::effect(Action::widget(operation::text_input::select_all(
+        id.into().0,
+    )))
 }
 
 /// The state of a [`TextInput`].

@@ -1,4 +1,35 @@
-//! Show toggle controls using togglers.
+//! Togglers let users make binary choices by toggling a switch.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::toggler;
+//!
+//! struct State {
+//!    is_checked: bool,
+//! }
+//!
+//! enum Message {
+//!     TogglerToggled(bool),
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     toggler(state.is_checked)
+//!         .label("Toggle me!")
+//!         .on_toggle(Message::TogglerToggled)
+//!         .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::TogglerToggled(is_checked) => {
+//!             state.is_checked = is_checked;
+//!         }
+//!     }
+//! }
+//! ```
 use crate::core::alignment;
 use crate::core::event;
 use crate::core::layout;
@@ -16,19 +47,34 @@ use crate::core::{
 /// A toggler widget.
 ///
 /// # Example
-///
 /// ```no_run
-/// # type Toggler<'a, Message> = iced_widget::Toggler<'a, Message>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// pub enum Message {
+/// use iced::widget::toggler;
+///
+/// struct State {
+///    is_checked: bool,
+/// }
+///
+/// enum Message {
 ///     TogglerToggled(bool),
 /// }
 ///
-/// let is_toggled = true;
+/// fn view(state: &State) -> Element<'_, Message> {
+///     toggler(state.is_checked)
+///         .label("Toggle me!")
+///         .on_toggle(Message::TogglerToggled)
+///         .into()
+/// }
 ///
-/// Toggler::new(is_toggled)
-///     .label("Toggle me!")
-///     .on_toggle(Message::TogglerToggled);
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::TogglerToggled(is_checked) => {
+///             state.is_checked = is_checked;
+///         }
+///     }
+/// }
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Toggler<

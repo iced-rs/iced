@@ -380,16 +380,18 @@
 //! #     use iced::{Element, Task};
 //! #     pub struct Contacts;
 //! #     impl Contacts {
-//! #         pub fn update(&mut self, message: Message) -> Task<Message> { unimplemented!() }
+//! #         pub fn update(&mut self, message: Message) -> Action { unimplemented!() }
 //! #         pub fn view(&self) -> Element<Message> { unimplemented!() }
 //! #     }
 //! #     #[derive(Debug)]
 //! #     pub enum Message {}
+//! #     pub enum Action { None, Run(Task<Message>), Chat(()) }
 //! # }
 //! # mod conversation {
 //! #     use iced::{Element, Task};
 //! #     pub struct Conversation;
 //! #     impl Conversation {
+//! #         pub fn new(contact: ()) -> (Self, Task<Message>) { unimplemented!() }
 //! #         pub fn update(&mut self, message: Message) -> Task<Message> { unimplemented!() }
 //! #         pub fn view(&self) -> Element<Message> { unimplemented!() }
 //! #     }
@@ -419,7 +421,19 @@
 //!     match message {
 //!         Message::Contacts(message) => {
 //!             if let Screen::Contacts(contacts) = &mut state.screen {
-//!                 contacts.update(message).map(Message::Contacts)
+//!                 let action = contacts.update(message);
+//!
+//!                 match action {
+//!                     contacts::Action::None => Task::none(),
+//!                     contacts::Action::Run(task) => task.map(Message::Contacts),
+//!                     contacts::Action::Chat(contact) => {
+//!                         let (conversation, task) = Conversation::new(contact);
+//!
+//!                         state.screen = Screen::Conversation(conversation);
+//!
+//!                         task.map(Message::Conversation)
+//!                     }
+//!                  }
 //!             } else {
 //!                 Task::none()    
 //!             }
@@ -442,8 +456,16 @@
 //! }
 //! ```
 //!
-//! Functor methods like [`Task::map`], [`Element::map`], and [`Subscription::map`] make this
-//! approach seamless.
+//! The `update` method of a screen can return an `Action` enum that can be leveraged by the parent to
+//! execute a task or transition to a completely different screen altogether. The variants of `Action` can
+//! have associated data. For instance, in the example above, the `Conversation` screen is created when
+//! `Contacts::update` returns an `Action::Chat` with the selected contact.
+//!
+//! Effectively, this approach lets you "tell a story" to connect different screens together in a type safe
+//! way.
+//!
+//! Furthermore, functor methods like [`Task::map`], [`Element::map`], and [`Subscription::map`] make composition
+//! seamless.
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/bdf0430880f5c29443f5f0a0ae4895866dfef4c6/docs/logo.svg"
 )]

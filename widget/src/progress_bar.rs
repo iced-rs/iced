@@ -1,4 +1,24 @@
-//! Provide progress feedback to your users.
+//! Progress bars visualize the progression of an extended computer operation, such as a download, file transfer, or installation.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::progress_bar;
+//!
+//! struct State {
+//!    progress: f32,
+//! }
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     progress_bar(0.0..=100.0, state.progress).into()
+//! }
+//! ```
 use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
@@ -15,14 +35,23 @@ use std::ops::RangeInclusive;
 ///
 /// # Example
 /// ```no_run
-/// # type ProgressBar<'a> = iced_widget::ProgressBar<'a>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// let value = 50.0;
+/// use iced::widget::progress_bar;
 ///
-/// ProgressBar::new(0.0..=100.0, value);
+/// struct State {
+///    progress: f32,
+/// }
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     progress_bar(0.0..=100.0, state.progress).into()
+/// }
 /// ```
-///
-/// ![Progress bar drawn with `iced_wgpu`](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
 pub struct ProgressBar<'a, Theme = crate::Theme>
 where

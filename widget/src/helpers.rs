@@ -9,6 +9,7 @@ use crate::core::window;
 use crate::core::{Element, Length, Pixels, Widget};
 use crate::keyed;
 use crate::overlay;
+use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
@@ -30,7 +31,28 @@ use std::ops::RangeInclusive;
 
 /// Creates a [`Column`] with the given children.
 ///
-/// [`Column`]: crate::Column
+/// Columns distribute their children vertically.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{button, column};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     column![
+///         "I am on top!",
+///         button("I am in the center!"),
+///         "I am below.",
+///     ].into()
+/// }
+/// ```
 #[macro_export]
 macro_rules! column {
     () => (
@@ -43,7 +65,28 @@ macro_rules! column {
 
 /// Creates a [`Row`] with the given children.
 ///
-/// [`Row`]: crate::Row
+/// Rows distribute their children horizontally.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{button, row};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     row![
+///         "I am to the left!",
+///         button("I am in the middle!"),
+///         "I am to the right!",
+///     ].into()
+/// }
+/// ```
 #[macro_export]
 macro_rules! row {
     () => (
@@ -80,7 +123,6 @@ macro_rules! stack {
 ///
 /// ```no_run
 /// # mod iced {
-/// #     pub struct Element<Message>(pub std::marker::PhantomData<Message>);
 /// #     pub mod widget {
 /// #         macro_rules! text {
 /// #           ($($arg:tt)*) => {unimplemented!()}
@@ -88,22 +130,23 @@ macro_rules! stack {
 /// #         pub(crate) use text;
 /// #     }
 /// # }
-/// # struct Example;
-/// # enum Message {}
-/// use iced::Element;
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::core::Theme, ()>;
 /// use iced::widget::text;
 ///
-/// impl Example {
-///     fn view(&self) -> Element<Message> {
-///         let simple = text!("Hello, world!");
+/// enum Message {
+///     // ...
+/// }
 ///
-///         let keyword = text!("Hello, {}", "world!");
+/// fn view(_state: &State) -> Element<Message> {
+///     let simple = text!("Hello, world!");
 ///
-///         let planet = "Earth";
-///         let local_variable = text!("Hello, {planet}!");
-///         // ...
-///         # iced::Element(std::marker::PhantomData)
-///     }
+///     let keyword = text!("Hello, {}", "world!");
+///
+///     let planet = "Earth";
+///     let local_variable = text!("Hello, {planet}!");
+///     // ...
+///     # unimplemented!()
 /// }
 /// ```
 #[macro_export]
@@ -116,6 +159,31 @@ macro_rules! text {
 /// Creates some [`Rich`] text with the given spans.
 ///
 /// [`Rich`]: text::Rich
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::font;
+/// use iced::widget::{rich_text, span};
+/// use iced::{color, Font};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     rich_text![
+///         span("I am red!").color(color!(0xff0000)),
+///         " ",
+///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
+///     ]
+///     .size(20)
+///     .into()
+/// }
+/// ```
 #[macro_export]
 macro_rules! rich_text {
     () => (
@@ -128,7 +196,27 @@ macro_rules! rich_text {
 
 /// Creates a new [`Container`] with the provided content.
 ///
-/// [`Container`]: crate::Container
+/// Containers let you align a widget inside their boundaries.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::container;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     container("This text is centered inside a rounded box!")
+///         .padding(10)
+///         .center(800)
+///         .style(container::rounded_box)
+///         .into()
+/// }
+/// ```
 pub fn container<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Container<'a, Message, Theme, Renderer>
@@ -162,6 +250,24 @@ where
 }
 
 /// Creates a new [`Column`] with the given children.
+///
+/// Columns distribute their children vertically.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{column, text};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     column((0..5).map(|i| text!("Item {i}").into())).into()
+/// }
+/// ```
 pub fn column<'a, Message, Theme, Renderer>(
     children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
 ) -> Column<'a, Message, Theme, Renderer>
@@ -171,7 +277,27 @@ where
     Column::with_children(children)
 }
 
-/// Creates a new [`keyed::Column`] with the given children.
+/// Creates a new [`keyed::Column`] from an iterator of elements.
+///
+/// Keyed columns distribute content vertically while keeping continuity.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{keyed_column, text};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     keyed_column((0..=100).map(|i| {
+///         (i, text!("Item {i}").into())
+///     })).into()
+/// }
+/// ```
 pub fn keyed_column<'a, Key, Message, Theme, Renderer>(
     children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
 ) -> keyed::Column<'a, Key, Message, Theme, Renderer>
@@ -182,9 +308,25 @@ where
     keyed::Column::with_children(children)
 }
 
-/// Creates a new [`Row`] with the given children.
+/// Creates a new [`Row`] from an iterator.
 ///
-/// [`Row`]: crate::Row
+/// Rows distribute their children horizontally.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{row, text};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     row((0..5).map(|i| text!("Item {i}").into())).into()
+/// }
+/// ```
 pub fn row<'a, Message, Theme, Renderer>(
     children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
 ) -> Row<'a, Message, Theme, Renderer>
@@ -640,7 +782,27 @@ where
 
 /// Creates a new [`Scrollable`] with the provided content.
 ///
-/// [`Scrollable`]: crate::Scrollable
+/// Scrollables let users navigate an endless amount of content with a scrollbar.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{column, scrollable, vertical_space};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     scrollable(column![
+///         "Scroll me!",
+///         vertical_space().height(3000),
+///         "You did it!",
+///     ]).into()
+/// }
+/// ```
 pub fn scrollable<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Scrollable<'a, Message, Theme, Renderer>
@@ -653,7 +815,22 @@ where
 
 /// Creates a new [`Button`] with the provided content.
 ///
-/// [`Button`]: crate::Button
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::button;
+///
+/// #[derive(Clone)]
+/// enum Message {
+///     ButtonPressed,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     button("Press me!").on_press(Message::ButtonPressed).into()
+/// }
+/// ```
 pub fn button<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Button<'a, Message, Theme, Renderer>
@@ -667,8 +844,29 @@ where
 /// Creates a new [`Tooltip`] for the provided content with the given
 /// [`Element`] and [`tooltip::Position`].
 ///
-/// [`Tooltip`]: crate::Tooltip
-/// [`tooltip::Position`]: crate::tooltip::Position
+/// Tooltips display a hint of information over some element when hovered.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{container, tooltip};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(_state: &State) -> Element<'_, Message> {
+///     tooltip(
+///         "Hover me to display the tooltip!",
+///         container("This is the tooltip contents!")
+///             .padding(10)
+///             .style(container::rounded_box),
+///         tooltip::Position::Bottom,
+///     ).into()
+/// }
+/// ```
 pub fn tooltip<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
     tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
@@ -682,6 +880,26 @@ where
 }
 
 /// Creates a new [`Text`] widget with the provided content.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::core::Theme, ()>;
+/// use iced::widget::text;
+/// use iced::color;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text("Hello, this is iced!")
+///         .size(20)
+///         .color(color!(0x0000ff))
+///         .into()
+/// }
+/// ```
 pub fn text<'a, Theme, Renderer>(
     text: impl text::IntoFragment<'a>,
 ) -> Text<'a, Theme, Renderer>
@@ -706,6 +924,31 @@ where
 /// Creates a new [`Rich`] text widget with the provided spans.
 ///
 /// [`Rich`]: text::Rich
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::font;
+/// use iced::widget::{rich_text, span};
+/// use iced::{color, Font};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     rich_text([
+///         span("I am red!").color(color!(0xff0000)),
+///         span(" "),
+///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
+///     ])
+///     .size(20)
+///     .into()
+/// }
+/// ```
 pub fn rich_text<'a, Link, Theme, Renderer>(
     spans: impl AsRef<[text::Span<'a, Link, Renderer::Font>]> + 'a,
 ) -> text::Rich<'a, Link, Theme, Renderer>
@@ -720,7 +963,35 @@ where
 
 /// Creates a new [`Span`] of text with the provided content.
 ///
+/// A [`Span`] is a fragment of some [`Rich`] text.
+///
 /// [`Span`]: text::Span
+/// [`Rich`]: text::Rich
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::font;
+/// use iced::widget::{rich_text, span};
+/// use iced::{color, Font};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     rich_text![
+///         span("I am red!").color(color!(0xff0000)),
+///         " ",
+///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
+///     ]
+///     .size(20)
+///     .into()
+/// }
+/// ```
 pub fn span<'a, Link, Font>(
     text: impl text::IntoFragment<'a>,
 ) -> text::Span<'a, Link, Font> {
@@ -733,7 +1004,36 @@ pub use crate::markdown::view as markdown;
 
 /// Creates a new [`Checkbox`].
 ///
-/// [`Checkbox`]: crate::Checkbox
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::checkbox;
+///
+/// struct State {
+///    is_checked: bool,
+/// }
+///
+/// enum Message {
+///     CheckboxToggled(bool),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     checkbox("Toggle me!", state.is_checked)
+///         .on_toggle(Message::CheckboxToggled)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::CheckboxToggled(is_checked) => {
+///             state.is_checked = is_checked;
+///         }
+///     }
+/// }
+/// ```
+/// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 pub fn checkbox<'a, Message, Theme, Renderer>(
     label: impl Into<String>,
     is_checked: bool,
@@ -747,7 +1047,64 @@ where
 
 /// Creates a new [`Radio`].
 ///
-/// [`Radio`]: crate::Radio
+/// Radio buttons let users choose a single option from a bunch of options.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::{column, radio};
+///
+/// struct State {
+///    selection: Option<Choice>,
+/// }
+///
+/// #[derive(Debug, Clone, Copy)]
+/// enum Message {
+///     RadioSelected(Choice),
+/// }
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// enum Choice {
+///     A,
+///     B,
+///     C,
+///     All,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     let a = radio(
+///         "A",
+///         Choice::A,
+///         state.selection,
+///         Message::RadioSelected,
+///     );
+///
+///     let b = radio(
+///         "B",
+///         Choice::B,
+///         state.selection,
+///         Message::RadioSelected,
+///     );
+///
+///     let c = radio(
+///         "C",
+///         Choice::C,
+///         state.selection,
+///         Message::RadioSelected,
+///     );
+///
+///     let all = radio(
+///         "All of the above",
+///         Choice::All,
+///         state.selection,
+///         Message::RadioSelected
+///     );
+///
+///     column![a, b, c, all].into()
+/// }
+/// ```
 pub fn radio<'a, Message, Theme, Renderer, V>(
     label: impl Into<String>,
     value: V,
@@ -765,7 +1122,38 @@ where
 
 /// Creates a new [`Toggler`].
 ///
-/// [`Toggler`]: crate::Toggler
+/// Togglers let users make binary choices by toggling a switch.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::toggler;
+///
+/// struct State {
+///    is_checked: bool,
+/// }
+///
+/// enum Message {
+///     TogglerToggled(bool),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     toggler(state.is_checked)
+///         .label("Toggle me!")
+///         .on_toggle(Message::TogglerToggled)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::TogglerToggled(is_checked) => {
+///             state.is_checked = is_checked;
+///         }
+///     }
+/// }
+/// ```
 pub fn toggler<'a, Message, Theme, Renderer>(
     is_checked: bool,
 ) -> Toggler<'a, Message, Theme, Renderer>
@@ -778,7 +1166,38 @@ where
 
 /// Creates a new [`TextInput`].
 ///
-/// [`TextInput`]: crate::TextInput
+/// Text inputs display fields that can be filled with text.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::text_input;
+///
+/// struct State {
+///    content: String,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ContentChanged(String)
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text_input("Type something here...", &state.content)
+///         .on_input(Message::ContentChanged)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ContentChanged(content) => {
+///             state.content = content;
+///         }
+///     }
+/// }
+/// ```
 pub fn text_input<'a, Message, Theme, Renderer>(
     placeholder: &str,
     value: &str,
@@ -793,7 +1212,39 @@ where
 
 /// Creates a new [`TextEditor`].
 ///
-/// [`TextEditor`]: crate::TextEditor
+/// Text editors display a multi-line text input for text editing.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::text_editor;
+///
+/// struct State {
+///    content: text_editor::Content,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     Edit(text_editor::Action)
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text_editor(&state.content)
+///         .placeholder("Type something here...")
+///         .on_action(Message::Edit)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::Edit(action) => {
+///             state.content.perform(action);
+///         }
+///     }
+/// }
+/// ```
 pub fn text_editor<'a, Message, Theme, Renderer>(
     content: &'a text_editor::Content<Renderer>,
 ) -> TextEditor<'a, core::text::highlighter::PlainText, Message, Theme, Renderer>
@@ -807,7 +1258,36 @@ where
 
 /// Creates a new [`Slider`].
 ///
-/// [`Slider`]: crate::Slider
+/// Sliders let users set a value by moving an indicator.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::slider;
+///
+/// struct State {
+///    value: f32,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ValueChanged(f32),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ValueChanged(value) => {
+///             state.value = value;
+///         }
+///     }
+/// }
+/// ```
 pub fn slider<'a, T, Message, Theme>(
     range: std::ops::RangeInclusive<T>,
     value: T,
@@ -823,7 +1303,36 @@ where
 
 /// Creates a new [`VerticalSlider`].
 ///
-/// [`VerticalSlider`]: crate::VerticalSlider
+/// Sliders let users set a value by moving an indicator.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::vertical_slider;
+///
+/// struct State {
+///    value: f32,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ValueChanged(f32),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     vertical_slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ValueChanged(value) => {
+///             state.value = value;
+///         }
+///     }
+/// }
+/// ```
 pub fn vertical_slider<'a, T, Message, Theme>(
     range: std::ops::RangeInclusive<T>,
     value: T,
@@ -839,7 +1348,68 @@ where
 
 /// Creates a new [`PickList`].
 ///
-/// [`PickList`]: crate::PickList
+/// Pick lists display a dropdown list of selectable options.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::pick_list;
+///
+/// struct State {
+///    favorite: Option<Fruit>,
+/// }
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// enum Fruit {
+///     Apple,
+///     Orange,
+///     Strawberry,
+///     Tomato,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     FruitSelected(Fruit),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     let fruits = [
+///         Fruit::Apple,
+///         Fruit::Orange,
+///         Fruit::Strawberry,
+///         Fruit::Tomato,
+///     ];
+///
+///     pick_list(
+///         fruits,
+///         state.favorite,
+///         Message::FruitSelected,
+///     )
+///     .placeholder("Select your favorite fruit...")
+///     .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::FruitSelected(fruit) => {
+///             state.favorite = Some(fruit);
+///         }
+///     }
+/// }
+///
+/// impl std::fmt::Display for Fruit {
+///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+///         f.write_str(match self {
+///             Self::Apple => "Apple",
+///             Self::Orange => "Orange",
+///             Self::Strawberry => "Strawberry",
+///             Self::Tomato => "Tomato",
+///         })
+///     }
+/// }
+/// ```
 pub fn pick_list<'a, T, L, V, Message, Theme, Renderer>(
     options: L,
     selected: Option<V>,
@@ -858,7 +1428,62 @@ where
 
 /// Creates a new [`ComboBox`].
 ///
-/// [`ComboBox`]: crate::ComboBox
+/// Combo boxes display a dropdown list of searchable and selectable options.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::combo_box;
+///
+/// struct State {
+///    fruits: combo_box::State<Fruit>,
+///    favorite: Option<Fruit>,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Fruit {
+///     Apple,
+///     Orange,
+///     Strawberry,
+///     Tomato,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     FruitSelected(Fruit),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     combo_box(
+///         &state.fruits,
+///         "Select your favorite fruit...",
+///         state.favorite.as_ref(),
+///         Message::FruitSelected
+///     )
+///     .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::FruitSelected(fruit) => {
+///             state.favorite = Some(fruit);
+///         }
+///     }
+/// }
+///
+/// impl std::fmt::Display for Fruit {
+///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+///         f.write_str(match self {
+///             Self::Apple => "Apple",
+///             Self::Orange => "Orange",
+///             Self::Strawberry => "Strawberry",
+///             Self::Tomato => "Tomato",
+///         })
+///     }
+/// }
+/// ```
 pub fn combo_box<'a, T, Message, Theme, Renderer>(
     state: &'a combo_box::State<T>,
     placeholder: &str,
@@ -891,7 +1516,22 @@ pub fn vertical_space() -> Space {
 
 /// Creates a horizontal [`Rule`] with the given height.
 ///
-/// [`Rule`]: crate::Rule
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::horizontal_rule;
+///
+/// #[derive(Clone)]
+/// enum Message {
+///     // ...,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     horizontal_rule(2).into()
+/// }
+/// ```
 pub fn horizontal_rule<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
 where
     Theme: rule::Catalog + 'a,
@@ -901,7 +1541,22 @@ where
 
 /// Creates a vertical [`Rule`] with the given width.
 ///
-/// [`Rule`]: crate::Rule
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::vertical_rule;
+///
+/// #[derive(Clone)]
+/// enum Message {
+///     // ...,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     vertical_rule(2).into()
+/// }
+/// ```
 pub fn vertical_rule<'a, Theme>(width: impl Into<Pixels>) -> Rule<'a, Theme>
 where
     Theme: rule::Catalog + 'a,
@@ -911,11 +1566,31 @@ where
 
 /// Creates a new [`ProgressBar`].
 ///
+/// Progress bars visualize the progression of an extended computer operation, such as a download, file transfer, or installation.
+///
 /// It expects:
 ///   * an inclusive range of possible values, and
 ///   * the current value of the [`ProgressBar`].
 ///
-/// [`ProgressBar`]: crate::ProgressBar
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::progress_bar;
+///
+/// struct State {
+///    progress: f32,
+/// }
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     progress_bar(0.0..=100.0, state.progress).into()
+/// }
+/// ```
 pub fn progress_bar<'a, Theme>(
     range: RangeInclusive<f32>,
     value: f32,
@@ -928,7 +1603,26 @@ where
 
 /// Creates a new [`Image`].
 ///
+/// Images display raster graphics in different formats (PNG, JPG, etc.).
+///
 /// [`Image`]: crate::Image
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::image;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     image("ferris.png").into()
+/// }
+/// ```
+/// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[cfg(feature = "image")]
 pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
     crate::Image::new(handle.into())
@@ -936,8 +1630,26 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
 
 /// Creates a new [`Svg`] widget from the given [`Handle`].
 ///
+/// Svg widgets display vector graphics in your application.
+///
 /// [`Svg`]: crate::Svg
 /// [`Handle`]: crate::svg::Handle
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::svg;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     svg("tiger.svg").into()
+/// }
+/// ```
 #[cfg(feature = "svg")]
 pub fn svg<'a, Theme>(
     handle: impl Into<core::svg::Handle>,
@@ -985,7 +1697,58 @@ where
 
 /// Creates a new [`Canvas`].
 ///
+/// Canvases can be leveraged to draw interactive 2D graphics.
+///
 /// [`Canvas`]: crate::Canvas
+///
+/// # Example: Drawing a Simple Circle
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::mouse;
+/// use iced::widget::canvas;
+/// use iced::{Color, Rectangle, Renderer, Theme};
+///
+/// // First, we define the data we need for drawing
+/// #[derive(Debug)]
+/// struct Circle {
+///     radius: f32,
+/// }
+///
+/// // Then, we implement the `Program` trait
+/// impl<Message> canvas::Program<Message> for Circle {
+///     // No internal state
+///     type State = ();
+///
+///     fn draw(
+///         &self,
+///         _state: &(),
+///         renderer: &Renderer,
+///         _theme: &Theme,
+///         bounds: Rectangle,
+///         _cursor: mouse::Cursor
+///     ) -> Vec<canvas::Geometry> {
+///         // We prepare a new `Frame`
+///         let mut frame = canvas::Frame::new(renderer, bounds.size());
+///
+///         // We create a `Path` representing a simple circle
+///         let circle = canvas::Path::circle(frame.center(), self.radius);
+///
+///         // And fill it with some color
+///         frame.fill(&circle, Color::BLACK);
+///
+///         // Then, we produce the geometry
+///         vec![frame.into_geometry()]
+///     }
+/// }
+///
+/// // Finally, we simply use our `Circle` to create the `Canvas`!
+/// fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
+///     canvas(Circle { radius: 50.0 }).into()
+/// }
+/// ```
 #[cfg(feature = "canvas")]
 pub fn canvas<P, Message, Theme, Renderer>(
     program: P,
@@ -999,8 +1762,31 @@ where
 
 /// Creates a new [`QRCode`] widget from the given [`Data`].
 ///
+/// QR codes display information in a type of two-dimensional matrix barcode.
+///
 /// [`QRCode`]: crate::QRCode
 /// [`Data`]: crate::qr_code::Data
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::qr_code;
+///
+/// struct State {
+///    data: qr_code::Data,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     qr_code(&state.data).into()
+/// }
+/// ```
 #[cfg(feature = "qr_code")]
 pub fn qr_code<'a, Theme>(
     data: &'a crate::qr_code::Data,
@@ -1059,4 +1845,56 @@ where
     NewTheme: Clone,
 {
     Themer::new(move |_| new_theme.clone(), content)
+}
+
+/// Creates a [`PaneGrid`] with the given [`pane_grid::State`] and view function.
+///
+/// Pane grids let your users split regions of your application and organize layout dynamically.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::{pane_grid, text};
+///
+/// struct State {
+///     panes: pane_grid::State<Pane>,
+/// }
+///
+/// enum Pane {
+///     SomePane,
+///     AnotherKindOfPane,
+/// }
+///
+/// enum Message {
+///     PaneDragged(pane_grid::DragEvent),
+///     PaneResized(pane_grid::ResizeEvent),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     pane_grid(&state.panes, |pane, state, is_maximized| {
+///         pane_grid::Content::new(match state {
+///             Pane::SomePane => text("This is some pane"),
+///             Pane::AnotherKindOfPane => text("This is another kind of pane"),
+///         })
+///     })
+///     .on_drag(Message::PaneDragged)
+///     .on_resize(10, Message::PaneResized)
+///     .into()
+/// }
+/// ```
+pub fn pane_grid<'a, T, Message, Theme, Renderer>(
+    state: &'a pane_grid::State<T>,
+    view: impl Fn(
+        pane_grid::Pane,
+        &'a T,
+        bool,
+    ) -> pane_grid::Content<'a, Message, Theme, Renderer>,
+) -> PaneGrid<'a, Message, Theme, Renderer>
+where
+    Theme: pane_grid::Catalog,
+    Renderer: core::Renderer,
+{
+    PaneGrid::new(state, view)
 }

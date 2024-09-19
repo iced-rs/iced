@@ -9,6 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -116,7 +117,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.13.0"
+version = "0.13.1"
 authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
 edition = "2021"
 license = "MIT"
@@ -124,19 +125,20 @@ repository = "https://github.com/iced-rs/iced"
 homepage = "https://iced.rs"
 categories = ["gui"]
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+rust-version = "1.80"
 
 [workspace.dependencies]
-iced = { version = "0.13.0", path = "." }
-iced_core = { version = "0.13.0", path = "core" }
-iced_futures = { version = "0.13.0", path = "futures" }
-iced_graphics = { version = "0.13.0", path = "graphics" }
-iced_highlighter = { version = "0.13.0", path = "highlighter" }
-iced_renderer = { version = "0.13.0", path = "renderer" }
-iced_runtime = { version = "0.13.0", path = "runtime" }
-iced_tiny_skia = { version = "0.13.0", path = "tiny_skia" }
-iced_wgpu = { version = "0.13.0", path = "wgpu" }
-iced_widget = { version = "0.13.0", path = "widget" }
-iced_winit = { version = "0.13.0", path = "winit" }
+iced = { version = "0.13", path = "." }
+iced_core = { version = "0.13", path = "core" }
+iced_futures = { version = "0.13", path = "futures" }
+iced_graphics = { version = "0.13", path = "graphics" }
+iced_highlighter = { version = "0.13", path = "highlighter" }
+iced_renderer = { version = "0.13", path = "renderer" }
+iced_runtime = { version = "0.13", path = "runtime" }
+iced_tiny_skia = { version = "0.13", path = "tiny_skia" }
+iced_wgpu = { version = "0.13", path = "wgpu" }
+iced_widget = { version = "0.13", path = "widget" }
+iced_winit = { version = "0.13", path = "winit" }
 
 async-std = "1.0"
 bitflags = "2.0"

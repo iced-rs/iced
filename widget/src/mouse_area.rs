@@ -316,7 +316,7 @@ fn update<Message: Clone, Theme, Renderer>(
     let cursor_position = cursor.position();
     let bounds = layout.bounds();
 
-    if state.cursor_position != cursor_position && state.bounds != bounds {
+    if state.cursor_position != cursor_position || state.bounds != bounds {
         let was_hovered = state.is_hovered;
 
         state.is_hovered = cursor.is_over(layout.bounds());
