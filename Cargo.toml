@@ -117,7 +117,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.13.1"
+version = "0.14.0-dev"
 authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
 edition = "2021"
 license = "MIT"
@@ -128,17 +128,17 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 rust-version = "1.80"
 
 [workspace.dependencies]
-iced = { version = "0.13", path = "." }
-iced_core = { version = "0.13", path = "core" }
-iced_futures = { version = "0.13", path = "futures" }
-iced_graphics = { version = "0.13", path = "graphics" }
-iced_highlighter = { version = "0.13", path = "highlighter" }
-iced_renderer = { version = "0.13", path = "renderer" }
-iced_runtime = { version = "0.13", path = "runtime" }
-iced_tiny_skia = { version = "0.13", path = "tiny_skia" }
-iced_wgpu = { version = "0.13", path = "wgpu" }
-iced_widget = { version = "0.13", path = "widget" }
-iced_winit = { version = "0.13", path = "winit" }
+iced = { version = "0.14.0-dev", path = "." }
+iced_core = { version = "0.14.0-dev", path = "core" }
+iced_futures = { version = "0.14.0-dev", path = "futures" }
+iced_graphics = { version = "0.14.0-dev", path = "graphics" }
+iced_highlighter = { version = "0.14.0-dev", path = "highlighter" }
+iced_renderer = { version = "0.14.0-dev", path = "renderer" }
+iced_runtime = { version = "0.14.0-dev", path = "runtime" }
+iced_tiny_skia = { version = "0.14.0-dev", path = "tiny_skia" }
+iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
+iced_widget = { version = "0.14.0-dev", path = "widget" }
+iced_winit = { version = "0.14.0-dev", path = "winit" }
 
 async-std = "1.0"
 bitflags = "2.0"
