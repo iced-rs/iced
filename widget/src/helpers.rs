@@ -128,7 +128,27 @@ macro_rules! rich_text {
 
 /// Creates a new [`Container`] with the provided content.
 ///
-/// [`Container`]: crate::Container
+/// Containers let you align a widget inside their boundaries.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::container;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     container("This text is centered inside a rounded box!")
+///         .padding(10)
+///         .center(800)
+///         .style(container::rounded_box)
+///         .into()
+/// }
+/// ```
 pub fn container<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Container<'a, Message, Theme, Renderer>
@@ -1084,11 +1104,11 @@ where
 
 /// Creates a new [`Canvas`].
 ///
+/// Canvases can be leveraged to draw interactive 2D graphics.
+///
 /// [`Canvas`]: crate::Canvas
 ///
 /// # Example: Drawing a Simple Circle
-/// Here's how we can use a [`Canvas`] to draw a simple circle:
-///
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # pub type State = ();

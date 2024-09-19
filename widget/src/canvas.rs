@@ -1,8 +1,6 @@
-//! Draw 2D graphics for your users.
+//! Canvases can be leveraged to draw interactive 2D graphics.
 //!
 //! # Example: Drawing a Simple Circle
-//! Here's how we can use a [`Canvas`] to draw a simple circle:
-//!
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 //! # pub type State = ();
@@ -91,8 +89,6 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 /// A widget capable of drawing 2D graphics.
 ///
 /// # Example: Drawing a Simple Circle
-/// Here's how we can use a [`Canvas`] to draw a simple circle:
-///
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # pub type State = ();
