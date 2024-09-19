@@ -902,7 +902,62 @@ where
 
 /// Creates a new [`ComboBox`].
 ///
-/// [`ComboBox`]: crate::ComboBox
+/// Combo boxes display a dropdown list of searchable and selectable options.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::combo_box;
+///
+/// struct State {
+///    fruits: combo_box::State<Fruit>,
+///    favorite: Option<Fruit>,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Fruit {
+///     Apple,
+///     Orange,
+///     Strawberry,
+///     Tomato,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     FruitSelected(Fruit),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     combo_box(
+///         &state.fruits,
+///         "Select your favorite fruit...",
+///         state.favorite.as_ref(),
+///         Message::FruitSelected
+///     )
+///     .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::FruitSelected(fruit) => {
+///             state.favorite = Some(fruit);
+///         }
+///     }
+/// }
+///
+/// impl std::fmt::Display for Fruit {
+///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+///         f.write_str(match self {
+///             Self::Apple => "Apple",
+///             Self::Orange => "Orange",
+///             Self::Strawberry => "Strawberry",
+///             Self::Tomato => "Tomato",
+///         })
+///     }
+/// }
+/// ```
 pub fn combo_box<'a, T, Message, Theme, Renderer>(
     state: &'a combo_box::State<T>,
     placeholder: &str,
