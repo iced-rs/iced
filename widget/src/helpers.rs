@@ -832,7 +832,64 @@ where
 
 /// Creates a new [`Radio`].
 ///
-/// [`Radio`]: crate::Radio
+/// Radio buttons let users choose a single option from a bunch of options.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::{column, radio};
+///
+/// struct State {
+///    selection: Option<Choice>,
+/// }
+///
+/// #[derive(Debug, Clone, Copy)]
+/// enum Message {
+///     RadioSelected(Choice),
+/// }
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// enum Choice {
+///     A,
+///     B,
+///     C,
+///     All,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     let a = radio(
+///         "A",
+///         Choice::A,
+///         state.selection,
+///         Message::RadioSelected,
+///     );
+///
+///     let b = radio(
+///         "B",
+///         Choice::B,
+///         state.selection,
+///         Message::RadioSelected,
+///     );
+///
+///     let c = radio(
+///         "C",
+///         Choice::C,
+///         state.selection,
+///         Message::RadioSelected,
+///     );
+///
+///     let all = radio(
+///         "All of the above",
+///         Choice::All,
+///         state.selection,
+///         Message::RadioSelected
+///     );
+///
+///     column![a, b, c, all].into()
+/// }
+/// ```
 pub fn radio<'a, Message, Theme, Renderer, V>(
     label: impl Into<String>,
     value: V,
