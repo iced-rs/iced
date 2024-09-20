@@ -471,6 +471,9 @@ pub enum Status {
 }
 
 /// The style of a button.
+/// 
+/// If not specified with [`Button::style`]
+/// the theme will provide the style.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`Background`] of the button.
@@ -505,6 +508,47 @@ impl Default for Style {
 }
 
 /// The theme catalog of a [`Button`].
+/// 
+/// All themes that can be used with [`Button`]
+/// must implement this trait.
+/// 
+/// # Example
+/// ```no_run
+/// #[derive(Debug, Default)]
+/// pub enum ButtonStyles {
+///     #[default]
+///     Primary,
+///     Secondary,
+///     Danger
+/// }
+/// 
+/// impl Catalog for MyTheme {
+///     type Class<'a> = ButtonStyles;
+///     
+///     fn default<'a>() -> Self::Class<'a> {
+///         ButtonStyles::default()
+///     }
+///     
+/// 
+///     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+///         let mut style = Style::default();
+/// 
+///         match class {
+///             ButtonStyles::Primary => {
+///                 style.background = Some(Background::Color(Color::from_rgb(0.529, 0.808, 0.921)));
+///             },
+///             ButtonStyles::Secondary => {
+///                 style.background = Some(Background::Color(Color::WHITE));
+///             },
+///             ButtonStyles::Danger => {
+///                 style.background = Some(Background::Color(Color::from_rgb(0.941, 0.502, 0.502)));
+///             },
+///         }
+/// 
+///         style
+///     }
+/// }
+/// ```
 pub trait Catalog {
     /// The item class of the [`Catalog`].
     type Class<'a>;
