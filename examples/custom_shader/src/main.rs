@@ -3,7 +3,7 @@ mod scene;
 use scene::Scene;
 
 use iced::time::Instant;
-use iced::widget::shader::wgpu;
+use iced::wgpu;
 use iced::widget::{center, checkbox, column, row, shader, slider, text};
 use iced::window;
 use iced::{Center, Color, Element, Fill, Subscription};

@@ -483,6 +483,9 @@ pub use iced_futures::stream;
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
+#[cfg(feature = "wgpu")]
+pub use iced_renderer::wgpu::wgpu;
+
 mod error;
 mod program;
 
