@@ -515,7 +515,7 @@ impl Default for Style {
 /// # Example
 /// ```no_run
 /// #[derive(Debug, Default)]
-/// pub enum ButtonStyles {
+/// pub enum ButtonClass {
 ///     #[default]
 ///     Primary,
 ///     Secondary,
@@ -523,10 +523,10 @@ impl Default for Style {
 /// }
 /// 
 /// impl Catalog for MyTheme {
-///     type Class<'a> = ButtonStyles;
+///     type Class<'a> = ButtonClass;
 ///     
 ///     fn default<'a>() -> Self::Class<'a> {
-///         ButtonStyles::default()
+///         ButtonClass::default()
 ///     }
 ///     
 /// 
@@ -534,13 +534,13 @@ impl Default for Style {
 ///         let mut style = Style::default();
 /// 
 ///         match class {
-///             ButtonStyles::Primary => {
+///             ButtonClass::Primary => {
 ///                 style.background = Some(Background::Color(Color::from_rgb(0.529, 0.808, 0.921)));
 ///             },
-///             ButtonStyles::Secondary => {
+///             ButtonClass::Secondary => {
 ///                 style.background = Some(Background::Color(Color::WHITE));
 ///             },
-///             ButtonStyles::Danger => {
+///             ButtonClass::Danger => {
 ///                 style.background = Some(Background::Color(Color::from_rgb(0.941, 0.502, 0.502)));
 ///             },
 ///         }
@@ -549,6 +549,10 @@ impl Default for Style {
 ///     }
 /// }
 /// ```
+/// 
+/// Although, in order to use [`Button::style`]
+/// with `MyTheme`, [`Catalog::Class`] must implement
+/// `From<StyleFn<'_, MyTheme>`.
 pub trait Catalog {
     /// The item class of the [`Catalog`].
     type Class<'a>;
