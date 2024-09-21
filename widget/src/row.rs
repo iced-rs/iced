@@ -477,7 +477,7 @@ where
             intrinsic_size.width = intrinsic_size.width.max(x - spacing);
         }
 
-        intrinsic_size.height = (y - spacing).max(0.0) + row_height;
+        intrinsic_size.height = y + row_height;
         align(row_start..children.len(), row_height, &mut children);
 
         let size =
