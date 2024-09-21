@@ -2,12 +2,12 @@ use iced::border;
 use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
-    button, canvas, center, checkbox, column, container, horizontal_space,
-    pick_list, row, scrollable, text,
+    button, canvas, center, checkbox, column, container, horizontal_rule,
+    horizontal_space, pick_list, row, scrollable, text, vertical_rule,
 };
 use iced::{
     color, Center, Element, Fill, Font, Length, Point, Rectangle, Renderer,
-    Subscription, Theme,
+    Shrink, Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -147,6 +147,10 @@ impl Example {
             title: "Application",
             view: application,
         },
+        Self {
+            title: "Quotes",
+            view: quotes,
+        },
     ];
 
     fn is_first(self) -> bool {
@@ -273,6 +277,36 @@ fn application<'a>() -> Element<'a, Message> {
     .padding(10);
 
     column![header, row![sidebar, content]].into()
+}
+
+fn quotes<'a>() -> Element<'a, Message> {
+    fn quote<'a>(
+        content: impl Into<Element<'a, Message>>,
+    ) -> Element<'a, Message> {
+        row![vertical_rule(2), content.into()]
+            .spacing(10)
+            .height(Shrink)
+            .into()
+    }
+
+    fn reply<'a>(
+        original: impl Into<Element<'a, Message>>,
+        reply: impl Into<Element<'a, Message>>,
+    ) -> Element<'a, Message> {
+        column![quote(original), reply.into()].spacing(10).into()
+    }
+
+    column![
+        reply(
+            reply("This is the original message", "This is a reply"),
+            "This is another reply",
+        ),
+        horizontal_rule(1),
+        "A separator ↑",
+    ]
+    .width(Shrink)
+    .spacing(10)
+    .into()
 }
 
 fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
