@@ -57,7 +57,7 @@ use crate::core::{
 use crate::{column, container, rich_text, row, scrollable, span, text};
 
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
@@ -88,7 +88,7 @@ pub enum Item {
 pub struct Text {
     spans: Vec<Span>,
     last_style: Cell<Option<Style>>,
-    last_styled_spans: RefCell<Rc<[text::Span<'static, Url>]>>,
+    last_styled_spans: RefCell<Arc<[text::Span<'static, Url>]>>,
 }
 
 impl Text {
@@ -104,7 +104,7 @@ impl Text {
     ///
     /// This method performs caching for you. It will only reallocate if the [`Style`]
     /// provided changes.
-    pub fn spans(&self, style: Style) -> Rc<[text::Span<'static, Url>]> {
+    pub fn spans(&self, style: Style) -> Arc<[text::Span<'static, Url>]> {
         if Some(style) != self.last_style.get() {
             *self.last_styled_spans.borrow_mut() =
                 self.spans.iter().map(|span| span.view(&style)).collect();
