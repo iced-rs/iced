@@ -505,6 +505,14 @@ impl Layer {
                 .intersection(&(mesh.clip_bounds() * transformation))
                 .and_then(Rectangle::snap)
             else {
+                match mesh {
+                    Mesh::Solid { .. } => {
+                        num_solids += 1;
+                    }
+                    Mesh::Gradient { .. } => {
+                        num_gradients += 1;
+                    }
+                }
                 continue;
             };
 
