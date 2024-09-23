@@ -552,7 +552,7 @@ impl Default for Style {
 /// 
 /// Although, in order to use [`Button::style`]
 /// with `MyTheme`, [`Catalog::Class`] must implement
-/// `From<StyleFn<'_, MyTheme>`.
+/// `From<StyleFn<'_, MyTheme>>`.
 pub trait Catalog {
     /// The item class of the [`Catalog`].
     type Class<'a>;
