@@ -117,7 +117,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.13.4"
+version = "0.13.5"
 authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
 edition = "2021"
 license = "MIT"
