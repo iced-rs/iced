@@ -395,6 +395,7 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn paste(&mut self, frame: Frame) {
+        self.meshes.extend(frame.meshes);
         self.meshes
             .extend(frame.buffers.into_meshes(frame.clip_bounds));
 

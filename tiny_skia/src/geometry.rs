@@ -256,6 +256,7 @@ impl geometry::frame::Backend for Frame {
     fn paste(&mut self, frame: Self) {
         self.primitives.extend(frame.primitives);
         self.text.extend(frame.text);
+        self.images.extend(frame.images);
     }
 
     fn translate(&mut self, translation: Vector) {
