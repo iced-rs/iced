@@ -56,7 +56,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     ///
     /// The events stream will be: on_press -> on_release -> on_press
     /// -> on_double_click -> on_release -> on_press ...
-    /// 
+    ///
     /// [`on_press`]: Self::on_press
     /// [`on_release`]: Self::on_release
     #[must_use]
