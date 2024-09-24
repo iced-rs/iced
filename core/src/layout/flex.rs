@@ -79,10 +79,10 @@ where
     let max_cross = axis.cross(limits.max());
 
     let mut fill_main_sum = 0;
-    let mut cross = match axis {
-        Axis::Vertical if width == Length::Shrink => 0.0,
-        Axis::Horizontal if height == Length::Shrink => 0.0,
-        _ => max_cross,
+    let (mut cross, cross_compress) = match axis {
+        Axis::Vertical if width == Length::Shrink => (0.0, true),
+        Axis::Horizontal if height == Length::Shrink => (0.0, true),
+        _ => (max_cross, false),
     };
 
     let mut available = axis.main(limits.max()) - total_spacing;
@@ -97,7 +97,8 @@ where
             axis.pack(size.width.fill_factor(), size.height.fill_factor())
         };
 
-        if fill_main_factor == 0 {
+        if fill_main_factor == 0 && (!cross_compress || fill_cross_factor == 0)
+        {
             let (max_width, max_height) = axis.pack(
                 available,
                 if fill_cross_factor == 0 {
@@ -141,7 +142,7 @@ where
             axis.pack(size.width.fill_factor(), size.height.fill_factor())
         };
 
-        if fill_main_factor != 0 {
+        if fill_main_factor != 0 || (cross_compress && fill_cross_factor != 0) {
             let max_main =
                 remaining * fill_main_factor as f32 / fill_main_sum as f32;
 
