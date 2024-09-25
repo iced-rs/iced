@@ -305,6 +305,7 @@ impl Palette {
         primary: color!(0x00b4ff),
         success: color!(0x00c15a),
         danger: color!(0xf62d0f),
+        warning: color!(0xbe95ff), // Base 14
     };
 
     /// The built-in [Ferra] variant of a [`Palette`].
