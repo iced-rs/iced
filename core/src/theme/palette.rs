@@ -19,6 +19,8 @@ pub struct Palette {
     pub success: Color,
     /// The danger [`Color`] of the [`Palette`].
     pub danger: Color,
+    /// The warning [`Color`] of the [`Palette`].
+    pub warning: Color,
 }
 
 impl Palette {
@@ -40,6 +42,11 @@ impl Palette {
             0xC3 as f32 / 255.0,
             0x42 as f32 / 255.0,
             0x3F as f32 / 255.0,
+        ),
+        warning: Color::from_rgb(
+            0xFF as f32 / 255.0,
+            0xC1 as f32 / 255.0,
+            0x4E as f32 / 255.0,
         ),
     };
 
@@ -66,6 +73,11 @@ impl Palette {
             0x42 as f32 / 255.0,
             0x3F as f32 / 255.0,
         ),
+        warning: Color::from_rgb(
+            0xFF as f32 / 255.0,
+            0xC1 as f32 / 255.0,
+            0x4E as f32 / 255.0,
+        ),
     };
 
     /// The built-in [Dracula] variant of a [`Palette`].
@@ -77,6 +89,7 @@ impl Palette {
         primary: color!(0xbd93f9),    // PURPLE
         success: color!(0x50fa7b),    // GREEN
         danger: color!(0xff5555),     // RED
+        warning: color!(0xf1fa8c),    // YELLOW
     };
 
     /// The built-in [Nord] variant of a [`Palette`].
@@ -88,6 +101,7 @@ impl Palette {
         primary: color!(0x8fbcbb),    // nord7
         success: color!(0xa3be8c),    // nord14
         danger: color!(0xbf616a),     // nord11
+        warning: color!(0xebcb8b),    // nord13
     };
 
     /// The built-in [Solarized] Light variant of a [`Palette`].
@@ -99,6 +113,7 @@ impl Palette {
         primary: color!(0x2aa198),    // cyan
         success: color!(0x859900),    // green
         danger: color!(0xdc322f),     // red
+        warning: color!(0xb58900),    // yellow
     };
 
     /// The built-in [Solarized] Dark variant of a [`Palette`].
@@ -110,6 +125,7 @@ impl Palette {
         primary: color!(0x2aa198),    // cyan
         success: color!(0x859900),    // green
         danger: color!(0xdc322f),     // red
+        warning: color!(0xb58900),    // yellow
     };
 
     /// The built-in [Gruvbox] Light variant of a [`Palette`].
