@@ -317,6 +317,7 @@ impl Palette {
         primary: color!(0xd1d1e0),
         success: color!(0xb1b695),
         danger: color!(0xe06b75),
+        warning: color!(0xf5d76e), // Honey
     };
 }
 
@@ -333,6 +334,8 @@ pub struct Extended {
     pub success: Success,
     /// The set of danger colors.
     pub danger: Danger,
+    /// The set of warning colors.
+    pub warning: Warning,
     /// Whether the palette is dark or not.
     pub is_dark: bool,
 }
@@ -443,6 +446,11 @@ impl Extended {
             ),
             danger: Danger::generate(
                 palette.danger,
+                palette.background,
+                palette.text,
+            ),
+            warning: Warning::generate(
+                palette.warning,
                 palette.background,
                 palette.text,
             ),
@@ -589,6 +597,31 @@ pub struct Danger {
 
 impl Danger {
     /// Generates a set of [`Danger`] colors from the base, background, and text colors.
+    pub fn generate(base: Color, background: Color, text: Color) -> Self {
+        let weak = mix(base, background, 0.4);
+        let strong = deviate(base, 0.1);
+
+        Self {
+            base: Pair::new(base, text),
+            weak: Pair::new(weak, text),
+            strong: Pair::new(strong, text),
+        }
+    }
+}
+
+/// A set of warning colors.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Warning {
+    /// The base warning color.
+    pub base: Pair,
+    /// A weaker version of the base warning color.
+    pub weak: Pair,
+    /// A stronger version of the base warning color.
+    pub strong: Pair,
+}
+
+impl Warning {
+    /// Generates a set of [`Warning`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = mix(base, background, 0.4);
         let strong = deviate(base, 0.1);
