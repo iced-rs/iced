@@ -209,6 +209,7 @@ impl Palette {
         primary: color!(0x2ac3de),    // Blue
         success: color!(0x9ece6a),    // Green
         danger: color!(0xf7768e),     // Red
+        warning: color!(0xe0af68),    // Yellow
     };
 
     /// The built-in [Tokyo Night] Storm variant of a [`Palette`].
@@ -220,6 +221,7 @@ impl Palette {
         primary: color!(0x2ac3de),    // Blue
         success: color!(0x9ece6a),    // Green
         danger: color!(0xf7768e),     // Red
+        warning: color!(0xe0af68),    // Yellow
     };
 
     /// The built-in [Tokyo Night] Light variant of a [`Palette`].
@@ -231,6 +233,7 @@ impl Palette {
         primary: color!(0x166775),    // Blue
         success: color!(0x485e30),    // Green
         danger: color!(0x8c4351),     // Red
+        warning: color!(0x8f5e15),    // Yellow
     };
 
     /// The built-in [Kanagawa] Wave variant of a [`Palette`].
@@ -242,6 +245,7 @@ impl Palette {
         primary: color!(0x2D4F67),    // Wave Blue 2
         success: color!(0x76946A),    // Autumn Green
         danger: color!(0xC34043),     // Autumn Red
+        warning: color!(0xff9e3b),    // Ronin Yellow
     };
 
     /// The built-in [Kanagawa] Dragon variant of a [`Palette`].
@@ -253,6 +257,7 @@ impl Palette {
         primary: color!(0x223249),    // Wave Blue 1
         success: color!(0x8a9a7b),    // Dragon Green 2
         danger: color!(0xc4746e),     // Dragon Red
+        warning: color!(0xff9e3b),    // Ronin Yellow
     };
 
     /// The built-in [Kanagawa] Lotus variant of a [`Palette`].
@@ -264,6 +269,7 @@ impl Palette {
         primary: color!(0xc9cbd1),    // Lotus Violet 3
         success: color!(0x6f894e),    // Lotus Green
         danger: color!(0xc84053),     // Lotus Red
+        warning: color!(0xe98a00),    // Lotus Orange 2
     };
 
     /// The built-in [Moonfly] variant of a [`Palette`].
