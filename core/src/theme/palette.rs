@@ -137,6 +137,7 @@ impl Palette {
         primary: color!(0x458588),    // light BLUE_4
         success: color!(0x98971a),    // light GREEN_2
         danger: color!(0xcc241d),     // light RED_1
+        warning: color!(0xd79921),    // light YELLOW_3
     };
 
     /// The built-in [Gruvbox] Dark variant of a [`Palette`].
@@ -148,6 +149,7 @@ impl Palette {
         primary: color!(0x458588),    // dark BLUE_4
         success: color!(0x98971a),    // dark GREEN_2
         danger: color!(0xcc241d),     // dark RED_1
+        warning: color!(0xd79921),    // dark YELLOW_3
     };
 
     /// The built-in [Catppuccin] Latte variant of a [`Palette`].
@@ -159,6 +161,7 @@ impl Palette {
         primary: color!(0x1e66f5),    // Blue
         success: color!(0x40a02b),    // Green
         danger: color!(0xd20f39),     // Red
+        warning: color!(0xdf8e1d),    // Yellow
     };
 
     /// The built-in [Catppuccin] Frappé variant of a [`Palette`].
@@ -170,6 +173,7 @@ impl Palette {
         primary: color!(0x8caaee),    // Blue
         success: color!(0xa6d189),    // Green
         danger: color!(0xe78284),     // Red
+        warning: color!(0xe5c890),    // Yellow
     };
 
     /// The built-in [Catppuccin] Macchiato variant of a [`Palette`].
@@ -181,6 +185,7 @@ impl Palette {
         primary: color!(0x8aadf4),    // Blue
         success: color!(0xa6da95),    // Green
         danger: color!(0xed8796),     // Red
+        warning: color!(0xeed49f),    // Yellow
     };
 
     /// The built-in [Catppuccin] Mocha variant of a [`Palette`].
@@ -192,6 +197,7 @@ impl Palette {
         primary: color!(0x89b4fa),    // Blue
         success: color!(0xa6e3a1),    // Green
         danger: color!(0xf38ba8),     // Red
+        warning: color!(0xf9e2af),    // Yellow
     };
 
     /// The built-in [Tokyo Night] variant of a [`Palette`].
