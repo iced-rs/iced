@@ -17,10 +17,10 @@ pub struct Palette {
     pub primary: Color,
     /// The success [`Color`] of the [`Palette`].
     pub success: Color,
-    /// The danger [`Color`] of the [`Palette`].
-    pub danger: Color,
     /// The warning [`Color`] of the [`Palette`].
     pub warning: Color,
+    /// The danger [`Color`] of the [`Palette`].
+    pub danger: Color,
 }
 
 impl Palette {
@@ -38,15 +38,15 @@ impl Palette {
             0x66 as f32 / 255.0,
             0x4F as f32 / 255.0,
         ),
-        danger: Color::from_rgb(
-            0xC3 as f32 / 255.0,
-            0x42 as f32 / 255.0,
-            0x3F as f32 / 255.0,
-        ),
         warning: Color::from_rgb(
             0xFF as f32 / 255.0,
             0xC1 as f32 / 255.0,
             0x4E as f32 / 255.0,
+        ),
+        danger: Color::from_rgb(
+            0xC3 as f32 / 255.0,
+            0x42 as f32 / 255.0,
+            0x3F as f32 / 255.0,
         ),
     };
 
@@ -68,15 +68,15 @@ impl Palette {
             0x66 as f32 / 255.0,
             0x4F as f32 / 255.0,
         ),
-        danger: Color::from_rgb(
-            0xC3 as f32 / 255.0,
-            0x42 as f32 / 255.0,
-            0x3F as f32 / 255.0,
-        ),
         warning: Color::from_rgb(
             0xFF as f32 / 255.0,
             0xC1 as f32 / 255.0,
             0x4E as f32 / 255.0,
+        ),
+        danger: Color::from_rgb(
+            0xC3 as f32 / 255.0,
+            0x42 as f32 / 255.0,
+            0x3F as f32 / 255.0,
         ),
     };
 
@@ -88,8 +88,8 @@ impl Palette {
         text: color!(0xf8f8f2),       // FOREGROUND
         primary: color!(0xbd93f9),    // PURPLE
         success: color!(0x50fa7b),    // GREEN
-        danger: color!(0xff5555),     // RED
         warning: color!(0xf1fa8c),    // YELLOW
+        danger: color!(0xff5555),     // RED
     };
 
     /// The built-in [Nord] variant of a [`Palette`].
@@ -100,8 +100,8 @@ impl Palette {
         text: color!(0xeceff4),       // nord6
         primary: color!(0x8fbcbb),    // nord7
         success: color!(0xa3be8c),    // nord14
-        danger: color!(0xbf616a),     // nord11
         warning: color!(0xebcb8b),    // nord13
+        danger: color!(0xbf616a),     // nord11
     };
 
     /// The built-in [Solarized] Light variant of a [`Palette`].
@@ -112,8 +112,8 @@ impl Palette {
         text: color!(0x657b83),       // base00
         primary: color!(0x2aa198),    // cyan
         success: color!(0x859900),    // green
-        danger: color!(0xdc322f),     // red
         warning: color!(0xb58900),    // yellow
+        danger: color!(0xdc322f),     // red
     };
 
     /// The built-in [Solarized] Dark variant of a [`Palette`].
@@ -124,8 +124,8 @@ impl Palette {
         text: color!(0x839496),       // base0
         primary: color!(0x2aa198),    // cyan
         success: color!(0x859900),    // green
-        danger: color!(0xdc322f),     // red
         warning: color!(0xb58900),    // yellow
+        danger: color!(0xdc322f),     // red
     };
 
     /// The built-in [Gruvbox] Light variant of a [`Palette`].
@@ -136,8 +136,8 @@ impl Palette {
         text: color!(0x282828),       // light FG0_29
         primary: color!(0x458588),    // light BLUE_4
         success: color!(0x98971a),    // light GREEN_2
-        danger: color!(0xcc241d),     // light RED_1
         warning: color!(0xd79921),    // light YELLOW_3
+        danger: color!(0xcc241d),     // light RED_1
     };
 
     /// The built-in [Gruvbox] Dark variant of a [`Palette`].
@@ -148,8 +148,8 @@ impl Palette {
         text: color!(0xfbf1c7),       // dark FG0_29
         primary: color!(0x458588),    // dark BLUE_4
         success: color!(0x98971a),    // dark GREEN_2
-        danger: color!(0xcc241d),     // dark RED_1
         warning: color!(0xd79921),    // dark YELLOW_3
+        danger: color!(0xcc241d),     // dark RED_1
     };
 
     /// The built-in [Catppuccin] Latte variant of a [`Palette`].
@@ -160,8 +160,8 @@ impl Palette {
         text: color!(0x4c4f69),       // Text
         primary: color!(0x1e66f5),    // Blue
         success: color!(0x40a02b),    // Green
-        danger: color!(0xd20f39),     // Red
         warning: color!(0xdf8e1d),    // Yellow
+        danger: color!(0xd20f39),     // Red
     };
 
     /// The built-in [Catppuccin] Frappé variant of a [`Palette`].
@@ -172,8 +172,8 @@ impl Palette {
         text: color!(0xc6d0f5),       // Text
         primary: color!(0x8caaee),    // Blue
         success: color!(0xa6d189),    // Green
-        danger: color!(0xe78284),     // Red
         warning: color!(0xe5c890),    // Yellow
+        danger: color!(0xe78284),     // Red
     };
 
     /// The built-in [Catppuccin] Macchiato variant of a [`Palette`].
@@ -184,8 +184,8 @@ impl Palette {
         text: color!(0xcad3f5),       // Text
         primary: color!(0x8aadf4),    // Blue
         success: color!(0xa6da95),    // Green
-        danger: color!(0xed8796),     // Red
         warning: color!(0xeed49f),    // Yellow
+        danger: color!(0xed8796),     // Red
     };
 
     /// The built-in [Catppuccin] Mocha variant of a [`Palette`].
@@ -196,8 +196,8 @@ impl Palette {
         text: color!(0xcdd6f4),       // Text
         primary: color!(0x89b4fa),    // Blue
         success: color!(0xa6e3a1),    // Green
-        danger: color!(0xf38ba8),     // Red
         warning: color!(0xf9e2af),    // Yellow
+        danger: color!(0xf38ba8),     // Red
     };
 
     /// The built-in [Tokyo Night] variant of a [`Palette`].
@@ -208,8 +208,8 @@ impl Palette {
         text: color!(0x9aa5ce),       // Text
         primary: color!(0x2ac3de),    // Blue
         success: color!(0x9ece6a),    // Green
-        danger: color!(0xf7768e),     // Red
         warning: color!(0xe0af68),    // Yellow
+        danger: color!(0xf7768e),     // Red
     };
 
     /// The built-in [Tokyo Night] Storm variant of a [`Palette`].
@@ -220,8 +220,8 @@ impl Palette {
         text: color!(0x9aa5ce),       // Text
         primary: color!(0x2ac3de),    // Blue
         success: color!(0x9ece6a),    // Green
-        danger: color!(0xf7768e),     // Red
         warning: color!(0xe0af68),    // Yellow
+        danger: color!(0xf7768e),     // Red
     };
 
     /// The built-in [Tokyo Night] Light variant of a [`Palette`].
@@ -232,8 +232,8 @@ impl Palette {
         text: color!(0x565a6e),       // Text
         primary: color!(0x166775),    // Blue
         success: color!(0x485e30),    // Green
-        danger: color!(0x8c4351),     // Red
         warning: color!(0x8f5e15),    // Yellow
+        danger: color!(0x8c4351),     // Red
     };
 
     /// The built-in [Kanagawa] Wave variant of a [`Palette`].
@@ -244,8 +244,8 @@ impl Palette {
         text: color!(0xCD7BA),        // Fuji White
         primary: color!(0x2D4F67),    // Wave Blue 2
         success: color!(0x76946A),    // Autumn Green
-        danger: color!(0xC34043),     // Autumn Red
         warning: color!(0xff9e3b),    // Ronin Yellow
+        danger: color!(0xC34043),     // Autumn Red
     };
 
     /// The built-in [Kanagawa] Dragon variant of a [`Palette`].
@@ -256,8 +256,8 @@ impl Palette {
         text: color!(0xc5c9c5),       // Dragon White
         primary: color!(0x223249),    // Wave Blue 1
         success: color!(0x8a9a7b),    // Dragon Green 2
-        danger: color!(0xc4746e),     // Dragon Red
         warning: color!(0xff9e3b),    // Ronin Yellow
+        danger: color!(0xc4746e),     // Dragon Red
     };
 
     /// The built-in [Kanagawa] Lotus variant of a [`Palette`].
@@ -268,8 +268,8 @@ impl Palette {
         text: color!(0x545464),       // Lotus Ink 1
         primary: color!(0xc9cbd1),    // Lotus Violet 3
         success: color!(0x6f894e),    // Lotus Green
-        danger: color!(0xc84053),     // Lotus Red
         warning: color!(0xe98a00),    // Lotus Orange 2
+        danger: color!(0xc84053),     // Lotus Red
     };
 
     /// The built-in [Moonfly] variant of a [`Palette`].
@@ -280,8 +280,8 @@ impl Palette {
         text: color!(0xbdbdbd),       // Foreground
         primary: color!(0x80a0ff),    // Blue (normal)
         success: color!(0x8cc85f),    // Green (normal)
-        danger: color!(0xff5454),     // Red (normal)
         warning: color!(0xe3c78a),    // Yellow (normal)
+        danger: color!(0xff5454),     // Red (normal)
     };
 
     /// The built-in [Nightfly] variant of a [`Palette`].
@@ -292,8 +292,8 @@ impl Palette {
         text: color!(0xbdc1c6),       // Foreground
         primary: color!(0x82aaff),    // Blue (normal)
         success: color!(0xa1cd5e),    // Green (normal)
-        danger: color!(0xfc514e),     // Red (normal)
         warning: color!(0xe3d18a),    // Yellow (normal)
+        danger: color!(0xfc514e),     // Red (normal)
     };
 
     /// The built-in [Oxocarbon] variant of a [`Palette`].
@@ -304,8 +304,8 @@ impl Palette {
         text: color!(0xd0d0d0),
         primary: color!(0x00b4ff),
         success: color!(0x00c15a),
-        danger: color!(0xf62d0f),
         warning: color!(0xbe95ff), // Base 14
+        danger: color!(0xf62d0f),
     };
 
     /// The built-in [Ferra] variant of a [`Palette`].
@@ -316,8 +316,8 @@ impl Palette {
         text: color!(0xfecdb2),
         primary: color!(0xd1d1e0),
         success: color!(0xb1b695),
-        danger: color!(0xe06b75),
         warning: color!(0xf5d76e), // Honey
+        danger: color!(0xe06b75),
     };
 }
 
@@ -332,10 +332,10 @@ pub struct Extended {
     pub secondary: Secondary,
     /// The set of success colors.
     pub success: Success,
-    /// The set of danger colors.
-    pub danger: Danger,
     /// The set of warning colors.
     pub warning: Warning,
+    /// The set of danger colors.
+    pub danger: Danger,
     /// Whether the palette is dark or not.
     pub is_dark: bool,
 }
@@ -444,13 +444,13 @@ impl Extended {
                 palette.background,
                 palette.text,
             ),
-            danger: Danger::generate(
-                palette.danger,
+            warning: Warning::generate(
+                palette.warning,
                 palette.background,
                 palette.text,
             ),
-            warning: Warning::generate(
-                palette.warning,
+            danger: Danger::generate(
+                palette.danger,
                 palette.background,
                 palette.text,
             ),
@@ -584,31 +584,6 @@ impl Success {
     }
 }
 
-/// A set of danger colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Danger {
-    /// The base danger color.
-    pub base: Pair,
-    /// A weaker version of the base danger color.
-    pub weak: Pair,
-    /// A stronger version of the base danger color.
-    pub strong: Pair,
-}
-
-impl Danger {
-    /// Generates a set of [`Danger`] colors from the base, background, and text colors.
-    pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
-        let strong = deviate(base, 0.1);
-
-        Self {
-            base: Pair::new(base, text),
-            weak: Pair::new(weak, text),
-            strong: Pair::new(strong, text),
-        }
-    }
-}
-
 /// A set of warning colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Warning {
@@ -622,6 +597,31 @@ pub struct Warning {
 
 impl Warning {
     /// Generates a set of [`Warning`] colors from the base, background, and text colors.
+    pub fn generate(base: Color, background: Color, text: Color) -> Self {
+        let weak = mix(base, background, 0.4);
+        let strong = deviate(base, 0.1);
+
+        Self {
+            base: Pair::new(base, text),
+            weak: Pair::new(weak, text),
+            strong: Pair::new(strong, text),
+        }
+    }
+}
+
+/// A set of danger colors.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Danger {
+    /// The base danger color.
+    pub base: Pair,
+    /// A weaker version of the base danger color.
+    pub weak: Pair,
+    /// A stronger version of the base danger color.
+    pub strong: Pair,
+}
+
+impl Danger {
+    /// Generates a set of [`Danger`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = mix(base, background, 0.4);
         let strong = deviate(base, 0.1);
