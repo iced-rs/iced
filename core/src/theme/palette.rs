@@ -281,6 +281,7 @@ impl Palette {
         primary: color!(0x80a0ff),    // Blue (normal)
         success: color!(0x8cc85f),    // Green (normal)
         danger: color!(0xff5454),     // Red (normal)
+        warning: color!(0xe3c78a),    // Yellow (normal)
     };
 
     /// The built-in [Nightfly] variant of a [`Palette`].
@@ -292,6 +293,7 @@ impl Palette {
         primary: color!(0x82aaff),    // Blue (normal)
         success: color!(0xa1cd5e),    // Green (normal)
         danger: color!(0xfc514e),     // Red (normal)
+        warning: color!(0xe3d18a),    // Yellow (normal)
     };
 
     /// The built-in [Oxocarbon] variant of a [`Palette`].
