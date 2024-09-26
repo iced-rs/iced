@@ -7,19 +7,20 @@
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::mouse;
+use iced::renderer::{self, Backend};
 use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{Geometry, Path};
-use iced::widget::{canvas, image};
+use iced::widget::{canvas, column, container, image, pick_list, stack, text};
 use iced::window;
 use iced::{
-    Color, Element, Fill, Point, Rectangle, Renderer, Size, Subscription,
-    Theme, Vector,
+    color, Color, Element, Fill, Font, Point, Rectangle, Renderer, Right, Size,
+    Subscription, Task, Theme, Vector,
 };
 
 use std::time::Instant;
 
 pub fn main() -> iced::Result {
-    tracing_subscriber::fmt::init();
+    // tracing_subscriber::fmt::init();
 
     iced::application(
         "Solar System - Iced",
@@ -34,24 +35,80 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct SolarSystem {
     state: State,
+    backend: Backend,
+    error: Option<renderer::Error>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Message {
     Tick(Instant),
+    BackendSelected(Backend),
+    RendererChanged(Backend, Result<(), renderer::Error>),
 }
 
 impl SolarSystem {
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Tick(instant) => {
                 self.state.update(instant);
+
+                Task::none()
+            }
+            Message::BackendSelected(backend) => {
+                self.error = None;
+
+                renderer::change(renderer::Settings {
+                    backend: backend.clone(),
+                    ..renderer::Settings::default()
+                })
+                .map(move |result| {
+                    Message::RendererChanged(backend.clone(), result)
+                })
+            }
+            Message::RendererChanged(backend, Ok(())) => {
+                self.backend = backend;
+
+                Task::none()
+            }
+            Message::RendererChanged(_backend, Err(error)) => {
+                self.error = Some(error);
+
+                Task::none()
             }
         }
     }
 
     fn view(&self) -> Element<Message> {
-        canvas(&self.state).width(Fill).height(Fill).into()
+        let solar_system = canvas(&self.state).width(Fill).height(Fill);
+
+        let backend = {
+            let error = self.error.as_ref().map(|error| {
+                text!("{error}")
+                    .color(color!(0xff0000))
+                    .font(Font::MONOSPACE)
+                    .size(12)
+            });
+
+            column![
+                error,
+                pick_list(
+                    Backend::ALL,
+                    Some(&self.backend),
+                    Message::BackendSelected,
+                )
+            ]
+            .align_x(Right)
+            .spacing(10)
+        };
+
+        stack![
+            solar_system,
+            container(backend)
+                .align_right(Fill)
+                .align_bottom(Fill)
+                .padding(10)
+        ]
+        .into()
     }
 
     fn theme(&self) -> Theme {

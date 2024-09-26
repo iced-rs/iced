@@ -1,9 +1,10 @@
 //! Connect a window with a renderer.
 use crate::core::{Color, Size};
+use crate::graphics::backend;
 use crate::graphics::color;
 use crate::graphics::compositor;
 use crate::graphics::error;
-use crate::graphics::{self, Viewport};
+use crate::graphics::{self, Backend, Viewport};
 use crate::settings::{self, Settings};
 use crate::{Engine, Renderer};
 
@@ -271,31 +272,53 @@ impl graphics::Compositor for Compositor {
     type Renderer = Renderer;
     type Surface = wgpu::Surface<'static>;
 
-    async fn with_backend<W: compositor::Window>(
-        settings: graphics::Settings,
+    async fn new<W: compositor::Window>(
+        settings: &graphics::Settings,
         compatible_window: W,
-        backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
-        match backend {
-            None | Some("wgpu") => {
-                let mut settings = Settings::from(settings);
-
-                if let Some(backends) = wgpu::util::backend_bits_from_env() {
-                    settings.backends = backends;
+        if matches!(settings.backend, Backend::Hardware(_))
+            || settings.backend.matches("wgpu")
+        {
+            let backends = match settings.backend {
+                Backend::Best | Backend::Hardware(backend::API::Best) => {
+                    wgpu::util::backend_bits_from_env()
                 }
-
-                if let Some(present_mode) = settings::present_mode_from_env() {
-                    settings.present_mode = present_mode;
+                Backend::Hardware(backend::API::Vulkan) => {
+                    Some(wgpu::Backends::VULKAN)
                 }
+                Backend::Hardware(backend::API::Metal) => {
+                    Some(wgpu::Backends::METAL)
+                }
+                Backend::Hardware(backend::API::DirectX12) => {
+                    Some(wgpu::Backends::DX12)
+                }
+                Backend::Hardware(backend::API::OpenGL) => {
+                    Some(wgpu::Backends::GL)
+                }
+                Backend::Hardware(backend::API::WebGPU) => {
+                    Some(wgpu::Backends::BROWSER_WEBGPU)
+                }
+                _ => None,
+            };
 
-                Ok(new(settings, compatible_window).await?)
+            let mut settings = Settings::from(settings);
+
+            if let Some(backends) = backends {
+                settings.backends = backends;
             }
-            Some(backend) => Err(graphics::Error::GraphicsAdapterNotFound {
+
+            if let Some(present_mode) = settings::present_mode_from_env() {
+                settings.present_mode = present_mode;
+            }
+
+            Ok(new(settings, compatible_window).await?)
+        } else {
+            Err(graphics::Error::GraphicsAdapterNotFound {
                 backend: "wgpu",
                 reason: error::Reason::DidNotMatch {
-                    preferred_backend: backend.to_owned(),
+                    preferred_backend: settings.backend.clone(),
                 },
-            }),
+            })
         }
     }
 

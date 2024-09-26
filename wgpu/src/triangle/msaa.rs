@@ -1,5 +1,5 @@
 use crate::core::{Size, Transformation};
-use crate::graphics;
+use crate::Antialiasing;
 
 use std::num::NonZeroU64;
 
@@ -19,7 +19,7 @@ impl Blit {
     pub fn new(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
-        antialiasing: graphics::Antialiasing,
+        antialiasing: Antialiasing,
     ) -> Blit {
         let sampler =
             device.create_sampler(&wgpu::SamplerDescriptor::default());

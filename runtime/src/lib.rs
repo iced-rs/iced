@@ -14,6 +14,7 @@ pub mod font;
 pub mod keyboard;
 pub mod overlay;
 pub mod program;
+pub mod renderer;
 pub mod system;
 pub mod task;
 pub mod user_interface;
@@ -33,6 +34,7 @@ mod debug;
 
 pub use iced_core as core;
 pub use iced_futures as futures;
+pub use iced_graphics as graphics;
 
 pub use debug::Debug;
 pub use program::Program;
@@ -56,6 +58,18 @@ pub enum Action<T> {
         bytes: Cow<'static, [u8]>,
         /// The channel to send back the load result.
         channel: oneshot::Sender<Result<(), font::Error>>,
+    },
+
+    /// Changes the renderer [`Settings`].
+    ///
+    /// [`Settings`]: graphics::Settings
+    ChangeRenderer {
+        /// The renderer [`Settings`].
+        ///
+        /// [`Settings`]: graphics::Settings
+        settings: renderer::Settings,
+        /// The channel to send back the load result.
+        channel: oneshot::Sender<Result<(), renderer::Error>>,
     },
 
     /// Run a widget operation.
@@ -89,6 +103,9 @@ impl<T> Action<T> {
             Action::LoadFont { bytes, channel } => {
                 Err(Action::LoadFont { bytes, channel })
             }
+            Action::ChangeRenderer { settings, channel } => {
+                Err(Action::ChangeRenderer { settings, channel })
+            }
             Action::Widget(operation) => Err(Action::Widget(operation)),
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
@@ -107,6 +124,9 @@ where
             Action::Output(output) => write!(f, "Action::Output({output:?})"),
             Action::LoadFont { .. } => {
                 write!(f, "Action::LoadFont")
+            }
+            Action::ChangeRenderer { settings, .. } => {
+                write!(f, "Action::ChangeRenderer {{ settings: {settings:?} }}")
             }
             Action::Widget { .. } => {
                 write!(f, "Action::Widget")

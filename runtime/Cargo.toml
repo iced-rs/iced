@@ -20,6 +20,7 @@ multi-window = []
 [dependencies]
 bytes.workspace = true
 iced_core.workspace = true
+iced_graphics.workspace = true
 iced_futures.workspace = true
 iced_futures.features = ["thread-pool"]
 

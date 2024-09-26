@@ -42,8 +42,8 @@ fn benchmark<'a>(
 ) {
     use iced_futures::futures::executor;
     use iced_wgpu::graphics;
-    use iced_wgpu::graphics::Antialiasing;
     use iced_wgpu::wgpu;
+    use iced_wgpu::Antialiasing;
     use iced_winit::core;
     use iced_winit::runtime;
 

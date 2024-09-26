@@ -3,8 +3,7 @@ mod msaa;
 
 use crate::core::{Rectangle, Size, Transformation};
 use crate::graphics::mesh::{self, Mesh};
-use crate::graphics::Antialiasing;
-use crate::Buffer;
+use crate::{Antialiasing, Buffer};
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
@@ -645,9 +644,8 @@ impl Uniforms {
 
 mod solid {
     use crate::graphics::mesh;
-    use crate::graphics::Antialiasing;
     use crate::triangle;
-    use crate::Buffer;
+    use crate::{Antialiasing, Buffer};
 
     #[derive(Debug)]
     pub struct Pipeline {
@@ -797,9 +795,8 @@ mod solid {
 mod gradient {
     use crate::graphics::color;
     use crate::graphics::mesh;
-    use crate::graphics::Antialiasing;
     use crate::triangle;
-    use crate::Buffer;
+    use crate::{Antialiasing, Buffer};
 
     #[derive(Debug)]
     pub struct Pipeline {

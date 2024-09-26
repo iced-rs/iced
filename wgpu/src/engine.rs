@@ -1,9 +1,9 @@
 use crate::buffer;
-use crate::graphics::Antialiasing;
 use crate::primitive;
 use crate::quad;
 use crate::text;
 use crate::triangle;
+use crate::Antialiasing;
 
 #[allow(missing_debug_implementations)]
 pub struct Engine {

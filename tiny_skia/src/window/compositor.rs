@@ -2,7 +2,7 @@ use crate::core::{Color, Rectangle, Size};
 use crate::graphics::compositor::{self, Information};
 use crate::graphics::damage;
 use crate::graphics::error::{self, Error};
-use crate::graphics::{self, Viewport};
+use crate::graphics::{self, Backend, Viewport};
 use crate::{Layer, Renderer, Settings};
 
 use std::collections::VecDeque;
@@ -30,21 +30,22 @@ impl crate::graphics::Compositor for Compositor {
     type Renderer = Renderer;
     type Surface = Surface;
 
-    async fn with_backend<W: compositor::Window>(
-        settings: graphics::Settings,
+    async fn new<W: compositor::Window>(
+        settings: &graphics::Settings,
         compatible_window: W,
-        backend: Option<&str>,
     ) -> Result<Self, Error> {
-        match backend {
-            None | Some("tiny-skia") | Some("tiny_skia") => {
-                Ok(new(settings.into(), compatible_window))
-            }
-            Some(backend) => Err(Error::GraphicsAdapterNotFound {
+        if settings.backend == Backend::Software
+            || settings.backend.matches("tiny-skia")
+            || settings.backend.matches("tiny_skia")
+        {
+            Ok(new(settings.into(), compatible_window))
+        } else {
+            Err(Error::GraphicsAdapterNotFound {
                 backend: "tiny-skia",
                 reason: error::Reason::DidNotMatch {
-                    preferred_backend: backend.to_owned(),
+                    preferred_backend: settings.backend.clone(),
                 },
-            }),
+            })
         }
     }
 

@@ -365,6 +365,10 @@ impl graphics::geometry::Renderer for Renderer {
             }
         }
     }
+
+    fn supports_cache(&self, _cache: &geometry::Cache) -> bool {
+        true
+    }
 }
 
 impl graphics::mesh::Renderer for Renderer {

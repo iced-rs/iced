@@ -528,3 +528,51 @@ where
             .overlay(state, layout, renderer, translation)
     }
 }
+
+impl<'a, Message, Theme, Renderer, T> From<Option<T>>
+    for Element<'a, Message, Theme, Renderer>
+where
+    T: Widget<Message, Theme, Renderer> + 'a,
+    Renderer: renderer::Renderer,
+{
+    fn from(value: Option<T>) -> Self {
+        struct Empty;
+
+        impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Empty
+        where
+            Renderer: renderer::Renderer,
+        {
+            fn size(&self) -> Size<Length> {
+                Size {
+                    width: Length::Shrink,
+                    height: Length::Shrink,
+                }
+            }
+
+            fn layout(
+                &self,
+                _tree: &mut Tree,
+                _renderer: &Renderer,
+                _limits: &layout::Limits,
+            ) -> layout::Node {
+                layout::Node::new(Size::ZERO)
+            }
+
+            fn draw(
+                &self,
+                _tree: &Tree,
+                _renderer: &mut Renderer,
+                _theme: &Theme,
+                _style: &renderer::Style,
+                _layout: Layout<'_>,
+                _cursor: mouse::Cursor,
+                _viewport: &Rectangle,
+            ) {
+            }
+        }
+
+        value
+            .map(Element::new)
+            .unwrap_or_else(|| Element::new(Empty))
+    }
+}

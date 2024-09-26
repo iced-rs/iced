@@ -323,7 +323,7 @@ where
 
             let finish_boot = async move {
                 let mut compositor =
-                    C::new(graphics_settings, window.clone()).await?;
+                    C::new(&graphics_settings, window.clone()).await?;
 
                 for font in fonts {
                     compositor.load_font(font);
@@ -1513,6 +1513,43 @@ fn run_action<P, C>(
             control_sender
                 .start_send(Control::Exit)
                 .expect("Send control action");
+        }
+        Action::ChangeRenderer { settings, channel } => {
+            let mut new_compositor =
+                if let Some(window) = window_manager.first() {
+                    match crate::futures::futures::executor::block_on(C::new(
+                        &settings,
+                        window.raw.clone(),
+                    )) {
+                        Ok(compositor) => compositor,
+                        Err(error) => {
+                            let _ = channel.send(Err(error));
+                            return;
+                        }
+                    }
+                } else {
+                    return;
+                };
+
+            window_manager.replace_with(|mut window| {
+                let size = window.state.physical_size();
+
+                drop(window.renderer);
+                drop(window.surface);
+
+                window.renderer = new_compositor.create_renderer();
+                window.surface = new_compositor.create_surface(
+                    window.raw.clone(),
+                    size.width,
+                    size.height,
+                );
+
+                window
+            });
+
+            *compositor = new_compositor;
+
+            let _ = channel.send(Ok(()));
         }
     }
 }

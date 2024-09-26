@@ -35,6 +35,10 @@ pub trait Renderer: core::Renderer {
 
     /// Draws the given [`Self::Geometry`].
     fn draw_geometry(&mut self, geometry: Self::Geometry);
+
+    /// Returns whether the cached [`Geometry`] is compatible with the [`Renderer`].
+    fn supports_cache(&self, cache: &<Self::Geometry as Cached>::Cache)
+        -> bool;
 }
 
 #[cfg(debug_assertions)]
@@ -45,4 +49,8 @@ impl Renderer for () {
     fn new_frame(&self, _size: Size) -> Self::Frame {}
 
     fn draw_geometry(&mut self, _geometry: Self::Geometry) {}
+
+    fn supports_cache(&self, _cache: &()) -> bool {
+        true
+    }
 }

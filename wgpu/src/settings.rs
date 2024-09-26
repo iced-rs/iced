@@ -1,6 +1,7 @@
 //! Configure a renderer.
 use crate::core::{Font, Pixels};
-use crate::graphics::{self, Antialiasing};
+use crate::graphics;
+use crate::Antialiasing;
 
 /// The settings of a [`Renderer`].
 ///
@@ -41,12 +42,16 @@ impl Default for Settings {
     }
 }
 
-impl From<graphics::Settings> for Settings {
-    fn from(settings: graphics::Settings) -> Self {
+impl From<&graphics::Settings> for Settings {
+    fn from(settings: &graphics::Settings) -> Self {
         Self {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
-            antialiasing: settings.antialiasing,
+            antialiasing: if settings.antialiasing {
+                Some(Antialiasing::MSAAx4)
+            } else {
+                None
+            },
             ..Settings::default()
         }
     }

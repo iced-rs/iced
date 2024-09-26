@@ -212,51 +212,23 @@ where
     type Renderer = Renderer<A::Renderer, B::Renderer>;
     type Surface = Surface<A::Surface, B::Surface>;
 
-    async fn with_backend<W: compositor::Window + Clone>(
-        settings: graphics::Settings,
+    async fn new<W: compositor::Window + Clone>(
+        settings: &graphics::Settings,
         compatible_window: W,
-        backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
-        use std::env;
-
-        let backends = backend
-            .map(str::to_owned)
-            .or_else(|| env::var("ICED_BACKEND").ok());
-
-        let mut candidates: Vec<_> = backends
-            .map(|backends| {
-                backends
-                    .split(',')
-                    .filter(|candidate| !candidate.is_empty())
-                    .map(str::to_owned)
-                    .map(Some)
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        if candidates.is_empty() {
-            candidates.push(None);
-        }
-
         let mut errors = vec![];
 
-        for backend in candidates.iter().map(Option::as_deref) {
-            match A::with_backend(settings, compatible_window.clone(), backend)
-                .await
-            {
-                Ok(compositor) => return Ok(Self::Primary(compositor)),
-                Err(error) => {
-                    errors.push(error);
-                }
+        match A::new(settings, compatible_window.clone()).await {
+            Ok(compositor) => return Ok(Self::Primary(compositor)),
+            Err(error) => {
+                errors.push(error);
             }
+        }
 
-            match B::with_backend(settings, compatible_window.clone(), backend)
-                .await
-            {
-                Ok(compositor) => return Ok(Self::Secondary(compositor)),
-                Err(error) => {
-                    errors.push(error);
-                }
+        match B::new(settings, compatible_window.clone()).await {
+            Ok(compositor) => return Ok(Self::Secondary(compositor)),
+            Err(error) => {
+                errors.push(error);
             }
         }
 
@@ -425,7 +397,7 @@ mod geometry {
         type Geometry = Geometry<A::Geometry, B::Geometry>;
         type Frame = Frame<A::Frame, B::Frame>;
 
-        fn new_frame(&self, size: iced_graphics::core::Size) -> Self::Frame {
+        fn new_frame(&self, size: Size) -> Self::Frame {
             match self {
                 Self::Primary(renderer) => {
                     Frame::Primary(renderer.new_frame(size))
@@ -446,6 +418,20 @@ mod geometry {
                 }
                 _ => unreachable!(),
             }
+        }
+
+        fn supports_cache(
+            &self,
+            cache: &Geometry<
+                <A::Geometry as Cached>::Cache,
+                <B::Geometry as Cached>::Cache,
+            >,
+        ) -> bool {
+            matches!(
+                (self, cache),
+                (Self::Primary(_), Geometry::Primary(_))
+                    | (Self::Secondary(_), Geometry::Secondary(_))
+            )
         }
     }
 
@@ -479,17 +465,16 @@ mod geometry {
                     Self::Primary(geometry),
                     Some(Geometry::Primary(previous)),
                 ) => Geometry::Primary(geometry.cache(group, Some(previous))),
-                (Self::Primary(geometry), None) => {
+                (Self::Primary(geometry), _) => {
                     Geometry::Primary(geometry.cache(group, None))
                 }
                 (
                     Self::Secondary(geometry),
                     Some(Geometry::Secondary(previous)),
                 ) => Geometry::Secondary(geometry.cache(group, Some(previous))),
-                (Self::Secondary(geometry), None) => {
+                (Self::Secondary(geometry), _) => {
                     Geometry::Secondary(geometry.cache(group, None))
                 }
-                _ => unreachable!(),
             }
         }
     }

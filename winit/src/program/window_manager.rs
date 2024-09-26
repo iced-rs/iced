@@ -78,6 +78,16 @@ where
         self.entries.first_key_value().map(|(_id, window)| window)
     }
 
+    pub fn replace_with(
+        &mut self,
+        mut f: impl FnMut(Window<P, C>) -> Window<P, C>,
+    ) {
+        self.entries = std::mem::take(&mut self.entries)
+            .into_iter()
+            .map(|(id, window)| (id, f(window)))
+            .collect();
+    }
+
     pub fn iter_mut(
         &mut self,
     ) -> impl Iterator<Item = (Id, &mut Window<P, C>)> {

@@ -20,20 +20,8 @@ pub trait Compositor: Sized {
 
     /// Creates a new [`Compositor`].
     fn new<W: Window + Clone>(
-        settings: Settings,
+        settings: &Settings,
         compatible_window: W,
-    ) -> impl Future<Output = Result<Self, Error>> {
-        Self::with_backend(settings, compatible_window, None)
-    }
-
-    /// Creates a new [`Compositor`] with a backend preference.
-    ///
-    /// If the backend does not match the preference, it will return
-    /// [`Error::GraphicsAdapterNotFound`].
-    fn with_backend<W: Window + Clone>(
-        _settings: Settings,
-        _compatible_window: W,
-        _backend: Option<&str>,
     ) -> impl Future<Output = Result<Self, Error>>;
 
     /// Creates a [`Self::Renderer`] for the [`Compositor`].
@@ -152,10 +140,9 @@ impl Compositor for () {
     type Renderer = ();
     type Surface = ();
 
-    async fn with_backend<W: Window + Clone>(
-        _settings: Settings,
+    async fn new<W: Window + Clone>(
+        _settings: &Settings,
         _compatible_window: W,
-        _preffered_backend: Option<&str>,
     ) -> Result<Self, Error> {
         Ok(())
     }

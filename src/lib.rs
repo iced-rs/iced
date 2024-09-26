@@ -472,7 +472,6 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 use iced_widget::graphics;
-use iced_widget::renderer;
 use iced_winit as shell;
 use iced_winit::core;
 use iced_winit::runtime;
@@ -510,6 +509,7 @@ pub use crate::core::{
     Theme, Transformation, Vector,
 };
 pub use crate::runtime::exit;
+pub use crate::runtime::renderer;
 pub use iced_futures::Subscription;
 
 pub use alignment::Horizontal::{Left, Right};
@@ -624,7 +624,7 @@ pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
 pub use font::Font;
-pub use renderer::Renderer;
+pub use iced_renderer::Renderer;
 pub use settings::Settings;
 pub use task::Task;
 

@@ -70,15 +70,20 @@ where
         let state = self.raw.state();
 
         let previous = match state.borrow().deref() {
-            cache::State::Empty { previous } => {
-                previous.as_ref().map(|data| data.geometry.clone())
-            }
+            cache::State::Empty { previous } => previous
+                .as_ref()
+                .filter(|data| renderer.supports_cache(&data.geometry))
+                .map(|data| data.geometry.clone()),
             cache::State::Filled { current } => {
-                if current.bounds == bounds {
-                    return Cached::load(&current.geometry);
-                }
+                if renderer.supports_cache(&current.geometry) {
+                    if current.bounds == bounds {
+                        return Cached::load(&current.geometry);
+                    }
 
-                Some(current.geometry.clone())
+                    Some(current.geometry.clone())
+                } else {
+                    None
+                }
             }
         };
 
