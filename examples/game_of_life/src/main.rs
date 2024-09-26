@@ -189,6 +189,7 @@ fn view_controls<'a>(
 
 mod grid {
     use crate::Preset;
+    use iced::advanced::Shell;
     use iced::alignment;
     use iced::mouse;
     use iced::touch;
@@ -383,6 +384,7 @@ mod grid {
             event: Event,
             bounds: Rectangle,
             cursor: mouse::Cursor,
+            _shell: &mut Shell<'_, Message>,
         ) -> (event::Status, Option<Message>) {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
                 *interaction = Interaction::None;

@@ -239,7 +239,8 @@ where
             let state = tree.state.downcast_mut::<P::State>();
 
             let (event_status, message) =
-                self.program.update(state, canvas_event, bounds, cursor);
+                self.program
+                    .update(state, canvas_event, bounds, cursor, shell);
 
             if let Some(message) = message {
                 shell.publish(message);
