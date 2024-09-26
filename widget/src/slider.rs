@@ -451,35 +451,26 @@ where
             (start.into() as f32, end.into() as f32)
         };
 
+        // Given this layout simplification:
+        // bound1   start    value     end    bound2
+        // offset will be the distance: value - start
         let offset = if range_start >= range_end {
             0.0
         } else {
+            // yes, handle_width need to be there
             (bounds.width - handle_width) * (value - range_start)
                 / (range_end - range_start)
         };
 
         let rail_y = bounds.y + bounds.height / 2.0;
 
+        // background bar
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle {
-                    x: bounds.x,
+                    x: bounds.x + handle_width / 2.0,
                     y: rail_y - style.rail.width / 2.0,
-                    width: offset + handle_width / 2.0,
-                    height: style.rail.width,
-                },
-                border: style.rail.border,
-                ..renderer::Quad::default()
-            },
-            style.rail.backgrounds.0,
-        );
-
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds: Rectangle {
-                    x: bounds.x + offset + handle_width / 2.0,
-                    y: rail_y - style.rail.width / 2.0,
-                    width: bounds.width - offset - handle_width / 2.0,
+                    width: bounds.width - handle_width,
                     height: style.rail.width,
                 },
                 border: style.rail.border,
@@ -488,6 +479,22 @@ where
             style.rail.backgrounds.1,
         );
 
+        // filled bar
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: Rectangle {
+                    x: bounds.x + handle_width / 2.0,
+                    y: rail_y - style.rail.width / 2.0,
+                    width: offset,
+                    height: style.rail.width,
+                },
+                border: style.rail.border,
+                ..renderer::Quad::default()
+            },
+            style.rail.backgrounds.0,
+        );
+
+        // handle
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle {
@@ -503,7 +510,7 @@ where
                 },
                 ..renderer::Quad::default()
             },
-            style.handle.background,
+            Background::Color(Color::WHITE.scale_alpha(0.1)),
         );
     }
 
