@@ -464,21 +464,6 @@ where
 
         let rail_y = bounds.y + bounds.height / 2.0;
 
-        // background bar
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds: Rectangle {
-                    x: bounds.x + handle_width / 2.0,
-                    y: rail_y - style.rail.width / 2.0,
-                    width: bounds.width - handle_width,
-                    height: style.rail.width,
-                },
-                border: style.rail.border,
-                ..renderer::Quad::default()
-            },
-            style.rail.backgrounds.1,
-        );
-
         // filled bar
         renderer.fill_quad(
             renderer::Quad {
@@ -492,6 +477,21 @@ where
                 ..renderer::Quad::default()
             },
             style.rail.backgrounds.0,
+        );
+
+        // background bar
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: Rectangle {
+                    x: bounds.x + (handle_width / 2.0) + offset,
+                    y: rail_y - style.rail.width / 2.0,
+                    width: bounds.width - (handle_width + offset),
+                    height: style.rail.width,
+                },
+                border: style.rail.border,
+                ..renderer::Quad::default()
+            },
+            style.rail.backgrounds.1,
         );
 
         // handle
