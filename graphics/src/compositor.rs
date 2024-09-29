@@ -155,7 +155,7 @@ impl Compositor for () {
     async fn with_backend<W: Window + Clone>(
         _settings: Settings,
         _compatible_window: W,
-        _preffered_backend: Option<&str>,
+        _preferred_backend: Option<&str>,
     ) -> Result<Self, Error> {
         Ok(())
     }

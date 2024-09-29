@@ -477,9 +477,9 @@ pub struct Style {
     pub background: Option<Background>,
     /// The text [`Color`] of the button.
     pub text_color: Color,
-    /// The [`Border`] of the buton.
+    /// The [`Border`] of the button.
     pub border: Border,
-    /// The [`Shadow`] of the butoon.
+    /// The [`Shadow`] of the button.
     pub shadow: Shadow,
 }
 

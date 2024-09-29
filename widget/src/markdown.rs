@@ -1,6 +1,6 @@
 //! Markdown widgets can parse and display Markdown.
 //!
-//! You can enable the `highlighter` feature for syntax highligting
+//! You can enable the `highlighter` feature for syntax highlighting
 //! in code blocks.
 //!
 //! Only the variants of [`Item`] are currently supported.
@@ -72,7 +72,7 @@ pub enum Item {
     Paragraph(Text),
     /// A code block.
     ///
-    /// You can enable the `highlighter` feature for syntax highligting.
+    /// You can enable the `highlighter` feature for syntax highlighting.
     CodeBlock(Text),
     /// A list.
     List {

@@ -608,8 +608,8 @@ where
                     ..
                 }) = event
                 {
-                    let shift_modifer = modifiers.shift();
-                    match (named_key, shift_modifer) {
+                    let shift_modifier = modifiers.shift();
+                    match (named_key, shift_modifier) {
                         (key::Named::Enter, _) => {
                             if let Some(index) = &menu.hovered_option {
                                 if let Some(option) =
