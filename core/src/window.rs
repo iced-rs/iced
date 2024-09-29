@@ -2,6 +2,7 @@
 pub mod icon;
 pub mod settings;
 
+mod cursor_grab;
 mod event;
 mod id;
 mod level;
@@ -10,6 +11,7 @@ mod position;
 mod redraw_request;
 mod user_attention;
 
+pub use cursor_grab::CursorGrab;
 pub use event::Event;
 pub use icon::Icon;
 pub use id::Id;
