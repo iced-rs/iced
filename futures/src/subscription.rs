@@ -113,7 +113,7 @@ pub type Hasher = rustc_hash::FxHasher;
 /// ```
 ///
 /// [`Future`]: std::future::Future
-#[must_use = "`Subscription` must be returned to runtime to take effect"]
+#[must_use = "`Subscription` must be returned to the runtime to take effect; normally in your `subscription` function."]
 pub struct Subscription<T> {
     recipes: Vec<Box<dyn Recipe<Output = T>>>,
 }
@@ -138,11 +138,16 @@ impl<T> Subscription<T> {
     /// and returning the `Sender` as a `Message` for the `Application`:
     ///
     /// ```
-    /// use iced_futures::subscription::{self, Subscription};
-    /// use iced_futures::stream;
-    /// use iced_futures::futures::channel::mpsc;
-    /// use iced_futures::futures::sink::SinkExt;
-    /// use iced_futures::futures::Stream;
+    /// # mod iced {
+    /// #     pub use iced_futures::Subscription;   
+    /// #     pub use iced_futures::futures;
+    /// #     pub use iced_futures::stream;
+    /// # }
+    /// use iced::futures::channel::mpsc;
+    /// use iced::futures::sink::SinkExt;
+    /// use iced::futures::Stream;
+    /// use iced::stream;
+    /// use iced::Subscription;
     ///
     /// pub enum Event {
     ///     Ready(mpsc::Sender<Input>),
@@ -190,7 +195,7 @@ impl<T> Subscription<T> {
     /// Check out the [`websocket`] example, which showcases this pattern to maintain a `WebSocket`
     /// connection open.
     ///
-    /// [`websocket`]: https://github.com/iced-rs/iced/tree/0.12/examples/websocket
+    /// [`websocket`]: https://github.com/iced-rs/iced/tree/0.13/examples/websocket
     pub fn run<S>(builder: fn() -> S) -> Self
     where
         S: Stream<Item = T> + MaybeSend + 'static,
@@ -317,9 +322,9 @@ impl<T> std::fmt::Debug for Subscription<T> {
 /// - [`stopwatch`], a watch with start/stop and reset buttons showcasing how
 ///   to listen to time.
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.12/examples
-/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.12/examples/download_progress
-/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.12/examples/stopwatch
+/// [examples]: https://github.com/iced-rs/iced/tree/0.13/examples
+/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.13/examples/download_progress
+/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.13/examples/stopwatch
 pub trait Recipe {
     /// The events that will be produced by a [`Subscription`] with this
     /// [`Recipe`].

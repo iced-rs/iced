@@ -2,9 +2,9 @@ use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
     self, button, column, container, horizontal_space, pick_list, row, text,
-    text_editor, tooltip,
+    text_editor, toggler, tooltip,
 };
-use iced::{Center, Element, Fill, Font, Subscription, Task, Theme};
+use iced::{Center, Element, Fill, Font, Task, Theme};
 
 use std::ffi;
 use std::io;
@@ -13,7 +13,6 @@ use std::sync::Arc;
 
 pub fn main() -> iced::Result {
     iced::application("Editor - Iced", Editor::update, Editor::view)
-        .subscription(Editor::subscription)
         .theme(Editor::theme)
         .font(include_bytes!("../fonts/icons.ttf").as_slice())
         .default_font(Font::MONOSPACE)
@@ -24,6 +23,7 @@ struct Editor {
     file: Option<PathBuf>,
     content: text_editor::Content,
     theme: highlighter::Theme,
+    word_wrap: bool,
     is_loading: bool,
     is_dirty: bool,
 }
@@ -32,6 +32,7 @@ struct Editor {
 enum Message {
     ActionPerformed(text_editor::Action),
     ThemeSelected(highlighter::Theme),
+    WordWrapToggled(bool),
     NewFile,
     OpenFile,
     FileOpened(Result<(PathBuf, Arc<String>), Error>),
@@ -46,6 +47,7 @@ impl Editor {
                 file: None,
                 content: text_editor::Content::new(),
                 theme: highlighter::Theme::SolarizedDark,
+                word_wrap: true,
                 is_loading: true,
                 is_dirty: false,
             },
@@ -73,6 +75,11 @@ impl Editor {
             }
             Message::ThemeSelected(theme) => {
                 self.theme = theme;
+
+                Task::none()
+            }
+            Message::WordWrapToggled(word_wrap) => {
+                self.word_wrap = word_wrap;
 
                 Task::none()
             }
@@ -129,15 +136,6 @@ impl Editor {
         }
     }
 
-    fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key, modifiers| match key.as_ref() {
-            keyboard::Key::Character("s") if modifiers.command() => {
-                Some(Message::SaveFile)
-            }
-            _ => None,
-        })
-    }
-
     fn view(&self) -> Element<Message> {
         let controls = row![
             action(new_icon(), "New file", Some(Message::NewFile)),
@@ -152,6 +150,9 @@ impl Editor {
                 self.is_dirty.then_some(Message::SaveFile)
             ),
             horizontal_space(),
+            toggler(self.word_wrap)
+                .label("Word Wrap")
+                .on_toggle(Message::WordWrapToggled),
             pick_list(
                 highlighter::Theme::ALL,
                 Some(self.theme),
@@ -189,6 +190,11 @@ impl Editor {
             text_editor(&self.content)
                 .height(Fill)
                 .on_action(Message::ActionPerformed)
+                .wrapping(if self.word_wrap {
+                    text::Wrapping::Word
+                } else {
+                    text::Wrapping::None
+                })
                 .highlight(
                     self.file
                         .as_deref()
@@ -196,7 +202,19 @@ impl Editor {
                         .and_then(ffi::OsStr::to_str)
                         .unwrap_or("rs"),
                     self.theme,
-                ),
+                )
+                .key_binding(|key_press| {
+                    match key_press.key.as_ref() {
+                        keyboard::Key::Character("s")
+                            if key_press.modifiers.command() =>
+                        {
+                            Some(text_editor::Binding::Custom(
+                                Message::SaveFile,
+                            ))
+                        }
+                        _ => text_editor::Binding::from_key_press(key_press),
+                    }
+                }),
             status,
         ]
         .spacing(10)

@@ -6,6 +6,7 @@ use resvg::tiny_skia;
 use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
+use std::sync::Arc;
 
 /// Entry in cache corresponding to an svg handle
 pub enum Svg {
@@ -37,6 +38,7 @@ pub struct Cache {
     svg_hits: FxHashSet<u64>,
     rasterized_hits: FxHashSet<(u64, u32, u32, ColorFilter)>,
     should_trim: bool,
+    fontdb: Option<Arc<usvg::fontdb::Database>>,
 }
 
 type ColorFilter = Option<[u8; 4]>;
@@ -48,23 +50,33 @@ impl Cache {
             return self.svgs.get(&handle.id()).unwrap();
         }
 
+        // TODO: Reuse `cosmic-text` font database
+        if self.fontdb.is_none() {
+            let mut fontdb = usvg::fontdb::Database::new();
+            fontdb.load_system_fonts();
+
+            self.fontdb = Some(Arc::new(fontdb));
+        }
+
+        let options = usvg::Options {
+            fontdb: self
+                .fontdb
+                .as_ref()
+                .expect("fontdb must be initialized")
+                .clone(),
+            ..usvg::Options::default()
+        };
+
         let svg = match handle.data() {
             svg::Data::Path(path) => fs::read_to_string(path)
                 .ok()
                 .and_then(|contents| {
-                    usvg::Tree::from_str(
-                        &contents,
-                        &usvg::Options::default(), // TODO: Set usvg::Options::fontdb
-                    )
-                    .ok()
+                    usvg::Tree::from_str(&contents, &options).ok()
                 })
                 .map(Svg::Loaded)
                 .unwrap_or(Svg::NotFound),
             svg::Data::Bytes(bytes) => {
-                match usvg::Tree::from_data(
-                    bytes,
-                    &usvg::Options::default(), // TODO: Set usvg::Options::fontdb
-                ) {
+                match usvg::Tree::from_data(bytes, &options) {
                     Ok(tree) => Svg::Loaded(tree),
                     Err(_) => Svg::NotFound,
                 }

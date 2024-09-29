@@ -209,19 +209,23 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mut cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
+        let is_over_scroll =
+            matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
+                && cursor.is_over(layout.bounds());
+
         self.children
             .iter_mut()
             .rev()
             .zip(tree.children.iter_mut().rev())
             .zip(layout.children().rev())
             .map(|((child, state), layout)| {
-                child.as_widget_mut().on_event(
+                let status = child.as_widget_mut().on_event(
                     state,
                     event.clone(),
                     layout,
@@ -230,7 +234,19 @@ where
                     clipboard,
                     shell,
                     viewport,
-                )
+                );
+
+                if is_over_scroll && cursor != mouse::Cursor::Unavailable {
+                    let interaction = child.as_widget().mouse_interaction(
+                        state, layout, cursor, viewport, renderer,
+                    );
+
+                    if interaction != mouse::Interaction::None {
+                        cursor = mouse::Cursor::Unavailable;
+                    }
+                }
+
+                status
             })
             .find(|&status| status == event::Status::Captured)
             .unwrap_or(event::Status::Ignored)
@@ -269,15 +285,53 @@ where
         viewport: &Rectangle,
     ) {
         if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
-            for (i, ((layer, state), layout)) in self
+            let layers_below = if cursor.is_over(layout.bounds()) {
+                self.children
+                    .iter()
+                    .rev()
+                    .zip(tree.children.iter().rev())
+                    .zip(layout.children().rev())
+                    .position(|((layer, state), layout)| {
+                        let interaction = layer.as_widget().mouse_interaction(
+                            state, layout, cursor, viewport, renderer,
+                        );
+
+                        interaction != mouse::Interaction::None
+                    })
+                    .map(|i| self.children.len() - i - 1)
+                    .unwrap_or_default()
+            } else {
+                0
+            };
+
+            let mut layers = self
                 .children
                 .iter()
                 .zip(&tree.children)
                 .zip(layout.children())
-                .enumerate()
-            {
-                if i > 0 {
-                    renderer.with_layer(clipped_viewport, |renderer| {
+                .enumerate();
+
+            let layers = layers.by_ref();
+
+            let mut draw_layer =
+                |i,
+                 layer: &Element<'a, Message, Theme, Renderer>,
+                 state,
+                 layout,
+                 cursor| {
+                    if i > 0 {
+                        renderer.with_layer(clipped_viewport, |renderer| {
+                            layer.as_widget().draw(
+                                state,
+                                renderer,
+                                theme,
+                                style,
+                                layout,
+                                cursor,
+                                &clipped_viewport,
+                            );
+                        });
+                    } else {
                         layer.as_widget().draw(
                             state,
                             renderer,
@@ -287,18 +341,15 @@ where
                             cursor,
                             &clipped_viewport,
                         );
-                    });
-                } else {
-                    layer.as_widget().draw(
-                        state,
-                        renderer,
-                        theme,
-                        style,
-                        layout,
-                        cursor,
-                        &clipped_viewport,
-                    );
-                }
+                    }
+                };
+
+            for (i, ((layer, state), layout)) in layers.take(layers_below) {
+                draw_layer(i, layer, state, layout, mouse::Cursor::Unavailable);
+            }
+
+            for (i, ((layer, state), layout)) in layers {
+                draw_layer(i, layer, state, layout, cursor);
             }
         }
     }

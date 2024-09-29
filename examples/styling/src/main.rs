@@ -77,12 +77,10 @@ impl Styling {
         let checkbox = checkbox("Check me!", self.checkbox_value)
             .on_toggle(Message::CheckboxToggled);
 
-        let toggler = toggler(
-            String::from("Toggle me!"),
-            self.toggler_value,
-            Message::TogglerToggled,
-        )
-        .spacing(10);
+        let toggler = toggler(self.toggler_value)
+            .label("Toggle me!")
+            .on_toggle(Message::TogglerToggled)
+            .spacing(10);
 
         let content = column![
             choose_theme,

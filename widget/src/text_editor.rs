@@ -1,4 +1,36 @@
-//! Display a multi-line text input for text editing.
+//! Text editors display a multi-line text input for text editing.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::text_editor;
+//!
+//! struct State {
+//!    content: text_editor::Content,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     Edit(text_editor::Action)
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     text_editor(&state.content)
+//!         .placeholder("Type something here...")
+//!         .on_action(Message::Edit)
+//!         .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::Edit(action) => {
+//!             state.content.perform(action);
+//!         }
+//!     }
+//! }
+//! ```
 use crate::core::alignment;
 use crate::core::clipboard::{self, Clipboard};
 use crate::core::event::{self, Event};
@@ -9,7 +41,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::editor::{Cursor, Editor as _};
 use crate::core::text::highlighter::{self, Highlighter};
-use crate::core::text::{self, LineHeight, Text};
+use crate::core::text::{self, LineHeight, Text, Wrapping};
 use crate::core::time::{Duration, Instant};
 use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
@@ -27,6 +59,38 @@ use std::sync::Arc;
 pub use text::editor::{Action, Edit, Motion};
 
 /// A multi-line text input.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::text_editor;
+///
+/// struct State {
+///    content: text_editor::Content,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     Edit(text_editor::Action)
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text_editor(&state.content)
+///         .placeholder("Type something here...")
+///         .on_action(Message::Edit)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::Edit(action) => {
+///             state.content.perform(action);
+///         }
+///     }
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct TextEditor<
     'a,
@@ -47,6 +111,7 @@ pub struct TextEditor<
     width: Length,
     height: Length,
     padding: Padding,
+    wrapping: Wrapping,
     class: Theme::Class<'a>,
     key_binding: Option<Box<dyn Fn(KeyPress) -> Option<Binding<Message>> + 'a>>,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
@@ -74,6 +139,7 @@ where
             width: Length::Fill,
             height: Length::Shrink,
             padding: Padding::new(5.0),
+            wrapping: Wrapping::default(),
             class: Theme::default(),
             key_binding: None,
             on_edit: None,
@@ -104,6 +170,12 @@ where
     /// Sets the height of the [`TextEditor`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
         self.height = height.into();
+        self
+    }
+
+    /// Sets the width of the [`TextEditor`].
+    pub fn width(mut self, width: impl Into<Pixels>) -> Self {
+        self.width = Length::from(width.into());
         self
     }
 
@@ -148,6 +220,12 @@ where
         self
     }
 
+    /// Sets the [`Wrapping`] strategy of the [`TextEditor`].
+    pub fn wrapping(mut self, wrapping: Wrapping) -> Self {
+        self.wrapping = wrapping;
+        self
+    }
+
     /// Highlights the [`TextEditor`] using the given syntax and theme.
     #[cfg(feature = "highlighter")]
     pub fn highlight(
@@ -186,6 +264,7 @@ where
             width: self.width,
             height: self.height,
             padding: self.padding,
+            wrapping: self.wrapping,
             class: self.class,
             key_binding: self.key_binding,
             on_edit: self.on_edit,
@@ -489,13 +568,14 @@ where
             state.highlighter_settings = self.highlighter_settings.clone();
         }
 
-        let limits = limits.height(self.height);
+        let limits = limits.width(self.width).height(self.height);
 
         internal.editor.update(
             limits.shrink(self.padding).max(),
             self.font.unwrap_or_else(|| renderer.default_font()),
             self.text_size.unwrap_or_else(|| renderer.default_size()),
             self.line_height,
+            self.wrapping,
             state.highlighter.borrow_mut().deref_mut(),
         );
 
@@ -726,7 +806,7 @@ where
         tree: &widget::Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        defaults: &renderer::Style,
+        _defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
@@ -784,6 +864,7 @@ where
                         horizontal_alignment: alignment::Horizontal::Left,
                         vertical_alignment: alignment::Vertical::Top,
                         shaping: text::Shaping::Advanced,
+                        wrapping: self.wrapping,
                     },
                     text_bounds.position(),
                     style.placeholder,
@@ -794,7 +875,7 @@ where
             renderer.fill_editor(
                 &internal.editor,
                 text_bounds.position(),
-                defaults.text_color,
+                style.value,
                 text_bounds,
             );
         }
@@ -964,7 +1045,9 @@ impl<Message> Binding<Message> {
             keyboard::Key::Named(key::Named::Backspace) => {
                 Some(Self::Backspace)
             }
-            keyboard::Key::Named(key::Named::Delete) => Some(Self::Delete),
+            keyboard::Key::Named(key::Named::Delete) if text.is_none() => {
+                Some(Self::Delete)
+            }
             keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
             keyboard::Key::Character("c") if modifiers.command() => {
                 Some(Self::Copy)
@@ -1045,6 +1128,7 @@ impl<Message> Update<Message> {
 
                         let click = mouse::Click::new(
                             cursor_position,
+                            mouse::Button::Left,
                             state.last_click,
                         );
 

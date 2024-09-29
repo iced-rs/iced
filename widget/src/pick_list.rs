@@ -1,4 +1,65 @@
-//! Display a dropdown list of selectable values.
+//! Pick lists display a dropdown list of selectable options.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::pick_list;
+//!
+//! struct State {
+//!    favorite: Option<Fruit>,
+//! }
+//!
+//! #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+//! enum Fruit {
+//!     Apple,
+//!     Orange,
+//!     Strawberry,
+//!     Tomato,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     FruitSelected(Fruit),
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     let fruits = [
+//!         Fruit::Apple,
+//!         Fruit::Orange,
+//!         Fruit::Strawberry,
+//!         Fruit::Tomato,
+//!     ];
+//!
+//!     pick_list(
+//!         fruits,
+//!         state.favorite,
+//!         Message::FruitSelected,
+//!     )
+//!     .placeholder("Select your favorite fruit...")
+//!     .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::FruitSelected(fruit) => {
+//!             state.favorite = Some(fruit);
+//!         }
+//!     }
+//! }
+//!
+//! impl std::fmt::Display for Fruit {
+//!     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//!         f.write_str(match self {
+//!             Self::Apple => "Apple",
+//!             Self::Orange => "Orange",
+//!             Self::Strawberry => "Strawberry",
+//!             Self::Tomato => "Tomato",
+//!         })
+//!     }
+//! }
+//! ```
 use crate::core::alignment;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
@@ -20,6 +81,67 @@ use std::borrow::Borrow;
 use std::f32;
 
 /// A widget for selecting a single value from a list of options.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::pick_list;
+///
+/// struct State {
+///    favorite: Option<Fruit>,
+/// }
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// enum Fruit {
+///     Apple,
+///     Orange,
+///     Strawberry,
+///     Tomato,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     FruitSelected(Fruit),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     let fruits = [
+///         Fruit::Apple,
+///         Fruit::Orange,
+///         Fruit::Strawberry,
+///         Fruit::Tomato,
+///     ];
+///
+///     pick_list(
+///         fruits,
+///         state.favorite,
+///         Message::FruitSelected,
+///     )
+///     .placeholder("Select your favorite fruit...")
+///     .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::FruitSelected(fruit) => {
+///             state.favorite = Some(fruit);
+///         }
+///     }
+/// }
+///
+/// impl std::fmt::Display for Fruit {
+///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+///         f.write_str(match self {
+///             Self::Apple => "Apple",
+///             Self::Orange => "Orange",
+///             Self::Strawberry => "Strawberry",
+///             Self::Tomato => "Tomato",
+///         })
+///     }
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct PickList<
     'a,
@@ -81,7 +203,7 @@ where
             padding: crate::button::DEFAULT_PADDING,
             text_size: None,
             text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::default(),
             font: None,
             handle: Handle::default(),
             class: <Theme as Catalog>::default(),
@@ -250,6 +372,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
             shaping: self.text_shaping,
+            wrapping: text::Wrapping::default(),
         };
 
         for (option, paragraph) in options.iter().zip(state.options.iter_mut())
@@ -515,6 +638,7 @@ where
                     horizontal_alignment: alignment::Horizontal::Right,
                     vertical_alignment: alignment::Vertical::Center,
                     shaping,
+                    wrapping: text::Wrapping::default(),
                 },
                 Point::new(
                     bounds.x + bounds.width - self.padding.right,
@@ -544,6 +668,7 @@ where
                     horizontal_alignment: alignment::Horizontal::Left,
                     vertical_alignment: alignment::Vertical::Center,
                     shaping: self.text_shaping,
+                    wrapping: text::Wrapping::default(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if is_selected {

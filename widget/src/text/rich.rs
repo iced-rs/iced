@@ -5,15 +5,13 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::{Paragraph, Span};
 use crate::core::widget::text::{
-    self, Catalog, LineHeight, Shaping, Style, StyleFn,
+    self, Catalog, LineHeight, Shaping, Style, StyleFn, Wrapping,
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     self, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point,
     Rectangle, Shell, Size, Vector, Widget,
 };
-
-use std::borrow::Cow;
 
 /// A bunch of [`Rich`] text.
 #[allow(missing_debug_implementations)]
@@ -23,7 +21,7 @@ where
     Theme: Catalog,
     Renderer: core::text::Renderer,
 {
-    spans: Cow<'a, [Span<'a, Link, Renderer::Font>]>,
+    spans: Box<dyn AsRef<[Span<'a, Link, Renderer::Font>]> + 'a>,
     size: Option<Pixels>,
     line_height: LineHeight,
     width: Length,
@@ -31,6 +29,7 @@ where
     font: Option<Renderer::Font>,
     align_x: alignment::Horizontal,
     align_y: alignment::Vertical,
+    wrapping: Wrapping,
     class: Theme::Class<'a>,
 }
 
@@ -39,11 +38,12 @@ where
     Link: Clone + 'static,
     Theme: Catalog,
     Renderer: core::text::Renderer,
+    Renderer::Font: 'a,
 {
     /// Creates a new empty [`Rich`] text.
     pub fn new() -> Self {
         Self {
-            spans: Cow::default(),
+            spans: Box::new([]),
             size: None,
             line_height: LineHeight::default(),
             width: Length::Shrink,
@@ -51,16 +51,17 @@ where
             font: None,
             align_x: alignment::Horizontal::Left,
             align_y: alignment::Vertical::Top,
+            wrapping: Wrapping::default(),
             class: Theme::default(),
         }
     }
 
     /// Creates a new [`Rich`] text with the given text spans.
     pub fn with_spans(
-        spans: impl Into<Cow<'a, [Span<'a, Link, Renderer::Font>]>>,
+        spans: impl AsRef<[Span<'a, Link, Renderer::Font>]> + 'a,
     ) -> Self {
         Self {
-            spans: spans.into(),
+            spans: Box::new(spans),
             ..Self::new()
         }
     }
@@ -119,6 +120,12 @@ where
         self
     }
 
+    /// Sets the [`Wrapping`] strategy of the [`Rich`] text.
+    pub fn wrapping(mut self, wrapping: Wrapping) -> Self {
+        self.wrapping = wrapping;
+        self
+    }
+
     /// Sets the default style of the [`Rich`] text.
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
@@ -154,15 +161,6 @@ where
         self.class = class.into();
         self
     }
-
-    /// Adds a new text [`Span`] to the [`Rich`] text.
-    pub fn push(
-        mut self,
-        span: impl Into<Span<'a, Link, Renderer::Font>>,
-    ) -> Self {
-        self.spans.to_mut().push(span.into());
-        self
-    }
 }
 
 impl<'a, Link, Theme, Renderer> Default for Rich<'a, Link, Theme, Renderer>
@@ -170,6 +168,7 @@ where
     Link: Clone + 'a,
     Theme: Catalog,
     Renderer: core::text::Renderer,
+    Renderer::Font: 'a,
 {
     fn default() -> Self {
         Self::new()
@@ -221,12 +220,13 @@ where
             limits,
             self.width,
             self.height,
-            self.spans.as_ref(),
+            self.spans.as_ref().as_ref(),
             self.line_height,
             self.size,
             self.font,
             self.align_x,
             self.align_y,
+            self.wrapping,
         )
     }
 
@@ -250,7 +250,7 @@ where
             .position_in(layout.bounds())
             .and_then(|position| state.paragraph.hit_span(position));
 
-        for (index, span) in self.spans.iter().enumerate() {
+        for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
             let is_hovered_link =
                 span.link.is_some() && Some(index) == hovered_span;
 
@@ -394,6 +394,8 @@ where
                             Some(span) if span == span_pressed => {
                                 if let Some(link) = self
                                     .spans
+                                    .as_ref()
+                                    .as_ref()
                                     .get(span)
                                     .and_then(|span| span.link.clone())
                                 {
@@ -427,7 +429,7 @@ where
             if let Some(span) = state
                 .paragraph
                 .hit_span(position)
-                .and_then(|span| self.spans.get(span))
+                .and_then(|span| self.spans.as_ref().as_ref().get(span))
             {
                 if span.link.is_some() {
                     return mouse::Interaction::Pointer;
@@ -451,6 +453,7 @@ fn layout<Link, Renderer>(
     font: Option<Renderer::Font>,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
+    wrapping: Wrapping,
 ) -> layout::Node
 where
     Link: Clone,
@@ -471,6 +474,7 @@ where
             horizontal_alignment,
             vertical_alignment,
             shaping: Shaping::Advanced,
+            wrapping,
         };
 
         if state.spans != spans {
@@ -487,6 +491,7 @@ where
                 horizontal_alignment,
                 vertical_alignment,
                 shaping: Shaping::Advanced,
+                wrapping,
             }) {
                 core::text::Difference::None => {}
                 core::text::Difference::Bounds => {
@@ -509,14 +514,12 @@ where
     Link: Clone + 'a,
     Theme: Catalog,
     Renderer: core::text::Renderer,
+    Renderer::Font: 'a,
 {
     fn from_iter<T: IntoIterator<Item = Span<'a, Link, Renderer::Font>>>(
         spans: T,
     ) -> Self {
-        Self {
-            spans: spans.into_iter().collect(),
-            ..Self::new()
-        }
+        Self::with_spans(spans.into_iter().collect::<Vec<_>>())
     }
 }
 

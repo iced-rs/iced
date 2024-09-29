@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 iced.workspace = true
-iced.features = ["debug", "advanced"]
+iced.features = ["debug", "image", "advanced"]
 
 image.workspace = true
 bytemuck.workspace = true

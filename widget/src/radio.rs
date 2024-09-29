@@ -1,4 +1,61 @@
-//! Create choices using radio buttons.
+//! Radio buttons let users choose a single option from a bunch of options.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::{column, radio};
+//!
+//! struct State {
+//!    selection: Option<Choice>,
+//! }
+//!
+//! #[derive(Debug, Clone, Copy)]
+//! enum Message {
+//!     RadioSelected(Choice),
+//! }
+//!
+//! #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+//! enum Choice {
+//!     A,
+//!     B,
+//!     C,
+//!     All,
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     let a = radio(
+//!         "A",
+//!         Choice::A,
+//!         state.selection,
+//!         Message::RadioSelected,
+//!     );
+//!
+//!     let b = radio(
+//!         "B",
+//!         Choice::B,
+//!         state.selection,
+//!         Message::RadioSelected,
+//!     );
+//!
+//!     let c = radio(
+//!         "C",
+//!         Choice::C,
+//!         state.selection,
+//!         Message::RadioSelected,
+//!     );
+//!
+//!     let all = radio(
+//!         "All of the above",
+//!         Choice::All,
+//!         state.selection,
+//!         Message::RadioSelected
+//!     );
+//!
+//!     column![a, b, c, all].into()
+//! }
+//! ```
 use crate::core::alignment;
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
@@ -18,54 +75,59 @@ use crate::core::{
 ///
 /// # Example
 /// ```no_run
-/// # type Radio<'a, Message> =
-/// #     iced_widget::Radio<'a, Message, iced_widget::Theme, iced_widget::renderer::Renderer>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// # use iced_widget::column;
+/// use iced::widget::{column, radio};
+///
+/// struct State {
+///    selection: Option<Choice>,
+/// }
+///
+/// #[derive(Debug, Clone, Copy)]
+/// enum Message {
+///     RadioSelected(Choice),
+/// }
+///
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// pub enum Choice {
+/// enum Choice {
 ///     A,
 ///     B,
 ///     C,
 ///     All,
 /// }
 ///
-/// #[derive(Debug, Clone, Copy)]
-/// pub enum Message {
-///     RadioSelected(Choice),
+/// fn view(state: &State) -> Element<'_, Message> {
+///     let a = radio(
+///         "A",
+///         Choice::A,
+///         state.selection,
+///         Message::RadioSelected,
+///     );
+///
+///     let b = radio(
+///         "B",
+///         Choice::B,
+///         state.selection,
+///         Message::RadioSelected,
+///     );
+///
+///     let c = radio(
+///         "C",
+///         Choice::C,
+///         state.selection,
+///         Message::RadioSelected,
+///     );
+///
+///     let all = radio(
+///         "All of the above",
+///         Choice::All,
+///         state.selection,
+///         Message::RadioSelected
+///     );
+///
+///     column![a, b, c, all].into()
 /// }
-///
-/// let selected_choice = Some(Choice::A);
-///
-/// let a = Radio::new(
-///     "A",
-///     Choice::A,
-///     selected_choice,
-///     Message::RadioSelected,
-/// );
-///
-/// let b = Radio::new(
-///     "B",
-///     Choice::B,
-///     selected_choice,
-///     Message::RadioSelected,
-/// );
-///
-/// let c = Radio::new(
-///     "C",
-///     Choice::C,
-///     selected_choice,
-///     Message::RadioSelected,
-/// );
-///
-/// let all = Radio::new(
-///     "All of the above",
-///     Choice::All,
-///     selected_choice,
-///     Message::RadioSelected
-/// );
-///
-/// let content = column![a, b, c, all];
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Radio<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
@@ -82,6 +144,7 @@ where
     text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
+    text_wrapping: text::Wrapping,
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
 }
@@ -122,10 +185,11 @@ where
             label: label.into(),
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
-            spacing: Self::DEFAULT_SPACING, //15
+            spacing: Self::DEFAULT_SPACING,
             text_size: None,
             text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::default(),
+            text_wrapping: text::Wrapping::default(),
             font: None,
             class: Theme::default(),
         }
@@ -167,6 +231,12 @@ where
     /// Sets the [`text::Shaping`] strategy of the [`Radio`] button.
     pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
         self.text_shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Wrapping`] strategy of the [`Radio`] button.
+    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.text_wrapping = wrapping;
         self
     }
 
@@ -245,6 +315,7 @@ where
                     alignment::Horizontal::Left,
                     alignment::Vertical::Top,
                     self.text_shaping,
+                    self.text_wrapping,
                 )
             },
         )

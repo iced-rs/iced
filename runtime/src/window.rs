@@ -63,6 +63,9 @@ pub enum Action {
     /// Get the current logical coordinates of the window.
     GetPosition(Id, oneshot::Sender<Option<Point>>),
 
+    /// Get the current scale factor (DPI) of the window.
+    GetScaleFactor(Id, oneshot::Sender<f32>),
+
     /// Move the window to the given logical coordinates.
     ///
     /// Unsupported on Wayland.
@@ -144,6 +147,18 @@ pub enum Action {
 
     /// Screenshot the viewport of the window.
     Screenshot(Id, oneshot::Sender<Screenshot>),
+
+    /// Enables mouse passthrough for the given window.
+    ///
+    /// This disables mouse events for the window and passes mouse events
+    /// through to whatever window is underneath.
+    EnableMousePassthrough(Id),
+
+    /// Disable mouse passthrough for the given window.
+    ///
+    /// This enables mouse events for the window and stops mouse events
+    /// from being passed to whatever is underneath.
+    DisableMousePassthrough(Id),
 }
 
 /// Subscribes to the frames of the window of the running application.
@@ -172,7 +187,7 @@ pub fn events() -> Subscription<(Id, Event)> {
     })
 }
 
-/// Subscribes to all [`Event::Closed`] occurrences in the running application.
+/// Subscribes to all [`Event::Opened`] occurrences in the running application.
 pub fn open_events() -> Subscription<Id> {
     event::listen_with(|event, _status, id| {
         if let crate::core::Event::Window(Event::Opened { .. }) = event {
@@ -292,6 +307,13 @@ pub fn get_position(id: Id) -> Task<Option<Point>> {
     })
 }
 
+/// Gets the scale factor of the window with the given [`Id`].
+pub fn get_scale_factor(id: Id) -> Task<f32> {
+    task::oneshot(move |channel| {
+        crate::Action::Window(Action::GetScaleFactor(id, channel))
+    })
+}
+
 /// Moves the window to the given logical coordinates.
 pub fn move_to<T>(id: Id, position: Point) -> Task<T> {
     task::effect(crate::Action::Window(Action::Move(id, position)))
@@ -395,4 +417,20 @@ pub fn screenshot(id: Id) -> Task<Screenshot> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::Screenshot(id, channel))
     })
+}
+
+/// Enables mouse passthrough for the given window.
+///
+/// This disables mouse events for the window and passes mouse events
+/// through to whatever window is underneath.
+pub fn enable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
+    task::effect(crate::Action::Window(Action::EnableMousePassthrough(id)))
+}
+
+/// Disable mouse passthrough for the given window.
+///
+/// This enables mouse events for the window and stops mouse events
+/// from being passed to whatever is underneath.
+pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
+    task::effect(crate::Action::Window(Action::DisableMousePassthrough(id)))
 }

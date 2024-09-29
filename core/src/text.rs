@@ -41,6 +41,9 @@ pub struct Text<Content = String, Font = crate::Font> {
 
     /// The [`Shaping`] strategy of the [`Text`].
     pub shaping: Shaping,
+
+    /// The [`Wrapping`] strategy of the [`Text`].
+    pub wrapping: Wrapping,
 }
 
 /// The shaping strategy of some text.
@@ -65,6 +68,22 @@ pub enum Shaping {
     ///
     /// Advanced shaping is expensive! You should only enable it when necessary.
     Advanced,
+}
+
+/// The wrapping strategy of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Wrapping {
+    /// No wrapping.
+    None,
+    /// Wraps at the word level.
+    ///
+    /// This is the default.
+    #[default]
+    Word,
+    /// Wraps at the glyph level.
+    Glyph,
+    /// Wraps at the word level, or fallback to glyph level if a word can't fit on a line by itself.
+    WordOrGlyph,
 }
 
 /// The height of a line of text in a paragraph.
@@ -252,7 +271,7 @@ pub struct Span<'a, Link = (), Font = crate::Font> {
 }
 
 /// A text highlight.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Highlight {
     /// The [`Background`] of the highlight.
     pub background: Background,

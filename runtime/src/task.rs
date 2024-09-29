@@ -14,6 +14,7 @@ use std::future::Future;
 ///
 /// A [`Task`] _may_ produce a bunch of values of type `T`.
 #[allow(missing_debug_implementations)]
+#[must_use = "`Task` must be returned to the runtime to take effect; normally in your `update` or `new` functions."]
 pub struct Task<T>(Option<BoxStream<Action<T>>>);
 
 impl<T> Task<T> {

@@ -1,0 +1,24 @@
+[package]
+name = "changelog"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["tokio", "markdown", "highlighter", "debug"]
+
+log.workspace = true
+thiserror.workspace = true
+tokio.features = ["fs", "process"]
+tokio.workspace = true
+
+serde = "1"
+webbrowser = "1"
+tracing-subscriber = "0.3"
+
+[dependencies.reqwest]
+version = "0.12"
+default-features = false
+features = ["json", "rustls-tls"]

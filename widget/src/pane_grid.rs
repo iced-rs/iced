@@ -1,15 +1,62 @@
-//! Let your users split regions of your application and organize layout dynamically.
+//! Pane grids let your users split regions of your application and organize layout dynamically.
 //!
 //! ![Pane grid - Iced](https://iced.rs/examples/pane_grid.gif)
 //!
+//! This distribution of space is common in tiling window managers (like
+//! [`awesome`](https://awesomewm.org/), [`i3`](https://i3wm.org/), or even
+//! [`tmux`](https://github.com/tmux/tmux)).
+//!
+//! A [`PaneGrid`] supports:
+//!
+//! * Vertical and horizontal splits
+//! * Tracking of the last active pane
+//! * Mouse-based resizing
+//! * Drag and drop to reorganize panes
+//! * Hotkey support
+//! * Configurable modifier keys
+//! * [`State`] API to perform actions programmatically (`split`, `swap`, `resize`, etc.)
+//!
 //! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::{pane_grid, text};
+//!
+//! struct State {
+//!     panes: pane_grid::State<Pane>,
+//! }
+//!
+//! enum Pane {
+//!     SomePane,
+//!     AnotherKindOfPane,
+//! }
+//!
+//! enum Message {
+//!     PaneDragged(pane_grid::DragEvent),
+//!     PaneResized(pane_grid::ResizeEvent),
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     pane_grid(&state.panes, |pane, state, is_maximized| {
+//!         pane_grid::Content::new(match state {
+//!             Pane::SomePane => text("This is some pane"),
+//!             Pane::AnotherKindOfPane => text("This is another kind of pane"),
+//!         })
+//!     })
+//!     .on_drag(Message::PaneDragged)
+//!     .on_resize(10, Message::PaneResized)
+//!     .into()
+//! }
+//! ```
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
 //! drag and drop, and hotkey support.
 //!
-//! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.12/examples/pane_grid
+//! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.13/examples/pane_grid
 mod axis;
 mod configuration;
 mod content;
+mod controls;
 mod direction;
 mod draggable;
 mod node;
@@ -22,6 +69,7 @@ pub mod state;
 pub use axis::Axis;
 pub use configuration::Configuration;
 pub use content::Content;
+pub use controls::Controls;
 pub use direction::Direction;
 pub use draggable::Draggable;
 pub use node::Node;
@@ -66,14 +114,18 @@ const THICKNESS_RATIO: f32 = 25.0;
 /// * Configurable modifier keys
 /// * [`State`] API to perform actions programmatically (`split`, `swap`, `resize`, etc.)
 ///
-/// ## Example
-///
+/// # Example
 /// ```no_run
-/// # use iced_widget::{pane_grid, text};
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// # type PaneGrid<'a, Message> = iced_widget::PaneGrid<'a, Message>;
-/// #
-/// enum PaneState {
+/// use iced::widget::{pane_grid, text};
+///
+/// struct State {
+///     panes: pane_grid::State<Pane>,
+/// }
+///
+/// enum Pane {
 ///     SomePane,
 ///     AnotherKindOfPane,
 /// }
@@ -83,17 +135,17 @@ const THICKNESS_RATIO: f32 = 25.0;
 ///     PaneResized(pane_grid::ResizeEvent),
 /// }
 ///
-/// let (mut state, _) = pane_grid::State::new(PaneState::SomePane);
-///
-/// let pane_grid =
-///     PaneGrid::new(&state, |pane, state, is_maximized| {
+/// fn view(state: &State) -> Element<'_, Message> {
+///     pane_grid(&state.panes, |pane, state, is_maximized| {
 ///         pane_grid::Content::new(match state {
-///             PaneState::SomePane => text("This is some pane"),
-///             PaneState::AnotherKindOfPane => text("This is another kind of pane"),
+///             Pane::SomePane => text("This is some pane"),
+///             Pane::AnotherKindOfPane => text("This is another kind of pane"),
 ///         })
 ///     })
 ///     .on_drag(Message::PaneDragged)
-///     .on_resize(10, Message::PaneResized);
+///     .on_resize(10, Message::PaneResized)
+///     .into()
+/// }
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct PaneGrid<

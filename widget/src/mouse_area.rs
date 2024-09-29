@@ -1,7 +1,4 @@
 //! A container for capturing mouse events.
-
-use iced_renderer::core::Point;
-
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -10,7 +7,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{tree, Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// Emit messages on mouse events.
@@ -24,12 +22,14 @@ pub struct MouseArea<
     content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
     on_release: Option<Message>,
+    on_double_click: Option<Message>,
     on_right_press: Option<Message>,
     on_right_release: Option<Message>,
     on_middle_press: Option<Message>,
     on_middle_release: Option<Message>,
+    on_scroll: Option<Box<dyn Fn(mouse::ScrollDelta) -> Message + 'a>>,
     on_enter: Option<Message>,
-    on_move: Option<Box<dyn Fn(Point) -> Message>>,
+    on_move: Option<Box<dyn Fn(Point) -> Message + 'a>>,
     on_exit: Option<Message>,
     interaction: Option<mouse::Interaction>,
 }
@@ -46,6 +46,22 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     #[must_use]
     pub fn on_release(mut self, message: Message) -> Self {
         self.on_release = Some(message);
+        self
+    }
+
+    /// The message to emit on a double click.
+    ///
+    /// If you use this with [`on_press`]/[`on_release`], those
+    /// event will be emit as normal.
+    ///
+    /// The events stream will be: on_press -> on_release -> on_press
+    /// -> on_double_click -> on_release -> on_press ...
+    ///
+    /// [`on_press`]: Self::on_press
+    /// [`on_release`]: Self::on_release
+    #[must_use]
+    pub fn on_double_click(mut self, message: Message) -> Self {
+        self.on_double_click = Some(message);
         self
     }
 
@@ -77,6 +93,16 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
         self
     }
 
+    /// The message to emit when scroll wheel is used
+    #[must_use]
+    pub fn on_scroll(
+        mut self,
+        on_scroll: impl Fn(mouse::ScrollDelta) -> Message + 'a,
+    ) -> Self {
+        self.on_scroll = Some(Box::new(on_scroll));
+        self
+    }
+
     /// The message to emit when the mouse enters the area.
     #[must_use]
     pub fn on_enter(mut self, message: Message) -> Self {
@@ -86,11 +112,8 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 
     /// The message to emit when the mouse moves in the area.
     #[must_use]
-    pub fn on_move<F>(mut self, build_message: F) -> Self
-    where
-        F: Fn(Point) -> Message + 'static,
-    {
-        self.on_move = Some(Box::new(build_message));
+    pub fn on_move(mut self, on_move: impl Fn(Point) -> Message + 'a) -> Self {
+        self.on_move = Some(Box::new(on_move));
         self
     }
 
@@ -113,6 +136,9 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 #[derive(Default)]
 struct State {
     is_hovered: bool,
+    bounds: Rectangle,
+    cursor_position: Option<Point>,
+    previous_click: Option<mouse::Click>,
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
@@ -124,10 +150,12 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
             content: content.into(),
             on_press: None,
             on_release: None,
+            on_double_click: None,
             on_right_press: None,
             on_right_release: None,
             on_middle_press: None,
             on_middle_release: None,
+            on_scroll: None,
             on_enter: None,
             on_move: None,
             on_exit: None,
@@ -302,13 +330,17 @@ fn update<Message: Clone, Theme, Renderer>(
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
 ) -> event::Status {
-    if let Event::Mouse(mouse::Event::CursorMoved { .. })
-    | Event::Touch(touch::Event::FingerMoved { .. }) = event
-    {
-        let state: &mut State = tree.state.downcast_mut();
+    let state: &mut State = tree.state.downcast_mut();
 
+    let cursor_position = cursor.position();
+    let bounds = layout.bounds();
+
+    if state.cursor_position != cursor_position || state.bounds != bounds {
         let was_hovered = state.is_hovered;
+
         state.is_hovered = cursor.is_over(layout.bounds());
+        state.cursor_position = cursor_position;
+        state.bounds = bounds;
 
         match (
             widget.on_enter.as_ref(),
@@ -334,12 +366,37 @@ fn update<Message: Clone, Theme, Renderer>(
         return event::Status::Ignored;
     }
 
-    if let Some(message) = widget.on_press.as_ref() {
-        if let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerPressed { .. }) = event
-        {
-            shell.publish(message.clone());
+    if let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+    | Event::Touch(touch::Event::FingerPressed { .. }) = event
+    {
+        let mut captured = false;
 
+        if let Some(message) = widget.on_press.as_ref() {
+            captured = true;
+            shell.publish(message.clone());
+        }
+
+        if let Some(position) = cursor_position {
+            if let Some(message) = widget.on_double_click.as_ref() {
+                let new_click = mouse::Click::new(
+                    position,
+                    mouse::Button::Left,
+                    state.previous_click,
+                );
+
+                if matches!(new_click.kind(), mouse::click::Kind::Double) {
+                    shell.publish(message.clone());
+                }
+
+                state.previous_click = Some(new_click);
+
+                // Even if this is not a double click, but the press is nevertheless
+                // processed by us and should not be popup to parent widgets.
+                captured = true;
+            }
+        }
+
+        if captured {
             return event::Status::Captured;
         }
     }
@@ -392,6 +449,14 @@ fn update<Message: Clone, Theme, Renderer>(
         )) = event
         {
             shell.publish(message.clone());
+
+            return event::Status::Captured;
+        }
+    }
+
+    if let Some(on_scroll) = widget.on_scroll.as_ref() {
+        if let Event::Mouse(mouse::Event::WheelScrolled { delta }) = event {
+            shell.publish(on_scroll(delta));
 
             return event::Status::Captured;
         }

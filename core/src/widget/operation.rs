@@ -38,6 +38,7 @@ pub trait Operation<T = ()>: Send {
         _state: &mut dyn Scrollable,
         _id: Option<&Id>,
         _bounds: Rectangle,
+        _content_bounds: Rectangle,
         _translation: Vector,
     ) {
     }
@@ -76,9 +77,16 @@ where
         state: &mut dyn Scrollable,
         id: Option<&Id>,
         bounds: Rectangle,
+        content_bounds: Rectangle,
         translation: Vector,
     ) {
-        self.as_mut().scrollable(state, id, bounds, translation);
+        self.as_mut().scrollable(
+            state,
+            id,
+            bounds,
+            content_bounds,
+            translation,
+        );
     }
 
     fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
@@ -151,9 +159,16 @@ where
             state: &mut dyn Scrollable,
             id: Option<&Id>,
             bounds: Rectangle,
+            content_bounds: Rectangle,
             translation: Vector,
         ) {
-            self.operation.scrollable(state, id, bounds, translation);
+            self.operation.scrollable(
+                state,
+                id,
+                bounds,
+                content_bounds,
+                translation,
+            );
         }
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
@@ -222,9 +237,16 @@ where
                     state: &mut dyn Scrollable,
                     id: Option<&Id>,
                     bounds: Rectangle,
+                    content_bounds: Rectangle,
                     translation: Vector,
                 ) {
-                    self.operation.scrollable(state, id, bounds, translation);
+                    self.operation.scrollable(
+                        state,
+                        id,
+                        bounds,
+                        content_bounds,
+                        translation,
+                    );
                 }
 
                 fn focusable(
@@ -262,9 +284,16 @@ where
             state: &mut dyn Scrollable,
             id: Option<&Id>,
             bounds: Rectangle,
+            content_bounds: Rectangle,
             translation: Vector,
         ) {
-            self.operation.scrollable(state, id, bounds, translation);
+            self.operation.scrollable(
+                state,
+                id,
+                bounds,
+                content_bounds,
+                translation,
+            );
         }
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
@@ -295,7 +324,7 @@ where
 
 /// Chains the output of an [`Operation`] with the provided function to
 /// build a new [`Operation`].
-pub fn chain<A, B, O>(
+pub fn then<A, B, O>(
     operation: impl Operation<A> + 'static,
     f: fn(A) -> O,
 ) -> impl Operation<B>
@@ -341,9 +370,16 @@ where
             state: &mut dyn Scrollable,
             id: Option<&Id>,
             bounds: Rectangle,
+            content_bounds: Rectangle,
             translation: crate::Vector,
         ) {
-            self.operation.scrollable(state, id, bounds, translation);
+            self.operation.scrollable(
+                state,
+                id,
+                bounds,
+                content_bounds,
+                translation,
+            );
         }
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
@@ -361,7 +397,7 @@ where
                     Outcome::Chain(Box::new((self.next)(value)))
                 }
                 Outcome::Chain(operation) => {
-                    Outcome::Chain(Box::new(chain(operation, self.next)))
+                    Outcome::Chain(Box::new(then(operation, self.next)))
                 }
             }
         }

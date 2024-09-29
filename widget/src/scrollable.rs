@@ -1,4 +1,24 @@
-//! Navigate an endless amount of content with a scrollbar.
+//! Scrollables let users navigate an endless amount of content with a scrollbar.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::{column, scrollable, vertical_space};
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     scrollable(column![
+//!         "Scroll me!",
+//!         vertical_space().height(3000),
+//!         "You did it!",
+//!     ]).into()
+//! }
+//! ```
 use crate::container;
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
@@ -7,10 +27,12 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Background, Clipboard, Color, Element, Layout, Length, Padding,
     Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
@@ -22,6 +44,26 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{column, scrollable, vertical_space};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     scrollable(column![
+///         "Scroll me!",
+///         vertical_space().height(3000),
+///         "You did it!",
+///     ]).into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Scrollable<
     'a,
@@ -242,6 +284,24 @@ impl Direction {
             Self::Horizontal(_) => None,
         }
     }
+
+    fn align(&self, delta: Vector) -> Vector {
+        let horizontal_alignment =
+            self.horizontal().map(|p| p.alignment).unwrap_or_default();
+
+        let vertical_alignment =
+            self.vertical().map(|p| p.alignment).unwrap_or_default();
+
+        let align = |alignment: Anchor, delta: f32| match alignment {
+            Anchor::Start => delta,
+            Anchor::End => -delta,
+        };
+
+        Vector::new(
+            align(horizontal_alignment, delta.x),
+            align(vertical_alignment, delta.y),
+        )
+    }
 }
 
 impl Default for Direction {
@@ -429,6 +489,7 @@ where
             state,
             self.id.as_ref().map(|id| &id.0),
             bounds,
+            content_bounds,
             translation,
         );
 
@@ -470,6 +531,24 @@ where
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
             scrollbars.is_mouse_over(cursor);
 
+        if let Some(last_scrolled) = state.last_scrolled {
+            let clear_transaction = match event {
+                Event::Mouse(
+                    mouse::Event::ButtonPressed(_)
+                    | mouse::Event::ButtonReleased(_)
+                    | mouse::Event::CursorLeft,
+                ) => true,
+                Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                    last_scrolled.elapsed() > Duration::from_millis(100)
+                }
+                _ => last_scrolled.elapsed() > Duration::from_millis(1500),
+            };
+
+            if clear_transaction {
+                state.last_scrolled = None;
+            }
+        }
+
         if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at {
             match event {
                 Event::Mouse(mouse::Event::CursorMoved { .. })
@@ -488,7 +567,7 @@ where
                             content_bounds,
                         );
 
-                        let _ = notify_on_scroll(
+                        let _ = notify_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -526,7 +605,7 @@ where
 
                         state.y_scroller_grabbed_at = Some(scroller_grabbed_at);
 
-                        let _ = notify_on_scroll(
+                        let _ = notify_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -559,7 +638,7 @@ where
                             content_bounds,
                         );
 
-                        let _ = notify_on_scroll(
+                        let _ = notify_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -597,7 +676,7 @@ where
 
                         state.x_scroller_grabbed_at = Some(scroller_grabbed_at);
 
-                        let _ = notify_on_scroll(
+                        let _ = notify_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -612,7 +691,11 @@ where
             }
         }
 
-        let mut event_status = {
+        let content_status = if state.last_scrolled.is_some()
+            && matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
+        {
+            event::Status::Ignored
+        } else {
             let cursor = match cursor_over_scrollable {
                 Some(cursor_position)
                     if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
@@ -660,10 +743,10 @@ where
             state.x_scroller_grabbed_at = None;
             state.y_scroller_grabbed_at = None;
 
-            return event_status;
+            return content_status;
         }
 
-        if let event::Status::Captured = event_status {
+        if let event::Status::Captured = content_status {
             return event::Status::Captured;
         }
 
@@ -683,33 +766,55 @@ where
 
                 let delta = match delta {
                     mouse::ScrollDelta::Lines { x, y } => {
-                        // TODO: Configurable speed/friction (?)
-                        let movement = if !cfg!(target_os = "macos") // macOS automatically inverts the axes when Shift is pressed
-                            && state.keyboard_modifiers.shift()
-                        {
-                            Vector::new(y, x)
-                        } else {
-                            Vector::new(x, y)
+                        let is_shift_pressed = state.keyboard_modifiers.shift();
+
+                        // macOS automatically inverts the axes when Shift is pressed
+                        let (x, y) =
+                            if cfg!(target_os = "macos") && is_shift_pressed {
+                                (y, x)
+                            } else {
+                                (x, y)
+                            };
+
+                        let is_vertical = match self.direction {
+                            Direction::Vertical(_) => true,
+                            Direction::Horizontal(_) => false,
+                            Direction::Both { .. } => !is_shift_pressed,
                         };
 
-                        movement * 60.0
+                        let movement = if is_vertical {
+                            Vector::new(x, y)
+                        } else {
+                            Vector::new(y, x)
+                        };
+
+                        // TODO: Configurable speed/friction (?)
+                        -movement * 60.0
                     }
-                    mouse::ScrollDelta::Pixels { x, y } => Vector::new(x, y),
+                    mouse::ScrollDelta::Pixels { x, y } => -Vector::new(x, y),
                 };
 
-                state.scroll(delta, self.direction, bounds, content_bounds);
+                state.scroll(
+                    self.direction.align(delta),
+                    bounds,
+                    content_bounds,
+                );
 
-                event_status = if notify_on_scroll(
+                let has_scrolled = notify_scroll(
                     state,
                     &self.on_scroll,
                     bounds,
                     content_bounds,
                     shell,
-                ) {
+                );
+
+                let in_transaction = state.last_scrolled.is_some();
+
+                if has_scrolled || in_transaction {
                     event::Status::Captured
                 } else {
                     event::Status::Ignored
-                };
+                }
             }
             Event::Touch(event)
                 if state.scroll_area_touched_at.is_some()
@@ -733,13 +838,12 @@ where
                             };
 
                             let delta = Vector::new(
-                                cursor_position.x - scroll_box_touched_at.x,
-                                cursor_position.y - scroll_box_touched_at.y,
+                                scroll_box_touched_at.x - cursor_position.x,
+                                scroll_box_touched_at.y - cursor_position.y,
                             );
 
                             state.scroll(
-                                delta,
-                                self.direction,
+                                self.direction.align(delta),
                                 bounds,
                                 content_bounds,
                             );
@@ -748,7 +852,7 @@ where
                                 Some(cursor_position);
 
                             // TODO: bubble up touch movements if not consumed.
-                            let _ = notify_on_scroll(
+                            let _ = notify_scroll(
                                 state,
                                 &self.on_scroll,
                                 bounds,
@@ -760,12 +864,21 @@ where
                     _ => {}
                 }
 
-                event_status = event::Status::Captured;
+                event::Status::Captured
             }
-            _ => {}
-        }
+            Event::Window(window::Event::RedrawRequested(_)) => {
+                let _ = notify_viewport(
+                    state,
+                    &self.on_scroll,
+                    bounds,
+                    content_bounds,
+                    shell,
+                );
 
-        event_status
+                event::Status::Ignored
+            }
+            _ => event::Status::Ignored,
+        }
     }
 
     fn draw(
@@ -1075,21 +1188,44 @@ impl From<Id> for widget::Id {
 }
 
 /// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`Id`]
-/// to the provided `percentage` along the x & y axis.
+/// to the provided [`RelativeOffset`].
 pub fn snap_to<T>(id: Id, offset: RelativeOffset) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::snap_to(id.0, offset)))
 }
 
 /// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
-/// to the provided [`AbsoluteOffset`] along the x & y axis.
+/// to the provided [`AbsoluteOffset`].
 pub fn scroll_to<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::scroll_to(
         id.0, offset,
     )))
 }
 
-/// Returns [`true`] if the viewport actually changed.
-fn notify_on_scroll<Message>(
+/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
+/// by the provided [`AbsoluteOffset`].
+pub fn scroll_by<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
+    task::effect(Action::widget(operation::scrollable::scroll_by(
+        id.0, offset,
+    )))
+}
+
+fn notify_scroll<Message>(
+    state: &mut State,
+    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
+    bounds: Rectangle,
+    content_bounds: Rectangle,
+    shell: &mut Shell<'_, Message>,
+) -> bool {
+    if notify_viewport(state, on_scroll, bounds, content_bounds, shell) {
+        state.last_scrolled = Some(Instant::now());
+
+        true
+    } else {
+        false
+    }
+}
+
+fn notify_viewport<Message>(
     state: &mut State,
     on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
     bounds: Rectangle,
@@ -1121,7 +1257,9 @@ fn notify_on_scroll<Message>(
             (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
         };
 
-        if unchanged(last_relative_offset.x, current_relative_offset.x)
+        if last_notified.bounds == bounds
+            && last_notified.content_bounds == content_bounds
+            && unchanged(last_relative_offset.x, current_relative_offset.x)
             && unchanged(last_relative_offset.y, current_relative_offset.y)
             && unchanged(last_absolute_offset.x, current_absolute_offset.x)
             && unchanged(last_absolute_offset.y, current_absolute_offset.y)
@@ -1130,10 +1268,11 @@ fn notify_on_scroll<Message>(
         }
     }
 
+    state.last_notified = Some(viewport);
+
     if let Some(on_scroll) = on_scroll {
         shell.publish(on_scroll(viewport));
     }
-    state.last_notified = Some(viewport);
 
     true
 }
@@ -1147,6 +1286,7 @@ struct State {
     x_scroller_grabbed_at: Option<f32>,
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
+    last_scrolled: Option<Instant>,
 }
 
 impl Default for State {
@@ -1159,6 +1299,7 @@ impl Default for State {
             x_scroller_grabbed_at: None,
             keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,
+            last_scrolled: None,
         }
     }
 }
@@ -1170,6 +1311,15 @@ impl operation::Scrollable for State {
 
     fn scroll_to(&mut self, offset: AbsoluteOffset) {
         State::scroll_to(self, offset);
+    }
+
+    fn scroll_by(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        State::scroll_by(self, offset, bounds, content_bounds);
     }
 }
 
@@ -1274,34 +1424,13 @@ impl State {
     pub fn scroll(
         &mut self,
         delta: Vector<f32>,
-        direction: Direction,
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
-        let horizontal_alignment = direction
-            .horizontal()
-            .map(|p| p.alignment)
-            .unwrap_or_default();
-
-        let vertical_alignment = direction
-            .vertical()
-            .map(|p| p.alignment)
-            .unwrap_or_default();
-
-        let align = |alignment: Anchor, delta: f32| match alignment {
-            Anchor::Start => delta,
-            Anchor::End => -delta,
-        };
-
-        let delta = Vector::new(
-            align(horizontal_alignment, delta.x),
-            align(vertical_alignment, delta.y),
-        );
-
         if bounds.height < content_bounds.height {
             self.offset_y = Offset::Absolute(
                 (self.offset_y.absolute(bounds.height, content_bounds.height)
-                    - delta.y)
+                    + delta.y)
                     .clamp(0.0, content_bounds.height - bounds.height),
             );
         }
@@ -1309,7 +1438,7 @@ impl State {
         if bounds.width < content_bounds.width {
             self.offset_x = Offset::Absolute(
                 (self.offset_x.absolute(bounds.width, content_bounds.width)
-                    - delta.x)
+                    + delta.x)
                     .clamp(0.0, content_bounds.width - bounds.width),
             );
         }
@@ -1353,6 +1482,16 @@ impl State {
     pub fn scroll_to(&mut self, offset: AbsoluteOffset) {
         self.offset_x = Offset::Absolute(offset.x.max(0.0));
         self.offset_y = Offset::Absolute(offset.y.max(0.0));
+    }
+
+    /// Scroll by the provided [`AbsoluteOffset`].
+    pub fn scroll_by(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        self.scroll(Vector::new(offset.x, offset.y), bounds, content_bounds);
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the

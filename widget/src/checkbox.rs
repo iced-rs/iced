@@ -1,4 +1,35 @@
-//! Show toggle controls using checkboxes.
+//! Checkboxes can be used to let users make binary choices.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::checkbox;
+//!
+//! struct State {
+//!    is_checked: bool,
+//! }
+//!
+//! enum Message {
+//!     CheckboxToggled(bool),
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     checkbox("Toggle me!", state.is_checked)
+//!         .on_toggle(Message::CheckboxToggled)
+//!         .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::CheckboxToggled(is_checked) => {
+//!             state.is_checked = is_checked;
+//!         }
+//!     }
+//! }
+//! ```
+//! ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 use crate::core::alignment;
 use crate::core::event::{self, Event};
 use crate::core::layout;
@@ -17,19 +48,34 @@ use crate::core::{
 /// A box that can be checked.
 ///
 /// # Example
-///
 /// ```no_run
-/// # type Checkbox<'a, Message> = iced_widget::Checkbox<'a, Message>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// pub enum Message {
+/// use iced::widget::checkbox;
+///
+/// struct State {
+///    is_checked: bool,
+/// }
+///
+/// enum Message {
 ///     CheckboxToggled(bool),
 /// }
 ///
-/// let is_checked = true;
+/// fn view(state: &State) -> Element<'_, Message> {
+///     checkbox("Toggle me!", state.is_checked)
+///         .on_toggle(Message::CheckboxToggled)
+///         .into()
+/// }
 ///
-/// Checkbox::new("Toggle me!", is_checked).on_toggle(Message::CheckboxToggled);
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::CheckboxToggled(is_checked) => {
+///             state.is_checked = is_checked;
+///         }
+///     }
+/// }
 /// ```
-///
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct Checkbox<
@@ -50,6 +96,7 @@ pub struct Checkbox<
     text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
+    text_wrapping: text::Wrapping,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
     class: Theme::Class<'a>,
@@ -81,7 +128,8 @@ where
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
             text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::default(),
+            text_wrapping: text::Wrapping::default(),
             font: None,
             icon: Icon {
                 font: Renderer::ICON_FONT,
@@ -155,6 +203,12 @@ where
     /// Sets the [`text::Shaping`] strategy of the [`Checkbox`].
     pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
         self.text_shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Wrapping`] strategy of the [`Checkbox`].
+    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.text_wrapping = wrapping;
         self
     }
 
@@ -240,6 +294,7 @@ where
                     alignment::Horizontal::Left,
                     alignment::Vertical::Top,
                     self.text_shaping,
+                    self.text_wrapping,
                 )
             },
         )
@@ -348,6 +403,7 @@ where
                         horizontal_alignment: alignment::Horizontal::Center,
                         vertical_alignment: alignment::Vertical::Center,
                         shaping: *shaping,
+                        wrapping: text::Wrapping::default(),
                     },
                     bounds.center(),
                     style.icon_color,

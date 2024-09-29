@@ -1,4 +1,59 @@
-//! Display a dropdown list of searchable and selectable options.
+//! Combo boxes display a dropdown list of searchable and selectable options.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::combo_box;
+//!
+//! struct State {
+//!    fruits: combo_box::State<Fruit>,
+//!    favorite: Option<Fruit>,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Fruit {
+//!     Apple,
+//!     Orange,
+//!     Strawberry,
+//!     Tomato,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     FruitSelected(Fruit),
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     combo_box(
+//!         &state.fruits,
+//!         "Select your favorite fruit...",
+//!         state.favorite.as_ref(),
+//!         Message::FruitSelected
+//!     )
+//!     .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::FruitSelected(fruit) => {
+//!             state.favorite = Some(fruit);
+//!         }
+//!     }
+//! }
+//!
+//! impl std::fmt::Display for Fruit {
+//!     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//!         f.write_str(match self {
+//!             Self::Apple => "Apple",
+//!             Self::Orange => "Orange",
+//!             Self::Strawberry => "Strawberry",
+//!             Self::Tomato => "Tomato",
+//!         })
+//!     }
+//! }
+//! ```
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key;
@@ -21,9 +76,60 @@ use std::fmt::Display;
 
 /// A widget for searching and selecting a single value from a list of options.
 ///
-/// This widget is composed by a [`TextInput`] that can be filled with the text
-/// to search for corresponding values from the list of options that are displayed
-/// as a Menu.
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::combo_box;
+///
+/// struct State {
+///    fruits: combo_box::State<Fruit>,
+///    favorite: Option<Fruit>,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Fruit {
+///     Apple,
+///     Orange,
+///     Strawberry,
+///     Tomato,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     FruitSelected(Fruit),
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     combo_box(
+///         &state.fruits,
+///         "Select your favorite fruit...",
+///         state.favorite.as_ref(),
+///         Message::FruitSelected
+///     )
+///     .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::FruitSelected(fruit) => {
+///             state.favorite = Some(fruit);
+///         }
+///     }
+/// }
+///
+/// impl std::fmt::Display for Fruit {
+///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+///         f.write_str(match self {
+///             Self::Apple => "Apple",
+///             Self::Orange => "Orange",
+///             Self::Strawberry => "Strawberry",
+///             Self::Tomato => "Tomato",
+///         })
+///     }
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct ComboBox<
     'a,
@@ -41,6 +147,7 @@ pub struct ComboBox<
     selection: text_input::Value,
     on_selected: Box<dyn Fn(T) -> Message>,
     on_option_hovered: Option<Box<dyn Fn(T) -> Message>>,
+    on_open: Option<Message>,
     on_close: Option<Message>,
     on_input: Option<Box<dyn Fn(String) -> Message>>,
     menu_class: <Theme as menu::Catalog>::Class<'a>,
@@ -77,6 +184,7 @@ where
             on_selected: Box::new(on_selected),
             on_option_hovered: None,
             on_input: None,
+            on_open: None,
             on_close: None,
             menu_class: <Theme as Catalog>::default_menu(),
             padding: text_input::DEFAULT_PADDING,
@@ -101,6 +209,13 @@ where
         on_option_hovered: impl Fn(T) -> Message + 'static,
     ) -> Self {
         self.on_option_hovered = Some(Box::new(on_option_hovered));
+        self
+    }
+
+    /// Sets the message that will be produced when the  [`ComboBox`] is
+    /// opened.
+    pub fn on_open(mut self, message: Message) -> Self {
+        self.on_open = Some(message);
         self
     }
 
@@ -632,15 +747,19 @@ where
             text_input_state.is_focused()
         };
 
-        if started_focused && !is_focused && !published_message_to_shell {
-            if let Some(message) = self.on_close.take() {
-                shell.publish(message);
-            }
-        }
-
-        // Focus changed, invalidate widget tree to force a fresh `view`
         if started_focused != is_focused {
+            // Focus changed, invalidate widget tree to force a fresh `view`
             shell.invalidate_widgets();
+
+            if !published_message_to_shell {
+                if is_focused {
+                    if let Some(on_open) = self.on_open.take() {
+                        shell.publish(on_open);
+                    }
+                } else if let Some(on_close) = self.on_close.take() {
+                    shell.publish(on_close);
+                }
+            }
         }
 
         event_status

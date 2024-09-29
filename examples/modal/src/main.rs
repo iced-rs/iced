@@ -201,19 +201,21 @@ where
 {
     stack![
         base.into(),
-        mouse_area(center(opaque(content)).style(|_theme| {
-            container::Style {
-                background: Some(
-                    Color {
-                        a: 0.8,
-                        ..Color::BLACK
-                    }
-                    .into(),
-                ),
-                ..container::Style::default()
-            }
-        }))
-        .on_press(on_blur)
+        opaque(
+            mouse_area(center(opaque(content)).style(|_theme| {
+                container::Style {
+                    background: Some(
+                        Color {
+                            a: 0.8,
+                            ..Color::BLACK
+                        }
+                        .into(),
+                    ),
+                    ..container::Style::default()
+                }
+            }))
+            .on_press(on_blur)
+        )
     ]
     .into()
 }

@@ -168,6 +168,15 @@ impl geometry::frame::Backend for Frame {
         });
     }
 
+    fn stroke_rectangle<'a>(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        stroke: impl Into<Stroke<'a>>,
+    ) {
+        self.stroke(&Path::rectangle(top_left, size), stroke);
+    }
+
     fn fill_text(&mut self, text: impl Into<geometry::Text>) {
         let text = text.into();
 
@@ -247,6 +256,7 @@ impl geometry::frame::Backend for Frame {
     fn paste(&mut self, frame: Self) {
         self.primitives.extend(frame.primitives);
         self.text.extend(frame.text);
+        self.images.extend(frame.images);
     }
 
     fn translate(&mut self, translation: Vector) {

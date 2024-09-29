@@ -1,4 +1,35 @@
-//! Show toggle controls using togglers.
+//! Togglers let users make binary choices by toggling a switch.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::toggler;
+//!
+//! struct State {
+//!    is_checked: bool,
+//! }
+//!
+//! enum Message {
+//!     TogglerToggled(bool),
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     toggler(state.is_checked)
+//!         .label("Toggle me!")
+//!         .on_toggle(Message::TogglerToggled)
+//!         .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::TogglerToggled(is_checked) => {
+//!             state.is_checked = is_checked;
+//!         }
+//!     }
+//! }
+//! ```
 use crate::core::alignment;
 use crate::core::event;
 use crate::core::layout;
@@ -16,17 +47,34 @@ use crate::core::{
 /// A toggler widget.
 ///
 /// # Example
-///
 /// ```no_run
-/// # type Toggler<'a, Message> = iced_widget::Toggler<'a, Message>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// pub enum Message {
+/// use iced::widget::toggler;
+///
+/// struct State {
+///    is_checked: bool,
+/// }
+///
+/// enum Message {
 ///     TogglerToggled(bool),
 /// }
 ///
-/// let is_toggled = true;
+/// fn view(state: &State) -> Element<'_, Message> {
+///     toggler(state.is_checked)
+///         .label("Toggle me!")
+///         .on_toggle(Message::TogglerToggled)
+///         .into()
+/// }
 ///
-/// Toggler::new(String::from("Toggle me!"), is_toggled, |b| Message::TogglerToggled(b));
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::TogglerToggled(is_checked) => {
+///             state.is_checked = is_checked;
+///         }
+///     }
+/// }
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Toggler<
@@ -39,14 +87,15 @@ pub struct Toggler<
     Renderer: text::Renderer,
 {
     is_toggled: bool,
-    on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
-    label: Option<String>,
+    on_toggle: Option<Box<dyn Fn(bool) -> Message + 'a>>,
+    label: Option<text::Fragment<'a>>,
     width: Length,
     size: f32,
     text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_alignment: alignment::Horizontal,
     text_shaping: text::Shaping,
+    text_wrapping: text::Wrapping,
     spacing: f32,
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
@@ -68,28 +117,52 @@ where
     ///   * a function that will be called when the [`Toggler`] is toggled. It
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
-    pub fn new<F>(
-        label: impl Into<Option<String>>,
-        is_toggled: bool,
-        f: F,
-    ) -> Self
-    where
-        F: 'a + Fn(bool) -> Message,
-    {
+    pub fn new(is_toggled: bool) -> Self {
         Toggler {
             is_toggled,
-            on_toggle: Box::new(f),
-            label: label.into(),
+            on_toggle: None,
+            label: None,
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
             text_size: None,
             text_line_height: text::LineHeight::default(),
             text_alignment: alignment::Horizontal::Left,
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::default(),
+            text_wrapping: text::Wrapping::default(),
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
             class: Theme::default(),
         }
+    }
+
+    /// Sets the label of the [`Toggler`].
+    pub fn label(mut self, label: impl text::IntoFragment<'a>) -> Self {
+        self.label = Some(label.into_fragment());
+        self
+    }
+
+    /// Sets the message that should be produced when a user toggles
+    /// the [`Toggler`].
+    ///
+    /// If this method is not called, the [`Toggler`] will be disabled.
+    pub fn on_toggle(
+        mut self,
+        on_toggle: impl Fn(bool) -> Message + 'a,
+    ) -> Self {
+        self.on_toggle = Some(Box::new(on_toggle));
+        self
+    }
+
+    /// Sets the message that should be produced when a user toggles
+    /// the [`Toggler`], if `Some`.
+    ///
+    /// If `None`, the [`Toggler`] will be disabled.
+    pub fn on_toggle_maybe(
+        mut self,
+        on_toggle: Option<impl Fn(bool) -> Message + 'a>,
+    ) -> Self {
+        self.on_toggle = on_toggle.map(|on_toggle| Box::new(on_toggle) as _);
+        self
     }
 
     /// Sets the size of the [`Toggler`].
@@ -128,6 +201,12 @@ where
     /// Sets the [`text::Shaping`] strategy of the [`Toggler`].
     pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
         self.text_shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Wrapping`] strategy of the [`Toggler`].
+    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.text_wrapping = wrapping;
         self
     }
 
@@ -216,6 +295,7 @@ where
                         self.text_alignment,
                         alignment::Vertical::Top,
                         self.text_shaping,
+                        self.text_wrapping,
                     )
                 } else {
                     layout::Node::new(Size::ZERO)
@@ -235,13 +315,17 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
+        let Some(on_toggle) = &self.on_toggle else {
+            return event::Status::Ignored;
+        };
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {
-                    shell.publish((self.on_toggle)(!self.is_toggled));
+                    shell.publish(on_toggle(!self.is_toggled));
 
                     event::Status::Captured
                 } else {
@@ -261,7 +345,11 @@ where
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         if cursor.is_over(layout.bounds()) {
-            mouse::Interaction::Pointer
+            if self.on_toggle.is_some() {
+                mouse::Interaction::Pointer
+            } else {
+                mouse::Interaction::NotAllowed
+            }
         } else {
             mouse::Interaction::default()
         }
@@ -305,7 +393,9 @@ where
         let bounds = toggler_layout.bounds();
         let is_mouse_over = cursor.is_over(layout.bounds());
 
-        let status = if is_mouse_over {
+        let status = if self.on_toggle.is_none() {
+            Status::Disabled
+        } else if is_mouse_over {
             Status::Hovered {
                 is_toggled: self.is_toggled,
             }
@@ -394,6 +484,8 @@ pub enum Status {
         /// Indicates whether the [`Toggler`] is toggled.
         is_toggled: bool,
     },
+    /// The [`Toggler`] is disabled.
+    Disabled,
 }
 
 /// The appearance of a toggler.
@@ -454,6 +546,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 palette.background.strong.color
             }
         }
+        Status::Disabled => palette.background.weak.color,
     };
 
     let foreground = match status {
@@ -474,6 +567,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 palette.background.weak.color
             }
         }
+        Status::Disabled => palette.background.base.color,
     };
 
     Style {

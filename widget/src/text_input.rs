@@ -1,6 +1,35 @@
-//! Display fields that can be filled with text.
+//! Text inputs display fields that can be filled with text.
 //!
-//! A [`TextInput`] has some local [`State`].
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::text_input;
+//!
+//! struct State {
+//!    content: String,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     ContentChanged(String)
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     text_input("Type something here...", &state.content)
+//!         .on_input(Message::ContentChanged)
+//!         .into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::ContentChanged(content) => {
+//!             state.content = content;
+//!         }
+//!     }
+//! }
+//! ```
 mod editor;
 mod value;
 
@@ -19,7 +48,7 @@ use crate::core::keyboard::key;
 use crate::core::layout;
 use crate::core::mouse::{self, click};
 use crate::core::renderer;
-use crate::core::text::paragraph;
+use crate::core::text::paragraph::{self, Paragraph as _};
 use crate::core::text::{self, Text};
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
@@ -38,23 +67,34 @@ use crate::runtime::Action;
 ///
 /// # Example
 /// ```no_run
-/// # pub type TextInput<'a, Message> = iced_widget::TextInput<'a, Message>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// #[derive(Debug, Clone)]
-/// enum Message {
-///     TextInputChanged(String),
+/// use iced::widget::text_input;
+///
+/// struct State {
+///    content: String,
 /// }
 ///
-/// let value = "Some text";
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ContentChanged(String)
+/// }
 ///
-/// let input = TextInput::new(
-///     "This is the placeholder...",
-///     value,
-/// )
-/// .on_input(Message::TextInputChanged)
-/// .padding(10);
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text_input("Type something here...", &state.content)
+///         .on_input(Message::ContentChanged)
+///         .into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ContentChanged(content) => {
+///             state.content = content;
+///         }
+///     }
+/// }
 /// ```
-/// ![Text input drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct TextInput<
     'a,
@@ -74,6 +114,7 @@ pub struct TextInput<
     padding: Padding,
     size: Option<Pixels>,
     line_height: text::LineHeight,
+    alignment: alignment::Horizontal,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
@@ -103,6 +144,7 @@ where
             padding: DEFAULT_PADDING,
             size: None,
             line_height: text::LineHeight::default(),
+            alignment: alignment::Horizontal::Left,
             on_input: None,
             on_paste: None,
             on_submit: None,
@@ -112,8 +154,8 @@ where
     }
 
     /// Sets the [`Id`] of the [`TextInput`].
-    pub fn id(mut self, id: Id) -> Self {
-        self.id = Some(id);
+    pub fn id(mut self, id: impl Into<Id>) -> Self {
+        self.id = Some(id.into());
         self
     }
 
@@ -127,11 +169,23 @@ where
     /// the [`TextInput`].
     ///
     /// If this method is not called, the [`TextInput`] will be disabled.
-    pub fn on_input<F>(mut self, callback: F) -> Self
-    where
-        F: 'a + Fn(String) -> Message,
-    {
-        self.on_input = Some(Box::new(callback));
+    pub fn on_input(
+        mut self,
+        on_input: impl Fn(String) -> Message + 'a,
+    ) -> Self {
+        self.on_input = Some(Box::new(on_input));
+        self
+    }
+
+    /// Sets the message that should be produced when some text is typed into
+    /// the [`TextInput`], if `Some`.
+    ///
+    /// If `None`, the [`TextInput`] will be disabled.
+    pub fn on_input_maybe(
+        mut self,
+        on_input: Option<impl Fn(String) -> Message + 'a>,
+    ) -> Self {
+        self.on_input = on_input.map(|f| Box::new(f) as _);
         self
     }
 
@@ -142,6 +196,13 @@ where
         self
     }
 
+    /// Sets the message that should be produced when the [`TextInput`] is
+    /// focused and the enter key is pressed, if `Some`.
+    pub fn on_submit_maybe(mut self, on_submit: Option<Message>) -> Self {
+        self.on_submit = on_submit;
+        self
+    }
+
     /// Sets the message that should be produced when some text is pasted into
     /// the [`TextInput`].
     pub fn on_paste(
@@ -149,6 +210,16 @@ where
         on_paste: impl Fn(String) -> Message + 'a,
     ) -> Self {
         self.on_paste = Some(Box::new(on_paste));
+        self
+    }
+
+    /// Sets the message that should be produced when some text is pasted into
+    /// the [`TextInput`], if `Some`.
+    pub fn on_paste_maybe(
+        mut self,
+        on_paste: Option<impl Fn(String) -> Message + 'a>,
+    ) -> Self {
+        self.on_paste = on_paste.map(|f| Box::new(f) as _);
         self
     }
 
@@ -190,6 +261,15 @@ where
         line_height: impl Into<text::LineHeight>,
     ) -> Self {
         self.line_height = line_height.into();
+        self
+    }
+
+    /// Sets the horizontal alignment of the [`TextInput`].
+    pub fn align_x(
+        mut self,
+        alignment: impl Into<alignment::Horizontal>,
+    ) -> Self {
+        self.alignment = alignment.into();
         self
     }
 
@@ -240,6 +320,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
             shaping: text::Shaping::Advanced,
+            wrapping: text::Wrapping::default(),
         };
 
         state.placeholder.update(placeholder_text);
@@ -264,6 +345,7 @@ where
                 horizontal_alignment: alignment::Horizontal::Center,
                 vertical_alignment: alignment::Vertical::Center,
                 shaping: text::Shaping::Advanced,
+                wrapping: text::Wrapping::default(),
             };
 
             state.icon.update(icon_text);
@@ -384,11 +466,11 @@ where
                             position,
                         );
 
-                    let is_cursor_visible = ((focus.now - focus.updated_at)
-                        .as_millis()
-                        / CURSOR_BLINK_INTERVAL_MILLIS)
-                        % 2
-                        == 0;
+                    let is_cursor_visible = !is_disabled
+                        && ((focus.now - focus.updated_at).as_millis()
+                            / CURSOR_BLINK_INTERVAL_MILLIS)
+                            % 2
+                            == 0;
 
                     let cursor = if is_cursor_visible {
                         Some((
@@ -457,9 +539,21 @@ where
         };
 
         let draw = |renderer: &mut Renderer, viewport| {
+            let paragraph = if text.is_empty() {
+                state.placeholder.raw()
+            } else {
+                state.value.raw()
+            };
+
+            let alignment_offset = alignment_offset(
+                text_bounds.width,
+                paragraph.min_width(),
+                self.alignment,
+            );
+
             if let Some((cursor, color)) = cursor {
                 renderer.with_translation(
-                    Vector::new(-offset, 0.0),
+                    Vector::new(alignment_offset - offset, 0.0),
                     |renderer| {
                         renderer.fill_quad(cursor, color);
                     },
@@ -469,13 +563,9 @@ where
             }
 
             renderer.fill_paragraph(
-                if text.is_empty() {
-                    state.placeholder.raw()
-                } else {
-                    state.value.raw()
-                },
+                paragraph,
                 Point::new(text_bounds.x, text_bounds.center_y())
-                    - Vector::new(offset, 0.0),
+                    + Vector::new(alignment_offset - offset, 0.0),
                 if text.is_empty() {
                     style.placeholder
                 } else {
@@ -512,12 +602,9 @@ where
     fn diff(&self, tree: &mut Tree) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
-        // Unfocus text input if it becomes disabled
+        // Stop pasting if input becomes disabled
         if self.on_input.is_none() {
-            state.last_click = None;
-            state.is_focused = None;
             state.is_pasting = None;
-            state.is_dragging = false;
         }
     }
 
@@ -578,11 +665,7 @@ where
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let state = state::<Renderer>(tree);
 
-                let click_position = if self.on_input.is_some() {
-                    cursor.position_over(layout.bounds())
-                } else {
-                    None
-                };
+                let click_position = cursor.position_over(layout.bounds());
 
                 state.is_focused = if click_position.is_some() {
                     state.is_focused.or_else(|| {
@@ -600,10 +683,24 @@ where
 
                 if let Some(cursor_position) = click_position {
                     let text_layout = layout.children().next().unwrap();
-                    let target = cursor_position.x - text_layout.bounds().x;
 
-                    let click =
-                        mouse::Click::new(cursor_position, state.last_click);
+                    let target = {
+                        let text_bounds = text_layout.bounds();
+
+                        let alignment_offset = alignment_offset(
+                            text_bounds.width,
+                            state.value.raw().min_width(),
+                            self.alignment,
+                        );
+
+                        cursor_position.x - text_bounds.x - alignment_offset
+                    };
+
+                    let click = mouse::Click::new(
+                        cursor_position,
+                        mouse::Button::Left,
+                        state.last_click,
+                    );
 
                     match click.kind() {
                         click::Kind::Single => {
@@ -677,7 +774,18 @@ where
 
                 if state.is_dragging {
                     let text_layout = layout.children().next().unwrap();
-                    let target = position.x - text_layout.bounds().x;
+
+                    let target = {
+                        let text_bounds = text_layout.bounds();
+
+                        let alignment_offset = alignment_offset(
+                            text_bounds.width,
+                            state.value.raw().min_width(),
+                            self.alignment,
+                        );
+
+                        position.x - text_bounds.x - alignment_offset
+                    };
 
                     let value = if self.is_secure {
                         self.value.secure()
@@ -706,10 +814,6 @@ where
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
-                    let Some(on_input) = &self.on_input else {
-                        return event::Status::Ignored;
-                    };
-
                     let modifiers = state.keyboard_modifiers;
                     focus.updated_at = Instant::now();
 
@@ -733,6 +837,10 @@ where
                             if state.keyboard_modifiers.command()
                                 && !self.is_secure =>
                         {
+                            let Some(on_input) = &self.on_input else {
+                                return event::Status::Ignored;
+                            };
+
                             if let Some((start, end)) =
                                 state.cursor.selection(&self.value)
                             {
@@ -757,6 +865,10 @@ where
                             if state.keyboard_modifiers.command()
                                 && !state.keyboard_modifiers.alt() =>
                         {
+                            let Some(on_input) = &self.on_input else {
+                                return event::Status::Ignored;
+                            };
+
                             let content = match state.is_pasting.take() {
                                 Some(content) => content,
                                 None => {
@@ -800,6 +912,10 @@ where
                     }
 
                     if let Some(text) = text {
+                        let Some(on_input) = &self.on_input else {
+                            return event::Status::Ignored;
+                        };
+
                         state.is_pasting = None;
 
                         if let Some(c) =
@@ -828,6 +944,10 @@ where
                             }
                         }
                         keyboard::Key::Named(key::Named::Backspace) => {
+                            let Some(on_input) = &self.on_input else {
+                                return event::Status::Ignored;
+                            };
+
                             if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
@@ -852,6 +972,10 @@ where
                             update_cache(state, &self.value);
                         }
                         keyboard::Key::Named(key::Named::Delete) => {
+                            let Some(on_input) = &self.on_input else {
+                                return event::Status::Ignored;
+                            };
+
                             if modifiers.jump()
                                 && state.cursor.selection(&self.value).is_none()
                             {
@@ -1070,7 +1194,7 @@ where
     ) -> mouse::Interaction {
         if cursor.is_over(layout.bounds()) {
             if self.on_input.is_none() {
-                mouse::Interaction::NotAllowed
+                mouse::Interaction::Idle
             } else {
                 mouse::Interaction::Text
             }
@@ -1142,38 +1266,53 @@ impl From<Id> for widget::Id {
     }
 }
 
+impl From<&'static str> for Id {
+    fn from(id: &'static str) -> Self {
+        Self::new(id)
+    }
+}
+
+impl From<String> for Id {
+    fn from(id: String) -> Self {
+        Self::new(id)
+    }
+}
+
 /// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
-pub fn focus<T>(id: Id) -> Task<T> {
-    task::effect(Action::widget(operation::focusable::focus(id.0)))
+pub fn focus<T>(id: impl Into<Id>) -> Task<T> {
+    task::effect(Action::widget(operation::focusable::focus(id.into().0)))
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// end.
-pub fn move_cursor_to_end<T>(id: Id) -> Task<T> {
+pub fn move_cursor_to_end<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to_end(
-        id.0,
+        id.into().0,
     )))
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// front.
-pub fn move_cursor_to_front<T>(id: Id) -> Task<T> {
+pub fn move_cursor_to_front<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to_front(
-        id.0,
+        id.into().0,
     )))
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// provided position.
-pub fn move_cursor_to<T>(id: Id, position: usize) -> Task<T> {
+pub fn move_cursor_to<T>(id: impl Into<Id>, position: usize) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to(
-        id.0, position,
+        id.into().0,
+        position,
     )))
 }
 
 /// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`Id`].
-pub fn select_all<T>(id: Id) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::select_all(id.0)))
+pub fn select_all<T>(id: impl Into<Id>) -> Task<T> {
+    task::effect(Action::widget(operation::text_input::select_all(
+        id.into().0,
+    )))
 }
 
 /// The state of a [`TextInput`].
@@ -1382,6 +1521,7 @@ fn replace_paragraph<Renderer>(
         horizontal_alignment: alignment::Horizontal::Left,
         vertical_alignment: alignment::Vertical::Top,
         shaping: text::Shaping::Advanced,
+        wrapping: text::Wrapping::default(),
     });
 }
 
@@ -1484,5 +1624,23 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             value: active.placeholder,
             ..active
         },
+    }
+}
+
+fn alignment_offset(
+    text_bounds_width: f32,
+    text_min_width: f32,
+    alignment: alignment::Horizontal,
+) -> f32 {
+    if text_min_width > text_bounds_width {
+        0.0
+    } else {
+        match alignment {
+            alignment::Horizontal::Left => 0.0,
+            alignment::Horizontal::Center => {
+                (text_bounds_width - text_min_width) / 2.0
+            }
+            alignment::Horizontal::Right => text_bounds_width - text_min_width,
+        }
     }
 }

@@ -29,8 +29,7 @@ impl Markdown {
         (
             Self {
                 content: text_editor::Content::with_text(INITIAL_CONTENT),
-                items: markdown::parse(INITIAL_CONTENT, theme.palette())
-                    .collect(),
+                items: markdown::parse(INITIAL_CONTENT).collect(),
                 theme,
             },
             widget::focus_next(),
@@ -45,11 +44,8 @@ impl Markdown {
                 self.content.perform(action);
 
                 if is_edit {
-                    self.items = markdown::parse(
-                        &self.content.text(),
-                        self.theme.palette(),
-                    )
-                    .collect();
+                    self.items =
+                        markdown::parse(&self.content.text()).collect();
                 }
             }
             Message::LinkClicked(link) => {
@@ -67,8 +63,12 @@ impl Markdown {
             .font(Font::MONOSPACE)
             .highlight("markdown", highlighter::Theme::Base16Ocean);
 
-        let preview = markdown(&self.items, markdown::Settings::default())
-            .map(Message::LinkClicked);
+        let preview = markdown(
+            &self.items,
+            markdown::Settings::default(),
+            markdown::Style::from_palette(self.theme.palette()),
+        )
+        .map(Message::LinkClicked);
 
         row![editor, scrollable(preview).spacing(10).height(Fill)]
             .spacing(10)

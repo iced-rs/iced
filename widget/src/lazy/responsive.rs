@@ -21,6 +21,7 @@ use std::ops::Deref;
 ///
 /// A [`Responsive`] widget will always try to fill all the available space of
 /// its parent.
+#[cfg(feature = "lazy")]
 #[allow(missing_debug_implementations)]
 pub struct Responsive<
     'a,

@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for considering contributing to Iced! Feel free to read [the ecosystem overview] and [the roadmap] to get an idea of the current state of the library.
+Thank you for considering contributing to Iced! Take a look at [the roadmap] to get an idea of the current state of the library.
 
 The core team is busy and does not have time to mentor nor babysit new contributors. If a member of the core team thinks that reviewing and understanding your work will take more time and effort than writing it from scratch by themselves, your contribution will be dismissed. It is your responsibility to communicate and figure out how to reduce the likelihood of this!
 
@@ -15,7 +15,6 @@ Besides directly writing code, there are many other different ways you can contr
 - Submitting bug reports and use cases
 - Sharing, discussing, researching and exploring new ideas or crates
 
-[the ecosystem overview]: ECOSYSTEM.md
 [the roadmap]: ROADMAP.md
 [our Discourse forum]: https://discourse.iced.rs/
 [Code is the Easy Part]: https://youtu.be/DSjbTC-hvqQ?t=1138

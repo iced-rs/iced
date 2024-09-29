@@ -18,7 +18,6 @@ use crate::renderer::wgpu::primitive;
 use std::marker::PhantomData;
 
 pub use crate::graphics::Viewport;
-pub use crate::renderer::wgpu::wgpu;
 pub use primitive::{Primitive, Storage};
 
 /// A widget which can render custom shaders with Iced's `wgpu` backend.

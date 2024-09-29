@@ -25,7 +25,6 @@ struct Window {
     scale_input: String,
     current_scale: f64,
     theme: Theme,
-    input_id: iced::widget::text_input::Id,
 }
 
 #[derive(Debug, Clone)]
@@ -86,7 +85,7 @@ impl Example {
             }
             Message::WindowOpened(id) => {
                 let window = Window::new(self.windows.len() + 1);
-                let focus_input = text_input::focus(window.input_id.clone());
+                let focus_input = text_input::focus(format!("input-{id}"));
 
                 self.windows.insert(id, window);
 
@@ -163,7 +162,6 @@ impl Window {
             scale_input: "1.0".to_string(),
             current_scale: 1.0,
             theme: Theme::ALL[count % Theme::ALL.len()].clone(),
-            input_id: text_input::Id::unique(),
         }
     }
 
@@ -182,7 +180,7 @@ impl Window {
             text("Window title:"),
             text_input("Window Title", &self.title)
                 .on_input(move |msg| { Message::TitleChanged(id, msg) })
-                .id(self.input_id.clone())
+                .id(format!("input-{id}"))
         ];
 
         let new_window_button =

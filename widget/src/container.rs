@@ -1,4 +1,24 @@
-//! Decorate content and apply alignment.
+//! Containers let you align a widget inside their boundaries.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::container;
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     container("This text is centered inside a rounded box!")
+//!         .padding(10)
+//!         .center(800)
+//!         .style(container::rounded_box)
+//!         .into()
+//! }
+//! ```
 use crate::core::alignment::{self, Alignment};
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
@@ -16,9 +36,27 @@ use crate::core::{
 };
 use crate::runtime::task::{self, Task};
 
-/// An element decorating some content.
+/// A widget that aligns its contents inside of its boundaries.
 ///
-/// It is normally used for alignment purposes.
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::container;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     container("This text is centered inside a rounded box!")
+///         .padding(10)
+///         .center(800)
+///         .style(container::rounded_box)
+///         .into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Container<
     'a,
@@ -184,7 +222,6 @@ where
     }
 
     /// Sets the style class of the [`Container`].
-    #[cfg(feature = "advanced")]
     #[must_use]
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
         self.class = class.into();
@@ -460,6 +497,7 @@ pub fn visible_bounds(id: Id) -> Task<Option<Rectangle>> {
             _state: &mut dyn widget::operation::Scrollable,
             _id: Option<&widget::Id>,
             bounds: Rectangle,
+            _content_bounds: Rectangle,
             translation: Vector,
         ) {
             match self.scrollables.last() {
@@ -613,6 +651,12 @@ pub trait Catalog {
 /// A styling function for a [`Container`].
 pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
 
+impl<'a, Theme> From<Style> for StyleFn<'a, Theme> {
+    fn from(style: Style) -> Self {
+        Box::new(move |_theme| style)
+    }
+}
+
 impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
@@ -628,6 +672,11 @@ impl Catalog for Theme {
 /// A transparent [`Container`].
 pub fn transparent<Theme>(_theme: &Theme) -> Style {
     Style::default()
+}
+
+/// A [`Container`] with the given [`Background`].
+pub fn background(background: impl Into<Background>) -> Style {
+    Style::default().background(background)
 }
 
 /// A rounded [`Container`] with a background.

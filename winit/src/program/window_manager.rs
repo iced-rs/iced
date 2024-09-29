@@ -74,10 +74,18 @@ where
         self.entries.is_empty()
     }
 
+    pub fn first(&self) -> Option<&Window<P, C>> {
+        self.entries.first_key_value().map(|(_id, window)| window)
+    }
+
     pub fn iter_mut(
         &mut self,
     ) -> impl Iterator<Item = (Id, &mut Window<P, C>)> {
         self.entries.iter_mut().map(|(k, v)| (*k, v))
+    }
+
+    pub fn get(&self, id: Id) -> Option<&Window<P, C>> {
+        self.entries.get(&id)
     }
 
     pub fn get_mut(&mut self, id: Id) -> Option<&mut Window<P, C>> {

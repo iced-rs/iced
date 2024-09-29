@@ -1,7 +1,7 @@
 //! Draw paragraphs.
 use crate::core;
 use crate::core::alignment;
-use crate::core::text::{Hit, Shaping, Span, Text};
+use crate::core::text::{Hit, Shaping, Span, Text, Wrapping};
 use crate::core::{Font, Point, Rectangle, Size};
 use crate::text;
 
@@ -17,6 +17,7 @@ struct Internal {
     buffer: cosmic_text::Buffer,
     font: Font,
     shaping: Shaping,
+    wrapping: Wrapping,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     bounds: Size,
@@ -94,6 +95,7 @@ impl core::text::Paragraph for Paragraph {
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
             shaping: text.shaping,
+            wrapping: text.wrapping,
             bounds: text.bounds,
             min_bounds,
             version: font_system.version(),
@@ -160,6 +162,7 @@ impl core::text::Paragraph for Paragraph {
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
             shaping: text.shaping,
+            wrapping: text.wrapping,
             bounds: text.bounds,
             min_bounds,
             version: font_system.version(),
@@ -192,6 +195,7 @@ impl core::text::Paragraph for Paragraph {
             || metrics.line_height != text.line_height.to_absolute(text.size).0
             || paragraph.font != text.font
             || paragraph.shaping != text.shaping
+            || paragraph.wrapping != text.wrapping
             || paragraph.horizontal_alignment != text.horizontal_alignment
             || paragraph.vertical_alignment != text.vertical_alignment
         {
@@ -387,6 +391,7 @@ impl Default for Internal {
             }),
             font: Font::default(),
             shaping: Shaping::default(),
+            wrapping: Wrapping::default(),
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             bounds: Size::ZERO,

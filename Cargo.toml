@@ -9,6 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -27,7 +28,9 @@ wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enable the `tiny-skia` software renderer backend
 tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `Image` widget
-image = ["iced_widget/image", "dep:image"]
+image = ["image-without-codecs", "image/default"]
+# Enables the `Image` widget, without any built-in codecs of the `image` crate
+image-without-codecs = ["iced_widget/image", "dep:image"]
 # Enables the `Svg` widget
 svg = ["iced_widget/svg"]
 # Enables the `Canvas` widget
@@ -62,6 +65,8 @@ advanced = ["iced_core/advanced", "iced_widget/advanced"]
 fira-sans = ["iced_renderer/fira-sans"]
 # Enables auto-detecting light/dark mode for the built-in theme
 auto-detect-theme = ["iced_core/auto-detect-theme"]
+# Enables strict assertions for debugging purposes at the expense of performance
+strict-assertions = ["iced_renderer/strict-assertions"]
 
 [dependencies]
 iced_core.workspace = true
@@ -114,7 +119,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.13.0-dev"
+version = "0.14.0-dev"
 authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
 edition = "2021"
 license = "MIT"
@@ -122,19 +127,20 @@ repository = "https://github.com/iced-rs/iced"
 homepage = "https://iced.rs"
 categories = ["gui"]
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+rust-version = "1.80"
 
 [workspace.dependencies]
-iced = { version = "0.13.0-dev", path = "." }
-iced_core = { version = "0.13.0-dev", path = "core" }
-iced_futures = { version = "0.13.0-dev", path = "futures" }
-iced_graphics = { version = "0.13.0-dev", path = "graphics" }
-iced_highlighter = { version = "0.13.0-dev", path = "highlighter" }
-iced_renderer = { version = "0.13.0-dev", path = "renderer" }
-iced_runtime = { version = "0.13.0-dev", path = "runtime" }
-iced_tiny_skia = { version = "0.13.0-dev", path = "tiny_skia" }
-iced_wgpu = { version = "0.13.0-dev", path = "wgpu" }
-iced_widget = { version = "0.13.0-dev", path = "widget" }
-iced_winit = { version = "0.13.0-dev", path = "winit" }
+iced = { version = "0.14.0-dev", path = "." }
+iced_core = { version = "0.14.0-dev", path = "core" }
+iced_futures = { version = "0.14.0-dev", path = "futures" }
+iced_graphics = { version = "0.14.0-dev", path = "graphics" }
+iced_highlighter = { version = "0.14.0-dev", path = "highlighter" }
+iced_renderer = { version = "0.14.0-dev", path = "renderer" }
+iced_runtime = { version = "0.14.0-dev", path = "runtime" }
+iced_tiny_skia = { version = "0.14.0-dev", path = "tiny_skia" }
+iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
+iced_widget = { version = "0.14.0-dev", path = "widget" }
+iced_winit = { version = "0.14.0-dev", path = "winit" }
 
 async-std = "1.0"
 bitflags = "2.0"
@@ -144,10 +150,10 @@ cosmic-text = "0.12"
 dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
-glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "feef9f5630c2adb3528937e55f7bfad2da561a65" }
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "0d7ba1bba4dd71eb88d2cface5ce649db2413cb7" }
 guillotiere = "0.6"
 half = "2.2"
-image = "0.24"
+image = { version = "0.24", default-features = false }
 kamadak-exif = "0.5"
 kurbo = "0.10"
 log = "0.4"
@@ -177,7 +183,7 @@ wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
 web-sys = "0.3.69"
 web-time = "1.1"
-wgpu = "0.19"
+wgpu = "22.0"
 winapi = "0.3"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "254d6b3420ce4e674f516f7a2bd440665e05484d" }

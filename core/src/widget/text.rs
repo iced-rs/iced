@@ -1,4 +1,25 @@
-//! Write some text for your users to read.
+//! Text widgets display information through writing.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme, ()> { unimplemented!() } }
+//! #            pub use iced_core::color; }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
+//! use iced::widget::text;
+//! use iced::color;
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     text("Hello, this is iced!")
+//!         .size(20)
+//!         .color(color!(0x0000ff))
+//!         .into()
+//! }
+//! ```
 use crate::alignment;
 use crate::layout;
 use crate::mouse;
@@ -11,9 +32,30 @@ use crate::{
     Widget,
 };
 
-pub use text::{LineHeight, Shaping};
+pub use text::{LineHeight, Shaping, Wrapping};
 
-/// A paragraph of text.
+/// A bunch of text.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme, ()> { unimplemented!() } }
+/// #            pub use iced_core::color; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
+/// use iced::widget::text;
+/// use iced::color;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text("Hello, this is iced!")
+///         .size(20)
+///         .color(color!(0x0000ff))
+///         .into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Text<'a, Theme, Renderer>
 where
@@ -29,6 +71,7 @@ where
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
     shaping: Shaping,
+    wrapping: Wrapping,
     class: Theme::Class<'a>,
 }
 
@@ -48,7 +91,8 @@ where
             height: Length::Shrink,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            shaping: Shaping::Basic,
+            shaping: Shaping::default(),
+            wrapping: Wrapping::default(),
             class: Theme::default(),
         }
     }
@@ -112,6 +156,12 @@ where
     /// Sets the [`Shaping`] strategy of the [`Text`].
     pub fn shaping(mut self, shaping: Shaping) -> Self {
         self.shaping = shaping;
+        self
+    }
+
+    /// Sets the [`Wrapping`] strategy of the [`Text`].
+    pub fn wrapping(mut self, wrapping: Wrapping) -> Self {
+        self.wrapping = wrapping;
         self
     }
 
@@ -198,6 +248,7 @@ where
             self.horizontal_alignment,
             self.vertical_alignment,
             self.shaping,
+            self.wrapping,
         )
     }
 
@@ -232,6 +283,7 @@ pub fn layout<Renderer>(
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     shaping: Shaping,
+    wrapping: Wrapping,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
@@ -253,6 +305,7 @@ where
             horizontal_alignment,
             vertical_alignment,
             shaping,
+            wrapping,
         });
 
         paragraph.min_bounds()

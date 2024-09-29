@@ -12,6 +12,27 @@ use crate::core::{
 };
 
 /// A container that distributes its contents vertically.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{button, column};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     column![
+///         "I am on top!",
+///         button("I am in the center!"),
+///         "I am below.",
+///     ].into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 {

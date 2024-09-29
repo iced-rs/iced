@@ -1,4 +1,33 @@
-//! Display an interactive selector of a single value from a range of values.
+//! Sliders let users set a value by moving an indicator.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::slider;
+//!
+//! struct State {
+//!    value: f32,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     ValueChanged(f32),
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+//! }
+//!
+//! fn update(state: &mut State, message: Message) {
+//!     match message {
+//!         Message::ValueChanged(value) => {
+//!             state.value = value;
+//!         }
+//!     }
+//! }
+//! ```
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
@@ -9,8 +38,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Color, Element, Layout, Length, Pixels, Point, Rectangle,
-    Shell, Size, Theme, Widget,
+    self, Background, Clipboard, Color, Element, Layout, Length, Pixels, Point,
+    Rectangle, Shell, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -25,19 +54,32 @@ use std::ops::RangeInclusive;
 ///
 /// # Example
 /// ```no_run
-/// # type Slider<'a, T, Message> = iced_widget::Slider<'a, Message, T>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// #[derive(Clone)]
-/// pub enum Message {
-///     SliderChanged(f32),
+/// use iced::widget::slider;
+///
+/// struct State {
+///    value: f32,
 /// }
 ///
-/// let value = 50.0;
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     ValueChanged(f32),
+/// }
 ///
-/// Slider::new(0.0..=100.0, value, Message::SliderChanged);
+/// fn view(state: &State) -> Element<'_, Message> {
+///     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+/// }
+///
+/// fn update(state: &mut State, message: Message) {
+///     match message {
+///         Message::ValueChanged(value) => {
+///             state.value = value;
+///         }
+///     }
+/// }
 /// ```
-///
-/// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct Slider<'a, T, Message, Theme = crate::Theme>
 where
@@ -324,8 +366,26 @@ where
                     return event::Status::Captured;
                 }
             }
+            Event::Mouse(mouse::Event::WheelScrolled { delta })
+                if state.keyboard_modifiers.control() =>
+            {
+                if cursor.is_over(layout.bounds()) {
+                    let delta = match delta {
+                        mouse::ScrollDelta::Lines { x: _, y } => y,
+                        mouse::ScrollDelta::Pixels { x: _, y } => y,
+                    };
+
+                    if delta < 0.0 {
+                        let _ = decrement(current_value).map(change);
+                    } else {
+                        let _ = increment(current_value).map(change);
+                    }
+
+                    return event::Status::Captured;
+                }
+            }
             Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
-                if cursor.position_over(layout.bounds()).is_some() {
+                if cursor.is_over(layout.bounds()) {
                     match key {
                         Key::Named(key::Named::ArrowUp) => {
                             let _ = increment(current_value).map(change);
@@ -408,10 +468,10 @@ where
                     width: offset + handle_width / 2.0,
                     height: style.rail.width,
                 },
-                border: border::rounded(style.rail.border_radius),
+                border: style.rail.border,
                 ..renderer::Quad::default()
             },
-            style.rail.colors.0,
+            style.rail.backgrounds.0,
         );
 
         renderer.fill_quad(
@@ -422,10 +482,10 @@ where
                     width: bounds.width - offset - handle_width / 2.0,
                     height: style.rail.width,
                 },
-                border: border::rounded(style.rail.border_radius),
+                border: style.rail.border,
                 ..renderer::Quad::default()
             },
-            style.rail.colors.1,
+            style.rail.backgrounds.1,
         );
 
         renderer.fill_quad(
@@ -443,7 +503,7 @@ where
                 },
                 ..renderer::Quad::default()
             },
-            style.handle.color,
+            style.handle.background,
         );
     }
 
@@ -524,12 +584,12 @@ impl Style {
 /// The appearance of a slider rail
 #[derive(Debug, Clone, Copy)]
 pub struct Rail {
-    /// The colors of the rail of the slider.
-    pub colors: (Color, Color),
+    /// The backgrounds of the rail of the slider.
+    pub backgrounds: (Background, Background),
     /// The width of the stroke of a slider rail.
     pub width: f32,
-    /// The border radius of the corners of the rail.
-    pub border_radius: border::Radius,
+    /// The border of the rail.
+    pub border: Border,
 }
 
 /// The appearance of the handle of a slider.
@@ -537,8 +597,8 @@ pub struct Rail {
 pub struct Handle {
     /// The shape of the handle.
     pub shape: HandleShape,
-    /// The [`Color`] of the handle.
-    pub color: Color,
+    /// The [`Background`] of the handle.
+    pub background: Background,
     /// The border width of the handle.
     pub border_width: f32,
     /// The border [`Color`] of the handle.
@@ -601,13 +661,17 @@ pub fn default(theme: &Theme, status: Status) -> Style {
 
     Style {
         rail: Rail {
-            colors: (color, palette.secondary.base.color),
+            backgrounds: (color.into(), palette.secondary.base.color.into()),
             width: 4.0,
-            border_radius: 2.0.into(),
+            border: Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: Color::TRANSPARENT,
+            },
         },
         handle: Handle {
             shape: HandleShape::Circle { radius: 7.0 },
-            color,
+            background: color.into(),
             border_color: Color::TRANSPARENT,
             border_width: 0.0,
         },

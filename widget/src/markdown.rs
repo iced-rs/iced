@@ -1,16 +1,65 @@
-//! Parse and display Markdown.
+//! Markdown widgets can parse and display Markdown.
 //!
 //! You can enable the `highlighter` feature for syntax highligting
 //! in code blocks.
 //!
 //! Only the variants of [`Item`] are currently supported.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::markdown;
+//! use iced::Theme;
+//!
+//! struct State {
+//!    markdown: Vec<markdown::Item>,
+//! }
+//!
+//! enum Message {
+//!     LinkClicked(markdown::Url),
+//! }
+//!
+//! impl State {
+//!     pub fn new() -> Self {
+//!         Self {
+//!             markdown: markdown::parse("This is some **Markdown**!").collect(),
+//!         }
+//!     }
+//!
+//!     fn view(&self) -> Element<'_, Message> {
+//!         markdown::view(
+//!             &self.markdown,
+//!             markdown::Settings::default(),
+//!             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
+//!         )
+//!         .map(Message::LinkClicked)
+//!         .into()
+//!     }
+//!
+//!     fn update(state: &mut State, message: Message) {
+//!         match message {
+//!             Message::LinkClicked(url) => {
+//!                 println!("The following url was clicked: {url}");
+//!             }
+//!         }
+//!     }
+//! }
+//! ```
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
-use crate::core::theme::{self, Theme};
-use crate::core::{self, color, Color, Element, Length, Pixels};
+use crate::core::theme;
+use crate::core::{
+    self, color, Color, Element, Length, Padding, Pixels, Theme,
+};
 use crate::{column, container, rich_text, row, scrollable, span, text};
 
+use std::cell::{Cell, RefCell};
+use std::sync::Arc;
+
+pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
 pub use url::Url;
 
@@ -18,13 +67,13 @@ pub use url::Url;
 #[derive(Debug, Clone)]
 pub enum Item {
     /// A heading.
-    Heading(pulldown_cmark::HeadingLevel, Vec<text::Span<'static, Url>>),
+    Heading(pulldown_cmark::HeadingLevel, Text),
     /// A paragraph.
-    Paragraph(Vec<text::Span<'static, Url>>),
+    Paragraph(Text),
     /// A code block.
     ///
     /// You can enable the `highlighter` feature for syntax highligting.
-    CodeBlock(Vec<text::Span<'static, Url>>),
+    CodeBlock(Text),
     /// A list.
     List {
         /// The first number of the list, if it is ordered.
@@ -34,11 +83,155 @@ pub enum Item {
     },
 }
 
+/// A bunch of parsed Markdown text.
+#[derive(Debug, Clone)]
+pub struct Text {
+    spans: Vec<Span>,
+    last_style: Cell<Option<Style>>,
+    last_styled_spans: RefCell<Arc<[text::Span<'static, Url>]>>,
+}
+
+impl Text {
+    fn new(spans: Vec<Span>) -> Self {
+        Self {
+            spans,
+            last_style: Cell::default(),
+            last_styled_spans: RefCell::default(),
+        }
+    }
+
+    /// Returns the [`rich_text()`] spans ready to be used for the given style.
+    ///
+    /// This method performs caching for you. It will only reallocate if the [`Style`]
+    /// provided changes.
+    pub fn spans(&self, style: Style) -> Arc<[text::Span<'static, Url>]> {
+        if Some(style) != self.last_style.get() {
+            *self.last_styled_spans.borrow_mut() =
+                self.spans.iter().map(|span| span.view(&style)).collect();
+
+            self.last_style.set(Some(style));
+        }
+
+        self.last_styled_spans.borrow().clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+enum Span {
+    Standard {
+        text: String,
+        strikethrough: bool,
+        link: Option<Url>,
+        strong: bool,
+        emphasis: bool,
+        code: bool,
+    },
+    #[cfg(feature = "highlighter")]
+    Highlight {
+        text: String,
+        color: Option<Color>,
+        font: Option<Font>,
+    },
+}
+
+impl Span {
+    fn view(&self, style: &Style) -> text::Span<'static, Url> {
+        match self {
+            Span::Standard {
+                text,
+                strikethrough,
+                link,
+                strong,
+                emphasis,
+                code,
+            } => {
+                let span = span(text.clone()).strikethrough(*strikethrough);
+
+                let span = if *code {
+                    span.font(Font::MONOSPACE)
+                        .color(style.inline_code_color)
+                        .background(style.inline_code_highlight.background)
+                        .border(style.inline_code_highlight.border)
+                        .padding(style.inline_code_padding)
+                } else if *strong || *emphasis {
+                    span.font(Font {
+                        weight: if *strong {
+                            font::Weight::Bold
+                        } else {
+                            font::Weight::Normal
+                        },
+                        style: if *emphasis {
+                            font::Style::Italic
+                        } else {
+                            font::Style::Normal
+                        },
+                        ..Font::default()
+                    })
+                } else {
+                    span
+                };
+
+                let span = if let Some(link) = link.as_ref() {
+                    span.color(style.link_color).link(link.clone())
+                } else {
+                    span
+                };
+
+                span
+            }
+            #[cfg(feature = "highlighter")]
+            Span::Highlight { text, color, font } => {
+                span(text.clone()).color_maybe(*color).font_maybe(*font)
+            }
+        }
+    }
+}
+
 /// Parse the given Markdown content.
-pub fn parse(
-    markdown: &str,
-    palette: theme::Palette,
-) -> impl Iterator<Item = Item> + '_ {
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::markdown;
+/// use iced::Theme;
+///
+/// struct State {
+///    markdown: Vec<markdown::Item>,
+/// }
+///
+/// enum Message {
+///     LinkClicked(markdown::Url),
+/// }
+///
+/// impl State {
+///     pub fn new() -> Self {
+///         Self {
+///             markdown: markdown::parse("This is some **Markdown**!").collect(),
+///         }
+///     }
+///
+///     fn view(&self) -> Element<'_, Message> {
+///         markdown::view(
+///             &self.markdown,
+///             markdown::Settings::default(),
+///             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
+///         )
+///         .map(Message::LinkClicked)
+///         .into()
+///     }
+///
+///     fn update(state: &mut State, message: Message) {
+///         match message {
+///             Message::LinkClicked(url) => {
+///                 println!("The following url was clicked: {url}");
+///             }
+///         }
+///     }
+/// }
+/// ```
+pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
     struct List {
         start: Option<u64>,
         items: Vec<Vec<Item>>,
@@ -132,7 +325,7 @@ pub fn parse(
             ) if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
                 {
-                    use iced_highlighter::{self, Highlighter};
+                    use iced_highlighter::Highlighter;
                     use text::Highlighter as _;
 
                     highlighter =
@@ -158,7 +351,7 @@ pub fn parse(
             pulldown_cmark::TagEnd::Heading(level) if !metadata && !table => {
                 produce(
                     &mut lists,
-                    Item::Heading(level, spans.drain(..).collect()),
+                    Item::Heading(level, Text::new(spans.drain(..).collect())),
                 )
             }
             pulldown_cmark::TagEnd::Strong if !metadata && !table => {
@@ -178,7 +371,10 @@ pub fn parse(
                 None
             }
             pulldown_cmark::TagEnd::Paragraph if !metadata && !table => {
-                produce(&mut lists, Item::Paragraph(spans.drain(..).collect()))
+                produce(
+                    &mut lists,
+                    Item::Paragraph(Text::new(spans.drain(..).collect())),
+                )
             }
             pulldown_cmark::TagEnd::Item if !metadata && !table => {
                 if spans.is_empty() {
@@ -186,7 +382,7 @@ pub fn parse(
                 } else {
                     produce(
                         &mut lists,
-                        Item::Paragraph(spans.drain(..).collect()),
+                        Item::Paragraph(Text::new(spans.drain(..).collect())),
                     )
                 }
             }
@@ -207,7 +403,10 @@ pub fn parse(
                     highlighter = None;
                 }
 
-                produce(&mut lists, Item::CodeBlock(spans.drain(..).collect()))
+                produce(
+                    &mut lists,
+                    Item::CodeBlock(Text::new(spans.drain(..).collect())),
+                )
             }
             pulldown_cmark::TagEnd::MetadataBlock(_) => {
                 metadata = false;
@@ -227,9 +426,11 @@ pub fn parse(
                 for (range, highlight) in
                     highlighter.highlight_line(text.as_ref())
                 {
-                    let span = span(text[range].to_owned())
-                        .color_maybe(highlight.color())
-                        .font_maybe(highlight.font());
+                    let span = Span::Highlight {
+                        text: text[range].to_owned(),
+                        color: highlight.color(),
+                        font: highlight.font(),
+                    };
 
                     spans.push(span);
                 }
@@ -237,30 +438,13 @@ pub fn parse(
                 return None;
             }
 
-            let span = span(text.into_string()).strikethrough(strikethrough);
-
-            let span = if strong || emphasis {
-                span.font(Font {
-                    weight: if strong {
-                        font::Weight::Bold
-                    } else {
-                        font::Weight::Normal
-                    },
-                    style: if emphasis {
-                        font::Style::Italic
-                    } else {
-                        font::Style::Normal
-                    },
-                    ..Font::default()
-                })
-            } else {
-                span
-            };
-
-            let span = if let Some(link) = link.as_ref() {
-                span.color(palette.primary).link(link.clone())
-            } else {
-                span
+            let span = Span::Standard {
+                text: text.into_string(),
+                strong,
+                emphasis,
+                strikethrough,
+                link: link.clone(),
+                code: false,
             };
 
             spans.push(span);
@@ -268,29 +452,38 @@ pub fn parse(
             None
         }
         pulldown_cmark::Event::Code(code) if !metadata && !table => {
-            let span = span(code.into_string())
-                .font(Font::MONOSPACE)
-                .color(Color::WHITE)
-                .background(color!(0x111111))
-                .border(border::rounded(2))
-                .padding(padding::left(2).right(2))
-                .strikethrough(strikethrough);
-
-            let span = if let Some(link) = link.as_ref() {
-                span.color(palette.primary).link(link.clone())
-            } else {
-                span
+            let span = Span::Standard {
+                text: code.into_string(),
+                strong,
+                emphasis,
+                strikethrough,
+                link: link.clone(),
+                code: true,
             };
 
             spans.push(span);
             None
         }
         pulldown_cmark::Event::SoftBreak if !metadata && !table => {
-            spans.push(span(" ").strikethrough(strikethrough));
+            spans.push(Span::Standard {
+                text: String::from(" "),
+                strikethrough,
+                strong,
+                emphasis,
+                link: link.clone(),
+                code: false,
+            });
             None
         }
         pulldown_cmark::Event::HardBreak if !metadata && !table => {
-            spans.push(span("\n"));
+            spans.push(Span::Standard {
+                text: String::from("\n"),
+                strikethrough,
+                strong,
+                emphasis,
+                link: link.clone(),
+                code: false,
+            });
             None
         }
         _ => None,
@@ -346,14 +539,87 @@ impl Default for Settings {
     }
 }
 
+/// The text styling of some Markdown rendering in [`view`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Style {
+    /// The [`Highlight`] to be applied to the background of inline code.
+    pub inline_code_highlight: Highlight,
+    /// The [`Padding`] to be applied to the background of inline code.
+    pub inline_code_padding: Padding,
+    /// The [`Color`] to be applied to inline code.
+    pub inline_code_color: Color,
+    /// The [`Color`] to be applied to links.
+    pub link_color: Color,
+}
+
+impl Style {
+    /// Creates a new [`Style`] from the given [`theme::Palette`].
+    pub fn from_palette(palette: theme::Palette) -> Self {
+        Self {
+            inline_code_padding: padding::left(1).right(1),
+            inline_code_highlight: Highlight {
+                background: color!(0x111).into(),
+                border: border::rounded(2),
+            },
+            inline_code_color: Color::WHITE,
+            link_color: palette.primary,
+        }
+    }
+}
+
 /// Display a bunch of Markdown items.
 ///
 /// You can obtain the items with [`parse`].
-pub fn view<'a, Renderer>(
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::markdown;
+/// use iced::Theme;
+///
+/// struct State {
+///    markdown: Vec<markdown::Item>,
+/// }
+///
+/// enum Message {
+///     LinkClicked(markdown::Url),
+/// }
+///
+/// impl State {
+///     pub fn new() -> Self {
+///         Self {
+///             markdown: markdown::parse("This is some **Markdown**!").collect(),
+///         }
+///     }
+///
+///     fn view(&self) -> Element<'_, Message> {
+///         markdown::view(
+///             &self.markdown,
+///             markdown::Settings::default(),
+///             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
+///         )
+///         .map(Message::LinkClicked)
+///         .into()
+///     }
+///
+///     fn update(state: &mut State, message: Message) {
+///         match message {
+///             Message::LinkClicked(url) => {
+///                 println!("The following url was clicked: {url}");
+///             }
+///         }
+///     }
+/// }
+/// ```
+pub fn view<'a, Theme, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: Settings,
+    style: Style,
 ) -> Element<'a, Url, Theme, Renderer>
 where
+    Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     let Settings {
@@ -371,7 +637,7 @@ where
 
     let blocks = items.into_iter().enumerate().map(|(i, item)| match item {
         Item::Heading(level, heading) => {
-            container(rich_text(heading).size(match level {
+            container(rich_text(heading.spans(style)).size(match level {
                 pulldown_cmark::HeadingLevel::H1 => h1_size,
                 pulldown_cmark::HeadingLevel::H2 => h2_size,
                 pulldown_cmark::HeadingLevel::H3 => h3_size,
@@ -387,11 +653,11 @@ where
             .into()
         }
         Item::Paragraph(paragraph) => {
-            rich_text(paragraph).size(text_size).into()
+            rich_text(paragraph.spans(style)).size(text_size).into()
         }
         Item::List { start: None, items } => {
             column(items.iter().map(|items| {
-                row![text("•").size(text_size), view(items, settings)]
+                row![text("•").size(text_size), view(items, settings, style)]
                     .spacing(spacing)
                     .into()
             }))
@@ -404,7 +670,7 @@ where
         } => column(items.iter().enumerate().map(|(i, items)| {
             row![
                 text!("{}.", i as u64 + *start).size(text_size),
-                view(items, settings)
+                view(items, settings, style)
             ]
             .spacing(spacing)
             .into()
@@ -414,7 +680,9 @@ where
         Item::CodeBlock(code) => container(
             scrollable(
                 container(
-                    rich_text(code).font(Font::MONOSPACE).size(code_size),
+                    rich_text(code.spans(style))
+                        .font(Font::MONOSPACE)
+                        .size(code_size),
                 )
                 .padding(spacing.0 / 2.0),
             )
@@ -426,9 +694,23 @@ where
         )
         .width(Length::Fill)
         .padding(spacing.0 / 2.0)
-        .style(container::dark)
+        .class(Theme::code_block())
         .into(),
     });
 
     Element::new(column(blocks).width(Length::Fill).spacing(text_size))
+}
+
+/// The theme catalog of Markdown items.
+pub trait Catalog:
+    container::Catalog + scrollable::Catalog + text::Catalog
+{
+    /// The styling class of a Markdown code block.
+    fn code_block<'a>() -> <Self as container::Catalog>::Class<'a>;
+}
+
+impl Catalog for Theme {
+    fn code_block<'a>() -> <Self as container::Catalog>::Class<'a> {
+        Box::new(container::dark)
+    }
 }
