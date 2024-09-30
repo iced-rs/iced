@@ -286,6 +286,77 @@ where
         F: Future<Output = ()>,
         C: Compositor + 'static,
     {
+        #[cfg(target_arch = "wasm32")]
+        fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+            let Some(BootConfig {
+                sender,
+                fonts,
+                graphics_settings,
+            }) = self.boot.take()
+            else {
+                return;
+            };
+
+            let window_attributes =
+                winit::window::WindowAttributes::default().with_visible(false);
+
+            let window_attributes = {
+                use winit::platform::web::WindowAttributesExtWebSys;
+                window_attributes.with_canvas(self.canvas.take())
+            };
+
+            log::info!("Window attributes : {window_attributes:#?}");
+
+            let window = Arc::new(
+                event_loop
+                    .create_window(window_attributes)
+                    .expect("Create window"),
+            );
+
+            use winit::platform::web::WindowExtWebSys;
+
+            let canvas = window.canvas().expect("Get window canvas");
+
+            let _ = canvas.set_attribute(
+                "style",
+                "display: block; width: 100%; height: 100%",
+            );
+
+            let document = web_sys::window().unwrap().document().unwrap();
+            let body = document.body().unwrap();
+
+            let _node = body
+                .append_child(&canvas)
+                .expect("Append canvas to HTML body");
+
+            let finish_boot = async move {
+                let mut compositor =
+                    C::new(graphics_settings, window.clone()).await?;
+
+                for font in fonts {
+                    compositor.load_font(font);
+                }
+
+                sender
+                    .send(Boot { compositor })
+                    .ok()
+                    .expect("Send boot event");
+
+                Ok::<_, graphics::Error>(())
+            };
+
+            let is_booted = self.is_booted.clone();
+
+            wasm_bindgen_futures::spawn_local(async move {
+                finish_boot.await.expect("Finish boot!");
+
+                *is_booted.borrow_mut() = true;
+            });
+
+            event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
         fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
             let Some(BootConfig {
                 sender,
@@ -804,6 +875,7 @@ async fn run_instance<P, C>(
                         let Some((id, window)) =
                             window_manager.get_mut_alias(id)
                         else {
+                            log::warn!("WindowEvent::RedrawRequested for unknown {id:?}");
                             continue;
                         };
 
@@ -990,6 +1062,9 @@ async fn run_instance<P, C>(
                         let Some((id, window)) =
                             window_manager.get_mut_alias(window_id)
                         else {
+                            log::warn!(
+                                "{window_event:?} for unknown {window_id:?}"
+                            );
                             continue;
                         };
 
