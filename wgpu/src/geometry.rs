@@ -31,7 +31,7 @@ pub enum Geometry {
     Cached(Cache),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Cache {
     pub meshes: Option<triangle::Cache>,
     pub images: Option<Arc<[Image]>>,
