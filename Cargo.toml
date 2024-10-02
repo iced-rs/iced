@@ -147,7 +147,7 @@ bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cosmic-text = "0.12"
-dark-light = "1.0"
+dark-light = { git = "https://github.com/bbb651/rust-dark-light.git", rev = "192daa06be5a0bad927e71c05a1e2eb5d9061c54" }
 futures = "0.3"
 glam = "0.25"
 glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "0d7ba1bba4dd71eb88d2cface5ce649db2413cb7" }

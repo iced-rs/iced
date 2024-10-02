@@ -169,9 +169,8 @@ impl Default for Theme {
             static DEFAULT: Lazy<Theme> =
                 Lazy::new(|| match dark_light::detect() {
                     dark_light::Mode::Dark => Theme::Dark,
-                    dark_light::Mode::Light | dark_light::Mode::Default => {
-                        Theme::Light
-                    }
+                    dark_light::Mode::Light
+                    | dark_light::Mode::NoPreference => Theme::Light,
                 });
 
             DEFAULT.clone()
