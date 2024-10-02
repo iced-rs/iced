@@ -262,6 +262,8 @@ pub fn window_event(
                 winit::event::ElementState::Released => {
                     keyboard::Event::KeyReleased {
                         key,
+                        modified_key,
+                        physical_key,
                         modifiers,
                         location,
                     }
