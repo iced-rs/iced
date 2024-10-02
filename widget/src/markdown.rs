@@ -613,8 +613,8 @@ impl Style {
 ///     }
 /// }
 /// ```
-pub fn view<'a, Theme, Renderer>(
-    items: impl IntoIterator<Item = &'a Item>,
+pub fn view<'a, 'b, Theme, Renderer>(
+    items: impl IntoIterator<Item = &'b Item>,
     settings: Settings,
     style: Style,
 ) -> Element<'a, Url, Theme, Renderer>
