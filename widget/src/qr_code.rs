@@ -26,8 +26,8 @@ use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Color, Element, Layout, Length, Point, Rectangle, Size, Theme, Vector,
-    Widget,
+    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme,
+    Vector, Widget,
 };
 use crate::Renderer;
 
@@ -84,14 +84,16 @@ where
     }
 
     /// Sets the size of the squares of the grid cell of the [`QRCode`].
-    pub fn cell_size(mut self, cell_size: f32) -> Self {
-        self.cell_size = cell_size;
+    pub fn cell_size(mut self, cell_size: impl Into<Pixels>) -> Self {
+        self.cell_size = cell_size.into().0;
         self
     }
 
     /// Sets the size of the entire [`QRCode`].
-    pub fn total_size(mut self, total_size: f32) -> Self {
-        self.cell_size = total_size / (self.data.width + 2 * QUIET_ZONE) as f32;
+    pub fn total_size(mut self, total_size: impl Into<Pixels>) -> Self {
+        self.cell_size =
+            total_size.into().0 / (self.data.width + 2 * QUIET_ZONE) as f32;
+
         self
     }
 
