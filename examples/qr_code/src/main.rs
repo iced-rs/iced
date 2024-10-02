@@ -3,9 +3,7 @@ use iced::widget::{
 };
 use iced::{Center, Element, Theme};
 
-const QR_CODE_EXACT_SIZE_MIN_PX: u32 = 200;
-const QR_CODE_EXACT_SIZE_MAX_PX: u32 = 400;
-const QR_CODE_EXACT_SIZE_SLIDER_STEPS: u8 = 100;
+use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -21,20 +19,21 @@ pub fn main() -> iced::Result {
 struct QRGenerator {
     data: String,
     qr_code: Option<qr_code::Data>,
-    display_with_fixed_size: bool,
-    fixed_size_slider_value: u8,
+    total_size: Option<f32>,
     theme: Theme,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     DataChanged(String),
-    SetDisplayWithFixedSize(bool),
-    FixedSizeSliderChanged(u8),
+    ToggleTotalSize(bool),
+    TotalSizeChanged(f32),
     ThemeChanged(Theme),
 }
 
 impl QRGenerator {
+    const SIZE_RANGE: RangeInclusive<f32> = 200.0..=400.0;
+
     fn update(&mut self, message: Message) {
         match message {
             Message::DataChanged(mut data) => {
@@ -48,11 +47,15 @@ impl QRGenerator {
 
                 self.data = data;
             }
-            Message::SetDisplayWithFixedSize(exact_size) => {
-                self.display_with_fixed_size = exact_size;
+            Message::ToggleTotalSize(enabled) => {
+                self.total_size = enabled.then_some(
+                    Self::SIZE_RANGE.start()
+                        + (Self::SIZE_RANGE.end() - Self::SIZE_RANGE.start())
+                            / 2.0,
+                );
             }
-            Message::FixedSizeSliderChanged(value) => {
-                self.fixed_size_slider_value = value;
+            Message::TotalSizeChanged(total_size) => {
+                self.total_size = Some(total_size);
             }
             Message::ThemeChanged(theme) => {
                 self.theme = theme;
@@ -69,6 +72,10 @@ impl QRGenerator {
                 .size(30)
                 .padding(15);
 
+        let toggle_total_size = toggler(self.total_size.is_some())
+            .on_toggle(Message::ToggleTotalSize)
+            .label("Limit Total Size");
+
         let choose_theme = row![
             text("Theme:"),
             pick_list(Theme::ALL, Some(&self.theme), Message::ThemeChanged,)
@@ -76,37 +83,26 @@ impl QRGenerator {
         .spacing(10)
         .align_y(Center);
 
-        let content = column![title, input, choose_theme]
-            .push(
-                toggler(self.display_with_fixed_size)
-                    .on_toggle(Message::SetDisplayWithFixedSize)
-                    .label("Fixed Size"),
-            )
-            .push_maybe(self.display_with_fixed_size.then(|| {
-                slider(
-                    1..=QR_CODE_EXACT_SIZE_SLIDER_STEPS,
-                    self.fixed_size_slider_value,
-                    Message::FixedSizeSliderChanged,
-                )
-            }))
-            .push_maybe(self.qr_code.as_ref().map(|data| {
-                if self.display_with_fixed_size {
-                    // Convert the slider value to a size in pixels.
-                    let qr_code_size_px = (self.fixed_size_slider_value as f32
-                        / QR_CODE_EXACT_SIZE_SLIDER_STEPS as f32)
-                        * (QR_CODE_EXACT_SIZE_MAX_PX
-                            - QR_CODE_EXACT_SIZE_MIN_PX)
-                            as f32
-                        + QR_CODE_EXACT_SIZE_MIN_PX as f32;
-
-                    qr_code(data).total_size(qr_code_size_px)
-                } else {
-                    qr_code(data).cell_size(10.0)
-                }
-            }))
-            .width(700)
-            .spacing(20)
-            .align_x(Center);
+        let content = column![
+            title,
+            input,
+            row![toggle_total_size, choose_theme]
+                .spacing(20)
+                .align_y(Center)
+        ]
+        .push_maybe(self.total_size.map(|total_size| {
+            slider(Self::SIZE_RANGE, total_size, Message::TotalSizeChanged)
+        }))
+        .push_maybe(self.qr_code.as_ref().map(|data| {
+            if let Some(total_size) = self.total_size {
+                qr_code(data).total_size(total_size)
+            } else {
+                qr_code(data).cell_size(10.0)
+            }
+        }))
+        .width(700)
+        .spacing(20)
+        .align_x(Center);
 
         center(content).padding(20).into()
     }
