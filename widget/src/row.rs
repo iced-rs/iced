@@ -316,24 +316,21 @@ where
         viewport: &Rectangle,
     ) {
         if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
+            let viewport = if self.clip {
+                &clipped_viewport
+            } else {
+                viewport
+            };
+
             for ((child, state), layout) in self
                 .children
                 .iter()
                 .zip(&tree.children)
                 .zip(layout.children())
+                .filter(|(_, layout)| layout.bounds().intersects(viewport))
             {
                 child.as_widget().draw(
-                    state,
-                    renderer,
-                    theme,
-                    style,
-                    layout,
-                    cursor,
-                    if self.clip {
-                        &clipped_viewport
-                    } else {
-                        viewport
-                    },
+                    state, renderer, theme, style, layout, cursor, viewport,
                 );
             }
         }

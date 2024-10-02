@@ -334,10 +334,6 @@ pub fn draw<Renderer>(
 {
     let bounds = layout.bounds();
 
-    if !bounds.intersects(viewport) {
-        return;
-    }
-
     let x = match paragraph.horizontal_alignment() {
         alignment::Horizontal::Left => bounds.x,
         alignment::Horizontal::Center => bounds.center_x(),
