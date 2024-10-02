@@ -33,7 +33,7 @@ impl Modifiers {
     /// This is normally the main modifier to be used for hotkeys.
     ///
     /// On macOS, this is equivalent to `Self::LOGO`.
-    /// Ohterwise, this is equivalent to `Self::CTRL`.
+    /// Otherwise, this is equivalent to `Self::CTRL`.
     pub const COMMAND: Self = if cfg!(target_os = "macos") {
         Self::LOGO
     } else {

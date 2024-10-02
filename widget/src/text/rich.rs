@@ -72,7 +72,7 @@ where
         self
     }
 
-    /// Sets the defualt [`LineHeight`] of the [`Rich`] text.
+    /// Sets the default [`LineHeight`] of the [`Rich`] text.
     pub fn line_height(mut self, line_height: impl Into<LineHeight>) -> Self {
         self.line_height = line_height.into();
         self

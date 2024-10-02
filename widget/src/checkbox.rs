@@ -487,7 +487,7 @@ pub struct Style {
     pub background: Background,
     /// The icon [`Color`] of the checkbox.
     pub icon_color: Color,
-    /// The [`Border`] of hte checkbox.
+    /// The [`Border`] of the checkbox.
     pub border: Border,
     /// The text [`Color`] of the checkbox.
     pub text_color: Option<Color>,
@@ -600,7 +600,7 @@ pub fn success(theme: &Theme, status: Status) -> Style {
     }
 }
 
-/// A danger checkbox; denoting a negaive toggle.
+/// A danger checkbox; denoting a negative toggle.
 pub fn danger(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 

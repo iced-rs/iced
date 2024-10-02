@@ -46,17 +46,29 @@ pub enum Event {
     ///
     /// When the user hovers multiple files at once, this event will be emitted
     /// for each file separately.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Wayland:** Not implemented.
     FileHovered(PathBuf),
 
     /// A file has been dropped into the window.
     ///
     /// When the user drops multiple files at once, this event will be emitted
     /// for each file separately.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Wayland:** Not implemented.
     FileDropped(PathBuf),
 
     /// A file was hovered, but has exited the window.
     ///
     /// There will be a single `FilesHoveredLeft` event triggered even if
     /// multiple files were hovered.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Wayland:** Not implemented.
     FilesHoveredLeft,
 }
