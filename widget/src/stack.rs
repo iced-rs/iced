@@ -215,9 +215,7 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
-        let is_over_scroll =
-            matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
-                && cursor.is_over(layout.bounds());
+        let is_over = cursor.is_over(layout.bounds());
 
         self.children
             .iter_mut()
@@ -236,7 +234,7 @@ where
                     viewport,
                 );
 
-                if is_over_scroll && cursor != mouse::Cursor::Unavailable {
+                if is_over && cursor != mouse::Cursor::Unavailable {
                     let interaction = child.as_widget().mouse_interaction(
                         state, layout, cursor, viewport, renderer,
                     );
