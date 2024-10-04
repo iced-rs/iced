@@ -453,4 +453,15 @@ where
         })
         .unwrap_or_default()
     }
+
+    fn operate(
+        &mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        let _ = self.with_overlay_mut_maybe(|overlay| {
+            overlay.operate(layout, renderer, operation);
+        });
+    }
 }
