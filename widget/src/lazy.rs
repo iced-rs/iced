@@ -270,29 +270,40 @@ where
         renderer: &Renderer,
         translation: Vector,
     ) -> Option<overlay::Element<'_, Message, Theme, Renderer>> {
-        let overlay = Overlay(Some(
-            InnerBuilder {
-                cell: self.element.borrow().as_ref().unwrap().clone(),
-                element: self
-                    .element
-                    .borrow()
-                    .as_ref()
-                    .unwrap()
-                    .borrow_mut()
-                    .take()
-                    .unwrap(),
-                tree: &mut tree.children[0],
-                overlay_builder: |element, tree| {
-                    element
-                        .as_widget_mut()
-                        .overlay(tree, layout, renderer, translation)
-                        .map(|overlay| RefCell::new(Nested::new(overlay)))
-                },
-            }
-            .build(),
-        ));
+        let overlay = InnerBuilder {
+            cell: self.element.borrow().as_ref().unwrap().clone(),
+            element: self
+                .element
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .borrow_mut()
+                .take()
+                .unwrap(),
+            tree: &mut tree.children[0],
+            overlay_builder: |element, tree| {
+                element
+                    .as_widget_mut()
+                    .overlay(tree, layout, renderer, translation)
+                    .map(|overlay| RefCell::new(Nested::new(overlay)))
+            },
+        }
+        .build();
 
-        Some(overlay::Element::new(Box::new(overlay)))
+        #[allow(clippy::redundant_closure_for_method_calls)]
+        if overlay.with_overlay(|overlay| overlay.is_some()) {
+            Some(overlay::Element::new(Box::new(Overlay(Some(overlay)))))
+        } else {
+            let heads = overlay.into_heads();
+
+            // - You may not like it, but this is what peak performance looks like
+            // - TODO: Get rid of ouroboros, for good
+            // - What?!
+            *self.element.borrow().as_ref().unwrap().borrow_mut() =
+                Some(heads.element);
+
+            None
+        }
     }
 }
 

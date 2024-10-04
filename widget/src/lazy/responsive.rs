@@ -320,7 +320,11 @@ where
         }
         .build();
 
-        Some(overlay::Element::new(Box::new(overlay)))
+        if overlay.with_overlay(|(overlay, _layout)| overlay.is_some()) {
+            Some(overlay::Element::new(Box::new(overlay)))
+        } else {
+            None
+        }
     }
 }
 

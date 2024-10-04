@@ -446,44 +446,48 @@ where
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.rebuild_element_if_necessary();
 
-        let tree = tree
-            .state
-            .downcast_mut::<Rc<RefCell<Option<Tree>>>>()
-            .borrow_mut()
-            .take()
-            .unwrap();
+        let state = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
+        let tree = state.borrow_mut().take().unwrap();
 
-        let overlay = Overlay(Some(
-            InnerBuilder {
-                instance: self,
-                tree,
-                types: PhantomData,
-                overlay_builder: |instance, tree| {
-                    instance.state.get_mut().as_mut().unwrap().with_element_mut(
-                        move |element| {
-                            element
-                                .as_mut()
-                                .unwrap()
-                                .as_widget_mut()
-                                .overlay(
-                                    &mut tree.children[0],
-                                    layout,
-                                    renderer,
-                                    translation,
-                                )
-                                .map(|overlay| {
-                                    RefCell::new(Nested::new(overlay))
-                                })
-                        },
-                    )
-                },
-            }
-            .build(),
-        ));
+        let overlay = InnerBuilder {
+            instance: self,
+            tree,
+            types: PhantomData,
+            overlay_builder: |instance, tree| {
+                instance.state.get_mut().as_mut().unwrap().with_element_mut(
+                    move |element| {
+                        element
+                            .as_mut()
+                            .unwrap()
+                            .as_widget_mut()
+                            .overlay(
+                                &mut tree.children[0],
+                                layout,
+                                renderer,
+                                translation,
+                            )
+                            .map(|overlay| RefCell::new(Nested::new(overlay)))
+                    },
+                )
+            },
+        }
+        .build();
 
-        Some(overlay::Element::new(Box::new(OverlayInstance {
-            overlay: Some(overlay),
-        })))
+        #[allow(clippy::redundant_closure_for_method_calls)]
+        if overlay.with_overlay(|overlay| overlay.is_some()) {
+            Some(overlay::Element::new(Box::new(OverlayInstance {
+                overlay: Some(Overlay(Some(overlay))), // Beautiful, I know
+            })))
+        } else {
+            let heads = overlay.into_heads();
+
+            // - You may not like it, but this is what peak performance looks like
+            // - TODO: Get rid of ouroboros, for good
+            // - What?!
+            *state.borrow_mut() = Some(heads.tree);
+
+            None
+        }
     }
 }
 
