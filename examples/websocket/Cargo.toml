@@ -9,7 +9,6 @@ publish = false
 iced.workspace = true
 iced.features = ["debug", "tokio"]
 
-once_cell.workspace = true
 warp = "0.3"
 
 [dependencies.async-tungstenite]

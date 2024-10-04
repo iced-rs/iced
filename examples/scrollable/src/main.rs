@@ -1,12 +1,13 @@
+use std::sync::LazyLock;
+
 use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
     scrollable, slider, text, vertical_space,
 };
 use iced::{Border, Center, Color, Element, Fill, Task, Theme};
 
-use once_cell::sync::Lazy;
-
-static SCROLLABLE_ID: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
+static SCROLLABLE_ID: LazyLock<scrollable::Id> =
+    LazyLock::new(scrollable::Id::unique);
 
 pub fn main() -> iced::Result {
     iced::application(
