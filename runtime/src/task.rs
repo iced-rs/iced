@@ -117,7 +117,7 @@ impl<T> Task<T> {
         match self.0 {
             None => task,
             Some(first) => match task.0 {
-                None => Task::none(),
+                None => Task(Some(first)),
                 Some(second) => Task(Some(boxed_stream(first.chain(second)))),
             },
         }
