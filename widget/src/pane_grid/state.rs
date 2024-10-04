@@ -228,8 +228,15 @@ impl<T> State<T> {
     ) {
         if let Some((state, _)) = self.close(pane) {
             if let Some((new_pane, _)) = self.split(axis, target, state) {
+                // Ensure new node corresponds to original `Pane` for state continuity
+                self.swap(pane, new_pane);
+                let _ = self
+                    .panes
+                    .remove(&new_pane)
+                    .and_then(|state| self.panes.insert(pane, state));
+
                 if swap {
-                    self.swap(target, new_pane);
+                    self.swap(target, pane);
                 }
             }
         }
@@ -262,7 +269,16 @@ impl<T> State<T> {
         swap: bool,
     ) {
         if let Some((state, _)) = self.close(pane) {
-            let _ = self.split_node(axis, None, state, swap);
+            if let Some((new_pane, _)) =
+                self.split_node(axis, None, state, swap)
+            {
+                // Ensure new node corresponds to original `Pane` for state continuity
+                self.swap(pane, new_pane);
+                let _ = self
+                    .panes
+                    .remove(&new_pane)
+                    .and_then(|state| self.panes.insert(pane, state));
+            }
         }
     }
 
