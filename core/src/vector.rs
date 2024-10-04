@@ -37,8 +37,18 @@ where
 {
     type Output = Self;
 
-    fn add(self, b: Self) -> Self {
-        Self::new(self.x + b.x, self.y + b.y)
+    fn add(self, rhs: Self) -> Self {
+        Self::new(self.x + rhs.x, self.y + rhs.y)
+    }
+}
+
+impl<T> std::ops::AddAssign for Vector<T>
+where
+    T: std::ops::AddAssign,
+{
+    fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
     }
 }
 
@@ -48,8 +58,18 @@ where
 {
     type Output = Self;
 
-    fn sub(self, b: Self) -> Self {
-        Self::new(self.x - b.x, self.y - b.y)
+    fn sub(self, rhs: Self) -> Self {
+        Self::new(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+impl<T> std::ops::SubAssign for Vector<T>
+where
+    T: std::ops::SubAssign,
+{
+    fn sub_assign(&mut self, rhs: Self) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
     }
 }
 
@@ -61,6 +81,37 @@ where
 
     fn mul(self, scale: T) -> Self {
         Self::new(self.x * scale, self.y * scale)
+    }
+}
+
+impl<T> std::ops::MulAssign<T> for Vector<T>
+where
+    T: std::ops::MulAssign + Copy,
+{
+    fn mul_assign(&mut self, scale: T) {
+        self.x *= scale;
+        self.y *= scale;
+    }
+}
+
+impl<T> std::ops::Div<T> for Vector<T>
+where
+    T: std::ops::Div<Output = T> + Copy,
+{
+    type Output = Self;
+
+    fn div(self, scale: T) -> Self {
+        Self::new(self.x / scale, self.y / scale)
+    }
+}
+
+impl<T> std::ops::DivAssign<T> for Vector<T>
+where
+    T: std::ops::DivAssign + Copy,
+{
+    fn div_assign(&mut self, scale: T) {
+        self.x /= scale;
+        self.y /= scale;
     }
 }
 

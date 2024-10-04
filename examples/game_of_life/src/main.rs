@@ -64,7 +64,7 @@ impl GameOfLife {
         match message {
             Message::Grid(message, version) => {
                 if version == self.version {
-                    self.grid.update(message);
+                    return self.grid.update(message).discard();
                 }
             }
             Message::Tick | Message::Next => {
@@ -195,6 +195,9 @@ mod grid {
     use iced::widget::canvas;
     use iced::widget::canvas::event::{self, Event};
     use iced::widget::canvas::{Cache, Canvas, Frame, Geometry, Path, Text};
+    use iced::window;
+    use iced::window::CursorGrab;
+    use iced::Task;
     use iced::{
         Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
@@ -219,6 +222,7 @@ mod grid {
     pub enum Message {
         Populate(Cell),
         Unpopulate(Cell),
+        Panning(bool),
         Translated(Vector),
         Scaled(f32, Option<Vector>),
         Ticked {
@@ -282,7 +286,7 @@ mod grid {
             })
         }
 
-        pub fn update(&mut self, message: Message) {
+        pub fn update(&mut self, message: Message) -> Task<Message> {
             match message {
                 Message::Populate(cell) => {
                     self.state.populate(cell);
@@ -295,6 +299,22 @@ mod grid {
                     self.life_cache.clear();
 
                     self.preset = Preset::Custom;
+                }
+                Message::Panning(panning) => {
+                    #[cfg(any(target_os = "linux", target_os = "windows"))]
+                    let cursor_grab = CursorGrab::Confined;
+                    #[cfg(any(target_os = "macos", target_arch = "wasm32"))]
+                    let cursor_grab = CursorGrab::Locked;
+                    return window::get_oldest().then(move |id| {
+                        window::cursor_grab(
+                            id.expect("there is only a single window so it must be the oldest"),
+                            if panning {
+                                cursor_grab
+                            } else {
+                                CursorGrab::None
+                            },
+                        )
+                    });
                 }
                 Message::Translated(translation) => {
                     self.translation = translation;
@@ -327,6 +347,8 @@ mod grid {
                     dbg!(error);
                 }
             }
+
+            Task::none()
         }
 
         pub fn view(&self) -> Element<Message> {
@@ -379,13 +401,17 @@ mod grid {
 
         fn update(
             &self,
-            interaction: &mut Interaction,
+            mut interaction: &mut Interaction,
             event: Event,
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> (event::Status, Option<Message>) {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
                 *interaction = Interaction::None;
+                return (
+                    event::Status::Captured,
+                    Some(Message::Panning(false)),
+                );
             }
 
             let Some(cursor_position) = cursor.position_in(bounds) else {
@@ -430,36 +456,35 @@ mod grid {
                             mouse::Button::Right => {
                                 *interaction = Interaction::Panning {
                                     translation: self.translation,
-                                    start: cursor_position,
                                 };
 
-                                None
+                                Some(Message::Panning(true))
                             }
                             _ => None,
                         };
 
                         (event::Status::Captured, message)
                     }
-                    mouse::Event::CursorMoved { .. } => {
-                        let message = match *interaction {
-                            Interaction::Drawing => populate,
-                            Interaction::Erasing => unpopulate,
-                            Interaction::Panning { translation, start } => {
-                                Some(Message::Translated(
-                                    translation
-                                        + (cursor_position - start)
-                                            * (1.0 / self.scaling),
-                                ))
+                    mouse::Event::CursorMoved { .. } => match *interaction {
+                        Interaction::Drawing => {
+                            (event::Status::Captured, populate)
+                        }
+                        Interaction::Erasing => {
+                            (event::Status::Captured, unpopulate)
+                        }
+                        _ => (event::Status::Ignored, None),
+                    },
+                    mouse::Event::MouseMotion { delta } => {
+                        match &mut interaction {
+                            Interaction::Panning { translation } => {
+                                *translation += delta / self.scaling;
+                                (
+                                    event::Status::Captured,
+                                    Some(Message::Translated(*translation)),
+                                )
                             }
-                            Interaction::None => None,
-                        };
-
-                        let event_status = match interaction {
-                            Interaction::None => event::Status::Ignored,
-                            _ => event::Status::Captured,
-                        };
-
-                        (event_status, message)
+                            _ => (event::Status::Ignored, None),
+                        }
                     }
                     mouse::Event::WheelScrolled { delta } => match delta {
                         mouse::ScrollDelta::Lines { y, .. }
@@ -881,7 +906,7 @@ mod grid {
         None,
         Drawing,
         Erasing,
-        Panning { translation: Vector, start: Point },
+        Panning { translation: Vector },
     }
 
     impl Default for Interaction {
