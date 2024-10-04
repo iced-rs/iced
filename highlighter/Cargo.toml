@@ -16,5 +16,4 @@ workspace = true
 [dependencies]
 iced_core.workspace = true
 
-once_cell.workspace = true
 syntect.workspace = true
