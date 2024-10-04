@@ -166,10 +166,10 @@ impl Default for Theme {
     fn default() -> Self {
         #[cfg(feature = "auto-detect-theme")]
         {
-            use once_cell::sync::Lazy;
+            use std::sync::LazyLock;
 
-            static DEFAULT: Lazy<Theme> =
-                Lazy::new(|| match dark_light::detect() {
+            static DEFAULT: LazyLock<Theme> =
+                LazyLock::new(|| match dark_light::detect() {
                     dark_light::Mode::Dark => Theme::Dark,
                     dark_light::Mode::Light | dark_light::Mode::Default => {
                         Theme::Light

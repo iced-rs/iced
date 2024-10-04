@@ -2435,7 +2435,6 @@ dependencies = [
  "glam",
  "log",
  "num-traits",
- "once_cell",
  "palette",
  "rustc-hash 2.1.0",
  "smol_str",
@@ -2472,7 +2471,6 @@ dependencies = [
  "kamadak-exif",
  "log",
  "lyon_path",
- "once_cell",
  "raw-window-handle 0.6.2",
  "rustc-hash 2.1.0",
  "thiserror 1.0.69",
@@ -2484,7 +2482,6 @@ name = "iced_highlighter"
 version = "0.14.0-dev"
 dependencies = [
  "iced_core",
- "once_cell",
  "syntect",
 ]
 
@@ -2549,7 +2546,6 @@ dependencies = [
  "iced_graphics",
  "log",
  "lyon",
- "once_cell",
  "resvg",
  "rustc-hash 2.1.0",
  "thiserror 1.0.69",
@@ -2564,7 +2560,6 @@ dependencies = [
  "iced_renderer",
  "iced_runtime",
  "num-traits",
- "once_cell",
  "ouroboros",
  "pulldown-cmark",
  "qrcode",
@@ -3066,7 +3061,6 @@ version = "0.1.0"
 dependencies = [
  "iced",
  "lyon_algorithms",
- "once_cell",
 ]
 
 [[package]]
@@ -4738,7 +4732,6 @@ name = "scrollable"
 version = "0.1.0"
 dependencies = [
  "iced",
- "once_cell",
 ]
 
 [[package]]
@@ -5936,7 +5929,6 @@ name = "visible_bounds"
 version = "0.1.0"
 dependencies = [
  "iced",
- "once_cell",
 ]
 
 [[package]]
@@ -6290,7 +6282,6 @@ version = "1.0.0"
 dependencies = [
  "async-tungstenite",
  "iced",
- "once_cell",
  "tokio",
  "warp",
 ]
