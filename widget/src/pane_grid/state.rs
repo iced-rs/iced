@@ -343,7 +343,7 @@ impl<T> State<T> {
 /// [`PaneGrid`]: super::PaneGrid
 #[derive(Debug, Clone)]
 pub struct Internal {
-    layout: Node,
+    pub(super) layout: Node,
     last_id: usize,
 }
 
@@ -397,11 +397,12 @@ impl Internal {
 /// The current action of a [`PaneGrid`].
 ///
 /// [`PaneGrid`]: super::PaneGrid
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Action {
     /// The [`PaneGrid`] is idle.
     ///
     /// [`PaneGrid`]: super::PaneGrid
+    #[default]
     Idle,
     /// A [`Pane`] in the [`PaneGrid`] is being dragged.
     ///
@@ -441,9 +442,8 @@ impl Action {
     }
 }
 
-impl Internal {
-    /// The layout [`Node`] of the [`Internal`] state
-    pub fn layout(&self) -> &Node {
-        &self.layout
-    }
+#[derive(Default)]
+pub(super) struct Widget {
+    pub action: Action,
+    pub panes: Vec<Pane>,
 }
