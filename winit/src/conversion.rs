@@ -24,6 +24,11 @@ pub fn window_attributes(
             height: settings.size.height,
         })
         .with_maximized(settings.maximized)
+        .with_fullscreen(
+            settings
+                .fullscreen
+                .then_some(winit::window::Fullscreen::Borderless(None)),
+        )
         .with_resizable(settings.resizable)
         .with_enabled_buttons(if settings.resizable {
             winit::window::WindowButtons::all()

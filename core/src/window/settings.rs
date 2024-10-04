@@ -37,6 +37,9 @@ pub struct Settings {
     /// Whether the window should start maximized.
     pub maximized: bool,
 
+    /// Whether the window should start fullscreen.
+    pub fullscreen: bool,
+
     /// The initial position of the window.
     pub position: Position,
 
@@ -83,6 +86,7 @@ impl Default for Settings {
         Self {
             size: Size::new(1024.0, 768.0),
             maximized: false,
+            fullscreen: false,
             position: Position::default(),
             min_size: None,
             max_size: None,
