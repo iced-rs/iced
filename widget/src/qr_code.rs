@@ -31,6 +31,7 @@ use crate::core::{
 };
 use crate::Renderer;
 
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use thiserror::Error;
 
@@ -61,21 +62,23 @@ const QUIET_ZONE: usize = 2;
 /// }
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct QRCode<'a, Theme = crate::Theme>
+pub struct QRCode<'a, D, Theme = crate::Theme>
 where
     Theme: Catalog,
+    D: Borrow<Data>,
 {
-    data: &'a Data,
+    data: D,
     cell_size: f32,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Theme> QRCode<'a, Theme>
+impl<'a, D, Theme> QRCode<'a, D, Theme>
 where
     Theme: Catalog,
+    D: Borrow<Data>,
 {
     /// Creates a new [`QRCode`] with the provided [`Data`].
-    pub fn new(data: &'a Data) -> Self {
+    pub fn new(data: D) -> Self {
         Self {
             data,
             cell_size: DEFAULT_CELL_SIZE,
@@ -91,8 +94,8 @@ where
 
     /// Sets the size of the entire [`QRCode`].
     pub fn total_size(mut self, total_size: impl Into<Pixels>) -> Self {
-        self.cell_size =
-            total_size.into().0 / (self.data.width + 2 * QUIET_ZONE) as f32;
+        self.cell_size = total_size.into().0
+            / (self.data.borrow().width + 2 * QUIET_ZONE) as f32;
 
         self
     }
@@ -116,9 +119,11 @@ where
     }
 }
 
-impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a, Theme>
+impl<'a, D, Message, Theme> Widget<Message, Theme, Renderer>
+    for QRCode<'a, D, Theme>
 where
     Theme: Catalog,
+    D: Borrow<Data>,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -142,7 +147,7 @@ where
         _limits: &layout::Limits,
     ) -> layout::Node {
         let side_length =
-            (self.data.width + 2 * QUIET_ZONE) as f32 * self.cell_size;
+            (self.data.borrow().width + 2 * QUIET_ZONE) as f32 * self.cell_size;
 
         layout::Node::new(Size::new(side_length, side_length))
     }
@@ -160,49 +165,57 @@ where
         let state = tree.state.downcast_ref::<State>();
 
         let bounds = layout.bounds();
-        let side_length = self.data.width + 2 * QUIET_ZONE;
+        let side_length = self.data.borrow().width + 2 * QUIET_ZONE;
 
         let style = theme.style(&self.class);
         let mut last_style = state.last_style.borrow_mut();
 
         if Some(style) != *last_style {
-            self.data.cache.clear();
+            self.data.borrow().cache.clear();
 
             *last_style = Some(style);
         }
 
         // Reuse cache if possible
-        let geometry = self.data.cache.draw(renderer, bounds.size(), |frame| {
-            // Scale units to cell size
-            frame.scale(self.cell_size);
-
-            // Draw background
-            frame.fill_rectangle(
-                Point::ORIGIN,
-                Size::new(side_length as f32, side_length as f32),
-                style.background,
-            );
-
-            // Avoid drawing on the quiet zone
-            frame.translate(Vector::new(QUIET_ZONE as f32, QUIET_ZONE as f32));
-
-            // Draw contents
+        let geometry =
             self.data
-                .contents
-                .iter()
-                .enumerate()
-                .filter(|(_, value)| **value == qrcode::Color::Dark)
-                .for_each(|(index, _)| {
-                    let row = index / self.data.width;
-                    let column = index % self.data.width;
+                .borrow()
+                .cache
+                .draw(renderer, bounds.size(), |frame| {
+                    // Scale units to cell size
+                    frame.scale(self.cell_size);
 
+                    // Draw background
                     frame.fill_rectangle(
-                        Point::new(column as f32, row as f32),
-                        Size::UNIT,
-                        style.cell,
+                        Point::ORIGIN,
+                        Size::new(side_length as f32, side_length as f32),
+                        style.background,
                     );
+
+                    // Avoid drawing on the quiet zone
+                    frame.translate(Vector::new(
+                        QUIET_ZONE as f32,
+                        QUIET_ZONE as f32,
+                    ));
+
+                    // Draw contents
+                    self.data
+                        .borrow()
+                        .contents
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, value)| **value == qrcode::Color::Dark)
+                        .for_each(|(index, _)| {
+                            let row = index / self.data.borrow().width;
+                            let column = index % self.data.borrow().width;
+
+                            frame.fill_rectangle(
+                                Point::new(column as f32, row as f32),
+                                Size::UNIT,
+                                style.cell,
+                            );
+                        });
                 });
-        });
 
         renderer.with_translation(
             bounds.position() - Point::ORIGIN,
@@ -215,12 +228,13 @@ where
     }
 }
 
-impl<'a, Message, Theme> From<QRCode<'a, Theme>>
+impl<'a, D, Message, Theme> From<QRCode<'a, D, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Theme: Catalog + 'a,
+    D: Borrow<Data> + 'a,
 {
-    fn from(qr_code: QRCode<'a, Theme>) -> Self {
+    fn from(qr_code: QRCode<'a, D, Theme>) -> Self {
         Self::new(qr_code)
     }
 }
