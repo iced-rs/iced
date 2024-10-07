@@ -514,6 +514,9 @@ impl Default for Style {
 ///
 /// # Example
 /// ```no_run
+/// # use iced_widget::core::{Color, Background};
+/// # use iced_widget::button::{Catalog, Status, Style};
+/// # struct MyTheme;
 /// #[derive(Debug, Default)]
 /// pub enum ButtonClass {
 ///     #[default]
