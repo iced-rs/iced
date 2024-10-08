@@ -7,6 +7,6 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["debug", "canvas"]
+iced.features = ["debug", "canvas", "advanced"]
 
 rand = "0.8"

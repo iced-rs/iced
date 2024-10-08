@@ -1,3 +1,4 @@
+use iced::advanced::Shell;
 use iced::mouse;
 use iced::widget::canvas::event::{self, Event};
 use iced::widget::canvas::{self, Canvas, Geometry};
@@ -80,6 +81,7 @@ impl canvas::Program<Message> for SierpinskiGraph {
         event: Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
+        _shell: &mut Shell<'_, Message>,
     ) -> (event::Status, Option<Message>) {
         let Some(cursor_position) = cursor.position_in(bounds) else {
             return (event::Status::Ignored, None);

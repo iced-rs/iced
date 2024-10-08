@@ -56,6 +56,7 @@ impl Example {
 }
 
 mod bezier {
+    use iced::advanced::Shell;
     use iced::mouse;
     use iced::widget::canvas::event::{self, Event};
     use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
@@ -96,6 +97,7 @@ mod bezier {
             event: Event,
             bounds: Rectangle,
             cursor: mouse::Cursor,
+            _shell: &mut Shell<'_, Curve>,
         ) -> (event::Status, Option<Curve>) {
             let Some(cursor_position) = cursor.position_in(bounds) else {
                 return (event::Status::Ignored, None);
