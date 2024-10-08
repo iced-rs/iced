@@ -1045,7 +1045,7 @@ impl<Message> Binding<Message> {
             keyboard::Key::Named(key::Named::Backspace) => {
                 Some(Self::Backspace)
             }
-            keyboard::Key::Named(key::Named::Delete) if text.is_none() => {
+            keyboard::Key::Named(key::Named::Delete) if text.is_some() => {
                 Some(Self::Delete)
             }
             keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
