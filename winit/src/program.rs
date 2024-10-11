@@ -1315,6 +1315,16 @@ fn run_action<P, C>(
                     }));
                 }
             }
+            window::Action::SetResizeIncrements(id, increments) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_resize_increments(increments.map(|x| {
+                        winit::dpi::LogicalSize {
+                            width: x.width,
+                            height: x.height,
+                        }
+                    }));
+                }
+            }
             window::Action::ChangeTitle(id, title) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     window.raw.set_title(&title);
