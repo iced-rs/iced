@@ -167,6 +167,9 @@ pub enum Action {
 
     /// Set the window to be resizable or not.
     SetResizable(Id, bool),
+
+    /// Set the window size increment.
+    SetResizeIncrements(Id, Option<Size>),
 }
 
 /// Subscribes to the frames of the window of the running application.
@@ -398,6 +401,15 @@ pub fn set_max_size<T>(id: Id, size: Option<Size>) -> Task<T> {
 /// Set the inner minimum size of the window.
 pub fn set_min_size<T>(id: Id, size: Option<Size>) -> Task<T> {
     task::effect(crate::Action::Window(Action::SetMinSize(id, size)))
+}
+
+/// Set the window size increment.
+///
+/// This is usually used by apps such as terminal emulators that need "blocky" resizing.
+pub fn set_resize_increments<T>(id: Id, increments: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetResizeIncrements(
+        id, increments,
+    )))
 }
 
 /// Show the [system menu] at cursor position.
