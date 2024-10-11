@@ -1316,6 +1316,11 @@ fn run_action<P, C>(
                     window.raw.set_title(&title);
                 }
             }
+            window::Action::SetResizable(id, resizable) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_resizable(resizable);
+                }
+            }
             window::Action::GetSize(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let size = window

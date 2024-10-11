@@ -164,6 +164,9 @@ pub enum Action {
 
     /// Set the maximum inner window size.
     SetMaxSize(Id, Option<Size>),
+
+    /// Set the window to be resizable or not.
+    SetResizable(Id, bool),
 }
 
 /// Subscribes to the frames of the window of the running application.
@@ -272,6 +275,11 @@ pub fn drag<T>(id: Id) -> Task<T> {
 /// Resizes the window to the given logical dimensions.
 pub fn resize<T>(id: Id, new_size: Size) -> Task<T> {
     task::effect(crate::Action::Window(Action::Resize(id, new_size)))
+}
+
+/// Set the window to be resizable or not.
+pub fn resizable<T>(id: Id, resizable: bool) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetResizable(id, resizable)))
 }
 
 /// Get the window's size in logical dimensions.
