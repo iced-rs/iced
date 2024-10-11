@@ -1291,6 +1291,11 @@ fn run_action<P, C>(
                     );
                 }
             }
+            window::Action::ChangeTitle(id, title) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_title(&title);
+                }
+            }
             window::Action::GetSize(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let size = window
