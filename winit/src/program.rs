@@ -1291,6 +1291,26 @@ fn run_action<P, C>(
                     );
                 }
             }
+            window::Action::SetMinSize(id, size) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_min_inner_size(size.map(|x| {
+                        winit::dpi::LogicalSize {
+                            width: x.width,
+                            height: x.height,
+                        }
+                    }));
+                }
+            }
+            window::Action::SetMaxSize(id, size) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_max_inner_size(size.map(|x| {
+                        winit::dpi::LogicalSize {
+                            width: x.width,
+                            height: x.height,
+                        }
+                    }));
+                }
+            }
             window::Action::ChangeTitle(id, title) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     window.raw.set_title(&title);

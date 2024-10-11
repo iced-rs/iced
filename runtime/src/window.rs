@@ -158,6 +158,12 @@ pub enum Action {
     /// This enables mouse events for the window and stops mouse events
     /// from being passed to whatever is underneath.
     DisableMousePassthrough(Id),
+
+    /// Set the minimum inner window size.
+    SetMinSize(Id, Option<Size>),
+
+    /// Set the maximum inner window size.
+    SetMaxSize(Id, Option<Size>),
 }
 
 /// Subscribes to the frames of the window of the running application.
@@ -374,6 +380,16 @@ pub fn change_level<T>(id: Id, level: Level) -> Task<T> {
 /// Changes the title of the window.
 pub fn change_title<T>(id: Id, title: String) -> Task<T> {
     task::effect(crate::Action::Window(Action::ChangeTitle(id, title)))
+}
+
+/// Set the inner maximum size of the window.
+pub fn set_max_size<T>(id: Id, size: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetMaxSize(id, size)))
+}
+
+/// Set the inner minimum size of the window.
+pub fn set_min_size<T>(id: Id, size: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetMinSize(id, size)))
 }
 
 /// Show the [system menu] at cursor position.
