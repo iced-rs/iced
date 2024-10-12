@@ -489,7 +489,7 @@ pub enum Status {
 }
 
 /// The appearance of a toggler.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The background [`Color`] of the toggler.
     pub background: Color,

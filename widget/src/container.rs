@@ -572,7 +572,7 @@ pub fn visible_bounds(id: Id) -> Task<Option<Rectangle>> {
 }
 
 /// The appearance of a container.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Style {
     /// The text [`Color`] of the container.
     pub text_color: Option<Color>,
