@@ -187,7 +187,7 @@ where
 }
 
 /// The appearance of a rule.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The color of the rule.
     pub color: Color,
@@ -200,7 +200,7 @@ pub struct Style {
 }
 
 /// The fill mode of a rule.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FillMode {
     /// Fill the whole length of the container.
     Full,

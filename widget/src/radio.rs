@@ -471,7 +471,7 @@ pub enum Status {
 }
 
 /// The appearance of a radio button.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`Background`] of the radio button.
     pub background: Background,
