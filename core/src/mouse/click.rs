@@ -82,7 +82,7 @@ impl Click {
             None
         };
 
-        self.position == new_position
+        self.position.distance(new_position) < 6.0
             && duration
                 .map(|duration| duration.as_millis() <= 300)
                 .unwrap_or(false)
