@@ -6,7 +6,7 @@ use crate::pane_grid::{
     Axis, Configuration, Direction, Edge, Node, Pane, Region, Split, Target,
 };
 
-use rustc_hash::FxHashMap;
+use std::collections::BTreeMap;
 
 /// The state of a [`PaneGrid`].
 ///
@@ -25,7 +25,7 @@ pub struct State<T> {
     /// The panes of the [`PaneGrid`].
     ///
     /// [`PaneGrid`]: super::PaneGrid
-    pub panes: FxHashMap<Pane, T>,
+    pub panes: BTreeMap<Pane, T>,
 
     /// The internal state of the [`PaneGrid`].
     ///
@@ -52,7 +52,7 @@ impl<T> State<T> {
 
     /// Creates a new [`State`] with the given [`Configuration`].
     pub fn with_configuration(config: impl Into<Configuration<T>>) -> Self {
-        let mut panes = FxHashMap::default();
+        let mut panes = BTreeMap::default();
 
         let internal =
             Internal::from_configuration(&mut panes, config.into(), 0);
@@ -228,8 +228,15 @@ impl<T> State<T> {
     ) {
         if let Some((state, _)) = self.close(pane) {
             if let Some((new_pane, _)) = self.split(axis, target, state) {
+                // Ensure new node corresponds to original `Pane` for state continuity
+                self.swap(pane, new_pane);
+                let _ = self
+                    .panes
+                    .remove(&new_pane)
+                    .and_then(|state| self.panes.insert(pane, state));
+
                 if swap {
-                    self.swap(target, new_pane);
+                    self.swap(target, pane);
                 }
             }
         }
@@ -262,7 +269,16 @@ impl<T> State<T> {
         swap: bool,
     ) {
         if let Some((state, _)) = self.close(pane) {
-            let _ = self.split_node(axis, None, state, swap);
+            if let Some((new_pane, _)) =
+                self.split_node(axis, None, state, swap)
+            {
+                // Ensure new node corresponds to original `Pane` for state continuity
+                self.swap(pane, new_pane);
+                let _ = self
+                    .panes
+                    .remove(&new_pane)
+                    .and_then(|state| self.panes.insert(pane, state));
+            }
         }
     }
 
@@ -343,7 +359,7 @@ impl<T> State<T> {
 /// [`PaneGrid`]: super::PaneGrid
 #[derive(Debug, Clone)]
 pub struct Internal {
-    layout: Node,
+    pub(super) layout: Node,
     last_id: usize,
 }
 
@@ -353,7 +369,7 @@ impl Internal {
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub fn from_configuration<T>(
-        panes: &mut FxHashMap<Pane, T>,
+        panes: &mut BTreeMap<Pane, T>,
         content: Configuration<T>,
         next_id: usize,
     ) -> Self {
@@ -397,11 +413,12 @@ impl Internal {
 /// The current action of a [`PaneGrid`].
 ///
 /// [`PaneGrid`]: super::PaneGrid
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Action {
     /// The [`PaneGrid`] is idle.
     ///
     /// [`PaneGrid`]: super::PaneGrid
+    #[default]
     Idle,
     /// A [`Pane`] in the [`PaneGrid`] is being dragged.
     ///
@@ -441,9 +458,8 @@ impl Action {
     }
 }
 
-impl Internal {
-    /// The layout [`Node`] of the [`Internal`] state
-    pub fn layout(&self) -> &Node {
-        &self.layout
-    }
+#[derive(Default)]
+pub(super) struct Widget {
+    pub action: Action,
+    pub panes: Vec<Pane>,
 }
