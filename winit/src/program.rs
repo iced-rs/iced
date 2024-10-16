@@ -1265,6 +1265,13 @@ fn run_action<P, C>(
                     let _ = window.raw.drag_window();
                 }
             }
+            window::Action::DragResize(id, direction) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    let _ = window.raw.drag_resize_window(
+                        conversion::resize_direction(direction),
+                    );
+                }
+            }
             window::Action::Resize(id, size) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = window.raw.request_inner_size(
