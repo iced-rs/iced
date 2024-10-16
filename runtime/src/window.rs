@@ -5,7 +5,7 @@ pub use screenshot::Screenshot;
 
 use crate::core::time::Instant;
 use crate::core::window::{
-    Event, Icon, Id, Level, Mode, Settings, UserAttention,
+    Event, Icon, Id, Level, Mode, ResizeDirection, Settings, UserAttention,
 };
 use crate::core::{Point, Size};
 use crate::futures::event;
@@ -38,6 +38,13 @@ pub enum Action {
     /// There’s no guarantee that this will work unless the left mouse
     /// button was pressed immediately before this function is called.
     Drag(Id),
+
+    /// Resize the window with the left mouse button until the button is
+    /// released.
+    ///
+    /// There’s no guarantee that this will work unless the left mouse
+    /// button was pressed immediately before this function is called.
+    DragResize(Id, ResizeDirection),
 
     /// Resize the window to the given logical dimensions.
     Resize(Id, Size),
@@ -262,6 +269,11 @@ pub fn get_latest() -> Task<Option<Id>> {
 /// Begins dragging the window while the left mouse button is held.
 pub fn drag<T>(id: Id) -> Task<T> {
     task::effect(crate::Action::Window(Action::Drag(id)))
+}
+
+/// Begins resizing the window while the left mouse button is held.
+pub fn drag_resize<T>(id: Id, direction: ResizeDirection) -> Task<T> {
+    task::effect(crate::Action::Window(Action::DragResize(id, direction)))
 }
 
 /// Resizes the window to the given logical dimensions.
