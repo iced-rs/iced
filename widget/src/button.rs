@@ -471,6 +471,9 @@ pub enum Status {
 }
 
 /// The style of a button.
+///
+/// If not specified with [`Button::style`]
+/// the theme will provide the style.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`Background`] of the button.
@@ -505,6 +508,54 @@ impl Default for Style {
 }
 
 /// The theme catalog of a [`Button`].
+///
+/// All themes that can be used with [`Button`]
+/// must implement this trait.
+///
+/// # Example
+/// ```no_run
+/// # use iced_widget::core::{Color, Background};
+/// # use iced_widget::button::{Catalog, Status, Style};
+/// # struct MyTheme;
+/// #[derive(Debug, Default)]
+/// pub enum ButtonClass {
+///     #[default]
+///     Primary,
+///     Secondary,
+///     Danger
+/// }
+///
+/// impl Catalog for MyTheme {
+///     type Class<'a> = ButtonClass;
+///     
+///     fn default<'a>() -> Self::Class<'a> {
+///         ButtonClass::default()
+///     }
+///     
+///
+///     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+///         let mut style = Style::default();
+///
+///         match class {
+///             ButtonClass::Primary => {
+///                 style.background = Some(Background::Color(Color::from_rgb(0.529, 0.808, 0.921)));
+///             },
+///             ButtonClass::Secondary => {
+///                 style.background = Some(Background::Color(Color::WHITE));
+///             },
+///             ButtonClass::Danger => {
+///                 style.background = Some(Background::Color(Color::from_rgb(0.941, 0.502, 0.502)));
+///             },
+///         }
+///
+///         style
+///     }
+/// }
+/// ```
+///
+/// Although, in order to use [`Button::style`]
+/// with `MyTheme`, [`Catalog::Class`] must implement
+/// `From<StyleFn<'_, MyTheme>>`.
 pub trait Catalog {
     /// The item class of the [`Catalog`].
     type Class<'a>;
