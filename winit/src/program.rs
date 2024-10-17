@@ -418,6 +418,21 @@ where
             }
         }
 
+        fn device_event(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            device_id: winit::event::DeviceId,
+            event: winit::event::DeviceEvent,
+        ) {
+            self.process_event(
+                event_loop,
+                Event::EventLoopAwakened(winit::event::Event::DeviceEvent {
+                    device_id,
+                    event,
+                }),
+            );
+        }
+
         fn user_event(
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
@@ -1030,6 +1045,21 @@ async fn run_instance<P, C>(
                             }
                         }
                     }
+                    event::Event::DeviceEvent {
+                        device_id: _,
+                        event,
+                    } => {
+                        for (id, window) in window_manager.iter_mut() {
+                            let scale_factor = window.raw.scale_factor();
+
+                            if let Some(event) = conversion::device_event(
+                                event.clone(),
+                                scale_factor,
+                            ) {
+                                events.push((id, event));
+                            }
+                        }
+                    }
                     event::Event::AboutToWait => {
                         if events.is_empty() && messages.is_empty() {
                             continue;
@@ -1466,6 +1496,13 @@ fn run_action<P, C>(
             window::Action::DisableMousePassthrough(id) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = window.raw.set_cursor_hittest(true);
+                }
+            }
+            window::Action::CursorGrab(id, cursor_grab) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    let _ = window
+                        .raw
+                        .set_cursor_grab(conversion::cursor_grab(cursor_grab));
                 }
             }
         },

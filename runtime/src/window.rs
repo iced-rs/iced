@@ -1,6 +1,7 @@
 //! Build window-based GUI applications.
 pub mod screenshot;
 
+use iced_core::window::CursorGrab;
 pub use screenshot::Screenshot;
 
 use crate::core::time::Instant;
@@ -159,6 +160,13 @@ pub enum Action {
     /// This enables mouse events for the window and stops mouse events
     /// from being passed to whatever is underneath.
     DisableMousePassthrough(Id),
+
+    /// Constraints the cursor in a window.
+    ///
+    /// ## Platform-specific
+    /// -- **Web / macOS:** [`CursorGrab::Confined`] unsupported.
+    /// -- **Windows / X11:** [`CursorGrab::Locked`] unsupported.
+    CursorGrab(Id, CursorGrab),
 }
 
 /// Subscribes to the frames of the window of the running application.
@@ -433,4 +441,9 @@ pub fn enable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
 /// from being passed to whatever is underneath.
 pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
     task::effect(crate::Action::Window(Action::DisableMousePassthrough(id)))
+}
+
+/// Constraints the cursor in a window.
+pub fn cursor_grab<Message>(id: Id, cursor_grab: CursorGrab) -> Task<Message> {
+    task::effect(crate::Action::Window(Action::CursorGrab(id, cursor_grab)))
 }
