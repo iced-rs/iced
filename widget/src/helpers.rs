@@ -1788,11 +1788,10 @@ where
 /// }
 /// ```
 #[cfg(feature = "qr_code")]
-pub fn qr_code<'a, Theme>(
-    data: &'a crate::qr_code::Data,
-) -> crate::QRCode<'a, Theme>
+pub fn qr_code<'a, D, Theme>(data: D) -> crate::QRCode<'a, D, Theme>
 where
     Theme: crate::qr_code::Catalog + 'a,
+    D: Borrow<crate::qr_code::Data> + 'a,
 {
     crate::QRCode::new(data)
 }
