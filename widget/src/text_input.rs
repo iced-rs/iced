@@ -118,6 +118,8 @@ pub struct TextInput<
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
+    on_key_press:
+        Option<Box<dyn Fn(keyboard::Key, keyboard::Modifiers) -> Message + 'a>>,
     icon: Option<Icon<Renderer::Font>>,
     class: Theme::Class<'a>,
 }
@@ -148,6 +150,7 @@ where
             on_input: None,
             on_paste: None,
             on_submit: None,
+            on_key_press: None,
             icon: None,
             class: Theme::default(),
         }
@@ -220,6 +223,16 @@ where
         on_paste: Option<impl Fn(String) -> Message + 'a>,
     ) -> Self {
         self.on_paste = on_paste.map(|f| Box::new(f) as _);
+        self
+    }
+
+    /// Sets the message that should be produced when a key is pressed
+    /// when the [`TextInput`] is focused.
+    pub fn on_key_press(
+        mut self,
+        on_key_press: impl Fn(keyboard::Key, keyboard::Modifiers) -> Message + 'a,
+    ) -> Self {
+        self.on_key_press = Some(Box::new(on_key_press));
         self
     }
 
@@ -816,6 +829,13 @@ where
                 if let Some(focus) = &mut state.is_focused {
                     let modifiers = state.keyboard_modifiers;
                     focus.updated_at = Instant::now();
+
+                    if let Some(on_key_press) = &self.on_key_press {
+                        let message: Message =
+                            (on_key_press)(key.clone(), modifiers.clone());
+
+                        shell.publish(message);
+                    }
 
                     match key.as_ref() {
                         keyboard::Key::Character("c")
