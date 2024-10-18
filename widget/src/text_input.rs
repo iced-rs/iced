@@ -226,8 +226,8 @@ where
         self
     }
 
-    /// Sets the message that should be produced when a key is pressed
-    /// when the [`TextInput`] is focused.
+    /// Sets the message that should be produced when the [`TextInput`] is
+    /// focused and a key is pressed.
     pub fn on_key_press(
         mut self,
         on_key_press: impl Fn(keyboard::Key, keyboard::Modifiers) -> Message + 'a,
