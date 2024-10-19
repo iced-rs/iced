@@ -831,7 +831,7 @@ where
                     focus.updated_at = Instant::now();
 
                     if let Some(on_key_press) = &self.on_key_press {
-                        let message: Message =
+                        let message =
                             (on_key_press)(key.clone(), modifiers.clone());
 
                         shell.publish(message);
