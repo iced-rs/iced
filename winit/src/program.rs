@@ -1161,6 +1161,8 @@ async fn run_instance<P, C>(
                         }
 
                         if !redraw_queue.is_empty() {
+                            // The queue should be fairly short, so we can
+                            // simply sort all of the time.
                             redraw_queue.sort_by(
                                 |(target_a, _), (target_b, _)| {
                                     target_a.cmp(target_b).reverse()

@@ -37,6 +37,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Background, Clipboard, Color, Element, Layout, Length, Pixels, Point,
     Rectangle, Shell, Size, Theme, Widget,
@@ -95,6 +96,7 @@ where
     width: Length,
     height: f32,
     class: Theme::Class<'a>,
+    status: Option<Status>,
 }
 
 impl<'a, T, Message, Theme> Slider<'a, T, Message, Theme>
@@ -141,6 +143,7 @@ where
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
             class: Theme::default(),
+            status: None,
         }
     }
 
@@ -253,16 +256,40 @@ where
     ) -> event::Status {
         let state = tree.state.downcast_mut::<State>();
 
-        let is_dragging = state.is_dragging;
-        let current_value = self.value;
+        let mut update = || {
+            let current_value = self.value;
 
-        let locate = |cursor_position: Point| -> Option<T> {
-            let bounds = layout.bounds();
-            let new_value = if cursor_position.x <= bounds.x {
-                Some(*self.range.start())
-            } else if cursor_position.x >= bounds.x + bounds.width {
-                Some(*self.range.end())
-            } else {
+            let locate = |cursor_position: Point| -> Option<T> {
+                let bounds = layout.bounds();
+
+                let new_value = if cursor_position.x <= bounds.x {
+                    Some(*self.range.start())
+                } else if cursor_position.x >= bounds.x + bounds.width {
+                    Some(*self.range.end())
+                } else {
+                    let step = if state.keyboard_modifiers.shift() {
+                        self.shift_step.unwrap_or(self.step)
+                    } else {
+                        self.step
+                    }
+                    .into();
+
+                    let start = (*self.range.start()).into();
+                    let end = (*self.range.end()).into();
+
+                    let percent = f64::from(cursor_position.x - bounds.x)
+                        / f64::from(bounds.width);
+
+                    let steps = (percent * (end - start) / step).round();
+                    let value = steps * step + start;
+
+                    T::from_f64(value.min(end))
+                };
+
+                new_value
+            };
+
+            let increment = |value: T| -> Option<T> {
                 let step = if state.keyboard_modifiers.shift() {
                     self.shift_step.unwrap_or(self.step)
                 } else {
@@ -270,168 +297,167 @@ where
                 }
                 .into();
 
-                let start = (*self.range.start()).into();
-                let end = (*self.range.end()).into();
+                let steps = (value.into() / step).round();
+                let new_value = step * (steps + 1.0);
 
-                let percent = f64::from(cursor_position.x - bounds.x)
-                    / f64::from(bounds.width);
+                if new_value > (*self.range.end()).into() {
+                    return Some(*self.range.end());
+                }
 
-                let steps = (percent * (end - start) / step).round();
-                let value = steps * step + start;
-
-                T::from_f64(value.min(end))
+                T::from_f64(new_value)
             };
 
-            new_value
-        };
+            let decrement = |value: T| -> Option<T> {
+                let step = if state.keyboard_modifiers.shift() {
+                    self.shift_step.unwrap_or(self.step)
+                } else {
+                    self.step
+                }
+                .into();
 
-        let increment = |value: T| -> Option<T> {
-            let step = if state.keyboard_modifiers.shift() {
-                self.shift_step.unwrap_or(self.step)
-            } else {
-                self.step
-            }
-            .into();
+                let steps = (value.into() / step).round();
+                let new_value = step * (steps - 1.0);
 
-            let steps = (value.into() / step).round();
-            let new_value = step * (steps + 1.0);
+                if new_value < (*self.range.start()).into() {
+                    return Some(*self.range.start());
+                }
 
-            if new_value > (*self.range.end()).into() {
-                return Some(*self.range.end());
-            }
+                T::from_f64(new_value)
+            };
 
-            T::from_f64(new_value)
-        };
+            let change = |new_value: T| {
+                if (self.value.into() - new_value.into()).abs() > f64::EPSILON {
+                    shell.publish((self.on_change)(new_value));
 
-        let decrement = |value: T| -> Option<T> {
-            let step = if state.keyboard_modifiers.shift() {
-                self.shift_step.unwrap_or(self.step)
-            } else {
-                self.step
-            }
-            .into();
+                    self.value = new_value;
+                }
+            };
 
-            let steps = (value.into() / step).round();
-            let new_value = step * (steps - 1.0);
+            match &event {
+                Event::Mouse(mouse::Event::ButtonPressed(
+                    mouse::Button::Left,
+                ))
+                | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                    if let Some(cursor_position) =
+                        cursor.position_over(layout.bounds())
+                    {
+                        if state.keyboard_modifiers.command() {
+                            let _ = self.default.map(change);
+                            state.is_dragging = false;
+                        } else {
+                            let _ = locate(cursor_position).map(change);
+                            state.is_dragging = true;
+                        }
 
-            if new_value < (*self.range.start()).into() {
-                return Some(*self.range.start());
-            }
-
-            T::from_f64(new_value)
-        };
-
-        let change = |new_value: T| {
-            if (self.value.into() - new_value.into()).abs() > f64::EPSILON {
-                shell.publish((self.on_change)(new_value));
-
-                self.value = new_value;
-            }
-        };
-
-        match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if let Some(cursor_position) =
-                    cursor.position_over(layout.bounds())
-                {
-                    if state.keyboard_modifiers.command() {
-                        let _ = self.default.map(change);
+                        return event::Status::Captured;
+                    }
+                }
+                Event::Mouse(mouse::Event::ButtonReleased(
+                    mouse::Button::Left,
+                ))
+                | Event::Touch(touch::Event::FingerLifted { .. })
+                | Event::Touch(touch::Event::FingerLost { .. }) => {
+                    if state.is_dragging {
+                        if let Some(on_release) = self.on_release.clone() {
+                            shell.publish(on_release);
+                        }
                         state.is_dragging = false;
-                    } else {
-                        let _ = locate(cursor_position).map(change);
-                        state.is_dragging = true;
+
+                        return event::Status::Captured;
                     }
-
-                    return event::Status::Captured;
                 }
-            }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted { .. })
-            | Event::Touch(touch::Event::FingerLost { .. }) => {
-                if is_dragging {
-                    if let Some(on_release) = self.on_release.clone() {
-                        shell.publish(on_release);
+                Event::Mouse(mouse::Event::CursorMoved { .. })
+                | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                    if state.is_dragging {
+                        let _ = cursor.position().and_then(locate).map(change);
+
+                        return event::Status::Captured;
                     }
-                    state.is_dragging = false;
-
-                    return event::Status::Captured;
                 }
-            }
-            Event::Mouse(mouse::Event::CursorMoved { .. })
-            | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                if is_dragging {
-                    let _ = cursor.position().and_then(locate).map(change);
+                Event::Mouse(mouse::Event::WheelScrolled { delta })
+                    if state.keyboard_modifiers.control() =>
+                {
+                    if cursor.is_over(layout.bounds()) {
+                        let delta = match delta {
+                            mouse::ScrollDelta::Lines { x: _, y } => y,
+                            mouse::ScrollDelta::Pixels { x: _, y } => y,
+                        };
 
-                    return event::Status::Captured;
-                }
-            }
-            Event::Mouse(mouse::Event::WheelScrolled { delta })
-                if state.keyboard_modifiers.control() =>
-            {
-                if cursor.is_over(layout.bounds()) {
-                    let delta = match delta {
-                        mouse::ScrollDelta::Lines { x: _, y } => y,
-                        mouse::ScrollDelta::Pixels { x: _, y } => y,
-                    };
-
-                    if delta < 0.0 {
-                        let _ = decrement(current_value).map(change);
-                    } else {
-                        let _ = increment(current_value).map(change);
-                    }
-
-                    return event::Status::Captured;
-                }
-            }
-            Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
-                if cursor.is_over(layout.bounds()) {
-                    match key {
-                        Key::Named(key::Named::ArrowUp) => {
+                        if *delta < 0.0 {
+                            let _ = decrement(current_value).map(change);
+                        } else {
                             let _ = increment(current_value).map(change);
                         }
-                        Key::Named(key::Named::ArrowDown) => {
-                            let _ = decrement(current_value).map(change);
-                        }
-                        _ => (),
-                    }
 
-                    return event::Status::Captured;
+                        return event::Status::Captured;
+                    }
                 }
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key, ..
+                }) => {
+                    if cursor.is_over(layout.bounds()) {
+                        match key {
+                            Key::Named(key::Named::ArrowUp) => {
+                                let _ = increment(current_value).map(change);
+                            }
+                            Key::Named(key::Named::ArrowDown) => {
+                                let _ = decrement(current_value).map(change);
+                            }
+                            _ => (),
+                        }
+
+                        return event::Status::Captured;
+                    }
+                }
+                Event::Keyboard(keyboard::Event::ModifiersChanged(
+                    modifiers,
+                )) => {
+                    state.keyboard_modifiers = *modifiers;
+                }
+                _ => {}
             }
-            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                state.keyboard_modifiers = modifiers;
+
+            event::Status::Ignored
+        };
+
+        let update_status = update();
+
+        let current_status = if state.is_dragging {
+            Status::Dragged
+        } else if cursor.is_over(layout.bounds()) {
+            Status::Hovered
+        } else {
+            Status::Active
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.status = Some(current_status);
+        } else {
+            match self.status {
+                Some(status) if status != current_status => {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+                _ => {}
             }
-            _ => {}
         }
 
-        event::Status::Ignored
+        update_status
     }
 
     fn draw(
         &self,
-        tree: &Tree,
+        _tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
-        let is_mouse_over = cursor.is_over(bounds);
 
-        let style = theme.style(
-            &self.class,
-            if state.is_dragging {
-                Status::Dragged
-            } else if is_mouse_over {
-                Status::Hovered
-            } else {
-                Status::Active
-            },
-        );
+        let style =
+            theme.style(&self.class, self.status.unwrap_or(Status::Active));
 
         let (handle_width, handle_height, handle_border_radius) =
             match style.handle.shape {
