@@ -26,6 +26,7 @@ use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
+use crate::core::window;
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Rectangle,
     Shadow, Shell, Size, Theme, Vector, Widget,
@@ -81,6 +82,7 @@ where
     padding: Padding,
     clip: bool,
     class: Theme::Class<'a>,
+    status: Option<Status>,
 }
 
 enum OnPress<'a, Message> {
@@ -117,6 +119,7 @@ where
             padding: DEFAULT_PADDING,
             clip: false,
             class: Theme::default(),
+            status: None,
         }
     }
 
@@ -294,49 +297,85 @@ where
             return event::Status::Captured;
         }
 
-        match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if self.on_press.is_some() {
-                    let bounds = layout.bounds();
-
-                    if cursor.is_over(bounds) {
-                        let state = tree.state.downcast_mut::<State>();
-
-                        state.is_pressed = true;
-
-                        return event::Status::Captured;
-                    }
-                }
-            }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted { .. }) => {
-                if let Some(on_press) = self.on_press.as_ref().map(OnPress::get)
-                {
-                    let state = tree.state.downcast_mut::<State>();
-
-                    if state.is_pressed {
-                        state.is_pressed = false;
-
+        let mut update = || {
+            match event {
+                Event::Mouse(mouse::Event::ButtonPressed(
+                    mouse::Button::Left,
+                ))
+                | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                    if self.on_press.is_some() {
                         let bounds = layout.bounds();
 
                         if cursor.is_over(bounds) {
-                            shell.publish(on_press);
-                        }
+                            let state = tree.state.downcast_mut::<State>();
 
-                        return event::Status::Captured;
+                            state.is_pressed = true;
+
+                            return event::Status::Captured;
+                        }
                     }
                 }
-            }
-            Event::Touch(touch::Event::FingerLost { .. }) => {
-                let state = tree.state.downcast_mut::<State>();
+                Event::Mouse(mouse::Event::ButtonReleased(
+                    mouse::Button::Left,
+                ))
+                | Event::Touch(touch::Event::FingerLifted { .. }) => {
+                    if let Some(on_press) =
+                        self.on_press.as_ref().map(OnPress::get)
+                    {
+                        let state = tree.state.downcast_mut::<State>();
 
-                state.is_pressed = false;
+                        if state.is_pressed {
+                            state.is_pressed = false;
+
+                            let bounds = layout.bounds();
+
+                            if cursor.is_over(bounds) {
+                                shell.publish(on_press);
+                            }
+
+                            return event::Status::Captured;
+                        }
+                    }
+                }
+                Event::Touch(touch::Event::FingerLost { .. }) => {
+                    let state = tree.state.downcast_mut::<State>();
+
+                    state.is_pressed = false;
+                }
+                _ => {}
             }
-            _ => {}
+
+            event::Status::Ignored
+        };
+
+        let update_status = update();
+
+        let current_status = if self.on_press.is_none() {
+            Status::Disabled
+        } else if cursor.is_over(layout.bounds()) {
+            let state = tree.state.downcast_ref::<State>();
+
+            if state.is_pressed {
+                Status::Pressed
+            } else {
+                Status::Hovered
+            }
+        } else {
+            Status::Active
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.status = Some(current_status);
+        } else {
+            match self.status {
+                Some(status) if status != current_status => {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+                _ => {}
+            }
         }
 
-        event::Status::Ignored
+        update_status
     }
 
     fn draw(
@@ -351,23 +390,8 @@ where
     ) {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
-        let is_mouse_over = cursor.is_over(bounds);
-
-        let status = if self.on_press.is_none() {
-            Status::Disabled
-        } else if is_mouse_over {
-            let state = tree.state.downcast_ref::<State>();
-
-            if state.is_pressed {
-                Status::Pressed
-            } else {
-                Status::Hovered
-            }
-        } else {
-            Status::Active
-        };
-
-        let style = theme.style(&self.class, status);
+        let style =
+            theme.style(&self.class, self.status.unwrap_or(Status::Disabled));
 
         if style.background.is_some()
             || style.border.width > 0.0

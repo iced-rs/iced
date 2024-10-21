@@ -691,6 +691,7 @@ async fn run_instance<P, C>(
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
     let mut clipboard = Clipboard::unconnected();
+    let mut redraw_queue = Vec::new();
 
     debug.startup_finished();
 
@@ -758,12 +759,28 @@ async fn run_instance<P, C>(
             }
             Event::EventLoopAwakened(event) => {
                 match event {
-                    event::Event::NewEvents(
-                        event::StartCause::Init
-                        | event::StartCause::ResumeTimeReached { .. },
-                    ) => {
+                    event::Event::NewEvents(event::StartCause::Init) => {
                         for (_id, window) in window_manager.iter_mut() {
                             window.raw.request_redraw();
+                        }
+                    }
+                    event::Event::NewEvents(
+                        event::StartCause::ResumeTimeReached { .. },
+                    ) => {
+                        let now = Instant::now();
+
+                        while let Some((target, id)) =
+                            redraw_queue.last().copied()
+                        {
+                            if target > now {
+                                break;
+                            }
+
+                            let _ = redraw_queue.pop();
+
+                            if let Some(window) = window_manager.get_mut(id) {
+                                window.raw.request_redraw();
+                            }
                         }
                     }
                     event::Event::PlatformSpecific(
@@ -857,23 +874,19 @@ async fn run_instance<P, C>(
                             status: core::event::Status::Ignored,
                         });
 
-                        let _ = control_sender.start_send(Control::ChangeFlow(
-                            match ui_state {
-                                user_interface::State::Updated {
-                                    redraw_request: Some(redraw_request),
-                                } => match redraw_request {
-                                    window::RedrawRequest::NextFrame => {
-                                        window.raw.request_redraw();
-
-                                        ControlFlow::Wait
-                                    }
-                                    window::RedrawRequest::At(at) => {
-                                        ControlFlow::WaitUntil(at)
-                                    }
-                                },
-                                _ => ControlFlow::Wait,
-                            },
-                        ));
+                        if let user_interface::State::Updated {
+                            redraw_request: Some(redraw_request),
+                        } = ui_state
+                        {
+                            match redraw_request {
+                                window::RedrawRequest::NextFrame => {
+                                    window.raw.request_redraw();
+                                }
+                                window::RedrawRequest::At(at) => {
+                                    redraw_queue.push((at, id));
+                                }
+                            }
+                        }
 
                         let physical_size = window.state.physical_size();
 
@@ -1065,13 +1078,25 @@ async fn run_instance<P, C>(
                                     &mut messages,
                                 );
 
+                            #[cfg(not(feature = "reactive-rendering"))]
                             window.raw.request_redraw();
 
-                            if !uis_stale {
-                                uis_stale = matches!(
-                                    ui_state,
-                                    user_interface::State::Outdated
-                                );
+                            match ui_state {
+                                #[cfg(feature = "reactive-rendering")]
+                                user_interface::State::Updated {
+                                    redraw_request: Some(redraw_request),
+                                } => match redraw_request {
+                                    window::RedrawRequest::NextFrame => {
+                                        window.raw.request_redraw();
+                                    }
+                                    window::RedrawRequest::At(at) => {
+                                        redraw_queue.push((at, id));
+                                    }
+                                },
+                                user_interface::State::Outdated => {
+                                    uis_stale = true;
+                                }
+                                user_interface::State::Updated { .. } => {}
                             }
 
                             for (event, status) in window_events
@@ -1138,6 +1163,24 @@ async fn run_instance<P, C>(
                                 proxy.free_slots(actions);
                                 actions = 0;
                             }
+                        }
+
+                        if !redraw_queue.is_empty() {
+                            redraw_queue.sort_by(
+                                |(target_a, _), (target_b, _)| {
+                                    target_a.cmp(target_b).reverse()
+                                },
+                            );
+
+                            let (target, _id) = redraw_queue
+                                .last()
+                                .copied()
+                                .expect("Redraw queue is not empty");
+
+                            let _ =
+                                control_sender.start_send(Control::ChangeFlow(
+                                    ControlFlow::WaitUntil(target),
+                                ));
                         }
                     }
                     _ => {}
