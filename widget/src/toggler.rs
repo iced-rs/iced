@@ -39,6 +39,7 @@ use crate::core::text;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
     Rectangle, Shell, Size, Theme, Widget,
@@ -99,6 +100,7 @@ pub struct Toggler<
     spacing: f32,
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
+    last_status: Option<Status>,
 }
 
 impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
@@ -132,6 +134,7 @@ where
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
             class: Theme::default(),
+            last_status: None,
         }
     }
 
@@ -319,7 +322,7 @@ where
             return event::Status::Ignored;
         };
 
-        match event {
+        let event_status = match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let mouse_over = cursor.is_over(layout.bounds());
@@ -333,7 +336,32 @@ where
                 }
             }
             _ => event::Status::Ignored,
+        };
+
+        let current_status = if self.on_toggle.is_none() {
+            Status::Disabled
+        } else if cursor.is_over(layout.bounds()) {
+            Status::Hovered {
+                is_toggled: self.is_toggled,
+            }
+        } else {
+            Status::Active {
+                is_toggled: self.is_toggled,
+            }
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.last_status = Some(current_status);
+        } else {
+            match self.last_status {
+                Some(status) if status != current_status => {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+                _ => {}
+            }
         }
+
+        event_status
     }
 
     fn mouse_interaction(
@@ -362,7 +390,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         /// Makes sure that the border radius of the toggler looks good at every size.
@@ -391,21 +419,8 @@ where
         }
 
         let bounds = toggler_layout.bounds();
-        let is_mouse_over = cursor.is_over(layout.bounds());
-
-        let status = if self.on_toggle.is_none() {
-            Status::Disabled
-        } else if is_mouse_over {
-            Status::Hovered {
-                is_toggled: self.is_toggled,
-            }
-        } else {
-            Status::Active {
-                is_toggled: self.is_toggled,
-            }
-        };
-
-        let style = theme.style(&self.class, status);
+        let style = theme
+            .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
         let space = SPACE_RATIO * bounds.height;
