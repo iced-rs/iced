@@ -66,6 +66,7 @@ use crate::core::text;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Pixels, Rectangle,
     Shell, Size, Theme, Widget,
@@ -147,6 +148,7 @@ where
     text_wrapping: text::Wrapping,
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
+    last_status: Option<Status>,
 }
 
 impl<'a, Message, Theme, Renderer> Radio<'a, Message, Theme, Renderer>
@@ -192,6 +194,7 @@ where
             text_wrapping: text::Wrapping::default(),
             font: None,
             class: Theme::default(),
+            last_status: None,
         }
     }
 
@@ -344,6 +347,28 @@ where
             _ => {}
         }
 
+        let current_status = {
+            let is_mouse_over = cursor.is_over(layout.bounds());
+            let is_selected = self.is_selected;
+
+            if is_mouse_over {
+                Status::Hovered { is_selected }
+            } else {
+                Status::Active { is_selected }
+            }
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.last_status = Some(current_status);
+        } else {
+            match self.last_status {
+                Some(status) if status != current_status => {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+                _ => {}
+            }
+        }
+
         event::Status::Ignored
     }
 
@@ -369,21 +394,17 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let is_mouse_over = cursor.is_over(layout.bounds());
-        let is_selected = self.is_selected;
-
         let mut children = layout.children();
 
-        let status = if is_mouse_over {
-            Status::Hovered { is_selected }
-        } else {
-            Status::Active { is_selected }
-        };
-
-        let style = theme.style(&self.class, status);
+        let style = theme.style(
+            &self.class,
+            self.last_status.unwrap_or(Status::Active {
+                is_selected: self.is_selected,
+            }),
+        );
 
         {
             let layout = children.next().unwrap();
