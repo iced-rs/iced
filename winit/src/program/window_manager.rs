@@ -79,7 +79,7 @@ where
     pub fn is_idle(&self) -> bool {
         self.entries
             .values()
-            .any(|window| window.redraw_at.is_some())
+            .all(|window| window.redraw_at.is_none())
     }
 
     pub fn redraw_at(&self) -> Option<Instant> {
