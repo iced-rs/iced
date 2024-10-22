@@ -691,7 +691,6 @@ async fn run_instance<P, C>(
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
     let mut clipboard = Clipboard::unconnected();
-    let mut redraw_queue = Vec::new();
 
     debug.startup_finished();
 
@@ -769,17 +768,12 @@ async fn run_instance<P, C>(
                     ) => {
                         let now = Instant::now();
 
-                        while let Some((target, id)) =
-                            redraw_queue.last().copied()
-                        {
-                            if target > now {
-                                break;
-                            }
-
-                            let _ = redraw_queue.pop();
-
-                            if let Some(window) = window_manager.get_mut(id) {
-                                window.raw.request_redraw();
+                        for (_id, window) in window_manager.iter_mut() {
+                            if let Some(redraw_at) = window.redraw_at {
+                                if redraw_at <= now {
+                                    window.raw.request_redraw();
+                                    window.redraw_at = None;
+                                }
                             }
                         }
                     }
@@ -878,7 +872,7 @@ async fn run_instance<P, C>(
                                     window.raw.request_redraw();
                                 }
                                 window::RedrawRequest::At(at) => {
-                                    redraw_queue.push((at, id));
+                                    window.redraw_at = Some(at);
                                 }
                             }
                         }
@@ -1039,7 +1033,10 @@ async fn run_instance<P, C>(
                         }
                     }
                     event::Event::AboutToWait => {
-                        if events.is_empty() && messages.is_empty() {
+                        if events.is_empty()
+                            && messages.is_empty()
+                            && window_manager.is_idle()
+                        {
                             continue;
                         }
 
@@ -1085,7 +1082,7 @@ async fn run_instance<P, C>(
                                         window.raw.request_redraw();
                                     }
                                     window::RedrawRequest::At(at) => {
-                                        redraw_queue.push((at, id));
+                                        window.redraw_at = Some(at);
                                     }
                                 },
                                 user_interface::State::Outdated => {
@@ -1160,24 +1157,15 @@ async fn run_instance<P, C>(
                             }
                         }
 
-                        if !redraw_queue.is_empty() {
-                            // The queue should be fairly short, so we can
-                            // simply sort all of the time.
-                            redraw_queue.sort_by(
-                                |(target_a, _), (target_b, _)| {
-                                    target_a.cmp(target_b).reverse()
-                                },
-                            );
-
-                            let (target, _id) = redraw_queue
-                                .last()
-                                .copied()
-                                .expect("Redraw queue is not empty");
-
+                        if let Some(redraw_at) = window_manager.redraw_at() {
                             let _ =
                                 control_sender.start_send(Control::ChangeFlow(
-                                    ControlFlow::WaitUntil(target),
+                                    ControlFlow::WaitUntil(redraw_at),
                                 ));
+                        } else {
+                            let _ = control_sender.start_send(
+                                Control::ChangeFlow(ControlFlow::Wait),
+                            );
                         }
                     }
                     _ => {}

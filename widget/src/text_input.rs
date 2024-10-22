@@ -120,6 +120,7 @@ pub struct TextInput<
     on_submit: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
     class: Theme::Class<'a>,
+    last_status: Option<Status>,
 }
 
 /// The default [`Padding`] of a [`TextInput`].
@@ -150,6 +151,7 @@ where
             on_submit: None,
             icon: None,
             class: Theme::default(),
+            last_status: None,
         }
     }
 
@@ -400,7 +402,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         value: Option<&Value>,
         viewport: &Rectangle,
     ) {
@@ -416,19 +418,8 @@ where
         let mut children_layout = layout.children();
         let text_bounds = children_layout.next().unwrap().bounds();
 
-        let is_mouse_over = cursor.is_over(bounds);
-
-        let status = if is_disabled {
-            Status::Disabled
-        } else if state.is_focused() {
-            Status::Focused
-        } else if is_mouse_over {
-            Status::Hovered
-        } else {
-            Status::Active
-        };
-
-        let style = theme.style(&self.class, status);
+        let style = theme
+            .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
         renderer.fill_quad(
             renderer::Quad {
@@ -660,22 +651,21 @@ where
             );
         };
 
-        match event {
+        match &event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let state = state::<Renderer>(tree);
+                let cursor_before = state.cursor;
 
                 let click_position = cursor.position_over(layout.bounds());
 
                 state.is_focused = if click_position.is_some() {
-                    state.is_focused.or_else(|| {
-                        let now = Instant::now();
+                    let now = Instant::now();
 
-                        Some(Focus {
-                            updated_at: now,
-                            now,
-                            is_window_focused: true,
-                        })
+                    Some(Focus {
+                        updated_at: now,
+                        now,
+                        is_window_focused: true,
                     })
                 } else {
                     None
@@ -760,6 +750,10 @@ where
 
                     state.last_click = Some(click);
 
+                    if cursor_before != state.cursor {
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
+                    }
+
                     return event::Status::Captured;
                 }
             }
@@ -801,9 +795,19 @@ where
                     )
                     .unwrap_or(0);
 
+                    let selection_before = state.cursor.selection(&value);
+
                     state
                         .cursor
                         .select_range(state.cursor.start(&value), position);
+
+                    if let Some(focus) = &mut state.is_focused {
+                        focus.updated_at = Instant::now();
+                    }
+
+                    if selection_before != state.cursor.selection(&value) {
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
+                    }
 
                     return event::Status::Captured;
                 }
@@ -815,7 +819,6 @@ where
 
                 if let Some(focus) = &mut state.is_focused {
                     let modifiers = state.keyboard_modifiers;
-                    focus.updated_at = Instant::now();
 
                     match key.as_ref() {
                         keyboard::Key::Character("c")
@@ -857,6 +860,7 @@ where
                             let message = (on_input)(editor.contents());
                             shell.publish(message);
 
+                            focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
 
                             return event::Status::Captured;
@@ -885,7 +889,6 @@ where
 
                             let mut editor =
                                 Editor::new(&mut self.value, &mut state.cursor);
-
                             editor.paste(content.clone());
 
                             let message = if let Some(paste) = &self.on_paste {
@@ -896,7 +899,7 @@ where
                             shell.publish(message);
 
                             state.is_pasting = Some(content);
-
+                            focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
 
                             return event::Status::Captured;
@@ -904,7 +907,17 @@ where
                         keyboard::Key::Character("a")
                             if state.keyboard_modifiers.command() =>
                         {
+                            let cursor_before = state.cursor;
+
                             state.cursor.select_all(&self.value);
+
+                            if cursor_before != state.cursor {
+                                focus.updated_at = Instant::now();
+
+                                shell.request_redraw(
+                                    window::RedrawRequest::NextFrame,
+                                );
+                            }
 
                             return event::Status::Captured;
                         }
@@ -930,7 +943,6 @@ where
                             shell.publish(message);
 
                             focus.updated_at = Instant::now();
-
                             update_cache(state, &self.value);
 
                             return event::Status::Captured;
@@ -941,6 +953,8 @@ where
                         keyboard::Key::Named(key::Named::Enter) => {
                             if let Some(on_submit) = self.on_submit.clone() {
                                 shell.publish(on_submit);
+
+                                return event::Status::Captured;
                             }
                         }
                         keyboard::Key::Named(key::Named::Backspace) => {
@@ -969,7 +983,10 @@ where
                             let message = (on_input)(editor.contents());
                             shell.publish(message);
 
+                            focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
+
+                            return event::Status::Captured;
                         }
                         keyboard::Key::Named(key::Named::Delete) => {
                             let Some(on_input) = &self.on_input else {
@@ -1000,9 +1017,14 @@ where
                             let message = (on_input)(editor.contents());
                             shell.publish(message);
 
+                            focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
+
+                            return event::Status::Captured;
                         }
                         keyboard::Key::Named(key::Named::Home) => {
+                            let cursor_before = state.cursor;
+
                             if modifiers.shift() {
                                 state.cursor.select_range(
                                     state.cursor.start(&self.value),
@@ -1011,8 +1033,20 @@ where
                             } else {
                                 state.cursor.move_to(0);
                             }
+
+                            if cursor_before != state.cursor {
+                                focus.updated_at = Instant::now();
+
+                                shell.request_redraw(
+                                    window::RedrawRequest::NextFrame,
+                                );
+                            }
+
+                            return event::Status::Captured;
                         }
                         keyboard::Key::Named(key::Named::End) => {
+                            let cursor_before = state.cursor;
+
                             if modifiers.shift() {
                                 state.cursor.select_range(
                                     state.cursor.start(&self.value),
@@ -1021,10 +1055,22 @@ where
                             } else {
                                 state.cursor.move_to(self.value.len());
                             }
+
+                            if cursor_before != state.cursor {
+                                focus.updated_at = Instant::now();
+
+                                shell.request_redraw(
+                                    window::RedrawRequest::NextFrame,
+                                );
+                            }
+
+                            return event::Status::Captured;
                         }
                         keyboard::Key::Named(key::Named::ArrowLeft)
                             if modifiers.macos_command() =>
                         {
+                            let cursor_before = state.cursor;
+
                             if modifiers.shift() {
                                 state.cursor.select_range(
                                     state.cursor.start(&self.value),
@@ -1033,10 +1079,22 @@ where
                             } else {
                                 state.cursor.move_to(0);
                             }
+
+                            if cursor_before != state.cursor {
+                                focus.updated_at = Instant::now();
+
+                                shell.request_redraw(
+                                    window::RedrawRequest::NextFrame,
+                                );
+                            }
+
+                            return event::Status::Captured;
                         }
                         keyboard::Key::Named(key::Named::ArrowRight)
                             if modifiers.macos_command() =>
                         {
+                            let cursor_before = state.cursor;
+
                             if modifiers.shift() {
                                 state.cursor.select_range(
                                     state.cursor.start(&self.value),
@@ -1045,8 +1103,20 @@ where
                             } else {
                                 state.cursor.move_to(self.value.len());
                             }
+
+                            if cursor_before != state.cursor {
+                                focus.updated_at = Instant::now();
+
+                                shell.request_redraw(
+                                    window::RedrawRequest::NextFrame,
+                                );
+                            }
+
+                            return event::Status::Captured;
                         }
                         keyboard::Key::Named(key::Named::ArrowLeft) => {
+                            let cursor_before = state.cursor;
+
                             if modifiers.jump() && !self.is_secure {
                                 if modifiers.shift() {
                                     state
@@ -1062,8 +1132,20 @@ where
                             } else {
                                 state.cursor.move_left(&self.value);
                             }
+
+                            if cursor_before != state.cursor {
+                                focus.updated_at = Instant::now();
+
+                                shell.request_redraw(
+                                    window::RedrawRequest::NextFrame,
+                                );
+                            }
+
+                            return event::Status::Captured;
                         }
                         keyboard::Key::Named(key::Named::ArrowRight) => {
+                            let cursor_before = state.cursor;
+
                             if modifiers.jump() && !self.is_secure {
                                 if modifiers.shift() {
                                     state
@@ -1079,6 +1161,16 @@ where
                             } else {
                                 state.cursor.move_right(&self.value);
                             }
+
+                            if cursor_before != state.cursor {
+                                focus.updated_at = Instant::now();
+
+                                shell.request_redraw(
+                                    window::RedrawRequest::NextFrame,
+                                );
+                            }
+
+                            return event::Status::Captured;
                         }
                         keyboard::Key::Named(key::Named::Escape) => {
                             state.is_focused = None;
@@ -1087,39 +1179,22 @@ where
 
                             state.keyboard_modifiers =
                                 keyboard::Modifiers::default();
-                        }
-                        keyboard::Key::Named(
-                            key::Named::Tab
-                            | key::Named::ArrowUp
-                            | key::Named::ArrowDown,
-                        ) => {
-                            return event::Status::Ignored;
+
+                            return event::Status::Captured;
                         }
                         _ => {}
                     }
-
-                    return event::Status::Captured;
                 }
             }
             Event::Keyboard(keyboard::Event::KeyReleased { key, .. }) => {
                 let state = state::<Renderer>(tree);
 
                 if state.is_focused.is_some() {
-                    match key.as_ref() {
-                        keyboard::Key::Character("v") => {
-                            state.is_pasting = None;
-                        }
-                        keyboard::Key::Named(
-                            key::Named::Tab
-                            | key::Named::ArrowUp
-                            | key::Named::ArrowDown,
-                        ) => {
-                            return event::Status::Ignored;
-                        }
-                        _ => {}
-                    }
+                    if let keyboard::Key::Character("v") = key.as_ref() {
+                        state.is_pasting = None;
 
-                    return event::Status::Captured;
+                        return event::Status::Captured;
+                    }
                 }
 
                 state.is_pasting = None;
@@ -1127,7 +1202,7 @@ where
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
                 let state = state::<Renderer>(tree);
 
-                state.keyboard_modifiers = modifiers;
+                state.keyboard_modifiers = *modifiers;
             }
             Event::Window(window::Event::Unfocused) => {
                 let state = state::<Renderer>(tree);
@@ -1150,15 +1225,20 @@ where
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
-                    if focus.is_window_focused {
-                        focus.now = now;
+                    if focus.is_window_focused
+                        && matches!(
+                            state.cursor.state(&self.value),
+                            cursor::State::Index(_)
+                        )
+                    {
+                        focus.now = *now;
 
                         let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
-                            - (now - focus.updated_at).as_millis()
+                            - (*now - focus.updated_at).as_millis()
                                 % CURSOR_BLINK_INTERVAL_MILLIS;
 
                         shell.request_redraw(window::RedrawRequest::At(
-                            now + Duration::from_millis(
+                            *now + Duration::from_millis(
                                 millis_until_redraw as u64,
                             ),
                         ));
@@ -1166,6 +1246,32 @@ where
                 }
             }
             _ => {}
+        }
+
+        let state = state::<Renderer>(tree);
+        let is_disabled = self.on_input.is_none();
+
+        let status = if is_disabled {
+            Status::Disabled
+        } else if state.is_focused() {
+            Status::Focused {
+                is_hovered: cursor.is_over(layout.bounds()),
+            }
+        } else if cursor.is_over(layout.bounds()) {
+            Status::Hovered
+        } else {
+            Status::Active
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.last_status = Some(status);
+        } else {
+            match self.last_status {
+                Some(last_status) if status != last_status => {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+                _ => {}
+            }
         }
 
         event::Status::Ignored
@@ -1535,7 +1641,10 @@ pub enum Status {
     /// The [`TextInput`] is being hovered.
     Hovered,
     /// The [`TextInput`] is focused.
-    Focused,
+    Focused {
+        /// Whether the [`TextInput`] is hovered, while focused.
+        is_hovered: bool,
+    },
     /// The [`TextInput`] cannot be interacted with.
     Disabled,
 }
@@ -1612,7 +1721,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             },
             ..active
         },
-        Status::Focused => Style {
+        Status::Focused { .. } => Style {
             border: Border {
                 color: palette.primary.strong.color,
                 ..active.border
