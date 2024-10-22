@@ -305,12 +305,21 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                 None
             }
             pulldown_cmark::Tag::List(first_item) if !metadata && !table => {
+                let prev = if spans.is_empty() {
+                    None
+                } else {
+                    produce(
+                        &mut lists,
+                        Item::Paragraph(Text::new(spans.drain(..).collect())),
+                    )
+                };
+
                 lists.push(List {
                     start: first_item,
                     items: Vec::new(),
                 });
 
-                None
+                prev
             }
             pulldown_cmark::Tag::Item => {
                 lists
