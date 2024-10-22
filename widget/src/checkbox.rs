@@ -40,6 +40,7 @@ use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
     Rectangle, Shell, Size, Theme, Widget,
@@ -100,6 +101,7 @@ pub struct Checkbox<
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
     class: Theme::Class<'a>,
+    last_status: Option<Status>,
 }
 
 impl<'a, Message, Theme, Renderer> Checkbox<'a, Message, Theme, Renderer>
@@ -139,6 +141,7 @@ where
                 shaping: text::Shaping::Basic,
             },
             class: Theme::default(),
+            last_status: None,
         }
     }
 
@@ -326,6 +329,31 @@ where
             _ => {}
         }
 
+        let current_status = {
+            let is_mouse_over = cursor.is_over(layout.bounds());
+            let is_disabled = self.on_toggle.is_none();
+            let is_checked = self.is_checked;
+
+            if is_disabled {
+                Status::Disabled { is_checked }
+            } else if is_mouse_over {
+                Status::Hovered { is_checked }
+            } else {
+                Status::Active { is_checked }
+            }
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.last_status = Some(current_status);
+        } else {
+            match self.last_status {
+                Some(status) if status != current_status => {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+                _ => {}
+            }
+        }
+
         event::Status::Ignored
     }
 
@@ -351,24 +379,17 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let is_mouse_over = cursor.is_over(layout.bounds());
-        let is_disabled = self.on_toggle.is_none();
-        let is_checked = self.is_checked;
-
         let mut children = layout.children();
 
-        let status = if is_disabled {
-            Status::Disabled { is_checked }
-        } else if is_mouse_over {
-            Status::Hovered { is_checked }
-        } else {
-            Status::Active { is_checked }
-        };
-
-        let style = theme.style(&self.class, status);
+        let style = theme.style(
+            &self.class,
+            self.last_status.unwrap_or(Status::Disabled {
+                is_checked: self.is_checked,
+            }),
+        );
 
         {
             let layout = children.next().unwrap();
