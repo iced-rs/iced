@@ -997,6 +997,13 @@ async fn run_instance<P, C>(
 
                         if matches!(
                             window_event,
+                            winit::event::WindowEvent::Resized(_)
+                        ) {
+                            window.raw.request_redraw();
+                        }
+
+                        if matches!(
+                            window_event,
                             winit::event::WindowEvent::CloseRequested
                         ) && window.exit_on_close_request
                         {
