@@ -71,6 +71,7 @@ use crate::core::text::paragraph;
 use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
     Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
@@ -173,6 +174,7 @@ pub struct PickList<
     handle: Handle<Renderer::Font>,
     class: <Theme as Catalog>::Class<'a>,
     menu_class: <Theme as menu::Catalog>::Class<'a>,
+    last_status: Option<Status>,
 }
 
 impl<'a, T, L, V, Message, Theme, Renderer>
@@ -208,6 +210,7 @@ where
             handle: Handle::default(),
             class: <Theme as Catalog>::default(),
             menu_class: <Theme as Catalog>::default_menu(),
+            last_status: None,
         }
     }
 
@@ -436,12 +439,11 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
-        match event {
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+
+        let event_status = match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                let state =
-                    tree.state.downcast_mut::<State<Renderer::Paragraph>>();
-
                 if state.is_open {
                     // Event wasn't processed by overlay, so cursor was clicked either outside its
                     // bounds or on the drop-down, either way we close the overlay.
@@ -474,9 +476,6 @@ where
             Event::Mouse(mouse::Event::WheelScrolled {
                 delta: mouse::ScrollDelta::Lines { y, .. },
             }) => {
-                let state =
-                    tree.state.downcast_mut::<State<Renderer::Paragraph>>();
-
                 if state.keyboard_modifiers.command()
                     && cursor.is_over(layout.bounds())
                     && !state.is_open
@@ -519,15 +518,33 @@ where
                 }
             }
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                let state =
-                    tree.state.downcast_mut::<State<Renderer::Paragraph>>();
-
                 state.keyboard_modifiers = modifiers;
 
                 event::Status::Ignored
             }
             _ => event::Status::Ignored,
+        };
+
+        let status = if state.is_open {
+            Status::Opened
+        } else if cursor.is_over(layout.bounds()) {
+            Status::Hovered
+        } else {
+            Status::Active
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.last_status = Some(status);
+        } else {
+            match self.last_status {
+                Some(last_status) if last_status != status => {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+                _ => {}
+            }
         }
+
+        event_status
     }
 
     fn mouse_interaction(
@@ -555,7 +572,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let font = self.font.unwrap_or_else(|| renderer.default_font());
@@ -563,18 +580,12 @@ where
         let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
 
         let bounds = layout.bounds();
-        let is_mouse_over = cursor.is_over(bounds);
-        let is_selected = selected.is_some();
 
-        let status = if state.is_open {
-            Status::Opened
-        } else if is_mouse_over {
-            Status::Hovered
-        } else {
-            Status::Active
-        };
-
-        let style = Catalog::style(theme, &self.class, status);
+        let style = Catalog::style(
+            theme,
+            &self.class,
+            self.last_status.unwrap_or(Status::Active),
+        );
 
         renderer.fill_quad(
             renderer::Quad {
@@ -671,7 +682,7 @@ where
                     wrapping: text::Wrapping::default(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
-                if is_selected {
+                if selected.is_some() {
                     style.text_color
                 } else {
                     style.placeholder_color
