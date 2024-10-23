@@ -8,7 +8,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text::{self, Text};
 use crate::core::touch;
-use crate::core::widget::Tree;
+use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Background, Clipboard, Color, Length, Padding, Pixels, Point, Rectangle,
     Size, Theme, Vector,
@@ -334,6 +335,10 @@ where
     class: &'a <Theme as Catalog>::Class<'b>,
 }
 
+struct ListState {
+    is_hovered: Option<bool>,
+}
+
 impl<'a, 'b, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for List<'a, 'b, T, Message, Theme, Renderer>
 where
@@ -341,6 +346,14 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<Option<bool>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(ListState { is_hovered: None })
+    }
+
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Fill,
@@ -376,7 +389,7 @@ where
 
     fn on_event(
         &mut self,
-        _state: &mut Tree,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -411,14 +424,20 @@ where
                     let new_hovered_option =
                         (cursor_position.y / option_height) as usize;
 
-                    if let Some(on_option_hovered) = self.on_option_hovered {
-                        if *self.hovered_option != Some(new_hovered_option) {
-                            if let Some(option) =
-                                self.options.get(new_hovered_option)
+                    if *self.hovered_option != Some(new_hovered_option) {
+                        if let Some(option) =
+                            self.options.get(new_hovered_option)
+                        {
+                            if let Some(on_option_hovered) =
+                                self.on_option_hovered
                             {
                                 shell
                                     .publish(on_option_hovered(option.clone()));
                             }
+
+                            shell.request_redraw(
+                                window::RedrawRequest::NextFrame,
+                            );
                         }
                     }
 
@@ -449,6 +468,18 @@ where
                 }
             }
             _ => {}
+        }
+
+        let state = tree.state.downcast_mut::<ListState>();
+
+        if state.is_hovered.is_some_and(|is_hovered| {
+            is_hovered != cursor.is_over(layout.bounds())
+        }) {
+            shell.request_redraw(window::RedrawRequest::NextFrame);
+        }
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            state.is_hovered = Some(cursor.is_over(layout.bounds()));
         }
 
         event::Status::Ignored
