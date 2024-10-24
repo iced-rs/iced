@@ -465,9 +465,3 @@ impl Action {
         }
     }
 }
-
-#[derive(Default)]
-pub(super) struct Widget {
-    pub action: Action,
-    pub panes: Vec<Pane>,
-}

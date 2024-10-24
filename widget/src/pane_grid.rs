@@ -295,6 +295,12 @@ where
     }
 }
 
+#[derive(Default)]
+struct Memory {
+    action: state::Action,
+    order: Vec<Pane>,
+}
+
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for PaneGrid<'a, Message, Theme, Renderer>
 where
@@ -302,11 +308,11 @@ where
     Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<state::Widget>()
+        tree::Tag::of::<Memory>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(state::Widget::default())
+        tree::State::new(Memory::default())
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -314,7 +320,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        let state::Widget { panes, .. } = tree.state.downcast_ref();
+        let Memory { order, .. } = tree.state.downcast_ref();
 
         // `Pane` always increments and is iterated by Ord so new
         // states are always added at the end. We can simply remove
@@ -325,7 +331,7 @@ where
         let mut i = 0;
         let mut j = 0;
         tree.children.retain(|_| {
-            let retain = self.panes.get(i) == panes.get(j);
+            let retain = self.panes.get(i) == order.get(j);
 
             if retain {
                 i += 1;
@@ -341,8 +347,8 @@ where
             Content::state,
         );
 
-        let state::Widget { panes, .. } = tree.state.downcast_mut();
-        panes.clone_from(&self.panes);
+        let Memory { order, .. } = tree.state.downcast_mut();
+        order.clone_from(&self.panes);
     }
 
     fn size(&self) -> Size<Length> {
@@ -430,7 +436,7 @@ where
     ) -> event::Status {
         let mut event_status = event::Status::Ignored;
 
-        let state::Widget { action, .. } = tree.state.downcast_mut();
+        let Memory { action, .. } = tree.state.downcast_mut();
         let node = self.internal.layout();
 
         let on_drag = if self.drag_enabled() {
@@ -642,7 +648,7 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let state::Widget { action, .. } = tree.state.downcast_ref();
+        let Memory { action, .. } = tree.state.downcast_ref();
 
         if action.picked_pane().is_some() {
             return mouse::Interaction::Grabbing;
@@ -716,8 +722,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let state::Widget { action, .. } =
-            tree.state.downcast_ref::<state::Widget>();
+        let Memory { action, .. } = tree.state.downcast_ref();
         let node = self.internal.layout();
         let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
 
