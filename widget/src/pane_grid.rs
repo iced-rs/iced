@@ -157,7 +157,9 @@ pub struct PaneGrid<
     Theme: Catalog,
     Renderer: core::Renderer,
 {
-    contents: Contents<'a, Content<'a, Message, Theme, Renderer>>,
+    internal: &'a state::Internal,
+    panes: Vec<Pane>,
+    contents: Vec<Content<'a, Message, Theme, Renderer>>,
     width: Length,
     height: Length,
     spacing: f32,
@@ -180,29 +182,19 @@ where
         state: &'a State<T>,
         view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, Theme, Renderer>,
     ) -> Self {
-        let contents = if let Some((pane, pane_state)) =
-            state.maximized.and_then(|pane| {
-                state.panes.get(&pane).map(|pane_state| (pane, pane_state))
-            }) {
-            Contents::Maximized(
-                pane,
-                view(pane, pane_state, true),
-                Node::Pane(pane),
-            )
-        } else {
-            Contents::All(
-                state
-                    .panes
-                    .iter()
-                    .map(|(pane, pane_state)| {
-                        (*pane, view(*pane, pane_state, false))
-                    })
-                    .collect(),
-                &state.internal,
-            )
-        };
+        let panes = state.panes.keys().copied().collect();
+        let contents = state
+            .panes
+            .iter()
+            .map(|(pane, pane_state)| match state.maximized() {
+                Some(p) if *pane == p => view(*pane, pane_state, true),
+                _ => view(*pane, pane_state, false),
+            })
+            .collect();
 
         Self {
+            internal: &state.internal,
+            panes,
             contents,
             width: Length::Fill,
             height: Length::Fill,
@@ -248,7 +240,9 @@ where
     where
         F: 'a + Fn(DragEvent) -> Message,
     {
-        self.on_drag = Some(Box::new(f));
+        if self.internal.maximized().is_none() {
+            self.on_drag = Some(Box::new(f));
+        }
         self
     }
 
@@ -265,7 +259,9 @@ where
     where
         F: 'a + Fn(ResizeEvent) -> Message,
     {
-        self.on_resize = Some((leeway.into().0, Box::new(f)));
+        if self.internal.maximized().is_none() {
+            self.on_resize = Some((leeway.into().0, Box::new(f)));
+        }
         self
     }
 
@@ -291,10 +287,18 @@ where
     }
 
     fn drag_enabled(&self) -> bool {
-        (!self.contents.is_maximized())
+        self.internal
+            .maximized()
+            .is_none()
             .then(|| self.on_drag.is_some())
             .unwrap_or_default()
     }
+}
+
+#[derive(Default)]
+struct Memory {
+    action: state::Action,
+    order: Vec<Pane>,
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -304,33 +308,47 @@ where
     Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<state::Action>()
+        tree::Tag::of::<Memory>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(state::Action::Idle)
+        tree::State::new(Memory::default())
     }
 
     fn children(&self) -> Vec<Tree> {
-        self.contents
-            .iter()
-            .map(|(_, content)| content.state())
-            .collect()
+        self.contents.iter().map(Content::state).collect()
     }
 
     fn diff(&self, tree: &mut Tree) {
-        match &self.contents {
-            Contents::All(contents, _) => tree.diff_children_custom(
-                contents,
-                |state, (_, content)| content.diff(state),
-                |(_, content)| content.state(),
-            ),
-            Contents::Maximized(_, content, _) => tree.diff_children_custom(
-                &[content],
-                |state, content| content.diff(state),
-                |content| content.state(),
-            ),
-        }
+        let Memory { order, .. } = tree.state.downcast_ref();
+
+        // `Pane` always increments and is iterated by Ord so new
+        // states are always added at the end. We can simply remove
+        // states which no longer exist and `diff_children` will
+        // diff the remaining values in the correct order and
+        // add new states at the end
+
+        let mut i = 0;
+        let mut j = 0;
+        tree.children.retain(|_| {
+            let retain = self.panes.get(i) == order.get(j);
+
+            if retain {
+                i += 1;
+            }
+            j += 1;
+
+            retain
+        });
+
+        tree.diff_children_custom(
+            &self.contents,
+            |state, content| content.diff(state),
+            Content::state,
+        );
+
+        let Memory { order, .. } = tree.state.downcast_mut();
+        order.clone_from(&self.panes);
     }
 
     fn size(&self) -> Size<Length> {
@@ -347,14 +365,23 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let size = limits.resolve(self.width, self.height, Size::ZERO);
-        let node = self.contents.layout();
-        let regions = node.pane_regions(self.spacing, size);
+        let regions = self.internal.layout().pane_regions(self.spacing, size);
 
         let children = self
-            .contents
+            .panes
             .iter()
+            .copied()
+            .zip(&self.contents)
             .zip(tree.children.iter_mut())
             .filter_map(|((pane, content), tree)| {
+                if self
+                    .internal
+                    .maximized()
+                    .is_some_and(|maximized| maximized != pane)
+                {
+                    return Some(layout::Node::new(Size::ZERO));
+                }
+
                 let region = regions.get(&pane)?;
                 let size = Size::new(region.width, region.height);
 
@@ -379,11 +406,18 @@ where
         operation: &mut dyn widget::Operation,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
-            self.contents
+            self.panes
                 .iter()
+                .copied()
+                .zip(&self.contents)
                 .zip(&mut tree.children)
                 .zip(layout.children())
-                .for_each(|(((_pane, content), state), layout)| {
+                .filter(|(((pane, _), _), _)| {
+                    self.internal
+                        .maximized()
+                        .map_or(true, |maximized| *pane == maximized)
+                })
+                .for_each(|(((_, content), state), layout)| {
                     content.operate(state, layout, renderer, operation);
                 });
         });
@@ -402,8 +436,8 @@ where
     ) -> event::Status {
         let mut event_status = event::Status::Ignored;
 
-        let action = tree.state.downcast_mut::<state::Action>();
-        let node = self.contents.layout();
+        let Memory { action, .. } = tree.state.downcast_mut();
+        let node = self.internal.layout();
 
         let on_drag = if self.drag_enabled() {
             &self.on_drag
@@ -448,7 +482,10 @@ where
                                     layout,
                                     cursor_position,
                                     shell,
-                                    self.contents.iter(),
+                                    self.panes
+                                        .iter()
+                                        .copied()
+                                        .zip(&self.contents),
                                     &self.on_click,
                                     on_drag,
                                 );
@@ -460,7 +497,7 @@ where
                                 layout,
                                 cursor_position,
                                 shell,
-                                self.contents.iter(),
+                                self.panes.iter().copied().zip(&self.contents),
                                 &self.on_click,
                                 on_drag,
                             );
@@ -486,8 +523,10 @@ where
                                     }
                                 } else {
                                     let dropped_region = self
-                                        .contents
+                                        .panes
                                         .iter()
+                                        .copied()
+                                        .zip(&self.contents)
                                         .zip(layout.children())
                                         .find_map(|(target, layout)| {
                                             layout_region(
@@ -572,10 +611,17 @@ where
 
         let picked_pane = action.picked_pane().map(|(pane, _)| pane);
 
-        self.contents
-            .iter_mut()
+        self.panes
+            .iter()
+            .copied()
+            .zip(&mut self.contents)
             .zip(&mut tree.children)
             .zip(layout.children())
+            .filter(|(((pane, _), _), _)| {
+                self.internal
+                    .maximized()
+                    .map_or(true, |maximized| *pane == maximized)
+            })
             .map(|(((pane, content), tree), layout)| {
                 let is_picked = picked_pane == Some(pane);
 
@@ -602,14 +648,14 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let action = tree.state.downcast_ref::<state::Action>();
+        let Memory { action, .. } = tree.state.downcast_ref();
 
         if action.picked_pane().is_some() {
             return mouse::Interaction::Grabbing;
         }
 
         let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
-        let node = self.contents.layout();
+        let node = self.internal.layout();
 
         let resize_axis =
             action.picked_split().map(|(_, axis)| axis).or_else(|| {
@@ -641,11 +687,18 @@ where
             };
         }
 
-        self.contents
+        self.panes
             .iter()
+            .copied()
+            .zip(&self.contents)
             .zip(&tree.children)
             .zip(layout.children())
-            .map(|(((_pane, content), tree), layout)| {
+            .filter(|(((pane, _), _), _)| {
+                self.internal
+                    .maximized()
+                    .map_or(true, |maximized| *pane == maximized)
+            })
+            .map(|(((_, content), tree), layout)| {
                 content.mouse_interaction(
                     tree,
                     layout,
@@ -669,15 +722,9 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let action = tree.state.downcast_ref::<state::Action>();
-        let node = self.contents.layout();
+        let Memory { action, .. } = tree.state.downcast_ref();
+        let node = self.internal.layout();
         let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
-
-        let contents = self
-            .contents
-            .iter()
-            .zip(&tree.children)
-            .map(|((pane, content), tree)| (pane, (content, tree)));
 
         let picked_pane = action.picked_pane().filter(|(_, origin)| {
             cursor
@@ -747,8 +794,18 @@ where
 
         let style = Catalog::style(theme, &self.class);
 
-        for ((id, (content, tree)), pane_layout) in
-            contents.zip(layout.children())
+        for (((id, content), tree), pane_layout) in self
+            .panes
+            .iter()
+            .copied()
+            .zip(&self.contents)
+            .zip(&tree.children)
+            .zip(layout.children())
+            .filter(|(((pane, _), _), _)| {
+                self.internal
+                    .maximized()
+                    .map_or(true, |maximized| maximized == *pane)
+            })
         {
             match picked_pane {
                 Some((dragging, origin)) if id == dragging => {
@@ -883,11 +940,21 @@ where
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let children = self
-            .contents
-            .iter_mut()
+            .panes
+            .iter()
+            .copied()
+            .zip(&mut self.contents)
             .zip(&mut tree.children)
             .zip(layout.children())
-            .filter_map(|(((_, content), state), layout)| {
+            .filter_map(|(((pane, content), state), layout)| {
+                if self
+                    .internal
+                    .maximized()
+                    .is_some_and(|maximized| maximized != pane)
+                {
+                    return None;
+                }
+
                 content.overlay(state, layout, renderer, translation)
             })
             .collect::<Vec<_>>();
@@ -1134,52 +1201,6 @@ fn hovered_split<'a>(
             None
         }
     })
-}
-
-/// The visible contents of the [`PaneGrid`]
-#[derive(Debug)]
-pub enum Contents<'a, T> {
-    /// All panes are visible
-    All(Vec<(Pane, T)>, &'a state::Internal),
-    /// A maximized pane is visible
-    Maximized(Pane, T, Node),
-}
-
-impl<'a, T> Contents<'a, T> {
-    /// Returns the layout [`Node`] of the [`Contents`]
-    pub fn layout(&self) -> &Node {
-        match self {
-            Contents::All(_, state) => state.layout(),
-            Contents::Maximized(_, _, layout) => layout,
-        }
-    }
-
-    /// Returns an iterator over the values of the [`Contents`]
-    pub fn iter(&self) -> Box<dyn Iterator<Item = (Pane, &T)> + '_> {
-        match self {
-            Contents::All(contents, _) => Box::new(
-                contents.iter().map(|(pane, content)| (*pane, content)),
-            ),
-            Contents::Maximized(pane, content, _) => {
-                Box::new(std::iter::once((*pane, content)))
-            }
-        }
-    }
-
-    fn iter_mut(&mut self) -> Box<dyn Iterator<Item = (Pane, &mut T)> + '_> {
-        match self {
-            Contents::All(contents, _) => Box::new(
-                contents.iter_mut().map(|(pane, content)| (*pane, content)),
-            ),
-            Contents::Maximized(pane, content, _) => {
-                Box::new(std::iter::once((*pane, content)))
-            }
-        }
-    }
-
-    fn is_maximized(&self) -> bool {
-        matches!(self, Self::Maximized(..))
-    }
 }
 
 /// The appearance of a [`PaneGrid`].
