@@ -220,12 +220,8 @@ impl<T> State<T> {
     ) {
         if let Some((state, _)) = self.close(pane) {
             if let Some((new_pane, _)) = self.split(axis, target, state) {
-                // Ensure new node corresponds to original `Pane` for state continuity
-                self.swap(pane, new_pane);
-                let _ = self
-                    .panes
-                    .remove(&new_pane)
-                    .and_then(|state| self.panes.insert(pane, state));
+                // Ensure new node corresponds to original closed `Pane` for state continuity
+                self.relabel(new_pane, pane);
 
                 if swap {
                     self.swap(target, pane);
@@ -258,20 +254,25 @@ impl<T> State<T> {
         &mut self,
         axis: Axis,
         pane: Pane,
-        swap: bool,
+        inverse: bool,
     ) {
         if let Some((state, _)) = self.close(pane) {
             if let Some((new_pane, _)) =
-                self.split_node(axis, None, state, swap)
+                self.split_node(axis, None, state, inverse)
             {
-                // Ensure new node corresponds to original `Pane` for state continuity
-                self.swap(pane, new_pane);
-                let _ = self
-                    .panes
-                    .remove(&new_pane)
-                    .and_then(|state| self.panes.insert(pane, state));
+                // Ensure new node corresponds to original closed `Pane` for state continuity
+                self.relabel(new_pane, pane);
             }
         }
+    }
+
+    fn relabel(&mut self, target: Pane, label: Pane) {
+        self.swap(target, label);
+
+        let _ = self
+            .panes
+            .remove(&target)
+            .and_then(|state| self.panes.insert(label, state));
     }
 
     /// Swaps the position of the provided panes in the [`State`].
