@@ -83,7 +83,10 @@ where
         new_size: Size,
         view: &dyn Fn(Size) -> Element<'a, Message, Theme, Renderer>,
     ) {
-        if self.size == new_size {
+        let is_tree_empty =
+            tree.tag == tree::Tag::stateless() && tree.children.is_empty();
+
+        if !is_tree_empty && self.size == new_size {
             return;
         }
 
