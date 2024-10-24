@@ -1112,7 +1112,7 @@ pub fn native_key_code(
     }
 }
 
-/// Converts some [`UserAttention`] into it's `winit` counterpart.
+/// Converts some [`UserAttention`] into its `winit` counterpart.
 ///
 /// [`UserAttention`]: window::UserAttention
 pub fn user_attention(
@@ -1125,6 +1125,32 @@ pub fn user_attention(
         window::UserAttention::Informational => {
             winit::window::UserAttentionType::Informational
         }
+    }
+}
+
+/// Converts some [`ResizeDirection`] into its `winit` counterpart.
+///
+/// [`ResizeDirection`]: window::ResizeDirection
+pub fn resize_direction(
+    resize_direction: window::ResizeDirection,
+) -> winit::window::ResizeDirection {
+    match resize_direction {
+        window::ResizeDirection::East => winit::window::ResizeDirection::East,
+        window::ResizeDirection::North => winit::window::ResizeDirection::North,
+        window::ResizeDirection::NorthEast => {
+            winit::window::ResizeDirection::NorthEast
+        }
+        window::ResizeDirection::NorthWest => {
+            winit::window::ResizeDirection::NorthWest
+        }
+        window::ResizeDirection::South => winit::window::ResizeDirection::South,
+        window::ResizeDirection::SouthEast => {
+            winit::window::ResizeDirection::SouthEast
+        }
+        window::ResizeDirection::SouthWest => {
+            winit::window::ResizeDirection::SouthWest
+        }
+        window::ResizeDirection::West => winit::window::ResizeDirection::West,
     }
 }
 
