@@ -35,7 +35,6 @@ glam.workspace = true
 glyphon.workspace = true
 guillotiere.workspace = true
 log.workspace = true
-once_cell.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
 wgpu.workspace = true
