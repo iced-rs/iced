@@ -92,8 +92,6 @@ use crate::core::{
     Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 
-use std::borrow::Cow;
-
 const DRAG_DEADBAND_DISTANCE: f32 = 10.0;
 const THICKNESS_RATIO: f32 = 25.0;
 
@@ -162,7 +160,6 @@ pub struct PaneGrid<
     internal: &'a state::Internal,
     panes: Vec<Pane>,
     contents: Vec<Content<'a, Message, Theme, Renderer>>,
-    maximized: Option<Pane>,
     width: Length,
     height: Length,
     spacing: f32,
@@ -189,8 +186,8 @@ where
         let contents = state
             .panes
             .iter()
-            .map(|(pane, pane_state)| match &state.maximized {
-                Some(p) if pane == p => view(*pane, pane_state, true),
+            .map(|(pane, pane_state)| match state.maximized() {
+                Some(p) if *pane == p => view(*pane, pane_state, true),
                 _ => view(*pane, pane_state, false),
             })
             .collect();
@@ -199,7 +196,6 @@ where
             internal: &state.internal,
             panes,
             contents,
-            maximized: state.maximized,
             width: Length::Fill,
             height: Length::Fill,
             spacing: 0.0,
@@ -244,7 +240,7 @@ where
     where
         F: 'a + Fn(DragEvent) -> Message,
     {
-        if self.maximized.is_none() {
+        if self.internal.maximized().is_none() {
             self.on_drag = Some(Box::new(f));
         }
         self
@@ -263,7 +259,7 @@ where
     where
         F: 'a + Fn(ResizeEvent) -> Message,
     {
-        if self.maximized.is_none() {
+        if self.internal.maximized().is_none() {
             self.on_resize = Some((leeway.into().0, Box::new(f)));
         }
         self
@@ -291,16 +287,11 @@ where
     }
 
     fn drag_enabled(&self) -> bool {
-        (self.maximized.is_none())
+        self.internal
+            .maximized()
+            .is_none()
             .then(|| self.on_drag.is_some())
             .unwrap_or_default()
-    }
-
-    fn node(&self) -> Cow<'_, Node> {
-        match self.maximized {
-            Some(pane) => Cow::Owned(Node::Pane(pane)),
-            None => Cow::Borrowed(&self.internal.layout),
-        }
     }
 }
 
@@ -351,7 +342,6 @@ where
         );
 
         let state::Widget { panes, .. } = tree.state.downcast_mut();
-
         panes.clone_from(&self.panes);
     }
 
@@ -369,7 +359,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let size = limits.resolve(self.width, self.height, Size::ZERO);
-        let regions = self.node().pane_regions(self.spacing, size);
+        let regions = self.internal.layout().pane_regions(self.spacing, size);
 
         let children = self
             .panes
@@ -378,7 +368,11 @@ where
             .zip(&self.contents)
             .zip(tree.children.iter_mut())
             .filter_map(|((pane, content), tree)| {
-                if self.maximized.is_some() && Some(pane) != self.maximized {
+                if self
+                    .internal
+                    .maximized()
+                    .is_some_and(|maximized| maximized != pane)
+                {
                     return Some(layout::Node::new(Size::ZERO));
                 }
 
@@ -413,7 +407,9 @@ where
                 .zip(&mut tree.children)
                 .zip(layout.children())
                 .filter(|(((pane, _), _), _)| {
-                    self.maximized.map_or(true, |maximized| *pane == maximized)
+                    self.internal
+                        .maximized()
+                        .map_or(true, |maximized| *pane == maximized)
                 })
                 .for_each(|(((_, content), state), layout)| {
                     content.operate(state, layout, renderer, operation);
@@ -435,7 +431,7 @@ where
         let mut event_status = event::Status::Ignored;
 
         let state::Widget { action, .. } = tree.state.downcast_mut();
-        let node = self.node();
+        let node = self.internal.layout();
 
         let on_drag = if self.drag_enabled() {
             &self.on_drag
@@ -616,7 +612,9 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
             .filter(|(((pane, _), _), _)| {
-                self.maximized.map_or(true, |maximized| *pane == maximized)
+                self.internal
+                    .maximized()
+                    .map_or(true, |maximized| *pane == maximized)
             })
             .map(|(((pane, content), tree), layout)| {
                 let is_picked = picked_pane == Some(pane);
@@ -651,7 +649,7 @@ where
         }
 
         let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
-        let node = self.node();
+        let node = self.internal.layout();
 
         let resize_axis =
             action.picked_split().map(|(_, axis)| axis).or_else(|| {
@@ -690,7 +688,9 @@ where
             .zip(&tree.children)
             .zip(layout.children())
             .filter(|(((pane, _), _), _)| {
-                self.maximized.map_or(true, |maximized| *pane == maximized)
+                self.internal
+                    .maximized()
+                    .map_or(true, |maximized| *pane == maximized)
             })
             .map(|(((_, content), tree), layout)| {
                 content.mouse_interaction(
@@ -718,7 +718,7 @@ where
     ) {
         let state::Widget { action, .. } =
             tree.state.downcast_ref::<state::Widget>();
-        let node = self.node();
+        let node = self.internal.layout();
         let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
 
         let picked_pane = action.picked_pane().filter(|(_, origin)| {
@@ -797,7 +797,9 @@ where
             .zip(&tree.children)
             .zip(layout.children())
             .filter(|(((pane, _), _), _)| {
-                self.maximized.map_or(true, |maximized| maximized == *pane)
+                self.internal
+                    .maximized()
+                    .map_or(true, |maximized| maximized == *pane)
             })
         {
             match picked_pane {
@@ -940,7 +942,11 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
             .filter_map(|(((pane, content), state), layout)| {
-                if self.maximized.is_some() && Some(pane) != self.maximized {
+                if self
+                    .internal
+                    .maximized()
+                    .is_some_and(|maximized| maximized != pane)
+                {
                     return None;
                 }
 

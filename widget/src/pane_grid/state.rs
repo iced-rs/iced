@@ -6,6 +6,7 @@ use crate::pane_grid::{
     Axis, Configuration, Direction, Edge, Node, Pane, Region, Split, Target,
 };
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 /// The state of a [`PaneGrid`].
@@ -31,11 +32,6 @@ pub struct State<T> {
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub internal: Internal,
-
-    /// The maximized [`Pane`] of the [`PaneGrid`].
-    ///
-    /// [`PaneGrid`]: super::PaneGrid
-    pub(super) maximized: Option<Pane>,
 }
 
 impl<T> State<T> {
@@ -57,11 +53,7 @@ impl<T> State<T> {
         let internal =
             Internal::from_configuration(&mut panes, config.into(), 0);
 
-        State {
-            panes,
-            internal,
-            maximized: None,
-        }
+        State { panes, internal }
     }
 
     /// Returns the total amount of panes in the [`State`].
@@ -214,7 +206,7 @@ impl<T> State<T> {
         }
 
         let _ = self.panes.insert(new_pane, state);
-        let _ = self.maximized.take();
+        let _ = self.internal.maximized.take();
 
         Some((new_pane, new_split))
     }
@@ -319,8 +311,8 @@ impl<T> State<T> {
     /// Closes the given [`Pane`] and returns its internal state and its closest
     /// sibling, if it exists.
     pub fn close(&mut self, pane: Pane) -> Option<(T, Pane)> {
-        if self.maximized == Some(pane) {
-            let _ = self.maximized.take();
+        if self.internal.maximized == Some(pane) {
+            let _ = self.internal.maximized.take();
         }
 
         if let Some(sibling) = self.internal.layout.remove(pane) {
@@ -335,7 +327,7 @@ impl<T> State<T> {
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub fn maximize(&mut self, pane: Pane) {
-        self.maximized = Some(pane);
+        self.internal.maximized = Some(pane);
     }
 
     /// Restore the currently maximized [`Pane`] to it's normal size. All panes
@@ -343,14 +335,14 @@ impl<T> State<T> {
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub fn restore(&mut self) {
-        let _ = self.maximized.take();
+        let _ = self.internal.maximized.take();
     }
 
     /// Returns the maximized [`Pane`] of the [`PaneGrid`].
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub fn maximized(&self) -> Option<Pane> {
-        self.maximized
+        self.internal.maximized
     }
 }
 
@@ -359,8 +351,9 @@ impl<T> State<T> {
 /// [`PaneGrid`]: super::PaneGrid
 #[derive(Debug, Clone)]
 pub struct Internal {
-    pub(super) layout: Node,
+    layout: Node,
     last_id: usize,
+    maximized: Option<Pane>,
 }
 
 impl Internal {
@@ -406,7 +399,22 @@ impl Internal {
             }
         };
 
-        Self { layout, last_id }
+        Self {
+            layout,
+            last_id,
+            maximized: None,
+        }
+    }
+
+    pub(super) fn layout(&self) -> Cow<'_, Node> {
+        match self.maximized {
+            Some(pane) => Cow::Owned(Node::Pane(pane)),
+            None => Cow::Borrowed(&self.layout),
+        }
+    }
+
+    pub(super) fn maximized(&self) -> Option<Pane> {
+        self.maximized
     }
 }
 
