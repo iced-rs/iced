@@ -223,7 +223,7 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let bounds = layout.bounds();
 
         let canvas_event = match event {
@@ -245,10 +245,10 @@ where
                 shell.publish(message);
             }
 
-            return event_status;
+            if event_status == event::Status::Captured {
+                shell.capture_event();
+            }
         }
-
-        event::Status::Ignored
     }
 
     fn mouse_interaction(

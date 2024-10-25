@@ -1,4 +1,3 @@
-use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
@@ -6,8 +5,8 @@ use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Border, Clipboard, Color, Layout, Length, Rectangle, Shell, Size, Vector,
-    Widget,
+    Border, Clipboard, Color, Event, Layout, Length, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 use std::borrow::Borrow;
@@ -319,11 +318,11 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let status = self.widget.on_event(
+        self.widget.on_event(
             tree,
             event,
             layout,
@@ -335,8 +334,6 @@ where
         );
 
         shell.merge(local_shell, &self.mapper);
-
-        status
     }
 
     fn draw(
@@ -457,10 +454,10 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         self.element.widget.on_event(
             state, event, layout, cursor, renderer, clipboard, shell, viewport,
-        )
+        );
     }
 
     fn draw(

@@ -42,7 +42,6 @@ use editor::Editor;
 
 use crate::core::alignment;
 use crate::core::clipboard::{self, Clipboard};
-use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout;
@@ -57,8 +56,8 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Size, Theme, Vector, Widget,
+    Background, Border, Color, Element, Event, Layout, Length, Padding, Pixels,
+    Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
@@ -638,7 +637,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let update_cache = |state, value| {
             replace_paragraph(
                 renderer,
@@ -754,7 +753,7 @@ where
                         shell.request_redraw();
                     }
 
-                    return event::Status::Captured;
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
@@ -809,7 +808,7 @@ where
                         shell.request_redraw();
                     }
 
-                    return event::Status::Captured;
+                    shell.capture_event();
                 }
             }
             Event::Keyboard(keyboard::Event::KeyPressed {
@@ -834,14 +833,15 @@ where
                                 );
                             }
 
-                            return event::Status::Captured;
+                            shell.capture_event();
+                            return;
                         }
                         keyboard::Key::Character("x")
                             if state.keyboard_modifiers.command()
                                 && !self.is_secure =>
                         {
                             let Some(on_input) = &self.on_input else {
-                                return event::Status::Ignored;
+                                return;
                             };
 
                             if let Some((start, end)) =
@@ -859,18 +859,18 @@ where
 
                             let message = (on_input)(editor.contents());
                             shell.publish(message);
+                            shell.capture_event();
 
                             focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
-
-                            return event::Status::Captured;
+                            return;
                         }
                         keyboard::Key::Character("v")
                             if state.keyboard_modifiers.command()
                                 && !state.keyboard_modifiers.alt() =>
                         {
                             let Some(on_input) = &self.on_input else {
-                                return event::Status::Ignored;
+                                return;
                             };
 
                             let content = match state.is_pasting.take() {
@@ -897,12 +897,12 @@ where
                                 (on_input)(editor.contents())
                             };
                             shell.publish(message);
+                            shell.capture_event();
 
                             state.is_pasting = Some(content);
                             focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
-
-                            return event::Status::Captured;
+                            return;
                         }
                         keyboard::Key::Character("a")
                             if state.keyboard_modifiers.command() =>
@@ -917,14 +917,15 @@ where
                                 shell.request_redraw();
                             }
 
-                            return event::Status::Captured;
+                            shell.capture_event();
+                            return;
                         }
                         _ => {}
                     }
 
                     if let Some(text) = text {
                         let Some(on_input) = &self.on_input else {
-                            return event::Status::Ignored;
+                            return;
                         };
 
                         state.is_pasting = None;
@@ -939,11 +940,11 @@ where
 
                             let message = (on_input)(editor.contents());
                             shell.publish(message);
+                            shell.capture_event();
 
                             focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
-
-                            return event::Status::Captured;
+                            return;
                         }
                     }
 
@@ -951,13 +952,12 @@ where
                         keyboard::Key::Named(key::Named::Enter) => {
                             if let Some(on_submit) = self.on_submit.clone() {
                                 shell.publish(on_submit);
-
-                                return event::Status::Captured;
+                                shell.capture_event();
                             }
                         }
                         keyboard::Key::Named(key::Named::Backspace) => {
                             let Some(on_input) = &self.on_input else {
-                                return event::Status::Ignored;
+                                return;
                             };
 
                             if modifiers.jump()
@@ -980,15 +980,14 @@ where
 
                             let message = (on_input)(editor.contents());
                             shell.publish(message);
+                            shell.capture_event();
 
                             focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
-
-                            return event::Status::Captured;
                         }
                         keyboard::Key::Named(key::Named::Delete) => {
                             let Some(on_input) = &self.on_input else {
-                                return event::Status::Ignored;
+                                return;
                             };
 
                             if modifiers.jump()
@@ -1014,11 +1013,10 @@ where
 
                             let message = (on_input)(editor.contents());
                             shell.publish(message);
+                            shell.capture_event();
 
                             focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
-
-                            return event::Status::Captured;
                         }
                         keyboard::Key::Named(key::Named::Home) => {
                             let cursor_before = state.cursor;
@@ -1038,7 +1036,7 @@ where
                                 shell.request_redraw();
                             }
 
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                         keyboard::Key::Named(key::Named::End) => {
                             let cursor_before = state.cursor;
@@ -1058,7 +1056,7 @@ where
                                 shell.request_redraw();
                             }
 
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                         keyboard::Key::Named(key::Named::ArrowLeft)
                             if modifiers.macos_command() =>
@@ -1080,7 +1078,7 @@ where
                                 shell.request_redraw();
                             }
 
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                         keyboard::Key::Named(key::Named::ArrowRight)
                             if modifiers.macos_command() =>
@@ -1102,7 +1100,7 @@ where
                                 shell.request_redraw();
                             }
 
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                         keyboard::Key::Named(key::Named::ArrowLeft) => {
                             let cursor_before = state.cursor;
@@ -1129,7 +1127,7 @@ where
                                 shell.request_redraw();
                             }
 
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                         keyboard::Key::Named(key::Named::ArrowRight) => {
                             let cursor_before = state.cursor;
@@ -1156,7 +1154,7 @@ where
                                 shell.request_redraw();
                             }
 
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                         keyboard::Key::Named(key::Named::Escape) => {
                             state.is_focused = None;
@@ -1166,7 +1164,7 @@ where
                             state.keyboard_modifiers =
                                 keyboard::Modifiers::default();
 
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                         _ => {}
                     }
@@ -1179,7 +1177,7 @@ where
                     if let keyboard::Key::Character("v") = key.as_ref() {
                         state.is_pasting = None;
 
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
 
@@ -1257,8 +1255,6 @@ where
         {
             shell.request_redraw();
         }
-
-        event::Status::Ignored
     }
 
     fn draw(

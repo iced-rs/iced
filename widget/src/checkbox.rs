@@ -31,7 +31,6 @@
 //! ```
 //! ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 use crate::core::alignment;
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -42,8 +41,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Theme, Widget,
+    Background, Border, Clipboard, Color, Element, Event, Layout, Length,
+    Pixels, Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A box that can be checked.
@@ -313,7 +312,7 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
@@ -322,7 +321,7 @@ where
                 if mouse_over {
                     if let Some(on_toggle) = &self.on_toggle {
                         shell.publish((on_toggle)(!self.is_checked));
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
             }
@@ -351,8 +350,6 @@ where
         {
             shell.request_redraw();
         }
-
-        event::Status::Ignored
     }
 
     fn mouse_interaction(

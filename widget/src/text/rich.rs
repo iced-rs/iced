@@ -1,5 +1,4 @@
 use crate::core::alignment;
-use crate::core::event;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -365,7 +364,7 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Link>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(position) = cursor.position_in(layout.bounds()) {
@@ -374,9 +373,16 @@ where
                         .downcast_mut::<State<Link, Renderer::Paragraph>>();
 
                     if let Some(span) = state.paragraph.hit_span(position) {
-                        state.span_pressed = Some(span);
-
-                        return event::Status::Captured;
+                        if self
+                            .spans
+                            .as_ref()
+                            .as_ref()
+                            .get(span)
+                            .is_some_and(|span| span.link.is_some())
+                        {
+                            state.span_pressed = Some(span);
+                            shell.capture_event();
+                        }
                     }
                 }
             }
@@ -409,8 +415,6 @@ where
             }
             _ => {}
         }
-
-        event::Status::Ignored
     }
 
     fn mouse_interaction(

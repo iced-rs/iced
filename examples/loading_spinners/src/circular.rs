@@ -3,7 +3,6 @@ use iced::advanced::layout;
 use iced::advanced::renderer;
 use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{self, Clipboard, Layout, Shell, Widget};
-use iced::event;
 use iced::mouse;
 use iced::time::Instant;
 use iced::widget::canvas;
@@ -272,7 +271,7 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
 
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
@@ -285,8 +284,6 @@ where
             state.cache.clear();
             shell.request_redraw();
         }
-
-        event::Status::Ignored
     }
 
     fn draw(

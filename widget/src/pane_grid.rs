@@ -79,7 +79,6 @@ pub use state::State;
 pub use title_bar::TitleBar;
 
 use crate::container;
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay::{self, Group};
@@ -88,7 +87,7 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Background, Border, Clipboard, Color, Element, Layout, Length,
+    self, Background, Border, Clipboard, Color, Element, Event, Layout, Length,
     Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 
@@ -433,9 +432,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        let mut event_status = event::Status::Ignored;
-
+    ) {
         let Memory { action, .. } = tree.state.downcast_mut();
         let node = self.internal.layout();
 
@@ -451,7 +448,7 @@ where
                 let bounds = layout.bounds();
 
                 if let Some(cursor_position) = cursor.position_over(bounds) {
-                    event_status = event::Status::Captured;
+                    shell.capture_event();
 
                     match &self.on_resize {
                         Some((leeway, _)) => {
@@ -556,9 +553,9 @@ where
                         }
                     }
 
-                    event_status = event::Status::Captured;
+                    shell.capture_event();
                 } else if action.picked_split().is_some() {
-                    event_status = event::Status::Captured;
+                    shell.capture_event();
                 }
 
                 *action = state::Action::Idle;
@@ -600,7 +597,7 @@ where
                                     ratio,
                                 }));
 
-                                event_status = event::Status::Captured;
+                                shell.capture_event();
                             }
                         }
                     }
@@ -611,7 +608,8 @@ where
 
         let picked_pane = action.picked_pane().map(|(pane, _)| pane);
 
-        self.panes
+        for (((pane, content), tree), layout) in self
+            .panes
             .iter()
             .copied()
             .zip(&mut self.contents)
@@ -622,22 +620,21 @@ where
                     .maximized()
                     .map_or(true, |maximized| *pane == maximized)
             })
-            .map(|(((pane, content), tree), layout)| {
-                let is_picked = picked_pane == Some(pane);
+        {
+            let is_picked = picked_pane == Some(pane);
 
-                content.on_event(
-                    tree,
-                    event.clone(),
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                    viewport,
-                    is_picked,
-                )
-            })
-            .fold(event_status, event::Status::merge)
+            content.on_event(
+                tree,
+                event.clone(),
+                layout,
+                cursor,
+                renderer,
+                clipboard,
+                shell,
+                viewport,
+                is_picked,
+            );
+        }
     }
 
     fn mouse_interaction(

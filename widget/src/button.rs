@@ -283,8 +283,8 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        if let event::Status::Captured = self.content.as_widget_mut().on_event(
+    ) {
+        self.content.as_widget_mut().on_event(
             &mut tree.children[0],
             event.clone(),
             layout.children().next().unwrap(),
@@ -293,62 +293,53 @@ where
             clipboard,
             shell,
             viewport,
-        ) {
-            return event::Status::Captured;
+        );
+
+        if shell.event_status() == event::Status::Captured {
+            return;
         }
 
-        let mut update = || {
-            match event {
-                Event::Mouse(mouse::Event::ButtonPressed(
-                    mouse::Button::Left,
-                ))
-                | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                    if self.on_press.is_some() {
+        match event {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                if self.on_press.is_some() {
+                    let bounds = layout.bounds();
+
+                    if cursor.is_over(bounds) {
+                        let state = tree.state.downcast_mut::<State>();
+
+                        state.is_pressed = true;
+
+                        shell.capture_event();
+                    }
+                }
+            }
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerLifted { .. }) => {
+                if let Some(on_press) = self.on_press.as_ref().map(OnPress::get)
+                {
+                    let state = tree.state.downcast_mut::<State>();
+
+                    if state.is_pressed {
+                        state.is_pressed = false;
+
                         let bounds = layout.bounds();
 
                         if cursor.is_over(bounds) {
-                            let state = tree.state.downcast_mut::<State>();
-
-                            state.is_pressed = true;
-
-                            return event::Status::Captured;
+                            shell.publish(on_press);
                         }
+
+                        shell.capture_event();
                     }
                 }
-                Event::Mouse(mouse::Event::ButtonReleased(
-                    mouse::Button::Left,
-                ))
-                | Event::Touch(touch::Event::FingerLifted { .. }) => {
-                    if let Some(on_press) =
-                        self.on_press.as_ref().map(OnPress::get)
-                    {
-                        let state = tree.state.downcast_mut::<State>();
-
-                        if state.is_pressed {
-                            state.is_pressed = false;
-
-                            let bounds = layout.bounds();
-
-                            if cursor.is_over(bounds) {
-                                shell.publish(on_press);
-                            }
-
-                            return event::Status::Captured;
-                        }
-                    }
-                }
-                Event::Touch(touch::Event::FingerLost { .. }) => {
-                    let state = tree.state.downcast_mut::<State>();
-
-                    state.is_pressed = false;
-                }
-                _ => {}
             }
+            Event::Touch(touch::Event::FingerLost { .. }) => {
+                let state = tree.state.downcast_mut::<State>();
 
-            event::Status::Ignored
-        };
-
-        let update_status = update();
+                state.is_pressed = false;
+            }
+            _ => {}
+        }
 
         let current_status = if self.on_press.is_none() {
             Status::Disabled
@@ -369,8 +360,6 @@ where
         } else if self.status.is_some_and(|status| status != current_status) {
             shell.request_redraw();
         }
-
-        update_status
     }
 
     fn draw(

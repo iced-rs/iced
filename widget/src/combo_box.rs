@@ -54,7 +54,7 @@
 //!     }
 //! }
 //! ```
-use crate::core::event::{self, Event};
+use crate::core::event;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
@@ -65,7 +65,8 @@ use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Theme, Vector,
+    Clipboard, Element, Event, Length, Padding, Rectangle, Shell, Size, Theme,
+    Vector,
 };
 use crate::overlay::menu;
 use crate::text::LineHeight;
@@ -519,7 +520,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let menu = tree.state.downcast_mut::<Menu<T>>();
 
         let started_focused = {
@@ -538,7 +539,7 @@ where
         let mut local_shell = Shell::new(&mut local_messages);
 
         // Provide it to the widget
-        let mut event_status = self.text_input.on_event(
+        self.text_input.on_event(
             &mut tree.children[0],
             event.clone(),
             layout,
@@ -549,13 +550,16 @@ where
             viewport,
         );
 
+        if local_shell.event_status() == event::Status::Captured {
+            shell.capture_event();
+        }
+
         // Then finally react to them here
         for message in local_messages {
             let TextInputEvent::TextChanged(new_value) = message;
 
             if let Some(on_input) = &self.on_input {
                 shell.publish((on_input)(new_value.clone()));
-                published_message_to_shell = true;
             }
 
             // Couple the filtered options with the `ComboBox`
@@ -619,7 +623,7 @@ where
                                 }
                             }
 
-                            event_status = event::Status::Captured;
+                            shell.capture_event();
                         }
 
                         (key::Named::ArrowUp, _) | (key::Named::Tab, true) => {
@@ -656,7 +660,7 @@ where
                                 }
                             }
 
-                            event_status = event::Status::Captured;
+                            shell.capture_event();
                         }
                         (key::Named::ArrowDown, _)
                         | (key::Named::Tab, false)
@@ -703,7 +707,7 @@ where
                                 }
                             }
 
-                            event_status = event::Status::Captured;
+                            shell.capture_event();
                         }
                         _ => {}
                     }
@@ -724,7 +728,7 @@ where
                 published_message_to_shell = true;
 
                 // Unfocus the input
-                let _ = self.text_input.on_event(
+                self.text_input.on_event(
                     &mut tree.children[0],
                     Event::Mouse(mouse::Event::ButtonPressed(
                         mouse::Button::Left,
@@ -761,8 +765,6 @@ where
                 }
             }
         }
-
-        event_status
     }
 
     fn mouse_interaction(

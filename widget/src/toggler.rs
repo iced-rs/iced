@@ -31,7 +31,6 @@
 //! }
 //! ```
 use crate::core::alignment;
-use crate::core::event;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -317,26 +316,23 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let Some(on_toggle) = &self.on_toggle else {
-            return event::Status::Ignored;
+            return;
         };
 
-        let event_status = match event {
+        match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {
                     shell.publish(on_toggle(!self.is_toggled));
-
-                    event::Status::Captured
-                } else {
-                    event::Status::Ignored
+                    shell.capture_event();
                 }
             }
-            _ => event::Status::Ignored,
-        };
+            _ => {}
+        }
 
         let current_status = if self.on_toggle.is_none() {
             Status::Disabled
@@ -358,8 +354,6 @@ where
         {
             shell.request_redraw();
         }
-
-        event_status
     }
 
     fn mouse_interaction(

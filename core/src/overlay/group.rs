@@ -1,4 +1,3 @@
-use crate::event;
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
@@ -81,21 +80,17 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        self.children
-            .iter_mut()
-            .zip(layout.children())
-            .map(|(child, layout)| {
-                child.on_event(
-                    event.clone(),
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                )
-            })
-            .fold(event::Status::Ignored, event::Status::merge)
+    ) {
+        for (child, layout) in self.children.iter_mut().zip(layout.children()) {
+            child.on_event(
+                event.clone(),
+                layout,
+                cursor,
+                renderer,
+                clipboard,
+                shell,
+            );
+        }
     }
 
     fn draw(

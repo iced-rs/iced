@@ -1,5 +1,4 @@
 use crate::container;
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -7,8 +6,8 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
-    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::marker::PhantomData;
@@ -121,10 +120,10 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         self.content.as_widget_mut().on_event(
             tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-        )
+        );
     }
 
     fn mouse_interaction(
@@ -227,9 +226,10 @@ where
                 renderer: &Renderer,
                 clipboard: &mut dyn Clipboard,
                 shell: &mut Shell<'_, Message>,
-            ) -> event::Status {
-                self.content
-                    .on_event(event, layout, cursor, renderer, clipboard, shell)
+            ) {
+                self.content.on_event(
+                    event, layout, cursor, renderer, clipboard, shell,
+                );
             }
 
             fn operate(

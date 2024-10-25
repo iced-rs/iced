@@ -58,7 +58,6 @@
 //! ```
 use crate::core::alignment;
 use crate::core::border::{self, Border};
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -68,8 +67,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Clipboard, Color, Element, Layout, Length, Pixels, Rectangle,
-    Shell, Size, Theme, Widget,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Pixels,
+    Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A circular button representing a choice.
@@ -334,14 +333,13 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if cursor.is_over(layout.bounds()) {
                     shell.publish(self.on_click.clone());
-
-                    return event::Status::Captured;
+                    shell.capture_event();
                 }
             }
             _ => {}
@@ -366,8 +364,6 @@ where
         {
             shell.request_redraw();
         }
-
-        event::Status::Ignored
     }
 
     fn mouse_interaction(

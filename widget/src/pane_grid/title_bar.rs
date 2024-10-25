@@ -1,13 +1,12 @@
 use crate::container;
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
-    Vector,
+    self, Clipboard, Element, Event, Layout, Padding, Point, Rectangle, Shell,
+    Size, Vector,
 };
 use crate::pane_grid::controls::Controls;
 
@@ -438,7 +437,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let mut children = layout.children();
         let padded = children.next().unwrap();
 
@@ -446,8 +445,9 @@ where
         let title_layout = children.next().unwrap();
         let mut show_title = true;
 
-        let control_status = if let Some(controls) = &mut self.controls {
+        if let Some(controls) = &mut self.controls {
             let controls_layout = children.next().unwrap();
+
             if title_layout.bounds().width + controls_layout.bounds().width
                 > padded.bounds().width
             {
@@ -463,7 +463,7 @@ where
                         clipboard,
                         shell,
                         viewport,
-                    )
+                    );
                 } else {
                     show_title = false;
 
@@ -476,7 +476,7 @@ where
                         clipboard,
                         shell,
                         viewport,
-                    )
+                    );
                 }
             } else {
                 controls.full.as_widget_mut().on_event(
@@ -488,13 +488,11 @@ where
                     clipboard,
                     shell,
                     viewport,
-                )
+                );
             }
-        } else {
-            event::Status::Ignored
-        };
+        }
 
-        let title_status = if show_title {
+        if show_title {
             self.content.as_widget_mut().on_event(
                 &mut tree.children[0],
                 event,
@@ -504,12 +502,8 @@ where
                 clipboard,
                 shell,
                 viewport,
-            )
-        } else {
-            event::Status::Ignored
-        };
-
-        control_status.merge(title_status)
+            );
+        }
     }
 
     pub(crate) fn mouse_interaction(

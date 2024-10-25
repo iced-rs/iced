@@ -1,3 +1,4 @@
+use crate::event;
 use crate::time::Instant;
 use crate::window;
 
@@ -10,6 +11,7 @@ use crate::window;
 #[derive(Debug)]
 pub struct Shell<'a, Message> {
     messages: &'a mut Vec<Message>,
+    event_status: event::Status,
     redraw_request: Option<window::RedrawRequest>,
     is_layout_invalid: bool,
     are_widgets_invalid: bool,
@@ -20,6 +22,7 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn new(messages: &'a mut Vec<Message>) -> Self {
         Self {
             messages,
+            event_status: event::Status::Ignored,
             redraw_request: None,
             is_layout_invalid: false,
             are_widgets_invalid: false,
@@ -34,6 +37,24 @@ impl<'a, Message> Shell<'a, Message> {
     /// Publish the given `Message` for an application to process it.
     pub fn publish(&mut self, message: Message) {
         self.messages.push(message);
+    }
+
+    /// Marks the current event as captured. Prevents "event bubbling".
+    ///
+    /// A widget should capture an event when no ancestor should
+    /// handle it.
+    pub fn capture_event(&mut self) {
+        self.event_status = event::Status::Captured;
+    }
+
+    /// Returns the current [`event::Status`] of the [`Shell`].
+    pub fn event_status(&self) -> event::Status {
+        self.event_status
+    }
+
+    /// Returns whether the current event has been captured.
+    pub fn is_event_captured(&self) -> bool {
+        self.event_status == event::Status::Captured
     }
 
     /// Requests a new frame to be drawn as soon as possible.
@@ -114,5 +135,7 @@ impl<'a, Message> Shell<'a, Message> {
 
         self.are_widgets_invalid =
             self.are_widgets_invalid || other.are_widgets_invalid;
+
+        self.event_status = self.event_status.merge(other.event_status);
     }
 }

@@ -61,7 +61,6 @@
 //! }
 //! ```
 use crate::core::alignment;
-use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
@@ -73,8 +72,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
-    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Background, Border, Clipboard, Color, Element, Event, Layout, Length,
+    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::overlay::menu::{self, Menu};
 
@@ -438,10 +437,10 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
-        let event_status = match event {
+        match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if state.is_open {
@@ -453,7 +452,7 @@ where
                         shell.publish(on_close.clone());
                     }
 
-                    event::Status::Captured
+                    shell.capture_event();
                 } else if cursor.is_over(layout.bounds()) {
                     let selected = self.selected.as_ref().map(Borrow::borrow);
 
@@ -468,9 +467,7 @@ where
                         shell.publish(on_open.clone());
                     }
 
-                    event::Status::Captured
-                } else {
-                    event::Status::Ignored
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::WheelScrolled {
@@ -512,17 +509,13 @@ where
                         shell.publish((self.on_select)(next_option.clone()));
                     }
 
-                    event::Status::Captured
-                } else {
-                    event::Status::Ignored
+                    shell.capture_event();
                 }
             }
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
                 state.keyboard_modifiers = modifiers;
-
-                event::Status::Ignored
             }
-            _ => event::Status::Ignored,
+            _ => {}
         };
 
         let status = if state.is_open {
@@ -541,8 +534,6 @@ where
         {
             shell.request_redraw();
         }
-
-        event_status
     }
 
     fn mouse_interaction(

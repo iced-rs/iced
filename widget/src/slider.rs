@@ -29,7 +29,6 @@
 //! }
 //! ```
 use crate::core::border::{self, Border};
-use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
 use crate::core::layout;
@@ -39,8 +38,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Layout, Length, Pixels, Point,
-    Rectangle, Shell, Size, Theme, Widget,
+    self, Background, Clipboard, Color, Element, Event, Layout, Length, Pixels,
+    Point, Rectangle, Shell, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -253,7 +252,7 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
 
         let mut update = || {
@@ -349,7 +348,7 @@ where
                             state.is_dragging = true;
                         }
 
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
                 Event::Mouse(mouse::Event::ButtonReleased(
@@ -363,7 +362,7 @@ where
                         }
                         state.is_dragging = false;
 
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
                 Event::Mouse(mouse::Event::CursorMoved { .. })
@@ -371,7 +370,7 @@ where
                     if state.is_dragging {
                         let _ = cursor.position().and_then(locate).map(change);
 
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
                 Event::Mouse(mouse::Event::WheelScrolled { delta })
@@ -389,7 +388,7 @@ where
                             let _ = increment(current_value).map(change);
                         }
 
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
                 Event::Keyboard(keyboard::Event::KeyPressed {
@@ -406,7 +405,7 @@ where
                             _ => (),
                         }
 
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
                 Event::Keyboard(keyboard::Event::ModifiersChanged(
@@ -416,11 +415,9 @@ where
                 }
                 _ => {}
             }
-
-            event::Status::Ignored
         };
 
-        let update_status = update();
+        update();
 
         let current_status = if state.is_dragging {
             Status::Dragged
@@ -435,8 +432,6 @@ where
         } else if self.status.is_some_and(|status| status != current_status) {
             shell.request_redraw();
         }
-
-        update_status
     }
 
     fn draw(

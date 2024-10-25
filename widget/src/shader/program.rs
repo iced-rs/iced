@@ -1,4 +1,3 @@
-use crate::core::event;
 use crate::core::mouse;
 use crate::core::{Rectangle, Shell};
 use crate::renderer::wgpu::Primitive;
@@ -31,8 +30,7 @@ pub trait Program<Message> {
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
         _shell: &mut Shell<'_, Message>,
-    ) -> (event::Status, Option<Message>) {
-        (event::Status::Ignored, None)
+    ) {
     }
 
     /// Draws the [`Primitive`].

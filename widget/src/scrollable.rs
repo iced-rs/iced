@@ -21,7 +21,6 @@
 //! ```
 use crate::container;
 use crate::core::border::{self, Border};
-use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
@@ -34,8 +33,8 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Layout, Length, Padding,
-    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    self, Background, Clipboard, Color, Element, Event, Layout, Length,
+    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
@@ -519,7 +518,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
         let bounds = layout.bounds();
         let cursor_over_scrollable = cursor.position_over(bounds);
@@ -561,7 +560,7 @@ where
                         if let Some(scrollbar) = scrollbars.y {
                             let Some(cursor_position) = cursor.position()
                             else {
-                                return event::Status::Ignored;
+                                return;
                             };
 
                             state.scroll_y_to(
@@ -581,7 +580,7 @@ where
                                 shell,
                             );
 
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                     }
                     _ => {}
@@ -593,7 +592,7 @@ where
                     ))
                     | Event::Touch(touch::Event::FingerPressed { .. }) => {
                         let Some(cursor_position) = cursor.position() else {
-                            return event::Status::Ignored;
+                            return;
                         };
 
                         if let (Some(scroller_grabbed_at), Some(scrollbar)) = (
@@ -621,7 +620,7 @@ where
                             );
                         }
 
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                     _ => {}
                 }
@@ -632,7 +631,7 @@ where
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
                         let Some(cursor_position) = cursor.position() else {
-                            return event::Status::Ignored;
+                            return;
                         };
 
                         if let Some(scrollbar) = scrollbars.x {
@@ -654,7 +653,7 @@ where
                             );
                         }
 
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                     _ => {}
                 }
@@ -665,7 +664,7 @@ where
                     ))
                     | Event::Touch(touch::Event::FingerPressed { .. }) => {
                         let Some(cursor_position) = cursor.position() else {
-                            return event::Status::Ignored;
+                            return;
                         };
 
                         if let (Some(scroller_grabbed_at), Some(scrollbar)) = (
@@ -692,20 +691,19 @@ where
                                 shell,
                             );
 
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                     }
                     _ => {}
                 }
             }
 
-            let content_status = if state.last_scrolled.is_some()
-                && matches!(
+            if state.last_scrolled.is_none()
+                || !matches!(
                     event,
                     Event::Mouse(mouse::Event::WheelScrolled { .. })
-                ) {
-                event::Status::Ignored
-            } else {
+                )
+            {
                 let cursor = match cursor_over_scrollable {
                     Some(cursor_position)
                         if !(mouse_over_x_scrollbar
@@ -739,7 +737,7 @@ where
                         x: bounds.x + translation.x,
                         ..bounds
                     },
-                )
+                );
             };
 
             if matches!(
@@ -754,11 +752,11 @@ where
                 state.x_scroller_grabbed_at = None;
                 state.y_scroller_grabbed_at = None;
 
-                return content_status;
+                return;
             }
 
-            if let event::Status::Captured = content_status {
-                return event::Status::Captured;
+            if shell.is_event_captured() {
+                return;
             }
 
             if let Event::Keyboard(keyboard::Event::ModifiersChanged(
@@ -767,13 +765,13 @@ where
             {
                 state.keyboard_modifiers = modifiers;
 
-                return event::Status::Ignored;
+                return;
             }
 
             match event {
                 Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
                     if cursor_over_scrollable.is_none() {
-                        return event::Status::Ignored;
+                        return;
                     }
 
                     let delta = match delta {
@@ -827,9 +825,7 @@ where
                     let in_transaction = state.last_scrolled.is_some();
 
                     if has_scrolled || in_transaction {
-                        event::Status::Captured
-                    } else {
-                        event::Status::Ignored
+                        shell.capture_event();
                     }
                 }
                 Event::Touch(event)
@@ -841,7 +837,7 @@ where
                         touch::Event::FingerPressed { .. } => {
                             let Some(cursor_position) = cursor.position()
                             else {
-                                return event::Status::Ignored;
+                                return;
                             };
 
                             state.scroll_area_touched_at =
@@ -853,7 +849,7 @@ where
                             {
                                 let Some(cursor_position) = cursor.position()
                                 else {
-                                    return event::Status::Ignored;
+                                    return;
                                 };
 
                                 let delta = Vector::new(
@@ -883,7 +879,7 @@ where
                         _ => {}
                     }
 
-                    event::Status::Captured
+                    shell.capture_event();
                 }
                 Event::Window(window::Event::RedrawRequested(_)) => {
                     let _ = notify_viewport(
@@ -893,14 +889,12 @@ where
                         content_bounds,
                         shell,
                     );
-
-                    event::Status::Ignored
                 }
-                _ => event::Status::Ignored,
+                _ => {}
             }
         };
 
-        let event_status = update();
+        update();
 
         let status = if state.y_scroller_grabbed_at.is_some()
             || state.x_scroller_grabbed_at.is_some()
@@ -933,8 +927,6 @@ where
         {
             shell.request_redraw();
         }
-
-        event_status
     }
 
     fn draw(

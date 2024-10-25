@@ -4,8 +4,6 @@ use crate::core::mouse;
 use crate::core::time::Instant;
 use crate::core::touch;
 
-pub use crate::core::event::Status;
-
 /// A [`Shader`] event.
 ///
 /// [`Shader`]: crate::Shader

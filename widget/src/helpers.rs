@@ -363,12 +363,11 @@ where
     Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
-    use crate::core::event::{self, Event};
     use crate::core::layout::{self, Layout};
     use crate::core::mouse;
     use crate::core::renderer;
     use crate::core::widget::tree::{self, Tree};
-    use crate::core::{Rectangle, Shell, Size};
+    use crate::core::{Event, Rectangle, Shell, Size};
 
     struct Opaque<'a, Message, Theme, Renderer> {
         content: Element<'a, Message, Theme, Renderer>,
@@ -449,25 +448,19 @@ where
             clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
-        ) -> event::Status {
+        ) {
             let is_mouse_press = matches!(
                 event,
                 core::Event::Mouse(mouse::Event::ButtonPressed(_))
             );
 
-            if let core::event::Status::Captured =
-                self.content.as_widget_mut().on_event(
-                    state, event, layout, cursor, renderer, clipboard, shell,
-                    viewport,
-                )
-            {
-                return event::Status::Captured;
-            }
+            self.content.as_widget_mut().on_event(
+                state, event, layout, cursor, renderer, clipboard, shell,
+                viewport,
+            );
 
             if is_mouse_press && cursor.is_over(layout.bounds()) {
-                event::Status::Captured
-            } else {
-                event::Status::Ignored
+                shell.capture_event();
             }
         }
 
@@ -530,12 +523,11 @@ where
     Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
-    use crate::core::event::{self, Event};
     use crate::core::layout::{self, Layout};
     use crate::core::mouse;
     use crate::core::renderer;
     use crate::core::widget::tree::{self, Tree};
-    use crate::core::{Rectangle, Shell, Size};
+    use crate::core::{Event, Rectangle, Shell, Size};
 
     struct Hover<'a, Message, Theme, Renderer> {
         base: Element<'a, Message, Theme, Renderer>,
@@ -658,7 +650,7 @@ where
             clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
-        ) -> event::Status {
+        ) {
             let mut children = layout.children().zip(&mut tree.children);
             let (base_layout, base_tree) = children.next().unwrap();
             let (top_layout, top_tree) = children.next().unwrap();
@@ -680,7 +672,7 @@ where
                 };
             }
 
-            let top_status = if matches!(
+            if matches!(
                 event,
                 Event::Mouse(
                     mouse::Event::CursorMoved { .. }
@@ -699,13 +691,11 @@ where
                     clipboard,
                     shell,
                     viewport,
-                )
-            } else {
-                event::Status::Ignored
+                );
             };
 
-            if top_status == event::Status::Captured {
-                return top_status;
+            if shell.is_event_captured() {
+                return;
             }
 
             self.base.as_widget_mut().on_event(
@@ -717,7 +707,7 @@ where
                 clipboard,
                 shell,
                 viewport,
-            )
+            );
         }
 
         fn mouse_interaction(

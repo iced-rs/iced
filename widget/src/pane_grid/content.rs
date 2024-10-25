@@ -1,12 +1,12 @@
 use crate::container;
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
+    self, Clipboard, Element, Event, Layout, Point, Rectangle, Shell, Size,
+    Vector,
 };
 use crate::pane_grid::{Draggable, TitleBar};
 
@@ -250,13 +250,11 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
         is_picked: bool,
-    ) -> event::Status {
-        let mut event_status = event::Status::Ignored;
-
+    ) {
         let body_layout = if let Some(title_bar) = &mut self.title_bar {
             let mut children = layout.children();
 
-            event_status = title_bar.on_event(
+            title_bar.on_event(
                 &mut tree.children[1],
                 event.clone(),
                 children.next().unwrap(),
@@ -272,9 +270,7 @@ where
             layout
         };
 
-        let body_status = if is_picked {
-            event::Status::Ignored
-        } else {
+        if !is_picked {
             self.body.as_widget_mut().on_event(
                 &mut tree.children[0],
                 event,
@@ -284,10 +280,8 @@ where
                 clipboard,
                 shell,
                 viewport,
-            )
-        };
-
-        event_status.merge(body_status)
+            );
+        }
     }
 
     pub(crate) fn mouse_interaction(

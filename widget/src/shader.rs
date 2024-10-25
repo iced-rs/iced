@@ -97,7 +97,7 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let bounds = layout.bounds();
 
         let custom_shader_event = match event {
@@ -115,22 +115,14 @@ where
         if let Some(custom_shader_event) = custom_shader_event {
             let state = tree.state.downcast_mut::<P::State>();
 
-            let (event_status, message) = self.program.update(
+            self.program.update(
                 state,
                 custom_shader_event,
                 bounds,
                 cursor,
                 shell,
             );
-
-            if let Some(message) = message {
-                shell.publish(message);
-            }
-
-            return event_status;
         }
-
-        event::Status::Ignored
     }
 
     fn mouse_interaction(
@@ -195,8 +187,8 @@ where
         bounds: Rectangle,
         cursor: mouse::Cursor,
         shell: &mut Shell<'_, Message>,
-    ) -> (event::Status, Option<Message>) {
-        T::update(self, state, event, bounds, cursor, shell)
+    ) {
+        T::update(self, state, event, bounds, cursor, shell);
     }
 
     fn draw(

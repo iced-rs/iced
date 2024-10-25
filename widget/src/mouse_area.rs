@@ -1,5 +1,4 @@
 //! A container for capturing mouse events.
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -7,8 +6,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{tree, Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    Clipboard, Element, Event, Layout, Length, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 /// Emit messages on mouse events.
@@ -226,8 +225,8 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        if let event::Status::Captured = self.content.as_widget_mut().on_event(
+    ) {
+        self.content.as_widget_mut().on_event(
             &mut tree.children[0],
             event.clone(),
             layout,
@@ -236,11 +235,13 @@ where
             clipboard,
             shell,
             viewport,
-        ) {
-            return event::Status::Captured;
+        );
+
+        if shell.is_event_captured() {
+            return;
         }
 
-        update(self, tree, event, layout, cursor, shell)
+        update(self, tree, event, layout, cursor, shell);
     }
 
     fn mouse_interaction(
@@ -329,7 +330,7 @@ fn update<Message: Clone, Theme, Renderer>(
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
-) -> event::Status {
+) {
     let state: &mut State = tree.state.downcast_mut();
 
     let cursor_position = cursor.position();
@@ -363,104 +364,71 @@ fn update<Message: Clone, Theme, Renderer>(
     }
 
     if !cursor.is_over(layout.bounds()) {
-        return event::Status::Ignored;
+        return;
     }
 
-    if let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-    | Event::Touch(touch::Event::FingerPressed { .. }) = event
-    {
-        let mut captured = false;
+    match event {
+        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+        | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            if let Some(message) = widget.on_press.as_ref() {
+                shell.publish(message.clone());
+                shell.capture_event();
+            }
 
-        if let Some(message) = widget.on_press.as_ref() {
-            captured = true;
-            shell.publish(message.clone());
-        }
+            if let Some(position) = cursor_position {
+                if let Some(message) = widget.on_double_click.as_ref() {
+                    let new_click = mouse::Click::new(
+                        position,
+                        mouse::Button::Left,
+                        state.previous_click,
+                    );
 
-        if let Some(position) = cursor_position {
-            if let Some(message) = widget.on_double_click.as_ref() {
-                let new_click = mouse::Click::new(
-                    position,
-                    mouse::Button::Left,
-                    state.previous_click,
-                );
+                    if matches!(new_click.kind(), mouse::click::Kind::Double) {
+                        shell.publish(message.clone());
+                    }
 
-                if matches!(new_click.kind(), mouse::click::Kind::Double) {
-                    shell.publish(message.clone());
+                    state.previous_click = Some(new_click);
+
+                    // Even if this is not a double click, but the press is nevertheless
+                    // processed by us and should not be popup to parent widgets.
+                    shell.capture_event();
                 }
-
-                state.previous_click = Some(new_click);
-
-                // Even if this is not a double click, but the press is nevertheless
-                // processed by us and should not be popup to parent widgets.
-                captured = true;
             }
         }
-
-        if captured {
-            return event::Status::Captured;
+        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+        | Event::Touch(touch::Event::FingerLifted { .. }) => {
+            if let Some(message) = widget.on_release.as_ref() {
+                shell.publish(message.clone());
+            }
         }
-    }
-
-    if let Some(message) = widget.on_release.as_ref() {
-        if let Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerLifted { .. }) = event
-        {
-            shell.publish(message.clone());
-
-            return event::Status::Captured;
+        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) => {
+            if let Some(message) = widget.on_right_press.as_ref() {
+                shell.publish(message.clone());
+                shell.capture_event();
+            }
         }
-    }
-
-    if let Some(message) = widget.on_right_press.as_ref() {
-        if let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) =
-            event
-        {
-            shell.publish(message.clone());
-
-            return event::Status::Captured;
+        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Right)) => {
+            if let Some(message) = widget.on_right_release.as_ref() {
+                shell.publish(message.clone());
+            }
         }
-    }
-
-    if let Some(message) = widget.on_right_release.as_ref() {
-        if let Event::Mouse(mouse::Event::ButtonReleased(
-            mouse::Button::Right,
-        )) = event
-        {
-            shell.publish(message.clone());
-
-            return event::Status::Captured;
+        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle)) => {
+            if let Some(message) = widget.on_middle_press.as_ref() {
+                shell.publish(message.clone());
+                shell.capture_event();
+            }
         }
-    }
-
-    if let Some(message) = widget.on_middle_press.as_ref() {
-        if let Event::Mouse(mouse::Event::ButtonPressed(
-            mouse::Button::Middle,
-        )) = event
-        {
-            shell.publish(message.clone());
-
-            return event::Status::Captured;
+        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Middle)) => {
+            if let Some(message) = widget.on_middle_release.as_ref() {
+                shell.publish(message.clone());
+            }
         }
-    }
-
-    if let Some(message) = widget.on_middle_release.as_ref() {
-        if let Event::Mouse(mouse::Event::ButtonReleased(
-            mouse::Button::Middle,
-        )) = event
-        {
-            shell.publish(message.clone());
-
-            return event::Status::Captured;
+        Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+            if let Some(on_scroll) = widget.on_scroll.as_ref() {
+                shell.publish(on_scroll(delta));
+                shell.capture_event();
+            }
         }
+        _ => {}
     }
-
-    if let Some(on_scroll) = widget.on_scroll.as_ref() {
-        if let Event::Mouse(mouse::Event::WheelScrolled { delta }) = event {
-            shell.publish(on_scroll(delta));
-
-            return event::Status::Captured;
-        }
-    }
-
-    event::Status::Ignored
 }

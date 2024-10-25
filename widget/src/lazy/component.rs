@@ -1,6 +1,5 @@
 //! Build and reuse custom widgets using The Elm Architecture.
 #![allow(deprecated)]
-use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -322,12 +321,12 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
         let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
-        let event_status = self.with_element_mut(|element| {
+        self.with_element_mut(|element| {
             element.as_widget_mut().on_event(
                 &mut t.borrow_mut().as_mut().unwrap().children[0],
                 event,
@@ -337,8 +336,12 @@ where
                 clipboard,
                 &mut local_shell,
                 viewport,
-            )
+            );
         });
+
+        if local_shell.is_event_captured() {
+            shell.capture_event();
+        }
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
@@ -377,8 +380,6 @@ where
 
             shell.invalidate_layout();
         }
-
-        event_status
     }
 
     fn operate(
@@ -608,22 +609,24 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self
-            .with_overlay_mut_maybe(|overlay| {
-                overlay.on_event(
-                    event,
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    &mut local_shell,
-                )
-            })
-            .unwrap_or(event::Status::Ignored);
+        let _ = self.with_overlay_mut_maybe(|overlay| {
+            overlay.on_event(
+                event,
+                layout,
+                cursor,
+                renderer,
+                clipboard,
+                &mut local_shell,
+            );
+        });
+
+        if local_shell.is_event_captured() {
+            shell.capture_event();
+        }
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
@@ -673,8 +676,6 @@ where
 
             shell.invalidate_layout();
         }
-
-        event_status
     }
 
     fn is_over(

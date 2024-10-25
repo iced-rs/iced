@@ -10,7 +10,6 @@ pub use responsive::Responsive;
 
 mod cache;
 
-use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -19,7 +18,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::Element;
 use crate::core::{
-    self, Clipboard, Length, Point, Rectangle, Shell, Size, Vector,
+    self, Clipboard, Event, Length, Point, Rectangle, Shell, Size, Vector,
 };
 use crate::runtime::overlay::Nested;
 
@@ -206,7 +205,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         self.with_element_mut(|element| {
             element.as_widget_mut().on_event(
                 &mut tree.children[0],
@@ -217,8 +216,8 @@ where
                 clipboard,
                 shell,
                 viewport,
-            )
-        })
+            );
+        });
     }
 
     fn mouse_interaction(
@@ -395,11 +394,10 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        self.with_overlay_mut_maybe(|overlay| {
-            overlay.on_event(event, layout, cursor, renderer, clipboard, shell)
-        })
-        .unwrap_or(event::Status::Ignored)
+    ) {
+        let _ = self.with_overlay_mut_maybe(|overlay| {
+            overlay.on_event(event, layout, cursor, renderer, clipboard, shell);
+        });
     }
 
     fn is_over(

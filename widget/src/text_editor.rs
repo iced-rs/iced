@@ -33,7 +33,6 @@
 //! ```
 use crate::core::alignment;
 use crate::core::clipboard::{self, Clipboard};
-use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
@@ -47,7 +46,7 @@ use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Length, Padding, Pixels, Point,
+    Background, Border, Color, Element, Event, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, SmolStr, Theme, Vector,
 };
 
@@ -606,9 +605,9 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let Some(on_edit) = self.on_edit.as_ref() else {
-            return event::Status::Ignored;
+            return;
         };
 
         let state = tree.state.downcast_mut::<State<Highlighter>>();
@@ -656,7 +655,7 @@ where
             cursor,
             self.key_binding.as_deref(),
         ) else {
-            return event::Status::Ignored;
+            return;
         };
 
         match update {
@@ -685,7 +684,7 @@ where
                 let bounds = self.content.0.borrow().editor.bounds();
 
                 if bounds.height >= i32::MAX as f32 {
-                    return event::Status::Ignored;
+                    return;
                 }
 
                 let lines = lines + state.partial_scroll;
@@ -798,7 +797,7 @@ where
             }
         }
 
-        event::Status::Captured
+        shell.capture_event();
     }
 
     fn draw(

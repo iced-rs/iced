@@ -1,11 +1,10 @@
 pub use crate::Overlay;
 
-use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size};
+use crate::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size};
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
@@ -58,9 +57,9 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
+    ) {
         self.overlay
-            .on_event(event, layout, cursor, renderer, clipboard, shell)
+            .on_event(event, layout, cursor, renderer, clipboard, shell);
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Element`].
@@ -157,11 +156,11 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self.content.on_event(
+        self.content.on_event(
             event,
             layout,
             cursor,
@@ -171,8 +170,6 @@ where
         );
 
         shell.merge(local_shell, self.mapper);
-
-        event_status
     }
 
     fn mouse_interaction(

@@ -1,4 +1,3 @@
-use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -6,8 +5,8 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    self, Clipboard, Element, Event, Length, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 use crate::horizontal_space;
 use crate::runtime::overlay::Nested;
@@ -193,14 +192,14 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
         let mut content = self.content.borrow_mut();
 
         let mut local_messages = vec![];
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let status = content.resolve(
+        content.resolve(
             &mut state.tree.borrow_mut(),
             renderer,
             layout,
@@ -215,7 +214,7 @@ where
                     clipboard,
                     &mut local_shell,
                     viewport,
-                )
+                );
             },
         );
 
@@ -224,8 +223,6 @@ where
         }
 
         shell.merge(local_shell, std::convert::identity);
-
-        status
     }
 
     fn draw(
@@ -425,28 +422,20 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
+    ) {
         let mut is_layout_invalid = false;
 
-        let event_status = self
-            .with_overlay_mut_maybe(|overlay| {
-                let event_status = overlay.on_event(
-                    event, layout, cursor, renderer, clipboard, shell,
-                );
+        let _ = self.with_overlay_mut_maybe(|overlay| {
+            overlay.on_event(event, layout, cursor, renderer, clipboard, shell);
 
-                is_layout_invalid = shell.is_layout_invalid();
-
-                event_status
-            })
-            .unwrap_or(event::Status::Ignored);
+            is_layout_invalid = shell.is_layout_invalid();
+        });
 
         if is_layout_invalid {
             self.with_overlay_mut(|(_overlay, layout)| {
                 **layout = None;
             });
         }
-
-        event_status
     }
 
     fn is_over(

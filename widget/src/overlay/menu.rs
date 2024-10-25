@@ -1,7 +1,6 @@
 //! Build and show dropdown menus.
 use crate::core::alignment;
 use crate::core::border::{self, Border};
-use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -11,8 +10,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Clipboard, Color, Length, Padding, Pixels, Point, Rectangle,
-    Size, Theme, Vector,
+    Background, Clipboard, Color, Event, Length, Padding, Pixels, Point,
+    Rectangle, Size, Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -271,13 +270,13 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
+    ) {
         let bounds = layout.bounds();
 
         self.list.on_event(
             self.state, event, layout, cursor, renderer, clipboard, shell,
             &bounds,
-        )
+        );
     }
 
     fn mouse_interaction(
@@ -397,14 +396,14 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if cursor.is_over(layout.bounds()) {
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
                             shell.publish((self.on_selected)(option.clone()));
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                     }
                 }
@@ -460,7 +459,7 @@ where
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
                             shell.publish((self.on_selected)(option.clone()));
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                     }
                 }
@@ -477,8 +476,6 @@ where
         }) {
             shell.request_redraw();
         }
-
-        event::Status::Ignored
     }
 
     fn mouse_interaction(
