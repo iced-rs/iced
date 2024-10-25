@@ -7,6 +7,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
     Widget,
@@ -342,7 +343,14 @@ where
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
         if let Some(redraw_request) = local_shell.redraw_request() {
-            shell.request_redraw(redraw_request);
+            match redraw_request {
+                window::RedrawRequest::NextFrame => {
+                    shell.request_redraw();
+                }
+                window::RedrawRequest::At(at) => {
+                    shell.request_redraw_at(at);
+                }
+            }
         }
 
         if !local_messages.is_empty() {
@@ -620,7 +628,14 @@ where
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
         if let Some(redraw_request) = local_shell.redraw_request() {
-            shell.request_redraw(redraw_request);
+            match redraw_request {
+                window::RedrawRequest::NextFrame => {
+                    shell.request_redraw();
+                }
+                window::RedrawRequest::At(at) => {
+                    shell.request_redraw_at(at);
+                }
+            }
         }
 
         if !local_messages.is_empty() {

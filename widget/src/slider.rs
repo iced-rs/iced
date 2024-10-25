@@ -432,13 +432,8 @@ where
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
             self.status = Some(current_status);
-        } else {
-            match self.status {
-                Some(status) if status != current_status => {
-                    shell.request_redraw(window::RedrawRequest::NextFrame);
-                }
-                _ => {}
-            }
+        } else if self.status.is_some_and(|status| status != current_status) {
+            shell.request_redraw();
         }
 
         update_status

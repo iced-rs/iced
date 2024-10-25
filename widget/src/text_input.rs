@@ -751,7 +751,7 @@ where
                     state.last_click = Some(click);
 
                     if cursor_before != state.cursor {
-                        shell.request_redraw(window::RedrawRequest::NextFrame);
+                        shell.request_redraw();
                     }
 
                     return event::Status::Captured;
@@ -806,7 +806,7 @@ where
                     }
 
                     if selection_before != state.cursor.selection(&value) {
-                        shell.request_redraw(window::RedrawRequest::NextFrame);
+                        shell.request_redraw();
                     }
 
                     return event::Status::Captured;
@@ -914,9 +914,7 @@ where
                             if cursor_before != state.cursor {
                                 focus.updated_at = Instant::now();
 
-                                shell.request_redraw(
-                                    window::RedrawRequest::NextFrame,
-                                );
+                                shell.request_redraw();
                             }
 
                             return event::Status::Captured;
@@ -1037,9 +1035,7 @@ where
                             if cursor_before != state.cursor {
                                 focus.updated_at = Instant::now();
 
-                                shell.request_redraw(
-                                    window::RedrawRequest::NextFrame,
-                                );
+                                shell.request_redraw();
                             }
 
                             return event::Status::Captured;
@@ -1059,9 +1055,7 @@ where
                             if cursor_before != state.cursor {
                                 focus.updated_at = Instant::now();
 
-                                shell.request_redraw(
-                                    window::RedrawRequest::NextFrame,
-                                );
+                                shell.request_redraw();
                             }
 
                             return event::Status::Captured;
@@ -1083,9 +1077,7 @@ where
                             if cursor_before != state.cursor {
                                 focus.updated_at = Instant::now();
 
-                                shell.request_redraw(
-                                    window::RedrawRequest::NextFrame,
-                                );
+                                shell.request_redraw();
                             }
 
                             return event::Status::Captured;
@@ -1107,9 +1099,7 @@ where
                             if cursor_before != state.cursor {
                                 focus.updated_at = Instant::now();
 
-                                shell.request_redraw(
-                                    window::RedrawRequest::NextFrame,
-                                );
+                                shell.request_redraw();
                             }
 
                             return event::Status::Captured;
@@ -1136,9 +1126,7 @@ where
                             if cursor_before != state.cursor {
                                 focus.updated_at = Instant::now();
 
-                                shell.request_redraw(
-                                    window::RedrawRequest::NextFrame,
-                                );
+                                shell.request_redraw();
                             }
 
                             return event::Status::Captured;
@@ -1165,9 +1153,7 @@ where
                             if cursor_before != state.cursor {
                                 focus.updated_at = Instant::now();
 
-                                shell.request_redraw(
-                                    window::RedrawRequest::NextFrame,
-                                );
+                                shell.request_redraw();
                             }
 
                             return event::Status::Captured;
@@ -1218,7 +1204,7 @@ where
                     focus.is_window_focused = true;
                     focus.updated_at = Instant::now();
 
-                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                    shell.request_redraw();
                 }
             }
             Event::Window(window::Event::RedrawRequested(now)) => {
@@ -1237,11 +1223,11 @@ where
                             - (*now - focus.updated_at).as_millis()
                                 % CURSOR_BLINK_INTERVAL_MILLIS;
 
-                        shell.request_redraw(window::RedrawRequest::At(
+                        shell.request_redraw_at(
                             *now + Duration::from_millis(
                                 millis_until_redraw as u64,
                             ),
-                        ));
+                        );
                     }
                 }
             }
@@ -1265,13 +1251,11 @@ where
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
             self.last_status = Some(status);
-        } else {
-            match self.last_status {
-                Some(last_status) if status != last_status => {
-                    shell.request_redraw(window::RedrawRequest::NextFrame);
-                }
-                _ => {}
-            }
+        } else if self
+            .last_status
+            .is_some_and(|last_status| status != last_status)
+        {
+            shell.request_redraw();
         }
 
         event::Status::Ignored

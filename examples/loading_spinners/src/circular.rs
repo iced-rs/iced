@@ -7,7 +7,7 @@ use iced::event;
 use iced::mouse;
 use iced::time::Instant;
 use iced::widget::canvas;
-use iced::window::{self, RedrawRequest};
+use iced::window;
 use iced::{
     Background, Color, Element, Event, Length, Radians, Rectangle, Renderer,
     Size, Vector,
@@ -283,7 +283,7 @@ where
             );
 
             state.cache.clear();
-            shell.request_redraw(RedrawRequest::NextFrame);
+            shell.request_redraw();
         }
 
         event::Status::Ignored

@@ -535,13 +535,11 @@ where
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
             self.last_status = Some(status);
-        } else {
-            match self.last_status {
-                Some(last_status) if last_status != status => {
-                    shell.request_redraw(window::RedrawRequest::NextFrame);
-                }
-                _ => {}
-            }
+        } else if self
+            .last_status
+            .is_some_and(|last_status| last_status != status)
+        {
+            shell.request_redraw();
         }
 
         event_status

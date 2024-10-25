@@ -435,9 +435,7 @@ where
                                     .publish(on_option_hovered(option.clone()));
                             }
 
-                            shell.request_redraw(
-                                window::RedrawRequest::NextFrame,
-                            );
+                            shell.request_redraw();
                         }
                     }
 
@@ -472,14 +470,12 @@ where
 
         let state = tree.state.downcast_mut::<ListState>();
 
-        if state.is_hovered.is_some_and(|is_hovered| {
-            is_hovered != cursor.is_over(layout.bounds())
-        }) {
-            shell.request_redraw(window::RedrawRequest::NextFrame);
-        }
-
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
             state.is_hovered = Some(cursor.is_over(layout.bounds()));
+        } else if state.is_hovered.is_some_and(|is_hovered| {
+            is_hovered != cursor.is_over(layout.bounds())
+        }) {
+            shell.request_redraw();
         }
 
         event::Status::Ignored

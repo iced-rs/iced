@@ -931,7 +931,7 @@ where
                 .last_status
                 .is_some_and(|last_status| last_status != status)
         {
-            shell.request_redraw(window::RedrawRequest::NextFrame);
+            shell.request_redraw();
         }
 
         event_status

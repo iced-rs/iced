@@ -6,7 +6,7 @@ use iced::advanced::{self, Clipboard, Layout, Shell, Widget};
 use iced::event;
 use iced::mouse;
 use iced::time::Instant;
-use iced::window::{self, RedrawRequest};
+use iced::window;
 use iced::{Background, Color, Element, Event, Length, Rectangle, Size};
 
 use super::easing::{self, Easing};
@@ -192,7 +192,7 @@ where
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
             *state = state.timed_transition(self.cycle_duration, now);
 
-            shell.request_redraw(RedrawRequest::NextFrame);
+            shell.request_redraw();
         }
 
         event::Status::Ignored

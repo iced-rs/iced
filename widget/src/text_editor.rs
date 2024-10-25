@@ -624,7 +624,7 @@ where
                     focus.is_window_focused = true;
                     focus.updated_at = Instant::now();
 
-                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                    shell.request_redraw();
                 }
             }
             Event::Window(window::Event::RedrawRequested(now)) => {
@@ -637,11 +637,11 @@ where
                                 - (now - focus.updated_at).as_millis()
                                     % Focus::CURSOR_BLINK_INTERVAL_MILLIS;
 
-                        shell.request_redraw(window::RedrawRequest::At(
+                        shell.request_redraw_at(
                             now + Duration::from_millis(
                                 millis_until_redraw as u64,
                             ),
-                        ));
+                        );
                     }
                 }
             }

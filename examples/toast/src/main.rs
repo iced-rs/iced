@@ -500,8 +500,6 @@ mod toast {
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
             if let Event::Window(window::Event::RedrawRequested(now)) = &event {
-                let mut next_redraw: Option<window::RedrawRequest> = None;
-
                 self.instants.iter_mut().enumerate().for_each(
                     |(index, maybe_instant)| {
                         if let Some(instant) = maybe_instant.as_mut() {
@@ -512,22 +510,12 @@ mod toast {
                             if remaining == Duration::ZERO {
                                 maybe_instant.take();
                                 shell.publish((self.on_close)(index));
-                                next_redraw =
-                                    Some(window::RedrawRequest::NextFrame);
                             } else {
-                                let redraw_at =
-                                    window::RedrawRequest::At(*now + remaining);
-                                next_redraw = next_redraw
-                                    .map(|redraw| redraw.min(redraw_at))
-                                    .or(Some(redraw_at));
+                                shell.request_redraw_at(*now + remaining);
                             }
                         }
                     },
                 );
-
-                if let Some(redraw) = next_redraw {
-                    shell.request_redraw(redraw);
-                }
             }
 
             let viewport = layout.bounds();
