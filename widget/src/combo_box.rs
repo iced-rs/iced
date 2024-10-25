@@ -54,7 +54,6 @@
 //!     }
 //! }
 //! ```
-use crate::core::event;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
@@ -64,6 +63,7 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
+use crate::core::window;
 use crate::core::{
     Clipboard, Element, Event, Length, Padding, Rectangle, Shell, Size, Theme,
     Vector,
@@ -550,8 +550,19 @@ where
             viewport,
         );
 
-        if local_shell.event_status() == event::Status::Captured {
+        if local_shell.is_event_captured() {
             shell.capture_event();
+        }
+
+        if let Some(redraw_request) = local_shell.redraw_request() {
+            match redraw_request {
+                window::RedrawRequest::NextFrame => {
+                    shell.request_redraw();
+                }
+                window::RedrawRequest::At(at) => {
+                    shell.request_redraw_at(at);
+                }
+            }
         }
 
         // Then finally react to them here
@@ -580,6 +591,7 @@ where
                 );
             });
             shell.invalidate_layout();
+            shell.request_redraw();
         }
 
         let is_focused = {
@@ -624,8 +636,8 @@ where
                             }
 
                             shell.capture_event();
+                            shell.request_redraw();
                         }
-
                         (key::Named::ArrowUp, _) | (key::Named::Tab, true) => {
                             if let Some(index) = &mut menu.hovered_option {
                                 if *index == 0 {
@@ -661,6 +673,7 @@ where
                             }
 
                             shell.capture_event();
+                            shell.request_redraw();
                         }
                         (key::Named::ArrowDown, _)
                         | (key::Named::Tab, false)
@@ -708,6 +721,7 @@ where
                             }
 
                             shell.capture_event();
+                            shell.request_redraw();
                         }
                         _ => {}
                     }
