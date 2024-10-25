@@ -6,7 +6,7 @@ use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::touch;
 use crate::core::window;
-use crate::core::{Event, Point, Size};
+use crate::core::{Event, Point, Size, Vector};
 
 /// Converts some [`window::Settings`] into some `WindowAttributes` from `winit`.
 pub fn window_attributes(
@@ -299,6 +299,25 @@ pub fn window_event(
                 position.to_logical(scale_factor);
 
             Some(Event::Window(window::Event::Moved(Point::new(x, y))))
+        }
+        _ => None,
+    }
+}
+
+/// Converts a winit device event into an iced event.
+pub fn device_event(
+    event: winit::event::DeviceEvent,
+    scale_factor: f64,
+) -> Option<Event> {
+    use winit::event::DeviceEvent;
+
+    match event {
+        DeviceEvent::MouseMotion { delta: (x, y) } => {
+            let x = (x / scale_factor) as f32;
+            let y = (y / scale_factor) as f32;
+            Some(Event::Mouse(mouse::Event::MouseMotion {
+                delta: Vector { x, y },
+            }))
         }
         _ => None,
     }
@@ -1137,6 +1156,19 @@ pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
     let (pixels, size) = icon.into_raw();
 
     winit::window::Icon::from_rgba(pixels, size.width, size.height).ok()
+}
+
+/// Converts some [`CursorGrab`] into it's `winit` counterpart.
+///
+/// [`CursorGrab`]: window::CursorGrab
+pub fn cursor_grab(
+    cursor_grab: window::CursorGrab,
+) -> winit::window::CursorGrabMode {
+    match cursor_grab {
+        window::CursorGrab::None => winit::window::CursorGrabMode::None,
+        window::CursorGrab::Confined => winit::window::CursorGrabMode::Confined,
+        window::CursorGrab::Locked => winit::window::CursorGrabMode::Locked,
+    }
 }
 
 // See: https://en.wikipedia.org/wiki/Private_Use_Areas

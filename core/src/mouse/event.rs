@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{Point, Vector};
 
 use super::Button;
 
@@ -20,6 +20,21 @@ pub enum Event {
     CursorMoved {
         /// The new position of the mouse cursor
         position: Point,
+    },
+
+    /// The mouse was moved.
+    ///
+    /// This will fire in situations where [`CursorMoved`] might not,
+    /// such as the mouse being outside of the window or hitting the edge
+    /// of the monitor, and can be used to get the correct motion when
+    /// [`CursorGrab`] is set to something other than [`None`].
+    ///
+    /// [`CursorMoved`]: Event::CursorMoved
+    /// [`CursorGrab`]: super::super::window::CursorGrab
+    /// [`None`]: super::super::window::CursorGrab::None
+    MouseMotion {
+        /// The change in position of the mouse cursor
+        delta: Vector,
     },
 
     /// A mouse button was pressed.
