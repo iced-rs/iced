@@ -308,7 +308,7 @@ where
         self.widget.operate(tree, layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -322,7 +322,7 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        self.widget.on_event(
+        self.widget.update(
             tree,
             event,
             layout,
@@ -444,7 +444,7 @@ where
             .operate(state, layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         state: &mut Tree,
         event: Event,
@@ -455,7 +455,7 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.element.widget.on_event(
+        self.element.widget.update(
             state, event, layout, cursor, renderer, clipboard, shell, viewport,
         );
     }

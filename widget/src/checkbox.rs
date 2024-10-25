@@ -302,7 +302,7 @@ where
         )
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         _tree: &mut Tree,
         event: Event,

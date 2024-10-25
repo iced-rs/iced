@@ -308,7 +308,7 @@ where
 
                 let mut shell = Shell::new(messages);
 
-                self.root.as_widget_mut().on_event(
+                self.root.as_widget_mut().update(
                     &mut self.state,
                     event,
                     Layout::new(&self.base),

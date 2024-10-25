@@ -311,7 +311,7 @@ where
         })
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: core::Event,
@@ -327,7 +327,7 @@ where
 
         let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
         self.with_element_mut(|element| {
-            element.as_widget_mut().on_event(
+            element.as_widget_mut().update(
                 &mut t.borrow_mut().as_mut().unwrap().children[0],
                 event,
                 layout,

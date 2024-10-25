@@ -273,7 +273,7 @@ where
     ) {
         let bounds = layout.bounds();
 
-        self.list.on_event(
+        self.list.update(
             self.state, event, layout, cursor, renderer, clipboard, shell,
             &bounds,
         );
@@ -386,7 +386,7 @@ where
         layout::Node::new(size)
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,

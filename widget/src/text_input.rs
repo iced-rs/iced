@@ -627,7 +627,7 @@ where
         operation.text_input(state, self.id.as_ref().map(|id| &id.0));
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,

@@ -454,7 +454,7 @@ where
                 if let Some(compact) = controls.compact.as_mut() {
                     let compact_layout = children.next().unwrap();
 
-                    compact.as_widget_mut().on_event(
+                    compact.as_widget_mut().update(
                         &mut tree.children[2],
                         event.clone(),
                         compact_layout,
@@ -467,7 +467,7 @@ where
                 } else {
                     show_title = false;
 
-                    controls.full.as_widget_mut().on_event(
+                    controls.full.as_widget_mut().update(
                         &mut tree.children[1],
                         event.clone(),
                         controls_layout,
@@ -479,7 +479,7 @@ where
                     );
                 }
             } else {
-                controls.full.as_widget_mut().on_event(
+                controls.full.as_widget_mut().update(
                     &mut tree.children[1],
                     event.clone(),
                     controls_layout,
@@ -493,7 +493,7 @@ where
         }
 
         if show_title {
-            self.content.as_widget_mut().on_event(
+            self.content.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
                 title_layout,

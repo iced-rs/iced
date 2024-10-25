@@ -253,7 +253,7 @@ where
         });
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -270,7 +270,7 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
         {
-            child.as_widget_mut().on_event(
+            child.as_widget_mut().update(
                 state,
                 event.clone(),
                 layout,
@@ -492,7 +492,7 @@ where
         self.row.operate(tree, layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -503,7 +503,7 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.row.on_event(
+        self.row.update(
             tree, event, layout, cursor, renderer, clipboard, shell, viewport,
         );
     }

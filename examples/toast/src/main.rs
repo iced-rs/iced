@@ -358,7 +358,7 @@ mod toast {
             });
         }
 
-        fn on_event(
+        fn update(
             &mut self,
             state: &mut Tree,
             event: Event,
@@ -369,7 +369,7 @@ mod toast {
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
-            self.content.as_widget_mut().on_event(
+            self.content.as_widget_mut().update(
                 &mut state.children[0],
                 event,
                 layout,
@@ -529,7 +529,7 @@ mod toast {
                 let mut local_messages = vec![];
                 let mut local_shell = Shell::new(&mut local_messages);
 
-                child.as_widget_mut().on_event(
+                child.as_widget_mut().update(
                     state,
                     event.clone(),
                     layout,

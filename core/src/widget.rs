@@ -111,7 +111,7 @@ where
     /// Processes a runtime [`Event`].
     ///
     /// By default, it does nothing.
-    fn on_event(
+    fn update(
         &mut self,
         _state: &mut Tree,
         _event: Event,

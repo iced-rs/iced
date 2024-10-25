@@ -438,7 +438,7 @@ where
                 .operate(state, layout, renderer, operation);
         }
 
-        fn on_event(
+        fn update(
             &mut self,
             state: &mut Tree,
             event: Event,
@@ -454,7 +454,7 @@ where
                 core::Event::Mouse(mouse::Event::ButtonPressed(_))
             );
 
-            self.content.as_widget_mut().on_event(
+            self.content.as_widget_mut().update(
                 state, event, layout, cursor, renderer, clipboard, shell,
                 viewport,
             );
@@ -640,7 +640,7 @@ where
             }
         }
 
-        fn on_event(
+        fn update(
             &mut self,
             tree: &mut Tree,
             event: Event,
@@ -682,7 +682,7 @@ where
                 || self.is_top_focused
                 || self.is_top_overlay_active
             {
-                self.top.as_widget_mut().on_event(
+                self.top.as_widget_mut().update(
                     top_tree,
                     event.clone(),
                     top_layout,
@@ -698,7 +698,7 @@ where
                 return;
             }
 
-            self.base.as_widget_mut().on_event(
+            self.base.as_widget_mut().update(
                 base_tree,
                 event.clone(),
                 base_layout,

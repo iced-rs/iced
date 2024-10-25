@@ -195,7 +195,7 @@ where
         });
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -207,7 +207,7 @@ where
         viewport: &Rectangle,
     ) {
         self.with_element_mut(|element| {
-            element.as_widget_mut().on_event(
+            element.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
                 layout,

@@ -271,7 +271,7 @@ where
         };
 
         if !is_picked {
-            self.body.as_widget_mut().on_event(
+            self.body.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
                 body_layout,

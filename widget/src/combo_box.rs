@@ -510,7 +510,7 @@ where
         vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _, _>)]
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: Event,
@@ -539,7 +539,7 @@ where
         let mut local_shell = Shell::new(&mut local_messages);
 
         // Provide it to the widget
-        self.text_input.on_event(
+        self.text_input.update(
             &mut tree.children[0],
             event.clone(),
             layout,
@@ -728,7 +728,7 @@ where
                 published_message_to_shell = true;
 
                 // Unfocus the input
-                self.text_input.on_event(
+                self.text_input.update(
                     &mut tree.children[0],
                     Event::Mouse(mouse::Event::ButtonPressed(
                         mouse::Button::Left,
