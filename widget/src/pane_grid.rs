@@ -86,6 +86,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Background, Border, Clipboard, Color, Element, Event, Layout, Length,
     Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
@@ -166,6 +167,7 @@ pub struct PaneGrid<
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
     class: <Theme as Catalog>::Class<'a>,
+    last_mouse_interaction: Option<mouse::Interaction>,
 }
 
 impl<'a, Message, Theme, Renderer> PaneGrid<'a, Message, Theme, Renderer>
@@ -202,6 +204,7 @@ where
             on_drag: None,
             on_resize: None,
             class: <Theme as Catalog>::default(),
+            last_mouse_interaction: None,
         }
     }
 
@@ -291,6 +294,52 @@ where
             .is_none()
             .then(|| self.on_drag.is_some())
             .unwrap_or_default()
+    }
+
+    fn grid_interaction(
+        &self,
+        action: &state::Action,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+    ) -> Option<mouse::Interaction> {
+        if action.picked_pane().is_some() {
+            return Some(mouse::Interaction::Grabbing);
+        }
+
+        let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
+        let node = self.internal.layout();
+
+        let resize_axis =
+            action.picked_split().map(|(_, axis)| axis).or_else(|| {
+                resize_leeway.and_then(|leeway| {
+                    let cursor_position = cursor.position()?;
+                    let bounds = layout.bounds();
+
+                    let splits =
+                        node.split_regions(self.spacing, bounds.size());
+
+                    let relative_cursor = Point::new(
+                        cursor_position.x - bounds.x,
+                        cursor_position.y - bounds.y,
+                    );
+
+                    hovered_split(
+                        splits.iter(),
+                        self.spacing + leeway,
+                        relative_cursor,
+                    )
+                    .map(|(_, axis, _)| axis)
+                })
+            });
+
+        if let Some(resize_axis) = resize_axis {
+            return Some(match resize_axis {
+                Axis::Horizontal => mouse::Interaction::ResizingVertically,
+                Axis::Vertical => mouse::Interaction::ResizingHorizontally,
+            });
+        }
+
+        None
     }
 }
 
@@ -600,6 +649,8 @@ where
                                 shell.capture_event();
                             }
                         }
+                    } else if action.picked_pane().is_some() {
+                        shell.request_redraw();
                     }
                 }
             }
@@ -635,6 +686,31 @@ where
                 is_picked,
             );
         }
+
+        if shell.redraw_request() != Some(window::RedrawRequest::NextFrame) {
+            let interaction = self
+                .grid_interaction(action, layout, cursor)
+                .or_else(|| {
+                    self.contents.iter().zip(layout.children()).find_map(
+                        |(content, layout)| {
+                            content.grid_interaction(
+                                layout,
+                                cursor,
+                                on_drag.is_some(),
+                            )
+                        },
+                    )
+                })
+                .unwrap_or(mouse::Interaction::None);
+
+            if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+                self.last_mouse_interaction = Some(interaction);
+            } else if self.last_mouse_interaction.is_some_and(
+                |last_mouse_interaction| last_mouse_interaction != interaction,
+            ) {
+                shell.request_redraw();
+            }
+        }
     }
 
     fn mouse_interaction(
@@ -647,41 +723,10 @@ where
     ) -> mouse::Interaction {
         let Memory { action, .. } = tree.state.downcast_ref();
 
-        if action.picked_pane().is_some() {
-            return mouse::Interaction::Grabbing;
-        }
-
-        let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
-        let node = self.internal.layout();
-
-        let resize_axis =
-            action.picked_split().map(|(_, axis)| axis).or_else(|| {
-                resize_leeway.and_then(|leeway| {
-                    let cursor_position = cursor.position()?;
-                    let bounds = layout.bounds();
-
-                    let splits =
-                        node.split_regions(self.spacing, bounds.size());
-
-                    let relative_cursor = Point::new(
-                        cursor_position.x - bounds.x,
-                        cursor_position.y - bounds.y,
-                    );
-
-                    hovered_split(
-                        splits.iter(),
-                        self.spacing + leeway,
-                        relative_cursor,
-                    )
-                    .map(|(_, axis, _)| axis)
-                })
-            });
-
-        if let Some(resize_axis) = resize_axis {
-            return match resize_axis {
-                Axis::Horizontal => mouse::Interaction::ResizingVertically,
-                Axis::Vertical => mouse::Interaction::ResizingHorizontally,
-            };
+        if let Some(grid_interaction) =
+            self.grid_interaction(action, layout, cursor)
+        {
+            return grid_interaction;
         }
 
         self.panes

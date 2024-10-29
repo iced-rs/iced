@@ -284,6 +284,31 @@ where
         }
     }
 
+    pub(crate) fn grid_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        drag_enabled: bool,
+    ) -> Option<mouse::Interaction> {
+        let title_bar = self.title_bar.as_ref()?;
+
+        let mut children = layout.children();
+        let title_bar_layout = children.next().unwrap();
+
+        let is_over_pick_area = cursor
+            .position()
+            .map(|cursor_position| {
+                title_bar.is_over_pick_area(title_bar_layout, cursor_position)
+            })
+            .unwrap_or_default();
+
+        if is_over_pick_area && drag_enabled {
+            return Some(mouse::Interaction::Grab);
+        }
+
+        None
+    }
+
     pub(crate) fn mouse_interaction(
         &self,
         tree: &Tree,
