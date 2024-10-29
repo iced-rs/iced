@@ -17,7 +17,6 @@
 //! }
 //! ```
 use crate::core::border::{self, Border};
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -28,8 +27,8 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::window;
 use crate::core::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Rectangle,
-    Shadow, Shell, Size, Theme, Vector, Widget,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Padding,
+    Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 /// A generic widget that produces a message when pressed.
@@ -295,7 +294,7 @@ where
             viewport,
         );
 
-        if shell.event_status() == event::Status::Captured {
+        if shell.is_event_captured() {
             return;
         }
 

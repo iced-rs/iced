@@ -82,18 +82,21 @@ where
         new_size: Size,
         view: &dyn Fn(Size) -> Element<'a, Message, Theme, Renderer>,
     ) {
-        let is_tree_empty =
-            tree.tag == tree::Tag::stateless() && tree.children.is_empty();
+        if self.size != new_size {
+            self.element = view(new_size);
+            self.size = new_size;
+            self.layout = None;
 
-        if !is_tree_empty && self.size == new_size {
-            return;
+            tree.diff(&self.element);
+        } else {
+            let is_tree_empty =
+                tree.tag == tree::Tag::stateless() && tree.children.is_empty();
+
+            if is_tree_empty {
+                self.layout = None;
+                tree.diff(&self.element);
+            }
         }
-
-        self.element = view(new_size);
-        self.size = new_size;
-        self.layout = None;
-
-        tree.diff(&self.element);
     }
 
     fn resolve<R, T>(

@@ -818,6 +818,39 @@ async fn run_instance<P, C>(
                             continue;
                         };
 
+                        let physical_size = window.state.physical_size();
+
+                        if physical_size.width == 0 || physical_size.height == 0
+                        {
+                            continue;
+                        }
+
+                        if window.viewport_version
+                            != window.state.viewport_version()
+                        {
+                            let logical_size = window.state.logical_size();
+
+                            debug.layout_started();
+                            let ui = user_interfaces
+                                .remove(&id)
+                                .expect("Remove user interface");
+
+                            let _ = user_interfaces.insert(
+                                id,
+                                ui.relayout(logical_size, &mut window.renderer),
+                            );
+                            debug.layout_finished();
+
+                            compositor.configure_surface(
+                                &mut window.surface,
+                                physical_size.width,
+                                physical_size.height,
+                            );
+
+                            window.viewport_version =
+                                window.state.viewport_version();
+                        }
+
                         let redraw_event = core::Event::Window(
                             window::Event::RedrawRequested(Instant::now()),
                         );
@@ -875,65 +908,6 @@ async fn run_instance<P, C>(
                                     window.redraw_at = Some(at);
                                 }
                             }
-                        }
-
-                        let physical_size = window.state.physical_size();
-
-                        if physical_size.width == 0 || physical_size.height == 0
-                        {
-                            continue;
-                        }
-
-                        if window.viewport_version
-                            != window.state.viewport_version()
-                        {
-                            let logical_size = window.state.logical_size();
-
-                            debug.layout_started();
-                            let ui = user_interfaces
-                                .remove(&id)
-                                .expect("Remove user interface");
-
-                            let _ = user_interfaces.insert(
-                                id,
-                                ui.relayout(logical_size, &mut window.renderer),
-                            );
-                            debug.layout_finished();
-
-                            debug.draw_started();
-                            let new_mouse_interaction = user_interfaces
-                                .get_mut(&id)
-                                .expect("Get user interface")
-                                .draw(
-                                    &mut window.renderer,
-                                    window.state.theme(),
-                                    &renderer::Style {
-                                        text_color: window.state.text_color(),
-                                    },
-                                    window.state.cursor(),
-                                );
-                            debug.draw_finished();
-
-                            if new_mouse_interaction != window.mouse_interaction
-                            {
-                                window.raw.set_cursor(
-                                    conversion::mouse_interaction(
-                                        new_mouse_interaction,
-                                    ),
-                                );
-
-                                window.mouse_interaction =
-                                    new_mouse_interaction;
-                            }
-
-                            compositor.configure_surface(
-                                &mut window.surface,
-                                physical_size.width,
-                                physical_size.height,
-                            );
-
-                            window.viewport_version =
-                                window.state.viewport_version();
                         }
 
                         debug.render_started();
