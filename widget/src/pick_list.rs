@@ -828,7 +828,7 @@ pub enum Status {
 }
 
 /// The appearance of a pick list.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The text [`Color`] of the pick list.
     pub text_color: Color,

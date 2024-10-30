@@ -1856,7 +1856,7 @@ pub enum Status {
 }
 
 /// The appearance of a scrollable.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`container::Style`] of a scrollable.
     pub container: container::Style,
@@ -1869,7 +1869,7 @@ pub struct Style {
 }
 
 /// The appearance of the scrollbar of a scrollable.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rail {
     /// The [`Background`] of a scrollbar.
     pub background: Option<Background>,
@@ -1880,7 +1880,7 @@ pub struct Rail {
 }
 
 /// The appearance of the scroller of a scrollable.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Scroller {
     /// The [`Color`] of the scroller.
     pub color: Color,

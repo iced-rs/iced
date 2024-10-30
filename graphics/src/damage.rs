@@ -45,15 +45,12 @@ pub fn list<T>(
 /// Groups the given damage regions that are close together inside the given
 /// bounds.
 pub fn group(mut damage: Vec<Rectangle>, bounds: Rectangle) -> Vec<Rectangle> {
-    use std::cmp::Ordering;
-
     const AREA_THRESHOLD: f32 = 20_000.0;
 
     damage.sort_by(|a, b| {
         a.center()
             .distance(Point::ORIGIN)
-            .partial_cmp(&b.center().distance(Point::ORIGIN))
-            .unwrap_or(Ordering::Equal)
+            .total_cmp(&b.center().distance(Point::ORIGIN))
     });
 
     let mut output = Vec::new();

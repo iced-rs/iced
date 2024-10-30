@@ -191,6 +191,8 @@ pub fn window_event(
                 }))
             }
         },
+        // Ignore keyboard presses/releases during window focus/unfocus
+        WindowEvent::KeyboardInput { is_synthetic, .. } if is_synthetic => None,
         WindowEvent::KeyboardInput { event, .. } => Some(Event::Keyboard({
             let key = {
                 #[cfg(not(target_arch = "wasm32"))]

@@ -1045,7 +1045,9 @@ impl<Message> Binding<Message> {
             keyboard::Key::Named(key::Named::Backspace) => {
                 Some(Self::Backspace)
             }
-            keyboard::Key::Named(key::Named::Delete) if text.is_none() => {
+            keyboard::Key::Named(key::Named::Delete)
+                if text.is_none() || text.as_deref() == Some("\u{7f}") =>
+            {
                 Some(Self::Delete)
             }
             keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
@@ -1226,7 +1228,7 @@ pub enum Status {
 }
 
 /// The appearance of a text input.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`Background`] of the text input.
     pub background: Background,

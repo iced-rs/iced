@@ -562,7 +562,7 @@ where
 }
 
 /// The appearance of a [`Menu`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`Background`] of the menu.
     pub background: Background,

@@ -5,6 +5,9 @@ authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 publish = false
 
+[lints.clippy]
+large_enum_variant = "allow"
+
 [dependencies]
 iced.workspace = true
 iced.features = ["tokio", "markdown", "highlighter", "debug"]

@@ -1541,7 +1541,7 @@ pub enum Status {
 }
 
 /// The appearance of a text input.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`Background`] of the text input.
     pub background: Background,
