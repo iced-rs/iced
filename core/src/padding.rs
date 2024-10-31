@@ -69,6 +69,22 @@ pub fn right(padding: impl Into<Pixels>) -> Padding {
     Padding::default().right(padding)
 }
 
+/// Create a [`Padding`] with equal left and right sides.
+pub fn horizontal(padding: impl Into<Pixels>) -> Padding {
+    let padding: Pixels = padding.into();
+        Padding::default()
+        .left(padding.clone())
+        .right(padding)
+}
+
+/// Create a [`Padding`] with equal top and bottom sides.
+pub fn vertical(padding: impl Into<Pixels>) -> Padding {
+    let padding: Pixels = padding.into();
+    Padding::default()
+        .top(padding.clone())
+        .bottom(padding)
+}
+
 impl Padding {
     /// Padding of zero
     pub const ZERO: Padding = Padding {
