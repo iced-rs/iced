@@ -510,17 +510,19 @@ where
             | Event::Touch(touch::Event::FingerLost { .. }) => {
                 if let Some((pane, origin)) = action.picked_pane() {
                     if let Some(on_drag) = on_drag {
+                        let mut drag_event = DragEvent::Canceled { pane };
+
                         if let Some(cursor_position) = cursor.position() {
                             if cursor_position.distance(origin)
                                 > DRAG_DEADBAND_DISTANCE
                             {
-                                let event = if let Some(edge) =
+                                if let Some(edge) =
                                     in_edge(layout, cursor_position)
                                 {
-                                    DragEvent::Dropped {
+                                    drag_event = DragEvent::Dropped {
                                         pane,
                                         target: Target::Edge(edge),
-                                    }
+                                    };
                                 } else {
                                     let dropped_region = self
                                         .panes
@@ -536,24 +538,23 @@ where
                                             .map(|region| (target, region))
                                         });
 
-                                    match dropped_region {
-                                        Some(((target, _), region))
-                                            if pane != target =>
-                                        {
-                                            DragEvent::Dropped {
+                                    if let Some(((target, _), region)) =
+                                        dropped_region
+                                    {
+                                        if pane != target {
+                                            drag_event = DragEvent::Dropped {
                                                 pane,
                                                 target: Target::Pane(
                                                     target, region,
                                                 ),
-                                            }
+                                            };
                                         }
-                                        _ => DragEvent::Canceled { pane },
                                     }
-                                };
-
-                                shell.publish(on_drag(event));
+                                }
                             }
-                        }
+                        };
+
+                        shell.publish(on_drag(drag_event));
                     }
 
                     event_status = event::Status::Captured;
@@ -1131,8 +1132,7 @@ pub enum DragEvent {
         target: Target,
     },
 
-    /// A [`Pane`] was picked and then dropped outside of other [`Pane`]
-    /// boundaries.
+    /// A [`Pane`] was dropped outside of valid [`Target`] areas.
     Canceled {
         /// The picked [`Pane`].
         pane: Pane,
