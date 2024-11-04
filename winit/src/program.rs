@@ -1051,11 +1051,13 @@ async fn run_instance<P, C>(
                                     &mut messages,
                                 );
 
-                            #[cfg(not(feature = "reactive-rendering"))]
+                            #[cfg(feature = "unconditional-rendering")]
                             window.raw.request_redraw();
 
                             match ui_state {
-                                #[cfg(feature = "reactive-rendering")]
+                                #[cfg(not(
+                                    feature = "unconditional-rendering"
+                                ))]
                                 user_interface::State::Updated {
                                     redraw_request: Some(redraw_request),
                                 } => match redraw_request {

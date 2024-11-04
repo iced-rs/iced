@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "fira-sans", "auto-detect-theme", "reactive-rendering"]
+default = ["wgpu", "tiny-skia", "fira-sans", "auto-detect-theme"]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer backend
@@ -65,8 +65,8 @@ fira-sans = ["iced_renderer/fira-sans"]
 auto-detect-theme = ["iced_core/auto-detect-theme"]
 # Enables strict assertions for debugging purposes at the expense of performance
 strict-assertions = ["iced_renderer/strict-assertions"]
-# Redraws only when widgets react to some runtime event
-reactive-rendering = ["iced_winit/reactive-rendering"]
+# Redraws on every runtime event, and not only when a widget requests it
+unconditional-rendering = ["iced_winit/unconditional-rendering"]
 
 [dependencies]
 iced_core.workspace = true
