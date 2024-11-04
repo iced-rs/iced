@@ -662,8 +662,6 @@ where
             cursor,
             self.key_binding.as_deref(),
         ) {
-            shell.capture_event();
-
             match update {
                 Update::Click(click) => {
                     let action = match click.kind() {
@@ -679,6 +677,7 @@ where
                     state.drag_click = Some(click.kind());
 
                     shell.publish(on_edit(action));
+                    shell.capture_event();
                 }
                 Update::Drag(position) => {
                     shell.publish(on_edit(Action::Drag(position)));
@@ -699,6 +698,7 @@ where
                     shell.publish(on_edit(Action::Scroll {
                         lines: lines as i32,
                     }));
+                    shell.capture_event();
                 }
                 Update::Binding(binding) => {
                     fn apply_binding<
@@ -801,6 +801,8 @@ where
                     if let Some(focus) = &mut state.focus {
                         focus.updated_at = Instant::now();
                     }
+
+                    shell.capture_event();
                 }
             }
         }
