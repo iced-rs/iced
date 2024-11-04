@@ -1,7 +1,7 @@
 use crate::core::mouse;
-use crate::core::{Rectangle, Shell};
+use crate::core::Rectangle;
 use crate::renderer::wgpu::Primitive;
-use crate::shader;
+use crate::shader::{self, Action};
 
 /// The state and logic of a [`Shader`] widget.
 ///
@@ -17,10 +17,10 @@ pub trait Program<Message> {
     type Primitive: Primitive + 'static;
 
     /// Update the internal [`State`] of the [`Program`]. This can be used to reflect state changes
-    /// based on mouse & other events. You can use the [`Shell`] to publish messages, request a
-    /// redraw for the window, etc.
+    /// based on mouse & other events. You can return an [`Action`] to publish a message, request a
+    /// redraw, or capture the event.
     ///
-    /// By default, this method does and returns nothing.
+    /// By default, this method returns `None`.
     ///
     /// [`State`]: Self::State
     fn update(
@@ -29,8 +29,8 @@ pub trait Program<Message> {
         _event: shader::Event,
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
-        _shell: &mut Shell<'_, Message>,
-    ) {
+    ) -> Option<Action<Message>> {
+        None
     }
 
     /// Draws the [`Primitive`].
