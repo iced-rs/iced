@@ -518,12 +518,16 @@ where
             _ => {}
         };
 
-        let status = if state.is_open {
-            Status::Opened
-        } else if cursor.is_over(layout.bounds()) {
-            Status::Hovered
-        } else {
-            Status::Active
+        let status = {
+            let is_hovered = cursor.is_over(layout.bounds());
+
+            if state.is_open {
+                Status::Opened { is_hovered }
+            } else if is_hovered {
+                Status::Hovered
+            } else {
+                Status::Active
+            }
         };
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
@@ -824,7 +828,10 @@ pub enum Status {
     /// The [`PickList`] is being hovered.
     Hovered,
     /// The [`PickList`] is open.
-    Opened,
+    Opened {
+        /// Whether the [`PickList`] is hovered, while open.
+        is_hovered: bool,
+    },
 }
 
 /// The appearance of a pick list.
@@ -898,7 +905,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active => active,
-        Status::Hovered | Status::Opened => Style {
+        Status::Hovered | Status::Opened { .. } => Style {
             border: Border {
                 color: palette.primary.strong.color,
                 ..active.border
