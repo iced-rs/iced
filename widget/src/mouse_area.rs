@@ -20,32 +20,68 @@ pub struct MouseArea<
     Renderer = crate::Renderer,
 > {
     content: Element<'a, Message, Theme, Renderer>,
-    on_press: Option<Message>,
-    on_release: Option<Message>,
-    on_double_click: Option<Message>,
-    on_right_press: Option<Message>,
-    on_right_release: Option<Message>,
-    on_middle_press: Option<Message>,
-    on_middle_release: Option<Message>,
+    on_press: Option<OnPress<'a, Message>>,
+    on_release: Option<OnPress<'a, Message>>,
+    on_double_click: Option<OnPress<'a, Message>>,
+    on_right_press: Option<OnPress<'a, Message>>,
+    on_right_release: Option<OnPress<'a, Message>>,
+    on_middle_press: Option<OnPress<'a, Message>>,
+    on_middle_release: Option<OnPress<'a, Message>>,
     on_scroll: Option<Box<dyn Fn(mouse::ScrollDelta) -> Message + 'a>>,
-    on_enter: Option<Message>,
+    on_enter: Option<OnPress<'a, Message>>,
     on_move: Option<Box<dyn Fn(Point) -> Message + 'a>>,
-    on_exit: Option<Message>,
+    on_exit: Option<OnPress<'a, Message>>,
     interaction: Option<mouse::Interaction>,
+}
+
+enum OnPress<'a, Message> {
+    Direct(Message),
+    Closure(Box<dyn Fn() -> Message + 'a>),
+}
+
+impl<'a, Message: Clone> OnPress<'a, Message> {
+    fn get(&self) -> Message {
+        match self {
+            OnPress::Direct(message) => message.clone(),
+            OnPress::Closure(f) => f(),
+        }
+    }
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// The message to emit on a left button press.
     #[must_use]
     pub fn on_press(mut self, message: Message) -> Self {
-        self.on_press = Some(message);
+        self.on_press = Some(OnPress::Direct(message));
+        self
+    }
+
+    /// This is analogous to [`MouseArea::on_press`], but using a closure to produce
+    /// the message.
+    #[must_use]
+    pub fn on_press_with(
+        mut self,
+        on_press: impl Fn() -> Message + 'a,
+    ) -> Self {
+        self.on_press = Some(OnPress::Closure(Box::new(on_press)));
         self
     }
 
     /// The message to emit on a left button release.
     #[must_use]
     pub fn on_release(mut self, message: Message) -> Self {
-        self.on_release = Some(message);
+        self.on_release = Some(OnPress::Direct(message));
+        self
+    }
+
+    /// This is analogous to [`MouseArea::on_release`], but using a closure to produce
+    /// the message.
+    #[must_use]
+    pub fn on_release_with(
+        mut self,
+        on_release: impl Fn() -> Message + 'a,
+    ) -> Self {
+        self.on_release = Some(OnPress::Closure(Box::new(on_release)));
         self
     }
 
@@ -61,35 +97,90 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// [`on_release`]: Self::on_release
     #[must_use]
     pub fn on_double_click(mut self, message: Message) -> Self {
-        self.on_double_click = Some(message);
+        self.on_double_click = Some(OnPress::Direct(message));
+        self
+    }
+
+    /// This is analogous to [`MouseArea::on_double_click`], but using a closure to produce
+    /// the message.
+    #[must_use]
+    pub fn on_double_click_with(
+        mut self, 
+        on_double_click: impl Fn() -> Message + 'a
+    ) -> Self {
+        self.on_double_click = Some(OnPress::Closure(Box::new(on_double_click)));
         self
     }
 
     /// The message to emit on a right button press.
     #[must_use]
     pub fn on_right_press(mut self, message: Message) -> Self {
-        self.on_right_press = Some(message);
+        self.on_right_press = Some(OnPress::Direct(message));
+        self
+    }
+
+    /// This is analogous to [`MouseArea::on_right_press`], but using a closure to produce
+    /// the message.
+    #[must_use]
+    pub fn on_right_press_with(
+        mut self, 
+        on_right_press: impl Fn() -> Message + 'a,
+    ) -> Self {
+        self.on_right_press = Some(OnPress::Closure(Box::new(on_right_press)));
         self
     }
 
     /// The message to emit on a right button release.
     #[must_use]
     pub fn on_right_release(mut self, message: Message) -> Self {
-        self.on_right_release = Some(message);
+        self.on_right_release = Some(OnPress::Direct(message));
+        self
+    }
+
+    /// This is analogous to [`MouseArea::on_right_release`], but using a closure to produce
+    /// the message.
+    #[must_use]
+    pub fn on_right_release_with(
+        mut self, 
+        on_right_release: impl Fn() -> Message + 'a
+    ) -> Self {
+        self.on_right_release = Some(OnPress::Closure(Box::new(on_right_release)));
         self
     }
 
     /// The message to emit on a middle button press.
     #[must_use]
     pub fn on_middle_press(mut self, message: Message) -> Self {
-        self.on_middle_press = Some(message);
+        self.on_middle_press = Some(OnPress::Direct(message));
+        self
+    }
+
+    /// This is analogous to [`MouseArea::on_middle_press`], but using a closure to produce
+    /// the message.
+    #[must_use]
+    pub fn on_middle_press_with(
+        mut self, 
+        on_middle_press: impl Fn() -> Message + 'a
+    ) -> Self {
+        self.on_middle_press = Some(OnPress::Closure(Box::new(on_middle_press)));
         self
     }
 
     /// The message to emit on a middle button release.
     #[must_use]
     pub fn on_middle_release(mut self, message: Message) -> Self {
-        self.on_middle_release = Some(message);
+        self.on_middle_release = Some(OnPress::Direct(message));
+        self
+    }
+
+    /// This is analogous to [`MouseArea::on_middle_release`], but using a closure to produce
+    /// the message.
+    #[must_use]
+    pub fn on_middle_release_with(
+        mut self, 
+        on_middle_release: impl Fn() -> Message + 'a
+    ) -> Self {
+        self.on_middle_release = Some(OnPress::Closure(Box::new(on_middle_release)));
         self
     }
 
@@ -106,7 +197,18 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// The message to emit when the mouse enters the area.
     #[must_use]
     pub fn on_enter(mut self, message: Message) -> Self {
-        self.on_enter = Some(message);
+        self.on_enter = Some(OnPress::Direct(message));
+        self
+    }
+
+    /// This is analogous to [`MouseArea::on_enter`], but using a closure to produce
+    /// the message.
+    #[must_use]
+    pub fn on_enter_with(
+        mut self, 
+        on_enter: impl Fn() -> Message + 'a
+    ) -> Self {
+        self.on_enter = Some(OnPress::Closure(Box::new(on_enter)));
         self
     }
 
@@ -120,7 +222,18 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// The message to emit when the mouse exits the area.
     #[must_use]
     pub fn on_exit(mut self, message: Message) -> Self {
-        self.on_exit = Some(message);
+        self.on_exit = Some(OnPress::Direct(message));
+        self
+    }
+
+    /// This is analogous to [`MouseArea::on_exit`], but using a closure to produce
+    /// the message.
+    #[must_use]
+    pub fn on_exit_with(
+        mut self, 
+        on_exit: impl Fn() -> Message + 'a
+    ) -> Self {
+        self.on_exit = Some(OnPress::Closure(Box::new(on_exit)));
         self
     }
 
@@ -348,7 +461,7 @@ fn update<Message: Clone, Theme, Renderer>(
             widget.on_exit.as_ref(),
         ) {
             (Some(on_enter), _, _) if state.is_hovered && !was_hovered => {
-                shell.publish(on_enter.clone());
+                shell.publish(on_enter.get().clone());
             }
             (_, Some(on_move), _) if state.is_hovered => {
                 if let Some(position) = cursor.position_in(layout.bounds()) {
@@ -356,7 +469,7 @@ fn update<Message: Clone, Theme, Renderer>(
                 }
             }
             (_, _, Some(on_exit)) if !state.is_hovered && was_hovered => {
-                shell.publish(on_exit.clone());
+                shell.publish(on_exit.get().clone());
             }
             _ => {}
         }
@@ -373,7 +486,7 @@ fn update<Message: Clone, Theme, Renderer>(
 
         if let Some(message) = widget.on_press.as_ref() {
             captured = true;
-            shell.publish(message.clone());
+            shell.publish(message.get().clone());
         }
 
         if let Some(position) = cursor_position {
@@ -385,7 +498,7 @@ fn update<Message: Clone, Theme, Renderer>(
                 );
 
                 if matches!(new_click.kind(), mouse::click::Kind::Double) {
-                    shell.publish(message.clone());
+                    shell.publish(message.get().clone());
                 }
 
                 state.previous_click = Some(new_click);
@@ -405,7 +518,7 @@ fn update<Message: Clone, Theme, Renderer>(
         if let Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerLifted { .. }) = event
         {
-            shell.publish(message.clone());
+            shell.publish(message.get().clone());
 
             return event::Status::Captured;
         }
@@ -415,7 +528,7 @@ fn update<Message: Clone, Theme, Renderer>(
         if let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) =
             event
         {
-            shell.publish(message.clone());
+            shell.publish(message.get().clone());
 
             return event::Status::Captured;
         }
@@ -426,7 +539,7 @@ fn update<Message: Clone, Theme, Renderer>(
             mouse::Button::Right,
         )) = event
         {
-            shell.publish(message.clone());
+            shell.publish(message.get().clone());
 
             return event::Status::Captured;
         }
@@ -437,7 +550,7 @@ fn update<Message: Clone, Theme, Renderer>(
             mouse::Button::Middle,
         )) = event
         {
-            shell.publish(message.clone());
+            shell.publish(message.get().clone());
 
             return event::Status::Captured;
         }
@@ -448,7 +561,7 @@ fn update<Message: Clone, Theme, Renderer>(
             mouse::Button::Middle,
         )) = event
         {
-            shell.publish(message.clone());
+            shell.publish(message.get().clone());
 
             return event::Status::Captured;
         }
