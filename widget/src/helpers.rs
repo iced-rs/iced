@@ -534,6 +534,7 @@ where
         top: Element<'a, Message, Theme, Renderer>,
         is_top_focused: bool,
         is_top_overlay_active: bool,
+        is_hovered: bool,
     }
 
     impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -655,6 +656,8 @@ where
             let (base_layout, base_tree) = children.next().unwrap();
             let (top_layout, top_tree) = children.next().unwrap();
 
+            let is_hovered = cursor.is_over(layout.bounds());
+
             if matches!(event, Event::Window(window::Event::RedrawRequested(_)))
             {
                 let mut count_focused = operation::focusable::count();
@@ -670,6 +673,10 @@ where
                     operation::Outcome::Some(count) => count.focused.is_some(),
                     _ => false,
                 };
+
+                self.is_hovered = is_hovered;
+            } else if is_hovered != self.is_hovered {
+                shell.request_redraw();
             }
 
             if matches!(
@@ -678,7 +685,7 @@ where
                     mouse::Event::CursorMoved { .. }
                         | mouse::Event::ButtonReleased(_)
                 )
-            ) || cursor.is_over(layout.bounds())
+            ) || is_hovered
                 || self.is_top_focused
                 || self.is_top_overlay_active
             {
@@ -767,6 +774,7 @@ where
         top: top.into(),
         is_top_focused: false,
         is_top_overlay_active: false,
+        is_hovered: false,
     })
 }
 
