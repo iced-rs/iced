@@ -105,10 +105,11 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// the message.
     #[must_use]
     pub fn on_double_click_with(
-        mut self, 
-        on_double_click: impl Fn() -> Message + 'a
+        mut self,
+        on_double_click: impl Fn() -> Message + 'a,
     ) -> Self {
-        self.on_double_click = Some(OnPress::Closure(Box::new(on_double_click)));
+        self.on_double_click =
+            Some(OnPress::Closure(Box::new(on_double_click)));
         self
     }
 
@@ -123,7 +124,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// the message.
     #[must_use]
     pub fn on_right_press_with(
-        mut self, 
+        mut self,
         on_right_press: impl Fn() -> Message + 'a,
     ) -> Self {
         self.on_right_press = Some(OnPress::Closure(Box::new(on_right_press)));
@@ -141,10 +142,11 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// the message.
     #[must_use]
     pub fn on_right_release_with(
-        mut self, 
-        on_right_release: impl Fn() -> Message + 'a
+        mut self,
+        on_right_release: impl Fn() -> Message + 'a,
     ) -> Self {
-        self.on_right_release = Some(OnPress::Closure(Box::new(on_right_release)));
+        self.on_right_release =
+            Some(OnPress::Closure(Box::new(on_right_release)));
         self
     }
 
@@ -159,10 +161,11 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// the message.
     #[must_use]
     pub fn on_middle_press_with(
-        mut self, 
-        on_middle_press: impl Fn() -> Message + 'a
+        mut self,
+        on_middle_press: impl Fn() -> Message + 'a,
     ) -> Self {
-        self.on_middle_press = Some(OnPress::Closure(Box::new(on_middle_press)));
+        self.on_middle_press =
+            Some(OnPress::Closure(Box::new(on_middle_press)));
         self
     }
 
@@ -177,10 +180,11 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// the message.
     #[must_use]
     pub fn on_middle_release_with(
-        mut self, 
-        on_middle_release: impl Fn() -> Message + 'a
+        mut self,
+        on_middle_release: impl Fn() -> Message + 'a,
     ) -> Self {
-        self.on_middle_release = Some(OnPress::Closure(Box::new(on_middle_release)));
+        self.on_middle_release =
+            Some(OnPress::Closure(Box::new(on_middle_release)));
         self
     }
 
@@ -205,8 +209,8 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// the message.
     #[must_use]
     pub fn on_enter_with(
-        mut self, 
-        on_enter: impl Fn() -> Message + 'a
+        mut self,
+        on_enter: impl Fn() -> Message + 'a,
     ) -> Self {
         self.on_enter = Some(OnPress::Closure(Box::new(on_enter)));
         self
@@ -229,10 +233,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// This is analogous to [`MouseArea::on_exit`], but using a closure to produce
     /// the message.
     #[must_use]
-    pub fn on_exit_with(
-        mut self, 
-        on_exit: impl Fn() -> Message + 'a
-    ) -> Self {
+    pub fn on_exit_with(mut self, on_exit: impl Fn() -> Message + 'a) -> Self {
         self.on_exit = Some(OnPress::Closure(Box::new(on_exit)));
         self
     }
