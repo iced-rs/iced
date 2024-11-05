@@ -23,6 +23,42 @@ pub enum Event {
 
     /// A touch event
     Touch(touch::Event),
+
+    /// Special platform event
+    Special(Box<dyn SpecialEvent + Send>),
+}
+
+/// Define the trait without Clone and PartialEq
+pub trait SpecialEvent: std::fmt::Debug + std::any::Any {
+    /// check if it is equal
+    fn equal(&self, other: &dyn SpecialEvent) -> bool;
+
+    /// how to downcast self as any
+    fn as_any(&self) -> &dyn std::any::Any;
+
+    /// We add a `clone_box` method for cloning trait objects
+    fn clone_box(&self) -> Box<dyn SpecialEvent + Send>;
+}
+
+// Implement `CustomInner` for `Clone`
+impl Clone for Box<dyn SpecialEvent + Send> {
+    fn clone(&self) -> Box<dyn SpecialEvent + Send> {
+        self.clone_box()
+    }
+}
+
+// Example implementation for PartialEq
+impl PartialEq for Box<dyn SpecialEvent + Send> {
+    fn eq(&self, other: &Self) -> bool {
+        self.equal(&(**other)) // Customize this equality check as needed
+    }
+}
+
+impl dyn SpecialEvent {
+    /// down cast self to other type
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.as_any().downcast_ref::<T>()
+    }
 }
 
 /// The status of an [`Event`] after being processed.
