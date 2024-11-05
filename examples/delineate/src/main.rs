@@ -28,8 +28,8 @@ enum Message {
     MouseMoved(Point),
     WindowResized,
     Scrolled,
-    OuterFound(Option<Rectangle>),
-    InnerFound(Option<Rectangle>),
+    OuterFound(Option<selector::Target>),
+    InnerFound(Option<selector::Target>),
 }
 
 impl Example {
@@ -41,16 +41,18 @@ impl Example {
                 Task::none()
             }
             Message::Scrolled | Message::WindowResized => Task::batch(vec![
-                selector::delineate(OUTER_CONTAINER).map(Message::OuterFound),
-                selector::delineate(INNER_CONTAINER).map(Message::InnerFound),
+                selector::find(OUTER_CONTAINER).map(Message::OuterFound),
+                selector::find(INNER_CONTAINER).map(Message::InnerFound),
             ]),
             Message::OuterFound(outer) => {
-                self.outer_bounds = outer;
+                self.outer_bounds =
+                    outer.as_ref().and_then(selector::Target::visible_bounds);
 
                 Task::none()
             }
             Message::InnerFound(inner) => {
-                self.inner_bounds = inner;
+                self.inner_bounds =
+                    inner.as_ref().and_then(selector::Target::visible_bounds);
 
                 Task::none()
             }

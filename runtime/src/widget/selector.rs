@@ -1,28 +1,25 @@
 //! Find and query widgets in your applications.
-pub use iced_selector::{Bounded, Candidate, Selector, Target, Text};
-
-use crate::core::Rectangle;
+pub use iced_selector::{
+    Bounded, Candidate, Selector, Target, Text, id, is_focused,
+};
 
 use crate::Task;
-use crate::core::widget;
 use crate::task;
 
-/// Finds a widget by the given [`widget::Id`].
-pub fn find_by_id(id: impl Into<widget::Id>) -> Task<Option<Target>> {
-    task::widget(id.into().find())
-}
-
-/// Finds a widget that contains the given text.
-pub fn find_by_text(text: impl Into<String>) -> Task<Option<Text>> {
-    task::widget(Selector::find(text.into()))
-}
-
-/// Finds the visible bounds of the first [`Selector`] target.
-pub fn delineate<S>(selector: S) -> Task<Option<Rectangle>>
+/// Finds a widget matching the given [`Selector`].
+pub fn find<S>(selector: S) -> Task<Option<S::Output>>
 where
     S: Selector + Send + 'static,
-    S::Output: Bounded + Clone + Send + 'static,
+    S::Output: Send + Clone + 'static,
 {
     task::widget(selector.find())
-        .map(|target| target.as_ref().and_then(Bounded::visible_bounds))
+}
+
+/// Finds all widgets matching the given [`Selector`].
+pub fn find_all<S>(selector: S) -> Task<Vec<S::Output>>
+where
+    S: Selector + Send + 'static,
+    S::Output: Send + Clone + 'static,
+{
+    task::widget(selector.find_all())
 }
