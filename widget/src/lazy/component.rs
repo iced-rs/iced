@@ -601,7 +601,7 @@ where
         .unwrap_or_default()
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         event: core::Event,
         layout: Layout<'_>,
@@ -614,7 +614,7 @@ where
         let mut local_shell = Shell::new(&mut local_messages);
 
         let _ = self.with_overlay_mut_maybe(|overlay| {
-            overlay.on_event(
+            overlay.update(
                 event,
                 layout,
                 cursor,

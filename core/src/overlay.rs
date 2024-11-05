@@ -56,7 +56,7 @@ where
     ///   * a [`Clipboard`], if available
     ///
     /// By default, it does nothing.
-    fn on_event(
+    fn update(
         &mut self,
         _event: Event,
         _layout: Layout<'_>,

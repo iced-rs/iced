@@ -72,7 +72,7 @@ where
         )
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         event: Event,
         layout: Layout<'_>,
@@ -82,7 +82,7 @@ where
         shell: &mut Shell<'_, Message>,
     ) {
         for (child, layout) in self.children.iter_mut().zip(layout.children()) {
-            child.on_event(
+            child.update(
                 event.clone(),
                 layout,
                 cursor,

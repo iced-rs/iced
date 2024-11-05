@@ -210,7 +210,7 @@ where
             for event in events.iter().cloned() {
                 let mut shell = Shell::new(messages);
 
-                overlay.on_event(
+                overlay.update(
                     event,
                     Layout::new(&layout),
                     cursor,

@@ -417,7 +417,7 @@ where
         .unwrap_or_default()
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         event: Event,
         layout: Layout<'_>,
@@ -429,7 +429,7 @@ where
         let mut is_layout_invalid = false;
 
         let _ = self.with_overlay_mut_maybe(|overlay| {
-            overlay.on_event(event, layout, cursor, renderer, clipboard, shell);
+            overlay.update(event, layout, cursor, renderer, clipboard, shell);
 
             is_layout_invalid = shell.is_layout_invalid();
         });

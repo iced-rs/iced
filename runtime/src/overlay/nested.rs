@@ -158,7 +158,7 @@ where
     }
 
     /// Processes a runtime [`Event`].
-    pub fn on_event(
+    pub fn update(
         &mut self,
         event: Event,
         layout: Layout<'_>,
@@ -211,7 +211,7 @@ where
                             })
                             .unwrap_or_default();
 
-                    element.on_event(
+                    element.update(
                         event,
                         layout,
                         if nested_is_over {

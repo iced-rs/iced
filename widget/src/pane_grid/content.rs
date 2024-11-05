@@ -239,7 +239,7 @@ where
         );
     }
 
-    pub(crate) fn on_event(
+    pub(crate) fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -254,7 +254,7 @@ where
         let body_layout = if let Some(title_bar) = &mut self.title_bar {
             let mut children = layout.children();
 
-            title_bar.on_event(
+            title_bar.update(
                 &mut tree.children[1],
                 event.clone(),
                 children.next().unwrap(),

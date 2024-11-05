@@ -218,7 +218,7 @@ where
                 );
             }
 
-            fn on_event(
+            fn update(
                 &mut self,
                 event: Event,
                 layout: Layout<'_>,
@@ -227,9 +227,8 @@ where
                 clipboard: &mut dyn Clipboard,
                 shell: &mut Shell<'_, Message>,
             ) {
-                self.content.on_event(
-                    event, layout, cursor, renderer, clipboard, shell,
-                );
+                self.content
+                    .update(event, layout, cursor, renderer, clipboard, shell);
             }
 
             fn operate(

@@ -49,7 +49,7 @@ where
     }
 
     /// Processes a runtime [`Event`].
-    pub fn on_event(
+    pub fn update(
         &mut self,
         event: Event,
         layout: Layout<'_>,
@@ -59,7 +59,7 @@ where
         shell: &mut Shell<'_, Message>,
     ) {
         self.overlay
-            .on_event(event, layout, cursor, renderer, clipboard, shell);
+            .update(event, layout, cursor, renderer, clipboard, shell);
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Element`].
@@ -148,7 +148,7 @@ where
         self.content.operate(layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         event: Event,
         layout: Layout<'_>,
@@ -160,7 +160,7 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        self.content.on_event(
+        self.content.update(
             event,
             layout,
             cursor,

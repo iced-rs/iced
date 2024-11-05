@@ -427,7 +427,7 @@ where
         }
     }
 
-    pub(crate) fn on_event(
+    pub(crate) fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,

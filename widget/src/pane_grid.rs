@@ -674,7 +674,7 @@ where
         {
             let is_picked = picked_pane == Some(pane);
 
-            content.on_event(
+            content.update(
                 tree,
                 event.clone(),
                 layout,

@@ -386,7 +386,7 @@ where
         .unwrap_or_default()
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         event: Event,
         layout: Layout<'_>,
@@ -396,7 +396,7 @@ where
         shell: &mut Shell<'_, Message>,
     ) {
         let _ = self.with_overlay_mut_maybe(|overlay| {
-            overlay.on_event(event, layout, cursor, renderer, clipboard, shell);
+            overlay.update(event, layout, cursor, renderer, clipboard, shell);
         });
     }
 

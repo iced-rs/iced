@@ -489,7 +489,7 @@ mod toast {
             .translate(Vector::new(self.position.x, self.position.y))
         }
 
-        fn on_event(
+        fn update(
             &mut self,
             event: Event,
             layout: Layout<'_>,

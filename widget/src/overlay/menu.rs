@@ -262,7 +262,7 @@ where
         })
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         event: Event,
         layout: Layout<'_>,
