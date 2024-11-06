@@ -72,13 +72,13 @@ fn build_pipeline(
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
             module: &vs_module,
-            entry_point: "main",
+            entry_point: Some("main"),
             buffers: &[],
             compilation_options: wgpu::PipelineCompilationOptions::default(),
         },
         fragment: Some(wgpu::FragmentState {
             module: &fs_module,
-            entry_point: "main",
+            entry_point: Some("main"),
             targets: &[Some(wgpu::ColorTargetState {
                 format: texture_format,
                 blend: Some(wgpu::BlendState {
