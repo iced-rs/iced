@@ -491,6 +491,36 @@ where
             &None
         };
 
+        let picked_pane = action.picked_pane().map(|(pane, _)| pane);
+
+        for (((pane, content), tree), layout) in self
+            .panes
+            .iter()
+            .copied()
+            .zip(&mut self.contents)
+            .zip(&mut tree.children)
+            .zip(layout.children())
+            .filter(|(((pane, _), _), _)| {
+                self.internal
+                    .maximized()
+                    .map_or(true, |maximized| *pane == maximized)
+            })
+        {
+            let is_picked = picked_pane == Some(pane);
+
+            content.update(
+                tree,
+                event.clone(),
+                layout,
+                cursor,
+                renderer,
+                clipboard,
+                shell,
+                viewport,
+                is_picked,
+            );
+        }
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
@@ -601,10 +631,6 @@ where
                             }
                         }
                     }
-
-                    shell.capture_event();
-                } else if action.picked_split().is_some() {
-                    shell.capture_event();
                 }
 
                 *action = state::Action::Idle;
@@ -657,49 +683,26 @@ where
             _ => {}
         }
 
-        let picked_pane = action.picked_pane().map(|(pane, _)| pane);
-
-        for (((pane, content), tree), layout) in self
-            .panes
-            .iter()
-            .copied()
-            .zip(&mut self.contents)
-            .zip(&mut tree.children)
-            .zip(layout.children())
-            .filter(|(((pane, _), _), _)| {
-                self.internal
-                    .maximized()
-                    .map_or(true, |maximized| *pane == maximized)
-            })
-        {
-            let is_picked = picked_pane == Some(pane);
-
-            content.update(
-                tree,
-                event.clone(),
-                layout,
-                cursor,
-                renderer,
-                clipboard,
-                shell,
-                viewport,
-                is_picked,
-            );
-        }
-
         if shell.redraw_request() != Some(window::RedrawRequest::NextFrame) {
             let interaction = self
                 .grid_interaction(action, layout, cursor)
                 .or_else(|| {
-                    self.contents.iter().zip(layout.children()).find_map(
-                        |(content, layout)| {
+                    self.panes
+                        .iter()
+                        .zip(&self.contents)
+                        .zip(layout.children())
+                        .filter(|((&pane, _content), _layout)| {
+                            self.internal
+                                .maximized()
+                                .map_or(true, |maximized| pane == maximized)
+                        })
+                        .find_map(|((_pane, content), layout)| {
                             content.grid_interaction(
                                 layout,
                                 cursor,
                                 on_drag.is_some(),
                             )
-                        },
-                    )
+                        })
                 })
                 .unwrap_or(mouse::Interaction::None);
 
