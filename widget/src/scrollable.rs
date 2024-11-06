@@ -930,14 +930,21 @@ where
                 is_vertical_scrollbar_dragged: state
                     .y_scroller_grabbed_at
                     .is_some(),
+                is_horizontal_scrollbar_disabled: scrollbars.x_disabled(),
+                is_vertical_scrollbar_disabled: scrollbars.y_disabled(),
             }
         } else if cursor_over_scrollable.is_some() {
             Status::Hovered {
                 is_horizontal_scrollbar_hovered: mouse_over_x_scrollbar,
                 is_vertical_scrollbar_hovered: mouse_over_y_scrollbar,
+                is_horizontal_scrollbar_disabled: scrollbars.x_disabled(),
+                is_vertical_scrollbar_disabled: scrollbars.y_disabled(),
             }
         } else {
-            Status::Active
+            Status::Active {
+                is_horizontal_scrollbar_disabled: scrollbars.x_disabled(),
+                is_vertical_scrollbar_disabled: scrollbars.y_disabled(),
+            }
         };
 
         let style = theme.style(&self.class, status);
@@ -1559,15 +1566,27 @@ impl Scrollbars {
     ) -> Self {
         let translation = state.translation(direction, bounds, content_bounds);
 
-        let show_scrollbar_x = direction.horizontal().filter(|scrollbar| {
-            scrollbar.spacing.is_some() || content_bounds.width > bounds.width
-        });
+        let show_scrollbar_x = direction
+            .horizontal()
+            .filter(|scrollbar| {
+                scrollbar.spacing.is_some()
+                    || content_bounds.width > bounds.width
+            })
+            .map(|properties| {
+                (properties, content_bounds.width <= bounds.width)
+            });
 
-        let show_scrollbar_y = direction.vertical().filter(|scrollbar| {
-            scrollbar.spacing.is_some() || content_bounds.height > bounds.height
-        });
+        let show_scrollbar_y = direction
+            .vertical()
+            .filter(|scrollbar| {
+                scrollbar.spacing.is_some()
+                    || content_bounds.height > bounds.height
+            })
+            .map(|properties| {
+                (properties, content_bounds.height <= bounds.height)
+            });
 
-        let y_scrollbar = if let Some(vertical) = show_scrollbar_y {
+        let y_scrollbar = if let Some((vertical, disabled)) = show_scrollbar_y {
             let Scrollbar {
                 width,
                 margin,
@@ -1578,7 +1597,7 @@ impl Scrollbars {
             // Adjust the height of the vertical scrollbar if the horizontal scrollbar
             // is present
             let x_scrollbar_height = show_scrollbar_x
-                .map_or(0.0, |h| h.width.max(h.scroller_width) + h.margin);
+                .map_or(0.0, |(h, _)| h.width.max(h.scroller_width) + h.margin);
 
             let total_scrollbar_width =
                 width.max(scroller_width) + 2.0 * margin;
@@ -1632,12 +1651,14 @@ impl Scrollbars {
                 bounds: scrollbar_bounds,
                 scroller,
                 alignment: vertical.alignment,
+                disabled,
             })
         } else {
             None
         };
 
-        let x_scrollbar = if let Some(horizontal) = show_scrollbar_x {
+        let x_scrollbar = if let Some((horizontal, disabled)) = show_scrollbar_x
+        {
             let Scrollbar {
                 width,
                 margin,
@@ -1701,6 +1722,7 @@ impl Scrollbars {
                 bounds: scrollbar_bounds,
                 scroller,
                 alignment: horizontal.alignment,
+                disabled,
             })
         } else {
             None
@@ -1727,6 +1749,14 @@ impl Scrollbars {
         } else {
             (false, false)
         }
+    }
+
+    fn y_disabled(&self) -> bool {
+        self.y.map(|y| y.disabled).unwrap_or(false)
+    }
+
+    fn x_disabled(&self) -> bool {
+        self.x.map(|x| x.disabled).unwrap_or(false)
     }
 
     fn grab_y_scroller(&self, cursor_position: Point) -> Option<f32> {
@@ -1775,6 +1805,7 @@ pub(super) mod internals {
         pub bounds: Rectangle,
         pub scroller: Option<Scroller>,
         pub alignment: Anchor,
+        pub disabled: bool,
     }
 
     impl Scrollbar {
@@ -1838,13 +1869,22 @@ pub(super) mod internals {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     /// The [`Scrollable`] can be interacted with.
-    Active,
+    Active {
+        /// Whether or not the horizontal scrollbar is disabled meaning the content isn't overflowing.
+        is_horizontal_scrollbar_disabled: bool,
+        /// Whether or not the vertical scrollbar is disabled meaning the content isn't overflowing.
+        is_vertical_scrollbar_disabled: bool,
+    },
     /// The [`Scrollable`] is being hovered.
     Hovered {
         /// Indicates if the horizontal scrollbar is being hovered.
         is_horizontal_scrollbar_hovered: bool,
         /// Indicates if the vertical scrollbar is being hovered.
         is_vertical_scrollbar_hovered: bool,
+        /// Whether or not the horizontal scrollbar is disabled meaning the content isn't overflowing.
+        is_horizontal_scrollbar_disabled: bool,
+        /// Whether or not the vertical scrollbar is disabled meaning the content isn't overflowing.
+        is_vertical_scrollbar_disabled: bool,
     },
     /// The [`Scrollable`] is being dragged.
     Dragged {
@@ -1852,6 +1892,10 @@ pub enum Status {
         is_horizontal_scrollbar_dragged: bool,
         /// Indicates if the vertical scrollbar is being dragged.
         is_vertical_scrollbar_dragged: bool,
+        /// Whether or not the horizontal scrollbar is disabled meaning the content isn't overflowing.
+        is_horizontal_scrollbar_disabled: bool,
+        /// Whether or not the vertical scrollbar is disabled meaning the content isn't overflowing.
+        is_vertical_scrollbar_disabled: bool,
     },
 }
 
@@ -1929,7 +1973,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     };
 
     match status {
-        Status::Active => Style {
+        Status::Active { .. } => Style {
             container: container::Style::default(),
             vertical_rail: scrollbar,
             horizontal_rail: scrollbar,
@@ -1938,6 +1982,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Hovered {
             is_horizontal_scrollbar_hovered,
             is_vertical_scrollbar_hovered,
+            ..
         } => {
             let hovered_scrollbar = Rail {
                 scroller: Scroller {
@@ -1965,6 +2010,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Dragged {
             is_horizontal_scrollbar_dragged,
             is_vertical_scrollbar_dragged,
+            ..
         } => {
             let dragged_scrollbar = Rail {
                 scroller: Scroller {
