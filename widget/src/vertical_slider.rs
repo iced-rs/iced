@@ -35,7 +35,6 @@ pub use crate::slider::{
 };
 
 use crate::core::border::Border;
-use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
 use crate::core::layout::{self, Layout};
@@ -44,8 +43,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Length, Pixels, Point, Rectangle, Shell, Size,
-    Widget,
+    self, Clipboard, Element, Event, Length, Pixels, Point, Rectangle, Shell,
+    Size, Widget,
 };
 
 /// An vertical bar and a handle that selects a single value from a range of
@@ -244,7 +243,7 @@ where
         layout::atomic(limits, self.width, self.height)
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -254,7 +253,7 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
         let is_dragging = state.is_dragging;
         let current_value = self.value;
@@ -350,7 +349,7 @@ where
                         state.is_dragging = true;
                     }
 
-                    return event::Status::Captured;
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
@@ -362,7 +361,7 @@ where
                     }
                     state.is_dragging = false;
 
-                    return event::Status::Captured;
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. })
@@ -370,7 +369,7 @@ where
                 if is_dragging {
                     let _ = cursor.position().and_then(locate).map(change);
 
-                    return event::Status::Captured;
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::WheelScrolled { delta })
@@ -388,7 +387,7 @@ where
                         let _ = increment(current_value).map(change);
                     }
 
-                    return event::Status::Captured;
+                    shell.capture_event();
                 }
             }
             Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
@@ -403,7 +402,7 @@ where
                         _ => (),
                     }
 
-                    return event::Status::Captured;
+                    shell.capture_event();
                 }
             }
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
@@ -411,8 +410,6 @@ where
             }
             _ => {}
         }
-
-        event::Status::Ignored
     }
 
     fn draw(

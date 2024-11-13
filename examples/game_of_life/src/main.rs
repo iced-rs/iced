@@ -193,8 +193,9 @@ mod grid {
     use iced::mouse;
     use iced::touch;
     use iced::widget::canvas;
-    use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{Cache, Canvas, Frame, Geometry, Path, Text};
+    use iced::widget::canvas::{
+        Cache, Canvas, Event, Frame, Geometry, Path, Text,
+    };
     use iced::{
         Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
@@ -383,14 +384,12 @@ mod grid {
             event: Event,
             bounds: Rectangle,
             cursor: mouse::Cursor,
-        ) -> (event::Status, Option<Message>) {
+        ) -> Option<canvas::Action<Message>> {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
                 *interaction = Interaction::None;
             }
 
-            let Some(cursor_position) = cursor.position_in(bounds) else {
-                return (event::Status::Ignored, None);
-            };
+            let cursor_position = cursor.position_in(bounds)?;
 
             let cell = Cell::at(self.project(cursor_position, bounds.size()));
             let is_populated = self.state.contains(&cell);
@@ -413,7 +412,12 @@ mod grid {
                         populate.or(unpopulate)
                     };
 
-                    (event::Status::Captured, message)
+                    Some(
+                        message
+                            .map(canvas::Action::publish)
+                            .unwrap_or(canvas::Action::request_redraw())
+                            .and_capture(),
+                    )
                 }
                 Event::Mouse(mouse_event) => match mouse_event {
                     mouse::Event::ButtonPressed(button) => {
@@ -438,7 +442,12 @@ mod grid {
                             _ => None,
                         };
 
-                        (event::Status::Captured, message)
+                        Some(
+                            message
+                                .map(canvas::Action::publish)
+                                .unwrap_or(canvas::Action::request_redraw())
+                                .and_capture(),
+                        )
                     }
                     mouse::Event::CursorMoved { .. } => {
                         let message = match *interaction {
@@ -454,12 +463,14 @@ mod grid {
                             Interaction::None => None,
                         };
 
-                        let event_status = match interaction {
-                            Interaction::None => event::Status::Ignored,
-                            _ => event::Status::Captured,
-                        };
+                        let action = message
+                            .map(canvas::Action::publish)
+                            .unwrap_or(canvas::Action::request_redraw());
 
-                        (event_status, message)
+                        Some(match interaction {
+                            Interaction::None => action,
+                            _ => action.and_capture(),
+                        })
                     }
                     mouse::Event::WheelScrolled { delta } => match delta {
                         mouse::ScrollDelta::Lines { y, .. }
@@ -496,18 +507,21 @@ mod grid {
                                         None
                                     };
 
-                                (
-                                    event::Status::Captured,
-                                    Some(Message::Scaled(scaling, translation)),
+                                Some(
+                                    canvas::Action::publish(Message::Scaled(
+                                        scaling,
+                                        translation,
+                                    ))
+                                    .and_capture(),
                                 )
                             } else {
-                                (event::Status::Captured, None)
+                                Some(canvas::Action::capture())
                             }
                         }
                     },
-                    _ => (event::Status::Ignored, None),
+                    _ => None,
                 },
-                _ => (event::Status::Ignored, None),
+                _ => None,
             }
         }
 

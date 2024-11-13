@@ -3,10 +3,9 @@ use iced::advanced::layout;
 use iced::advanced::renderer::{self, Quad};
 use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{self, Clipboard, Layout, Shell, Widget};
-use iced::event;
 use iced::mouse;
 use iced::time::Instant;
-use iced::window::{self, RedrawRequest};
+use iced::window;
 use iced::{Background, Color, Element, Event, Length, Rectangle, Size};
 
 use super::easing::{self, Easing};
@@ -176,7 +175,7 @@ where
         layout::atomic(limits, self.width, self.height)
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -186,16 +185,14 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
 
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
             *state = state.timed_transition(self.cycle_duration, now);
 
-            shell.request_redraw(RedrawRequest::NextFrame);
+            shell.request_redraw();
         }
-
-        event::Status::Ignored
     }
 
     fn draw(
