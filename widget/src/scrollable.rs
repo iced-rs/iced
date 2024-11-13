@@ -95,7 +95,7 @@ where
         Self::with_direction(content, Direction::default())
     }
 
-    /// Creates a new vertical [`Scrollable`].
+    /// Creates a new [`Scrollable`] with the given [`Direction`].
     pub fn with_direction(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
         direction: impl Into<Direction>,
@@ -137,7 +137,7 @@ where
         self
     }
 
-    /// Creates a new [`Scrollable`] with the given [`Direction`].
+    /// Sets the [`Direction`] of the [`Scrollable`].
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
         self.validate()
