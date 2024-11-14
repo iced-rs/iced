@@ -1,12 +1,12 @@
 //! Display content on top of other content.
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A container that displays children on top of each other.
@@ -204,7 +204,7 @@ where
         });
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -214,40 +214,41 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let is_over = cursor.is_over(layout.bounds());
 
-        self.children
+        for ((child, state), layout) in self
+            .children
             .iter_mut()
             .rev()
             .zip(tree.children.iter_mut().rev())
             .zip(layout.children().rev())
-            .map(|((child, state), layout)| {
-                let status = child.as_widget_mut().on_event(
-                    state,
-                    event.clone(),
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                    viewport,
+        {
+            child.as_widget_mut().update(
+                state,
+                event.clone(),
+                layout,
+                cursor,
+                renderer,
+                clipboard,
+                shell,
+                viewport,
+            );
+
+            if is_over && cursor != mouse::Cursor::Unavailable {
+                let interaction = child.as_widget().mouse_interaction(
+                    state, layout, cursor, viewport, renderer,
                 );
 
-                if is_over && cursor != mouse::Cursor::Unavailable {
-                    let interaction = child.as_widget().mouse_interaction(
-                        state, layout, cursor, viewport, renderer,
-                    );
-
-                    if interaction != mouse::Interaction::None {
-                        cursor = mouse::Cursor::Unavailable;
-                    }
+                if interaction != mouse::Interaction::None {
+                    cursor = mouse::Cursor::Unavailable;
                 }
+            }
 
-                status
-            })
-            .find(|&status| status == event::Status::Captured)
-            .unwrap_or(event::Status::Ignored)
+            if shell.is_event_captured() {
+                return;
+            }
+        }
     }
 
     fn mouse_interaction(

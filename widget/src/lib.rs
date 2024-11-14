@@ -8,6 +8,7 @@ pub use iced_renderer::graphics;
 pub use iced_runtime as runtime;
 pub use iced_runtime::core;
 
+mod action;
 mod column;
 mod mouse_area;
 mod row;
@@ -131,4 +132,5 @@ pub use qr_code::QRCode;
 pub mod markdown;
 
 pub use crate::core::theme::{self, Theme};
+pub use action::Action;
 pub use renderer::Renderer;

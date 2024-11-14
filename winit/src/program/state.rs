@@ -190,7 +190,10 @@ where
                         ..
                     },
                 ..
-            } => _debug.toggle(),
+            } => {
+                _debug.toggle();
+                window.request_redraw();
+            }
             _ => {}
         }
     }

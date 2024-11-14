@@ -21,7 +21,6 @@
 //! ```
 use crate::core::alignment::{self, Alignment};
 use crate::core::border::{self, Border};
-use crate::core::event::{self, Event};
 use crate::core::gradient::{self, Gradient};
 use crate::core::layout;
 use crate::core::mouse;
@@ -30,7 +29,7 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, color, Background, Clipboard, Color, Element, Layout, Length,
+    self, color, Background, Clipboard, Color, Element, Event, Layout, Length,
     Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
     Widget,
 };
@@ -298,7 +297,7 @@ where
         );
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -308,8 +307,8 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        self.content.as_widget_mut().on_event(
+    ) {
+        self.content.as_widget_mut().update(
             tree,
             event,
             layout.children().next().unwrap(),
@@ -318,7 +317,7 @@ where
             clipboard,
             shell,
             viewport,
-        )
+        );
     }
 
     fn mouse_interaction(

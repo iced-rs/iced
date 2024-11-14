@@ -1,3 +1,5 @@
+use crate::event;
+use crate::time::Instant;
 use crate::window;
 
 /// A connection to the state of a shell.
@@ -9,6 +11,7 @@ use crate::window;
 #[derive(Debug)]
 pub struct Shell<'a, Message> {
     messages: &'a mut Vec<Message>,
+    event_status: event::Status,
     redraw_request: Option<window::RedrawRequest>,
     is_layout_invalid: bool,
     are_widgets_invalid: bool,
@@ -19,6 +22,7 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn new(messages: &'a mut Vec<Message>) -> Self {
         Self {
             messages,
+            event_status: event::Status::Ignored,
             redraw_request: None,
             is_layout_invalid: false,
             are_widgets_invalid: false,
@@ -35,14 +39,37 @@ impl<'a, Message> Shell<'a, Message> {
         self.messages.push(message);
     }
 
-    /// Requests a new frame to be drawn.
-    pub fn request_redraw(&mut self, request: window::RedrawRequest) {
+    /// Marks the current event as captured. Prevents "event bubbling".
+    ///
+    /// A widget should capture an event when no ancestor should
+    /// handle it.
+    pub fn capture_event(&mut self) {
+        self.event_status = event::Status::Captured;
+    }
+
+    /// Returns the current [`event::Status`] of the [`Shell`].
+    pub fn event_status(&self) -> event::Status {
+        self.event_status
+    }
+
+    /// Returns whether the current event has been captured.
+    pub fn is_event_captured(&self) -> bool {
+        self.event_status == event::Status::Captured
+    }
+
+    /// Requests a new frame to be drawn as soon as possible.
+    pub fn request_redraw(&mut self) {
+        self.redraw_request = Some(window::RedrawRequest::NextFrame);
+    }
+
+    /// Requests a new frame to be drawn at the given [`Instant`].
+    pub fn request_redraw_at(&mut self, at: Instant) {
         match self.redraw_request {
             None => {
-                self.redraw_request = Some(request);
+                self.redraw_request = Some(window::RedrawRequest::At(at));
             }
-            Some(current) if request < current => {
-                self.redraw_request = Some(request);
+            Some(window::RedrawRequest::At(current)) if at < current => {
+                self.redraw_request = Some(window::RedrawRequest::At(at));
             }
             _ => {}
         }
@@ -95,8 +122,12 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn merge<B>(&mut self, other: Shell<'_, B>, f: impl Fn(B) -> Message) {
         self.messages.extend(other.messages.drain(..).map(f));
 
-        if let Some(at) = other.redraw_request {
-            self.request_redraw(at);
+        if let Some(new) = other.redraw_request {
+            self.redraw_request = Some(
+                self.redraw_request
+                    .map(|current| if current < new { current } else { new })
+                    .unwrap_or(new),
+            );
         }
 
         self.is_layout_invalid =
@@ -104,5 +135,7 @@ impl<'a, Message> Shell<'a, Message> {
 
         self.are_widgets_invalid =
             self.are_widgets_invalid || other.are_widgets_invalid;
+
+        self.event_status = self.event_status.merge(other.event_status);
     }
 }

@@ -10,12 +10,11 @@ pub use operation::Operation;
 pub use text::Text;
 pub use tree::Tree;
 
-use crate::event::{self, Event};
 use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Clipboard, Length, Rectangle, Shell, Size, Vector};
+use crate::{Clipboard, Event, Length, Rectangle, Shell, Size, Vector};
 
 /// A component that displays information and allows interaction.
 ///
@@ -112,7 +111,7 @@ where
     /// Processes a runtime [`Event`].
     ///
     /// By default, it does nothing.
-    fn on_event(
+    fn update(
         &mut self,
         _state: &mut Tree,
         _event: Event,
@@ -122,8 +121,7 @@ where
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
-        event::Status::Ignored
+    ) {
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Widget`].
