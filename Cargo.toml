@@ -23,19 +23,19 @@ maintenance = { status = "actively-developed" }
 
 [features]
 default = ["wgpu", "tiny-skia", "fira-sans", "auto-detect-theme"]
-# Enable the `wgpu` GPU-accelerated renderer backend
+# Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
-# Enable the `tiny-skia` software renderer backend
+# Enables the `tiny-skia` software renderer backend
 tiny-skia = ["iced_renderer/tiny-skia"]
-# Enables the `Image` widget
+# Enables the `image` widget
 image = ["image-without-codecs", "image/default"]
-# Enables the `Image` widget, without any built-in codecs of the `image` crate
+# Enables the `image` widget, without any built-in codecs of the `image` crate
 image-without-codecs = ["iced_widget/image", "dep:image"]
-# Enables the `Svg` widget
+# Enables the `svg` widget
 svg = ["iced_widget/svg"]
-# Enables the `Canvas` widget
+# Enables the `canvas` widget
 canvas = ["iced_widget/canvas"]
-# Enables the `QRCode` widget
+# Enables the `qr_code` widget
 qr_code = ["iced_widget/qr_code"]
 # Enables the `markdown` widget
 markdown = ["iced_widget/markdown"]
@@ -55,18 +55,18 @@ system = ["iced_winit/system"]
 web-colors = ["iced_renderer/web-colors"]
 # Enables the WebGL backend, replacing WebGPU
 webgl = ["iced_renderer/webgl"]
-# Enables the syntax `highlighter` module
+# Enables syntax highligthing
 highlighter = ["iced_highlighter", "iced_widget/highlighter"]
-# Enables experimental multi-window support.
-multi-window = ["iced_winit/multi-window"]
 # Enables the advanced module
 advanced = ["iced_core/advanced", "iced_widget/advanced"]
-# Enables embedding Fira Sans as the default font on Wasm builds
+# Embeds Fira Sans as the default font on Wasm builds
 fira-sans = ["iced_renderer/fira-sans"]
-# Enables auto-detecting light/dark mode for the built-in theme
+# Auto-detects light/dark mode for the built-in theme
 auto-detect-theme = ["iced_core/auto-detect-theme"]
 # Enables strict assertions for debugging purposes at the expense of performance
 strict-assertions = ["iced_renderer/strict-assertions"]
+# Redraws on every runtime event, and not only when a widget requests it
+unconditional-rendering = ["iced_winit/unconditional-rendering"]
 
 [dependencies]
 iced_core.workspace = true
@@ -150,7 +150,7 @@ cosmic-text = "0.12"
 dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
-glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "0d7ba1bba4dd71eb88d2cface5ce649db2413cb7" }
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "09712a70df7431e9a3b1ac1bbd4fb634096cb3b4" }
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.24", default-features = false }
@@ -183,7 +183,7 @@ wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
 web-sys = "0.3.69"
 web-time = "1.1"
-wgpu = "22.0"
+wgpu = "23.0"
 winapi = "0.3"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "254d6b3420ce4e674f516f7a2bd440665e05484d" }

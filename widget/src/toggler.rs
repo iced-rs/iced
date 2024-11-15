@@ -31,7 +31,6 @@
 //! }
 //! ```
 use crate::core::alignment;
-use crate::core::event;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -39,6 +38,7 @@ use crate::core::text;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
     Rectangle, Shell, Size, Theme, Widget,
@@ -99,6 +99,7 @@ pub struct Toggler<
     spacing: f32,
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
+    last_status: Option<Status>,
 }
 
 impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
@@ -132,6 +133,7 @@ where
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
             class: Theme::default(),
+            last_status: None,
         }
     }
 
@@ -304,7 +306,7 @@ where
         )
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         _state: &mut Tree,
         event: Event,
@@ -314,9 +316,9 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let Some(on_toggle) = &self.on_toggle else {
-            return event::Status::Ignored;
+            return;
         };
 
         match event {
@@ -326,13 +328,31 @@ where
 
                 if mouse_over {
                     shell.publish(on_toggle(!self.is_toggled));
-
-                    event::Status::Captured
-                } else {
-                    event::Status::Ignored
+                    shell.capture_event();
                 }
             }
-            _ => event::Status::Ignored,
+            _ => {}
+        }
+
+        let current_status = if self.on_toggle.is_none() {
+            Status::Disabled
+        } else if cursor.is_over(layout.bounds()) {
+            Status::Hovered {
+                is_toggled: self.is_toggled,
+            }
+        } else {
+            Status::Active {
+                is_toggled: self.is_toggled,
+            }
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.last_status = Some(current_status);
+        } else if self
+            .last_status
+            .is_some_and(|status| status != current_status)
+        {
+            shell.request_redraw();
         }
     }
 
@@ -362,7 +382,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         /// Makes sure that the border radius of the toggler looks good at every size.
@@ -391,21 +411,8 @@ where
         }
 
         let bounds = toggler_layout.bounds();
-        let is_mouse_over = cursor.is_over(layout.bounds());
-
-        let status = if self.on_toggle.is_none() {
-            Status::Disabled
-        } else if is_mouse_over {
-            Status::Hovered {
-                is_toggled: self.is_toggled,
-            }
-        } else {
-            Status::Active {
-                is_toggled: self.is_toggled,
-            }
-        };
-
-        let style = theme.style(&self.class, status);
+        let style = theme
+            .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
         let space = SPACE_RATIO * bounds.height;

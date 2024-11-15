@@ -22,7 +22,6 @@
 //! }
 //! ```
 use crate::container;
-use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -30,8 +29,8 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Element, Length, Padding, Pixels, Point, Rectangle, Shell, Size,
-    Vector,
+    Clipboard, Element, Event, Length, Padding, Pixels, Point, Rectangle,
+    Shell, Size, Vector,
 };
 
 /// An element to display a widget over another.
@@ -190,7 +189,7 @@ where
             .layout(&mut tree.children[0], renderer, limits)
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: Event,
@@ -200,7 +199,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
 
         let was_idle = *state == State::Idle;
@@ -216,7 +215,7 @@ where
             shell.invalidate_layout();
         }
 
-        self.content.as_widget_mut().on_event(
+        self.content.as_widget_mut().update(
             &mut tree.children[0],
             event,
             layout,
@@ -225,7 +224,7 @@ where
             clipboard,
             shell,
             viewport,
-        )
+        );
     }
 
     fn mouse_interaction(

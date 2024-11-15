@@ -169,7 +169,6 @@ mod toast {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Operation, Tree};
     use iced::advanced::{Clipboard, Shell, Widget};
-    use iced::event::{self, Event};
     use iced::mouse;
     use iced::theme;
     use iced::widget::{
@@ -177,8 +176,8 @@ mod toast {
     };
     use iced::window;
     use iced::{
-        Alignment, Center, Element, Fill, Length, Point, Rectangle, Renderer,
-        Size, Theme, Vector,
+        Alignment, Center, Element, Event, Fill, Length, Point, Rectangle,
+        Renderer, Size, Theme, Vector,
     };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
@@ -359,7 +358,7 @@ mod toast {
             });
         }
 
-        fn on_event(
+        fn update(
             &mut self,
             state: &mut Tree,
             event: Event,
@@ -369,8 +368,8 @@ mod toast {
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
-        ) -> event::Status {
-            self.content.as_widget_mut().on_event(
+        ) {
+            self.content.as_widget_mut().update(
                 &mut state.children[0],
                 event,
                 layout,
@@ -379,7 +378,7 @@ mod toast {
                 clipboard,
                 shell,
                 viewport,
-            )
+            );
         }
 
         fn draw(
@@ -490,7 +489,7 @@ mod toast {
             .translate(Vector::new(self.position.x, self.position.y))
         }
 
-        fn on_event(
+        fn update(
             &mut self,
             event: Event,
             layout: Layout<'_>,
@@ -498,10 +497,8 @@ mod toast {
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
-        ) -> event::Status {
+        ) {
             if let Event::Window(window::Event::RedrawRequested(now)) = &event {
-                let mut next_redraw: Option<window::RedrawRequest> = None;
-
                 self.instants.iter_mut().enumerate().for_each(
                     |(index, maybe_instant)| {
                         if let Some(instant) = maybe_instant.as_mut() {
@@ -512,55 +509,43 @@ mod toast {
                             if remaining == Duration::ZERO {
                                 maybe_instant.take();
                                 shell.publish((self.on_close)(index));
-                                next_redraw =
-                                    Some(window::RedrawRequest::NextFrame);
                             } else {
-                                let redraw_at =
-                                    window::RedrawRequest::At(*now + remaining);
-                                next_redraw = next_redraw
-                                    .map(|redraw| redraw.min(redraw_at))
-                                    .or(Some(redraw_at));
+                                shell.request_redraw_at(*now + remaining);
                             }
                         }
                     },
                 );
-
-                if let Some(redraw) = next_redraw {
-                    shell.request_redraw(redraw);
-                }
             }
 
             let viewport = layout.bounds();
 
-            self.toasts
+            for (((child, state), layout), instant) in self
+                .toasts
                 .iter_mut()
                 .zip(self.state.iter_mut())
                 .zip(layout.children())
                 .zip(self.instants.iter_mut())
-                .map(|(((child, state), layout), instant)| {
-                    let mut local_messages = vec![];
-                    let mut local_shell = Shell::new(&mut local_messages);
+            {
+                let mut local_messages = vec![];
+                let mut local_shell = Shell::new(&mut local_messages);
 
-                    let status = child.as_widget_mut().on_event(
-                        state,
-                        event.clone(),
-                        layout,
-                        cursor,
-                        renderer,
-                        clipboard,
-                        &mut local_shell,
-                        &viewport,
-                    );
+                child.as_widget_mut().update(
+                    state,
+                    event.clone(),
+                    layout,
+                    cursor,
+                    renderer,
+                    clipboard,
+                    &mut local_shell,
+                    &viewport,
+                );
 
-                    if !local_shell.is_empty() {
-                        instant.take();
-                    }
+                if !local_shell.is_empty() {
+                    instant.take();
+                }
 
-                    shell.merge(local_shell, std::convert::identity);
-
-                    status
-                })
-                .fold(event::Status::Ignored, event::Status::merge)
+                shell.merge(local_shell, std::convert::identity);
+            }
         }
 
         fn draw(

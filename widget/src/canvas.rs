@@ -48,24 +48,24 @@
 //!     canvas(Circle { radius: 50.0 }).into()
 //! }
 //! ```
-pub mod event;
-
 mod program;
 
-pub use event::Event;
 pub use program::Program;
 
+pub use crate::core::event::Event;
 pub use crate::graphics::cache::Group;
 pub use crate::graphics::geometry::{
     fill, gradient, path, stroke, Fill, Gradient, Image, LineCap, LineDash,
     LineJoin, Path, Stroke, Style, Text,
 };
+pub use crate::Action;
 
-use crate::core;
+use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Clipboard, Element, Length, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -148,6 +148,7 @@ where
     message_: PhantomData<Message>,
     theme_: PhantomData<Theme>,
     renderer_: PhantomData<Renderer>,
+    last_mouse_interaction: Option<mouse::Interaction>,
 }
 
 impl<P, Message, Theme, Renderer> Canvas<P, Message, Theme, Renderer>
@@ -166,6 +167,7 @@ where
             message_: PhantomData,
             theme_: PhantomData,
             renderer_: PhantomData,
+            last_mouse_interaction: None,
         }
     }
 
@@ -213,42 +215,63 @@ where
         layout::atomic(limits, self.width, self.height)
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: core::Event,
+        event: Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _renderer: &Renderer,
+        renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-        _viewport: &Rectangle,
-    ) -> event::Status {
+        viewport: &Rectangle,
+    ) {
         let bounds = layout.bounds();
 
-        let canvas_event = match event {
-            core::Event::Mouse(mouse_event) => Some(Event::Mouse(mouse_event)),
-            core::Event::Touch(touch_event) => Some(Event::Touch(touch_event)),
-            core::Event::Keyboard(keyboard_event) => {
-                Some(Event::Keyboard(keyboard_event))
-            }
-            core::Event::Window(_) => None,
-        };
+        let state = tree.state.downcast_mut::<P::State>();
+        let is_redraw_request = matches!(
+            event,
+            Event::Window(window::Event::RedrawRequested(_now)),
+        );
 
-        if let Some(canvas_event) = canvas_event {
-            let state = tree.state.downcast_mut::<P::State>();
-
-            let (event_status, message) =
-                self.program.update(state, canvas_event, bounds, cursor);
+        if let Some(action) = self.program.update(state, event, bounds, cursor)
+        {
+            let (message, redraw_request, event_status) = action.into_inner();
 
             if let Some(message) = message {
                 shell.publish(message);
             }
 
-            return event_status;
+            if let Some(redraw_request) = redraw_request {
+                match redraw_request {
+                    window::RedrawRequest::NextFrame => {
+                        shell.request_redraw();
+                    }
+                    window::RedrawRequest::At(at) => {
+                        shell.request_redraw_at(at);
+                    }
+                }
+            }
+
+            if event_status == event::Status::Captured {
+                shell.capture_event();
+            }
         }
 
-        event::Status::Ignored
+        if shell.redraw_request() != Some(window::RedrawRequest::NextFrame) {
+            let mouse_interaction = self
+                .mouse_interaction(tree, layout, cursor, viewport, renderer);
+
+            if is_redraw_request {
+                self.last_mouse_interaction = Some(mouse_interaction);
+            } else if self.last_mouse_interaction.is_some_and(
+                |last_mouse_interaction| {
+                    last_mouse_interaction != mouse_interaction
+                },
+            ) {
+                shell.request_redraw();
+            }
+        }
     }
 
     fn mouse_interaction(
