@@ -267,8 +267,6 @@ where
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     pin("This text is displayed at coordinates (50, 50)!")
-///         .width(Fill)
-///         .height(Fill)
 ///         .x(50)
 ///         .y(50)
 ///         .into()

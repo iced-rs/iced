@@ -14,8 +14,6 @@
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
 //!     pin("This text is displayed at coordinates (50, 50)!")
-//!         .width(Fill)
-//!         .height(Fill)
 //!         .x(50)
 //!         .y(50)
 //!         .into()
@@ -33,6 +31,8 @@ use crate::core::{
 
 /// A widget that positions its contents at some fixed coordinates inside of its boundaries.
 ///
+/// By default, a [`Pin`] widget will try to fill its parent.
+///
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
@@ -47,8 +47,6 @@ use crate::core::{
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     pin("This text is displayed at coordinates (50, 50)!")
-///         .width(Fill)
-///         .height(Fill)
 ///         .x(50)
 ///         .y(50)
 ///         .into()
@@ -75,8 +73,8 @@ where
     ) -> Self {
         Self {
             content: content.into(),
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fill,
+            height: Length::Fill,
             position: Point::ORIGIN,
         }
     }

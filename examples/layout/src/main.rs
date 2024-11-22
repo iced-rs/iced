@@ -319,11 +319,11 @@ fn pinning<'a>() -> Element<'a, Message> {
         "The pin widget can be used to position a widget \
         at some fixed coordinates inside some other widget.",
         stack![
-            container(pin("• (50, 50)").width(Fill).height(Fill).x(50).y(50))
+            container(pin("• (50, 50)").x(50).y(50))
                 .width(500)
                 .height(500)
                 .style(container::bordered_box),
-            pin("• (300, 300)").width(Fill).height(Fill).x(300).y(300),
+            pin("• (300, 300)").x(300).y(300),
         ]
     ]
     .align_x(Center)
