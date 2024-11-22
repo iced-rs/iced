@@ -353,34 +353,27 @@ where
     fn screenshot<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        surface: &mut Self::Surface,
         viewport: &graphics::Viewport,
         background_color: Color,
         overlay: &[T],
     ) -> Vec<u8> {
-        match (self, renderer, surface) {
-            (
-                Self::Primary(compositor),
-                Renderer::Primary(renderer),
-                Surface::Primary(surface),
-            ) => compositor.screenshot(
-                renderer,
-                surface,
-                viewport,
-                background_color,
-                overlay,
-            ),
-            (
-                Self::Secondary(compositor),
-                Renderer::Secondary(renderer),
-                Surface::Secondary(surface),
-            ) => compositor.screenshot(
-                renderer,
-                surface,
-                viewport,
-                background_color,
-                overlay,
-            ),
+        match (self, renderer) {
+            (Self::Primary(compositor), Renderer::Primary(renderer)) => {
+                compositor.screenshot(
+                    renderer,
+                    viewport,
+                    background_color,
+                    overlay,
+                )
+            }
+            (Self::Secondary(compositor), Renderer::Secondary(renderer)) => {
+                compositor.screenshot(
+                    renderer,
+                    viewport,
+                    background_color,
+                    overlay,
+                )
+            }
             _ => unreachable!(),
         }
     }
