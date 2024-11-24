@@ -411,13 +411,13 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
         self
     }
 
-    /// Sets whether the [`Span`] shoud be underlined or not.
+    /// Sets whether the [`Span`] should be underlined or not.
     pub fn underline(mut self, underline: bool) -> Self {
         self.underline = underline;
         self
     }
 
-    /// Sets whether the [`Span`] shoud be struck through or not.
+    /// Sets whether the [`Span`] should be struck through or not.
     pub fn strikethrough(mut self, strikethrough: bool) -> Self {
         self.strikethrough = strikethrough;
         self

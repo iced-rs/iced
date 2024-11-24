@@ -6,7 +6,8 @@ use crate::pane_grid::{
     Axis, Configuration, Direction, Edge, Node, Pane, Region, Split, Target,
 };
 
-use rustc_hash::FxHashMap;
+use std::borrow::Cow;
+use std::collections::BTreeMap;
 
 /// The state of a [`PaneGrid`].
 ///
@@ -25,17 +26,12 @@ pub struct State<T> {
     /// The panes of the [`PaneGrid`].
     ///
     /// [`PaneGrid`]: super::PaneGrid
-    pub panes: FxHashMap<Pane, T>,
+    pub panes: BTreeMap<Pane, T>,
 
     /// The internal state of the [`PaneGrid`].
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub internal: Internal,
-
-    /// The maximized [`Pane`] of the [`PaneGrid`].
-    ///
-    /// [`PaneGrid`]: super::PaneGrid
-    pub(super) maximized: Option<Pane>,
 }
 
 impl<T> State<T> {
@@ -52,16 +48,12 @@ impl<T> State<T> {
 
     /// Creates a new [`State`] with the given [`Configuration`].
     pub fn with_configuration(config: impl Into<Configuration<T>>) -> Self {
-        let mut panes = FxHashMap::default();
+        let mut panes = BTreeMap::default();
 
         let internal =
             Internal::from_configuration(&mut panes, config.into(), 0);
 
-        State {
-            panes,
-            internal,
-            maximized: None,
-        }
+        State { panes, internal }
     }
 
     /// Returns the total amount of panes in the [`State`].
@@ -214,7 +206,7 @@ impl<T> State<T> {
         }
 
         let _ = self.panes.insert(new_pane, state);
-        let _ = self.maximized.take();
+        let _ = self.internal.maximized.take();
 
         Some((new_pane, new_split))
     }
@@ -228,8 +220,11 @@ impl<T> State<T> {
     ) {
         if let Some((state, _)) = self.close(pane) {
             if let Some((new_pane, _)) = self.split(axis, target, state) {
+                // Ensure new node corresponds to original closed `Pane` for state continuity
+                self.relabel(new_pane, pane);
+
                 if swap {
-                    self.swap(target, new_pane);
+                    self.swap(target, pane);
                 }
             }
         }
@@ -259,11 +254,25 @@ impl<T> State<T> {
         &mut self,
         axis: Axis,
         pane: Pane,
-        swap: bool,
+        inverse: bool,
     ) {
         if let Some((state, _)) = self.close(pane) {
-            let _ = self.split_node(axis, None, state, swap);
+            if let Some((new_pane, _)) =
+                self.split_node(axis, None, state, inverse)
+            {
+                // Ensure new node corresponds to original closed `Pane` for state continuity
+                self.relabel(new_pane, pane);
+            }
         }
+    }
+
+    fn relabel(&mut self, target: Pane, label: Pane) {
+        self.swap(target, label);
+
+        let _ = self
+            .panes
+            .remove(&target)
+            .and_then(|state| self.panes.insert(label, state));
     }
 
     /// Swaps the position of the provided panes in the [`State`].
@@ -303,8 +312,8 @@ impl<T> State<T> {
     /// Closes the given [`Pane`] and returns its internal state and its closest
     /// sibling, if it exists.
     pub fn close(&mut self, pane: Pane) -> Option<(T, Pane)> {
-        if self.maximized == Some(pane) {
-            let _ = self.maximized.take();
+        if self.internal.maximized == Some(pane) {
+            let _ = self.internal.maximized.take();
         }
 
         if let Some(sibling) = self.internal.layout.remove(pane) {
@@ -319,7 +328,7 @@ impl<T> State<T> {
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub fn maximize(&mut self, pane: Pane) {
-        self.maximized = Some(pane);
+        self.internal.maximized = Some(pane);
     }
 
     /// Restore the currently maximized [`Pane`] to it's normal size. All panes
@@ -327,14 +336,14 @@ impl<T> State<T> {
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub fn restore(&mut self) {
-        let _ = self.maximized.take();
+        let _ = self.internal.maximized.take();
     }
 
     /// Returns the maximized [`Pane`] of the [`PaneGrid`].
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub fn maximized(&self) -> Option<Pane> {
-        self.maximized
+        self.internal.maximized
     }
 }
 
@@ -345,6 +354,7 @@ impl<T> State<T> {
 pub struct Internal {
     layout: Node,
     last_id: usize,
+    maximized: Option<Pane>,
 }
 
 impl Internal {
@@ -353,7 +363,7 @@ impl Internal {
     ///
     /// [`PaneGrid`]: super::PaneGrid
     pub fn from_configuration<T>(
-        panes: &mut FxHashMap<Pane, T>,
+        panes: &mut BTreeMap<Pane, T>,
         content: Configuration<T>,
         next_id: usize,
     ) -> Self {
@@ -390,18 +400,34 @@ impl Internal {
             }
         };
 
-        Self { layout, last_id }
+        Self {
+            layout,
+            last_id,
+            maximized: None,
+        }
+    }
+
+    pub(super) fn layout(&self) -> Cow<'_, Node> {
+        match self.maximized {
+            Some(pane) => Cow::Owned(Node::Pane(pane)),
+            None => Cow::Borrowed(&self.layout),
+        }
+    }
+
+    pub(super) fn maximized(&self) -> Option<Pane> {
+        self.maximized
     }
 }
 
 /// The current action of a [`PaneGrid`].
 ///
 /// [`PaneGrid`]: super::PaneGrid
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Action {
     /// The [`PaneGrid`] is idle.
     ///
     /// [`PaneGrid`]: super::PaneGrid
+    #[default]
     Idle,
     /// A [`Pane`] in the [`PaneGrid`] is being dragged.
     ///
@@ -438,12 +464,5 @@ impl Action {
             Action::Resizing { split, axis, .. } => Some((split, axis)),
             _ => None,
         }
-    }
-}
-
-impl Internal {
-    /// The layout [`Node`] of the [`Internal`] state
-    pub fn layout(&self) -> &Node {
-        &self.layout
     }
 }

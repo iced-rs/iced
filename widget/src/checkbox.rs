@@ -31,7 +31,6 @@
 //! ```
 //! ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 use crate::core::alignment;
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -40,9 +39,10 @@ use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Theme, Widget,
+    Background, Border, Clipboard, Color, Element, Event, Layout, Length,
+    Pixels, Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A box that can be checked.
@@ -100,6 +100,7 @@ pub struct Checkbox<
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
     class: Theme::Class<'a>,
+    last_status: Option<Status>,
 }
 
 impl<'a, Message, Theme, Renderer> Checkbox<'a, Message, Theme, Renderer>
@@ -139,6 +140,7 @@ where
                 shaping: text::Shaping::Basic,
             },
             class: Theme::default(),
+            last_status: None,
         }
     }
 
@@ -300,7 +302,7 @@ where
         )
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         _tree: &mut Tree,
         event: Event,
@@ -310,7 +312,7 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
@@ -319,14 +321,35 @@ where
                 if mouse_over {
                     if let Some(on_toggle) = &self.on_toggle {
                         shell.publish((on_toggle)(!self.is_checked));
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
             }
             _ => {}
         }
 
-        event::Status::Ignored
+        let current_status = {
+            let is_mouse_over = cursor.is_over(layout.bounds());
+            let is_disabled = self.on_toggle.is_none();
+            let is_checked = self.is_checked;
+
+            if is_disabled {
+                Status::Disabled { is_checked }
+            } else if is_mouse_over {
+                Status::Hovered { is_checked }
+            } else {
+                Status::Active { is_checked }
+            }
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.last_status = Some(current_status);
+        } else if self
+            .last_status
+            .is_some_and(|status| status != current_status)
+        {
+            shell.request_redraw();
+        }
     }
 
     fn mouse_interaction(
@@ -351,24 +374,17 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let is_mouse_over = cursor.is_over(layout.bounds());
-        let is_disabled = self.on_toggle.is_none();
-        let is_checked = self.is_checked;
-
         let mut children = layout.children();
 
-        let status = if is_disabled {
-            Status::Disabled { is_checked }
-        } else if is_mouse_over {
-            Status::Hovered { is_checked }
-        } else {
-            Status::Active { is_checked }
-        };
-
-        let style = theme.style(&self.class, status);
+        let style = theme.style(
+            &self.class,
+            self.last_status.unwrap_or(Status::Disabled {
+                is_checked: self.is_checked,
+            }),
+        );
 
         {
             let layout = children.next().unwrap();
@@ -481,13 +497,13 @@ pub enum Status {
 }
 
 /// The style of a checkbox.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`Background`] of the checkbox.
     pub background: Background,
     /// The icon [`Color`] of the checkbox.
     pub icon_color: Color,
-    /// The [`Border`] of hte checkbox.
+    /// The [`Border`] of the checkbox.
     pub border: Border,
     /// The text [`Color`] of the checkbox.
     pub text_color: Option<Color>,
@@ -600,7 +616,7 @@ pub fn success(theme: &Theme, status: Status) -> Style {
     }
 }
 
-/// A danger checkbox; denoting a negaive toggle.
+/// A danger checkbox; denoting a negative toggle.
 pub fn danger(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 

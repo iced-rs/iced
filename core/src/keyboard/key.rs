@@ -203,7 +203,7 @@ pub enum Named {
     Standby,
     /// The WakeUp key. (`KEYCODE_WAKEUP`)
     WakeUp,
-    /// Initate the multi-candidate mode.
+    /// Initiate the multi-candidate mode.
     AllCandidates,
     Alphanumeric,
     /// Initiate the Code Input mode to allow characters to be entered by

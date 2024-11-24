@@ -220,7 +220,7 @@ pub fn resize_events() -> Subscription<(Id, Size)> {
     })
 }
 
-/// Subscribes to all [`Event::CloseRequested`] occurences in the running application.
+/// Subscribes to all [`Event::CloseRequested`] occurrences in the running application.
 pub fn close_requests() -> Subscription<Id> {
     event::listen_with(|event, _status, id| {
         if let crate::core::Event::Window(Event::CloseRequested) = event {

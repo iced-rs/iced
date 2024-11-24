@@ -1,6 +1,5 @@
 use iced::mouse;
-use iced::widget::canvas::event::{self, Event};
-use iced::widget::canvas::{self, Canvas, Geometry};
+use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::widget::{column, row, slider, text};
 use iced::{Center, Color, Fill, Point, Rectangle, Renderer, Size, Theme};
 
@@ -80,26 +79,22 @@ impl canvas::Program<Message> for SierpinskiGraph {
         event: Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-    ) -> (event::Status, Option<Message>) {
-        let Some(cursor_position) = cursor.position_in(bounds) else {
-            return (event::Status::Ignored, None);
-        };
+    ) -> Option<canvas::Action<Message>> {
+        let cursor_position = cursor.position_in(bounds)?;
 
         match event {
-            Event::Mouse(mouse_event) => {
-                let message = match mouse_event {
-                    iced::mouse::Event::ButtonPressed(
-                        iced::mouse::Button::Left,
-                    ) => Some(Message::PointAdded(cursor_position)),
-                    iced::mouse::Event::ButtonPressed(
-                        iced::mouse::Button::Right,
-                    ) => Some(Message::PointRemoved),
-                    _ => None,
-                };
-                (event::Status::Captured, message)
-            }
-            _ => (event::Status::Ignored, None),
+            Event::Mouse(mouse::Event::ButtonPressed(button)) => match button {
+                mouse::Button::Left => Some(canvas::Action::publish(
+                    Message::PointAdded(cursor_position),
+                )),
+                mouse::Button::Right => {
+                    Some(canvas::Action::publish(Message::PointRemoved))
+                }
+                _ => None,
+            },
+            _ => None,
         }
+        .map(canvas::Action::and_capture)
     }
 
     fn draw(

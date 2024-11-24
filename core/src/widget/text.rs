@@ -389,7 +389,7 @@ where
 }
 
 /// The appearance of some text.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Style {
     /// The [`Color`] of the text.
     ///

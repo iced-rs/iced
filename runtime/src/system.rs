@@ -8,7 +8,7 @@ pub enum Action {
     QueryInformation(oneshot::Sender<Information>),
 }
 
-/// Contains informations about the system (e.g. system name, processor, memory, graphics adapter).
+/// Contains information about the system (e.g. system name, processor, memory, graphics adapter).
 #[derive(Clone, Debug)]
 pub struct Information {
     /// The operating system name

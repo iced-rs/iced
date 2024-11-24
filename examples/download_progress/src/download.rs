@@ -1,24 +1,13 @@
 use iced::futures::{SinkExt, Stream, StreamExt};
 use iced::stream::try_channel;
-use iced::Subscription;
 
-use std::hash::Hash;
 use std::sync::Arc;
 
-// Just a little utility function
-pub fn file<I: 'static + Hash + Copy + Send + Sync, T: ToString>(
-    id: I,
-    url: T,
-) -> iced::Subscription<(I, Result<Progress, Error>)> {
-    Subscription::run_with_id(
-        id,
-        download(url.to_string()).map(move |progress| (id, progress)),
-    )
-}
-
-fn download(url: String) -> impl Stream<Item = Result<Progress, Error>> {
+pub fn download(
+    url: impl AsRef<str>,
+) -> impl Stream<Item = Result<Progress, Error>> {
     try_channel(1, move |mut output| async move {
-        let response = reqwest::get(&url).await?;
+        let response = reqwest::get(url.as_ref()).await?;
         let total = response.content_length().ok_or(Error::NoContentLength)?;
 
         let _ = output.send(Progress::Downloading { percent: 0.0 }).await;
