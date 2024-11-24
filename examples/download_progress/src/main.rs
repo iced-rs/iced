@@ -1,7 +1,10 @@
 mod download;
 
+use download::download;
+
+use iced::task;
 use iced::widget::{button, center, column, progress_bar, text, Column};
-use iced::{Center, Element, Right, Subscription};
+use iced::{Center, Element, Right, Task};
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -9,7 +12,6 @@ pub fn main() -> iced::Result {
         Example::update,
         Example::view,
     )
-    .subscription(Example::subscription)
     .run()
 }
 
@@ -23,7 +25,7 @@ struct Example {
 pub enum Message {
     Add,
     Download(usize),
-    DownloadProgressed((usize, Result<download::Progress, download::Error>)),
+    DownloadProgressed(usize, Result<download::Progress, download::Error>),
 }
 
 impl Example {
@@ -34,30 +36,36 @@ impl Example {
         }
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Add => {
                 self.last_id += 1;
 
                 self.downloads.push(Download::new(self.last_id));
+
+                Task::none()
             }
             Message::Download(index) => {
-                if let Some(download) = self.downloads.get_mut(index) {
-                    download.start();
-                }
+                let Some(download) = self.downloads.get_mut(index) else {
+                    return Task::none();
+                };
+
+                let task = download.start();
+
+                task.map(move |progress| {
+                    Message::DownloadProgressed(index, progress)
+                })
             }
-            Message::DownloadProgressed((id, progress)) => {
+            Message::DownloadProgressed(id, progress) => {
                 if let Some(download) =
                     self.downloads.iter_mut().find(|download| download.id == id)
                 {
                     download.progress(progress);
                 }
+
+                Task::none()
             }
         }
-    }
-
-    fn subscription(&self) -> Subscription<Message> {
-        Subscription::batch(self.downloads.iter().map(Download::subscription))
     }
 
     fn view(&self) -> Element<Message> {
@@ -90,7 +98,7 @@ struct Download {
 #[derive(Debug)]
 enum State {
     Idle,
-    Downloading { progress: f32 },
+    Downloading { progress: f32, _task: task::Handle },
     Finished,
     Errored,
 }
@@ -103,14 +111,28 @@ impl Download {
         }
     }
 
-    pub fn start(&mut self) {
+    pub fn start(
+        &mut self,
+    ) -> Task<Result<download::Progress, download::Error>> {
         match self.state {
             State::Idle { .. }
             | State::Finished { .. }
             | State::Errored { .. } => {
-                self.state = State::Downloading { progress: 0.0 };
+                let (task, handle) = Task::stream(download(
+                    "https://huggingface.co/\
+                        mattshumer/Reflection-Llama-3.1-70B/\
+                        resolve/main/model-00001-of-00162.safetensors",
+                ))
+                .abortable();
+
+                self.state = State::Downloading {
+                    progress: 0.0,
+                    _task: handle.abort_on_drop(),
+                };
+
+                task
             }
-            State::Downloading { .. } => {}
+            State::Downloading { .. } => Task::none(),
         }
     }
 
@@ -118,7 +140,7 @@ impl Download {
         &mut self,
         new_progress: Result<download::Progress, download::Error>,
     ) {
-        if let State::Downloading { progress } = &mut self.state {
+        if let State::Downloading { progress, .. } = &mut self.state {
             match new_progress {
                 Ok(download::Progress::Downloading { percent }) => {
                     *progress = percent;
@@ -133,20 +155,10 @@ impl Download {
         }
     }
 
-    pub fn subscription(&self) -> Subscription<Message> {
-        match self.state {
-            State::Downloading { .. } => {
-                download::file(self.id, "https://huggingface.co/mattshumer/Reflection-Llama-3.1-70B/resolve/main/model-00001-of-00162.safetensors")
-                    .map(Message::DownloadProgressed)
-            }
-            _ => Subscription::none(),
-        }
-    }
-
     pub fn view(&self) -> Element<Message> {
         let current_progress = match &self.state {
             State::Idle { .. } => 0.0,
-            State::Downloading { progress } => *progress,
+            State::Downloading { progress, .. } => *progress,
             State::Finished { .. } => 100.0,
             State::Errored { .. } => 0.0,
         };

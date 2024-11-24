@@ -1,12 +1,12 @@
 //! Build and reuse custom widgets using The Elm Architecture.
 #![allow(deprecated)]
-use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
     Widget,
@@ -311,7 +311,7 @@ where
         })
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: core::Event,
@@ -321,13 +321,13 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
         let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
-        let event_status = self.with_element_mut(|element| {
-            element.as_widget_mut().on_event(
+        self.with_element_mut(|element| {
+            element.as_widget_mut().update(
                 &mut t.borrow_mut().as_mut().unwrap().children[0],
                 event,
                 layout,
@@ -336,13 +336,24 @@ where
                 clipboard,
                 &mut local_shell,
                 viewport,
-            )
+            );
         });
+
+        if local_shell.is_event_captured() {
+            shell.capture_event();
+        }
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
         if let Some(redraw_request) = local_shell.redraw_request() {
-            shell.request_redraw(redraw_request);
+            match redraw_request {
+                window::RedrawRequest::NextFrame => {
+                    shell.request_redraw();
+                }
+                window::RedrawRequest::At(at) => {
+                    shell.request_redraw_at(at);
+                }
+            }
         }
 
         if !local_messages.is_empty() {
@@ -369,8 +380,6 @@ where
 
             shell.invalidate_layout();
         }
-
-        event_status
     }
 
     fn operate(
@@ -446,44 +455,48 @@ where
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.rebuild_element_if_necessary();
 
-        let tree = tree
-            .state
-            .downcast_mut::<Rc<RefCell<Option<Tree>>>>()
-            .borrow_mut()
-            .take()
-            .unwrap();
+        let state = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
+        let tree = state.borrow_mut().take().unwrap();
 
-        let overlay = Overlay(Some(
-            InnerBuilder {
-                instance: self,
-                tree,
-                types: PhantomData,
-                overlay_builder: |instance, tree| {
-                    instance.state.get_mut().as_mut().unwrap().with_element_mut(
-                        move |element| {
-                            element
-                                .as_mut()
-                                .unwrap()
-                                .as_widget_mut()
-                                .overlay(
-                                    &mut tree.children[0],
-                                    layout,
-                                    renderer,
-                                    translation,
-                                )
-                                .map(|overlay| {
-                                    RefCell::new(Nested::new(overlay))
-                                })
-                        },
-                    )
-                },
-            }
-            .build(),
-        ));
+        let overlay = InnerBuilder {
+            instance: self,
+            tree,
+            types: PhantomData,
+            overlay_builder: |instance, tree| {
+                instance.state.get_mut().as_mut().unwrap().with_element_mut(
+                    move |element| {
+                        element
+                            .as_mut()
+                            .unwrap()
+                            .as_widget_mut()
+                            .overlay(
+                                &mut tree.children[0],
+                                layout,
+                                renderer,
+                                translation,
+                            )
+                            .map(|overlay| RefCell::new(Nested::new(overlay)))
+                    },
+                )
+            },
+        }
+        .build();
 
-        Some(overlay::Element::new(Box::new(OverlayInstance {
-            overlay: Some(overlay),
-        })))
+        #[allow(clippy::redundant_closure_for_method_calls)]
+        if overlay.with_overlay(|overlay| overlay.is_some()) {
+            Some(overlay::Element::new(Box::new(OverlayInstance {
+                overlay: Some(Overlay(Some(overlay))), // Beautiful, I know
+            })))
+        } else {
+            let heads = overlay.into_heads();
+
+            // - You may not like it, but this is what peak performance looks like
+            // - TODO: Get rid of ouroboros, for good
+            // - What?!
+            *state.borrow_mut() = Some(heads.tree);
+
+            None
+        }
     }
 }
 
@@ -588,7 +601,7 @@ where
         .unwrap_or_default()
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         event: core::Event,
         layout: Layout<'_>,
@@ -596,27 +609,36 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self
-            .with_overlay_mut_maybe(|overlay| {
-                overlay.on_event(
-                    event,
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    &mut local_shell,
-                )
-            })
-            .unwrap_or(event::Status::Ignored);
+        let _ = self.with_overlay_mut_maybe(|overlay| {
+            overlay.update(
+                event,
+                layout,
+                cursor,
+                renderer,
+                clipboard,
+                &mut local_shell,
+            );
+        });
+
+        if local_shell.is_event_captured() {
+            shell.capture_event();
+        }
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
         if let Some(redraw_request) = local_shell.redraw_request() {
-            shell.request_redraw(redraw_request);
+            match redraw_request {
+                window::RedrawRequest::NextFrame => {
+                    shell.request_redraw();
+                }
+                window::RedrawRequest::At(at) => {
+                    shell.request_redraw_at(at);
+                }
+            }
         }
 
         if !local_messages.is_empty() {
@@ -654,8 +676,6 @@ where
 
             shell.invalidate_layout();
         }
-
-        event_status
     }
 
     fn is_over(

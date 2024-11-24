@@ -1,4 +1,5 @@
 use crate::core::mouse;
+use crate::core::time::Instant;
 use crate::core::window::Id;
 use crate::core::{Point, Size};
 use crate::graphics::Compositor;
@@ -62,6 +63,7 @@ where
                 surface,
                 renderer,
                 mouse_interaction: mouse::Interaction::None,
+                redraw_at: None,
             },
         );
 
@@ -72,6 +74,19 @@ where
 
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
+    }
+
+    pub fn is_idle(&self) -> bool {
+        self.entries
+            .values()
+            .all(|window| window.redraw_at.is_none())
+    }
+
+    pub fn redraw_at(&self) -> Option<Instant> {
+        self.entries
+            .values()
+            .filter_map(|window| window.redraw_at)
+            .min()
     }
 
     pub fn first(&self) -> Option<&Window<P, C>> {
@@ -138,6 +153,7 @@ where
     pub mouse_interaction: mouse::Interaction,
     pub surface: C::Surface,
     pub renderer: P::Renderer,
+    pub redraw_at: Option<Instant>,
 }
 
 impl<P, C> Window<P, C>

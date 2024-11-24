@@ -210,7 +210,7 @@ where
             for event in events.iter().cloned() {
                 let mut shell = Shell::new(messages);
 
-                let event_status = overlay.on_event(
+                overlay.update(
                     event,
                     Layout::new(&layout),
                     cursor,
@@ -219,7 +219,7 @@ where
                     &mut shell,
                 );
 
-                event_statuses.push(event_status);
+                event_statuses.push(shell.event_status());
 
                 match (redraw_request, shell.redraw_request()) {
                     (None, Some(at)) => {
@@ -308,7 +308,7 @@ where
 
                 let mut shell = Shell::new(messages);
 
-                let event_status = self.root.as_widget_mut().on_event(
+                self.root.as_widget_mut().update(
                     &mut self.state,
                     event,
                     Layout::new(&self.base),
@@ -319,7 +319,7 @@ where
                     &viewport,
                 );
 
-                if matches!(event_status, event::Status::Captured) {
+                if shell.event_status() == event::Status::Captured {
                     self.overlay = None;
                 }
 
@@ -347,7 +347,7 @@ where
                     outdated = true;
                 }
 
-                event_status.merge(overlay_status)
+                shell.event_status().merge(overlay_status)
             })
             .collect();
 

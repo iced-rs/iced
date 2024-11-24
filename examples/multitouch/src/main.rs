@@ -3,9 +3,8 @@
 //! computers like Microsoft Surface.
 use iced::mouse;
 use iced::touch;
-use iced::widget::canvas::event;
 use iced::widget::canvas::stroke::{self, Stroke};
-use iced::widget::canvas::{self, Canvas, Geometry};
+use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Theme};
 
 use std::collections::HashMap;
@@ -56,25 +55,25 @@ impl canvas::Program<Message> for Multitouch {
     fn update(
         &self,
         _state: &mut Self::State,
-        event: event::Event,
+        event: Event,
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) -> (event::Status, Option<Message>) {
-        match event {
-            event::Event::Touch(touch_event) => match touch_event {
+    ) -> Option<canvas::Action<Message>> {
+        let message = match event {
+            Event::Touch(
                 touch::Event::FingerPressed { id, position }
-                | touch::Event::FingerMoved { id, position } => (
-                    event::Status::Captured,
-                    Some(Message::FingerPressed { id, position }),
-                ),
+                | touch::Event::FingerMoved { id, position },
+            ) => Some(Message::FingerPressed { id, position }),
+            Event::Touch(
                 touch::Event::FingerLifted { id, .. }
-                | touch::Event::FingerLost { id, .. } => (
-                    event::Status::Captured,
-                    Some(Message::FingerLifted { id }),
-                ),
-            },
-            _ => (event::Status::Ignored, None),
-        }
+                | touch::Event::FingerLost { id, .. },
+            ) => Some(Message::FingerLifted { id }),
+            _ => None,
+        };
+
+        message
+            .map(canvas::Action::publish)
+            .map(canvas::Action::and_capture)
     }
 
     fn draw(

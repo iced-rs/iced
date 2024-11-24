@@ -758,12 +758,23 @@ async fn run_instance<P, C>(
             }
             Event::EventLoopAwakened(event) => {
                 match event {
-                    event::Event::NewEvents(
-                        event::StartCause::Init
-                        | event::StartCause::ResumeTimeReached { .. },
-                    ) => {
+                    event::Event::NewEvents(event::StartCause::Init) => {
                         for (_id, window) in window_manager.iter_mut() {
                             window.raw.request_redraw();
+                        }
+                    }
+                    event::Event::NewEvents(
+                        event::StartCause::ResumeTimeReached { .. },
+                    ) => {
+                        let now = Instant::now();
+
+                        for (_id, window) in window_manager.iter_mut() {
+                            if let Some(redraw_at) = window.redraw_at {
+                                if redraw_at <= now {
+                                    window.raw.request_redraw();
+                                    window.redraw_at = None;
+                                }
+                            }
                         }
                     }
                     event::Event::PlatformSpecific(
@@ -807,11 +818,39 @@ async fn run_instance<P, C>(
                             continue;
                         };
 
-                        // TODO: Avoid redrawing all the time by forcing widgets to
-                        // request redraws on state changes
-                        //
-                        // Then, we can use the `interface_state` here to decide if a redraw
-                        // is needed right away, or simply wait until a specific time.
+                        let physical_size = window.state.physical_size();
+
+                        if physical_size.width == 0 || physical_size.height == 0
+                        {
+                            continue;
+                        }
+
+                        if window.viewport_version
+                            != window.state.viewport_version()
+                        {
+                            let logical_size = window.state.logical_size();
+
+                            debug.layout_started();
+                            let ui = user_interfaces
+                                .remove(&id)
+                                .expect("Remove user interface");
+
+                            let _ = user_interfaces.insert(
+                                id,
+                                ui.relayout(logical_size, &mut window.renderer),
+                            );
+                            debug.layout_finished();
+
+                            compositor.configure_surface(
+                                &mut window.surface,
+                                physical_size.width,
+                                physical_size.height,
+                            );
+
+                            window.viewport_version =
+                                window.state.viewport_version();
+                        }
+
                         let redraw_event = core::Event::Window(
                             window::Event::RedrawRequested(Instant::now()),
                         );
@@ -857,81 +896,18 @@ async fn run_instance<P, C>(
                             status: core::event::Status::Ignored,
                         });
 
-                        let _ = control_sender.start_send(Control::ChangeFlow(
-                            match ui_state {
-                                user_interface::State::Updated {
-                                    redraw_request: Some(redraw_request),
-                                } => match redraw_request {
-                                    window::RedrawRequest::NextFrame => {
-                                        window.raw.request_redraw();
-
-                                        ControlFlow::Wait
-                                    }
-                                    window::RedrawRequest::At(at) => {
-                                        ControlFlow::WaitUntil(at)
-                                    }
-                                },
-                                _ => ControlFlow::Wait,
-                            },
-                        ));
-
-                        let physical_size = window.state.physical_size();
-
-                        if physical_size.width == 0 || physical_size.height == 0
+                        if let user_interface::State::Updated {
+                            redraw_request: Some(redraw_request),
+                        } = ui_state
                         {
-                            continue;
-                        }
-
-                        if window.viewport_version
-                            != window.state.viewport_version()
-                        {
-                            let logical_size = window.state.logical_size();
-
-                            debug.layout_started();
-                            let ui = user_interfaces
-                                .remove(&id)
-                                .expect("Remove user interface");
-
-                            let _ = user_interfaces.insert(
-                                id,
-                                ui.relayout(logical_size, &mut window.renderer),
-                            );
-                            debug.layout_finished();
-
-                            debug.draw_started();
-                            let new_mouse_interaction = user_interfaces
-                                .get_mut(&id)
-                                .expect("Get user interface")
-                                .draw(
-                                    &mut window.renderer,
-                                    window.state.theme(),
-                                    &renderer::Style {
-                                        text_color: window.state.text_color(),
-                                    },
-                                    window.state.cursor(),
-                                );
-                            debug.draw_finished();
-
-                            if new_mouse_interaction != window.mouse_interaction
-                            {
-                                window.raw.set_cursor(
-                                    conversion::mouse_interaction(
-                                        new_mouse_interaction,
-                                    ),
-                                );
-
-                                window.mouse_interaction =
-                                    new_mouse_interaction;
+                            match redraw_request {
+                                window::RedrawRequest::NextFrame => {
+                                    window.raw.request_redraw();
+                                }
+                                window::RedrawRequest::At(at) => {
+                                    window.redraw_at = Some(at);
+                                }
                             }
-
-                            compositor.configure_surface(
-                                &mut window.surface,
-                                physical_size.width,
-                                physical_size.height,
-                            );
-
-                            window.viewport_version =
-                                window.state.viewport_version();
                         }
 
                         debug.render_started();
@@ -995,6 +971,13 @@ async fn run_instance<P, C>(
 
                         if matches!(
                             window_event,
+                            winit::event::WindowEvent::Resized(_)
+                        ) {
+                            window.raw.request_redraw();
+                        }
+
+                        if matches!(
+                            window_event,
                             winit::event::WindowEvent::CloseRequested
                         ) && window.exit_on_close_request
                         {
@@ -1031,7 +1014,10 @@ async fn run_instance<P, C>(
                         }
                     }
                     event::Event::AboutToWait => {
-                        if events.is_empty() && messages.is_empty() {
+                        if events.is_empty()
+                            && messages.is_empty()
+                            && window_manager.is_idle()
+                        {
                             continue;
                         }
 
@@ -1065,13 +1051,27 @@ async fn run_instance<P, C>(
                                     &mut messages,
                                 );
 
+                            #[cfg(feature = "unconditional-rendering")]
                             window.raw.request_redraw();
 
-                            if !uis_stale {
-                                uis_stale = matches!(
-                                    ui_state,
-                                    user_interface::State::Outdated
-                                );
+                            match ui_state {
+                                #[cfg(not(
+                                    feature = "unconditional-rendering"
+                                ))]
+                                user_interface::State::Updated {
+                                    redraw_request: Some(redraw_request),
+                                } => match redraw_request {
+                                    window::RedrawRequest::NextFrame => {
+                                        window.raw.request_redraw();
+                                    }
+                                    window::RedrawRequest::At(at) => {
+                                        window.redraw_at = Some(at);
+                                    }
+                                },
+                                user_interface::State::Outdated => {
+                                    uis_stale = true;
+                                }
+                                user_interface::State::Updated { .. } => {}
                             }
 
                             for (event, status) in window_events
@@ -1138,6 +1138,17 @@ async fn run_instance<P, C>(
                                 proxy.free_slots(actions);
                                 actions = 0;
                             }
+                        }
+
+                        if let Some(redraw_at) = window_manager.redraw_at() {
+                            let _ =
+                                control_sender.start_send(Control::ChangeFlow(
+                                    ControlFlow::WaitUntil(redraw_at),
+                                ));
+                        } else {
+                            let _ = control_sender.start_send(
+                                Control::ChangeFlow(ControlFlow::Wait),
+                            );
                         }
                     }
                     _ => {}
@@ -1445,7 +1456,6 @@ fn run_action<P, C>(
                 if let Some(window) = window_manager.get_mut(id) {
                     let bytes = compositor.screenshot(
                         &mut window.renderer,
-                        &mut window.surface,
                         window.state.viewport(),
                         window.state.background_color(),
                         &debug.overlay(),

@@ -1,13 +1,12 @@
 //! Zoom and pan on an image.
-use crate::core::event::{self, Event};
 use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, ContentFit, Element, Image, Layout, Length, Pixels, Point,
-    Rectangle, Rotation, Shell, Size, Vector, Widget,
+    Clipboard, ContentFit, Element, Event, Image, Layout, Length, Pixels,
+    Point, Rectangle, Rotation, Shell, Size, Vector, Widget,
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -160,7 +159,7 @@ where
         layout::Node::new(final_size)
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -168,15 +167,15 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        _shell: &mut Shell<'_, Message>,
+        shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let bounds = layout.bounds();
 
         match event {
             Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
                 let Some(cursor_position) = cursor.position_over(bounds) else {
-                    return event::Status::Ignored;
+                    return;
                 };
 
                 match delta {
@@ -228,29 +227,25 @@ where
                     }
                 }
 
-                event::Status::Captured
+                shell.capture_event();
             }
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let Some(cursor_position) = cursor.position_over(bounds) else {
-                    return event::Status::Ignored;
+                    return;
                 };
 
                 let state = tree.state.downcast_mut::<State>();
 
                 state.cursor_grabbed_at = Some(cursor_position);
                 state.starting_offset = state.current_offset;
-
-                event::Status::Captured
+                shell.capture_event();
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 let state = tree.state.downcast_mut::<State>();
 
                 if state.cursor_grabbed_at.is_some() {
                     state.cursor_grabbed_at = None;
-
-                    event::Status::Captured
-                } else {
-                    event::Status::Ignored
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
@@ -291,13 +286,10 @@ where
                     };
 
                     state.current_offset = Vector::new(x, y);
-
-                    event::Status::Captured
-                } else {
-                    event::Status::Ignored
+                    shell.capture_event();
                 }
             }
-            _ => event::Status::Ignored,
+            _ => {}
         }
     }
 
