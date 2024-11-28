@@ -103,12 +103,12 @@ where
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
         &self,
-        state: &mut Tree,
+        tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        let _ = (state, layout, renderer, operation);
+        let _ = (tree, layout, renderer, operation);
     }
 
     /// Processes a runtime [`Event`].
@@ -116,7 +116,7 @@ where
     /// By default, it does nothing.
     fn update(
         &mut self,
-        state: &mut Tree,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -126,7 +126,7 @@ where
         viewport: &Rectangle,
     ) {
         let _ = (
-            state, event, layout, cursor, renderer, clipboard, shell, viewport,
+            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
         );
     }
 
@@ -135,13 +135,13 @@ where
     /// By default, it returns [`mouse::Interaction::Idle`].
     fn mouse_interaction(
         &self,
-        state: &Tree,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let _ = (state, layout, cursor, viewport, renderer);
+        let _ = (tree, layout, cursor, viewport, renderer);
 
         mouse::Interaction::None
     }
@@ -149,12 +149,12 @@ where
     /// Returns the overlay of the [`Widget`], if there is any.
     fn overlay<'a>(
         &'a mut self,
-        state: &'a mut Tree,
+        tree: &'a mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         translation: Vector,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        let _ = (state, layout, renderer, translation);
+        let _ = (tree, layout, renderer, translation);
 
         None
     }
