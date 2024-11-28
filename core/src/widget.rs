@@ -96,16 +96,19 @@ where
     }
 
     /// Reconciles the [`Widget`] with the provided [`Tree`].
-    fn diff(&self, _tree: &mut Tree) {}
+    fn diff(&self, tree: &mut Tree) {
+        let _ = tree;
+    }
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
         &self,
-        _state: &mut Tree,
-        _layout: Layout<'_>,
-        _renderer: &Renderer,
-        _operation: &mut dyn Operation,
+        state: &mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn Operation,
     ) {
+        let _ = (state, layout, renderer, operation);
     }
 
     /// Processes a runtime [`Event`].
@@ -113,15 +116,18 @@ where
     /// By default, it does nothing.
     fn update(
         &mut self,
-        _state: &mut Tree,
-        _event: Event,
-        _layout: Layout<'_>,
-        _cursor: mouse::Cursor,
-        _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
-        _shell: &mut Shell<'_, Message>,
-        _viewport: &Rectangle,
+        state: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) {
+        let _ = (
+            state, event, layout, cursor, renderer, clipboard, shell, viewport,
+        );
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Widget`].
@@ -129,23 +135,27 @@ where
     /// By default, it returns [`mouse::Interaction::Idle`].
     fn mouse_interaction(
         &self,
-        _state: &Tree,
-        _layout: Layout<'_>,
-        _cursor: mouse::Cursor,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
+        state: &Tree,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
+        let _ = (state, layout, cursor, viewport, renderer);
+
         mouse::Interaction::None
     }
 
     /// Returns the overlay of the [`Widget`], if there is any.
     fn overlay<'a>(
         &'a mut self,
-        _state: &'a mut Tree,
-        _layout: Layout<'_>,
-        _renderer: &Renderer,
-        _translation: Vector,
+        state: &'a mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+        let _ = (state, layout, renderer, translation);
+
         None
     }
 }
