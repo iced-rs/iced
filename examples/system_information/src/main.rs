@@ -7,7 +7,7 @@ pub fn main() -> iced::Result {
         Example::update,
         Example::view,
     )
-    .run()
+    .run_with(Example::new)
 }
 
 #[derive(Default)]
@@ -28,6 +28,10 @@ enum Message {
 }
 
 impl Example {
+    fn new() -> (Self, Task<Message>) {
+        (Self::Loading, Task::done(Message::Refresh))
+    }
+    
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Refresh => {
