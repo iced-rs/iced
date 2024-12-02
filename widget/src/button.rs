@@ -315,8 +315,7 @@ where
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. }) => {
-                if let Some(on_press) = &self.on_press
-                {
+                if let Some(on_press) = &self.on_press {
                     let state = tree.state.downcast_mut::<State>();
 
                     if state.is_pressed {
