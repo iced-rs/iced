@@ -70,7 +70,7 @@ where
     }
 }
 
-impl<'a, Theme> Default for Linear<'a, Theme>
+impl<Theme> Default for Linear<'_, Theme>
 where
     Theme: StyleSheet,
 {

@@ -23,7 +23,7 @@ pub struct Stroke<'a> {
     pub line_dash: LineDash<'a>,
 }
 
-impl<'a> Stroke<'a> {
+impl Stroke<'_> {
     /// Sets the color of the [`Stroke`].
     pub fn with_color(self, color: Color) -> Self {
         Stroke {
@@ -48,7 +48,7 @@ impl<'a> Stroke<'a> {
     }
 }
 
-impl<'a> Default for Stroke<'a> {
+impl Default for Stroke<'_> {
     fn default() -> Self {
         Stroke {
             style: Style::Solid(Color::BLACK),

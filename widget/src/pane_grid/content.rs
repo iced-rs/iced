@@ -73,7 +73,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Content<'_, Message, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
@@ -401,8 +401,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Draggable
-    for &Content<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Draggable
+    for &Content<'_, Message, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,

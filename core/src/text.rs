@@ -446,7 +446,7 @@ impl<'a, Link, Font> From<&'a str> for Span<'a, Link, Font> {
     }
 }
 
-impl<'a, Link, Font: PartialEq> PartialEq for Span<'a, Link, Font> {
+impl<Link, Font: PartialEq> PartialEq for Span<'_, Link, Font> {
     fn eq(&self, other: &Self) -> bool {
         self.text == other.text
             && self.size == other.size
@@ -474,7 +474,7 @@ impl<'a> IntoFragment<'a> for Fragment<'a> {
     }
 }
 
-impl<'a, 'b> IntoFragment<'a> for &'a Fragment<'b> {
+impl<'a> IntoFragment<'a> for &'a Fragment<'_> {
     fn into_fragment(self) -> Fragment<'a> {
         Fragment::Borrowed(self)
     }

@@ -513,8 +513,8 @@ impl<Highlighter: text::Highlighter> operation::Focusable
     }
 }
 
-impl<'a, Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for TextEditor<'a, Highlighter, Message, Theme, Renderer>
+impl<Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for TextEditor<'_, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
     Theme: Catalog,

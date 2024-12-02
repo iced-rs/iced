@@ -227,9 +227,9 @@ where
     }
 }
 
-impl<'a, 'b, Message, Theme, Renderer>
+impl<Message, Theme, Renderer>
     crate::core::Overlay<Message, Theme, Renderer>
-    for Overlay<'a, 'b, Message, Theme, Renderer>
+    for Overlay<'_, '_, Message, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
@@ -338,8 +338,8 @@ struct ListState {
     is_hovered: Option<bool>,
 }
 
-impl<'a, 'b, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for List<'a, 'b, T, Message, Theme, Renderer>
+impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for List<'_, '_, T, Message, Theme, Renderer>
 where
     T: Clone + ToString,
     Theme: Catalog,

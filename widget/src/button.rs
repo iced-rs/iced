@@ -89,7 +89,7 @@ enum OnPress<'a, Message> {
     Closure(Box<dyn Fn() -> Message + 'a>),
 }
 
-impl<'a, Message: Clone> OnPress<'a, Message> {
+impl<Message: Clone> OnPress<'_, Message> {
     fn get(&self) -> Message {
         match self {
             OnPress::Direct(message) => message.clone(),

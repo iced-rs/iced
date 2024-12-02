@@ -148,8 +148,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Svg<'a, Theme>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Svg<'_, Theme>
 where
     Renderer: svg::Renderer,
     Theme: Catalog,
@@ -323,7 +323,7 @@ impl Catalog for Theme {
 /// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
 pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
 
-impl<'a, Theme> From<Style> for StyleFn<'a, Theme> {
+impl<Theme> From<Style> for StyleFn<'_, Theme> {
     fn from(style: Style) -> Self {
         Box::new(move |_theme, _status| style)
     }

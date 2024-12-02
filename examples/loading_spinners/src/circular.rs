@@ -88,7 +88,7 @@ where
     }
 }
 
-impl<'a, Theme> Default for Circular<'a, Theme>
+impl<Theme> Default for Circular<'_, Theme>
 where
     Theme: StyleSheet,
 {

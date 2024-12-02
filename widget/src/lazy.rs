@@ -321,8 +321,8 @@ struct Overlay<'a, Message, Theme, Renderer>(
     Option<Inner<'a, Message, Theme, Renderer>>,
 );
 
-impl<'a, Message, Theme, Renderer> Drop
-    for Overlay<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Drop
+    for Overlay<'_, Message, Theme, Renderer>
 {
     fn drop(&mut self) {
         let heads = self.0.take().unwrap().into_heads();
@@ -330,7 +330,7 @@ impl<'a, Message, Theme, Renderer> Drop
     }
 }
 
-impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer> {
+impl<Message, Theme, Renderer> Overlay<'_, Message, Theme, Renderer> {
     fn with_overlay_maybe<T>(
         &self,
         f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
@@ -350,8 +350,8 @@ impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer> {
     }
 }
 
-impl<'a, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
-    for Overlay<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {

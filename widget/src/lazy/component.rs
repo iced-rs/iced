@@ -141,8 +141,8 @@ struct State<'a, Message: 'a, Theme: 'a, Renderer: 'a, Event: 'a, S: 'a> {
     element: Option<Element<'this, Event, Theme, Renderer>>,
 }
 
-impl<'a, Message, Theme, Renderer, Event, S>
-    Instance<'a, Message, Theme, Renderer, Event, S>
+impl<Message, Theme, Renderer, Event, S>
+    Instance<'_, Message, Theme, Renderer, Event, S>
 where
     S: Default + 'static,
     Renderer: renderer::Renderer,
@@ -251,8 +251,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer, Event, S> Widget<Message, Theme, Renderer>
-    for Instance<'a, Message, Theme, Renderer, Event, S>
+impl<Message, Theme, Renderer, Event, S> Widget<Message, Theme, Renderer>
+    for Instance<'_, Message, Theme, Renderer, Event, S>
 where
     S: 'static + Default,
     Renderer: core::Renderer,
@@ -504,8 +504,8 @@ struct Overlay<'a, 'b, Message, Theme, Renderer, Event, S>(
     Option<Inner<'a, 'b, Message, Theme, Renderer, Event, S>>,
 );
 
-impl<'a, 'b, Message, Theme, Renderer, Event, S> Drop
-    for Overlay<'a, 'b, Message, Theme, Renderer, Event, S>
+impl<Message, Theme, Renderer, Event, S> Drop
+    for Overlay<'_, '_, Message, Theme, Renderer, Event, S>
 {
     fn drop(&mut self) {
         if let Some(heads) = self.0.take().map(Inner::into_heads) {
@@ -529,8 +529,8 @@ struct OverlayInstance<'a, 'b, Message, Theme, Renderer, Event, S> {
     overlay: Option<Overlay<'a, 'b, Message, Theme, Renderer, Event, S>>,
 }
 
-impl<'a, 'b, Message, Theme, Renderer, Event, S>
-    OverlayInstance<'a, 'b, Message, Theme, Renderer, Event, S>
+impl<Message, Theme, Renderer, Event, S>
+    OverlayInstance<'_, '_, Message, Theme, Renderer, Event, S>
 {
     fn with_overlay_maybe<T>(
         &self,
@@ -563,9 +563,9 @@ impl<'a, 'b, Message, Theme, Renderer, Event, S>
     }
 }
 
-impl<'a, 'b, Message, Theme, Renderer, Event, S>
+impl<Message, Theme, Renderer, Event, S>
     overlay::Overlay<Message, Theme, Renderer>
-    for OverlayInstance<'a, 'b, Message, Theme, Renderer, Event, S>
+    for OverlayInstance<'_, '_, Message, Theme, Renderer, Event, S>
 where
     Renderer: core::Renderer,
     S: 'static + Default,

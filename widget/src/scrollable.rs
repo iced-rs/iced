@@ -385,8 +385,8 @@ pub enum Anchor {
     End,
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Scrollable<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Scrollable<'_, Message, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,

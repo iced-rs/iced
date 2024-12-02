@@ -130,8 +130,8 @@ impl<'a, A, B, Theme, Renderer> Map<'a, A, B, Theme, Renderer> {
     }
 }
 
-impl<'a, A, B, Theme, Renderer> Overlay<B, Theme, Renderer>
-    for Map<'a, A, B, Theme, Renderer>
+impl<A, B, Theme, Renderer> Overlay<B, Theme, Renderer>
+    for Map<'_, A, B, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -203,11 +203,11 @@ where
         self.content.is_over(layout, renderer, cursor_position)
     }
 
-    fn overlay<'b>(
-        &'b mut self,
+    fn overlay<'a>(
+        &'a mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<Element<'b, B, Theme, Renderer>> {
+    ) -> Option<Element<'a, B, Theme, Renderer>> {
         self.content
             .overlay(layout, renderer)
             .map(|overlay| overlay.map(self.mapper))

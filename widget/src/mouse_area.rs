@@ -163,8 +163,8 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for MouseArea<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for MouseArea<'_, Message, Theme, Renderer>
 where
     Renderer: renderer::Renderer,
     Message: Clone,

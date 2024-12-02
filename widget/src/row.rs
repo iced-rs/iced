@@ -171,7 +171,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer>
+impl<Message, Renderer> Default for Row<'_, Message, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -193,8 +193,8 @@ impl<'a, Message, Theme, Renderer: crate::core::Renderer>
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Row<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Row<'_, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -380,8 +380,8 @@ pub struct Wrapping<
     row: Row<'a, Message, Theme, Renderer>,
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Wrapping<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Wrapping<'_, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {

@@ -145,7 +145,7 @@ mod rainbow {
         }
     }
 
-    impl<'a, Message> From<Rainbow> for Element<'a, Message> {
+    impl<Message> From<Rainbow> for Element<'_, Message> {
         fn from(rainbow: Rainbow) -> Self {
             Self::new(rainbow)
         }

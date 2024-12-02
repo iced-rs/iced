@@ -185,7 +185,7 @@ where
     }
 }
 
-impl<'a, Key, Message, Renderer> Default for Column<'a, Key, Message, Renderer>
+impl<Key, Message, Renderer> Default for Column<'_, Key, Message, Renderer>
 where
     Key: Copy + PartialEq,
     Renderer: crate::core::Renderer,
@@ -202,8 +202,8 @@ where
     keys: Vec<Key>,
 }
 
-impl<'a, Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Column<'a, Key, Message, Theme, Renderer>
+impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Column<'_, Key, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
     Key: Copy + PartialEq + 'static,

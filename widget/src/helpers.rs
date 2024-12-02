@@ -405,8 +405,8 @@ where
         content: Element<'a, Message, Theme, Renderer>,
     }
 
-    impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-        for Opaque<'a, Message, Theme, Renderer>
+    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+        for Opaque<'_, Message, Theme, Renderer>
     where
         Renderer: core::Renderer,
     {
@@ -569,8 +569,8 @@ where
         is_hovered: bool,
     }
 
-    impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-        for Hover<'a, Message, Theme, Renderer>
+    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+        for Hover<'_, Message, Theme, Renderer>
     where
         Renderer: core::Renderer,
     {

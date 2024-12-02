@@ -247,8 +247,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Checkbox<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Checkbox<'_, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
     Theme: Catalog,

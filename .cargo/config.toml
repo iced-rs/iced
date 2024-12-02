@@ -1,2 +1,3 @@
 [alias]
 lint = "clippy --workspace --benches --all-features --no-deps -- -D warnings"
+lint-fix = "clippy --fix --allow-dirty --workspace --benches --all-features --no-deps -- -D warnings"
