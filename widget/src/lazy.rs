@@ -321,9 +321,7 @@ struct Overlay<'a, Message, Theme, Renderer>(
     Option<Inner<'a, Message, Theme, Renderer>>,
 );
 
-impl<Message, Theme, Renderer> Drop
-    for Overlay<'_, Message, Theme, Renderer>
-{
+impl<Message, Theme, Renderer> Drop for Overlay<'_, Message, Theme, Renderer> {
     fn drop(&mut self) {
         let heads = self.0.take().unwrap().into_heads();
         (*heads.cell.borrow_mut()) = Some(heads.element);

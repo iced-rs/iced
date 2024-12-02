@@ -369,8 +369,7 @@ where
     class: &'b Theme::Class<'a>,
 }
 
-impl<Message, Theme, Renderer>
-    overlay::Overlay<Message, Theme, Renderer>
+impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
     for Overlay<'_, '_, Message, Theme, Renderer>
 where
     Theme: container::Catalog,

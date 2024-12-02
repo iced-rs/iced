@@ -227,8 +227,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer>
-    crate::core::Overlay<Message, Theme, Renderer>
+impl<Message, Theme, Renderer> crate::core::Overlay<Message, Theme, Renderer>
     for Overlay<'_, '_, Message, Theme, Renderer>
 where
     Theme: Catalog,
