@@ -593,15 +593,12 @@ mod tests {
     use iced::test::selector;
 
     #[test]
-    fn it_creates_a_new_task() {
+    fn it_creates_a_new_task() -> Result<(), test::Error> {
         let (mut todos, _command) = Todos::new();
         let _command = todos.update(Message::Loaded(Err(LoadError::File)));
 
         let mut interface = test::interface(todos.view());
-
-        let _input = interface
-            .click("new-task")
-            .expect("new-task input must be present");
+        let _input = interface.click("new-task")?;
 
         interface.typewrite("Create the universe");
         interface.press_key(keyboard::key::Named::Enter);
@@ -611,9 +608,8 @@ mod tests {
         }
 
         let mut interface = test::interface(todos.view());
+        let _ = interface.find(selector::text("Create the universe"))?;
 
-        let _ = interface
-            .find(selector::text("Create the universe"))
-            .expect("New task must be present");
+        Ok(())
     }
 }
