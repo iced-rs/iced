@@ -29,23 +29,27 @@ enum Message {
 
 impl Example {
     fn new() -> (Self, Task<Message>) {
-        (Self::Loading, Task::done(Message::Refresh))
+        (
+            Self::Loading,
+            system::fetch_information().map(Message::InformationReceived),
+        )
     }
-    
+
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Refresh => {
-                *self = Self::Loading;
+                let (state, refresh) = Self::new();
 
-                return system::fetch_information()
-                    .map(Message::InformationReceived);
+                *self = state;
+
+                refresh
             }
             Message::InformationReceived(information) => {
                 *self = Self::Loaded { information };
+
+                Task::none()
             }
         }
-
-        Task::none()
     }
 
     fn view(&self) -> Element<Message> {
