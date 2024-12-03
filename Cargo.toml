@@ -72,6 +72,7 @@ unconditional-rendering = ["iced_winit/unconditional-rendering"]
 iced_core.workspace = true
 iced_futures.workspace = true
 iced_renderer.workspace = true
+iced_test.workspace = true
 iced_widget.workspace = true
 iced_winit.features = ["program"]
 iced_winit.workspace = true
@@ -111,6 +112,7 @@ members = [
     "highlighter",
     "renderer",
     "runtime",
+    "test",
     "tiny_skia",
     "wgpu",
     "widget",
@@ -137,6 +139,7 @@ iced_graphics = { version = "0.14.0-dev", path = "graphics" }
 iced_highlighter = { version = "0.14.0-dev", path = "highlighter" }
 iced_renderer = { version = "0.14.0-dev", path = "renderer" }
 iced_runtime = { version = "0.14.0-dev", path = "runtime" }
+iced_test = { version = "0.14.0-dev", path = "test" }
 iced_tiny_skia = { version = "0.14.0-dev", path = "tiny_skia" }
 iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
 iced_widget = { version = "0.14.0-dev", path = "widget" }

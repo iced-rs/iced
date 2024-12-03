@@ -584,3 +584,36 @@ impl SavedState {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use iced::test;
+    use iced::test::selector;
+
+    #[test]
+    fn it_creates_a_new_task() {
+        let (mut todos, _command) = Todos::new();
+        let _command = todos.update(Message::Loaded(Err(LoadError::File)));
+
+        let mut interface = test::interface(todos.view());
+
+        let _input = interface
+            .click("new-task")
+            .expect("new-task input must be present");
+
+        interface.typewrite("Create the universe");
+        interface.press_key(keyboard::key::Named::Enter);
+
+        for message in interface.into_messages() {
+            let _command = todos.update(message);
+        }
+
+        let mut interface = test::interface(todos.view());
+
+        let _ = interface
+            .find(selector::text("Create the universe"))
+            .expect("New task must be present");
+    }
+}

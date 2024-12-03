@@ -26,6 +26,9 @@ uuid = { version = "1.0", features = ["js"] }
 web-sys = { workspace = true, features = ["Window", "Storage"] }
 wasm-timer.workspace = true
 
+[dev-dependencies]
+iced_test.workspace = true
+
 [package.metadata.deb]
 assets = [
     ["target/release-opt/todos", "usr/bin/iced-todos", "755"],

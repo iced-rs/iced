@@ -32,7 +32,12 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
     }
 
     impl<T> Operation<T> for Focus {
-        fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
+        fn focusable(
+            &mut self,
+            id: Option<&Id>,
+            _bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
             match id {
                 Some(id) if id == &self.target => {
                     state.focus();
@@ -64,7 +69,12 @@ pub fn count() -> impl Operation<Count> {
     }
 
     impl Operation<Count> for CountFocusable {
-        fn focusable(&mut self, state: &mut dyn Focusable, _id: Option<&Id>) {
+        fn focusable(
+            &mut self,
+            _id: Option<&Id>,
+            _bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
             if state.is_focused() {
                 self.count.focused = Some(self.count.total);
             }
@@ -104,7 +114,12 @@ where
     }
 
     impl<T> Operation<T> for FocusPrevious {
-        fn focusable(&mut self, state: &mut dyn Focusable, _id: Option<&Id>) {
+        fn focusable(
+            &mut self,
+            _id: Option<&Id>,
+            _bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
             if self.count.total == 0 {
                 return;
             }
@@ -147,7 +162,12 @@ where
     }
 
     impl<T> Operation<T> for FocusNext {
-        fn focusable(&mut self, state: &mut dyn Focusable, _id: Option<&Id>) {
+        fn focusable(
+            &mut self,
+            _id: Option<&Id>,
+            _bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
             match self.count.focused {
                 None if self.current == 0 => state.focus(),
                 Some(focused) if focused == self.current => state.unfocus(),
@@ -179,7 +199,12 @@ pub fn find_focused() -> impl Operation<Id> {
     }
 
     impl Operation<Id> for FindFocused {
-        fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
+        fn focusable(
+            &mut self,
+            id: Option<&Id>,
+            _bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
             if state.is_focused() && id.is_some() {
                 self.focused = id.cloned();
             }
