@@ -39,11 +39,11 @@ pub fn snap_to<T>(target: Id, offset: RelativeOffset) -> impl Operation<T> {
 
         fn scrollable(
             &mut self,
-            state: &mut dyn Scrollable,
             id: Option<&Id>,
             _bounds: Rectangle,
             _content_bounds: Rectangle,
             _translation: Vector,
+            state: &mut dyn Scrollable,
         ) {
             if Some(&self.target) == id {
                 state.snap_to(self.offset);
@@ -74,11 +74,11 @@ pub fn scroll_to<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
 
         fn scrollable(
             &mut self,
-            state: &mut dyn Scrollable,
             id: Option<&Id>,
             _bounds: Rectangle,
             _content_bounds: Rectangle,
             _translation: Vector,
+            state: &mut dyn Scrollable,
         ) {
             if Some(&self.target) == id {
                 state.scroll_to(self.offset);
@@ -109,11 +109,11 @@ pub fn scroll_by<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
 
         fn scrollable(
             &mut self,
-            state: &mut dyn Scrollable,
             id: Option<&Id>,
             bounds: Rectangle,
             content_bounds: Rectangle,
             _translation: Vector,
+            state: &mut dyn Scrollable,
         ) {
             if Some(&self.target) == id {
                 state.scroll_by(self.offset, bounds, content_bounds);

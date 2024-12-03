@@ -493,11 +493,11 @@ pub fn visible_bounds(id: Id) -> Task<Option<Rectangle>> {
     impl Operation<Option<Rectangle>> for VisibleBounds {
         fn scrollable(
             &mut self,
-            _state: &mut dyn widget::operation::Scrollable,
             _id: Option<&widget::Id>,
             bounds: Rectangle,
             _content_bounds: Rectangle,
             translation: Vector,
+            _state: &mut dyn widget::operation::Scrollable,
         ) {
             match self.scrollables.last() {
                 Some((last_translation, last_viewport, _depth)) => {

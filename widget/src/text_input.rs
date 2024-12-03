@@ -617,14 +617,23 @@ where
     fn operate(
         &self,
         tree: &mut Tree,
-        _layout: Layout<'_>,
+        layout: Layout<'_>,
         _renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
-        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
-        operation.text_input(state, self.id.as_ref().map(|id| &id.0));
+        operation.focusable(
+            self.id.as_ref().map(|id| &id.0),
+            layout.bounds(),
+            state,
+        );
+
+        operation.text_input(
+            self.id.as_ref().map(|id| &id.0),
+            layout.bounds(),
+            state,
+        );
     }
 
     fn update(

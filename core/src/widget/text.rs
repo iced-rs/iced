@@ -267,6 +267,18 @@ where
 
         draw(renderer, defaults, layout, state.0.raw(), style, viewport);
     }
+
+    fn operate(
+        &self,
+        _state: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn super::Operation,
+    ) {
+        dbg!(&self.fragment);
+
+        operation.text(None, layout.bounds(), &self.fragment);
+    }
 }
 
 /// Produces the [`layout::Node`] of a [`Text`] widget.

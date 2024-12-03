@@ -479,6 +479,7 @@ use iced_winit::runtime;
 
 pub use iced_futures::futures;
 pub use iced_futures::stream;
+pub use iced_test as test;
 
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
@@ -624,6 +625,7 @@ pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
 pub use font::Font;
+pub use program::Program;
 pub use renderer::Renderer;
 pub use settings::Settings;
 pub use task::Task;

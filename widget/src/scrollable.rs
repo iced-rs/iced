@@ -487,11 +487,11 @@ where
             state.translation(self.direction, bounds, content_bounds);
 
         operation.scrollable(
-            state,
             self.id.as_ref().map(|id| &id.0),
             bounds,
             content_bounds,
             translation,
+            state,
         );
 
         operation.container(

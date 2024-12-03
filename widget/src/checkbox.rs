@@ -445,6 +445,16 @@ where
             );
         }
     }
+
+    fn operate(
+        &self,
+        _state: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        operation.text(None, layout.bounds(), &self.label);
+    }
 }
 
 impl<'a, Message, Theme, Renderer> From<Checkbox<'a, Message, Theme, Renderer>>

@@ -32,6 +32,12 @@ impl Key {
     }
 }
 
+impl From<Named> for Key {
+    fn from(named: Named) -> Self {
+        Self::Named(named)
+    }
+}
+
 /// A named key.
 ///
 /// This is mostly the `NamedKey` type found in [`winit`].

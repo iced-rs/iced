@@ -971,13 +971,13 @@ where
     fn operate(
         &self,
         tree: &mut widget::Tree,
-        _layout: Layout<'_>,
+        layout: Layout<'_>,
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         let state = tree.state.downcast_mut::<State<Highlighter>>();
 
-        operation.focusable(state, None);
+        operation.focusable(None, layout.bounds(), state);
     }
 }
 
