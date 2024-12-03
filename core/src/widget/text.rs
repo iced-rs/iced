@@ -275,8 +275,6 @@ where
         _renderer: &Renderer,
         operation: &mut dyn super::Operation,
     ) {
-        dbg!(&self.fragment);
-
         operation.text(None, layout.bounds(), &self.fragment);
     }
 }
