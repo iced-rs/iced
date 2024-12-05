@@ -245,8 +245,15 @@ where
 
     pub fn update_mouse(&mut self, interaction: mouse::Interaction) {
         if interaction != self.mouse_interaction {
-            self.raw
-                .set_cursor(conversion::mouse_interaction(interaction));
+            if let Some(icon) = conversion::mouse_interaction(interaction) {
+                self.raw.set_cursor(icon);
+
+                if self.mouse_interaction == mouse::Interaction::Hidden {
+                    self.raw.set_cursor_visible(true);
+                }
+            } else {
+                self.raw.set_cursor_visible(false);
+            }
 
             self.mouse_interaction = interaction;
         }

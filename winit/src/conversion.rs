@@ -467,10 +467,13 @@ pub fn window_theme(mode: theme::Mode) -> Option<winit::window::Theme> {
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn mouse_interaction(
     interaction: mouse::Interaction,
-) -> winit::window::CursorIcon {
+) -> Option<winit::window::CursorIcon> {
     use mouse::Interaction;
 
-    match interaction {
+    let icon = match interaction {
+        Interaction::Hidden => {
+            return None;
+        }
         Interaction::None | Interaction::Idle => {
             winit::window::CursorIcon::Default
         }
@@ -497,7 +500,9 @@ pub fn mouse_interaction(
         Interaction::Move => winit::window::CursorIcon::Move,
         Interaction::Copy => winit::window::CursorIcon::Copy,
         Interaction::Help => winit::window::CursorIcon::Help,
-    }
+    };
+
+    Some(icon)
 }
 
 /// Converts a `MouseButton` from [`winit`] to an [`iced`] mouse button.

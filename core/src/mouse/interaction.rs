@@ -4,6 +4,7 @@
 pub enum Interaction {
     #[default]
     None,
+    Hidden,
     Idle,
     Pointer,
     Grab,
