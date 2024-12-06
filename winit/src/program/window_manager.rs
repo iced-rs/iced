@@ -165,7 +165,7 @@ where
 {
     pub fn position(&self) -> Option<Point> {
         self.raw
-            .inner_position()
+            .outer_position()
             .ok()
             .map(|position| position.to_logical(self.raw.scale_factor()))
             .map(|position| Point {
