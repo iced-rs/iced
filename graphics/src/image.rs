@@ -85,7 +85,9 @@ pub fn load(
 
     let (width, height, pixels) = match handle {
         image::Handle::Path(_, path) => {
-            let image = ::image::open(path)?;
+            let image = ::image::io::Reader::open(path)?
+                .with_guessed_format()?
+                .decode()?;
 
             let operation = std::fs::File::open(path)
                 .ok()
