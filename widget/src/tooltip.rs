@@ -213,7 +213,8 @@ where
 
         if was_idle != is_idle {
             shell.invalidate_layout();
-        } else if self.position == Position::FollowCursor && *state != State::Idle {
+            shell.request_redraw();
+        } else if !is_idle && self.position == Position::FollowCursor {
             shell.request_redraw();
         }
 
