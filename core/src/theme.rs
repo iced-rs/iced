@@ -3,6 +3,8 @@ pub mod palette;
 
 pub use palette::Palette;
 
+use crate::Color;
+
 use std::fmt;
 use std::sync::Arc;
 
@@ -244,5 +246,37 @@ impl Custom {
 impl fmt::Display for Custom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
+    }
+}
+
+/// The base style of a [`Theme`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Style {
+    /// The background [`Color`] of the application.
+    pub background_color: Color,
+
+    /// The default text [`Color`] of the application.
+    pub text_color: Color,
+}
+
+/// The default blank style of a [`Theme`].
+pub trait Base {
+    /// Returns the default base [`Style`] of a [`Theme`].
+    fn base(&self) -> Style;
+}
+
+impl Base for Theme {
+    fn base(&self) -> Style {
+        default(self)
+    }
+}
+
+/// The default [`Style`] of a built-in [`Theme`].
+pub fn default(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    Style {
+        background_color: palette.background.base.color,
+        text_color: palette.background.base.text,
     }
 }

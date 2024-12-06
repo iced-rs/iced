@@ -1,12 +1,11 @@
 //! Create and run daemons that run in the background.
 use crate::application;
 use crate::program::{self, Program};
+use crate::theme;
 use crate::window;
 use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
 
 use std::borrow::Cow;
-
-pub use crate::shell::program::{Appearance, DefaultStyle};
 
 /// Creates an iced [`Daemon`] given its title, update, and view logic.
 ///
@@ -26,7 +25,7 @@ pub fn daemon<State, Message, Theme, Renderer>(
 where
     State: 'static,
     Message: Send + std::fmt::Debug + 'static,
-    Theme: Default + DefaultStyle,
+    Theme: Default + theme::Base,
     Renderer: program::Renderer,
 {
     use std::marker::PhantomData;
@@ -44,7 +43,7 @@ where
         for Instance<State, Message, Theme, Renderer, Update, View>
     where
         Message: Send + std::fmt::Debug + 'static,
-        Theme: Default + DefaultStyle,
+        Theme: Default + theme::Base,
         Renderer: program::Renderer,
         Update: application::Update<State, Message>,
         View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
@@ -201,7 +200,7 @@ impl<P: Program> Daemon<P> {
     /// Sets the style logic of the [`Daemon`].
     pub fn style(
         self,
-        f: impl Fn(&P::State, &P::Theme) -> Appearance,
+        f: impl Fn(&P::State, &P::Theme) -> theme::Style,
     ) -> Daemon<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {

@@ -688,7 +688,7 @@ pub fn run<State, Message, Theme, Renderer>(
 where
     State: Default + 'static,
     Message: std::fmt::Debug + Send + 'static,
-    Theme: Default + program::DefaultStyle + 'static,
+    Theme: Default + theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
     application(title, update, view).run()

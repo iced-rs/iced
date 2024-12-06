@@ -15,7 +15,7 @@ pub fn main() -> iced::Result {
 
     iced::application(Todos::title, Todos::update, Todos::view)
         .subscription(Todos::subscription)
-        .font(include_bytes!("../fonts/icons.ttf").as_slice())
+        .font(Todos::ICON_FONT)
         .window_size((500.0, 800.0))
         .run_with(Todos::new)
 }
@@ -48,6 +48,8 @@ enum Message {
 }
 
 impl Todos {
+    const ICON_FONT: &[u8] = include_bytes!("../fonts/icons.ttf");
+
     fn new() -> (Self, Command<Message>) {
         (
             Self::Loading,
@@ -449,11 +451,10 @@ fn empty_message(message: &str) -> Element<'_, Message> {
 }
 
 // Fonts
-const ICONS: Font = Font::with_name("Iced-Todos-Icons");
 
 fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())
-        .font(ICONS)
+        .font(Font::with_name("Iced-Todos-Icons"))
         .width(20)
         .align_x(Center)
 }
@@ -594,6 +595,8 @@ mod tests {
 
     #[test]
     fn it_creates_a_new_task() -> Result<(), test::Error> {
+        test::load_font(Todos::ICON_FONT)?;
+
         let (mut todos, _command) = Todos::new();
         let _command = todos.update(Message::Loaded(Err(LoadError::File)));
 
@@ -609,6 +612,12 @@ mod tests {
 
         let mut interface = test::interface(todos.view());
         let _ = interface.find(selector::text("Create the universe"))?;
+
+        let snapshot = interface.snapshot()?;
+        assert!(
+            snapshot.matches_hash("snapshots/creates_a_new_task")?,
+            "snapshots should match!"
+        );
 
         Ok(())
     }

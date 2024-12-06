@@ -12,15 +12,26 @@ use iced_tiny_skia as tiny_skia;
 use crate::core::clipboard;
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::theme;
+use crate::core::time;
 use crate::core::widget;
+use crate::core::window;
 use crate::core::{Element, Event, Font, Pixels, Rectangle, Size, SmolStr};
 use crate::renderer::Renderer;
 use crate::runtime::user_interface;
 use crate::runtime::UserInterface;
 
+use std::borrow::Cow;
+use std::fs;
+use std::io;
+use std::path::Path;
+use std::sync::Arc;
+
 pub fn interface<'a, Message, Theme>(
     element: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Interface<'a, Message, Theme, Renderer> {
+    let size = Size::new(512.0, 512.0);
+
     let mut renderer = Renderer::Secondary(tiny_skia::Renderer::new(
         Font::default(),
         Pixels(16.0),
@@ -28,7 +39,7 @@ pub fn interface<'a, Message, Theme>(
 
     let raw = UserInterface::build(
         element,
-        Size::new(1024.0, 1024.0),
+        size,
         user_interface::Cache::default(),
         &mut renderer,
     );
@@ -36,13 +47,24 @@ pub fn interface<'a, Message, Theme>(
     Interface {
         raw,
         renderer,
+        size,
         messages: Vec::new(),
     }
+}
+
+pub fn load_font(font: impl Into<Cow<'static, [u8]>>) -> Result<(), Error> {
+    renderer::graphics::text::font_system()
+        .write()
+        .expect("Write to font system")
+        .load_font(font.into());
+
+    Ok(())
 }
 
 pub struct Interface<'a, Message, Theme, Renderer> {
     raw: UserInterface<'a, Message, Theme, Renderer>,
     renderer: Renderer,
+    size: Size,
     messages: Vec<Message>,
 }
 
@@ -50,9 +72,9 @@ pub struct Target {
     bounds: Rectangle,
 }
 
-impl<Message, Theme, Renderer> Interface<'_, Message, Theme, Renderer>
+impl<Message, Theme> Interface<'_, Message, Theme, Renderer>
 where
-    Renderer: core::Renderer,
+    Theme: Default + theme::Base,
 {
     pub fn find(
         &mut self,
@@ -256,8 +278,126 @@ where
         );
     }
 
+    pub fn snapshot(&mut self) -> Result<Snapshot, Error> {
+        let theme = Theme::default();
+        let base = theme.base();
+
+        let _ = self.raw.update(
+            &[Event::Window(window::Event::RedrawRequested(
+                time::Instant::now(),
+            ))],
+            mouse::Cursor::Unavailable,
+            &mut self.renderer,
+            &mut clipboard::Null,
+            &mut self.messages,
+        );
+
+        let _ = self.raw.draw(
+            &mut self.renderer,
+            &theme,
+            &core::renderer::Style {
+                text_color: base.text_color,
+            },
+            mouse::Cursor::Unavailable,
+        );
+
+        if let Renderer::Secondary(renderer) = &mut self.renderer {
+            let scale_factor = 2.0;
+
+            let viewport = renderer::graphics::Viewport::with_physical_size(
+                Size::new(
+                    (self.size.width * scale_factor).round() as u32,
+                    (self.size.height * scale_factor).round() as u32,
+                ),
+                f64::from(scale_factor),
+            );
+
+            let rgba = tiny_skia::window::compositor::screenshot::<&str>(
+                renderer,
+                &viewport,
+                base.background_color,
+                &[],
+            );
+
+            Ok(Snapshot {
+                screenshot: window::Screenshot::new(
+                    rgba,
+                    viewport.physical_size(),
+                    viewport.scale_factor(),
+                ),
+            })
+        } else {
+            unreachable!()
+        }
+    }
+
     pub fn into_messages(self) -> impl IntoIterator<Item = Message> {
         self.messages
+    }
+}
+
+pub struct Snapshot {
+    screenshot: window::Screenshot,
+}
+
+impl Snapshot {
+    pub fn matches_image(&self, path: impl AsRef<Path>) -> Result<bool, Error> {
+        let path = path.as_ref().with_extension("png");
+
+        if path.exists() {
+            let file = fs::File::open(&path)?;
+            let decoder = png::Decoder::new(file);
+
+            let mut reader = decoder.read_info()?;
+            let mut bytes = vec![0; reader.output_buffer_size()];
+            let info = reader.next_frame(&mut bytes)?;
+
+            Ok(self.screenshot.bytes == bytes[..info.buffer_size()])
+        } else {
+            if let Some(directory) = path.parent() {
+                fs::create_dir_all(directory)?;
+            }
+
+            let file = fs::File::create(path)?;
+
+            let mut encoder = png::Encoder::new(
+                file,
+                self.screenshot.size.width,
+                self.screenshot.size.height,
+            );
+            encoder.set_color(png::ColorType::Rgba);
+
+            let mut writer = encoder.write_header()?;
+            writer.write_image_data(&self.screenshot.bytes)?;
+            writer.finish()?;
+
+            Ok(true)
+        }
+    }
+
+    pub fn matches_hash(&self, path: impl AsRef<Path>) -> Result<bool, Error> {
+        use sha2::{Digest, Sha256};
+
+        let path = path.as_ref().with_extension("sha256");
+
+        let hash = {
+            let mut hasher = Sha256::new();
+            hasher.update(&self.screenshot.bytes);
+            format!("{:x}", hasher.finalize())
+        };
+
+        if path.exists() {
+            let saved_hash = fs::read_to_string(&path)?;
+
+            Ok(hash == saved_hash)
+        } else {
+            if let Some(directory) = path.parent() {
+                fs::create_dir_all(directory)?;
+            }
+
+            fs::write(path, hash)?;
+            Ok(true)
+        }
     }
 }
 
@@ -293,4 +433,25 @@ fn key_press_and_release(
 #[derive(Debug, Clone)]
 pub enum Error {
     NotFound(Selector),
+    IOFailed(Arc<io::Error>),
+    PngDecodingFailed(Arc<png::DecodingError>),
+    PngEncodingFailed(Arc<png::EncodingError>),
+}
+
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Self {
+        Self::IOFailed(Arc::new(error))
+    }
+}
+
+impl From<png::DecodingError> for Error {
+    fn from(error: png::DecodingError) -> Self {
+        Self::PngDecodingFailed(Arc::new(error))
+    }
+}
+
+impl From<png::EncodingError> for Error {
+    fn from(error: png::EncodingError) -> Self {
+        Self::PngEncodingFailed(Arc::new(error))
+    }
 }

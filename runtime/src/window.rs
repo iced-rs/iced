@@ -1,11 +1,7 @@
 //! Build window-based GUI applications.
-pub mod screenshot;
-
-pub use screenshot::Screenshot;
-
 use crate::core::time::Instant;
 use crate::core::window::{
-    Event, Icon, Id, Level, Mode, Settings, UserAttention,
+    Event, Icon, Id, Level, Mode, Screenshot, Settings, UserAttention,
 };
 use crate::core::{Point, Size};
 use crate::futures::event;

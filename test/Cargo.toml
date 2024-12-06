@@ -19,3 +19,6 @@ iced_tiny_skia.workspace = true
 
 iced_renderer.workspace = true
 iced_renderer.features = ["tiny-skia"]
+
+png.workspace = true
+sha2.workspace = true
