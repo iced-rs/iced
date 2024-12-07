@@ -628,6 +628,10 @@ where
                                 };
 
                                 shell.publish(on_drag(event));
+                            } else {
+                                shell.publish(on_drag(DragEvent::Canceled {
+                                    pane,
+                                }));
                             }
                         }
                     }
