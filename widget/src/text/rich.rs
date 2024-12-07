@@ -180,8 +180,8 @@ struct State<Link, P: Paragraph> {
     paragraph: P,
 }
 
-impl<'a, Link, Theme, Renderer> Widget<Link, Theme, Renderer>
-    for Rich<'a, Link, Theme, Renderer>
+impl<Link, Theme, Renderer> Widget<Link, Theme, Renderer>
+    for Rich<'_, Link, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: Catalog,

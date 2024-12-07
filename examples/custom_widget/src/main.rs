@@ -62,8 +62,8 @@ mod circle {
         }
     }
 
-    impl<'a, Message, Theme, Renderer> From<Circle>
-        for Element<'a, Message, Theme, Renderer>
+    impl<Message, Theme, Renderer> From<Circle>
+        for Element<'_, Message, Theme, Renderer>
     where
         Renderer: renderer::Renderer,
     {

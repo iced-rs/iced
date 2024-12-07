@@ -98,7 +98,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> TitleBar<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> TitleBar<'_, Message, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,

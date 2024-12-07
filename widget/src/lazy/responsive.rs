@@ -131,8 +131,8 @@ struct State {
     tree: RefCell<Tree>,
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Responsive<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Responsive<'_, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
@@ -358,9 +358,7 @@ struct Overlay<'a, 'b, Message, Theme, Renderer> {
     ),
 }
 
-impl<'a, 'b, Message, Theme, Renderer>
-    Overlay<'a, 'b, Message, Theme, Renderer>
-{
+impl<Message, Theme, Renderer> Overlay<'_, '_, Message, Theme, Renderer> {
     fn with_overlay_maybe<T>(
         &self,
         f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
@@ -380,9 +378,8 @@ impl<'a, 'b, Message, Theme, Renderer>
     }
 }
 
-impl<'a, 'b, Message, Theme, Renderer>
-    overlay::Overlay<Message, Theme, Renderer>
-    for Overlay<'a, 'b, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, '_, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {

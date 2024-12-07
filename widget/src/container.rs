@@ -228,8 +228,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Container<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Container<'_, Message, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
@@ -650,7 +650,7 @@ pub trait Catalog {
 /// A styling function for a [`Container`].
 pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
 
-impl<'a, Theme> From<Style> for StyleFn<'a, Theme> {
+impl<Theme> From<Style> for StyleFn<'_, Theme> {
     fn from(style: Style) -> Self {
         Box::new(move |_theme| style)
     }

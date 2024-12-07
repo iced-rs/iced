@@ -142,8 +142,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Tooltip<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Tooltip<'_, Message, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: text::Renderer,
@@ -213,6 +213,9 @@ where
 
         if was_idle != is_idle {
             shell.invalidate_layout();
+            shell.request_redraw();
+        } else if !is_idle && self.position == Position::FollowCursor {
+            shell.request_redraw();
         }
 
         self.content.as_widget_mut().update(
@@ -369,9 +372,8 @@ where
     class: &'b Theme::Class<'a>,
 }
 
-impl<'a, 'b, Message, Theme, Renderer>
-    overlay::Overlay<Message, Theme, Renderer>
-    for Overlay<'a, 'b, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, '_, Message, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: text::Renderer,

@@ -116,7 +116,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Default for Stack<'a, Message, Renderer>
+impl<Message, Renderer> Default for Stack<'_, Message, Renderer>
 where
     Renderer: crate::core::Renderer,
 {

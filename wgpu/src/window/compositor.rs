@@ -370,7 +370,6 @@ impl graphics::Compositor for Compositor {
     fn screenshot<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        _surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],

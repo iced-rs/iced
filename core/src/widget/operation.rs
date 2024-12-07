@@ -138,7 +138,7 @@ where
         operation: &'a mut dyn Operation<T>,
     }
 
-    impl<'a, T, O> Operation<O> for BlackBox<'a, T> {
+    impl<T, O> Operation<O> for BlackBox<'_, T> {
         fn container(
             &mut self,
             id: Option<&Id>,
@@ -218,7 +218,7 @@ where
                 operation: &'a mut dyn Operation<A>,
             }
 
-            impl<'a, A, B> Operation<B> for MapRef<'a, A> {
+            impl<A, B> Operation<B> for MapRef<'_, A> {
                 fn container(
                     &mut self,
                     id: Option<&Id>,

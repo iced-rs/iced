@@ -9,6 +9,7 @@ use crate::futures::{boxed_stream, BoxStream, MaybeSend};
 use crate::Action;
 
 use std::future::Future;
+use std::sync::Arc;
 
 /// A set of concurrent actions to be performed by the iced runtime.
 ///
@@ -183,16 +184,16 @@ impl<T> Task<T> {
                 (
                     Self(Some(boxed_stream(stream))),
                     Handle {
-                        raw: Some(handle),
-                        abort_on_drop: false,
+                        internal: InternalHandle::Manual(handle),
                     },
                 )
             }
             None => (
                 Self(None),
                 Handle {
-                    raw: None,
-                    abort_on_drop: false,
+                    internal: InternalHandle::Manual(
+                        stream::AbortHandle::new_pair().0,
+                    ),
                 },
             ),
         }
@@ -220,44 +221,64 @@ impl<T> Task<T> {
 /// A handle to a [`Task`] that can be used for aborting it.
 #[derive(Debug, Clone)]
 pub struct Handle {
-    raw: Option<stream::AbortHandle>,
-    abort_on_drop: bool,
+    internal: InternalHandle,
+}
+
+#[derive(Debug, Clone)]
+enum InternalHandle {
+    Manual(stream::AbortHandle),
+    AbortOnDrop(Arc<stream::AbortHandle>),
+}
+
+impl InternalHandle {
+    pub fn as_ref(&self) -> &stream::AbortHandle {
+        match self {
+            InternalHandle::Manual(handle) => handle,
+            InternalHandle::AbortOnDrop(handle) => handle.as_ref(),
+        }
+    }
 }
 
 impl Handle {
     /// Aborts the [`Task`] of this [`Handle`].
     pub fn abort(&self) {
-        if let Some(handle) = &self.raw {
-            handle.abort();
-        }
+        self.internal.as_ref().abort();
     }
 
     /// Returns a new [`Handle`] that will call [`Handle::abort`] whenever
-    /// it is dropped.
+    /// all of its instances are dropped.
+    ///
+    /// If a [`Handle`] is cloned, [`Handle::abort`] will only be called
+    /// once all of the clones are dropped.
     ///
     /// This can be really useful if you do not want to worry about calling
     /// [`Handle::abort`] yourself.
-    pub fn abort_on_drop(mut self) -> Self {
-        Self {
-            raw: self.raw.take(),
-            abort_on_drop: true,
+    pub fn abort_on_drop(self) -> Self {
+        match &self.internal {
+            InternalHandle::Manual(handle) => Self {
+                internal: InternalHandle::AbortOnDrop(Arc::new(handle.clone())),
+            },
+            InternalHandle::AbortOnDrop(_) => self,
         }
     }
 
     /// Returns `true` if the [`Task`] of this [`Handle`] has been aborted.
     pub fn is_aborted(&self) -> bool {
-        if let Some(handle) = &self.raw {
-            handle.is_aborted()
-        } else {
-            true
-        }
+        self.internal.as_ref().is_aborted()
     }
 }
 
 impl Drop for Handle {
     fn drop(&mut self) {
-        if self.abort_on_drop {
-            self.abort();
+        if let InternalHandle::AbortOnDrop(handle) = &mut self.internal {
+            let handle = std::mem::replace(
+                handle,
+                Arc::new(stream::AbortHandle::new_pair().0),
+            );
+
+            if let Some(handle) = Arc::into_inner(handle) {
+                handle.abort();
+            }
         }
     }
 }

@@ -394,8 +394,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Explain<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Explain<'_, Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {

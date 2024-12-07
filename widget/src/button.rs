@@ -89,7 +89,7 @@ enum OnPress<'a, Message> {
     Closure(Box<dyn Fn() -> Message + 'a>),
 }
 
-impl<'a, Message: Clone> OnPress<'a, Message> {
+impl<Message: Clone> OnPress<'_, Message> {
     fn get(&self) -> Message {
         match self {
             OnPress::Direct(message) => message.clone(),
@@ -315,8 +315,7 @@ where
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. }) => {
-                if let Some(on_press) = self.on_press.as_ref().map(OnPress::get)
-                {
+                if let Some(on_press) = &self.on_press {
                     let state = tree.state.downcast_mut::<State>();
 
                     if state.is_pressed {
@@ -325,7 +324,7 @@ where
                         let bounds = layout.bounds();
 
                         if cursor.is_over(bounds) {
-                            shell.publish(on_press);
+                            shell.publish(on_press.get());
                         }
 
                         shell.capture_event();
