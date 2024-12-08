@@ -7,9 +7,8 @@ use crate::graphics::text::{font_system, to_color, Editor, Paragraph};
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
-use std::rc::{self, Rc};
 use std::sync::atomic::{self, AtomicU64};
-use std::sync::Arc;
+use std::sync::{self, Arc};
 
 pub use crate::graphics::Text;
 
@@ -37,7 +36,7 @@ pub enum Item {
 pub struct Cache {
     id: Id,
     group: cache::Group,
-    text: Rc<[Text]>,
+    text: Arc<[Text]>,
     version: usize,
 }
 
@@ -55,7 +54,7 @@ impl Cache {
         Some(Self {
             id: Id(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed)),
             group,
-            text: Rc::from(text),
+            text: Arc::from(text),
             version: 0,
         })
     }
@@ -65,7 +64,7 @@ impl Cache {
             return;
         }
 
-        self.text = Rc::from(text);
+        self.text = Arc::from(text);
         self.version += 1;
     }
 }
@@ -76,8 +75,8 @@ struct Upload {
     transformation: Transformation,
     version: usize,
     group_version: usize,
-    text: rc::Weak<[Text]>,
-    _atlas: rc::Weak<()>,
+    text: sync::Weak<[Text]>,
+    _atlas: sync::Weak<()>,
 }
 
 #[derive(Default)]
@@ -90,7 +89,7 @@ struct Group {
     atlas: glyphon::TextAtlas,
     version: usize,
     should_trim: bool,
-    handle: Rc<()>, // Keeps track of active uploads
+    handle: Arc<()>, // Keeps track of active uploads
 }
 
 impl Storage {
@@ -136,7 +135,7 @@ impl Storage {
                 ),
                 version: 0,
                 should_trim: false,
-                handle: Rc::new(()),
+                handle: Arc::new(()),
             }
         });
 
@@ -167,7 +166,7 @@ impl Storage {
                     group.should_trim =
                         group.should_trim || upload.version != cache.version;
 
-                    upload.text = Rc::downgrade(&cache.text);
+                    upload.text = Arc::downgrade(&cache.text);
                     upload.version = cache.version;
                     upload.group_version = group.version;
                     upload.transformation = new_transformation;
@@ -206,8 +205,8 @@ impl Storage {
                     transformation: new_transformation,
                     version: 0,
                     group_version: group.version,
-                    text: Rc::downgrade(&cache.text),
-                    _atlas: Rc::downgrade(&group.handle),
+                    text: Arc::downgrade(&cache.text),
+                    _atlas: Arc::downgrade(&group.handle),
                 });
 
                 group.should_trim = cache.group.is_singleton();
@@ -226,7 +225,7 @@ impl Storage {
             .retain(|_id, upload| upload.text.strong_count() > 0);
 
         self.groups.retain(|id, group| {
-            let active_uploads = Rc::weak_count(&group.handle);
+            let active_uploads = Arc::weak_count(&group.handle);
 
             if active_uploads == 0 {
                 log::debug!("Dropping text atlas: {id:?}");

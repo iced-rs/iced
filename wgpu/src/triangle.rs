@@ -8,8 +8,8 @@ use crate::Buffer;
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
-use std::rc::{self, Rc};
 use std::sync::atomic::{self, AtomicU64};
+use std::sync::{self, Arc};
 
 const INITIAL_INDEX_COUNT: usize = 1_000;
 const INITIAL_VERTEX_COUNT: usize = 1_000;
@@ -31,7 +31,7 @@ pub enum Item {
 #[derive(Debug, Clone)]
 pub struct Cache {
     id: Id,
-    batch: Rc<[Mesh]>,
+    batch: Arc<[Mesh]>,
     version: usize,
 }
 
@@ -48,13 +48,13 @@ impl Cache {
 
         Some(Self {
             id: Id(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed)),
-            batch: Rc::from(meshes),
+            batch: Arc::from(meshes),
             version: 0,
         })
     }
 
     pub fn update(&mut self, meshes: Vec<Mesh>) {
-        self.batch = Rc::from(meshes);
+        self.batch = Arc::from(meshes);
         self.version += 1;
     }
 }
@@ -64,7 +64,7 @@ struct Upload {
     layer: Layer,
     transformation: Transformation,
     version: usize,
-    batch: rc::Weak<[Mesh]>,
+    batch: sync::Weak<[Mesh]>,
 }
 
 #[derive(Debug, Default)]
@@ -113,7 +113,7 @@ impl Storage {
                         new_transformation,
                     );
 
-                    upload.batch = Rc::downgrade(&cache.batch);
+                    upload.batch = Arc::downgrade(&cache.batch);
                     upload.version = cache.version;
                     upload.transformation = new_transformation;
                 }
@@ -135,7 +135,7 @@ impl Storage {
                     layer,
                     transformation: new_transformation,
                     version: 0,
-                    batch: Rc::downgrade(&cache.batch),
+                    batch: Arc::downgrade(&cache.batch),
                 });
 
                 log::debug!(
