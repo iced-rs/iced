@@ -5,16 +5,16 @@ use crate::core::font::{self, Font};
 use crate::core::text::highlighter::{self, Format};
 use crate::core::Color;
 
-use once_cell::sync::Lazy;
 use std::ops::Range;
+use std::sync::LazyLock;
 use syntect::highlighting;
 use syntect::parsing;
 
-static SYNTAXES: Lazy<parsing::SyntaxSet> =
-    Lazy::new(parsing::SyntaxSet::load_defaults_nonewlines);
+static SYNTAXES: LazyLock<parsing::SyntaxSet> =
+    LazyLock::new(parsing::SyntaxSet::load_defaults_nonewlines);
 
-static THEMES: Lazy<highlighting::ThemeSet> =
-    Lazy::new(highlighting::ThemeSet::load_defaults);
+static THEMES: LazyLock<highlighting::ThemeSet> =
+    LazyLock::new(highlighting::ThemeSet::load_defaults);
 
 const LINES_PER_SNAPSHOT: usize = 50;
 

@@ -14,9 +14,8 @@ use crate::core::font::{self, Font};
 use crate::core::text::{Shaping, Wrapping};
 use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
-use once_cell::sync::OnceCell;
 use std::borrow::Cow;
-use std::sync::{Arc, RwLock, Weak};
+use std::sync::{Arc, OnceLock, RwLock, Weak};
 
 /// A text primitive.
 #[derive(Debug, Clone, PartialEq)]
@@ -155,7 +154,7 @@ pub const FIRA_SANS_REGULAR: &'static [u8] =
 
 /// Returns the global [`FontSystem`].
 pub fn font_system() -> &'static RwLock<FontSystem> {
-    static FONT_SYSTEM: OnceCell<RwLock<FontSystem>> = OnceCell::new();
+    static FONT_SYSTEM: OnceLock<RwLock<FontSystem>> = OnceLock::new();
 
     FONT_SYSTEM.get_or_init(|| {
         RwLock::new(FontSystem {
