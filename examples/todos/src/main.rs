@@ -590,30 +590,29 @@ impl SavedState {
 mod tests {
     use super::*;
 
-    use iced::test;
-    use iced::test::selector;
+    use iced_test::{interface, load_font, selector, Error};
 
     #[test]
-    fn it_creates_a_new_task() -> Result<(), test::Error> {
-        test::load_font(Todos::ICON_FONT)?;
+    fn it_creates_a_new_task() -> Result<(), Error> {
+        load_font(Todos::ICON_FONT)?;
 
         let (mut todos, _command) = Todos::new();
         let _command = todos.update(Message::Loaded(Err(LoadError::File)));
 
-        let mut interface = test::interface(todos.view());
-        let _input = interface.click("new-task")?;
+        let mut ui = interface(todos.view());
+        let _input = ui.click("new-task")?;
 
-        interface.typewrite("Create the universe");
-        interface.press_key(keyboard::key::Named::Enter);
+        ui.typewrite("Create the universe");
+        ui.press_key(keyboard::key::Named::Enter);
 
-        for message in interface.into_messages() {
+        for message in ui.into_messages() {
             let _command = todos.update(message);
         }
 
-        let mut interface = test::interface(todos.view());
-        let _ = interface.find(selector::text("Create the universe"))?;
+        let mut ui = interface(todos.view());
+        let _ = ui.find(selector::text("Create the universe"))?;
 
-        let snapshot = interface.snapshot()?;
+        let snapshot = ui.snapshot()?;
         assert!(
             snapshot.matches_hash("snapshots/creates_a_new_task")?,
             "snapshots should match!"

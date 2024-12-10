@@ -72,7 +72,6 @@ unconditional-rendering = ["iced_winit/unconditional-rendering"]
 iced_core.workspace = true
 iced_futures.workspace = true
 iced_renderer.workspace = true
-iced_test.workspace = true
 iced_widget.workspace = true
 iced_winit.features = ["program"]
 iced_winit.workspace = true
