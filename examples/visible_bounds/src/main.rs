@@ -157,9 +157,9 @@ impl Example {
     }
 }
 
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
-static OUTER_CONTAINER: Lazy<container::Id> =
-    Lazy::new(|| container::Id::new("outer"));
-static INNER_CONTAINER: Lazy<container::Id> =
-    Lazy::new(|| container::Id::new("inner"));
+static OUTER_CONTAINER: LazyLock<container::Id> =
+    LazyLock::new(|| container::Id::new("outer"));
+static INNER_CONTAINER: LazyLock<container::Id> =
+    LazyLock::new(|| container::Id::new("inner"));

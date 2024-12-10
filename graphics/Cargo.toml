@@ -33,7 +33,6 @@ bytemuck.workspace = true
 cosmic-text.workspace = true
 half.workspace = true
 log.workspace = true
-once_cell.workspace = true
 raw-window-handle.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
