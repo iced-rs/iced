@@ -48,7 +48,7 @@ enum Message {
 }
 
 impl Todos {
-    const ICON_FONT: &[u8] = include_bytes!("../fonts/icons.ttf");
+    const ICON_FONT: &'static [u8] = include_bytes!("../fonts/icons.ttf");
 
     fn new() -> (Self, Command<Message>) {
         (
