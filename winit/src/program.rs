@@ -881,11 +881,18 @@ async fn run_instance<P, C>(
                         debug.draw_finished();
 
                         if new_mouse_interaction != window.mouse_interaction {
-                            window.raw.set_cursor(
-                                conversion::mouse_interaction(
-                                    new_mouse_interaction,
-                                ),
-                            );
+                            if let Some(icon) = conversion::mouse_interaction(
+                                new_mouse_interaction,
+                            ) {
+                                window.raw.set_cursor(icon);
+                                if window.mouse_interaction
+                                    == mouse::Interaction::Hidden
+                                {
+                                    window.raw.set_cursor_visible(true);
+                                }
+                            } else {
+                                window.raw.set_cursor_visible(false);
+                            }
 
                             window.mouse_interaction = new_mouse_interaction;
                         }
