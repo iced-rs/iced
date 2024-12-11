@@ -1,0 +1,16 @@
+[package]
+name = "hello_world"
+version.workspace = true
+authors = ["Dominic Clifton <me@dominicclifton.name>"]
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+iced.workspace = true
+iced.features = ["image", "debug"]
+
+[lints]
+workspace = true
