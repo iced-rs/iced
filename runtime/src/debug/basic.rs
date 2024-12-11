@@ -147,12 +147,13 @@ impl Debug {
             format!("{key} {value:?}")
         }
 
-        lines.push(format!(
-            "{} {} - {}",
+        lines.push(concat!(
             env!("CARGO_PKG_NAME"),
+            " ",
             env!("CARGO_PKG_VERSION"),
+            " - ",
             env!("CARGO_PKG_REPOSITORY"),
-        ));
+        ).to_string());
         lines.push(key_value("Startup:", self.startup_duration));
         lines.push(key_value("Update:", self.update_durations.average()));
         lines.push(key_value("View:", self.view_durations.average()));
