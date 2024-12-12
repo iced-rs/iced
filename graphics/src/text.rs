@@ -149,8 +149,8 @@ impl Text {
 /// It is loaded as part of the default fonts in Wasm builds.
 ///
 /// [Fira Sans]: https://mozilla.github.io/Fira/
-#[cfg(all(target_arch = "wasm32", feature = "fira-sans"))]
-pub const FIRA_SANS_REGULAR: &'static [u8] =
+#[cfg(feature = "fira-sans")]
+pub const FIRA_SANS_REGULAR: &[u8] =
     include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice();
 
 /// Returns the global [`FontSystem`].
@@ -163,7 +163,7 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
                 cosmic_text::fontdb::Source::Binary(Arc::new(
                     include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
                 )),
-                #[cfg(all(target_arch = "wasm32", feature = "fira-sans"))]
+                #[cfg(feature = "fira-sans")]
                 cosmic_text::fontdb::Source::Binary(Arc::new(
                     include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice(),
                 )),

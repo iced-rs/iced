@@ -4,4 +4,3 @@ pkg/
 Cargo.lock
 dist/
 traces/
-*.sha256

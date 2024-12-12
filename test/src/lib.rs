@@ -33,7 +33,7 @@ pub fn interface<'a, Message, Theme>(
     let size = Size::new(512.0, 512.0);
 
     let mut renderer = Renderer::Secondary(tiny_skia::Renderer::new(
-        Font::default(),
+        Font::with_name("Fira Sans"),
         Pixels(16.0),
     ));
 

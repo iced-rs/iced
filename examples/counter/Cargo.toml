@@ -10,4 +10,4 @@ iced.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced.workspace = true
-iced.features = ["webgl"]
+iced.features = ["webgl", "fira-sans"]
