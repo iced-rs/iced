@@ -16,6 +16,7 @@ use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
 use once_cell::sync::OnceCell;
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::sync::{Arc, RwLock, Weak};
 
 /// A text primitive.
@@ -169,6 +170,7 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
                     include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice(),
                 )),
             ]),
+            loaded_fonts: HashSet::new(),
             version: Version::default(),
         })
     })
@@ -178,6 +180,7 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
 #[allow(missing_debug_implementations)]
 pub struct FontSystem {
     raw: cosmic_text::FontSystem,
+    loaded_fonts: HashSet<usize>,
     version: Version,
 }
 
@@ -189,6 +192,14 @@ impl FontSystem {
 
     /// Loads a font from its bytes.
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
+        if let Cow::Borrowed(bytes) = bytes {
+            let address = bytes.as_ptr() as usize;
+
+            if !self.loaded_fonts.insert(address) {
+                return;
+            }
+        }
+
         let _ = self.raw.db_mut().load_font_source(
             cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
         );
