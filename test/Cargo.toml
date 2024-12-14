@@ -15,10 +15,9 @@ workspace = true
 
 [dependencies]
 iced_runtime.workspace = true
-iced_tiny_skia.workspace = true
 
 iced_renderer.workspace = true
-iced_renderer.features = ["tiny-skia", "fira-sans"]
+iced_renderer.features = ["fira-sans"]
 
 png.workspace = true
 sha2.workspace = true

@@ -590,16 +590,25 @@ impl SavedState {
 mod tests {
     use super::*;
 
-    use iced_test::{interface, load_font, selector, Error};
+    use iced::Settings;
+    use iced_test::{selector, Error, Simulator};
+
+    fn simulator(todos: &Todos) -> Simulator<Message> {
+        Simulator::with_settings(
+            Settings {
+                fonts: vec![Todos::ICON_FONT.into()],
+                ..Settings::default()
+            },
+            todos.view(),
+        )
+    }
 
     #[test]
     fn it_creates_a_new_task() -> Result<(), Error> {
-        load_font(Todos::ICON_FONT)?;
-
         let (mut todos, _command) = Todos::new();
         let _command = todos.update(Message::Loaded(Err(LoadError::File)));
 
-        let mut ui = interface(todos.view());
+        let mut ui = simulator(&todos);
         let _input = ui.click("new-task")?;
 
         ui.typewrite("Create the universe");
@@ -609,7 +618,7 @@ mod tests {
             let _command = todos.update(message);
         }
 
-        let mut ui = interface(todos.view());
+        let mut ui = simulator(&todos);
         let _ = ui.find(selector::text("Create the universe"))?;
 
         let snapshot = ui.snapshot()?;

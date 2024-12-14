@@ -491,7 +491,6 @@ mod program;
 
 pub mod application;
 pub mod daemon;
-pub mod settings;
 pub mod time;
 pub mod window;
 
@@ -506,8 +505,8 @@ pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
     Alignment, Background, Border, Color, ContentFit, Degrees, Gradient,
-    Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Shadow, Size,
-    Theme, Transformation, Vector,
+    Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Settings,
+    Shadow, Size, Theme, Transformation, Vector,
 };
 pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
@@ -626,7 +625,6 @@ pub use executor::Executor;
 pub use font::Font;
 pub use program::Program;
 pub use renderer::Renderer;
-pub use settings::Settings;
 pub use task::Task;
 
 #[doc(inline)]

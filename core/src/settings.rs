@@ -48,12 +48,3 @@ impl Default for Settings {
         }
     }
 }
-
-impl From<Settings> for iced_winit::Settings {
-    fn from(settings: Settings) -> iced_winit::Settings {
-        iced_winit::Settings {
-            id: settings.id,
-            fonts: settings.fonts,
-        }
-    }
-}

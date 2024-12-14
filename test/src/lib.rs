@@ -7,7 +7,6 @@ pub use selector::Selector;
 use iced_renderer as renderer;
 use iced_runtime as runtime;
 use iced_runtime::core;
-use iced_tiny_skia as tiny_skia;
 
 use crate::core::clipboard;
 use crate::core::keyboard;
@@ -16,8 +15,7 @@ use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Font, Pixels, Rectangle, Size, SmolStr};
-use crate::renderer::Renderer;
+use crate::core::{Element, Event, Font, Rectangle, Settings, Size, SmolStr};
 use crate::runtime::user_interface;
 use crate::runtime::UserInterface;
 
@@ -27,32 +25,17 @@ use std::io;
 use std::path::Path;
 use std::sync::Arc;
 
-pub fn interface<'a, Message, Theme>(
+pub fn simulator<'a, Message, Theme, Renderer>(
     element: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Interface<'a, Message, Theme, Renderer> {
-    let size = Size::new(512.0, 512.0);
-
-    let mut renderer = Renderer::Secondary(tiny_skia::Renderer::new(
-        Font::with_name("Fira Sans"),
-        Pixels(16.0),
-    ));
-
-    let raw = UserInterface::build(
-        element,
-        size,
-        user_interface::Cache::default(),
-        &mut renderer,
-    );
-
-    Interface {
-        raw,
-        renderer,
-        size,
-        messages: Vec::new(),
-    }
+) -> Simulator<'a, Message, Theme, Renderer>
+where
+    Theme: Default + theme::Base,
+    Renderer: core::Renderer + core::renderer::Headless,
+{
+    Simulator::new(element)
 }
 
-pub fn load_font(font: impl Into<Cow<'static, [u8]>>) -> Result<(), Error> {
+fn load_font(font: impl Into<Cow<'static, [u8]>>) -> Result<(), Error> {
     renderer::graphics::text::font_system()
         .write()
         .expect("Write to font system")
@@ -61,21 +44,78 @@ pub fn load_font(font: impl Into<Cow<'static, [u8]>>) -> Result<(), Error> {
     Ok(())
 }
 
-pub struct Interface<'a, Message, Theme, Renderer> {
+pub struct Simulator<
+    'a,
+    Message,
+    Theme = core::Theme,
+    Renderer = renderer::Renderer,
+> {
     raw: UserInterface<'a, Message, Theme, Renderer>,
     renderer: Renderer,
-    size: Size,
+    window_size: Size,
     messages: Vec<Message>,
 }
 
 pub struct Target {
-    bounds: Rectangle,
+    pub bounds: Rectangle,
 }
 
-impl<Message, Theme> Interface<'_, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> Simulator<'a, Message, Theme, Renderer>
 where
     Theme: Default + theme::Base,
+    Renderer: core::Renderer + core::renderer::Headless,
 {
+    pub fn new(
+        element: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        Self::with_settings(Settings::default(), element)
+    }
+
+    pub fn with_settings(
+        settings: Settings,
+        element: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        Self::with_settings_and_size(
+            settings,
+            window::Settings::default().size,
+            element,
+        )
+    }
+
+    pub fn with_settings_and_size(
+        settings: Settings,
+        window_size: impl Into<Size>,
+        element: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        let window_size = window_size.into();
+
+        let default_font = match settings.default_font {
+            Font::DEFAULT => Font::with_name("Fira Sans"),
+            _ => settings.default_font,
+        };
+
+        for font in settings.fonts {
+            load_font(font).expect("Font must be valid");
+        }
+
+        let mut renderer =
+            Renderer::new(default_font, settings.default_text_size);
+
+        let raw = UserInterface::build(
+            element,
+            window_size,
+            user_interface::Cache::default(),
+            &mut renderer,
+        );
+
+        Simulator {
+            raw,
+            renderer,
+            window_size,
+            messages: Vec::new(),
+        }
+    }
+
     pub fn find(
         &mut self,
         selector: impl Into<Selector>,
@@ -301,34 +341,26 @@ where
             mouse::Cursor::Unavailable,
         );
 
-        if let Renderer::Secondary(renderer) = &mut self.renderer {
-            let scale_factor = 2.0;
+        let scale_factor = 2.0;
 
-            let viewport = renderer::graphics::Viewport::with_physical_size(
-                Size::new(
-                    (self.size.width * scale_factor).round() as u32,
-                    (self.size.height * scale_factor).round() as u32,
-                ),
+        let physical_size = Size::new(
+            (self.window_size.width * scale_factor).round() as u32,
+            (self.window_size.height * scale_factor).round() as u32,
+        );
+
+        let rgba = self.renderer.screenshot(
+            physical_size,
+            scale_factor,
+            base.background_color,
+        );
+
+        Ok(Snapshot {
+            screenshot: window::Screenshot::new(
+                rgba,
+                physical_size,
                 f64::from(scale_factor),
-            );
-
-            let rgba = tiny_skia::window::compositor::screenshot::<&str>(
-                renderer,
-                &viewport,
-                base.background_color,
-                &[],
-            );
-
-            Ok(Snapshot {
-                screenshot: window::Screenshot::new(
-                    rgba,
-                    viewport.physical_size(),
-                    viewport.scale_factor(),
-                ),
-            })
-        } else {
-            unreachable!()
-        }
+            ),
+        })
     }
 
     pub fn into_messages(self) -> impl IntoIterator<Item = Message> {

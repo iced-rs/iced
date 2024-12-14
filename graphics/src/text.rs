@@ -146,7 +146,8 @@ impl Text {
 
 /// The regular variant of the [Fira Sans] font.
 ///
-/// It is loaded as part of the default fonts in Wasm builds.
+/// It is loaded as part of the default fonts when the `fira-sans`
+/// feature is enabled.
 ///
 /// [Fira Sans]: https://mozilla.github.io/Fira/
 #[cfg(feature = "fira-sans")]

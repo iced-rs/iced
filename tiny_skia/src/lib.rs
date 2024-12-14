@@ -29,7 +29,7 @@ pub use geometry::Geometry;
 
 use crate::core::renderer;
 use crate::core::{
-    Background, Color, Font, Pixels, Point, Rectangle, Transformation,
+    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
 use crate::engine::Engine;
 use crate::graphics::compositor;
@@ -404,4 +404,27 @@ impl core::svg::Renderer for Renderer {
 
 impl compositor::Default for Renderer {
     type Compositor = window::Compositor;
+}
+
+impl renderer::Headless for Renderer {
+    fn new(default_font: Font, default_text_size: Pixels) -> Self {
+        Self::new(default_font, default_text_size)
+    }
+
+    fn screenshot(
+        &mut self,
+        size: Size<u32>,
+        scale_factor: f32,
+        background_color: Color,
+    ) -> Vec<u8> {
+        let viewport =
+            Viewport::with_physical_size(size, f64::from(scale_factor));
+
+        window::compositor::screenshot::<&str>(
+            self,
+            &viewport,
+            background_color,
+            &[],
+        )
+    }
 }
