@@ -28,6 +28,9 @@ pub trait Editor: Sized + Default {
     /// Returns the current selected text of the [`Editor`].
     fn selection(&self) -> Option<String>;
 
+    /// Returns the selection start when selection is active in the [`Editor`].
+    fn selection_cursor(&self) -> Option<(usize, usize)>;
+
     /// Returns the text of the given line in the [`Editor`], if it exists.
     fn line(&self, index: usize) -> Option<Line<'_>>;
 
@@ -77,12 +80,16 @@ pub enum Action {
     SelectLine,
     /// Select the entire buffer.
     SelectAll,
+    /// Select text from current position to given position.
+    SelectTo(usize, usize),
     /// Perform an [`Edit`].
     Edit(Edit),
     /// Click the [`Editor`] at the given [`Point`].
     Click(Point),
     /// Drag the mouse on the [`Editor`] to the given [`Point`].
     Drag(Point),
+    /// Set cursor position to the given position.
+    SetCursor(usize, usize),
     /// Scroll the [`Editor`] a certain amount of lines.
     Scroll {
         /// The amount of lines to scroll.

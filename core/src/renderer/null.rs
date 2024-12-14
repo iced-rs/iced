@@ -172,6 +172,10 @@ impl text::Editor for () {
         None
     }
 
+    fn selection_cursor(&self) -> Option<(usize, usize)> {
+        None
+    }
+
     fn line(&self, _index: usize) -> Option<text::editor::Line<'_>> {
         None
     }

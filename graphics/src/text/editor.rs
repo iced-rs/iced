@@ -7,7 +7,7 @@ use crate::core::text::{LineHeight, Wrapping};
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
-use cosmic_text::Edit as _;
+use cosmic_text::Edit as CosmicEdit;
 
 use std::borrow::Cow;
 use std::fmt;
@@ -111,6 +111,16 @@ impl editor::Editor for Editor {
 
     fn selection(&self) -> Option<String> {
         self.internal().editor.copy_selection()
+    }
+
+    fn selection_cursor(&self) -> Option<(usize, usize)> {
+        use cosmic_text::Selection;
+        match self.internal().editor.selection() {
+            Selection::None => None,
+            Selection::Normal(cursor)
+            | Selection::Line(cursor)
+            | Selection::Word(cursor) => Some((cursor.line, cursor.index)),
+        }
     }
 
     fn cursor(&self) -> editor::Cursor {
@@ -455,6 +465,23 @@ impl editor::Editor for Editor {
                             * buffer_from_editor(editor).metrics().line_height,
                     },
                 );
+            }
+            Action::SelectTo(line, col) => {
+                let cursor = editor.cursor();
+                editor.set_selection(cosmic_text::Selection::Normal(cursor));
+                editor.set_cursor(cosmic_text::Cursor {
+                    line,
+                    index: col,
+                    affinity: cosmic_text::Affinity::Before,
+                });
+            }
+            Action::SetCursor(line, col) => {
+                editor.set_selection(cosmic_text::Selection::None);
+                editor.set_cursor(cosmic_text::Cursor {
+                    line,
+                    index: col,
+                    affinity: cosmic_text::Affinity::Before,
+                });
             }
         }
 
