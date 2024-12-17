@@ -16,16 +16,15 @@ use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{
-    Element, Event, Font, Point, Rectangle, Settings, Size, SmolStr,
-};
+use crate::core::{Element, Event, Point, Rectangle, Settings, Size, SmolStr};
 use crate::runtime::user_interface;
 use crate::runtime::UserInterface;
 
 use std::borrow::Cow;
+use std::env;
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub fn simulator<'a, Message, Theme, Renderer>(
@@ -89,17 +88,12 @@ where
     ) -> Self {
         let size = size.into();
 
-        let default_font = match settings.default_font {
-            Font::DEFAULT => Font::with_name("Fira Sans"),
-            _ => settings.default_font,
-        };
-
         for font in settings.fonts {
             load_font(font).expect("Font must be valid");
         }
 
         let mut renderer =
-            Renderer::new(default_font, settings.default_text_size);
+            Renderer::new(settings.default_font, settings.default_text_size);
 
         let raw = UserInterface::build(
             element,
@@ -369,7 +363,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     pub fn matches_image(&self, path: impl AsRef<Path>) -> Result<bool, Error> {
-        let path = path.as_ref().with_extension("png");
+        let path = snapshot_path(path, "png");
 
         if path.exists() {
             let file = fs::File::open(&path)?;
@@ -405,7 +399,7 @@ impl Snapshot {
     pub fn matches_hash(&self, path: impl AsRef<Path>) -> Result<bool, Error> {
         use sha2::{Digest, Sha256};
 
-        let path = path.as_ref().with_extension("sha256");
+        let path = snapshot_path(path, "sha256");
 
         let hash = {
             let mut hasher = Sha256::new();
@@ -496,4 +490,14 @@ impl From<png::EncodingError> for Error {
     fn from(error: png::EncodingError) -> Self {
         Self::PngEncodingFailed(Arc::new(error))
     }
+}
+
+fn snapshot_path(path: impl AsRef<Path>, extension: &str) -> PathBuf {
+    let path = path.as_ref();
+
+    path.with_file_name(format!(
+        "{file_stem}-{os}.{extension}",
+        file_stem = path.file_stem().unwrap_or_default().to_string_lossy(),
+        os = env::consts::OS,
+    ))
 }
