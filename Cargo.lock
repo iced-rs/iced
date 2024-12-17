@@ -1064,6 +1064,7 @@ name = "counter"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "iced_test",
 ]
 
 [[package]]
@@ -2517,6 +2518,7 @@ dependencies = [
  "iced_runtime",
  "png",
  "sha2",
+ "thiserror 1.0.69",
 ]
 
 [[package]]

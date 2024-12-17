@@ -591,7 +591,8 @@ mod tests {
     use super::*;
 
     use iced::{Settings, Theme};
-    use iced_test::{selector, Error, Simulator};
+    use iced_test::selector::text;
+    use iced_test::{Error, Simulator};
 
     fn simulator(todos: &Todos) -> Simulator<Message> {
         Simulator::with_settings(
@@ -619,7 +620,7 @@ mod tests {
         }
 
         let mut ui = simulator(&todos);
-        let _ = ui.find(selector::text("Create the universe"))?;
+        let _ = ui.find(text("Create the universe"))?;
 
         let snapshot = ui.snapshot(&Theme::Dark)?;
         assert!(
