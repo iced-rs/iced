@@ -15,7 +15,7 @@ pub fn main() -> iced::Result {
 
     iced::application(Todos::title, Todos::update, Todos::view)
         .subscription(Todos::subscription)
-        .font(include_bytes!("../fonts/icons.ttf").as_slice())
+        .font(Todos::ICON_FONT)
         .window_size((500.0, 800.0))
         .run_with(Todos::new)
 }
@@ -48,6 +48,8 @@ enum Message {
 }
 
 impl Todos {
+    const ICON_FONT: &'static [u8] = include_bytes!("../fonts/icons.ttf");
+
     fn new() -> (Self, Command<Message>) {
         (
             Self::Loading,
@@ -449,11 +451,10 @@ fn empty_message(message: &str) -> Element<'_, Message> {
 }
 
 // Fonts
-const ICONS: Font = Font::with_name("Iced-Todos-Icons");
 
 fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())
-        .font(ICONS)
+        .font(Font::with_name("Iced-Todos-Icons"))
         .width(20)
         .align_x(Center)
 }
@@ -580,6 +581,52 @@ impl SavedState {
             .map_err(|_| SaveError::Write)?;
 
         let _ = wasm_timer::Delay::new(std::time::Duration::from_secs(2)).await;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use iced::{Settings, Theme};
+    use iced_test::selector::text;
+    use iced_test::{Error, Simulator};
+
+    fn simulator(todos: &Todos) -> Simulator<Message> {
+        Simulator::with_settings(
+            Settings {
+                fonts: vec![Todos::ICON_FONT.into()],
+                ..Settings::default()
+            },
+            todos.view(),
+        )
+    }
+
+    #[test]
+    fn it_creates_a_new_task() -> Result<(), Error> {
+        let (mut todos, _command) = Todos::new();
+        let _command = todos.update(Message::Loaded(Err(LoadError::File)));
+
+        let mut ui = simulator(&todos);
+        let _input = ui.click("new-task")?;
+
+        let _ = ui.typewrite("Create the universe");
+        let _ = ui.tap_key(keyboard::key::Named::Enter);
+
+        for message in ui.into_messages() {
+            let _command = todos.update(message);
+        }
+
+        let mut ui = simulator(&todos);
+        let _ = ui.find(text("Create the universe"))?;
+
+        let snapshot = ui.snapshot(&Theme::Dark)?;
+        assert!(
+            snapshot.matches_hash("snapshots/creates_a_new_task")?,
+            "snapshots should match!"
+        );
 
         Ok(())
     }

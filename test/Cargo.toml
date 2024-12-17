@@ -1,0 +1,24 @@
+[package]
+name = "iced_test"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+iced_runtime.workspace = true
+
+iced_renderer.workspace = true
+iced_renderer.features = ["fira-sans"]
+
+png.workspace = true
+sha2.workspace = true
+thiserror.workspace = true

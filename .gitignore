@@ -1,6 +1,5 @@
 target/
 pkg/
 **/*.rs.bk
-Cargo.lock
 dist/
 traces/

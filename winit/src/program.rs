@@ -8,10 +8,11 @@ use crate::conversion;
 use crate::core;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
-use crate::core::{Color, Element, Point, Size, Theme};
+use crate::core::{Element, Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -46,7 +47,7 @@ use std::sync::Arc;
 pub trait Program
 where
     Self: Sized,
-    Self::Theme: DefaultStyle,
+    Self::Theme: theme::Base,
 {
     /// The type of __messages__ your [`Program`] will produce.
     type Message: std::fmt::Debug + Send;
@@ -106,8 +107,8 @@ where
     fn theme(&self, window: window::Id) -> Self::Theme;
 
     /// Returns the `Style` variation of the `Theme`.
-    fn style(&self, theme: &Self::Theme) -> Appearance {
-        theme.default_style()
+    fn style(&self, theme: &Self::Theme) -> theme::Style {
+        theme::Base::base(theme)
     }
 
     /// Returns the event `Subscription` for the current state of the
@@ -138,37 +139,6 @@ where
     }
 }
 
-/// The appearance of a program.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Appearance {
-    /// The background [`Color`] of the application.
-    pub background_color: Color,
-
-    /// The default text [`Color`] of the application.
-    pub text_color: Color,
-}
-
-/// The default style of a [`Program`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`Program`].
-    fn default_style(&self) -> Appearance;
-}
-
-impl DefaultStyle for Theme {
-    fn default_style(&self) -> Appearance {
-        default(self)
-    }
-}
-
-/// The default [`Appearance`] of a [`Program`] with the built-in [`Theme`].
-pub fn default(theme: &Theme) -> Appearance {
-    let palette = theme.extended_palette();
-
-    Appearance {
-        background_color: palette.background.base.color,
-        text_color: palette.background.base.text,
-    }
-}
 /// Runs a [`Program`] with an executor, compositor, and the provided
 /// settings.
 pub fn run<P, C>(
@@ -180,7 +150,7 @@ pub fn run<P, C>(
 where
     P: Program + 'static,
     C: Compositor<Renderer = P::Renderer> + 'static,
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     use winit::event_loop::EventLoop;
 
@@ -674,7 +644,7 @@ async fn run_instance<P, C>(
 ) where
     P: Program + 'static,
     C: Compositor<Renderer = P::Renderer> + 'static,
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     use winit::event;
     use winit::event_loop::ControlFlow;
@@ -1170,7 +1140,7 @@ fn build_user_interface<'a, P: Program>(
     id: window::Id,
 ) -> UserInterface<'a, P::Message, P::Theme, P::Renderer>
 where
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     debug.view_started();
     let view = program.view(id);
@@ -1189,7 +1159,7 @@ fn update<P: Program, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<P::Message>,
 ) where
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -1226,7 +1196,7 @@ fn run_action<P, C>(
 ) where
     P: Program,
     C: Compositor<Renderer = P::Renderer> + 'static,
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     use crate::runtime::clipboard;
     use crate::runtime::system;
@@ -1461,7 +1431,7 @@ fn run_action<P, C>(
                         &debug.overlay(),
                     );
 
-                    let _ = channel.send(window::Screenshot::new(
+                    let _ = channel.send(core::window::Screenshot::new(
                         bytes,
                         window.state.physical_size(),
                         window.state.viewport().scale_factor(),
@@ -1536,7 +1506,7 @@ pub fn build_user_interfaces<'a, P: Program, C>(
 ) -> FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>
 where
     C: Compositor<Renderer = P::Renderer>,
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     cached_user_interfaces
         .drain()

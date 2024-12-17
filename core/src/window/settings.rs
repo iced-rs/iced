@@ -28,6 +28,7 @@ use crate::window::{Icon, Level, Position};
 use crate::Size;
 
 pub use platform::PlatformSpecific;
+
 /// The window settings of an application.
 #[derive(Debug, Clone)]
 pub struct Settings {
