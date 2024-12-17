@@ -611,8 +611,8 @@ mod tests {
         let mut ui = simulator(&todos);
         let _input = ui.click("new-task")?;
 
-        ui.typewrite("Create the universe");
-        ui.press_key(keyboard::key::Named::Enter);
+        let _ = ui.typewrite("Create the universe");
+        let _ = ui.tap_key(keyboard::key::Named::Enter);
 
         for message in ui.into_messages() {
             let _command = todos.update(message);

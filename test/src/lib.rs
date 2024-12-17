@@ -9,13 +9,16 @@ use iced_runtime as runtime;
 use iced_runtime::core;
 
 use crate::core::clipboard;
+use crate::core::event;
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Font, Rectangle, Settings, Size, SmolStr};
+use crate::core::{
+    Element, Event, Font, Point, Rectangle, Settings, Size, SmolStr,
+};
 use crate::runtime::user_interface;
 use crate::runtime::UserInterface;
 
@@ -53,6 +56,7 @@ pub struct Simulator<
     raw: UserInterface<'a, Message, Theme, Renderer>,
     renderer: Renderer,
     window_size: Size,
+    cursor: mouse::Cursor,
     messages: Vec<Message>,
 }
 
@@ -75,14 +79,14 @@ where
         settings: Settings,
         element: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
-        Self::with_settings_and_size(
+        Self::with_window_size(
             settings,
             window::Settings::default().size,
             element,
         )
     }
 
-    pub fn with_settings_and_size(
+    pub fn with_window_size(
         settings: Settings,
         window_size: impl Into<Size>,
         element: impl Into<Element<'a, Message, Theme, Renderer>>,
@@ -112,6 +116,7 @@ where
             raw,
             renderer,
             window_size,
+            cursor: mouse::Cursor::Unavailable,
             messages: Vec::new(),
         }
     }
@@ -214,7 +219,6 @@ where
                 }
 
                 let mut find = FindById { id, target: None };
-
                 self.raw.operate(&self.renderer, &mut find);
 
                 find.target.ok_or(Error::NotFound(selector))
@@ -258,7 +262,6 @@ where
                 }
 
                 let mut find = FindByText { text, target: None };
-
                 self.raw.operate(&self.renderer, &mut find);
 
                 find.target.ok_or(Error::NotFound(selector))
@@ -266,56 +269,52 @@ where
         }
     }
 
+    pub fn point_at(&mut self, position: impl Into<Point>) {
+        self.cursor = mouse::Cursor::Available(position.into());
+    }
+
     pub fn click(
         &mut self,
         selector: impl Into<Selector>,
     ) -> Result<Target, Error> {
         let target = self.find(selector)?;
+        self.point_at(target.bounds.center());
 
-        let _ = self.raw.update(
-            &[
-                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
-                Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)),
-            ],
-            mouse::Cursor::Available(target.bounds.center()),
-            &mut self.renderer,
-            &mut clipboard::Null,
-            &mut self.messages,
-        );
+        let _ = self.simulate(click());
 
         Ok(target)
     }
 
-    pub fn typewrite(&mut self, text: impl AsRef<str>) {
-        let events: Vec<_> = text
-            .as_ref()
-            .chars()
-            .map(|c| SmolStr::new_inline(&c.to_string()))
-            .flat_map(|c| {
-                key_press_and_release(
-                    keyboard::Key::Character(c.clone()),
-                    Some(c),
-                )
-            })
-            .collect();
-
-        let _ = self.raw.update(
-            &events,
-            mouse::Cursor::Unavailable,
-            &mut self.renderer,
-            &mut clipboard::Null,
-            &mut self.messages,
-        );
+    pub fn tap_key(&mut self, key: impl Into<keyboard::Key>) -> event::Status {
+        self.simulate(tap_key(key, None))
+            .first()
+            .copied()
+            .unwrap_or(event::Status::Ignored)
     }
 
-    pub fn press_key(&mut self, key: impl Into<keyboard::Key>) {
-        let _ = self.raw.update(
-            &key_press_and_release(key, None),
-            mouse::Cursor::Unavailable,
+    pub fn typewrite(&mut self, text: &str) -> event::Status {
+        let statuses = self.simulate(typewrite(text));
+
+        statuses
+            .into_iter()
+            .fold(event::Status::Ignored, event::Status::merge)
+    }
+
+    pub fn simulate(
+        &mut self,
+        events: impl IntoIterator<Item = Event>,
+    ) -> Vec<event::Status> {
+        let events: Vec<Event> = events.into_iter().collect();
+
+        let (_state, statuses) = self.raw.update(
+            &events,
+            self.cursor,
             &mut self.renderer,
             &mut clipboard::Null,
             &mut self.messages,
         );
+
+        statuses
     }
 
     pub fn snapshot(&mut self) -> Result<Snapshot, Error> {
@@ -326,7 +325,7 @@ where
             &[Event::Window(window::Event::RedrawRequested(
                 time::Instant::now(),
             ))],
-            mouse::Cursor::Unavailable,
+            self.cursor,
             &mut self.renderer,
             &mut clipboard::Null,
             &mut self.messages,
@@ -338,7 +337,7 @@ where
             &core::renderer::Style {
                 text_color: base.text_color,
             },
-            mouse::Cursor::Unavailable,
+            self.cursor,
         );
 
         let scale_factor = 2.0;
@@ -363,8 +362,8 @@ where
         })
     }
 
-    pub fn into_messages(self) -> impl IntoIterator<Item = Message> {
-        self.messages
+    pub fn into_messages(self) -> impl Iterator<Item = Message> {
+        self.messages.into_iter()
     }
 }
 
@@ -433,10 +432,18 @@ impl Snapshot {
     }
 }
 
-fn key_press_and_release(
+pub fn click() -> impl Iterator<Item = Event> {
+    [
+        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
+        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)),
+    ]
+    .into_iter()
+}
+
+pub fn tap_key(
     key: impl Into<keyboard::Key>,
     text: Option<SmolStr>,
-) -> [Event; 2] {
+) -> impl Iterator<Item = Event> {
     let key = key.into();
 
     [
@@ -460,6 +467,13 @@ fn key_press_and_release(
             modifiers: keyboard::Modifiers::default(),
         }),
     ]
+    .into_iter()
+}
+
+pub fn typewrite(text: &str) -> impl Iterator<Item = Event> + '_ {
+    text.chars()
+        .map(|c| SmolStr::new_inline(&c.to_string()))
+        .flat_map(|c| tap_key(keyboard::Key::Character(c.clone()), Some(c)))
 }
 
 #[derive(Debug, Clone)]
