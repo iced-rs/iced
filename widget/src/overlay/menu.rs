@@ -128,12 +128,14 @@ where
         position: Point,
         viewport: Rectangle,
         target_height: f32,
+        menu_height: Length,
     ) -> overlay::Element<'a, Message, Theme, Renderer> {
         overlay::Element::new(Box::new(Overlay::new(
             position,
             viewport,
             self,
             target_height,
+            menu_height,
         )))
     }
 }
@@ -185,6 +187,7 @@ where
         viewport: Rectangle,
         menu: Menu<'a, 'b, T, Message, Theme, Renderer>,
         target_height: f32,
+        menu_height: Length,
     ) -> Self
     where
         T: Clone + ToString,
@@ -215,7 +218,8 @@ where
             text_shaping,
             padding,
             class,
-        });
+        })
+        .height(menu_height);
 
         state.tree.diff(&list as &dyn Widget<_, _, _>);
 
