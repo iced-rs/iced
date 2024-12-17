@@ -227,7 +227,7 @@ where
         self
     }
 
-    /// ciao
+    /// Sets the height of the [`Menu`].
     pub fn menu_height(mut self, menu_height: impl Into<Length>) -> Self {
         self.menu_height = menu_height.into();
         self
