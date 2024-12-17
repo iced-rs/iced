@@ -590,7 +590,7 @@ impl SavedState {
 mod tests {
     use super::*;
 
-    use iced::Settings;
+    use iced::{Settings, Theme};
     use iced_test::{selector, Error, Simulator};
 
     fn simulator(todos: &Todos) -> Simulator<Message> {
@@ -621,7 +621,7 @@ mod tests {
         let mut ui = simulator(&todos);
         let _ = ui.find(selector::text("Create the universe"))?;
 
-        let snapshot = ui.snapshot()?;
+        let snapshot = ui.snapshot(&Theme::Dark)?;
         assert!(
             snapshot.matches_hash("snapshots/creates_a_new_task")?,
             "snapshots should match!"

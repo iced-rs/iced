@@ -16,12 +16,13 @@ use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Point, Rectangle, Settings, Size, SmolStr};
+use crate::core::{
+    Element, Event, Font, Point, Rectangle, Settings, Size, SmolStr,
+};
 use crate::runtime::user_interface;
 use crate::runtime::UserInterface;
 
 use std::borrow::Cow;
-use std::env;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -31,7 +32,7 @@ pub fn simulator<'a, Message, Theme, Renderer>(
     element: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Simulator<'a, Message, Theme, Renderer>
 where
-    Theme: Default + theme::Base,
+    Theme: theme::Base,
     Renderer: core::Renderer + core::renderer::Headless,
 {
     Simulator::new(element)
@@ -65,7 +66,7 @@ pub struct Target {
 
 impl<'a, Message, Theme, Renderer> Simulator<'a, Message, Theme, Renderer>
 where
-    Theme: Default + theme::Base,
+    Theme: theme::Base,
     Renderer: core::Renderer + core::renderer::Headless,
 {
     pub fn new(
@@ -88,12 +89,17 @@ where
     ) -> Self {
         let size = size.into();
 
+        let default_font = match settings.default_font {
+            Font::DEFAULT => Font::with_name("Fira Sans"),
+            _ => settings.default_font,
+        };
+
         for font in settings.fonts {
             load_font(font).expect("Font must be valid");
         }
 
         let mut renderer =
-            Renderer::new(settings.default_font, settings.default_text_size);
+            Renderer::new(default_font, settings.default_text_size);
 
         let raw = UserInterface::build(
             element,
@@ -307,8 +313,7 @@ where
         statuses
     }
 
-    pub fn snapshot(&mut self) -> Result<Snapshot, Error> {
-        let theme = Theme::default();
+    pub fn snapshot(&mut self, theme: &Theme) -> Result<Snapshot, Error> {
         let base = theme.base();
 
         let _ = self.raw.update(
@@ -323,7 +328,7 @@ where
 
         let _ = self.raw.draw(
             &mut self.renderer,
-            &theme,
+            theme,
             &core::renderer::Style {
                 text_color: base.text_color,
             },
@@ -493,11 +498,5 @@ impl From<png::EncodingError> for Error {
 }
 
 fn snapshot_path(path: impl AsRef<Path>, extension: &str) -> PathBuf {
-    let path = path.as_ref();
-
-    path.with_file_name(format!(
-        "{file_stem}-{os}.{extension}",
-        file_stem = path.file_stem().unwrap_or_default().to_string_lossy(),
-        os = env::consts::OS,
-    ))
+    path.as_ref().with_extension(extension)
 }
