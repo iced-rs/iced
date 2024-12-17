@@ -55,7 +55,7 @@ pub struct Simulator<
 > {
     raw: UserInterface<'a, Message, Theme, Renderer>,
     renderer: Renderer,
-    window_size: Size,
+    size: Size,
     cursor: mouse::Cursor,
     messages: Vec<Message>,
 }
@@ -79,19 +79,15 @@ where
         settings: Settings,
         element: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
-        Self::with_window_size(
-            settings,
-            window::Settings::default().size,
-            element,
-        )
+        Self::with_size(settings, window::Settings::default().size, element)
     }
 
-    pub fn with_window_size(
+    pub fn with_size(
         settings: Settings,
-        window_size: impl Into<Size>,
+        size: impl Into<Size>,
         element: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
-        let window_size = window_size.into();
+        let size = size.into();
 
         let default_font = match settings.default_font {
             Font::DEFAULT => Font::with_name("Fira Sans"),
@@ -107,7 +103,7 @@ where
 
         let raw = UserInterface::build(
             element,
-            window_size,
+            size,
             user_interface::Cache::default(),
             &mut renderer,
         );
@@ -115,7 +111,7 @@ where
         Simulator {
             raw,
             renderer,
-            window_size,
+            size,
             cursor: mouse::Cursor::Unavailable,
             messages: Vec::new(),
         }
@@ -343,8 +339,8 @@ where
         let scale_factor = 2.0;
 
         let physical_size = Size::new(
-            (self.window_size.width * scale_factor).round() as u32,
-            (self.window_size.height * scale_factor).round() as u32,
+            (self.size.width * scale_factor).round() as u32,
+            (self.size.height * scale_factor).round() as u32,
         );
 
         let rgba = self.renderer.screenshot(

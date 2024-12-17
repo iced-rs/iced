@@ -594,11 +594,12 @@ mod tests {
     use iced_test::{selector, Error, Simulator};
 
     fn simulator(todos: &Todos) -> Simulator<Message> {
-        Simulator::with_settings(
+        Simulator::with_size(
             Settings {
                 fonts: vec![Todos::ICON_FONT.into()],
                 ..Settings::default()
             },
+            (512.0, 512.0),
             todos.view(),
         )
     }
