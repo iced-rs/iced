@@ -29,11 +29,9 @@ pub struct Settings {
     /// primitives.
     ///
     /// Enabling it can produce a smoother result in some widgets, like the
-    /// [`Canvas`], at a performance cost.
+    /// `canvas` widget, at a performance cost.
     ///
     /// By default, it is disabled.
-    ///
-    /// [`Canvas`]: crate::widget::Canvas
     pub antialiasing: bool,
 }
 
