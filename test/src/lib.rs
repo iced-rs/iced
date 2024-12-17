@@ -38,7 +38,7 @@
 //! [`Simulator::click`] takes a [`Selector`]. A [`Selector`] describes a way to query the widgets of an interface. In this case,
 //! [`selector::text`] lets us select a widget by the text it contains.
 //!
-//! We can now process any messages produced by these interactions, and then make sure that the final value of our counter is
+//! We can now process any messages produced by these interactions and then assert that the final value of our counter is
 //! indeed `1`!
 //!
 //! ```rust,no_run
