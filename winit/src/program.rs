@@ -508,9 +508,24 @@ where
 
                                 log::info!("Window attributes for id `{id:#?}`: {window_attributes:#?}");
 
+                                // On macOS, the `position` in `WindowAttributes` represents the "inner"
+                                // position of the window; while on other platforms it's the "outer" position.
+                                // We fix the inconsistency on macOS by positioning the window after creation.
+                                #[cfg(target_os = "macos")]
+                                let mut window_attributes = window_attributes;
+
+                                #[cfg(target_os = "macos")]
+                                let position =
+                                    window_attributes.position.take();
+
                                 let window = event_loop
                                     .create_window(window_attributes)
                                     .expect("Create window");
+
+                                #[cfg(target_os = "macos")]
+                                if let Some(position) = position {
+                                    window.set_outer_position(position);
+                                }
 
                                 #[cfg(target_arch = "wasm32")]
                                 {
@@ -1310,7 +1325,7 @@ fn run_action<P, C>(
                 if let Some(window) = window_manager.get(id) {
                     let position = window
                         .raw
-                        .inner_position()
+                        .outer_position()
                         .map(|position| {
                             let position = position
                                 .to_logical::<f32>(window.raw.scale_factor());
