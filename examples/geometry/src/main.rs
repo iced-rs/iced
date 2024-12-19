@@ -120,7 +120,8 @@ mod rainbow {
                             position: posn_l,
                             color: color::pack(color_v),
                         },
-                    ],
+                    ]
+                    .into(),
                     indices: vec![
                         0, 1, 2, // TL
                         0, 2, 3, // T
@@ -130,7 +131,8 @@ mod rainbow {
                         0, 6, 7, // B
                         0, 7, 8, // BL
                         0, 8, 1, // L
-                    ],
+                    ]
+                    .into(),
                 },
                 transformation: Transformation::IDENTITY,
                 clip_bounds: Rectangle::INFINITE,
