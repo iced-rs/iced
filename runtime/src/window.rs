@@ -73,6 +73,9 @@ pub enum Action {
     /// Get the current [`Mode`] of the window.
     GetMode(Id, oneshot::Sender<Mode>),
 
+    /// Change the title of the window.
+    ChangeTitle(Id, String),
+
     /// Toggle the window to maximized or back
     ToggleMaximize(Id),
 
@@ -155,6 +158,18 @@ pub enum Action {
     /// This enables mouse events for the window and stops mouse events
     /// from being passed to whatever is underneath.
     DisableMousePassthrough(Id),
+
+    /// Set the minimum inner window size.
+    SetMinSize(Id, Option<Size>),
+
+    /// Set the maximum inner window size.
+    SetMaxSize(Id, Option<Size>),
+
+    /// Set the window to be resizable or not.
+    SetResizable(Id, bool),
+
+    /// Set the window size increment.
+    SetResizeIncrements(Id, Option<Size>),
 }
 
 /// Subscribes to the frames of the window of the running application.
@@ -265,6 +280,11 @@ pub fn resize<T>(id: Id, new_size: Size) -> Task<T> {
     task::effect(crate::Action::Window(Action::Resize(id, new_size)))
 }
 
+/// Set the window to be resizable or not.
+pub fn resizable<T>(id: Id, resizable: bool) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetResizable(id, resizable)))
+}
+
 /// Get the window's size in logical dimensions.
 pub fn get_size(id: Id) -> Task<Size> {
     task::oneshot(move |channel| {
@@ -366,6 +386,30 @@ pub fn gain_focus<T>(id: Id) -> Task<T> {
 /// Changes the window [`Level`].
 pub fn change_level<T>(id: Id, level: Level) -> Task<T> {
     task::effect(crate::Action::Window(Action::ChangeLevel(id, level)))
+}
+
+/// Changes the title of the window.
+pub fn change_title<T>(id: Id, title: String) -> Task<T> {
+    task::effect(crate::Action::Window(Action::ChangeTitle(id, title)))
+}
+
+/// Set the inner maximum size of the window.
+pub fn set_max_size<T>(id: Id, size: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetMaxSize(id, size)))
+}
+
+/// Set the inner minimum size of the window.
+pub fn set_min_size<T>(id: Id, size: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetMinSize(id, size)))
+}
+
+/// Set the window size increment.
+///
+/// This is usually used by apps such as terminal emulators that need "blocky" resizing.
+pub fn set_resize_increments<T>(id: Id, increments: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetResizeIncrements(
+        id, increments,
+    )))
 }
 
 /// Show the [system menu] at cursor position.
