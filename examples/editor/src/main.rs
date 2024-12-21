@@ -53,9 +53,9 @@ impl Editor {
             },
             Task::batch([
                 Task::perform(
-                    load_file(format!(
-                        "{}/src/main.rs",
-                        env!("CARGO_MANIFEST_DIR")
+                    load_file(concat!(
+                        env!("CARGO_MANIFEST_DIR"),
+                        "/src/main.rs",
                     )),
                     Message::FileOpened,
                 ),

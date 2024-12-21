@@ -559,7 +559,7 @@ fn ferris<'a>(
         if cfg!(target_arch = "wasm32") {
             image("tour/images/ferris.png")
         } else {
-            image(format!("{}/images/ferris.png", env!("CARGO_MANIFEST_DIR")))
+            image(concat!(env!("CARGO_MANIFEST_DIR"), "/images/ferris.png"))
         }
         .filter_method(filter_method)
         .width(width),
