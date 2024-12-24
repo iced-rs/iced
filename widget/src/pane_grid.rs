@@ -627,7 +627,7 @@ where
                                         }
                                     }
                                 }
-                            }
+                            };
                         };
 
                         shell.publish(on_drag(drag_event));

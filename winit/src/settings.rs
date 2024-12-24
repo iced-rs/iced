@@ -1,4 +1,6 @@
 //! Configure your application.
+use crate::core;
+
 use std::borrow::Cow;
 
 /// The settings of an application.
@@ -12,4 +14,13 @@ pub struct Settings {
 
     /// The fonts to load on boot.
     pub fonts: Vec<Cow<'static, [u8]>>,
+}
+
+impl From<core::Settings> for Settings {
+    fn from(settings: core::Settings) -> Self {
+        Self {
+            id: settings.id,
+            fonts: settings.fonts,
+        }
+    }
 }

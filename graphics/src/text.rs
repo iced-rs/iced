@@ -16,6 +16,7 @@ use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
 use once_cell::sync::OnceCell;
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::sync::{Arc, RwLock, Weak};
 
 /// A text primitive.
@@ -146,11 +147,12 @@ impl Text {
 
 /// The regular variant of the [Fira Sans] font.
 ///
-/// It is loaded as part of the default fonts in Wasm builds.
+/// It is loaded as part of the default fonts when the `fira-sans`
+/// feature is enabled.
 ///
 /// [Fira Sans]: https://mozilla.github.io/Fira/
-#[cfg(all(target_arch = "wasm32", feature = "fira-sans"))]
-pub const FIRA_SANS_REGULAR: &'static [u8] =
+#[cfg(feature = "fira-sans")]
+pub const FIRA_SANS_REGULAR: &[u8] =
     include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice();
 
 /// Returns the global [`FontSystem`].
@@ -163,11 +165,12 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
                 cosmic_text::fontdb::Source::Binary(Arc::new(
                     include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
                 )),
-                #[cfg(all(target_arch = "wasm32", feature = "fira-sans"))]
+                #[cfg(feature = "fira-sans")]
                 cosmic_text::fontdb::Source::Binary(Arc::new(
                     include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice(),
                 )),
             ]),
+            loaded_fonts: HashSet::new(),
             version: Version::default(),
         })
     })
@@ -177,6 +180,7 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
 #[allow(missing_debug_implementations)]
 pub struct FontSystem {
     raw: cosmic_text::FontSystem,
+    loaded_fonts: HashSet<usize>,
     version: Version,
 }
 
@@ -188,6 +192,14 @@ impl FontSystem {
 
     /// Loads a font from its bytes.
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
+        if let Cow::Borrowed(bytes) = bytes {
+            let address = bytes.as_ptr() as usize;
+
+            if !self.loaded_fonts.insert(address) {
+                return;
+            }
+        }
+
         let _ = self.raw.db_mut().load_font_source(
             cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
         );
