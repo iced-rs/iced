@@ -146,13 +146,10 @@ where
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
-        let available =
-            limits.max() - Size::new(self.position.x, self.position.y);
-
         let node = self
             .content
             .as_widget()
-            .layout(tree, renderer, &layout::Limits::new(Size::ZERO, available))
+            .layout(tree, renderer, &limits)
             .move_to(self.position);
 
         let size = limits.resolve(self.width, self.height, node.size());
