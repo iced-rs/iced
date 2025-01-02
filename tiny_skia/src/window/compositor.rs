@@ -1,6 +1,5 @@
 use crate::core::{Color, Rectangle, Size};
 use crate::graphics::compositor::{self, Information};
-use crate::graphics::damage;
 use crate::graphics::error::{self, Error};
 use crate::graphics::{self, Viewport};
 use crate::{Layer, Renderer, Settings};
@@ -154,7 +153,7 @@ pub fn present<T: AsRef<str>>(
         .buffer_mut()
         .map_err(|_| compositor::SurfaceError::Lost)?;
 
-    let last_layers = {
+    let _last_layers = {
         let age = buffer.age();
 
         surface.max_age = surface.max_age.max(age);
@@ -167,18 +166,21 @@ pub fn present<T: AsRef<str>>(
         }
     };
 
-    let damage = last_layers
-        .and_then(|last_layers| {
-            (surface.background_color == background_color).then(|| {
-                damage::diff(
-                    last_layers,
-                    renderer.layers(),
-                    |layer| vec![layer.bounds],
-                    Layer::damage,
-                )
-            })
-        })
-        .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
+    // TODO
+    // let damage = last_layers
+    //     .and_then(|last_layers| {
+    //         (surface.background_color == background_color).then(|| {
+    //             damage::diff(
+    //                 last_layers,
+    //                 renderer.layers(),
+    //                 |layer| vec![layer.bounds],
+    //                 Layer::damage,
+    //             )
+    //         })
+    //     })
+    //     .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
+
+    let damage = vec![Rectangle::with_size(viewport.logical_size())];
 
     if damage.is_empty() {
         return Ok(());
@@ -187,8 +189,8 @@ pub fn present<T: AsRef<str>>(
     surface.layer_stack.push_front(renderer.layers().to_vec());
     surface.background_color = background_color;
 
-    let damage =
-        damage::group(damage, Rectangle::with_size(viewport.logical_size()));
+    // let damage =
+    //     damage::group(damage, Rectangle::with_size(viewport.logical_size()));
 
     let mut pixels = tiny_skia::PixmapMut::from_bytes(
         bytemuck::cast_slice_mut(&mut buffer),
