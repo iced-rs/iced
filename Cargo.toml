@@ -155,7 +155,7 @@ glam = "0.25"
 glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "09712a70df7431e9a3b1ac1bbd4fb634096cb3b4" }
 guillotiere = "0.6"
 half = "2.2"
-image = { version = "0.24", default-features = false }
+image = { version = "0.25", default-features = false }
 kamadak-exif = "0.5"
 kurbo = "0.10"
 log = "0.4"
