@@ -76,12 +76,7 @@ impl Engine {
         let shadow = quad.shadow;
 
         if shadow.color.a > 0.0 {
-            let shadow_bounds = Rectangle {
-                x: quad.bounds.x + shadow.offset.x - shadow.blur_radius,
-                y: quad.bounds.y + shadow.offset.y - shadow.blur_radius,
-                width: quad.bounds.width + shadow.blur_radius * 2.0,
-                height: quad.bounds.height + shadow.blur_radius * 2.0,
-            } * transformation;
+            let shadow_bounds = quad.bounds_with_shadow() * transformation;
 
             let radii = fill_border_radius
                 .into_iter()
