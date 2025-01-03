@@ -34,7 +34,8 @@ pub fn window_attributes(
         .with_transparent(settings.transparent)
         .with_window_icon(settings.icon.and_then(icon))
         .with_window_level(window_level(settings.level))
-        .with_visible(settings.visible);
+        .with_visible(settings.visible)
+        .with_maximized(settings.maximized);
 
     if let Some(position) =
         position(primary_monitor.as_ref(), settings.size, settings.position)

@@ -44,6 +44,9 @@ pub struct Settings {
     /// The maximum size of the window.
     pub max_size: Option<Size>,
 
+    /// Whether the window should be maximized or not.
+    pub maximized: bool,
+
     /// Whether the window should be visible or not.
     pub visible: bool,
 
@@ -83,6 +86,7 @@ impl Default for Settings {
             position: Position::default(),
             min_size: None,
             max_size: None,
+            maximized: false,
             visible: true,
             resizable: true,
             decorations: true,
