@@ -1,10 +1,11 @@
 //! Define the colors of a theme.
 use crate::{color, Color};
 
-use once_cell::sync::Lazy;
 use palette::color_difference::Wcag21RelativeContrast;
 use palette::rgb::Rgb;
 use palette::{FromColor, Hsl, Mix};
+
+use std::sync::LazyLock;
 
 /// A color palette.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -341,92 +342,92 @@ pub struct Extended {
 }
 
 /// The built-in light variant of an [`Extended`] palette.
-pub static EXTENDED_LIGHT: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::LIGHT));
+pub static EXTENDED_LIGHT: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::LIGHT));
 
 /// The built-in dark variant of an [`Extended`] palette.
-pub static EXTENDED_DARK: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::DARK));
+pub static EXTENDED_DARK: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::DARK));
 
 /// The built-in Dracula variant of an [`Extended`] palette.
-pub static EXTENDED_DRACULA: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::DRACULA));
+pub static EXTENDED_DRACULA: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::DRACULA));
 
 /// The built-in Nord variant of an [`Extended`] palette.
-pub static EXTENDED_NORD: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::NORD));
+pub static EXTENDED_NORD: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::NORD));
 
 /// The built-in Solarized Light variant of an [`Extended`] palette.
-pub static EXTENDED_SOLARIZED_LIGHT: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::SOLARIZED_LIGHT));
+pub static EXTENDED_SOLARIZED_LIGHT: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::SOLARIZED_LIGHT));
 
 /// The built-in Solarized Dark variant of an [`Extended`] palette.
-pub static EXTENDED_SOLARIZED_DARK: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::SOLARIZED_DARK));
+pub static EXTENDED_SOLARIZED_DARK: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::SOLARIZED_DARK));
 
 /// The built-in Gruvbox Light variant of an [`Extended`] palette.
-pub static EXTENDED_GRUVBOX_LIGHT: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::GRUVBOX_LIGHT));
+pub static EXTENDED_GRUVBOX_LIGHT: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::GRUVBOX_LIGHT));
 
 /// The built-in Gruvbox Dark variant of an [`Extended`] palette.
-pub static EXTENDED_GRUVBOX_DARK: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::GRUVBOX_DARK));
+pub static EXTENDED_GRUVBOX_DARK: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::GRUVBOX_DARK));
 
 /// The built-in Catppuccin Latte variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_LATTE: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_LATTE));
+pub static EXTENDED_CATPPUCCIN_LATTE: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_LATTE));
 
 /// The built-in Catppuccin Frappé variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_FRAPPE: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_FRAPPE));
+pub static EXTENDED_CATPPUCCIN_FRAPPE: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_FRAPPE));
 
 /// The built-in Catppuccin Macchiato variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_MACCHIATO: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_MACCHIATO));
+pub static EXTENDED_CATPPUCCIN_MACCHIATO: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_MACCHIATO));
 
 /// The built-in Catppuccin Mocha variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_MOCHA: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_MOCHA));
+pub static EXTENDED_CATPPUCCIN_MOCHA: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_MOCHA));
 
 /// The built-in Tokyo Night variant of an [`Extended`] palette.
-pub static EXTENDED_TOKYO_NIGHT: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::TOKYO_NIGHT));
+pub static EXTENDED_TOKYO_NIGHT: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::TOKYO_NIGHT));
 
 /// The built-in Tokyo Night Storm variant of an [`Extended`] palette.
-pub static EXTENDED_TOKYO_NIGHT_STORM: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::TOKYO_NIGHT_STORM));
+pub static EXTENDED_TOKYO_NIGHT_STORM: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::TOKYO_NIGHT_STORM));
 
 /// The built-in Tokyo Night variant of an [`Extended`] palette.
-pub static EXTENDED_TOKYO_NIGHT_LIGHT: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::TOKYO_NIGHT_LIGHT));
+pub static EXTENDED_TOKYO_NIGHT_LIGHT: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::TOKYO_NIGHT_LIGHT));
 
 /// The built-in Kanagawa Wave variant of an [`Extended`] palette.
-pub static EXTENDED_KANAGAWA_WAVE: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::KANAGAWA_WAVE));
+pub static EXTENDED_KANAGAWA_WAVE: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::KANAGAWA_WAVE));
 
 /// The built-in Kanagawa Dragon variant of an [`Extended`] palette.
-pub static EXTENDED_KANAGAWA_DRAGON: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::KANAGAWA_DRAGON));
+pub static EXTENDED_KANAGAWA_DRAGON: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::KANAGAWA_DRAGON));
 
 /// The built-in Kanagawa Lotus variant of an [`Extended`] palette.
-pub static EXTENDED_KANAGAWA_LOTUS: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::KANAGAWA_LOTUS));
+pub static EXTENDED_KANAGAWA_LOTUS: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::KANAGAWA_LOTUS));
 
 /// The built-in Moonfly variant of an [`Extended`] palette.
-pub static EXTENDED_MOONFLY: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::MOONFLY));
+pub static EXTENDED_MOONFLY: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::MOONFLY));
 
 /// The built-in Nightfly variant of an [`Extended`] palette.
-pub static EXTENDED_NIGHTFLY: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::NIGHTFLY));
+pub static EXTENDED_NIGHTFLY: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::NIGHTFLY));
 
 /// The built-in Oxocarbon variant of an [`Extended`] palette.
-pub static EXTENDED_OXOCARBON: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::OXOCARBON));
+pub static EXTENDED_OXOCARBON: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::OXOCARBON));
 
 /// The built-in Ferra variant of an [`Extended`] palette.
-pub static EXTENDED_FERRA: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::FERRA));
+pub static EXTENDED_FERRA: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::FERRA));
 
 impl Extended {
     /// Generates an [`Extended`] palette from a simple [`Palette`].
