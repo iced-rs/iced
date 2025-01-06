@@ -73,9 +73,6 @@ pub enum Action {
     /// Get the current [`Mode`] of the window.
     GetMode(Id, oneshot::Sender<Mode>),
 
-    /// Change the title of the window.
-    ChangeTitle(Id, String),
-
     /// Toggle the window to maximized or back
     ToggleMaximize(Id),
 
@@ -386,11 +383,6 @@ pub fn gain_focus<T>(id: Id) -> Task<T> {
 /// Changes the window [`Level`].
 pub fn change_level<T>(id: Id, level: Level) -> Task<T> {
     task::effect(crate::Action::Window(Action::ChangeLevel(id, level)))
-}
-
-/// Changes the title of the window.
-pub fn change_title<T>(id: Id, title: String) -> Task<T> {
-    task::effect(crate::Action::Window(Action::ChangeTitle(id, title)))
 }
 
 /// Set the inner maximum size of the window.

@@ -1321,11 +1321,6 @@ fn run_action<P, C>(
                     }));
                 }
             }
-            window::Action::ChangeTitle(id, title) => {
-                if let Some(window) = window_manager.get_mut(id) {
-                    window.raw.set_title(&title);
-                }
-            }
             window::Action::SetResizable(id, resizable) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     window.raw.set_resizable(resizable);
