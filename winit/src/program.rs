@@ -1293,30 +1293,30 @@ fn run_action<P, C>(
             }
             window::Action::SetMinSize(id, size) => {
                 if let Some(window) = window_manager.get_mut(id) {
-                    window.raw.set_min_inner_size(size.map(|x| {
+                    window.raw.set_min_inner_size(size.map(|size| {
                         winit::dpi::LogicalSize {
-                            width: x.width,
-                            height: x.height,
+                            width: size.width,
+                            height: size.height,
                         }
                     }));
                 }
             }
             window::Action::SetMaxSize(id, size) => {
                 if let Some(window) = window_manager.get_mut(id) {
-                    window.raw.set_max_inner_size(size.map(|x| {
+                    window.raw.set_max_inner_size(size.map(|size| {
                         winit::dpi::LogicalSize {
-                            width: x.width,
-                            height: x.height,
+                            width: size.width,
+                            height: size.height,
                         }
                     }));
                 }
             }
             window::Action::SetResizeIncrements(id, increments) => {
                 if let Some(window) = window_manager.get_mut(id) {
-                    window.raw.set_resize_increments(increments.map(|x| {
+                    window.raw.set_resize_increments(increments.map(|size| {
                         winit::dpi::LogicalSize {
-                            width: x.width,
-                            height: x.height,
+                            width: size.width,
+                            height: size.height,
                         }
                     }));
                 }
