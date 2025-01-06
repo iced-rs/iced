@@ -569,7 +569,7 @@ async fn run_instance<P, C>(
     let mut window_manager = WindowManager::new();
     let mut is_window_opening = !is_daemon;
 
-    let mut compositor: Option<C> = None;
+    let mut compositor = None;
     let mut events = Vec::new();
     let mut messages = Vec::new();
     let mut actions = 0;
@@ -577,11 +577,7 @@ async fn run_instance<P, C>(
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
     let mut clipboard = Clipboard::unconnected();
-    let mut compositor_receiver: Option<
-        oneshot::Receiver<
-            Result<(C, Event<Action<P::Message>>), graphics::Error>,
-        >,
-    > = None;
+    let mut compositor_receiver: Option<oneshot::Receiver<_>> = None;
 
     debug.startup_finished();
 
