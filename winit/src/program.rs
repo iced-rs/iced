@@ -1389,7 +1389,7 @@ fn run_action<P, C>(
                     );
                 }
             }
-            window::Action::ChangeMode(id, mode) => {
+            window::Action::SetMode(id, mode) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     window.raw.set_visible(conversion::visible(mode));
                     window.raw.set_fullscreen(conversion::fullscreen(
@@ -1398,7 +1398,7 @@ fn run_action<P, C>(
                     ));
                 }
             }
-            window::Action::ChangeIcon(id, icon) => {
+            window::Action::SetIcon(id, icon) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     window.raw.set_window_icon(conversion::icon(icon));
                 }
@@ -1436,7 +1436,7 @@ fn run_action<P, C>(
                     window.raw.focus_window();
                 }
             }
-            window::Action::ChangeLevel(id, level) => {
+            window::Action::SetLevel(id, level) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     window
                         .raw

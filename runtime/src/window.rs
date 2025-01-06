@@ -68,7 +68,7 @@ pub enum Action {
     Move(Id, Point),
 
     /// Change the [`Mode`] of the window.
-    ChangeMode(Id, Mode),
+    SetMode(Id, Mode),
 
     /// Get the current [`Mode`] of the window.
     GetMode(Id, oneshot::Sender<Mode>),
@@ -111,7 +111,7 @@ pub enum Action {
     GainFocus(Id),
 
     /// Change the window [`Level`].
-    ChangeLevel(Id, Level),
+    SetLevel(Id, Level),
 
     /// Show the system menu at cursor position.
     ///
@@ -136,7 +136,7 @@ pub enum Action {
     ///
     /// - **X11:** Has no universal guidelines for icon sizes, so you're at the whims of the WM. That
     ///   said, it's usually in the same ballpark as on Windows.
-    ChangeIcon(Id, Icon),
+    SetIcon(Id, Icon),
 
     /// Runs the closure with the native window handle of the window with the given [`Id`].
     RunWithHandle(Id, Box<dyn FnOnce(WindowHandle<'_>) + Send>),
@@ -351,16 +351,16 @@ pub fn move_to<T>(id: Id, position: Point) -> Task<T> {
     task::effect(crate::Action::Window(Action::Move(id, position)))
 }
 
-/// Changes the [`Mode`] of the window.
-pub fn change_mode<T>(id: Id, mode: Mode) -> Task<T> {
-    task::effect(crate::Action::Window(Action::ChangeMode(id, mode)))
-}
-
 /// Gets the current [`Mode`] of the window.
 pub fn get_mode(id: Id) -> Task<Mode> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetMode(id, channel))
     })
+}
+
+/// Changes the [`Mode`] of the window.
+pub fn set_mode<T>(id: Id, mode: Mode) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetMode(id, mode)))
 }
 
 /// Toggles the window to maximized or back.
@@ -400,8 +400,8 @@ pub fn gain_focus<T>(id: Id) -> Task<T> {
 }
 
 /// Changes the window [`Level`].
-pub fn change_level<T>(id: Id, level: Level) -> Task<T> {
-    task::effect(crate::Action::Window(Action::ChangeLevel(id, level)))
+pub fn set_level<T>(id: Id, level: Level) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetLevel(id, level)))
 }
 
 /// Show the [system menu] at cursor position.
@@ -420,8 +420,8 @@ pub fn get_raw_id<Message>(id: Id) -> Task<u64> {
 }
 
 /// Changes the [`Icon`] of the window.
-pub fn change_icon<T>(id: Id, icon: Icon) -> Task<T> {
-    task::effect(crate::Action::Window(Action::ChangeIcon(id, icon)))
+pub fn set_icon<T>(id: Id, icon: Icon) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetIcon(id, icon)))
 }
 
 /// Runs the given callback with the native window handle for the window with the given id.
