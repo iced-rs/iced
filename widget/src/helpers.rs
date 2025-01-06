@@ -1706,10 +1706,9 @@ where
         + 'a,
     Theme: text::Catalog + crate::svg::Catalog + 'a,
 {
-    use std::sync::LazyLock;
-
     use crate::core::{Alignment, Font};
     use crate::svg;
+    use std::sync::LazyLock;
 
     static LOGO: LazyLock<svg::Handle> = LazyLock::new(|| {
         svg::Handle::from_memory(include_bytes!("../assets/iced-logo.svg"))

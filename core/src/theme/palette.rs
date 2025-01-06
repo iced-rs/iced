@@ -1,11 +1,11 @@
 //! Define the colors of a theme.
-use std::sync::LazyLock;
-
 use crate::{color, Color};
 
 use palette::color_difference::Wcag21RelativeContrast;
 use palette::rgb::Rgb;
 use palette::{FromColor, Hsl, Mix};
+
+use std::sync::LazyLock;
 
 /// A color palette.
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -1,10 +1,10 @@
-use std::sync::LazyLock;
-
 use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
     scrollable, slider, text, vertical_space,
 };
 use iced::{Border, Center, Color, Element, Fill, Task, Theme};
+
+use std::sync::LazyLock;
 
 static SCROLLABLE_ID: LazyLock<scrollable::Id> =
     LazyLock::new(scrollable::Id::unique);

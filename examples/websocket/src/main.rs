@@ -1,11 +1,10 @@
 mod echo;
 
-use std::sync::LazyLock;
-
 use iced::widget::{
     self, button, center, column, row, scrollable, text, text_input,
 };
 use iced::{color, Center, Element, Fill, Subscription, Task};
+use std::sync::LazyLock;
 
 pub fn main() -> iced::Result {
     iced::application("WebSocket - Iced", WebSocket::update, WebSocket::view)

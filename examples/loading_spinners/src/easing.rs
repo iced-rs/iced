@@ -1,9 +1,9 @@
-use std::sync::LazyLock;
-
 use iced::Point;
 
 use lyon_algorithms::measure::PathMeasurements;
 use lyon_algorithms::path::{builder::NoAttributes, path::BuilderImpl, Path};
+
+use std::sync::LazyLock;
 
 pub static EMPHASIZED: LazyLock<Easing> = LazyLock::new(|| {
     Easing::builder()
