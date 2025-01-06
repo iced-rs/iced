@@ -278,8 +278,27 @@ pub fn resize<T>(id: Id, new_size: Size) -> Task<T> {
 }
 
 /// Set the window to be resizable or not.
-pub fn resizable<T>(id: Id, resizable: bool) -> Task<T> {
+pub fn set_resizable<T>(id: Id, resizable: bool) -> Task<T> {
     task::effect(crate::Action::Window(Action::SetResizable(id, resizable)))
+}
+
+/// Set the inner maximum size of the window.
+pub fn set_max_size<T>(id: Id, size: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetMaxSize(id, size)))
+}
+
+/// Set the inner minimum size of the window.
+pub fn set_min_size<T>(id: Id, size: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetMinSize(id, size)))
+}
+
+/// Set the window size increment.
+///
+/// This is usually used by apps such as terminal emulators that need "blocky" resizing.
+pub fn set_resize_increments<T>(id: Id, increments: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetResizeIncrements(
+        id, increments,
+    )))
 }
 
 /// Get the window's size in logical dimensions.
@@ -383,25 +402,6 @@ pub fn gain_focus<T>(id: Id) -> Task<T> {
 /// Changes the window [`Level`].
 pub fn change_level<T>(id: Id, level: Level) -> Task<T> {
     task::effect(crate::Action::Window(Action::ChangeLevel(id, level)))
-}
-
-/// Set the inner maximum size of the window.
-pub fn set_max_size<T>(id: Id, size: Option<Size>) -> Task<T> {
-    task::effect(crate::Action::Window(Action::SetMaxSize(id, size)))
-}
-
-/// Set the inner minimum size of the window.
-pub fn set_min_size<T>(id: Id, size: Option<Size>) -> Task<T> {
-    task::effect(crate::Action::Window(Action::SetMinSize(id, size)))
-}
-
-/// Set the window size increment.
-///
-/// This is usually used by apps such as terminal emulators that need "blocky" resizing.
-pub fn set_resize_increments<T>(id: Id, increments: Option<Size>) -> Task<T> {
-    task::effect(crate::Action::Window(Action::SetResizeIncrements(
-        id, increments,
-    )))
 }
 
 /// Show the [system menu] at cursor position.
