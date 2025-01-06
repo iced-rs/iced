@@ -1291,6 +1291,41 @@ fn run_action<P, C>(
                     );
                 }
             }
+            window::Action::SetMinSize(id, size) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_min_inner_size(size.map(|size| {
+                        winit::dpi::LogicalSize {
+                            width: size.width,
+                            height: size.height,
+                        }
+                    }));
+                }
+            }
+            window::Action::SetMaxSize(id, size) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_max_inner_size(size.map(|size| {
+                        winit::dpi::LogicalSize {
+                            width: size.width,
+                            height: size.height,
+                        }
+                    }));
+                }
+            }
+            window::Action::SetResizeIncrements(id, increments) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_resize_increments(increments.map(|size| {
+                        winit::dpi::LogicalSize {
+                            width: size.width,
+                            height: size.height,
+                        }
+                    }));
+                }
+            }
+            window::Action::SetResizable(id, resizable) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_resizable(resizable);
+                }
+            }
             window::Action::GetSize(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let size = window
@@ -1354,7 +1389,7 @@ fn run_action<P, C>(
                     );
                 }
             }
-            window::Action::ChangeMode(id, mode) => {
+            window::Action::SetMode(id, mode) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     window.raw.set_visible(conversion::visible(mode));
                     window.raw.set_fullscreen(conversion::fullscreen(
@@ -1363,7 +1398,7 @@ fn run_action<P, C>(
                     ));
                 }
             }
-            window::Action::ChangeIcon(id, icon) => {
+            window::Action::SetIcon(id, icon) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     window.raw.set_window_icon(conversion::icon(icon));
                 }
@@ -1401,7 +1436,7 @@ fn run_action<P, C>(
                     window.raw.focus_window();
                 }
             }
-            window::Action::ChangeLevel(id, level) => {
+            window::Action::SetLevel(id, level) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     window
                         .raw

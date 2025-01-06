@@ -149,9 +149,7 @@ impl Todos {
                         }
                     }
                     Message::ToggleFullscreen(mode) => window::get_latest()
-                        .and_then(move |window| {
-                            window::change_mode(window, mode)
-                        }),
+                        .and_then(move |window| window::set_mode(window, mode)),
                     Message::Loaded(_) => Command::none(),
                 };
 
