@@ -906,20 +906,20 @@ where
                 is_vertical_scrollbar_dragged: state
                     .y_scroller_grabbed_at
                     .is_some(),
-                is_horizontal_scrollbar_disabled: scrollbars.x_disabled(),
-                is_vertical_scrollbar_disabled: scrollbars.y_disabled(),
+                is_horizontal_scrollbar_disabled: scrollbars.is_x_disabled(),
+                is_vertical_scrollbar_disabled: scrollbars.is_y_disabled(),
             }
         } else if cursor_over_scrollable.is_some() {
             Status::Hovered {
                 is_horizontal_scrollbar_hovered: mouse_over_x_scrollbar,
                 is_vertical_scrollbar_hovered: mouse_over_y_scrollbar,
-                is_horizontal_scrollbar_disabled: scrollbars.x_disabled(),
-                is_vertical_scrollbar_disabled: scrollbars.y_disabled(),
+                is_horizontal_scrollbar_disabled: scrollbars.is_x_disabled(),
+                is_vertical_scrollbar_disabled: scrollbars.is_y_disabled(),
             }
         } else {
             Status::Active {
-                is_horizontal_scrollbar_disabled: scrollbars.x_disabled(),
-                is_vertical_scrollbar_disabled: scrollbars.y_disabled(),
+                is_horizontal_scrollbar_disabled: scrollbars.is_x_disabled(),
+                is_vertical_scrollbar_disabled: scrollbars.is_y_disabled(),
             }
         };
 
@@ -1772,11 +1772,11 @@ impl Scrollbars {
         }
     }
 
-    fn y_disabled(&self) -> bool {
+    fn is_y_disabled(&self) -> bool {
         self.y.map(|y| y.disabled).unwrap_or(false)
     }
 
-    fn x_disabled(&self) -> bool {
+    fn is_x_disabled(&self) -> bool {
         self.x.map(|x| x.disabled).unwrap_or(false)
     }
 
