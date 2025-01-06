@@ -1600,27 +1600,15 @@ impl Scrollbars {
     ) -> Self {
         let translation = state.translation(direction, bounds, content_bounds);
 
-        let show_scrollbar_x = direction
-            .horizontal()
-            .filter(|scrollbar| {
-                scrollbar.spacing.is_some()
-                    || content_bounds.width > bounds.width
-            })
-            .map(|properties| {
-                (properties, content_bounds.width <= bounds.width)
-            });
+        let show_scrollbar_x = direction.horizontal().filter(|scrollbar| {
+            scrollbar.spacing.is_some() || content_bounds.width > bounds.width
+        });
 
-        let show_scrollbar_y = direction
-            .vertical()
-            .filter(|scrollbar| {
-                scrollbar.spacing.is_some()
-                    || content_bounds.height > bounds.height
-            })
-            .map(|properties| {
-                (properties, content_bounds.height <= bounds.height)
-            });
+        let show_scrollbar_y = direction.vertical().filter(|scrollbar| {
+            scrollbar.spacing.is_some() || content_bounds.height > bounds.height
+        });
 
-        let y_scrollbar = if let Some((vertical, disabled)) = show_scrollbar_y {
+        let y_scrollbar = if let Some(vertical) = show_scrollbar_y {
             let Scrollbar {
                 width,
                 margin,
@@ -1631,7 +1619,7 @@ impl Scrollbars {
             // Adjust the height of the vertical scrollbar if the horizontal scrollbar
             // is present
             let x_scrollbar_height = show_scrollbar_x
-                .map_or(0.0, |(h, _)| h.width.max(h.scroller_width) + h.margin);
+                .map_or(0.0, |h| h.width.max(h.scroller_width) + h.margin);
 
             let total_scrollbar_width =
                 width.max(scroller_width) + 2.0 * margin;
@@ -1685,14 +1673,13 @@ impl Scrollbars {
                 bounds: scrollbar_bounds,
                 scroller,
                 alignment: vertical.alignment,
-                disabled,
+                disabled: content_bounds.height <= bounds.height,
             })
         } else {
             None
         };
 
-        let x_scrollbar = if let Some((horizontal, disabled)) = show_scrollbar_x
-        {
+        let x_scrollbar = if let Some(horizontal) = show_scrollbar_x {
             let Scrollbar {
                 width,
                 margin,
@@ -1756,7 +1743,7 @@ impl Scrollbars {
                 bounds: scrollbar_bounds,
                 scroller,
                 alignment: horizontal.alignment,
-                disabled,
+                disabled: content_bounds.width <= bounds.width,
             })
         } else {
             None
