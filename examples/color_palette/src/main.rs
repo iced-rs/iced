@@ -89,6 +89,7 @@ impl ColorPalette {
                 primary: *self.theme.lower.first().unwrap(),
                 text: *self.theme.higher.last().unwrap(),
                 success: *self.theme.lower.last().unwrap(),
+                warning: *self.theme.higher.last().unwrap(),
                 danger: *self.theme.higher.last().unwrap(),
             },
         )
