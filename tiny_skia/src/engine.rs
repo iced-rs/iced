@@ -143,7 +143,7 @@ impl Engine {
                     pixmap.as_ref(),
                     &tiny_skia::PixmapPaint::default(),
                     tiny_skia::Transform::default(),
-                    None,
+                    clip_mask,
                 );
             }
         }
