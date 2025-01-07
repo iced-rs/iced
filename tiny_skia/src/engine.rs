@@ -44,15 +44,16 @@ impl Engine {
             quad.bounds.height.is_normal(),
             "Quad with non-normal height!"
         );
+        let physical_bounds_with_shadow = quad.bounds_with_shadow() * transformation;
 
-        let physical_bounds = quad.bounds * transformation;
-
-        if !clip_bounds.intersects(&physical_bounds) {
+        if !clip_bounds.intersects(&physical_bounds_with_shadow) {
             return;
         }
 
-        let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+        let clip_mask = (!physical_bounds_with_shadow.is_within(&clip_bounds))
             .then_some(clip_mask as &_);
+
+        let physical_bounds = quad.bounds * transformation;
 
         let transform = into_transform(transformation);
 
