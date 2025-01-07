@@ -44,7 +44,8 @@ impl Engine {
             quad.bounds.height.is_normal(),
             "Quad with non-normal height!"
         );
-        let physical_bounds_with_shadow = quad.bounds_with_shadow() * transformation;
+        let physical_bounds_with_shadow =
+            quad.bounds_with_shadow() * transformation;
 
         if !clip_bounds.intersects(&physical_bounds_with_shadow) {
             return;
