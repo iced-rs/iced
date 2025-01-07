@@ -1,10 +1,11 @@
 //! Define the colors of a theme.
 use crate::{color, Color};
 
-use once_cell::sync::Lazy;
 use palette::color_difference::Wcag21RelativeContrast;
 use palette::rgb::Rgb;
 use palette::{FromColor, Hsl, Mix};
+
+use std::sync::LazyLock;
 
 /// A color palette.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -17,6 +18,8 @@ pub struct Palette {
     pub primary: Color,
     /// The success [`Color`] of the [`Palette`].
     pub success: Color,
+    /// The warning [`Color`] of the [`Palette`].
+    pub warning: Color,
     /// The danger [`Color`] of the [`Palette`].
     pub danger: Color,
 }
@@ -35,6 +38,11 @@ impl Palette {
             0x12 as f32 / 255.0,
             0x66 as f32 / 255.0,
             0x4F as f32 / 255.0,
+        ),
+        warning: Color::from_rgb(
+            0xFF as f32 / 255.0,
+            0xC1 as f32 / 255.0,
+            0x4E as f32 / 255.0,
         ),
         danger: Color::from_rgb(
             0xC3 as f32 / 255.0,
@@ -61,6 +69,11 @@ impl Palette {
             0x66 as f32 / 255.0,
             0x4F as f32 / 255.0,
         ),
+        warning: Color::from_rgb(
+            0xFF as f32 / 255.0,
+            0xC1 as f32 / 255.0,
+            0x4E as f32 / 255.0,
+        ),
         danger: Color::from_rgb(
             0xC3 as f32 / 255.0,
             0x42 as f32 / 255.0,
@@ -76,6 +89,7 @@ impl Palette {
         text: color!(0xf8f8f2),       // FOREGROUND
         primary: color!(0xbd93f9),    // PURPLE
         success: color!(0x50fa7b),    // GREEN
+        warning: color!(0xf1fa8c),    // YELLOW
         danger: color!(0xff5555),     // RED
     };
 
@@ -87,6 +101,7 @@ impl Palette {
         text: color!(0xeceff4),       // nord6
         primary: color!(0x8fbcbb),    // nord7
         success: color!(0xa3be8c),    // nord14
+        warning: color!(0xebcb8b),    // nord13
         danger: color!(0xbf616a),     // nord11
     };
 
@@ -98,6 +113,7 @@ impl Palette {
         text: color!(0x657b83),       // base00
         primary: color!(0x2aa198),    // cyan
         success: color!(0x859900),    // green
+        warning: color!(0xb58900),    // yellow
         danger: color!(0xdc322f),     // red
     };
 
@@ -109,6 +125,7 @@ impl Palette {
         text: color!(0x839496),       // base0
         primary: color!(0x2aa198),    // cyan
         success: color!(0x859900),    // green
+        warning: color!(0xb58900),    // yellow
         danger: color!(0xdc322f),     // red
     };
 
@@ -120,6 +137,7 @@ impl Palette {
         text: color!(0x282828),       // light FG0_29
         primary: color!(0x458588),    // light BLUE_4
         success: color!(0x98971a),    // light GREEN_2
+        warning: color!(0xd79921),    // light YELLOW_3
         danger: color!(0xcc241d),     // light RED_1
     };
 
@@ -131,6 +149,7 @@ impl Palette {
         text: color!(0xfbf1c7),       // dark FG0_29
         primary: color!(0x458588),    // dark BLUE_4
         success: color!(0x98971a),    // dark GREEN_2
+        warning: color!(0xd79921),    // dark YELLOW_3
         danger: color!(0xcc241d),     // dark RED_1
     };
 
@@ -142,6 +161,7 @@ impl Palette {
         text: color!(0x4c4f69),       // Text
         primary: color!(0x1e66f5),    // Blue
         success: color!(0x40a02b),    // Green
+        warning: color!(0xdf8e1d),    // Yellow
         danger: color!(0xd20f39),     // Red
     };
 
@@ -153,6 +173,7 @@ impl Palette {
         text: color!(0xc6d0f5),       // Text
         primary: color!(0x8caaee),    // Blue
         success: color!(0xa6d189),    // Green
+        warning: color!(0xe5c890),    // Yellow
         danger: color!(0xe78284),     // Red
     };
 
@@ -164,6 +185,7 @@ impl Palette {
         text: color!(0xcad3f5),       // Text
         primary: color!(0x8aadf4),    // Blue
         success: color!(0xa6da95),    // Green
+        warning: color!(0xeed49f),    // Yellow
         danger: color!(0xed8796),     // Red
     };
 
@@ -175,6 +197,7 @@ impl Palette {
         text: color!(0xcdd6f4),       // Text
         primary: color!(0x89b4fa),    // Blue
         success: color!(0xa6e3a1),    // Green
+        warning: color!(0xf9e2af),    // Yellow
         danger: color!(0xf38ba8),     // Red
     };
 
@@ -186,6 +209,7 @@ impl Palette {
         text: color!(0x9aa5ce),       // Text
         primary: color!(0x2ac3de),    // Blue
         success: color!(0x9ece6a),    // Green
+        warning: color!(0xe0af68),    // Yellow
         danger: color!(0xf7768e),     // Red
     };
 
@@ -197,6 +221,7 @@ impl Palette {
         text: color!(0x9aa5ce),       // Text
         primary: color!(0x2ac3de),    // Blue
         success: color!(0x9ece6a),    // Green
+        warning: color!(0xe0af68),    // Yellow
         danger: color!(0xf7768e),     // Red
     };
 
@@ -208,6 +233,7 @@ impl Palette {
         text: color!(0x565a6e),       // Text
         primary: color!(0x166775),    // Blue
         success: color!(0x485e30),    // Green
+        warning: color!(0x8f5e15),    // Yellow
         danger: color!(0x8c4351),     // Red
     };
 
@@ -219,6 +245,7 @@ impl Palette {
         text: color!(0xCD7BA),        // Fuji White
         primary: color!(0x2D4F67),    // Wave Blue 2
         success: color!(0x76946A),    // Autumn Green
+        warning: color!(0xff9e3b),    // Ronin Yellow
         danger: color!(0xC34043),     // Autumn Red
     };
 
@@ -230,6 +257,7 @@ impl Palette {
         text: color!(0xc5c9c5),       // Dragon White
         primary: color!(0x223249),    // Wave Blue 1
         success: color!(0x8a9a7b),    // Dragon Green 2
+        warning: color!(0xff9e3b),    // Ronin Yellow
         danger: color!(0xc4746e),     // Dragon Red
     };
 
@@ -241,6 +269,7 @@ impl Palette {
         text: color!(0x545464),       // Lotus Ink 1
         primary: color!(0xc9cbd1),    // Lotus Violet 3
         success: color!(0x6f894e),    // Lotus Green
+        warning: color!(0xe98a00),    // Lotus Orange 2
         danger: color!(0xc84053),     // Lotus Red
     };
 
@@ -252,6 +281,7 @@ impl Palette {
         text: color!(0xbdbdbd),       // Foreground
         primary: color!(0x80a0ff),    // Blue (normal)
         success: color!(0x8cc85f),    // Green (normal)
+        warning: color!(0xe3c78a),    // Yellow (normal)
         danger: color!(0xff5454),     // Red (normal)
     };
 
@@ -263,6 +293,7 @@ impl Palette {
         text: color!(0xbdc1c6),       // Foreground
         primary: color!(0x82aaff),    // Blue (normal)
         success: color!(0xa1cd5e),    // Green (normal)
+        warning: color!(0xe3d18a),    // Yellow (normal)
         danger: color!(0xfc514e),     // Red (normal)
     };
 
@@ -274,6 +305,7 @@ impl Palette {
         text: color!(0xd0d0d0),
         primary: color!(0x00b4ff),
         success: color!(0x00c15a),
+        warning: color!(0xbe95ff), // Base 14
         danger: color!(0xf62d0f),
     };
 
@@ -285,6 +317,7 @@ impl Palette {
         text: color!(0xfecdb2),
         primary: color!(0xd1d1e0),
         success: color!(0xb1b695),
+        warning: color!(0xf5d76e), // Honey
         danger: color!(0xe06b75),
     };
 }
@@ -300,6 +333,8 @@ pub struct Extended {
     pub secondary: Secondary,
     /// The set of success colors.
     pub success: Success,
+    /// The set of warning colors.
+    pub warning: Warning,
     /// The set of danger colors.
     pub danger: Danger,
     /// Whether the palette is dark or not.
@@ -307,92 +342,92 @@ pub struct Extended {
 }
 
 /// The built-in light variant of an [`Extended`] palette.
-pub static EXTENDED_LIGHT: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::LIGHT));
+pub static EXTENDED_LIGHT: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::LIGHT));
 
 /// The built-in dark variant of an [`Extended`] palette.
-pub static EXTENDED_DARK: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::DARK));
+pub static EXTENDED_DARK: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::DARK));
 
 /// The built-in Dracula variant of an [`Extended`] palette.
-pub static EXTENDED_DRACULA: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::DRACULA));
+pub static EXTENDED_DRACULA: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::DRACULA));
 
 /// The built-in Nord variant of an [`Extended`] palette.
-pub static EXTENDED_NORD: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::NORD));
+pub static EXTENDED_NORD: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::NORD));
 
 /// The built-in Solarized Light variant of an [`Extended`] palette.
-pub static EXTENDED_SOLARIZED_LIGHT: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::SOLARIZED_LIGHT));
+pub static EXTENDED_SOLARIZED_LIGHT: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::SOLARIZED_LIGHT));
 
 /// The built-in Solarized Dark variant of an [`Extended`] palette.
-pub static EXTENDED_SOLARIZED_DARK: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::SOLARIZED_DARK));
+pub static EXTENDED_SOLARIZED_DARK: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::SOLARIZED_DARK));
 
 /// The built-in Gruvbox Light variant of an [`Extended`] palette.
-pub static EXTENDED_GRUVBOX_LIGHT: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::GRUVBOX_LIGHT));
+pub static EXTENDED_GRUVBOX_LIGHT: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::GRUVBOX_LIGHT));
 
 /// The built-in Gruvbox Dark variant of an [`Extended`] palette.
-pub static EXTENDED_GRUVBOX_DARK: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::GRUVBOX_DARK));
+pub static EXTENDED_GRUVBOX_DARK: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::GRUVBOX_DARK));
 
 /// The built-in Catppuccin Latte variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_LATTE: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_LATTE));
+pub static EXTENDED_CATPPUCCIN_LATTE: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_LATTE));
 
 /// The built-in Catppuccin Frappé variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_FRAPPE: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_FRAPPE));
+pub static EXTENDED_CATPPUCCIN_FRAPPE: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_FRAPPE));
 
 /// The built-in Catppuccin Macchiato variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_MACCHIATO: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_MACCHIATO));
+pub static EXTENDED_CATPPUCCIN_MACCHIATO: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_MACCHIATO));
 
 /// The built-in Catppuccin Mocha variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_MOCHA: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_MOCHA));
+pub static EXTENDED_CATPPUCCIN_MOCHA: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_MOCHA));
 
 /// The built-in Tokyo Night variant of an [`Extended`] palette.
-pub static EXTENDED_TOKYO_NIGHT: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::TOKYO_NIGHT));
+pub static EXTENDED_TOKYO_NIGHT: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::TOKYO_NIGHT));
 
 /// The built-in Tokyo Night Storm variant of an [`Extended`] palette.
-pub static EXTENDED_TOKYO_NIGHT_STORM: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::TOKYO_NIGHT_STORM));
+pub static EXTENDED_TOKYO_NIGHT_STORM: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::TOKYO_NIGHT_STORM));
 
 /// The built-in Tokyo Night variant of an [`Extended`] palette.
-pub static EXTENDED_TOKYO_NIGHT_LIGHT: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::TOKYO_NIGHT_LIGHT));
+pub static EXTENDED_TOKYO_NIGHT_LIGHT: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::TOKYO_NIGHT_LIGHT));
 
 /// The built-in Kanagawa Wave variant of an [`Extended`] palette.
-pub static EXTENDED_KANAGAWA_WAVE: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::KANAGAWA_WAVE));
+pub static EXTENDED_KANAGAWA_WAVE: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::KANAGAWA_WAVE));
 
 /// The built-in Kanagawa Dragon variant of an [`Extended`] palette.
-pub static EXTENDED_KANAGAWA_DRAGON: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::KANAGAWA_DRAGON));
+pub static EXTENDED_KANAGAWA_DRAGON: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::KANAGAWA_DRAGON));
 
 /// The built-in Kanagawa Lotus variant of an [`Extended`] palette.
-pub static EXTENDED_KANAGAWA_LOTUS: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::KANAGAWA_LOTUS));
+pub static EXTENDED_KANAGAWA_LOTUS: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::KANAGAWA_LOTUS));
 
 /// The built-in Moonfly variant of an [`Extended`] palette.
-pub static EXTENDED_MOONFLY: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::MOONFLY));
+pub static EXTENDED_MOONFLY: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::MOONFLY));
 
 /// The built-in Nightfly variant of an [`Extended`] palette.
-pub static EXTENDED_NIGHTFLY: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::NIGHTFLY));
+pub static EXTENDED_NIGHTFLY: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::NIGHTFLY));
 
 /// The built-in Oxocarbon variant of an [`Extended`] palette.
-pub static EXTENDED_OXOCARBON: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::OXOCARBON));
+pub static EXTENDED_OXOCARBON: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::OXOCARBON));
 
 /// The built-in Ferra variant of an [`Extended`] palette.
-pub static EXTENDED_FERRA: Lazy<Extended> =
-    Lazy::new(|| Extended::generate(Palette::FERRA));
+pub static EXTENDED_FERRA: LazyLock<Extended> =
+    LazyLock::new(|| Extended::generate(Palette::FERRA));
 
 impl Extended {
     /// Generates an [`Extended`] palette from a simple [`Palette`].
@@ -407,6 +442,11 @@ impl Extended {
             secondary: Secondary::generate(palette.background, palette.text),
             success: Success::generate(
                 palette.success,
+                palette.background,
+                palette.text,
+            ),
+            warning: Warning::generate(
+                palette.warning,
                 palette.background,
                 palette.text,
             ),
@@ -533,6 +573,31 @@ pub struct Success {
 
 impl Success {
     /// Generates a set of [`Success`] colors from the base, background, and text colors.
+    pub fn generate(base: Color, background: Color, text: Color) -> Self {
+        let weak = mix(base, background, 0.4);
+        let strong = deviate(base, 0.1);
+
+        Self {
+            base: Pair::new(base, text),
+            weak: Pair::new(weak, text),
+            strong: Pair::new(strong, text),
+        }
+    }
+}
+
+/// A set of warning colors.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Warning {
+    /// The base warning color.
+    pub base: Pair,
+    /// A weaker version of the base warning color.
+    pub weak: Pair,
+    /// A stronger version of the base warning color.
+    pub strong: Pair,
+}
+
+impl Warning {
+    /// Generates a set of [`Warning`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = mix(base, background, 0.4);
         let strong = deviate(base, 0.1);

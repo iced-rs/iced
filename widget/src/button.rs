@@ -633,6 +633,21 @@ pub fn success(theme: &Theme, status: Status) -> Style {
     }
 }
 
+/// A warning button; denoting a risky action.
+pub fn warning(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
+    let base = styled(palette.warning.base);
+
+    match status {
+        Status::Active | Status::Pressed => base,
+        Status::Hovered => Style {
+            background: Some(Background::Color(palette.warning.strong.color)),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
 /// A danger button; denoting a destructive action.
 pub fn danger(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();

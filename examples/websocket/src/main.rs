@@ -4,7 +4,7 @@ use iced::widget::{
     self, button, center, column, row, scrollable, text, text_input,
 };
 use iced::{color, Center, Element, Fill, Subscription, Task};
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 pub fn main() -> iced::Result {
     iced::application("WebSocket - Iced", WebSocket::update, WebSocket::view)
@@ -138,4 +138,5 @@ enum State {
     Connected(echo::Connection),
 }
 
-static MESSAGE_LOG: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
+static MESSAGE_LOG: LazyLock<scrollable::Id> =
+    LazyLock::new(scrollable::Id::unique);

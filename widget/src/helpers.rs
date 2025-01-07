@@ -1708,9 +1708,9 @@ where
 {
     use crate::core::{Alignment, Font};
     use crate::svg;
-    use once_cell::sync::Lazy;
+    use std::sync::LazyLock;
 
-    static LOGO: Lazy<svg::Handle> = Lazy::new(|| {
+    static LOGO: LazyLock<svg::Handle> = LazyLock::new(|| {
         svg::Handle::from_memory(include_bytes!("../assets/iced-logo.svg"))
     });
 
