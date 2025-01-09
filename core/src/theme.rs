@@ -168,13 +168,12 @@ impl Default for Theme {
         {
             use std::sync::LazyLock;
 
-            static DEFAULT: LazyLock<Theme> =
-                LazyLock::new(|| match dark_light::detect() {
-                    dark_light::Mode::Dark => Theme::Dark,
-                    dark_light::Mode::Light | dark_light::Mode::Default => {
-                        Theme::Light
-                    }
-                });
+            static DEFAULT: LazyLock<Theme> = LazyLock::new(|| match dark_light::detect() {
+                Ok(dark_light::Mode::Dark) => Theme::Dark,
+                Ok(dark_light::Mode::Light) | Ok(dark_light::Mode::Unspecified) | Err(_) => {
+                    Theme::Light
+                }
+            });
 
             DEFAULT.clone()
         }
