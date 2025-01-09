@@ -4,7 +4,7 @@ use crate::core::{Color, Size};
 use crate::graphics::Viewport;
 use crate::program::Program;
 
-use winit::event::{Touch, WindowEvent};
+use winit::event::{Ime, Touch, WindowEvent};
 use winit::window::Window;
 
 use std::fmt::{Debug, Formatter};
@@ -22,6 +22,7 @@ where
     modifiers: winit::keyboard::ModifiersState,
     theme: P::Theme,
     style: theme::Style,
+    preedit: String,
 }
 
 impl<P: Program> Debug for State<P>
@@ -73,6 +74,7 @@ where
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
             style,
+            preedit: String::default(),
         }
     }
 
@@ -136,6 +138,11 @@ where
         self.style.text_color
     }
 
+    /// TODO
+    pub fn preedit(&self) -> String {
+        self.preedit.clone()
+    }
+
     /// Processes the provided window event and updates the [`State`] accordingly.
     pub fn update(
         &mut self,
@@ -178,6 +185,11 @@ where
             }
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = new_modifiers.state();
+            }
+            WindowEvent::Ime(ime) => {
+                if let Ime::Preedit(text, _) = ime {
+                    self.preedit = text.clone();
+                }
             }
             #[cfg(feature = "debug")]
             WindowEvent::KeyboardInput {

@@ -564,6 +564,7 @@ where
                 }
             }
         }
+        shell.update_caret_info(local_shell.caret_info());
 
         // Then finally react to them here
         for message in local_messages {
@@ -742,6 +743,8 @@ where
                 published_message_to_shell = true;
 
                 // Unfocus the input
+                let mut local_messages = Vec::new();
+                let mut local_shell = Shell::new(&mut local_messages);
                 self.text_input.update(
                     &mut tree.children[0],
                     Event::Mouse(mouse::Event::ButtonPressed(
@@ -751,9 +754,10 @@ where
                     mouse::Cursor::Unavailable,
                     renderer,
                     clipboard,
-                    &mut Shell::new(&mut vec![]),
+                    &mut local_shell,
                     viewport,
                 );
+                shell.update_caret_info(local_shell.caret_info());
             }
         });
 

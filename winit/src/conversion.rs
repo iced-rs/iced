@@ -2,6 +2,7 @@
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_runtime`]: https://github.com/iced-rs/iced/tree/0.13/runtime
+use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::touch;
@@ -282,6 +283,16 @@ pub fn window_event(
             Some(Event::Keyboard(keyboard::Event::ModifiersChanged(
                 self::modifiers(new_modifiers.state()),
             )))
+        }
+        WindowEvent::Ime(ime) => {
+            use winit::event::Ime;
+            println!("ime event: {:?}", ime);
+            Some(Event::InputMethod(match ime {
+                Ime::Enabled => input_method::Event::Enabled,
+                Ime::Preedit(s, size) => input_method::Event::Preedit(s, size),
+                Ime::Commit(s) => input_method::Event::Commit(s),
+                Ime::Disabled => input_method::Event::Disabled,
+            }))
         }
         WindowEvent::Focused(focused) => Some(Event::Window(if focused {
             window::Event::Focused

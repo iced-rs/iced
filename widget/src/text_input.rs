@@ -36,6 +36,7 @@ mod value;
 pub mod cursor;
 
 pub use cursor::Cursor;
+use iced_runtime::core::input_method;
 pub use value::Value;
 
 use editor::Editor;
@@ -56,8 +57,8 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Layout, Length, Padding, Pixels,
-    Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Background, Border, CaretInfo, Color, Element, Event, Layout, Length,
+    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
@@ -388,6 +389,58 @@ where
                 .move_to(Point::new(padding.left, padding.top));
 
             layout::Node::with_children(text_bounds.expand(padding), vec![text])
+        }
+    }
+
+    fn caret_rect(
+        &self,
+        tree: &Tree,
+        layout: Layout<'_>,
+        value: Option<&Value>,
+    ) -> Option<Rectangle> {
+        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+        let value = value.unwrap_or(&self.value);
+
+        let secure_value = self.is_secure.then(|| value.secure());
+        let value = secure_value.as_ref().unwrap_or(value);
+
+        let mut children_layout = layout.children();
+        let text_bounds = children_layout.next().unwrap().bounds();
+
+        if let Some(_) = state
+            .is_focused
+            .as_ref()
+            .filter(|focus| focus.is_window_focused)
+        {
+            let caret_index = match state.cursor.state(value) {
+                cursor::State::Index(position) => position,
+                cursor::State::Selection { start, end } => {
+                    let left = start.min(end);
+                    left
+                }
+            };
+            let text = state.value.raw();
+            let (caret_x, offset) = measure_cursor_and_scroll_offset(
+                text,
+                text_bounds,
+                caret_index,
+            );
+
+            let alignment_offset = alignment_offset(
+                text_bounds.width,
+                text.min_width(),
+                self.alignment,
+            );
+
+            let x = (text_bounds.x + caret_x).floor();
+            Some(Rectangle {
+                x: (alignment_offset - offset) + x,
+                y: text_bounds.y,
+                width: 1.0,
+                height: text_bounds.height,
+            })
+        } else {
+            None
         }
     }
 
@@ -1197,6 +1250,31 @@ where
 
                 state.keyboard_modifiers = *modifiers;
             }
+            Event::InputMethod(input_method::Event::Commit(string)) => {
+                let state = state::<Renderer>(tree);
+
+                if let Some(focus) = &mut state.is_focused {
+                    let Some(on_input) = &self.on_input else {
+                        return;
+                    };
+
+                    state.is_pasting = None;
+
+                    let mut editor =
+                        Editor::new(&mut self.value, &mut state.cursor);
+
+                    editor.paste(Value::new(&string));
+
+                    let message = (on_input)(editor.contents());
+                    shell.publish(message);
+
+                    focus.updated_at = Instant::now();
+
+                    update_cache(state, &self.value);
+
+                    shell.capture_event();
+                }
+            }
             Event::Window(window::Event::Unfocused) => {
                 let state = state::<Renderer>(tree);
 
@@ -1255,6 +1333,19 @@ where
         } else {
             Status::Active
         };
+
+        shell.update_caret_info(if state.is_focused() {
+            let rect = self
+                .caret_rect(tree, layout, Some(&self.value))
+                .unwrap_or(Rectangle::with_size(Size::<f32>::default()));
+            let bottom_left = Point::new(rect.x, rect.y + rect.height);
+            Some(CaretInfo {
+                position: bottom_left,
+                input_method_allowed: true,
+            })
+        } else {
+            None
+        });
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
             self.last_status = Some(status);

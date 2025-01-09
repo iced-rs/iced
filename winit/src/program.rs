@@ -3,6 +3,8 @@ mod state;
 mod window_manager;
 
 pub use state::State;
+use winit::dpi::LogicalPosition;
+use winit::dpi::LogicalSize;
 
 use crate::conversion;
 use crate::core;
@@ -579,6 +581,8 @@ async fn run_instance<P, C>(
     let mut clipboard = Clipboard::unconnected();
     let mut compositor_receiver: Option<oneshot::Receiver<_>> = None;
 
+    let mut preedit = Preedit::<P>::new();
+
     debug.startup_finished();
 
     loop {
@@ -873,17 +877,27 @@ async fn run_instance<P, C>(
                         });
 
                         if let user_interface::State::Updated {
-                            redraw_request: Some(redraw_request),
+                            redraw_request,
+                            caret_info,
                         } = ui_state
                         {
                             match redraw_request {
-                                window::RedrawRequest::NextFrame => {
+                                Some(window::RedrawRequest::NextFrame) => {
                                     window.raw.request_redraw();
                                     window.redraw_at = None;
                                 }
-                                window::RedrawRequest::At(at) => {
+                                Some(window::RedrawRequest::At(at)) => {
                                     window.redraw_at = Some(at);
                                 }
+                                None => {}
+                            }
+
+                            if let Some(caret_info) = caret_info {
+                                update_input_method(
+                                    window,
+                                    &mut preedit,
+                                    &caret_info,
+                                );
                             }
                         }
 
@@ -1032,24 +1046,37 @@ async fn run_instance<P, C>(
                             window.raw.request_redraw();
 
                             match ui_state {
-                                #[cfg(not(
-                                    feature = "unconditional-rendering"
-                                ))]
                                 user_interface::State::Updated {
-                                    redraw_request: Some(redraw_request),
-                                } => match redraw_request {
-                                    window::RedrawRequest::NextFrame => {
-                                        window.raw.request_redraw();
-                                        window.redraw_at = None;
+                                    redraw_request: _redraw_request,
+                                    caret_info,
+                                } => {
+                                    #[cfg(not(
+                                        feature = "unconditional-rendering"
+                                    ))]
+                                    match _redraw_request {
+                                        Some(
+                                            window::RedrawRequest::NextFrame,
+                                        ) => {
+                                            window.raw.request_redraw();
+                                            window.redraw_at = None;
+                                        }
+                                        Some(window::RedrawRequest::At(at)) => {
+                                            window.redraw_at = Some(at);
+                                        }
+                                        None => {}
                                     }
-                                    window::RedrawRequest::At(at) => {
-                                        window.redraw_at = Some(at);
+
+                                    if let Some(caret_info) = caret_info {
+                                        update_input_method(
+                                            window,
+                                            &mut preedit,
+                                            &caret_info,
+                                        );
                                     }
-                                },
+                                }
                                 user_interface::State::Outdated => {
                                     uis_stale = true;
                                 }
-                                user_interface::State::Updated { .. } => {}
                             }
 
                             for (event, status) in window_events
@@ -1136,6 +1163,111 @@ async fn run_instance<P, C>(
     }
 
     let _ = ManuallyDrop::into_inner(user_interfaces);
+}
+
+fn update_input_method<P, C>(
+    window: &mut crate::program::window_manager::Window<P, C>,
+    preedit: &mut Preedit<P>,
+    caret_info: &crate::core::CaretInfo,
+) where
+    P: Program,
+    C: Compositor<Renderer = P::Renderer> + 'static,
+{
+    window.raw.set_ime_allowed(caret_info.input_method_allowed);
+    window.raw.set_ime_cursor_area(
+        LogicalPosition::new(caret_info.position.x, caret_info.position.y),
+        LogicalSize::new(10, 10),
+    );
+
+    let text = window.state.preedit();
+    if !text.is_empty() {
+        preedit.update(text.as_str(), &window.renderer);
+        preedit.fill(
+            &mut window.renderer,
+            window.state.text_color(),
+            window.state.background_color(),
+            caret_info.position,
+        );
+    }
+}
+
+struct Preedit<P: Program> {
+    content: Option<<P::Renderer as core::text::Renderer>::Paragraph>,
+}
+
+impl<P: Program> Preedit<P> {
+    fn new() -> Self {
+        Self { content: None }
+    }
+
+    fn update(&mut self, text: &str, renderer: &P::Renderer) {
+        use core::text::Paragraph as _;
+        use core::text::Renderer as _;
+
+        self.content = Some(
+            <P::Renderer as core::text::Renderer>::Paragraph::with_text(
+                core::Text::<&str, <P::Renderer as core::text::Renderer>::Font> {
+                    content: text,
+                    bounds: Size::INFINITY,
+                    size: renderer.default_size(),
+                    line_height: core::text::LineHeight::default(),
+                    font: renderer.default_font(),
+                    horizontal_alignment: core::alignment::Horizontal::Left,
+                    vertical_alignment: core::alignment::Vertical::Top, //Bottom,
+                    shaping: core::text::Shaping::Advanced,
+                    wrapping: core::text::Wrapping::None,
+                },
+            ),
+        );
+    }
+
+    fn fill(
+        &self,
+        renderer: &mut P::Renderer,
+        fore_color: core::Color,
+        bg_color: core::Color,
+        caret_position: Point,
+    ) {
+        use core::text::Paragraph as _;
+        use core::text::Renderer as _;
+        use core::Renderer as _;
+
+        let Some(ref content) = self.content else {
+            return;
+        };
+        if content.min_width() < 1.0 {
+            return;
+        }
+
+        let top_left = Point::new(
+            caret_position.x,
+            caret_position.y - content.min_height(),
+        );
+        let bounds = core::Rectangle::new(top_left, content.min_bounds());
+        renderer.with_layer(bounds, |renderer| {
+            renderer.fill_quad(
+                core::renderer::Quad {
+                    bounds,
+                    ..Default::default()
+                },
+                core::Background::Color(bg_color),
+            );
+
+            let underline = 2.;
+            renderer.fill_quad(
+                core::renderer::Quad {
+                    bounds: bounds.shrink(core::Padding {
+                        top: bounds.height - underline,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+                core::Background::Color(fore_color),
+            );
+
+            renderer.fill_paragraph(content, top_left, fore_color, bounds);
+        });
+    }
 }
 
 /// Builds a window's [`UserInterface`] for the [`Program`].

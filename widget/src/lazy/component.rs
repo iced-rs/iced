@@ -355,6 +355,7 @@ where
                 }
             }
         }
+        shell.update_caret_info(local_shell.caret_info());
 
         if !local_messages.is_empty() {
             let mut heads = self.state.take().unwrap().into_heads();
@@ -640,6 +641,7 @@ where
                 }
             }
         }
+        shell.update_caret_info(local_shell.caret_info());
 
         if !local_messages.is_empty() {
             let mut inner =

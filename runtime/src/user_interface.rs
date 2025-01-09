@@ -5,7 +5,9 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Clipboard, Element, Layout, Rectangle, Shell, Size, Vector};
+use crate::core::{
+    CaretInfo, Clipboard, Element, Layout, Rectangle, Shell, Size, Vector,
+};
 use crate::overlay;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -187,6 +189,7 @@ where
 
         let mut outdated = false;
         let mut redraw_request = None;
+        let mut caret_info = None;
 
         let mut manual_overlay = ManuallyDrop::new(
             self.root
@@ -230,6 +233,7 @@ where
                     }
                     _ => {}
                 }
+                caret_info = caret_info.or(shell.caret_info());
 
                 if shell.is_layout_invalid() {
                     let _ = ManuallyDrop::into_inner(manual_overlay);
@@ -332,6 +336,7 @@ where
                     }
                     _ => {}
                 }
+                caret_info = caret_info.or(shell.caret_info());
 
                 shell.revalidate_layout(|| {
                     self.base = self.root.as_widget().layout(
@@ -355,7 +360,10 @@ where
             if outdated {
                 State::Outdated
             } else {
-                State::Updated { redraw_request }
+                State::Updated {
+                    redraw_request,
+                    caret_info,
+                }
             },
             event_statuses,
         )
@@ -646,5 +654,7 @@ pub enum State {
     Updated {
         /// The [`window::RedrawRequest`] when a redraw should be performed.
         redraw_request: Option<window::RedrawRequest>,
+        /// TODO
+        caret_info: Option<CaretInfo>,
     },
 }
