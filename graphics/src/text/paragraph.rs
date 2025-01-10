@@ -124,6 +124,8 @@ impl core::text::Paragraph for Paragraph {
             Some(text.bounds.height),
         );
 
+        buffer.set_wrap(font_system.raw(), text::to_wrap(text.wrapping));
+
         buffer.set_rich_text(
             font_system.raw(),
             text.content.iter().enumerate().map(|(i, span)| {
