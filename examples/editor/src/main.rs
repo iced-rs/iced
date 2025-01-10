@@ -35,6 +35,7 @@ enum Message {
     WordWrapToggled(bool),
     NewFile,
     OpenFile,
+    SelectedFileToOpen(Option<PathBuf>),
     FileOpened(Result<(PathBuf, Arc<String>), Error>),
     SaveFile,
     FileSaved(Result<PathBuf, Error>),
@@ -95,9 +96,28 @@ impl Editor {
                 if self.is_loading {
                     Task::none()
                 } else {
+                    iced::window::get_oldest().and_then(|id| {
+                        iced::window::run_with_window_handles(
+                            id,
+                            move |w| {
+                                let file = rfd::FileDialog::new()
+                                    .set_title("Open a text file...")
+                                    .set_parent(&w)
+                                    .pick_file();
+
+                                Message::SelectedFileToOpen(file)
+                            },
+                        )
+                    })
+                }
+            }
+            Message::SelectedFileToOpen(file) => {
+                if let Some(path) = file {
                     self.is_loading = true;
 
-                    Task::perform(open_file(), Message::FileOpened)
+                    Task::perform(load_file(path), Message::FileOpened)
+                } else {
+                    Task::none()
                 }
             }
             Message::FileOpened(result) => {
@@ -235,16 +255,6 @@ impl Editor {
 pub enum Error {
     DialogClosed,
     IoError(io::ErrorKind),
-}
-
-async fn open_file() -> Result<(PathBuf, Arc<String>), Error> {
-    let picked_file = rfd::AsyncFileDialog::new()
-        .set_title("Open a text file...")
-        .pick_file()
-        .await
-        .ok_or(Error::DialogClosed)?;
-
-    load_file(picked_file).await
 }
 
 async fn load_file(
