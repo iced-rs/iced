@@ -1,11 +1,7 @@
 //! Build window-based GUI applications.
-pub mod screenshot;
-
-pub use screenshot::Screenshot;
-
 use crate::core::time::Instant;
 use crate::core::window::{
-    Event, Icon, Id, Level, Mode, Settings, UserAttention,
+    Event, Icon, Id, Level, Mode, Screenshot, Settings, UserAttention,
 };
 use crate::core::{Point, Size};
 use crate::futures::event;
@@ -72,7 +68,7 @@ pub enum Action {
     Move(Id, Point),
 
     /// Change the [`Mode`] of the window.
-    ChangeMode(Id, Mode),
+    SetMode(Id, Mode),
 
     /// Get the current [`Mode`] of the window.
     GetMode(Id, oneshot::Sender<Mode>),
@@ -115,7 +111,7 @@ pub enum Action {
     GainFocus(Id),
 
     /// Change the window [`Level`].
-    ChangeLevel(Id, Level),
+    SetLevel(Id, Level),
 
     /// Show the system menu at cursor position.
     ///
@@ -140,7 +136,7 @@ pub enum Action {
     ///
     /// - **X11:** Has no universal guidelines for icon sizes, so you're at the whims of the WM. That
     ///   said, it's usually in the same ballpark as on Windows.
-    ChangeIcon(Id, Icon),
+    SetIcon(Id, Icon),
 
     /// Runs the closure with the native window handle of the window with the given [`Id`].
     RunWithHandle(Id, Box<dyn FnOnce(WindowHandle<'_>) + Send>),
@@ -159,6 +155,18 @@ pub enum Action {
     /// This enables mouse events for the window and stops mouse events
     /// from being passed to whatever is underneath.
     DisableMousePassthrough(Id),
+
+    /// Set the minimum inner window size.
+    SetMinSize(Id, Option<Size>),
+
+    /// Set the maximum inner window size.
+    SetMaxSize(Id, Option<Size>),
+
+    /// Set the window to be resizable or not.
+    SetResizable(Id, bool),
+
+    /// Set the window size increment.
+    SetResizeIncrements(Id, Option<Size>),
 }
 
 /// Subscribes to the frames of the window of the running application.
@@ -269,6 +277,30 @@ pub fn resize<T>(id: Id, new_size: Size) -> Task<T> {
     task::effect(crate::Action::Window(Action::Resize(id, new_size)))
 }
 
+/// Set the window to be resizable or not.
+pub fn set_resizable<T>(id: Id, resizable: bool) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetResizable(id, resizable)))
+}
+
+/// Set the inner maximum size of the window.
+pub fn set_max_size<T>(id: Id, size: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetMaxSize(id, size)))
+}
+
+/// Set the inner minimum size of the window.
+pub fn set_min_size<T>(id: Id, size: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetMinSize(id, size)))
+}
+
+/// Set the window size increment.
+///
+/// This is usually used by apps such as terminal emulators that need "blocky" resizing.
+pub fn set_resize_increments<T>(id: Id, increments: Option<Size>) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetResizeIncrements(
+        id, increments,
+    )))
+}
+
 /// Get the window's size in logical dimensions.
 pub fn get_size(id: Id) -> Task<Size> {
     task::oneshot(move |channel| {
@@ -319,16 +351,16 @@ pub fn move_to<T>(id: Id, position: Point) -> Task<T> {
     task::effect(crate::Action::Window(Action::Move(id, position)))
 }
 
-/// Changes the [`Mode`] of the window.
-pub fn change_mode<T>(id: Id, mode: Mode) -> Task<T> {
-    task::effect(crate::Action::Window(Action::ChangeMode(id, mode)))
-}
-
 /// Gets the current [`Mode`] of the window.
 pub fn get_mode(id: Id) -> Task<Mode> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetMode(id, channel))
     })
+}
+
+/// Changes the [`Mode`] of the window.
+pub fn set_mode<T>(id: Id, mode: Mode) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetMode(id, mode)))
 }
 
 /// Toggles the window to maximized or back.
@@ -368,8 +400,8 @@ pub fn gain_focus<T>(id: Id) -> Task<T> {
 }
 
 /// Changes the window [`Level`].
-pub fn change_level<T>(id: Id, level: Level) -> Task<T> {
-    task::effect(crate::Action::Window(Action::ChangeLevel(id, level)))
+pub fn set_level<T>(id: Id, level: Level) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetLevel(id, level)))
 }
 
 /// Show the [system menu] at cursor position.
@@ -388,8 +420,8 @@ pub fn get_raw_id<Message>(id: Id) -> Task<u64> {
 }
 
 /// Changes the [`Icon`] of the window.
-pub fn change_icon<T>(id: Id, icon: Icon) -> Task<T> {
-    task::effect(crate::Action::Window(Action::ChangeIcon(id, icon)))
+pub fn set_icon<T>(id: Id, icon: Icon) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetIcon(id, icon)))
 }
 
 /// Runs the given callback with the native window handle for the window with the given id.

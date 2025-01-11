@@ -1,11 +1,10 @@
 pub use crate::Overlay;
 
-use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size};
+use crate::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size};
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
@@ -50,7 +49,7 @@ where
     }
 
     /// Processes a runtime [`Event`].
-    pub fn on_event(
+    pub fn update(
         &mut self,
         event: Event,
         layout: Layout<'_>,
@@ -58,9 +57,9 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
+    ) {
         self.overlay
-            .on_event(event, layout, cursor, renderer, clipboard, shell)
+            .update(event, layout, cursor, renderer, clipboard, shell);
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Element`].
@@ -131,8 +130,8 @@ impl<'a, A, B, Theme, Renderer> Map<'a, A, B, Theme, Renderer> {
     }
 }
 
-impl<'a, A, B, Theme, Renderer> Overlay<B, Theme, Renderer>
-    for Map<'a, A, B, Theme, Renderer>
+impl<A, B, Theme, Renderer> Overlay<B, Theme, Renderer>
+    for Map<'_, A, B, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -149,7 +148,7 @@ where
         self.content.operate(layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         event: Event,
         layout: Layout<'_>,
@@ -157,11 +156,11 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self.content.on_event(
+        self.content.update(
             event,
             layout,
             cursor,
@@ -171,8 +170,6 @@ where
         );
 
         shell.merge(local_shell, self.mapper);
-
-        event_status
     }
 
     fn mouse_interaction(
@@ -206,11 +203,11 @@ where
         self.content.is_over(layout, renderer, cursor_position)
     }
 
-    fn overlay<'b>(
-        &'b mut self,
+    fn overlay<'a>(
+        &'a mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<Element<'b, B, Theme, Renderer>> {
+    ) -> Option<Element<'a, B, Theme, Renderer>> {
         self.content
             .overlay(layout, renderer)
             .map(|overlay| overlay.map(self.mapper))

@@ -206,8 +206,8 @@ where
 #[derive(Debug, Default)]
 pub struct State<P: Paragraph>(pub paragraph::Plain<P>);
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Text<'a, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Text<'_, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
@@ -266,6 +266,16 @@ where
         let style = theme.style(&self.class);
 
         draw(renderer, defaults, layout, state.0.raw(), style, viewport);
+    }
+
+    fn operate(
+        &self,
+        _state: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn super::Operation,
+    ) {
+        operation.text(None, layout.bounds(), &self.fragment);
     }
 }
 

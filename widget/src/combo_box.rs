@@ -54,7 +54,6 @@
 //!     }
 //! }
 //! ```
-use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
@@ -64,8 +63,10 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
+use crate::core::window;
 use crate::core::{
-    Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Theme, Vector,
+    Clipboard, Element, Event, Length, Padding, Rectangle, Shell, Size, Theme,
+    Vector,
 };
 use crate::overlay::menu;
 use crate::text::LineHeight;
@@ -458,8 +459,8 @@ enum TextInputEvent {
     TextChanged(String),
 }
 
-impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for ComboBox<'a, T, Message, Theme, Renderer>
+impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for ComboBox<'_, T, Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone,
@@ -509,7 +510,7 @@ where
         vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _, _>)]
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: Event,
@@ -519,7 +520,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let menu = tree.state.downcast_mut::<Menu<T>>();
 
         let started_focused = {
@@ -538,7 +539,7 @@ where
         let mut local_shell = Shell::new(&mut local_messages);
 
         // Provide it to the widget
-        let mut event_status = self.text_input.on_event(
+        self.text_input.update(
             &mut tree.children[0],
             event.clone(),
             layout,
@@ -549,13 +550,27 @@ where
             viewport,
         );
 
+        if local_shell.is_event_captured() {
+            shell.capture_event();
+        }
+
+        if let Some(redraw_request) = local_shell.redraw_request() {
+            match redraw_request {
+                window::RedrawRequest::NextFrame => {
+                    shell.request_redraw();
+                }
+                window::RedrawRequest::At(at) => {
+                    shell.request_redraw_at(at);
+                }
+            }
+        }
+
         // Then finally react to them here
         for message in local_messages {
             let TextInputEvent::TextChanged(new_value) = message;
 
             if let Some(on_input) = &self.on_input {
                 shell.publish((on_input)(new_value.clone()));
-                published_message_to_shell = true;
             }
 
             // Couple the filtered options with the `ComboBox`
@@ -576,6 +591,7 @@ where
                 );
             });
             shell.invalidate_layout();
+            shell.request_redraw();
         }
 
         let is_focused = {
@@ -619,9 +635,9 @@ where
                                 }
                             }
 
-                            event_status = event::Status::Captured;
+                            shell.capture_event();
+                            shell.request_redraw();
                         }
-
                         (key::Named::ArrowUp, _) | (key::Named::Tab, true) => {
                             if let Some(index) = &mut menu.hovered_option {
                                 if *index == 0 {
@@ -656,7 +672,8 @@ where
                                 }
                             }
 
-                            event_status = event::Status::Captured;
+                            shell.capture_event();
+                            shell.request_redraw();
                         }
                         (key::Named::ArrowDown, _)
                         | (key::Named::Tab, false)
@@ -703,7 +720,8 @@ where
                                 }
                             }
 
-                            event_status = event::Status::Captured;
+                            shell.capture_event();
+                            shell.request_redraw();
                         }
                         _ => {}
                     }
@@ -724,7 +742,7 @@ where
                 published_message_to_shell = true;
 
                 // Unfocus the input
-                let _ = self.text_input.on_event(
+                self.text_input.update(
                     &mut tree.children[0],
                     Event::Mouse(mouse::Event::ButtonPressed(
                         mouse::Button::Left,
@@ -761,8 +779,6 @@ where
                 }
             }
         }
-
-        event_status
     }
 
     fn mouse_interaction(

@@ -1,17 +1,18 @@
 use crate::conversion;
-use crate::core::{mouse, window};
+use crate::core::{mouse, theme, window};
 use crate::core::{Color, Size};
 use crate::graphics::Viewport;
-use crate::program::{self, Program};
-use std::fmt::{Debug, Formatter};
+use crate::program::Program;
 
 use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 
+use std::fmt::{Debug, Formatter};
+
 /// The state of a multi-windowed [`Program`].
 pub struct State<P: Program>
 where
-    P::Theme: program::DefaultStyle,
+    P::Theme: theme::Base,
 {
     title: String,
     scale_factor: f64,
@@ -20,12 +21,12 @@ where
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
     theme: P::Theme,
-    appearance: program::Appearance,
+    style: theme::Style,
 }
 
 impl<P: Program> Debug for State<P>
 where
-    P::Theme: program::DefaultStyle,
+    P::Theme: theme::Base,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("multi_window::State")
@@ -34,14 +35,14 @@ where
             .field("viewport", &self.viewport)
             .field("viewport_version", &self.viewport_version)
             .field("cursor_position", &self.cursor_position)
-            .field("appearance", &self.appearance)
+            .field("style", &self.style)
             .finish()
     }
 }
 
 impl<P: Program> State<P>
 where
-    P::Theme: program::DefaultStyle,
+    P::Theme: theme::Base,
 {
     /// Creates a new [`State`] for the provided [`Program`]'s `window`.
     pub fn new(
@@ -52,7 +53,7 @@ where
         let title = application.title(window_id);
         let scale_factor = application.scale_factor(window_id);
         let theme = application.theme(window_id);
-        let appearance = application.style(&theme);
+        let style = application.style(&theme);
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -71,7 +72,7 @@ where
             cursor_position: None,
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
-            appearance,
+            style,
         }
     }
 
@@ -127,12 +128,12 @@ where
 
     /// Returns the current background [`Color`] of the [`State`].
     pub fn background_color(&self) -> Color {
-        self.appearance.background_color
+        self.style.background_color
     }
 
     /// Returns the current text [`Color`] of the [`State`].
     pub fn text_color(&self) -> Color {
-        self.appearance.text_color
+        self.style.text_color
     }
 
     /// Processes the provided window event and updates the [`State`] accordingly.
@@ -190,7 +191,10 @@ where
                         ..
                     },
                 ..
-            } => _debug.toggle(),
+            } => {
+                _debug.toggle();
+                window.request_redraw();
+            }
             _ => {}
         }
     }
@@ -234,6 +238,6 @@ where
 
         // Update theme and appearance
         self.theme = application.theme(window_id);
-        self.appearance = application.style(&self.theme);
+        self.style = application.style(&self.theme);
     }
 }

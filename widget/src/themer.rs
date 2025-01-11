@@ -1,5 +1,4 @@
 use crate::container;
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -7,8 +6,8 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
-    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::marker::PhantomData;
@@ -64,8 +63,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, NewTheme, F, Renderer> Widget<Message, Theme, Renderer>
-    for Themer<'a, Message, Theme, NewTheme, F, Renderer>
+impl<Message, Theme, NewTheme, F, Renderer> Widget<Message, Theme, Renderer>
+    for Themer<'_, Message, Theme, NewTheme, F, Renderer>
 where
     F: Fn(&Theme) -> NewTheme,
     Renderer: crate::core::Renderer,
@@ -111,7 +110,7 @@ where
             .operate(tree, layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -121,10 +120,10 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        self.content.as_widget_mut().on_event(
+    ) {
+        self.content.as_widget_mut().update(
             tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-        )
+        );
     }
 
     fn mouse_interaction(
@@ -188,9 +187,9 @@ where
             content: overlay::Element<'a, Message, NewTheme, Renderer>,
         }
 
-        impl<'a, Message, Theme, NewTheme, Renderer>
+        impl<Message, Theme, NewTheme, Renderer>
             overlay::Overlay<Message, Theme, Renderer>
-            for Overlay<'a, Message, Theme, NewTheme, Renderer>
+            for Overlay<'_, Message, Theme, NewTheme, Renderer>
         where
             Renderer: crate::core::Renderer,
         {
@@ -219,7 +218,7 @@ where
                 );
             }
 
-            fn on_event(
+            fn update(
                 &mut self,
                 event: Event,
                 layout: Layout<'_>,
@@ -227,9 +226,9 @@ where
                 renderer: &Renderer,
                 clipboard: &mut dyn Clipboard,
                 shell: &mut Shell<'_, Message>,
-            ) -> event::Status {
+            ) {
                 self.content
-                    .on_event(event, layout, cursor, renderer, clipboard, shell)
+                    .update(event, layout, cursor, renderer, clipboard, shell);
             }
 
             fn operate(

@@ -1,12 +1,12 @@
 //! Build and reuse custom widgets using The Elm Architecture.
 #![allow(deprecated)]
-use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
     Widget,
@@ -141,8 +141,8 @@ struct State<'a, Message: 'a, Theme: 'a, Renderer: 'a, Event: 'a, S: 'a> {
     element: Option<Element<'this, Event, Theme, Renderer>>,
 }
 
-impl<'a, Message, Theme, Renderer, Event, S>
-    Instance<'a, Message, Theme, Renderer, Event, S>
+impl<Message, Theme, Renderer, Event, S>
+    Instance<'_, Message, Theme, Renderer, Event, S>
 where
     S: Default + 'static,
     Renderer: renderer::Renderer,
@@ -251,8 +251,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer, Event, S> Widget<Message, Theme, Renderer>
-    for Instance<'a, Message, Theme, Renderer, Event, S>
+impl<Message, Theme, Renderer, Event, S> Widget<Message, Theme, Renderer>
+    for Instance<'_, Message, Theme, Renderer, Event, S>
 where
     S: 'static + Default,
     Renderer: core::Renderer,
@@ -311,7 +311,7 @@ where
         })
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: core::Event,
@@ -321,13 +321,13 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
         let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
-        let event_status = self.with_element_mut(|element| {
-            element.as_widget_mut().on_event(
+        self.with_element_mut(|element| {
+            element.as_widget_mut().update(
                 &mut t.borrow_mut().as_mut().unwrap().children[0],
                 event,
                 layout,
@@ -336,13 +336,24 @@ where
                 clipboard,
                 &mut local_shell,
                 viewport,
-            )
+            );
         });
+
+        if local_shell.is_event_captured() {
+            shell.capture_event();
+        }
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
         if let Some(redraw_request) = local_shell.redraw_request() {
-            shell.request_redraw(redraw_request);
+            match redraw_request {
+                window::RedrawRequest::NextFrame => {
+                    shell.request_redraw();
+                }
+                window::RedrawRequest::At(at) => {
+                    shell.request_redraw_at(at);
+                }
+            }
         }
 
         if !local_messages.is_empty() {
@@ -369,8 +380,6 @@ where
 
             shell.invalidate_layout();
         }
-
-        event_status
     }
 
     fn operate(
@@ -495,8 +504,8 @@ struct Overlay<'a, 'b, Message, Theme, Renderer, Event, S>(
     Option<Inner<'a, 'b, Message, Theme, Renderer, Event, S>>,
 );
 
-impl<'a, 'b, Message, Theme, Renderer, Event, S> Drop
-    for Overlay<'a, 'b, Message, Theme, Renderer, Event, S>
+impl<Message, Theme, Renderer, Event, S> Drop
+    for Overlay<'_, '_, Message, Theme, Renderer, Event, S>
 {
     fn drop(&mut self) {
         if let Some(heads) = self.0.take().map(Inner::into_heads) {
@@ -520,8 +529,8 @@ struct OverlayInstance<'a, 'b, Message, Theme, Renderer, Event, S> {
     overlay: Option<Overlay<'a, 'b, Message, Theme, Renderer, Event, S>>,
 }
 
-impl<'a, 'b, Message, Theme, Renderer, Event, S>
-    OverlayInstance<'a, 'b, Message, Theme, Renderer, Event, S>
+impl<Message, Theme, Renderer, Event, S>
+    OverlayInstance<'_, '_, Message, Theme, Renderer, Event, S>
 {
     fn with_overlay_maybe<T>(
         &self,
@@ -554,9 +563,9 @@ impl<'a, 'b, Message, Theme, Renderer, Event, S>
     }
 }
 
-impl<'a, 'b, Message, Theme, Renderer, Event, S>
+impl<Message, Theme, Renderer, Event, S>
     overlay::Overlay<Message, Theme, Renderer>
-    for OverlayInstance<'a, 'b, Message, Theme, Renderer, Event, S>
+    for OverlayInstance<'_, '_, Message, Theme, Renderer, Event, S>
 where
     Renderer: core::Renderer,
     S: 'static + Default,
@@ -592,7 +601,7 @@ where
         .unwrap_or_default()
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         event: core::Event,
         layout: Layout<'_>,
@@ -600,27 +609,36 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self
-            .with_overlay_mut_maybe(|overlay| {
-                overlay.on_event(
-                    event,
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    &mut local_shell,
-                )
-            })
-            .unwrap_or(event::Status::Ignored);
+        let _ = self.with_overlay_mut_maybe(|overlay| {
+            overlay.update(
+                event,
+                layout,
+                cursor,
+                renderer,
+                clipboard,
+                &mut local_shell,
+            );
+        });
+
+        if local_shell.is_event_captured() {
+            shell.capture_event();
+        }
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
         if let Some(redraw_request) = local_shell.redraw_request() {
-            shell.request_redraw(redraw_request);
+            match redraw_request {
+                window::RedrawRequest::NextFrame => {
+                    shell.request_redraw();
+                }
+                window::RedrawRequest::At(at) => {
+                    shell.request_redraw_at(at);
+                }
+            }
         }
 
         if !local_messages.is_empty() {
@@ -658,8 +676,6 @@ where
 
             shell.invalidate_layout();
         }
-
-        event_status
     }
 
     fn is_over(

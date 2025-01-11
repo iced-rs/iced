@@ -57,8 +57,9 @@ impl Example {
 
 mod bezier {
     use iced::mouse;
-    use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
+    use iced::widget::canvas::{
+        self, Canvas, Event, Frame, Geometry, Path, Stroke,
+    };
     use iced::{Element, Fill, Point, Rectangle, Renderer, Theme};
 
     #[derive(Default)]
@@ -87,7 +88,7 @@ mod bezier {
         curves: &'a [Curve],
     }
 
-    impl<'a> canvas::Program<Curve> for Bezier<'a> {
+    impl canvas::Program<Curve> for Bezier<'_> {
         type State = Option<Pending>;
 
         fn update(
@@ -96,48 +97,47 @@ mod bezier {
             event: Event,
             bounds: Rectangle,
             cursor: mouse::Cursor,
-        ) -> (event::Status, Option<Curve>) {
-            let Some(cursor_position) = cursor.position_in(bounds) else {
-                return (event::Status::Ignored, None);
-            };
+        ) -> Option<canvas::Action<Curve>> {
+            let cursor_position = cursor.position_in(bounds)?;
 
             match event {
-                Event::Mouse(mouse_event) => {
-                    let message = match mouse_event {
-                        mouse::Event::ButtonPressed(mouse::Button::Left) => {
-                            match *state {
-                                None => {
-                                    *state = Some(Pending::One {
-                                        from: cursor_position,
-                                    });
+                Event::Mouse(mouse::Event::ButtonPressed(
+                    mouse::Button::Left,
+                )) => Some(
+                    match *state {
+                        None => {
+                            *state = Some(Pending::One {
+                                from: cursor_position,
+                            });
 
-                                    None
-                                }
-                                Some(Pending::One { from }) => {
-                                    *state = Some(Pending::Two {
-                                        from,
-                                        to: cursor_position,
-                                    });
-
-                                    None
-                                }
-                                Some(Pending::Two { from, to }) => {
-                                    *state = None;
-
-                                    Some(Curve {
-                                        from,
-                                        to,
-                                        control: cursor_position,
-                                    })
-                                }
-                            }
+                            canvas::Action::request_redraw()
                         }
-                        _ => None,
-                    };
+                        Some(Pending::One { from }) => {
+                            *state = Some(Pending::Two {
+                                from,
+                                to: cursor_position,
+                            });
 
-                    (event::Status::Captured, message)
+                            canvas::Action::request_redraw()
+                        }
+                        Some(Pending::Two { from, to }) => {
+                            *state = None;
+
+                            canvas::Action::publish(Curve {
+                                from,
+                                to,
+                                control: cursor_position,
+                            })
+                        }
+                    }
+                    .and_capture(),
+                ),
+                Event::Mouse(mouse::Event::CursorMoved { .. })
+                    if state.is_some() =>
+                {
+                    Some(canvas::Action::request_redraw())
                 }
-                _ => (event::Status::Ignored, None),
+                _ => None,
             }
         }
 

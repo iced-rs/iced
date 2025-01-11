@@ -8,8 +8,10 @@ pub use iced_renderer::graphics;
 pub use iced_runtime as runtime;
 pub use iced_runtime::core;
 
+mod action;
 mod column;
 mod mouse_area;
+mod pin;
 mod row;
 mod space;
 mod stack;
@@ -61,6 +63,8 @@ pub use mouse_area::MouseArea;
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]
 pub use pick_list::PickList;
+#[doc(no_inline)]
+pub use pin::Pin;
 #[doc(no_inline)]
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
@@ -131,4 +135,5 @@ pub use qr_code::QRCode;
 pub mod markdown;
 
 pub use crate::core::theme::{self, Theme};
+pub use action::Action;
 pub use renderer::Renderer;

@@ -21,7 +21,6 @@
 //! ```
 use crate::core::alignment::{self, Alignment};
 use crate::core::border::{self, Border};
-use crate::core::event::{self, Event};
 use crate::core::gradient::{self, Gradient};
 use crate::core::layout;
 use crate::core::mouse;
@@ -30,7 +29,7 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, color, Background, Clipboard, Color, Element, Layout, Length,
+    self, color, Background, Clipboard, Color, Element, Event, Layout, Length,
     Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
     Widget,
 };
@@ -229,8 +228,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Container<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Container<'_, Message, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
@@ -298,7 +297,7 @@ where
         );
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -308,8 +307,8 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        self.content.as_widget_mut().on_event(
+    ) {
+        self.content.as_widget_mut().update(
             tree,
             event,
             layout.children().next().unwrap(),
@@ -318,7 +317,7 @@ where
             clipboard,
             shell,
             viewport,
-        )
+        );
     }
 
     fn mouse_interaction(
@@ -494,11 +493,11 @@ pub fn visible_bounds(id: Id) -> Task<Option<Rectangle>> {
     impl Operation<Option<Rectangle>> for VisibleBounds {
         fn scrollable(
             &mut self,
-            _state: &mut dyn widget::operation::Scrollable,
             _id: Option<&widget::Id>,
             bounds: Rectangle,
             _content_bounds: Rectangle,
             translation: Vector,
+            _state: &mut dyn widget::operation::Scrollable,
         ) {
             match self.scrollables.last() {
                 Some((last_translation, last_viewport, _depth)) => {
@@ -651,7 +650,7 @@ pub trait Catalog {
 /// A styling function for a [`Container`].
 pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
 
-impl<'a, Theme> From<Style> for StyleFn<'a, Theme> {
+impl<Theme> From<Style> for StyleFn<'_, Theme> {
     fn from(style: Style) -> Self {
         Box::new(move |_theme| style)
     }

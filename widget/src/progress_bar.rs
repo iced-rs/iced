@@ -117,8 +117,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for ProgressBar<'a, Theme>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for ProgressBar<'_, Theme>
 where
     Theme: Catalog,
     Renderer: core::Renderer,

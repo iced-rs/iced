@@ -1,12 +1,14 @@
+use iced::keyboard;
 use iced::widget::{
     button, center, checkbox, column, horizontal_rule, pick_list, progress_bar,
     row, scrollable, slider, text, text_input, toggler, vertical_rule,
     vertical_space,
 };
-use iced::{Center, Element, Fill, Theme};
+use iced::{Center, Element, Fill, Subscription, Theme};
 
 pub fn main() -> iced::Result {
     iced::application("Styling - Iced", Styling::update, Styling::view)
+        .subscription(Styling::subscription)
         .theme(Styling::theme)
         .run()
 }
@@ -28,6 +30,8 @@ enum Message {
     SliderChanged(f32),
     CheckboxToggled(bool),
     TogglerToggled(bool),
+    PreviousTheme,
+    NextTheme,
 }
 
 impl Styling {
@@ -41,6 +45,23 @@ impl Styling {
             Message::SliderChanged(value) => self.slider_value = value,
             Message::CheckboxToggled(value) => self.checkbox_value = value,
             Message::TogglerToggled(value) => self.toggler_value = value,
+            Message::PreviousTheme | Message::NextTheme => {
+                if let Some(current) = Theme::ALL
+                    .iter()
+                    .position(|candidate| &self.theme == candidate)
+                {
+                    self.theme = if matches!(message, Message::NextTheme) {
+                        Theme::ALL[(current + 1) % Theme::ALL.len()].clone()
+                    } else if current == 0 {
+                        Theme::ALL
+                            .last()
+                            .expect("Theme::ALL must not be empty")
+                            .clone()
+                    } else {
+                        Theme::ALL[current - 1].clone()
+                    };
+                }
+            }
         }
     }
 
@@ -57,9 +78,16 @@ impl Styling {
             .padding(10)
             .size(20);
 
-        let button = button("Submit")
-            .padding(10)
-            .on_press(Message::ButtonPressed);
+        let styled_button = |label| {
+            button(text(label).width(Fill).center())
+                .padding(10)
+                .on_press(Message::ButtonPressed)
+        };
+
+        let primary = styled_button("Primary");
+        let success = styled_button("Success").style(button::success);
+        let warning = styled_button("Warning").style(button::warning);
+        let danger = styled_button("Danger").style(button::danger);
 
         let slider =
             slider(0.0..=100.0, self.slider_value, Message::SliderChanged);
@@ -85,7 +113,10 @@ impl Styling {
         let content = column![
             choose_theme,
             horizontal_rule(38),
-            row![text_input, button].spacing(10).align_y(Center),
+            text_input,
+            row![primary, success, warning, danger]
+                .spacing(10)
+                .align_y(Center),
             slider,
             progress_bar,
             row![
@@ -102,6 +133,19 @@ impl Styling {
         .max_width(600);
 
         center(content).into()
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        keyboard::on_key_press(|key, _modifiers| match key {
+            keyboard::Key::Named(
+                keyboard::key::Named::ArrowUp | keyboard::key::Named::ArrowLeft,
+            ) => Some(Message::PreviousTheme),
+            keyboard::Key::Named(
+                keyboard::key::Named::ArrowDown
+                | keyboard::key::Named::ArrowRight,
+            ) => Some(Message::NextTheme),
+            _ => None,
+        })
     }
 
     fn theme(&self) -> Theme {

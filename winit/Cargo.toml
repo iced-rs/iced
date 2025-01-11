@@ -22,7 +22,7 @@ x11 = ["winit/x11"]
 wayland = ["winit/wayland"]
 wayland-dlopen = ["winit/wayland-dlopen"]
 wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
-multi-window = ["iced_runtime/multi-window"]
+unconditional-rendering = []
 
 [dependencies]
 iced_futures.workspace = true

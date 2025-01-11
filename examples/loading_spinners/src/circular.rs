@@ -3,11 +3,10 @@ use iced::advanced::layout;
 use iced::advanced::renderer;
 use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{self, Clipboard, Layout, Shell, Widget};
-use iced::event;
 use iced::mouse;
 use iced::time::Instant;
 use iced::widget::canvas;
-use iced::window::{self, RedrawRequest};
+use iced::window;
 use iced::{
     Background, Color, Element, Event, Length, Radians, Rectangle, Renderer,
     Size, Vector,
@@ -89,7 +88,7 @@ where
     }
 }
 
-impl<'a, Theme> Default for Circular<'a, Theme>
+impl<Theme> Default for Circular<'_, Theme>
 where
     Theme: StyleSheet,
 {
@@ -262,7 +261,7 @@ where
         layout::atomic(limits, self.size, self.size)
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -272,7 +271,7 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
 
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
@@ -283,10 +282,8 @@ where
             );
 
             state.cache.clear();
-            shell.request_redraw(RedrawRequest::NextFrame);
+            shell.request_redraw();
         }
-
-        event::Status::Ignored
     }
 
     fn draw(

@@ -30,24 +30,45 @@ pub trait Operation<T = ()>: Send {
     );
 
     /// Operates on a widget that can be focused.
-    fn focusable(&mut self, _state: &mut dyn Focusable, _id: Option<&Id>) {}
+    fn focusable(
+        &mut self,
+        _id: Option<&Id>,
+        _bounds: Rectangle,
+        _state: &mut dyn Focusable,
+    ) {
+    }
 
     /// Operates on a widget that can be scrolled.
     fn scrollable(
         &mut self,
-        _state: &mut dyn Scrollable,
         _id: Option<&Id>,
         _bounds: Rectangle,
         _content_bounds: Rectangle,
         _translation: Vector,
+        _state: &mut dyn Scrollable,
     ) {
     }
 
     /// Operates on a widget that has text input.
-    fn text_input(&mut self, _state: &mut dyn TextInput, _id: Option<&Id>) {}
+    fn text_input(
+        &mut self,
+        _id: Option<&Id>,
+        _bounds: Rectangle,
+        _state: &mut dyn TextInput,
+    ) {
+    }
+
+    /// Operates on a widget that contains some text.
+    fn text(&mut self, _id: Option<&Id>, _bounds: Rectangle, _text: &str) {}
 
     /// Operates on a custom widget with some state.
-    fn custom(&mut self, _state: &mut dyn Any, _id: Option<&Id>) {}
+    fn custom(
+        &mut self,
+        _id: Option<&Id>,
+        _bounds: Rectangle,
+        _state: &mut dyn Any,
+    ) {
+    }
 
     /// Finishes the [`Operation`] and returns its [`Outcome`].
     fn finish(&self) -> Outcome<T> {
@@ -68,33 +89,52 @@ where
         self.as_mut().container(id, bounds, operate_on_children);
     }
 
-    fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
-        self.as_mut().focusable(state, id);
+    fn focusable(
+        &mut self,
+        id: Option<&Id>,
+        bounds: Rectangle,
+        state: &mut dyn Focusable,
+    ) {
+        self.as_mut().focusable(id, bounds, state);
     }
 
     fn scrollable(
         &mut self,
-        state: &mut dyn Scrollable,
         id: Option<&Id>,
         bounds: Rectangle,
         content_bounds: Rectangle,
         translation: Vector,
+        state: &mut dyn Scrollable,
     ) {
         self.as_mut().scrollable(
-            state,
             id,
             bounds,
             content_bounds,
             translation,
+            state,
         );
     }
 
-    fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
-        self.as_mut().text_input(state, id);
+    fn text_input(
+        &mut self,
+        id: Option<&Id>,
+        bounds: Rectangle,
+        state: &mut dyn TextInput,
+    ) {
+        self.as_mut().text_input(id, bounds, state);
     }
 
-    fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
-        self.as_mut().custom(state, id);
+    fn text(&mut self, id: Option<&Id>, bounds: Rectangle, text: &str) {
+        self.as_mut().text(id, bounds, text);
+    }
+
+    fn custom(
+        &mut self,
+        id: Option<&Id>,
+        bounds: Rectangle,
+        state: &mut dyn Any,
+    ) {
+        self.as_mut().custom(id, bounds, state);
     }
 
     fn finish(&self) -> Outcome<O> {
@@ -138,7 +178,7 @@ where
         operation: &'a mut dyn Operation<T>,
     }
 
-    impl<'a, T, O> Operation<O> for BlackBox<'a, T> {
+    impl<T, O> Operation<O> for BlackBox<'_, T> {
         fn container(
             &mut self,
             id: Option<&Id>,
@@ -150,33 +190,52 @@ where
             });
         }
 
-        fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
-            self.operation.focusable(state, id);
+        fn focusable(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
+            self.operation.focusable(id, bounds, state);
         }
 
         fn scrollable(
             &mut self,
-            state: &mut dyn Scrollable,
             id: Option<&Id>,
             bounds: Rectangle,
             content_bounds: Rectangle,
             translation: Vector,
+            state: &mut dyn Scrollable,
         ) {
             self.operation.scrollable(
-                state,
                 id,
                 bounds,
                 content_bounds,
                 translation,
+                state,
             );
         }
 
-        fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
-            self.operation.text_input(state, id);
+        fn text_input(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn TextInput,
+        ) {
+            self.operation.text_input(id, bounds, state);
         }
 
-        fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
-            self.operation.custom(state, id);
+        fn text(&mut self, id: Option<&Id>, bounds: Rectangle, text: &str) {
+            self.operation.text(id, bounds, text);
+        }
+
+        fn custom(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn Any,
+        ) {
+            self.operation.custom(id, bounds, state);
         }
 
         fn finish(&self) -> Outcome<O> {
@@ -218,7 +277,7 @@ where
                 operation: &'a mut dyn Operation<A>,
             }
 
-            impl<'a, A, B> Operation<B> for MapRef<'a, A> {
+            impl<A, B> Operation<B> for MapRef<'_, A> {
                 fn container(
                     &mut self,
                     id: Option<&Id>,
@@ -234,39 +293,55 @@ where
 
                 fn scrollable(
                     &mut self,
-                    state: &mut dyn Scrollable,
                     id: Option<&Id>,
                     bounds: Rectangle,
                     content_bounds: Rectangle,
                     translation: Vector,
+                    state: &mut dyn Scrollable,
                 ) {
                     self.operation.scrollable(
-                        state,
                         id,
                         bounds,
                         content_bounds,
                         translation,
+                        state,
                     );
                 }
 
                 fn focusable(
                     &mut self,
-                    state: &mut dyn Focusable,
                     id: Option<&Id>,
+                    bounds: Rectangle,
+                    state: &mut dyn Focusable,
                 ) {
-                    self.operation.focusable(state, id);
+                    self.operation.focusable(id, bounds, state);
                 }
 
                 fn text_input(
                     &mut self,
-                    state: &mut dyn TextInput,
                     id: Option<&Id>,
+                    bounds: Rectangle,
+                    state: &mut dyn TextInput,
                 ) {
-                    self.operation.text_input(state, id);
+                    self.operation.text_input(id, bounds, state);
                 }
 
-                fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
-                    self.operation.custom(state, id);
+                fn text(
+                    &mut self,
+                    id: Option<&Id>,
+                    bounds: Rectangle,
+                    text: &str,
+                ) {
+                    self.operation.text(id, bounds, text);
+                }
+
+                fn custom(
+                    &mut self,
+                    id: Option<&Id>,
+                    bounds: Rectangle,
+                    state: &mut dyn Any,
+                ) {
+                    self.operation.custom(id, bounds, state);
                 }
             }
 
@@ -275,33 +350,52 @@ where
             MapRef { operation }.container(id, bounds, operate_on_children);
         }
 
-        fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
-            self.operation.focusable(state, id);
+        fn focusable(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
+            self.operation.focusable(id, bounds, state);
         }
 
         fn scrollable(
             &mut self,
-            state: &mut dyn Scrollable,
             id: Option<&Id>,
             bounds: Rectangle,
             content_bounds: Rectangle,
             translation: Vector,
+            state: &mut dyn Scrollable,
         ) {
             self.operation.scrollable(
-                state,
                 id,
                 bounds,
                 content_bounds,
                 translation,
+                state,
             );
         }
 
-        fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
-            self.operation.text_input(state, id);
+        fn text_input(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn TextInput,
+        ) {
+            self.operation.text_input(id, bounds, state);
         }
 
-        fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
-            self.operation.custom(state, id);
+        fn text(&mut self, id: Option<&Id>, bounds: Rectangle, text: &str) {
+            self.operation.text(id, bounds, text);
+        }
+
+        fn custom(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn Any,
+        ) {
+            self.operation.custom(id, bounds, state);
         }
 
         fn finish(&self) -> Outcome<B> {
@@ -361,33 +455,52 @@ where
             });
         }
 
-        fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
-            self.operation.focusable(state, id);
+        fn focusable(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
+            self.operation.focusable(id, bounds, state);
         }
 
         fn scrollable(
             &mut self,
-            state: &mut dyn Scrollable,
             id: Option<&Id>,
             bounds: Rectangle,
             content_bounds: Rectangle,
             translation: crate::Vector,
+            state: &mut dyn Scrollable,
         ) {
             self.operation.scrollable(
-                state,
                 id,
                 bounds,
                 content_bounds,
                 translation,
+                state,
             );
         }
 
-        fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
-            self.operation.text_input(state, id);
+        fn text_input(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn TextInput,
+        ) {
+            self.operation.text_input(id, bounds, state);
         }
 
-        fn custom(&mut self, state: &mut dyn std::any::Any, id: Option<&Id>) {
-            self.operation.custom(state, id);
+        fn text(&mut self, id: Option<&Id>, bounds: Rectangle, text: &str) {
+            self.operation.text(id, bounds, text);
+        }
+
+        fn custom(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn Any,
+        ) {
+            self.operation.custom(id, bounds, state);
         }
 
         fn finish(&self) -> Outcome<B> {

@@ -1,13 +1,12 @@
 //! Distribute content horizontally.
 use crate::core::alignment::{self, Alignment};
-use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell, Size,
+    Clipboard, Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size,
     Vector, Widget,
 };
 
@@ -172,7 +171,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer>
+impl<Message, Renderer> Default for Row<'_, Message, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -194,8 +193,8 @@ impl<'a, Message, Theme, Renderer: crate::core::Renderer>
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Row<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Row<'_, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -254,7 +253,7 @@ where
         });
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -264,24 +263,24 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        self.children
+    ) {
+        for ((child, state), layout) in self
+            .children
             .iter_mut()
             .zip(&mut tree.children)
             .zip(layout.children())
-            .map(|((child, state), layout)| {
-                child.as_widget_mut().on_event(
-                    state,
-                    event.clone(),
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                    viewport,
-                )
-            })
-            .fold(event::Status::Ignored, event::Status::merge)
+        {
+            child.as_widget_mut().update(
+                state,
+                event.clone(),
+                layout,
+                cursor,
+                renderer,
+                clipboard,
+                shell,
+                viewport,
+            );
+        }
     }
 
     fn mouse_interaction(
@@ -381,8 +380,8 @@ pub struct Wrapping<
     row: Row<'a, Message, Theme, Renderer>,
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Wrapping<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Wrapping<'_, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -493,7 +492,7 @@ where
         self.row.operate(tree, layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -503,10 +502,10 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        self.row.on_event(
+    ) {
+        self.row.update(
             tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-        )
+        );
     }
 
     fn mouse_interaction(

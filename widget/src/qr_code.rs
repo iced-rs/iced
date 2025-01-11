@@ -116,7 +116,7 @@ where
     }
 }
 
-impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a, Theme>
+impl<Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'_, Theme>
 where
     Theme: Catalog,
 {

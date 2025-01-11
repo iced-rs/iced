@@ -1,10 +1,9 @@
 use crate::core::text;
 use crate::graphics::compositor;
 use crate::shell;
+use crate::theme;
 use crate::window;
 use crate::{Element, Executor, Result, Settings, Subscription, Task};
-
-pub use crate::shell::program::{Appearance, DefaultStyle};
 
 /// The internal definition of a [`Program`].
 ///
@@ -19,7 +18,7 @@ pub trait Program: Sized {
     type Message: Send + std::fmt::Debug + 'static;
 
     /// The theme of the program.
-    type Theme: Default + DefaultStyle;
+    type Theme: Default + theme::Base;
 
     /// The renderer of the program.
     type Renderer: Renderer;
@@ -51,11 +50,11 @@ pub trait Program: Sized {
     }
 
     fn theme(&self, _state: &Self::State, _window: window::Id) -> Self::Theme {
-        Self::Theme::default()
+        <Self::Theme as Default>::default()
     }
 
-    fn style(&self, _state: &Self::State, theme: &Self::Theme) -> Appearance {
-        DefaultStyle::default_style(theme)
+    fn style(&self, _state: &Self::State, theme: &Self::Theme) -> theme::Style {
+        theme::Base::base(theme)
     }
 
     fn scale_factor(&self, _state: &Self::State, _window: window::Id) -> f64 {
@@ -153,7 +152,7 @@ pub trait Program: Sized {
                 self.program.theme(&self.state, window)
             }
 
-            fn style(&self, theme: &Self::Theme) -> Appearance {
+            fn style(&self, theme: &Self::Theme) -> theme::Style {
                 self.program.style(&self.state, theme)
             }
 
@@ -252,7 +251,7 @@ pub fn with_title<P: Program>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> Appearance {
+        ) -> theme::Style {
             self.program.style(state, theme)
         }
 
@@ -322,7 +321,7 @@ pub fn with_subscription<P: Program>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> Appearance {
+        ) -> theme::Style {
             self.program.style(state, theme)
         }
 
@@ -395,7 +394,7 @@ pub fn with_theme<P: Program>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> Appearance {
+        ) -> theme::Style {
             self.program.style(state, theme)
         }
 
@@ -409,7 +408,7 @@ pub fn with_theme<P: Program>(
 
 pub fn with_style<P: Program>(
     program: P,
-    f: impl Fn(&P::State, &P::Theme) -> Appearance,
+    f: impl Fn(&P::State, &P::Theme) -> theme::Style,
 ) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithStyle<P, F> {
         program: P,
@@ -418,7 +417,7 @@ pub fn with_style<P: Program>(
 
     impl<P: Program, F> Program for WithStyle<P, F>
     where
-        F: Fn(&P::State, &P::Theme) -> Appearance,
+        F: Fn(&P::State, &P::Theme) -> theme::Style,
     {
         type State = P::State;
         type Message = P::Message;
@@ -430,7 +429,7 @@ pub fn with_style<P: Program>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> Appearance {
+        ) -> theme::Style {
             (self.style)(state, theme)
         }
 
@@ -535,7 +534,7 @@ pub fn with_scale_factor<P: Program>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> Appearance {
+        ) -> theme::Style {
             self.program.style(state, theme)
         }
 
@@ -609,7 +608,7 @@ pub fn with_executor<P: Program, E: Executor>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> Appearance {
+        ) -> theme::Style {
             self.program.style(state, theme)
         }
 

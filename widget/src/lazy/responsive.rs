@@ -1,4 +1,3 @@
-use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -6,8 +5,8 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    self, Clipboard, Element, Event, Length, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 use crate::horizontal_space;
 use crate::runtime::overlay::Nested;
@@ -83,18 +82,21 @@ where
         new_size: Size,
         view: &dyn Fn(Size) -> Element<'a, Message, Theme, Renderer>,
     ) {
-        let is_tree_empty =
-            tree.tag == tree::Tag::stateless() && tree.children.is_empty();
+        if self.size != new_size {
+            self.element = view(new_size);
+            self.size = new_size;
+            self.layout = None;
 
-        if !is_tree_empty && self.size == new_size {
-            return;
+            tree.diff(&self.element);
+        } else {
+            let is_tree_empty =
+                tree.tag == tree::Tag::stateless() && tree.children.is_empty();
+
+            if is_tree_empty {
+                self.layout = None;
+                tree.diff(&self.element);
+            }
         }
-
-        self.element = view(new_size);
-        self.size = new_size;
-        self.layout = None;
-
-        tree.diff(&self.element);
     }
 
     fn resolve<R, T>(
@@ -129,8 +131,8 @@ struct State {
     tree: RefCell<Tree>,
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Responsive<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Responsive<'_, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
@@ -183,7 +185,7 @@ where
         );
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -193,20 +195,20 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
         let mut content = self.content.borrow_mut();
 
         let mut local_messages = vec![];
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let status = content.resolve(
+        content.resolve(
             &mut state.tree.borrow_mut(),
             renderer,
             layout,
             &self.view,
             |tree, renderer, layout, element| {
-                element.as_widget_mut().on_event(
+                element.as_widget_mut().update(
                     tree,
                     event,
                     layout,
@@ -215,7 +217,7 @@ where
                     clipboard,
                     &mut local_shell,
                     viewport,
-                )
+                );
             },
         );
 
@@ -224,8 +226,6 @@ where
         }
 
         shell.merge(local_shell, std::convert::identity);
-
-        status
     }
 
     fn draw(
@@ -358,9 +358,7 @@ struct Overlay<'a, 'b, Message, Theme, Renderer> {
     ),
 }
 
-impl<'a, 'b, Message, Theme, Renderer>
-    Overlay<'a, 'b, Message, Theme, Renderer>
-{
+impl<Message, Theme, Renderer> Overlay<'_, '_, Message, Theme, Renderer> {
     fn with_overlay_maybe<T>(
         &self,
         f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
@@ -380,9 +378,8 @@ impl<'a, 'b, Message, Theme, Renderer>
     }
 }
 
-impl<'a, 'b, Message, Theme, Renderer>
-    overlay::Overlay<Message, Theme, Renderer>
-    for Overlay<'a, 'b, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, '_, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
@@ -417,7 +414,7 @@ where
         .unwrap_or_default()
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         event: Event,
         layout: Layout<'_>,
@@ -425,28 +422,20 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
+    ) {
         let mut is_layout_invalid = false;
 
-        let event_status = self
-            .with_overlay_mut_maybe(|overlay| {
-                let event_status = overlay.on_event(
-                    event, layout, cursor, renderer, clipboard, shell,
-                );
+        let _ = self.with_overlay_mut_maybe(|overlay| {
+            overlay.update(event, layout, cursor, renderer, clipboard, shell);
 
-                is_layout_invalid = shell.is_layout_invalid();
-
-                event_status
-            })
-            .unwrap_or(event::Status::Ignored);
+            is_layout_invalid = shell.is_layout_invalid();
+        });
 
         if is_layout_invalid {
             self.with_overlay_mut(|(_overlay, layout)| {
                 **layout = None;
             });
         }
-
-        event_status
     }
 
     fn is_over(

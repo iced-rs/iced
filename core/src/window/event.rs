@@ -9,8 +9,8 @@ pub enum Event {
     /// A window was opened.
     Opened {
         /// The position of the opened window. This is relative to the top-left corner of the desktop
-        /// the window is on, including virtual desktops. Refers to window's "inner" position,
-        /// or the client area, in logical pixels.
+        /// the window is on, including virtual desktops. Refers to window's "outer" position,
+        /// or the window area, in logical pixels.
         ///
         /// **Note**: Not available in Wayland.
         position: Option<Point>,

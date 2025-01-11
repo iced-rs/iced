@@ -10,4 +10,3 @@ iced.workspace = true
 iced.features = ["advanced", "canvas"]
 
 lyon_algorithms = "1.0"
-once_cell.workspace = true
