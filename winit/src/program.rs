@@ -586,13 +586,13 @@ async fn run_instance<P, C>(
             let compositor_receiver =
                 compositor_receiver.take().expect("Waiting for compositor");
 
-            match compositor_receiver.await.ok() {
-                Some(Ok((new_compositor, event))) => {
+            match compositor_receiver.await {
+                Ok(Ok((new_compositor, event))) => {
                     compositor = Some(new_compositor);
 
                     Some(event)
                 }
-                Some(Err(error)) => {
+                Ok(Err(error)) => {
                     control_sender
                         .start_send(Control::Crash(
                             Error::GraphicsCreationFailed(error),
@@ -600,15 +600,8 @@ async fn run_instance<P, C>(
                         .expect("Send control action");
                     break;
                 }
-                None => {
-                    control_sender
-                        .start_send(Control::Crash(
-                            Error::GraphicsCreationFailed(
-                                graphics::Error::NoAvailablePixelFormat,
-                            ),
-                        ))
-                        .expect("Send control action");
-                    break;
+                Err(error) => {
+                    panic!("Compositor initialization failed: {error}")
                 }
             }
         // Empty the queue if possible
