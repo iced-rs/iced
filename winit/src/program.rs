@@ -192,7 +192,6 @@ where
         runtime.enter(|| program.subscription().map(Action::Output)),
     ));
 
-    let (boot_sender, boot_receiver) = oneshot::channel();
     let (event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, control_receiver) = mpsc::unbounded();
 
@@ -201,133 +200,49 @@ where
         runtime,
         proxy.clone(),
         debug,
-        boot_receiver,
         event_receiver,
         control_sender,
         is_daemon,
+        graphics_settings,
+        settings.fonts,
     ));
 
     let context = task::Context::from_waker(task::noop_waker_ref());
 
-    struct Runner<Message: 'static, F, C> {
+    struct Runner<Message: 'static, F> {
         instance: std::pin::Pin<Box<F>>,
         context: task::Context<'static>,
         id: Option<String>,
-        boot: Option<BootConfig<C>>,
         sender: mpsc::UnboundedSender<Event<Action<Message>>>,
         receiver: mpsc::UnboundedReceiver<Control>,
         error: Option<Error>,
 
         #[cfg(target_arch = "wasm32")]
-        is_booted: std::rc::Rc<std::cell::RefCell<bool>>,
-        #[cfg(target_arch = "wasm32")]
         canvas: Option<web_sys::HtmlCanvasElement>,
-    }
-
-    struct BootConfig<C> {
-        sender: oneshot::Sender<Boot<C>>,
-        fonts: Vec<Cow<'static, [u8]>>,
-        graphics_settings: graphics::Settings,
     }
 
     let runner = Runner {
         instance,
         context,
         id: settings.id,
-        boot: Some(BootConfig {
-            sender: boot_sender,
-            fonts: settings.fonts,
-            graphics_settings,
-        }),
         sender: event_sender,
         receiver: control_receiver,
         error: None,
 
         #[cfg(target_arch = "wasm32")]
-        is_booted: std::rc::Rc::new(std::cell::RefCell::new(false)),
-        #[cfg(target_arch = "wasm32")]
         canvas: None,
     };
 
-    impl<Message, F, C> winit::application::ApplicationHandler<Action<Message>>
-        for Runner<Message, F, C>
+    impl<Message, F> winit::application::ApplicationHandler<Action<Message>>
+        for Runner<Message, F>
     where
         Message: std::fmt::Debug,
         F: Future<Output = ()>,
-        C: Compositor + 'static,
     {
-        fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-            let Some(BootConfig {
-                sender,
-                fonts,
-                graphics_settings,
-            }) = self.boot.take()
-            else {
-                return;
-            };
-
-            let window = {
-                let attributes = winit::window::WindowAttributes::default();
-
-                #[cfg(target_os = "windows")]
-                let attributes = {
-                    use winit::platform::windows::WindowAttributesExtWindows;
-                    attributes.with_drag_and_drop(false)
-                };
-
-                match event_loop.create_window(attributes.with_visible(false)) {
-                    Ok(window) => Arc::new(window),
-                    Err(error) => {
-                        self.error = Some(Error::WindowCreationFailed(error));
-                        event_loop.exit();
-                        return;
-                    }
-                }
-            };
-
-            #[cfg(target_arch = "wasm32")]
-            {
-                use winit::platform::web::WindowExtWebSys;
-                self.canvas = window.canvas();
-            }
-
-            let finish_boot = async move {
-                let mut compositor =
-                    C::new(graphics_settings, window.clone()).await?;
-
-                for font in fonts {
-                    compositor.load_font(font);
-                }
-
-                sender
-                    .send(Boot { compositor })
-                    .ok()
-                    .expect("Send boot event");
-
-                Ok::<_, graphics::Error>(())
-            };
-
-            #[cfg(not(target_arch = "wasm32"))]
-            if let Err(error) =
-                crate::futures::futures::executor::block_on(finish_boot)
-            {
-                self.error = Some(Error::GraphicsCreationFailed(error));
-                event_loop.exit();
-            }
-
-            #[cfg(target_arch = "wasm32")]
-            {
-                let is_booted = self.is_booted.clone();
-
-                wasm_bindgen_futures::spawn_local(async move {
-                    finish_boot.await.expect("Finish boot!");
-
-                    *is_booted.borrow_mut() = true;
-                });
-
-                event_loop
-                    .set_control_flow(winit::event_loop::ControlFlow::Poll);
-            }
+        fn resumed(
+            &mut self,
+            _event_loop: &winit::event_loop::ActiveEventLoop,
+        ) {
         }
 
         fn new_events(
@@ -335,15 +250,6 @@ where
             event_loop: &winit::event_loop::ActiveEventLoop,
             cause: winit::event::StartCause,
         ) {
-            if self.boot.is_some() {
-                return;
-            }
-
-            #[cfg(target_arch = "wasm32")]
-            if !*self.is_booted.borrow() {
-                return;
-            }
-
             self.process_event(
                 event_loop,
                 Event::EventLoopAwakened(winit::event::Event::NewEvents(cause)),
@@ -422,11 +328,6 @@ where
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
         ) {
-            #[cfg(target_arch = "wasm32")]
-            if !*self.is_booted.borrow() {
-                return;
-            }
-
             self.process_event(
                 event_loop,
                 Event::EventLoopAwakened(winit::event::Event::AboutToWait),
@@ -434,10 +335,9 @@ where
         }
     }
 
-    impl<Message, F, C> Runner<Message, F, C>
+    impl<Message, F> Runner<Message, F>
     where
         F: Future<Output = ()>,
-        C: Compositor,
     {
         fn process_event(
             &mut self,
@@ -577,7 +477,7 @@ where
                                     event_loop,
                                     Event::WindowCreated {
                                         id,
-                                        window,
+                                        window: Arc::new(window),
                                         exit_on_close_request,
                                         make_visible: visible,
                                         on_open,
@@ -585,6 +485,10 @@ where
                                 );
                             }
                             Control::Exit => {
+                                event_loop.exit();
+                            }
+                            Control::Crash(error) => {
+                                self.error = Some(error);
                                 event_loop.exit();
                             }
                         },
@@ -618,15 +522,11 @@ where
     }
 }
 
-struct Boot<C> {
-    compositor: C,
-}
-
 #[derive(Debug)]
 enum Event<Message: 'static> {
     WindowCreated {
         id: window::Id,
-        window: winit::window::Window,
+        window: Arc<winit::window::Window>,
         exit_on_close_request: bool,
         make_visible: bool,
         on_open: oneshot::Sender<window::Id>,
@@ -638,6 +538,7 @@ enum Event<Message: 'static> {
 enum Control {
     ChangeFlow(winit::event_loop::ControlFlow),
     Exit,
+    Crash(Error),
     CreateWindow {
         id: window::Id,
         settings: window::Settings,
@@ -652,10 +553,11 @@ async fn run_instance<P, C>(
     mut runtime: Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
     mut proxy: Proxy<P::Message>,
     mut debug: Debug,
-    boot: oneshot::Receiver<Boot<C>>,
     mut event_receiver: mpsc::UnboundedReceiver<Event<Action<P::Message>>>,
     mut control_sender: mpsc::UnboundedSender<Control>,
     is_daemon: bool,
+    graphics_settings: graphics::Settings,
+    default_fonts: Vec<Cow<'static, [u8]>>,
 ) where
     P: Program + 'static,
     C: Compositor<Renderer = P::Renderer> + 'static,
@@ -664,11 +566,10 @@ async fn run_instance<P, C>(
     use winit::event;
     use winit::event_loop::ControlFlow;
 
-    let Boot { mut compositor } = boot.await.expect("Receive boot");
-
     let mut window_manager = WindowManager::new();
     let mut is_window_opening = !is_daemon;
 
+    let mut compositor = None;
     let mut events = Vec::new();
     let mut messages = Vec::new();
     let mut actions = 0;
@@ -676,12 +577,35 @@ async fn run_instance<P, C>(
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
     let mut clipboard = Clipboard::unconnected();
+    let mut compositor_receiver: Option<oneshot::Receiver<_>> = None;
 
     debug.startup_finished();
 
     loop {
+        let event = if compositor_receiver.is_some() {
+            let compositor_receiver =
+                compositor_receiver.take().expect("Waiting for compositor");
+
+            match compositor_receiver.await {
+                Ok(Ok((new_compositor, event))) => {
+                    compositor = Some(new_compositor);
+
+                    Some(event)
+                }
+                Ok(Err(error)) => {
+                    control_sender
+                        .start_send(Control::Crash(
+                            Error::GraphicsCreationFailed(error),
+                        ))
+                        .expect("Send control action");
+                    break;
+                }
+                Err(error) => {
+                    panic!("Compositor initialization failed: {error}")
+                }
+            }
         // Empty the queue if possible
-        let event = if let Ok(event) = event_receiver.try_next() {
+        } else if let Ok(event) = event_receiver.try_next() {
             event
         } else {
             event_receiver.next().await
@@ -699,11 +623,63 @@ async fn run_instance<P, C>(
                 make_visible,
                 on_open,
             } => {
+                if compositor.is_none() {
+                    let (compositor_sender, new_compositor_receiver) =
+                        oneshot::channel();
+
+                    compositor_receiver = Some(new_compositor_receiver);
+
+                    let create_compositor = {
+                        let default_fonts = default_fonts.clone();
+
+                        async move {
+                            let mut compositor =
+                                C::new(graphics_settings, window.clone()).await;
+
+                            if let Ok(compositor) = &mut compositor {
+                                for font in default_fonts {
+                                    compositor.load_font(font.clone());
+                                }
+                            }
+
+                            compositor_sender
+                                .send(compositor.map(|compositor| {
+                                    (
+                                        compositor,
+                                        Event::WindowCreated {
+                                            id,
+                                            window,
+                                            exit_on_close_request,
+                                            make_visible,
+                                            on_open,
+                                        },
+                                    )
+                                }))
+                                .ok()
+                                .expect("Send compositor");
+                        }
+                    };
+
+                    #[cfg(not(target_arch = "wasm32"))]
+                    crate::futures::futures::executor::block_on(
+                        create_compositor,
+                    );
+
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        wasm_bindgen_futures::spawn_local(create_compositor);
+                    }
+
+                    continue;
+                }
+
                 let window = window_manager.insert(
                     id,
-                    Arc::new(window),
+                    window,
                     &program,
-                    &mut compositor,
+                    compositor
+                        .as_mut()
+                        .expect("Compositor must be initialized"),
                     exit_on_close_request,
                 );
 
@@ -797,6 +773,10 @@ async fn run_instance<P, C>(
                         event: event::WindowEvent::RedrawRequested,
                         ..
                     } => {
+                        let Some(compositor) = &mut compositor else {
+                            continue;
+                        };
+
                         let Some((id, window)) =
                             window_manager.get_mut_alias(id)
                         else {
@@ -1195,7 +1175,7 @@ fn update<P: Program, E: Executor>(
 fn run_action<P, C>(
     action: Action<P::Message>,
     program: &P,
-    compositor: &mut C,
+    compositor: &mut Option<C>,
     events: &mut Vec<(window::Id, core::Event)>,
     messages: &mut Vec<P::Message>,
     clipboard: &mut Clipboard,
@@ -1262,6 +1242,10 @@ fn run_action<P, C>(
                         id,
                         core::Event::Window(core::window::Event::Closed),
                     ));
+                }
+
+                if window_manager.is_empty() {
+                    *compositor = None;
                 }
             }
             window::Action::GetOldest(channel) => {
@@ -1474,18 +1458,20 @@ fn run_action<P, C>(
             }
             window::Action::Screenshot(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
-                    let bytes = compositor.screenshot(
-                        &mut window.renderer,
-                        window.state.viewport(),
-                        window.state.background_color(),
-                        &debug.overlay(),
-                    );
+                    if let Some(compositor) = compositor {
+                        let bytes = compositor.screenshot(
+                            &mut window.renderer,
+                            window.state.viewport(),
+                            window.state.background_color(),
+                            &debug.overlay(),
+                        );
 
-                    let _ = channel.send(core::window::Screenshot::new(
-                        bytes,
-                        window.state.physical_size(),
-                        window.state.viewport().scale_factor(),
-                    ));
+                        let _ = channel.send(core::window::Screenshot::new(
+                            bytes,
+                            window.state.physical_size(),
+                            window.state.viewport().scale_factor(),
+                        ));
+                    }
                 }
             }
             window::Action::EnableMousePassthrough(id) => {
@@ -1503,14 +1489,16 @@ fn run_action<P, C>(
             system::Action::QueryInformation(_channel) => {
                 #[cfg(feature = "system")]
                 {
-                    let graphics_info = compositor.fetch_information();
+                    if let Some(compositor) = compositor {
+                        let graphics_info = compositor.fetch_information();
 
-                    let _ = std::thread::spawn(move || {
-                        let information =
-                            crate::system::information(graphics_info);
+                        let _ = std::thread::spawn(move || {
+                            let information =
+                                crate::system::information(graphics_info);
 
-                        let _ = _channel.send(information);
-                    });
+                            let _ = _channel.send(information);
+                        });
+                    }
                 }
             }
         },
@@ -1534,10 +1522,12 @@ fn run_action<P, C>(
             }
         }
         Action::LoadFont { bytes, channel } => {
-            // TODO: Error handling (?)
-            compositor.load_font(bytes.clone());
+            if let Some(compositor) = compositor {
+                // TODO: Error handling (?)
+                compositor.load_font(bytes.clone());
 
-            let _ = channel.send(Ok(()));
+                let _ = channel.send(Ok(()));
+            }
         }
         Action::Exit => {
             control_sender
