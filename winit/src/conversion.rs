@@ -1136,9 +1136,7 @@ pub fn user_attention(
     }
 }
 
-/// Converts some [`ResizeDirection`] into its `winit` counterpart.
-///
-/// [`ResizeDirection`]: window::ResizeDirection
+/// Converts some [`window::Direction`] into a [`winit::window::ResizeDirection`].
 pub fn resize_direction(
     resize_direction: window::Direction,
 ) -> winit::window::ResizeDirection {
