@@ -1,11 +1,11 @@
-use iced::{alignment, Radians};
 use iced::mouse;
 use iced::time;
 use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
+use iced::{alignment, Radians};
 use iced::{
-    Degrees, Element, Fill, Font, Point, Rectangle, Renderer, Subscription,
-    Theme, Vector,
+    Degrees, Element, Fill, Font, Point, Rectangle, Renderer, Size,
+    Subscription, Theme, Vector,
 };
 
 pub fn main() -> iced::Result {
@@ -117,9 +117,11 @@ impl<Message> canvas::Program<Message> for Clock {
             };
 
             frame.translate(Vector::new(center.x, center.y));
-            let minutes_portion = Radians::from(hand_rotation(self.now.minute(), 60)) / 12.0;
-            let hour_hand_angle = Radians::from(hand_rotation(self.now.hour(), 12)) + minutes_portion;
-
+            let minutes_portion =
+                Radians::from(hand_rotation(self.now.minute(), 60)) / 12.0;
+            let hour_hand_angle =
+                Radians::from(hand_rotation(self.now.hour(), 12))
+                    + minutes_portion;
 
             frame.with_save(|frame| {
                 frame.rotate(hour_hand_angle);
@@ -160,17 +162,16 @@ impl<Message> canvas::Program<Message> for Clock {
             });
 
             // Draw clock numbers
-            for i in 1..=12 {
-                let distance_out = radius * 1.05;
-                let angle =
-                    Radians::from(hand_rotation(i, 12)) - Radians::from(Degrees(90.0));
-                let x = distance_out * angle.0.cos();
-                let y = distance_out * angle.0.sin();
+            for hour in 1..=12 {
+                let angle = Radians::from(hand_rotation(hour, 12))
+                    - Radians::from(Degrees(90.0));
+                let x = radius * angle.0.cos();
+                let y = radius * angle.0.sin();
 
                 frame.fill_text(canvas::Text {
-                    content: format!("{}", i),
-                    size: (radius / 15.0).into(),
-                    position: Point::new(x * 0.85, y * 0.85),
+                    content: format!("{}", hour),
+                    size: (radius / 5.0).into(),
+                    position: Point::new(x * 0.82, y * 0.82),
                     color: palette.secondary.strong.text,
                     horizontal_alignment: alignment::Horizontal::Center,
                     vertical_alignment: alignment::Vertical::Center,
@@ -178,11 +179,29 @@ impl<Message> canvas::Program<Message> for Clock {
                     ..canvas::Text::default()
                 });
             }
+
+            // Draw ticks
+            for tick in 0..60 {
+                let angle = Radians::from(hand_rotation(tick, 60))
+                    - Radians::from(Degrees(90.0));
+
+                let width = if tick % 5 == 0 { 3.0 } else { 1.0 };
+
+                frame.with_save(|frame| {
+                    frame.rotate(angle);
+                    frame.fill(
+                        &Path::rectangle(
+                            Point::new(0.0, radius - 15.0),
+                            Size::new(width, 7.0),
+                        ),
+                        palette.secondary.strong.text,
+                    );
+                });
+            }
         });
 
         vec![clock]
     }
-
 }
 
 fn hand_rotation(n: u32, total: u32) -> Degrees {
