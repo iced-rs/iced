@@ -281,11 +281,16 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                             frame.present();
 
                             // Update the mouse cursor
-                            window.set_cursor(
+                            if let Some(icon) =
                                 iced_winit::conversion::mouse_interaction(
                                     state.mouse_interaction(),
-                                ),
-                            );
+                                )
+                            {
+                                window.set_cursor(icon);
+                                window.set_cursor_visible(true);
+                            } else {
+                                window.set_cursor_visible(false);
+                            }
                         }
                         Err(error) => match error {
                             wgpu::SurfaceError::OutOfMemory => {
