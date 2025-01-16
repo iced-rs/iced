@@ -182,9 +182,7 @@ impl<Message> canvas::Program<Message> for Clock {
 
             // Draw ticks
             for tick in 0..60 {
-                let angle = Radians::from(hand_rotation(tick, 60))
-                    - Radians::from(Degrees(90.0));
-
+                let angle = hand_rotation(tick, 60);
                 let width = if tick % 5 == 0 { 3.0 } else { 1.0 };
 
                 frame.with_save(|frame| {
