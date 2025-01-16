@@ -32,14 +32,14 @@ pub enum Action {
     /// Move the window with the left mouse button until the button is
     /// released.
     ///
-    /// There’s no guarantee that this will work unless the left mouse
+    /// There's no guarantee that this will work unless the left mouse
     /// button was pressed immediately before this function is called.
     Drag(Id),
 
     /// Resize the window with the left mouse button until the button is
     /// released.
     ///
-    /// There’s no guarantee that this will work unless the left mouse
+    /// There's no guarantee that this will work unless the left mouse
     /// button was pressed immediately before this function is called.
     DragResize(Id, Direction),
 
