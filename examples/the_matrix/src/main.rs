@@ -36,7 +36,7 @@ impl TheMatrix {
     }
 
     fn view(&self) -> Element<Message> {
-        canvas(self as &Self).width(Fill).height(Fill).into()
+        canvas(self).width(Fill).height(Fill).into()
     }
 
     fn subscription(&self) -> Subscription<Message> {
