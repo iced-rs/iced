@@ -238,9 +238,7 @@ where
     ///
     /// If you want the scrollbar to shrink a good factor is about `0.5`.
     pub fn shrinking_scrollbar(mut self, factor: f32) -> Self {
-        if !(0.0..=1.0).contains(&factor) {
-            panic!("shrink factor must be between 0.00 and 1.0")
-        }
+        debug_assert!((0.0..=1.0).contains(&factor), "shrink factor must be between 0.0 and 1.0");
         self.scrollbar_shrink_factor = factor;
         self
     }
