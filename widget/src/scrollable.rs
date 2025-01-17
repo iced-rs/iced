@@ -81,6 +81,7 @@ pub struct Scrollable<
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
+    scrollbar_shrink_factor: f32,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
@@ -109,6 +110,7 @@ where
             on_scroll: None,
             class: Theme::default(),
             last_status: None,
+            scrollbar_shrink_factor: 1.0,
         }
         .validate()
     }
@@ -229,6 +231,17 @@ where
             Direction::Both { .. } => {}
         }
 
+        self
+    }
+
+    /// Will set the shirking factor of the scrollbar that is applied if the scrollbar is not hovered or dragged.
+    ///
+    /// If you want the scrollbar to shrink a good factor is about `0.5`.
+    pub fn shrinking_scrollbar(mut self, factor: f32) -> Self {
+        if !(0.0..=1.0).contains(&factor) {
+            panic!("shrink factor must be between 0.00 and 1.0")
+        }
+        self.scrollbar_shrink_factor = factor;
         self
     }
 
@@ -1012,6 +1025,16 @@ where
                 |renderer: &mut Renderer,
                  style: Rail,
                  scrollbar: &internals::Scrollbar| {
+                    // decide if the scrollbar should shrink
+                    let minimize_scrollbar = !(mouse_over_x_scrollbar
+                        || mouse_over_y_scrollbar
+                        || if let Some(status) = self.last_status {
+                            matches!(status, Status::Dragged { .. })
+                        } else {
+                            false
+                        })
+                        && self.scrollbar_shrink_factor != 1.0;
+
                     if scrollbar.bounds.width > 0.0
                         && scrollbar.bounds.height > 0.0
                         && (style.background.is_some()
@@ -1020,7 +1043,25 @@ where
                     {
                         renderer.fill_quad(
                             renderer::Quad {
-                                bounds: scrollbar.bounds,
+                                bounds: if minimize_scrollbar {
+                                    if self.direction.vertical().is_some() {
+                                        scrollbar.bounds.shrink(
+                                            core::Padding::default().left(
+                                                scrollbar.bounds.width
+                                                    * (1.0 - self.scrollbar_shrink_factor),
+                                            ),
+                                        )
+                                    } else {
+                                        scrollbar.bounds.shrink(
+                                            core::Padding::default().top(
+                                                scrollbar.bounds.height
+                                                    * (1.0 - self.scrollbar_shrink_factor),
+                                            ),
+                                        )
+                                    }
+                                } else {
+                                    scrollbar.bounds
+                                },
                                 border: style.border,
                                 ..renderer::Quad::default()
                             },
@@ -1040,7 +1081,27 @@ where
                         {
                             renderer.fill_quad(
                                 renderer::Quad {
-                                    bounds: scroller.bounds,
+                                    bounds: if minimize_scrollbar {
+                                        if self.direction.vertical().is_some() {
+                                            scroller.bounds.shrink(
+                                                core::Padding::default().left(
+                                                    scrollbar.bounds.width
+                                                        * (1.0 - self
+                                                            .scrollbar_shrink_factor),
+                                                ),
+                                            )
+                                        } else {
+                                            scroller.bounds.shrink(
+                                                core::Padding::default().top(
+                                                    scrollbar.bounds.height
+                                                        * (1.0 - self
+                                                            .scrollbar_shrink_factor),
+                                                ),
+                                            )
+                                        }
+                                    } else {
+                                        scroller.bounds
+                                    },
                                     border: style.scroller.border,
                                     ..renderer::Quad::default()
                                 },
