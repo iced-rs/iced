@@ -385,7 +385,7 @@ mod grid {
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> Option<canvas::Action<Message>> {
-            if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
+            if let Event::Mouse(mouse::Event::ButtonReleased { .. }) = event {
                 *interaction = Interaction::None;
             }
 
@@ -420,7 +420,7 @@ mod grid {
                     )
                 }
                 Event::Mouse(mouse_event) => match mouse_event {
-                    mouse::Event::ButtonPressed(button) => {
+                    mouse::Event::ButtonPressed { button, .. } => {
                         let message = match button {
                             mouse::Button::Left => {
                                 *interaction = if is_populated {
@@ -472,7 +472,7 @@ mod grid {
                             _ => action.and_capture(),
                         })
                     }
-                    mouse::Event::WheelScrolled { delta } => match delta {
+                    mouse::Event::WheelScrolled { delta, .. } => match delta {
                         mouse::ScrollDelta::Lines { y, .. }
                         | mouse::ScrollDelta::Pixels { y, .. } => {
                             if y < 0.0 && self.scaling > Self::MIN_SCALING
