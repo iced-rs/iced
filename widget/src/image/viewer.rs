@@ -161,7 +161,7 @@ where
         let bounds = layout.bounds();
 
         match event {
-            Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+            Event::Mouse(mouse::Event::WheelScrolled { delta, .. }) => {
                 let Some(cursor_position) = cursor.position_over(bounds) else {
                     return;
                 };
@@ -217,7 +217,10 @@ where
                 shell.request_redraw();
                 shell.capture_event();
             }
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed {
+                button: mouse::Button::Left,
+                ..
+            }) => {
                 let Some(cursor_position) = cursor.position_over(bounds) else {
                     return;
                 };
@@ -230,7 +233,10 @@ where
                 shell.request_redraw();
                 shell.capture_event();
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonReleased {
+                button: mouse::Button::Left,
+                ..
+            }) => {
                 let state = tree.state.downcast_mut::<State>();
 
                 if state.cursor_grabbed_at.is_some() {
@@ -239,7 +245,7 @@ where
                     shell.capture_event();
                 }
             }
-            Event::Mouse(mouse::Event::CursorMoved { position }) => {
+            Event::Mouse(mouse::Event::CursorMoved { position, .. }) => {
                 let state = tree.state.downcast_mut::<State>();
 
                 if let Some(origin) = state.cursor_grabbed_at {

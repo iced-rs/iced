@@ -401,14 +401,18 @@ fn record<Message>(
         return;
     }
 
-    let interaction =
-        if let Event::Mouse(mouse::Event::CursorMoved { position }) = event {
-            Interaction::from_event(&Event::Mouse(mouse::Event::CursorMoved {
-                position: *position - (bounds.position() - Point::ORIGIN),
-            }))
-        } else {
-            Interaction::from_event(event)
-        };
+    let interaction = if let Event::Mouse(mouse::Event::CursorMoved {
+        position,
+        modifiers,
+    }) = event
+    {
+        Interaction::from_event(&Event::Mouse(mouse::Event::CursorMoved {
+            position: *position - (bounds.position() - Point::ORIGIN),
+            modifiers: *modifiers,
+        }))
+    } else {
+        Interaction::from_event(event)
+    };
 
     let Some(mut interaction) = interaction else {
         return;

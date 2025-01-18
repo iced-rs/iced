@@ -55,6 +55,7 @@
 //! }
 //! ```
 use crate::core::keyboard;
+use crate::core::keyboard::Modifiers;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -737,9 +738,10 @@ where
                 let mut local_shell = Shell::new(&mut local_messages);
                 self.text_input.update(
                     &mut tree.children[0],
-                    &Event::Mouse(mouse::Event::ButtonPressed(
-                        mouse::Button::Left,
-                    )),
+                    &Event::Mouse(mouse::Event::ButtonPressed {
+                        button: mouse::Button::Left,
+                        modifiers: Modifiers::empty(),
+                    }),
                     layout,
                     mouse::Cursor::Unavailable,
                     renderer,

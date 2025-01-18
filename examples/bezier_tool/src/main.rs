@@ -99,9 +99,10 @@ mod bezier {
             let cursor_position = cursor.position_in(bounds)?;
 
             match event {
-                Event::Mouse(mouse::Event::ButtonPressed(
-                    mouse::Button::Left,
-                )) => Some(
+                Event::Mouse(mouse::Event::ButtonPressed {
+                    button: mouse::Button::Left,
+                    ..
+                }) => Some(
                     match *state {
                         None => {
                             *state = Some(Pending::One {
