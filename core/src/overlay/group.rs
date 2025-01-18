@@ -57,8 +57,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Overlay<Message, Theme, Renderer>
-    for Group<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Overlay<Message, Theme, Renderer>
+    for Group<'_, Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -152,11 +152,11 @@ where
             })
     }
 
-    fn overlay<'b>(
-        &'b mut self,
+    fn overlay<'a>(
+        &'a mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         let children = self
             .children
             .iter_mut()

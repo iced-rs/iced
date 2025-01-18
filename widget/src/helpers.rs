@@ -24,7 +24,7 @@ use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::vertical_slider::{self, VerticalSlider};
-use crate::{Column, MouseArea, Row, Space, Stack, Themer};
+use crate::{Column, MouseArea, Pin, Row, Space, Stack, Themer};
 
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
@@ -249,6 +249,38 @@ where
     container(content).center(Length::Fill)
 }
 
+/// Creates a new [`Pin`] widget with the given content.
+///
+/// A [`Pin`] widget positions its contents at some fixed coordinates inside of its boundaries.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::pin;
+/// use iced::Fill;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     pin("This text is displayed at coordinates (50, 50)!")
+///         .x(50)
+///         .y(50)
+///         .into()
+/// }
+/// ```
+pub fn pin<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Pin<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    Pin::new(content)
+}
+
 /// Creates a new [`Column`] with the given children.
 ///
 /// Columns distribute their children vertically.
@@ -373,8 +405,8 @@ where
         content: Element<'a, Message, Theme, Renderer>,
     }
 
-    impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-        for Opaque<'a, Message, Theme, Renderer>
+    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+        for Opaque<'_, Message, Theme, Renderer>
     where
         Renderer: core::Renderer,
     {
@@ -537,8 +569,8 @@ where
         is_hovered: bool,
     }
 
-    impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-        for Hover<'a, Message, Theme, Renderer>
+    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+        for Hover<'_, Message, Theme, Renderer>
     where
         Renderer: core::Renderer,
     {
@@ -1676,9 +1708,9 @@ where
 {
     use crate::core::{Alignment, Font};
     use crate::svg;
-    use once_cell::sync::Lazy;
+    use std::sync::LazyLock;
 
-    static LOGO: Lazy<svg::Handle> = Lazy::new(|| {
+    static LOGO: LazyLock<svg::Handle> = LazyLock::new(|| {
         svg::Handle::from_memory(include_bytes!("../assets/iced-logo.svg"))
     });
 

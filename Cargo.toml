@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "fira-sans", "auto-detect-theme"]
+default = ["wgpu", "tiny-skia", "auto-detect-theme"]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer backend
@@ -53,13 +53,13 @@ smol = ["iced_futures/smol"]
 system = ["iced_winit/system"]
 # Enables broken "sRGB linear" blending to reproduce color management of the Web
 web-colors = ["iced_renderer/web-colors"]
-# Enables the WebGL backend, replacing WebGPU
+# Enables the WebGL backend
 webgl = ["iced_renderer/webgl"]
 # Enables syntax highligthing
 highlighter = ["iced_highlighter", "iced_widget/highlighter"]
 # Enables the advanced module
 advanced = ["iced_core/advanced", "iced_widget/advanced"]
-# Embeds Fira Sans as the default font on Wasm builds
+# Embeds Fira Sans into the final application; useful for testing and Wasm builds
 fira-sans = ["iced_renderer/fira-sans"]
 # Auto-detects light/dark mode for the built-in theme
 auto-detect-theme = ["iced_core/auto-detect-theme"]
@@ -111,6 +111,7 @@ members = [
     "highlighter",
     "renderer",
     "runtime",
+    "test",
     "tiny_skia",
     "wgpu",
     "widget",
@@ -127,7 +128,7 @@ repository = "https://github.com/iced-rs/iced"
 homepage = "https://iced.rs"
 categories = ["gui"]
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-rust-version = "1.80"
+rust-version = "1.81"
 
 [workspace.dependencies]
 iced = { version = "0.14.0-dev", path = "." }
@@ -137,6 +138,7 @@ iced_graphics = { version = "0.14.0-dev", path = "graphics" }
 iced_highlighter = { version = "0.14.0-dev", path = "highlighter" }
 iced_renderer = { version = "0.14.0-dev", path = "renderer" }
 iced_runtime = { version = "0.14.0-dev", path = "runtime" }
+iced_test = { version = "0.14.0-dev", path = "test" }
 iced_tiny_skia = { version = "0.14.0-dev", path = "tiny_skia" }
 iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
 iced_widget = { version = "0.14.0-dev", path = "widget" }
@@ -147,27 +149,28 @@ bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cosmic-text = "0.12"
-dark-light = "1.0"
+dark-light = "2.0"
 futures = "0.3"
 glam = "0.25"
 glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "09712a70df7431e9a3b1ac1bbd4fb634096cb3b4" }
 guillotiere = "0.6"
 half = "2.2"
-image = { version = "0.24", default-features = false }
+image = { version = "0.25", default-features = false }
 kamadak-exif = "0.5"
 kurbo = "0.10"
 log = "0.4"
 lyon = "1.0"
 lyon_path = "1.0"
 num-traits = "0.2"
-once_cell = "1.0"
 ouroboros = "0.18"
 palette = "0.7"
+png = "0.17"
 pulldown-cmark = "0.11"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
 resvg = "0.42"
 rustc-hash = "2.0"
+sha2 = "0.10"
 smol = "1.0"
 smol_str = "0.2"
 softbuffer = "0.4"

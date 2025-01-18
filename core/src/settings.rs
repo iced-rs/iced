@@ -29,11 +29,9 @@ pub struct Settings {
     /// primitives.
     ///
     /// Enabling it can produce a smoother result in some widgets, like the
-    /// [`Canvas`], at a performance cost.
+    /// `canvas` widget, at a performance cost.
     ///
     /// By default, it is disabled.
-    ///
-    /// [`Canvas`]: crate::widget::Canvas
     pub antialiasing: bool,
 }
 
@@ -45,15 +43,6 @@ impl Default for Settings {
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: false,
-        }
-    }
-}
-
-impl From<Settings> for iced_winit::Settings {
-    fn from(settings: Settings) -> iced_winit::Settings {
-        iced_winit::Settings {
-            id: settings.id,
-            fonts: settings.fonts,
         }
     }
 }

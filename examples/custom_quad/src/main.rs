@@ -75,7 +75,7 @@ mod quad {
         }
     }
 
-    impl<'a, Message> From<CustomQuad> for Element<'a, Message> {
+    impl<Message> From<CustomQuad> for Element<'_, Message> {
         fn from(circle: CustomQuad) -> Self {
             Self::new(circle)
         }

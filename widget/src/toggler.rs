@@ -245,8 +245,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Toggler<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Toggler<'_, Message, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: text::Renderer,

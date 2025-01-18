@@ -513,8 +513,8 @@ impl<Highlighter: text::Highlighter> operation::Focusable
     }
 }
 
-impl<'a, Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for TextEditor<'a, Highlighter, Message, Theme, Renderer>
+impl<Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for TextEditor<'_, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
     Theme: Catalog,
@@ -971,13 +971,13 @@ where
     fn operate(
         &self,
         tree: &mut widget::Tree,
-        _layout: Layout<'_>,
+        layout: Layout<'_>,
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         let state = tree.state.downcast_mut::<State<Highlighter>>();
 
-        operation.focusable(state, None);
+        operation.focusable(None, layout.bounds(), state);
     }
 }
 

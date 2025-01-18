@@ -1,5 +1,5 @@
 //! Take screenshots of a window.
-use crate::core::{Rectangle, Size};
+use crate::{Rectangle, Size};
 
 use bytes::Bytes;
 use std::fmt::{Debug, Formatter};

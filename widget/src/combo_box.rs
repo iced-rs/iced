@@ -459,8 +459,8 @@ enum TextInputEvent {
     TextChanged(String),
 }
 
-impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for ComboBox<'a, T, Message, Theme, Renderer>
+impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for ComboBox<'_, T, Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone,

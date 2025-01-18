@@ -3,7 +3,8 @@ use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
     button, canvas, center, checkbox, column, container, horizontal_rule,
-    horizontal_space, pick_list, row, scrollable, text, vertical_rule,
+    horizontal_space, pick_list, pin, row, scrollable, stack, text,
+    vertical_rule,
 };
 use iced::{
     color, Center, Element, Fill, Font, Length, Point, Rectangle, Renderer,
@@ -150,6 +151,10 @@ impl Example {
         Self {
             title: "Quotes",
             view: quotes,
+        },
+        Self {
+            title: "Pinning",
+            view: pinning,
         },
     ];
 
@@ -305,6 +310,23 @@ fn quotes<'a>() -> Element<'a, Message> {
         "A separator ↑",
     ]
     .width(Shrink)
+    .spacing(10)
+    .into()
+}
+
+fn pinning<'a>() -> Element<'a, Message> {
+    column![
+        "The pin widget can be used to position a widget \
+        at some fixed coordinates inside some other widget.",
+        stack![
+            container(pin("• (50, 50)").x(50).y(50))
+                .width(500)
+                .height(500)
+                .style(container::bordered_box),
+            pin("• (300, 300)").x(300).y(300),
+        ]
+    ]
+    .align_x(Center)
     .spacing(10)
     .into()
 }

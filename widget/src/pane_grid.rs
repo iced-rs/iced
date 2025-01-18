@@ -349,8 +349,8 @@ struct Memory {
     order: Vec<Pane>,
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for PaneGrid<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for PaneGrid<'_, Message, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
@@ -628,6 +628,10 @@ where
                                 };
 
                                 shell.publish(on_drag(event));
+                            } else {
+                                shell.publish(on_drag(DragEvent::Canceled {
+                                    pane,
+                                }));
                             }
                         }
                     }

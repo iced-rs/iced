@@ -247,8 +247,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Checkbox<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Checkbox<'_, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
     Theme: Catalog,
@@ -444,6 +444,16 @@ where
                 viewport,
             );
         }
+    }
+
+    fn operate(
+        &self,
+        _state: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        operation.text(None, layout.bounds(), &self.label);
     }
 }
 

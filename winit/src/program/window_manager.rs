@@ -1,9 +1,10 @@
 use crate::core::mouse;
+use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::window::Id;
 use crate::core::{Point, Size};
 use crate::graphics::Compositor;
-use crate::program::{DefaultStyle, Program, State};
+use crate::program::{Program, State};
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -14,7 +15,7 @@ pub struct WindowManager<P, C>
 where
     P: Program,
     C: Compositor<Renderer = P::Renderer>,
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     aliases: BTreeMap<winit::window::WindowId, Id>,
     entries: BTreeMap<Id, Window<P, C>>,
@@ -24,7 +25,7 @@ impl<P, C> WindowManager<P, C>
 where
     P: Program,
     C: Compositor<Renderer = P::Renderer>,
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     pub fn new() -> Self {
         Self {
@@ -132,7 +133,7 @@ impl<P, C> Default for WindowManager<P, C>
 where
     P: Program,
     C: Compositor<Renderer = P::Renderer>,
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     fn default() -> Self {
         Self::new()
@@ -144,7 +145,7 @@ pub struct Window<P, C>
 where
     P: Program,
     C: Compositor<Renderer = P::Renderer>,
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     pub raw: Arc<winit::window::Window>,
     pub state: State<P>,
@@ -160,11 +161,11 @@ impl<P, C> Window<P, C>
 where
     P: Program,
     C: Compositor<Renderer = P::Renderer>,
-    P::Theme: DefaultStyle,
+    P::Theme: theme::Base,
 {
     pub fn position(&self) -> Option<Point> {
         self.raw
-            .inner_position()
+            .outer_position()
             .ok()
             .map(|position| position.to_logical(self.raw.scale_factor()))
             .map(|position| Point {

@@ -281,7 +281,7 @@ mod toast {
         }
     }
 
-    impl<'a, Message> Widget<Message, Theme, Renderer> for Manager<'a, Message> {
+    impl<Message> Widget<Message, Theme, Renderer> for Manager<'_, Message> {
         fn size(&self) -> Size<Length> {
             self.content.as_widget().size()
         }
@@ -464,8 +464,8 @@ mod toast {
         timeout_secs: u64,
     }
 
-    impl<'a, 'b, Message> overlay::Overlay<Message, Theme, Renderer>
-        for Overlay<'a, 'b, Message>
+    impl<Message> overlay::Overlay<Message, Theme, Renderer>
+        for Overlay<'_, '_, Message>
     {
         fn layout(
             &mut self,

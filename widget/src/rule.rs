@@ -98,8 +98,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Rule<'a, Theme>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Rule<'_, Theme>
 where
     Renderer: core::Renderer,
     Theme: Catalog,

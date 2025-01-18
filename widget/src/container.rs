@@ -228,8 +228,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Container<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Container<'_, Message, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
@@ -493,11 +493,11 @@ pub fn visible_bounds(id: Id) -> Task<Option<Rectangle>> {
     impl Operation<Option<Rectangle>> for VisibleBounds {
         fn scrollable(
             &mut self,
-            _state: &mut dyn widget::operation::Scrollable,
             _id: Option<&widget::Id>,
             bounds: Rectangle,
             _content_bounds: Rectangle,
             translation: Vector,
+            _state: &mut dyn widget::operation::Scrollable,
         ) {
             match self.scrollables.last() {
                 Some((last_translation, last_viewport, _depth)) => {
@@ -650,7 +650,7 @@ pub trait Catalog {
 /// A styling function for a [`Container`].
 pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
 
-impl<'a, Theme> From<Style> for StyleFn<'a, Theme> {
+impl<Theme> From<Style> for StyleFn<'_, Theme> {
     fn from(style: Style) -> Self {
         Box::new(move |_theme| style)
     }

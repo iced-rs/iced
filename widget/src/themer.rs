@@ -63,8 +63,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, NewTheme, F, Renderer> Widget<Message, Theme, Renderer>
-    for Themer<'a, Message, Theme, NewTheme, F, Renderer>
+impl<Message, Theme, NewTheme, F, Renderer> Widget<Message, Theme, Renderer>
+    for Themer<'_, Message, Theme, NewTheme, F, Renderer>
 where
     F: Fn(&Theme) -> NewTheme,
     Renderer: crate::core::Renderer,
@@ -187,9 +187,9 @@ where
             content: overlay::Element<'a, Message, NewTheme, Renderer>,
         }
 
-        impl<'a, Message, Theme, NewTheme, Renderer>
+        impl<Message, Theme, NewTheme, Renderer>
             overlay::Overlay<Message, Theme, Renderer>
-            for Overlay<'a, Message, Theme, NewTheme, Renderer>
+            for Overlay<'_, Message, Theme, NewTheme, Renderer>
         where
             Renderer: crate::core::Renderer,
         {
