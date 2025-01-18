@@ -543,8 +543,8 @@ where
         if let Some(last_scrolled) = state.last_scrolled {
             let clear_transaction = match event {
                 Event::Mouse(
-                    mouse::Event::ButtonPressed(_)
-                    | mouse::Event::ButtonReleased(_)
+                    mouse::Event::ButtonPressed { .. }
+                    | mouse::Event::ButtonReleased { .. }
                     | mouse::Event::CursorLeft,
                 ) => true,
                 Event::Mouse(mouse::Event::CursorMoved { .. }) => {
@@ -594,9 +594,10 @@ where
                 }
             } else if mouse_over_y_scrollbar {
                 match event {
-                    Event::Mouse(mouse::Event::ButtonPressed(
-                        mouse::Button::Left,
-                    ))
+                    Event::Mouse(mouse::Event::ButtonPressed {
+                        button: mouse::Button::Left,
+                        ..
+                    })
                     | Event::Touch(touch::Event::FingerPressed { .. }) => {
                         let Some(cursor_position) = cursor.position() else {
                             return;
@@ -667,9 +668,10 @@ where
                 }
             } else if mouse_over_x_scrollbar {
                 match event {
-                    Event::Mouse(mouse::Event::ButtonPressed(
-                        mouse::Button::Left,
-                    ))
+                    Event::Mouse(mouse::Event::ButtonPressed {
+                        button: mouse::Button::Left,
+                        ..
+                    })
                     | Event::Touch(touch::Event::FingerPressed { .. }) => {
                         let Some(cursor_position) = cursor.position() else {
                             return;
@@ -760,11 +762,13 @@ where
 
             if matches!(
                 event,
-                Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-                    | Event::Touch(
-                        touch::Event::FingerLifted { .. }
-                            | touch::Event::FingerLost { .. }
-                    )
+                Event::Mouse(mouse::Event::ButtonReleased {
+                    button: mouse::Button::Left,
+                    ..
+                }) | Event::Touch(
+                    touch::Event::FingerLifted { .. }
+                        | touch::Event::FingerLost { .. }
+                )
             ) {
                 state.scroll_area_touched_at = None;
                 state.x_scroller_grabbed_at = None;
@@ -787,7 +791,7 @@ where
             }
 
             match event {
-                Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                Event::Mouse(mouse::Event::WheelScrolled { delta, .. }) => {
                     if cursor_over_scrollable.is_none() {
                         return;
                     }
