@@ -77,6 +77,7 @@ pub trait Component<Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     /// By default, it does nothing.
     fn operate(
         &self,
+        _bounds: Rectangle,
         _state: &mut Self::State,
         _operation: &mut dyn widget::Operation,
     ) {
@@ -191,11 +192,13 @@ where
 
     fn rebuild_element_with_operation(
         &self,
+        layout: Layout<'_>,
         operation: &mut dyn widget::Operation,
     ) {
         let heads = self.state.borrow_mut().take().unwrap().into_heads();
 
         heads.component.operate(
+            layout.bounds(),
             self.tree
                 .borrow_mut()
                 .borrow_mut()
@@ -382,7 +385,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.rebuild_element_with_operation(operation);
+        self.rebuild_element_with_operation(layout, operation);
 
         let tree = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
         self.with_element(|element| {
