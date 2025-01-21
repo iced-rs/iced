@@ -69,6 +69,7 @@ pub struct Tooltip<
     content: Element<'a, Message, Theme, Renderer>,
     tooltip: Element<'a, Message, Theme, Renderer>,
     position: Position,
+    max_width: f32,
     gap: f32,
     padding: f32,
     snap_within_viewport: bool,
@@ -95,11 +96,18 @@ where
             content: content.into(),
             tooltip: tooltip.into(),
             position,
+            max_width: f32::INFINITY,
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
             class: Theme::default(),
         }
+    }
+
+    /// Sets the maximum width of the [`Tooltip`].
+    pub fn max_width(mut self, width: impl Into<Pixels>) -> Self {
+        self.max_width = width.into().0;
+        self
     }
 
     /// Sets the gap between the content and its [`Tooltip`].
@@ -295,6 +303,7 @@ where
                 content_bounds: layout.bounds(),
                 snap_within_viewport: self.snap_within_viewport,
                 positioning: self.position,
+                max_width: self.max_width,
                 gap: self.gap,
                 padding: self.padding,
                 class: &self.class,
@@ -367,6 +376,7 @@ where
     content_bounds: Rectangle,
     snap_within_viewport: bool,
     positioning: Position,
+    max_width: f32,
     gap: f32,
     padding: f32,
     class: &'b Theme::Class<'a>,
@@ -390,10 +400,12 @@ where
                     .then(|| viewport.size())
                     .unwrap_or(Size::INFINITY),
             )
-            .shrink(Padding::new(self.padding)),
+            .shrink(Padding::new(self.padding))
+            .max_width(self.max_width),
         );
 
         let text_bounds = tooltip_layout.bounds();
+
         let x_center = self.position.x
             + (self.content_bounds.width - text_bounds.width) / 2.0;
         let y_center = self.position.y
