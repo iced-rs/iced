@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{keyboard::Modifiers, Point};
 
 use super::Button;
 
@@ -23,7 +23,12 @@ pub enum Event {
     },
 
     /// A mouse button was pressed.
-    ButtonPressed(Button),
+    ButtonPressed {
+        /// the button that was pressed
+        button: Button,
+        /// the modifier keys at the time of the button press
+        modifiers: Modifiers,
+    },
 
     /// A mouse button was released.
     ButtonReleased(Button),
@@ -32,6 +37,8 @@ pub enum Event {
     WheelScrolled {
         /// The scroll movement.
         delta: ScrollDelta,
+        /// the modifier keys at the time of the button press
+        modifiers: Modifiers,
     },
 }
 
