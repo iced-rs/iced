@@ -383,7 +383,7 @@ fn update<Message: Clone, Theme, Renderer>(
                         state.previous_click,
                     );
 
-                    if matches!(new_click.kind(), mouse::click::Kind::Double) {
+                    if new_click.kind() == mouse::click::Kind::Double {
                         shell.publish(message.clone());
                     }
 

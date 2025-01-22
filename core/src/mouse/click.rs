@@ -13,7 +13,7 @@ pub struct Click {
 }
 
 /// The kind of mouse click.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
     /// A single click
     Single,
