@@ -487,25 +487,21 @@ where
             state.translation(self.direction, bounds, content_bounds);
 
         operation.scrollable(
-            self.id.as_ref().map(|id| &id.0),
+            self.id.as_ref(),
             bounds,
             content_bounds,
             translation,
             state,
         );
 
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            bounds,
-            &mut |operation| {
-                self.content.as_widget().operate(
-                    &mut tree.children[0],
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.container(self.id.as_ref(), bounds, &mut |operation| {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn update(
@@ -1205,49 +1201,24 @@ where
 }
 
 /// The identifier of a [`Scrollable`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
-    }
-}
+pub type Id = widget::Id;
 
 /// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`Id`]
 /// to the provided [`RelativeOffset`].
 pub fn snap_to<T>(id: Id, offset: RelativeOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::snap_to(id.0, offset)))
+    task::effect(Action::widget(operation::scrollable::snap_to(id, offset)))
 }
 
 /// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
 /// to the provided [`AbsoluteOffset`].
 pub fn scroll_to<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::scroll_to(
-        id.0, offset,
-    )))
+    task::effect(Action::widget(operation::scrollable::scroll_to(id, offset)))
 }
 
 /// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
 /// by the provided [`AbsoluteOffset`].
 pub fn scroll_by<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::scroll_by(
-        id.0, offset,
-    )))
+    task::effect(Action::widget(operation::scrollable::scroll_by(id, offset)))
 }
 
 fn notify_scroll<Message>(
