@@ -230,17 +230,12 @@ where
                 state.cursor_grabbed_at = Some(cursor_position);
                 state.starting_offset = state.current_offset;
 
-                shell.request_redraw();
                 shell.capture_event();
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 let state = tree.state.downcast_mut::<State>();
 
-                if state.cursor_grabbed_at.is_some() {
-                    state.cursor_grabbed_at = None;
-                    shell.request_redraw();
-                    shell.capture_event();
-                }
+                state.cursor_grabbed_at = None;
             }
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 let state = tree.state.downcast_mut::<State>();
