@@ -1,5 +1,5 @@
 use iced::widget::{
-    button, center, column, container, horizontal_space, scrollable, text,
+    button, center, center_x, column, horizontal_space, scrollable, text,
     text_input,
 };
 use iced::window;
@@ -193,6 +193,6 @@ impl Window {
                 .align_x(Center),
         );
 
-        container(content).center_x(200).into()
+        center_x(content).width(200).into()
     }
 }

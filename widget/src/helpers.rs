@@ -232,10 +232,10 @@ where
 ///
 /// This is equivalent to:
 /// ```rust,no_run
-/// # use iced_widget::core::Length;
+/// # use iced_widget::core::Length::Fill;
 /// # use iced_widget::Container;
 /// # fn container<A>(x: A) -> Container<'static, ()> { unreachable!() }
-/// let centered = container("Centered!").center(Length::Fill);
+/// let center = container("Center!").center(Fill);
 /// ```
 ///
 /// [`Container`]: crate::Container
@@ -247,6 +247,166 @@ where
     Renderer: core::Renderer,
 {
     container(content).center(Length::Fill)
+}
+
+/// Creates a new [`Container`] that fills all the available space
+/// horizontally and centers its contents inside.
+///
+/// This is equivalent to:
+/// ```rust,no_run
+/// # use iced_widget::core::Length::Fill;
+/// # use iced_widget::Container;
+/// # fn container<A>(x: A) -> Container<'static, ()> { unreachable!() }
+/// let center_x = container("Horizontal Center!").center_x(Fill);
+/// ```
+///
+/// [`Container`]: crate::Container
+pub fn center_x<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Container<'a, Message, Theme, Renderer>
+where
+    Theme: container::Catalog + 'a,
+    Renderer: core::Renderer,
+{
+    container(content).center_x(Length::Fill)
+}
+
+/// Creates a new [`Container`] that fills all the available space
+/// vertically and centers its contents inside.
+///
+/// This is equivalent to:
+/// ```rust,no_run
+/// # use iced_widget::core::Length::Fill;
+/// # use iced_widget::Container;
+/// # fn container<A>(x: A) -> Container<'static, ()> { unreachable!() }
+/// let center_y = container("Vertical Center!").center_y(Fill);
+/// ```
+///
+/// [`Container`]: crate::Container
+pub fn center_y<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Container<'a, Message, Theme, Renderer>
+where
+    Theme: container::Catalog + 'a,
+    Renderer: core::Renderer,
+{
+    container(content).center_y(Length::Fill)
+}
+
+/// Creates a new [`Container`] that fills all the available space
+/// horizontally and right-aligns its contents inside.
+///
+/// This is equivalent to:
+/// ```rust,no_run
+/// # use iced_widget::core::Length::Fill;
+/// # use iced_widget::Container;
+/// # fn container<A>(x: A) -> Container<'static, ()> { unreachable!() }
+/// let right = container("Right!").align_right(Fill);
+/// ```
+///
+/// [`Container`]: crate::Container
+pub fn right<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Container<'a, Message, Theme, Renderer>
+where
+    Theme: container::Catalog + 'a,
+    Renderer: core::Renderer,
+{
+    container(content).align_right(Length::Fill)
+}
+
+/// Creates a new [`Container`] that fills all the available space
+/// and aligns its contents inside to the right center.
+///
+/// This is equivalent to:
+/// ```rust,no_run
+/// # use iced_widget::core::Length::Fill;
+/// # use iced_widget::Container;
+/// # fn container<A>(x: A) -> Container<'static, ()> { unreachable!() }
+/// let right_center = container("Bottom Center!").align_right(Fill).center_y(Fill);
+/// ```
+///
+/// [`Container`]: crate::Container
+pub fn right_center<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Container<'a, Message, Theme, Renderer>
+where
+    Theme: container::Catalog + 'a,
+    Renderer: core::Renderer,
+{
+    container(content)
+        .align_right(Length::Fill)
+        .center_y(Length::Fill)
+}
+
+/// Creates a new [`Container`] that fills all the available space
+/// vertically and bottom-aligns its contents inside.
+///
+/// This is equivalent to:
+/// ```rust,no_run
+/// # use iced_widget::core::Length::Fill;
+/// # use iced_widget::Container;
+/// # fn container<A>(x: A) -> Container<'static, ()> { unreachable!() }
+/// let bottom = container("Bottom!").align_bottom(Fill);
+/// ```
+///
+/// [`Container`]: crate::Container
+pub fn bottom<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Container<'a, Message, Theme, Renderer>
+where
+    Theme: container::Catalog + 'a,
+    Renderer: core::Renderer,
+{
+    container(content).align_bottom(Length::Fill)
+}
+
+/// Creates a new [`Container`] that fills all the available space
+/// and aligns its contents inside to the bottom center.
+///
+/// This is equivalent to:
+/// ```rust,no_run
+/// # use iced_widget::core::Length::Fill;
+/// # use iced_widget::Container;
+/// # fn container<A>(x: A) -> Container<'static, ()> { unreachable!() }
+/// let bottom_center = container("Bottom Center!").center_x(Fill).align_bottom(Fill);
+/// ```
+///
+/// [`Container`]: crate::Container
+pub fn bottom_center<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Container<'a, Message, Theme, Renderer>
+where
+    Theme: container::Catalog + 'a,
+    Renderer: core::Renderer,
+{
+    container(content)
+        .center_x(Length::Fill)
+        .align_bottom(Length::Fill)
+}
+
+/// Creates a new [`Container`] that fills all the available space
+/// and aligns its contents inside to the bottom right corner.
+///
+/// This is equivalent to:
+/// ```rust,no_run
+/// # use iced_widget::core::Length::Fill;
+/// # use iced_widget::Container;
+/// # fn container<A>(x: A) -> Container<'static, ()> { unreachable!() }
+/// let bottom_right = container("Bottom!").align_right(Fill).align_bottom(Fill);
+/// ```
+///
+/// [`Container`]: crate::Container
+pub fn bottom_right<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Container<'a, Message, Theme, Renderer>
+where
+    Theme: container::Catalog + 'a,
+    Renderer: core::Renderer,
+{
+    container(content)
+        .align_right(Length::Fill)
+        .align_bottom(Length::Fill)
 }
 
 /// Creates a new [`Pin`] widget with the given content.
