@@ -162,7 +162,6 @@ impl Default for App {
 
 mod toast {
     use std::fmt;
-    use std::time::{Duration, Instant};
 
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::overlay;
@@ -171,6 +170,7 @@ mod toast {
     use iced::advanced::{Clipboard, Shell, Widget};
     use iced::mouse;
     use iced::theme;
+    use iced::time::{self, Duration, Instant};
     use iced::widget::{
         button, column, container, horizontal_rule, horizontal_space, row, text,
     };
@@ -502,9 +502,8 @@ mod toast {
                 self.instants.iter_mut().enumerate().for_each(
                     |(index, maybe_instant)| {
                         if let Some(instant) = maybe_instant.as_mut() {
-                            let remaining =
-                                Duration::from_secs(self.timeout_secs)
-                                    .saturating_sub(instant.elapsed());
+                            let remaining = time::seconds(self.timeout_secs)
+                                .saturating_sub(instant.elapsed());
 
                             if remaining == Duration::ZERO {
                                 maybe_instant.take();
