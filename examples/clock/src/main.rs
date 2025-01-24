@@ -1,5 +1,5 @@
 use iced::mouse;
-use iced::time;
+use iced::time::{self, milliseconds};
 use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
 use iced::{alignment, Radians};
@@ -49,7 +49,7 @@ impl Clock {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(time::Duration::from_millis(500))
+        time::every(milliseconds(500))
             .map(|_| Message::Tick(chrono::offset::Local::now()))
     }
 

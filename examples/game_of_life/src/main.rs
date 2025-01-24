@@ -5,12 +5,11 @@ mod preset;
 use grid::Grid;
 use preset::Preset;
 
-use iced::time;
+use iced::time::{self, milliseconds};
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, slider, text,
 };
 use iced::{Center, Element, Fill, Subscription, Task, Theme};
-use std::time::Duration;
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -112,7 +111,7 @@ impl GameOfLife {
 
     fn subscription(&self) -> Subscription<Message> {
         if self.is_playing {
-            time::every(Duration::from_millis(1000 / self.speed as u64))
+            time::every(milliseconds(1000 / self.speed as u64))
                 .map(|_| Message::Tick)
         } else {
             Subscription::none()
@@ -191,6 +190,7 @@ mod grid {
     use crate::Preset;
     use iced::alignment;
     use iced::mouse;
+    use iced::time::{Duration, Instant};
     use iced::touch;
     use iced::widget::canvas;
     use iced::widget::canvas::{
@@ -202,7 +202,6 @@ mod grid {
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
     use std::ops::RangeInclusive;
-    use std::time::{Duration, Instant};
 
     pub struct Grid {
         state: State,

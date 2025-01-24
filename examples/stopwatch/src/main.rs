@@ -1,9 +1,7 @@
 use iced::keyboard;
-use iced::time;
+use iced::time::{self, milliseconds, Duration, Instant};
 use iced::widget::{button, center, column, row, text};
 use iced::{Center, Element, Subscription, Theme};
-
-use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
     iced::application("Stopwatch - Iced", Stopwatch::update, Stopwatch::view)
@@ -63,7 +61,7 @@ impl Stopwatch {
         let tick = match self.state {
             State::Idle => Subscription::none(),
             State::Ticking { .. } => {
-                time::every(Duration::from_millis(10)).map(Message::Tick)
+                time::every(milliseconds(10)).map(Message::Tick)
             }
         };
 
