@@ -311,6 +311,13 @@ pub fn success(theme: &Theme) -> Style {
     styled(palette.background.strong.color, palette.success.base.color)
 }
 
+/// The warning style of a [`ProgressBar`].
+pub fn warning(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    styled(palette.background.strong.color, palette.warning.base.color)
+}
+
 /// The danger style of a [`ProgressBar`].
 pub fn danger(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
