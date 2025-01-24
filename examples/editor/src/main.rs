@@ -1,8 +1,8 @@
 use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
-    self, button, column, container, horizontal_space, pick_list, row, text,
-    text_editor, toggler, tooltip,
+    self, button, center_x, column, container, horizontal_space, pick_list,
+    row, text, text_editor, toggler, tooltip,
 };
 use iced::{Center, Element, Fill, Font, Task, Theme};
 
@@ -288,7 +288,7 @@ fn action<'a, Message: Clone + 'a>(
     label: &'a str,
     on_press: Option<Message>,
 ) -> Element<'a, Message> {
-    let action = button(container(content).center_x(30));
+    let action = button(center_x(content).width(30));
 
     if let Some(on_press) = on_press {
         tooltip(
