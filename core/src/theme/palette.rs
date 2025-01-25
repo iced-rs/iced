@@ -29,56 +29,20 @@ impl Palette {
     pub const LIGHT: Self = Self {
         background: Color::WHITE,
         text: Color::BLACK,
-        primary: Color::from_rgb(
-            0x5E as f32 / 255.0,
-            0x7C as f32 / 255.0,
-            0xE2 as f32 / 255.0,
-        ),
-        success: Color::from_rgb(
-            0x12 as f32 / 255.0,
-            0x66 as f32 / 255.0,
-            0x4F as f32 / 255.0,
-        ),
-        warning: Color::from_rgb(
-            0xFF as f32 / 255.0,
-            0xC1 as f32 / 255.0,
-            0x4E as f32 / 255.0,
-        ),
-        danger: Color::from_rgb(
-            0xC3 as f32 / 255.0,
-            0x42 as f32 / 255.0,
-            0x3F as f32 / 255.0,
-        ),
+        primary: Color::from_rgb8(0x5E, 0x7C, 0xE2),
+        success: Color::from_rgb8(0x12, 0x66, 0x4F),
+        warning: Color::from_rgb8(0xFF, 0xC1, 0x4E),
+        danger: Color::from_rgb8(0xC3, 0x42, 0x3F),
     };
 
     /// The built-in dark variant of a [`Palette`].
     pub const DARK: Self = Self {
-        background: Color::from_rgb(
-            0x20 as f32 / 255.0,
-            0x22 as f32 / 255.0,
-            0x25 as f32 / 255.0,
-        ),
+        background: Color::from_rgb8(0x20, 0x22, 0x25),
         text: Color::from_rgb(0.90, 0.90, 0.90),
-        primary: Color::from_rgb(
-            0x5E as f32 / 255.0,
-            0x7C as f32 / 255.0,
-            0xE2 as f32 / 255.0,
-        ),
-        success: Color::from_rgb(
-            0x12 as f32 / 255.0,
-            0x66 as f32 / 255.0,
-            0x4F as f32 / 255.0,
-        ),
-        warning: Color::from_rgb(
-            0xFF as f32 / 255.0,
-            0xC1 as f32 / 255.0,
-            0x4E as f32 / 255.0,
-        ),
-        danger: Color::from_rgb(
-            0xC3 as f32 / 255.0,
-            0x42 as f32 / 255.0,
-            0x3F as f32 / 255.0,
-        ),
+        primary: Color::from_rgb8(0x5E, 0x7C, 0xE2),
+        success: Color::from_rgb8(0x12, 0x66, 0x4F),
+        warning: Color::from_rgb8(0xFF, 0xC1, 0x4E),
+        danger: Color::from_rgb8(0xC3, 0x42, 0x3F),
     };
 
     /// The built-in [Dracula] variant of a [`Palette`].
