@@ -175,6 +175,9 @@ pub enum Action {
     /// Set the window size increment.
     SetResizeIncrements(Id, Option<Size>),
 
+    /// Get the size of the monitor on which the window currently resides in logical dimensions.
+    GetMonitorSize(Id, oneshot::Sender<Option<Size>>),
+
     /// Redraws all the windows.
     RedrawAll,
 
@@ -490,4 +493,11 @@ pub fn enable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
 /// from being passed to whatever is underneath.
 pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
     task::effect(crate::Action::Window(Action::DisableMousePassthrough(id)))
+}
+
+/// Get the size of the monitor on which the window currently resides in logical dimensions.
+pub fn monitor_size(id: Id) -> Task<Option<Size>> {
+    task::oneshot(move |channel| {
+        crate::Action::Window(Action::GetMonitorSize(id, channel))
+    })
 }
