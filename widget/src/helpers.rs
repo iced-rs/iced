@@ -24,7 +24,7 @@ use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::vertical_slider::{self, VerticalSlider};
-use crate::{Column, MouseArea, Pin, Row, Space, Stack, Themer};
+use crate::{Column, MouseArea, Pin, Pop, Row, Space, Stack, Themer};
 
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
@@ -968,6 +968,20 @@ where
         is_top_overlay_active: false,
         is_hovered: false,
     })
+}
+
+/// Creates a new [`Pop`] widget.
+///
+/// A [`Pop`] widget can generate messages when it pops in and out of view.
+/// It can even notify you with anticipation at a given distance!
+pub fn pop<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Pop<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+    Message: Clone,
+{
+    Pop::new(content)
 }
 
 /// Creates a new [`Scrollable`] with the provided content.

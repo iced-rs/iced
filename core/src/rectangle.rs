@@ -143,6 +143,20 @@ impl Rectangle<f32> {
             && point.y < self.y + self.height
     }
 
+    /// Returns the minimum distance from the given [`Point`] to any of the edges
+    /// of the [`Rectangle`].
+    pub fn distance(&self, point: Point) -> f32 {
+        let center = self.center();
+
+        let distance_x =
+            ((point.x - center.x).abs() - self.width / 2.0).max(0.0);
+
+        let distance_y =
+            ((point.y - center.y).abs() - self.height / 2.0).max(0.0);
+
+        distance_x.hypot(distance_y)
+    }
+
     /// Returns true if the current [`Rectangle`] is completely within the given
     /// `container`.
     pub fn is_within(&self, container: &Rectangle) -> bool {
