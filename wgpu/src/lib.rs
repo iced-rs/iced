@@ -268,13 +268,28 @@ impl Renderer {
         let scale = Transformation::scale(scale_factor);
 
         for layer in self.layers.iter() {
-            let Some(physical_bounds) =
-                physical_bounds.intersection(&(layer.bounds * scale))
+            let Some(scissor_rect) = physical_bounds
+                .intersection(&(layer.bounds * scale))
+                .and_then(Rectangle::snap)
             else {
-                continue;
-            };
+                if !layer.quads.is_empty() {
+                    quad_layer += 1;
+                }
 
-            let Some(scissor_rect) = physical_bounds.snap() else {
+                if !layer.triangles.is_empty() {
+                    mesh_layer +=
+                        triangle::Pipeline::layer_count(&layer.triangles);
+                }
+
+                if !layer.text.is_empty() {
+                    text_layer += text::Pipeline::layer_count(&layer.text);
+                }
+
+                #[cfg(any(feature = "svg", feature = "image"))]
+                if !layer.images.is_empty() {
+                    image_layer += 1;
+                }
+
                 continue;
             };
 

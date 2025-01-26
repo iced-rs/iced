@@ -302,6 +302,13 @@ impl Pipeline {
         }
     }
 
+    pub fn layer_count(batch: &Batch) -> usize {
+        batch
+            .iter()
+            .filter(|item| matches!(item, Item::Group { .. }))
+            .count()
+    }
+
     pub fn prepare(
         &mut self,
         device: &wgpu::Device,
