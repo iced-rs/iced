@@ -277,21 +277,12 @@ impl Renderer {
                 }
 
                 if !layer.triangles.is_empty() {
-                    mesh_layer += layer
-                        .triangles
-                        .iter()
-                        .filter(|item| {
-                            matches!(item, triangle::Item::Group { .. })
-                        })
-                        .count();
+                    mesh_layer +=
+                        triangle::Pipeline::layer_count(&layer.triangles);
                 }
 
                 if !layer.text.is_empty() {
-                    text_layer += layer
-                        .text
-                        .iter()
-                        .filter(|item| matches!(item, text::Item::Group { .. }))
-                        .count();
+                    text_layer += text::Pipeline::layer_count(&layer.text);
                 }
 
                 #[cfg(any(feature = "svg", feature = "image"))]
