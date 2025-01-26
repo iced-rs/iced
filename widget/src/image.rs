@@ -63,6 +63,7 @@ pub struct Image<Handle = image::Handle> {
     filter_method: FilterMethod,
     rotation: Rotation,
     opacity: f32,
+    scale: f32,
 }
 
 impl<Handle> Image<Handle> {
@@ -76,6 +77,7 @@ impl<Handle> Image<Handle> {
             filter_method: FilterMethod::default(),
             rotation: Rotation::default(),
             opacity: 1.0,
+            scale: 1.0,
         }
     }
 
@@ -117,6 +119,15 @@ impl<Handle> Image<Handle> {
     /// and `1.0` meaning completely opaque.
     pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
         self.opacity = opacity.into();
+        self
+    }
+
+    /// Sets the scale of the [`Image`].
+    ///
+    /// The region of the [`Image`] drawn will be scaled from the center by the given scale factor.
+    /// This can be useful to create certain effects and animations, like smooth zoom in / out.
+    pub fn scale(mut self, scale: impl Into<f32>) -> Self {
+        self.scale = scale.into();
         self
     }
 }
@@ -173,6 +184,7 @@ pub fn draw<Renderer, Handle>(
     filter_method: FilterMethod,
     rotation: Rotation,
     opacity: f32,
+    scale: f32,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -184,12 +196,12 @@ pub fn draw<Renderer, Handle>(
     let bounds = layout.bounds();
     let adjusted_fit = content_fit.fit(rotated_size, bounds.size());
 
-    let scale = Vector::new(
+    let fit_scale = Vector::new(
         adjusted_fit.width / rotated_size.width,
         adjusted_fit.height / rotated_size.height,
     );
 
-    let final_size = image_size * scale;
+    let final_size = image_size * fit_scale * scale;
 
     let position = match content_fit {
         ContentFit::None => Point::new(
@@ -276,6 +288,7 @@ where
             self.filter_method,
             self.rotation,
             self.opacity,
+            self.scale,
         );
     }
 }
