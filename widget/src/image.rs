@@ -167,6 +167,7 @@ where
 pub fn draw<Renderer, Handle>(
     renderer: &mut Renderer,
     layout: Layout<'_>,
+    viewport: &Rectangle,
     handle: &Handle,
     content_fit: ContentFit,
     filter_method: FilterMethod,
@@ -218,7 +219,9 @@ pub fn draw<Renderer, Handle>(
 
     if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
     {
-        renderer.with_layer(bounds, render);
+        if let Some(bounds) = bounds.intersection(viewport) {
+            renderer.with_layer(bounds, render);
+        }
     } else {
         render(renderer);
     }
@@ -262,11 +265,12 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         draw(
             renderer,
             layout,
+            viewport,
             &self.handle,
             self.content_fit,
             self.filter_method,
