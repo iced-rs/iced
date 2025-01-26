@@ -145,7 +145,19 @@ impl Renderer {
 
         self.text_viewport.update(queue, viewport.physical_size());
 
+        let physical_bounds = Rectangle::<f32>::from(Rectangle::with_size(
+            viewport.physical_size(),
+        ));
+
         for layer in self.layers.iter_mut() {
+            if physical_bounds
+                .intersection(&(layer.bounds * scale_factor))
+                .and_then(Rectangle::snap)
+                .is_none()
+            {
+                continue;
+            }
+
             if !layer.quads.is_empty() {
                 engine.quad_pipeline.prepare(
                     device,
@@ -269,27 +281,9 @@ impl Renderer {
 
         for layer in self.layers.iter() {
             let Some(scissor_rect) = physical_bounds
-                .intersection(&(layer.bounds * scale))
+                .intersection(&(layer.bounds * scale_factor))
                 .and_then(Rectangle::snap)
             else {
-                if !layer.quads.is_empty() {
-                    quad_layer += 1;
-                }
-
-                if !layer.triangles.is_empty() {
-                    mesh_layer +=
-                        triangle::Pipeline::layer_count(&layer.triangles);
-                }
-
-                if !layer.text.is_empty() {
-                    text_layer += text::Pipeline::layer_count(&layer.text);
-                }
-
-                #[cfg(any(feature = "svg", feature = "image"))]
-                if !layer.images.is_empty() {
-                    image_layer += 1;
-                }
-
                 continue;
             };
 
