@@ -498,15 +498,16 @@ pub mod window;
 pub mod advanced;
 
 pub use crate::core::alignment;
+pub use crate::core::animation;
 pub use crate::core::border;
 pub use crate::core::color;
 pub use crate::core::gradient;
 pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
-    Alignment, Background, Border, Color, ContentFit, Degrees, Gradient,
-    Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Settings,
-    Shadow, Size, Theme, Transformation, Vector,
+    Alignment, Animation, Background, Border, Color, ContentFit, Degrees,
+    Gradient, Length, Padding, Pixels, Point, Radians, Rectangle, Rotation,
+    Settings, Shadow, Size, Theme, Transformation, Vector,
 };
 pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
