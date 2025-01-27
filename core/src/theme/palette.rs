@@ -29,20 +29,20 @@ impl Palette {
     pub const LIGHT: Self = Self {
         background: Color::WHITE,
         text: Color::BLACK,
-        primary: Color::from_rgb8(0x5E, 0x7C, 0xE2),
-        success: Color::from_rgb8(0x12, 0x66, 0x4F),
-        warning: Color::from_rgb8(0xFF, 0xC1, 0x4E),
-        danger: Color::from_rgb8(0xC3, 0x42, 0x3F),
+        primary: color!(0x5e7ce2),
+        success: color!(0x12664f),
+        warning: color!(0xffc14e),
+        danger: color!(0xc3423f),
     };
 
     /// The built-in dark variant of a [`Palette`].
     pub const DARK: Self = Self {
-        background: Color::from_rgb8(0x20, 0x22, 0x25),
+        background: color!(0x202225),
         text: Color::from_rgb(0.90, 0.90, 0.90),
-        primary: Color::from_rgb8(0x5E, 0x7C, 0xE2),
-        success: Color::from_rgb8(0x12, 0x66, 0x4F),
-        warning: Color::from_rgb8(0xFF, 0xC1, 0x4E),
-        danger: Color::from_rgb8(0xC3, 0x42, 0x3F),
+        primary: color!(0x5e7ce2),
+        success: color!(0x12664f),
+        warning: color!(0xffc14e),
+        danger: color!(0xc3423f),
     };
 
     /// The built-in [Dracula] variant of a [`Palette`].
