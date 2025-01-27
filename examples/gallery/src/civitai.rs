@@ -22,7 +22,7 @@ impl Image {
         }
 
         let response: Response = client
-            .get(endpoint("/images"))
+            .get("https://civitai.com/api/v1/images")
             .query(&[
                 ("sort", "Most Reactions"),
                 ("period", "Week"),
@@ -106,12 +106,6 @@ impl fmt::Debug for Rgba {
 pub enum Size {
     Original,
     Thumbnail,
-}
-
-fn endpoint(path: &str) -> String {
-    const API_URL: &str = "https://civitai.com/api/v1";
-
-    format!("{API_URL}{path}")
 }
 
 #[derive(Debug, Clone)]
