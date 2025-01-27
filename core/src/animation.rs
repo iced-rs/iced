@@ -89,6 +89,8 @@ where
     /// closure provided to calculate the different keyframes of interpolated values.
     ///
     /// If the [`Animation`] state is a `bool`, you can use the simpler [`interpolate`] method.
+    ///
+    /// [`interpolate`]: Animation::interpolate
     pub fn interpolate_with<I>(&self, f: impl Fn(T) -> I, at: Instant) -> I
     where
         I: Interpolable,
