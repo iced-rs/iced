@@ -95,6 +95,11 @@ where
     {
         self.raw.animate(f, at)
     }
+
+    /// Retuns the current state of the [`Animation`].
+    pub fn value(&self) -> T {
+        self.raw.value
+    }
 }
 
 impl Animation<bool> {
