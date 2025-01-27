@@ -414,7 +414,7 @@ impl Renderer {
                     renderer.fill_text(
                         text.clone(),
                         Point::new(11.0, 11.0 + 25.0 * i as f32),
-                        Color::new(0.9, 0.9, 0.9, 1.0),
+                        Color::from_rgba(0.9, 0.9, 0.9, 1.0),
                         Rectangle::with_size(Size::INFINITY),
                     );
 
