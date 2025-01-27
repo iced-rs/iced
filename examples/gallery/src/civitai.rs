@@ -25,7 +25,7 @@ impl Image {
             .get(endpoint("/images"))
             .query(&[
                 ("sort", "Most Reactions"),
-                ("period", "Day"),
+                ("period", "Week"),
                 ("nsfw", "None"),
                 ("limit", "99"),
             ])
