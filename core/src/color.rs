@@ -42,7 +42,7 @@ impl Color {
     ///
     /// In debug mode, it will panic if the values are not in the correct
     /// range: 0.0 - 1.0
-    const fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
+    pub const fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         debug_assert!(
             r >= 0.0 && r <= 1.0,
             "Red component must be in [0, 1] range."
