@@ -1,4 +1,3 @@
-use crate::mouse::Cursor;
 use crate::{Point, Rectangle, Size, Vector};
 
 use glam::{Mat4, Vec3, Vec4};
@@ -104,19 +103,6 @@ impl Mul<Transformation> for Rectangle {
         let size = self.size();
 
         Self::new(position * transformation, size * transformation)
-    }
-}
-
-impl Mul<Transformation> for Cursor {
-    type Output = Self;
-
-    fn mul(self, transformation: Transformation) -> Self {
-        match self {
-            Cursor::Unavailable => Cursor::Unavailable,
-            Cursor::Available(point) => {
-                Cursor::Available(point * transformation)
-            }
-        }
     }
 }
 

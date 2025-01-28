@@ -1,4 +1,6 @@
-use crate::{Point, Rectangle, Vector};
+use crate::{Point, Rectangle, Transformation, Vector};
+
+use std::ops::Mul;
 
 /// The mouse cursor state.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -48,5 +50,18 @@ impl Cursor {
     /// Returns true if the [`Cursor`] is over the given `bounds`.
     pub fn is_over(self, bounds: Rectangle) -> bool {
         self.position_over(bounds).is_some()
+    }
+}
+
+impl Mul<Transformation> for Cursor {
+    type Output = Self;
+
+    fn mul(self, transformation: Transformation) -> Self {
+        match self {
+            Cursor::Unavailable => Cursor::Unavailable,
+            Cursor::Available(point) => {
+                Cursor::Available(point * transformation)
+            }
+        }
     }
 }
