@@ -67,6 +67,26 @@ where
         self
     }
 
+    /// Makes the [`Animation`] repeat a given amount of times.
+    ///
+    /// Providing 1 repetition plays the animation twice in total.
+    pub fn repeat(mut self, repetitions: u32) -> Self {
+        self.raw = self.raw.repeat(repetitions);
+        self
+    }
+
+    /// Makes the [`Animation`] repeat forever.
+    pub fn repeat_forever(mut self) -> Self {
+        self.raw = self.raw.repeat_forever();
+        self
+    }
+
+    /// Makes the [`Animation`] automatically reverse when repeating.
+    pub fn auto_reverse(mut self) -> Self {
+        self.raw = self.raw.auto_reverse();
+        self
+    }
+
     /// Transitions the [`Animation`] from its current state to the given new state.
     pub fn go(mut self, new_state: T) -> Self {
         self.go_mut(new_state);
