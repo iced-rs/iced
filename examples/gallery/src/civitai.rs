@@ -13,6 +13,8 @@ pub struct Image {
 }
 
 impl Image {
+    pub const LIMIT: usize = 99;
+
     pub async fn list() -> Result<Vec<Self>, Error> {
         let client = reqwest::Client::new();
 
@@ -27,7 +29,7 @@ impl Image {
                 ("sort", "Most Reactions"),
                 ("period", "Week"),
                 ("nsfw", "None"),
-                ("limit", "99"),
+                ("limit", &Image::LIMIT.to_string()),
             ])
             .send()
             .await?

@@ -153,9 +153,13 @@ impl Gallery {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        let gallery = row(self.images.iter().map(|image| {
-            card(image, self.thumbnails.get(&image.id), self.now)
-        }))
+        let gallery = if self.images.is_empty() {
+            row((0..=Image::LIMIT).map(|_| placeholder()))
+        } else {
+            row(self.images.iter().map(|image| {
+                card(image, self.thumbnails.get(&image.id), self.now)
+            }))
+        }
         .spacing(10)
         .wrap();
 
@@ -187,8 +191,8 @@ fn card<'a>(
 
     let card = mouse_area(
         container(image)
-            .width(320)
-            .height(410)
+            .width(Thumbnail::WIDTH)
+            .height(Thumbnail::HEIGHT)
             .style(container::dark),
     )
     .on_enter(Message::ThumbnailHovered(metadata.id, true))
@@ -207,6 +211,14 @@ fn card<'a>(
     }
 }
 
+fn placeholder<'a>() -> Element<'a, Message> {
+    container(horizontal_space())
+        .width(Thumbnail::WIDTH)
+        .height(Thumbnail::HEIGHT)
+        .style(container::dark)
+        .into()
+}
+
 struct Thumbnail {
     handle: image::Handle,
     fade_in: Animation<bool>,
@@ -214,6 +226,9 @@ struct Thumbnail {
 }
 
 impl Thumbnail {
+    const WIDTH: u16 = 320;
+    const HEIGHT: u16 = 410;
+
     fn new(rgba: Rgba) -> Self {
         Self {
             handle: image::Handle::from_rgba(
