@@ -1,7 +1,9 @@
 //! Track mouse clicks.
 use crate::mouse::Button;
 use crate::time::Instant;
-use crate::Point;
+use crate::{Point, Transformation};
+
+use std::ops::Mul;
 
 /// A mouse click.
 #[derive(Debug, Clone, Copy)]
@@ -86,5 +88,18 @@ impl Click {
             && duration
                 .map(|duration| duration.as_millis() <= 300)
                 .unwrap_or(false)
+    }
+}
+
+impl Mul<Transformation> for Click {
+    type Output = Click;
+
+    fn mul(self, transformation: Transformation) -> Click {
+        Click {
+            kind: self.kind,
+            button: self.button,
+            position: self.position * transformation,
+            time: self.time,
+        }
     }
 }
