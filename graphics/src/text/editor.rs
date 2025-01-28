@@ -9,6 +9,7 @@ use crate::text;
 
 use cosmic_text::Edit as _;
 
+use std::borrow::Cow;
 use std::fmt;
 use std::sync::{self, Arc};
 
@@ -89,11 +90,17 @@ impl editor::Editor for Editor {
             || (buffer.lines.len() == 1 && buffer.lines[0].text().is_empty())
     }
 
-    fn line(&self, index: usize) -> Option<&str> {
-        self.buffer()
-            .lines
-            .get(index)
-            .map(cosmic_text::BufferLine::text)
+    fn line(&self, index: usize) -> Option<editor::Line<'_>> {
+        self.buffer().lines.get(index).map(|line| editor::Line {
+            text: Cow::Borrowed(line.text()),
+            ending: match line.ending() {
+                cosmic_text::LineEnding::Lf => editor::LineEnding::Lf,
+                cosmic_text::LineEnding::CrLf => editor::LineEnding::CrLf,
+                cosmic_text::LineEnding::Cr => editor::LineEnding::Cr,
+                cosmic_text::LineEnding::LfCr => editor::LineEnding::LfCr,
+                cosmic_text::LineEnding::None => editor::LineEnding::None,
+            },
+        })
     }
 
     fn line_count(&self) -> usize {
