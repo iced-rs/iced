@@ -81,7 +81,7 @@ where
     /// Returns true if the [`Animation`] is currently in progress.
     ///
     /// An [`Animation`] is in progress when it is transitioning to a different state.
-    pub fn in_progress(&self, at: Instant) -> bool {
+    pub fn is_animating(&self, at: Instant) -> bool {
         self.raw.in_progress(at)
     }
 

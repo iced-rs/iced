@@ -103,18 +103,7 @@ impl Gallery {
                 Task::none()
             }
             Message::ThumbnailDownloaded(id, Ok(rgba)) => {
-                let thumbnail = Thumbnail {
-                    handle: image::Handle::from_rgba(
-                        rgba.width,
-                        rgba.height,
-                        rgba.pixels,
-                    ),
-                    fade_in: Animation::new(false).slow().go(true),
-                    zoom: Animation::new(false)
-                        .quick()
-                        .easing(animation::Easing::EaseInOut),
-                };
-
+                let thumbnail = Thumbnail::new(rgba);
                 let _ = self.thumbnails.insert(id, thumbnail);
 
                 Task::none()
@@ -179,18 +168,6 @@ impl Gallery {
     }
 }
 
-struct Thumbnail {
-    handle: image::Handle,
-    fade_in: Animation<bool>,
-    zoom: Animation<bool>,
-}
-
-impl Thumbnail {
-    fn is_animating(&self, now: Instant) -> bool {
-        self.fade_in.in_progress(now) || self.zoom.in_progress(now)
-    }
-}
-
 fn card<'a>(
     metadata: &'a Image,
     thumbnail: Option<&'a Thumbnail>,
@@ -227,6 +204,32 @@ fn card<'a>(
         pop(card)
             .on_show(Message::ImagePoppedIn(metadata.id))
             .into()
+    }
+}
+
+struct Thumbnail {
+    handle: image::Handle,
+    fade_in: Animation<bool>,
+    zoom: Animation<bool>,
+}
+
+impl Thumbnail {
+    fn new(rgba: Rgba) -> Self {
+        Self {
+            handle: image::Handle::from_rgba(
+                rgba.width,
+                rgba.height,
+                rgba.pixels,
+            ),
+            fade_in: Animation::new(false).slow().go(true),
+            zoom: Animation::new(false)
+                .quick()
+                .easing(animation::Easing::EaseInOut),
+        }
+    }
+
+    fn is_animating(&self, now: Instant) -> bool {
+        self.fade_in.is_animating(now) || self.zoom.is_animating(now)
     }
 }
 
@@ -270,8 +273,8 @@ impl Viewer {
     }
 
     fn is_animating(&self, now: Instant) -> bool {
-        self.background_fade_in.in_progress(now)
-            || self.image_fade_in.in_progress(now)
+        self.background_fade_in.is_animating(now)
+            || self.image_fade_in.is_animating(now)
     }
 
     fn view(&self, now: Instant) -> Element<'_, Message> {
