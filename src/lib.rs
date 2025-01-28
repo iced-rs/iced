@@ -511,6 +511,12 @@ pub use crate::core::{
 pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub use crate::core::animation;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use crate::core::Animation;
+
 pub use alignment::Horizontal::{Left, Right};
 pub use alignment::Vertical::{Bottom, Top};
 pub use Alignment::Center;

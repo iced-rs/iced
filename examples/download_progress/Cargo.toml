@@ -11,5 +11,4 @@ iced.features = ["tokio"]
 
 [dependencies.reqwest]
 version = "0.12"
-default-features = false
-features = ["stream", "rustls-tls"]
+features = ["stream"]

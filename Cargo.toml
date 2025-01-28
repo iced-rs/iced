@@ -158,6 +158,7 @@ half = "2.2"
 image = { version = "0.25", default-features = false }
 kamadak-exif = "0.5"
 kurbo = "0.10"
+lilt = "0.7"
 log = "0.4"
 lyon = "1.0"
 lyon_path = "1.0"
@@ -192,7 +193,7 @@ window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b" }
 
 [workspace.lints.rust]
-rust_2018_idioms = { level = "forbid", priority = -1 }
+rust_2018_idioms = { level = "deny", priority = -1 }
 missing_debug_implementations = "deny"
 missing_docs = "deny"
 unsafe_code = "deny"

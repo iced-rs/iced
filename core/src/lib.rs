@@ -10,6 +10,8 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
 pub mod alignment;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod animation;
 pub mod border;
 pub mod clipboard;
 pub mod event;
@@ -49,6 +51,8 @@ mod vector;
 
 pub use alignment::Alignment;
 pub use angle::{Degrees, Radians};
+#[cfg(not(target_arch = "wasm32"))]
+pub use animation::Animation;
 pub use background::Background;
 pub use border::Border;
 pub use clipboard::Clipboard;
