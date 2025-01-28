@@ -50,12 +50,13 @@ use crate::core::{
     Rectangle, Shell, Size, SmolStr, Theme, Vector,
 };
 
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::fmt;
 use std::ops::DerefMut;
 use std::sync::Arc;
 
-pub use text::editor::{Action, Edit, Motion};
+pub use text::editor::{Action, Edit, Line, LineEnding, Motion};
 
 /// A multi-line text input.
 ///
@@ -349,69 +350,47 @@ where
     }
 
     /// Returns the text of the line at the given index, if it exists.
-    pub fn line(
-        &self,
-        index: usize,
-    ) -> Option<impl std::ops::Deref<Target = str> + '_> {
-        std::cell::Ref::filter_map(self.0.borrow(), |internal| {
-            internal.editor.line(index)
+    pub fn line(&self, index: usize) -> Option<Line<'_>> {
+        let internal = self.0.borrow();
+        let line = internal.editor.line(index)?;
+
+        Some(Line {
+            text: Cow::Owned(line.text.into_owned()),
+            ending: line.ending,
         })
-        .ok()
     }
 
     /// Returns an iterator of the text of the lines in the [`Content`].
-    pub fn lines(
-        &self,
-    ) -> impl Iterator<Item = impl std::ops::Deref<Target = str> + '_> {
-        struct Lines<'a, Renderer: text::Renderer> {
-            internal: std::cell::Ref<'a, Internal<Renderer>>,
-            current: usize,
-        }
-
-        impl<'a, Renderer: text::Renderer> Iterator for Lines<'a, Renderer> {
-            type Item = std::cell::Ref<'a, str>;
-
-            fn next(&mut self) -> Option<Self::Item> {
-                let line = std::cell::Ref::filter_map(
-                    std::cell::Ref::clone(&self.internal),
-                    |internal| internal.editor.line(self.current),
-                )
-                .ok()?;
-
-                self.current += 1;
-
-                Some(line)
-            }
-        }
-
-        Lines {
-            internal: self.0.borrow(),
-            current: 0,
-        }
+    pub fn lines(&self) -> impl Iterator<Item = Line<'_>> {
+        (0..)
+            .map(|i| self.line(i))
+            .take_while(Option::is_some)
+            .flatten()
     }
 
     /// Returns the text of the [`Content`].
-    ///
-    /// Lines are joined with `'\n'`.
     pub fn text(&self) -> String {
-        let mut text = self.lines().enumerate().fold(
-            String::new(),
-            |mut contents, (i, line)| {
-                if i > 0 {
-                    contents.push('\n');
-                }
+        let mut contents = String::new();
+        let mut lines = self.lines().peekable();
 
-                contents.push_str(&line);
+        while let Some(line) = lines.next() {
+            contents.push_str(&line.text);
 
-                contents
-            },
-        );
-
-        if !text.ends_with('\n') {
-            text.push('\n');
+            if lines.peek().is_some() {
+                contents.push_str(if line.ending == LineEnding::None {
+                    LineEnding::default().as_str()
+                } else {
+                    line.ending.as_str()
+                });
+            }
         }
 
-        text
+        contents
+    }
+
+    /// Returns the kind of [`LineEnding`] used for separating lines in the [`Content`].
+    pub fn line_ending(&self) -> Option<LineEnding> {
+        Some(self.line(0)?.ending)
     }
 
     /// Returns the selected text of the [`Content`].
