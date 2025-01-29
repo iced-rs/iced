@@ -1,5 +1,4 @@
 use iced::highlighter;
-use iced::keyboard::Hotkey;
 use iced::widget::{
     self, button, center_x, column, container, horizontal_space, keybind,
     pick_list, row, text, text_editor, toggler, tooltip,
@@ -146,18 +145,25 @@ impl Editor {
 
     fn view(&self) -> Element<Message> {
         let controls = row![
-            action(new_icon(), "New file", 'n', Some(Message::NewFile)),
-            action(
-                open_icon(),
-                "Open file",
-                'o',
-                (!self.is_loading).then_some(Message::OpenFile)
+            keybind(
+                'n',
+                action(new_icon(), "New file", Some(Message::NewFile))
             ),
-            action(
-                save_icon(),
-                "Save file",
+            keybind(
+                'o',
+                action(
+                    open_icon(),
+                    "Open file",
+                    (!self.is_loading).then_some(Message::OpenFile)
+                )
+            ),
+            keybind(
                 's',
-                self.is_dirty.then_some(Message::SaveFile),
+                action(
+                    save_icon(),
+                    "Save file",
+                    self.is_dirty.then_some(Message::SaveFile),
+                )
             ),
             horizontal_space(),
             toggler(self.word_wrap)
@@ -284,14 +290,13 @@ async fn save_file(
 fn action<'a, Message: Clone + 'a>(
     content: impl Into<Element<'a, Message>>,
     label: &'a str,
-    hotkey: impl Into<Hotkey>,
     on_press: Option<Message>,
 ) -> Element<'a, Message> {
     let action = button(center_x(content).width(30));
 
     if let Some(on_press) = on_press {
         tooltip(
-            keybind(hotkey, action.on_press(on_press)),
+            action.on_press(on_press),
             label,
             tooltip::Position::FollowCursor,
         )
