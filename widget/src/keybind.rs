@@ -225,13 +225,18 @@ mod test {
 
     #[test]
     fn it_triggers_a_click() {
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        enum Message {
+            Save,
+        }
+
         let keybind: Keybind<'_, _, crate::Theme> =
-            Keybind::new('s', button("Test!").on_press(42));
+            Keybind::new('s', button("Save").on_press(Message::Save));
 
         let mut ui = simulator(keybind);
         let status = ui.tap_hotkey('s');
 
         assert_eq!(status, event::Status::Captured);
-        assert_eq!(ui.into_messages().collect::<Vec<_>>(), vec![42]);
+        assert_eq!(ui.into_messages().collect::<Vec<_>>(), vec![Message::Save]);
     }
 }
