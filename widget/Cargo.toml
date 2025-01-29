@@ -51,3 +51,6 @@ iced_highlighter.optional = true
 
 url.workspace = true
 url.optional = true
+
+[dev-dependencies]
+iced_test.workspace = true

@@ -1,5 +1,5 @@
 /// The location of a key on the keyboard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Location {
     /// The standard group of keys on the keyboard.
     Standard,

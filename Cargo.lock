@@ -2628,6 +2628,7 @@ dependencies = [
  "iced_highlighter",
  "iced_renderer",
  "iced_runtime",
+ "iced_test",
  "num-traits",
  "ouroboros",
  "pulldown-cmark",

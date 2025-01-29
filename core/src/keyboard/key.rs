@@ -6,7 +6,7 @@ use crate::SmolStr;
 /// This is mostly the `Key` type found in [`winit`].
 ///
 /// [`winit`]: https://docs.rs/winit/0.29.10/winit/keyboard/enum.Key.html
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Key<C = SmolStr> {
     /// A key with an established name.
     Named(Named),
@@ -35,6 +35,18 @@ impl Key {
 impl From<Named> for Key {
     fn from(named: Named) -> Self {
         Self::Named(named)
+    }
+}
+
+impl From<char> for Key {
+    fn from(c: char) -> Self {
+        Self::Character(SmolStr::from_iter([c]))
+    }
+}
+
+impl From<&str> for Key {
+    fn from(s: &str) -> Self {
+        Self::Character(SmolStr::new(s))
     }
 }
 

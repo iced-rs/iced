@@ -568,7 +568,7 @@ pub mod event {
 pub mod keyboard {
     //! Listen and react to keyboard events.
     pub use crate::core::keyboard::key;
-    pub use crate::core::keyboard::{Event, Key, Location, Modifiers};
+    pub use crate::core::keyboard::{Event, Hotkey, Key, Location, Modifiers};
     pub use iced_futures::keyboard::{on_key_press, on_key_release};
 }
 

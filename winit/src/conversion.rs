@@ -235,6 +235,7 @@ pub fn window_event(
                 location,
                 logical_key,
                 physical_key,
+                repeat,
                 ..
             } = event;
 
@@ -265,6 +266,7 @@ pub fn window_event(
                         modifiers,
                         location,
                         text,
+                        repeat,
                     }
                 }
                 winit::event::ElementState::Released => {

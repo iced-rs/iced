@@ -29,6 +29,9 @@ pub enum Event {
 
         /// The text produced by the key press, if any.
         text: Option<SmolStr>,
+
+        /// Whether the key press is a key repeat event.
+        repeat: bool,
     },
 
     /// A keyboard key was released.

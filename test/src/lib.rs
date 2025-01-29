@@ -386,6 +386,17 @@ where
             .unwrap_or(event::Status::Ignored)
     }
 
+    /// Simulates a key press combination, followed by a release, in the [`Simulator`].
+    pub fn tap_hotkey(
+        &mut self,
+        key: impl Into<keyboard::Hotkey>,
+    ) -> event::Status {
+        self.simulate(tap_hotkey(key, None))
+            .first()
+            .copied()
+            .unwrap_or(event::Status::Ignored)
+    }
+
     /// Simulates a user typing in the keyboard the given text in the [`Simulator`].
     pub fn typewrite(&mut self, text: &str) -> event::Status {
         let statuses = self.simulate(typewrite(text));
@@ -555,7 +566,25 @@ pub fn tap_key(
     key: impl Into<keyboard::Key>,
     text: Option<SmolStr>,
 ) -> impl Iterator<Item = Event> {
-    let key = key.into();
+    let hotkey = keyboard::Hotkey {
+        key: key.into(),
+        modifiers: keyboard::Modifiers::default(),
+        location: None,
+    };
+
+    tap_hotkey(hotkey, text)
+}
+
+/// Returns the sequence of events of a "hotkey tap" (i.e. pressing and releasing a key combination).
+pub fn tap_hotkey(
+    hotkey: impl Into<keyboard::Hotkey>,
+    text: Option<SmolStr>,
+) -> impl Iterator<Item = Event> {
+    let hotkey = hotkey.into();
+
+    let key = hotkey.key;
+    let modifiers = hotkey.modifiers;
+    let location = hotkey.location.unwrap_or(keyboard::Location::Standard);
 
     [
         Event::Keyboard(keyboard::Event::KeyPressed {
@@ -564,9 +593,10 @@ pub fn tap_key(
             physical_key: keyboard::key::Physical::Unidentified(
                 keyboard::key::NativeCode::Unidentified,
             ),
-            location: keyboard::Location::Standard,
-            modifiers: keyboard::Modifiers::default(),
+            location,
+            modifiers,
             text,
+            repeat: false,
         }),
         Event::Keyboard(keyboard::Event::KeyReleased {
             key: key.clone(),
@@ -574,8 +604,8 @@ pub fn tap_key(
             physical_key: keyboard::key::Physical::Unidentified(
                 keyboard::key::NativeCode::Unidentified,
             ),
-            location: keyboard::Location::Standard,
-            modifiers: keyboard::Modifiers::default(),
+            location,
+            modifiers,
         }),
     ]
     .into_iter()
