@@ -83,11 +83,24 @@ where
             _ => false,
         };
 
+        let mut local_messages = Vec::new();
+        let mut local_shell = Shell::new(&mut local_messages);
+
         self.target.as_widget_mut().update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
+            tree,
+            event,
+            layout,
+            cursor,
+            renderer,
+            clipboard,
+            &mut local_shell,
+            viewport,
         );
 
-        if shell.is_event_captured() || !key_pressed {
+        let target_captured = local_shell.is_event_captured();
+        shell.merge(local_shell, std::convert::identity);
+
+        if target_captured || !key_pressed {
             return;
         }
 
@@ -95,8 +108,6 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)),
         ];
-
-        let mut local_messages = Vec::new();
 
         for event in click_events {
             let mut local_shell = Shell::new(&mut local_messages);
@@ -218,13 +229,13 @@ where
 mod test {
     use super::*;
 
-    use crate::button;
     use crate::core::event;
+    use crate::{button, column};
 
     use iced_test::simulator;
 
     #[test]
-    fn it_triggers_a_click() {
+    fn triggers_a_click() {
         #[derive(Debug, Clone, PartialEq, Eq)]
         enum Message {
             Save,
@@ -238,5 +249,29 @@ mod test {
 
         assert_eq!(status, event::Status::Captured);
         assert_eq!(ui.into_messages().collect::<Vec<_>>(), vec![Message::Save]);
+    }
+
+    #[test]
+    fn all_trigger_at_same_level() {
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        enum Message {
+            One,
+            Two,
+        }
+
+        let keybinds: Element<'_, _, crate::Theme, crate::Renderer> = column![
+            Keybind::new('t', button("One").on_press(Message::One)),
+            Keybind::new('t', button("Two").on_press(Message::Two))
+        ]
+        .into();
+
+        let mut ui = simulator(keybinds);
+        let status = ui.tap_hotkey('t');
+
+        assert_eq!(status, event::Status::Captured);
+        assert_eq!(
+            ui.into_messages().collect::<Vec<_>>(),
+            vec![Message::One, Message::Two]
+        );
     }
 }
