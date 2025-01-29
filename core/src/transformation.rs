@@ -11,6 +11,9 @@ impl Transformation {
     /// A [`Transformation`] that preserves whatever is transformed.
     pub const IDENTITY: Self = Self(Mat4::IDENTITY);
 
+    /// An error margin for [`Transformation`] comparisons.
+    const EPSILON: f32 = 1e-6;
+
     /// Creates an orthographic projection.
     #[rustfmt::skip]
     pub fn orthographic(width: u32, height: u32) -> Transformation {
@@ -34,6 +37,32 @@ impl Transformation {
     /// Creates a non-uniform scaling transformation that stretches in either the x or y direction.
     pub fn stretch(x: f32, y: f32) -> Transformation {
         Transformation(Mat4::from_scale(Vec3::new(x, y, 1.0)))
+    }
+
+    /// Returns the inverse of the [`Transformation`].
+    ///
+    /// In debug mode, it will panic if the determinant of the matrix is near zero.
+    /// In release mode, it may return a valid inverse or produce NaNs.
+    pub fn inverse(&self) -> Self {
+        let det = self.0.determinant();
+        if cfg!(debug_assertions) {
+            debug_assert!(
+                det.abs() >= Transformation::EPSILON,
+                "attempted to invert a near-singular transform (det={})",
+                det
+            );
+        }
+        Transformation(self.0.inverse())
+    }
+
+    /// Returns the inverse of the [`Transformation`] if it exists.
+    pub fn try_inverse(&self) -> Option<Self> {
+        let det = self.0.determinant();
+        if det.abs() < Transformation::EPSILON {
+            None
+        } else {
+            Some(Transformation(self.0.inverse()))
+        }
     }
 
     /// Returns the scale factor of the [`Transformation`].
