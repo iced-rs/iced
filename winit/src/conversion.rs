@@ -172,31 +172,39 @@ pub fn window_event(
 
             Some(Event::Mouse(match state {
                 winit::event::ElementState::Pressed => {
-                    mouse::Event::ButtonPressed(button)
+                    mouse::Event::ButtonPressed {
+                        button,
+                        modifiers: self::modifiers(modifiers),
+                    }
                 }
                 winit::event::ElementState::Released => {
                     mouse::Event::ButtonReleased(button)
                 }
             }))
         }
-        WindowEvent::MouseWheel { delta, .. } => match delta {
-            winit::event::MouseScrollDelta::LineDelta(delta_x, delta_y) => {
-                Some(Event::Mouse(mouse::Event::WheelScrolled {
-                    delta: mouse::ScrollDelta::Lines {
-                        x: delta_x,
-                        y: delta_y,
-                    },
-                }))
+        WindowEvent::MouseWheel { delta, .. } => {
+            let modifiers = self::modifiers(modifiers);
+            match delta {
+                winit::event::MouseScrollDelta::LineDelta(delta_x, delta_y) => {
+                    Some(Event::Mouse(mouse::Event::WheelScrolled {
+                        delta: mouse::ScrollDelta::Lines {
+                            x: delta_x,
+                            y: delta_y,
+                        },
+                        modifiers,
+                    }))
+                }
+                winit::event::MouseScrollDelta::PixelDelta(position) => {
+                    Some(Event::Mouse(mouse::Event::WheelScrolled {
+                        delta: mouse::ScrollDelta::Pixels {
+                            x: position.x as f32,
+                            y: position.y as f32,
+                        },
+                        modifiers,
+                    }))
+                }
             }
-            winit::event::MouseScrollDelta::PixelDelta(position) => {
-                Some(Event::Mouse(mouse::Event::WheelScrolled {
-                    delta: mouse::ScrollDelta::Pixels {
-                        x: position.x as f32,
-                        y: position.y as f32,
-                    },
-                }))
-            }
-        },
+        }
         // Ignore keyboard presses/releases during window focus/unfocus
         WindowEvent::KeyboardInput { is_synthetic, .. } if is_synthetic => None,
         WindowEvent::KeyboardInput { event, .. } => Some(Event::Keyboard({
