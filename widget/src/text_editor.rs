@@ -768,6 +768,10 @@ where
                         }
                     }
 
+                    if !matches!(binding, Binding::Unfocus) {
+                        shell.capture_event();
+                    }
+
                     apply_binding(
                         binding,
                         self.content,
@@ -780,8 +784,6 @@ where
                     if let Some(focus) = &mut state.focus {
                         focus.updated_at = Instant::now();
                     }
-
-                    shell.capture_event();
                 }
             }
         }
