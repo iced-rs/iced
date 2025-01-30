@@ -344,7 +344,16 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                         }));
                 }
 
-                None
+                let prev = if spans.is_empty() {
+                    None
+                } else {
+                    produce(
+                        &mut lists,
+                        Item::Paragraph(Text::new(spans.drain(..).collect())),
+                    )
+                };
+
+                prev
             }
             pulldown_cmark::Tag::MetadataBlock(_) => {
                 metadata = true;
