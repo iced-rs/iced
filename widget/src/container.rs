@@ -107,8 +107,8 @@ where
     }
 
     /// Sets the [`Id`] of the [`Container`].
-    pub fn id(mut self, id: Id) -> Self {
-        self.id = Some(id);
+    pub fn id(mut self, id: impl Into<Id>) -> Self {
+        self.id = Some(id.into());
         self
     }
 
@@ -480,9 +480,17 @@ impl From<Id> for widget::Id {
     }
 }
 
+impl From<&'static str> for Id {
+    fn from(value: &'static str) -> Self {
+        Id::new(value)
+    }
+}
+
 /// Produces a [`Task`] that queries the visible screen bounds of the
 /// [`Container`] with the given [`Id`].
-pub fn visible_bounds(id: Id) -> Task<Option<Rectangle>> {
+pub fn visible_bounds(id: impl Into<Id>) -> Task<Option<Rectangle>> {
+    let id = id.into();
+
     struct VisibleBounds {
         target: widget::Id,
         depth: usize,
