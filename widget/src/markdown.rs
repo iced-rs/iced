@@ -527,6 +527,8 @@ pub struct Settings {
     pub h6_size: Pixels,
     /// The text size used in code blocks.
     pub code_size: Pixels,
+    /// The spacing to be used between elements.
+    pub spacing: Pixels,
 }
 
 impl Settings {
@@ -547,6 +549,7 @@ impl Settings {
             h5_size: text_size,
             h6_size: text_size,
             code_size: text_size * 0.75,
+            spacing: text_size * 0.875,
         }
     }
 }
@@ -649,9 +652,8 @@ where
         h5_size,
         h6_size,
         code_size,
+        spacing,
     } = settings;
-
-    let spacing = text_size * 0.625;
 
     let blocks = items.into_iter().enumerate().map(|(i, item)| match item {
         Item::Heading(level, heading) => {
@@ -675,11 +677,21 @@ where
         }
         Item::List { start: None, items } => {
             column(items.iter().map(|items| {
-                row![text("•").size(text_size), view(items, settings, style)]
-                    .spacing(spacing)
-                    .into()
+                row![
+                    text("•").size(text_size),
+                    view(
+                        items,
+                        Settings {
+                            spacing: settings.spacing * 0.6,
+                            ..settings
+                        },
+                        style
+                    )
+                ]
+                .spacing(spacing)
+                .into()
             }))
-            .spacing(spacing)
+            .spacing(spacing * 0.75)
             .into()
         }
         Item::List {
@@ -688,12 +700,19 @@ where
         } => column(items.iter().enumerate().map(|(i, items)| {
             row![
                 text!("{}.", i as u64 + *start).size(text_size),
-                view(items, settings, style)
+                view(
+                    items,
+                    Settings {
+                        spacing: settings.spacing * 0.6,
+                        ..settings
+                    },
+                    style
+                )
             ]
             .spacing(spacing)
             .into()
         }))
-        .spacing(spacing)
+        .spacing(spacing * 0.75)
         .into(),
         Item::CodeBlock(code) => container(
             scrollable(
