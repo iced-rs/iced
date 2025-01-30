@@ -735,7 +735,7 @@ where
         .into(),
     });
 
-    Element::new(column(blocks).width(Length::Fill).spacing(text_size))
+    Element::new(column(blocks).spacing(spacing))
 }
 
 /// The theme catalog of Markdown items.
