@@ -1,4 +1,7 @@
-use palette::rgb::{Srgb, Srgba};
+use palette::{
+    rgb::{Rgb, Srgb, Srgba},
+    FromColor, Hsl,
+};
 
 /// A color in the `sRGB` color space.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -195,6 +198,54 @@ impl Color {
             a: self.a * factor,
             ..self
         }
+    }
+
+    /// Darken the [`Color`] by an amount
+    pub fn darken(self, amount: f32) -> Self {
+        let mut hsl = self.to_hsl();
+
+        hsl.lightness = if hsl.lightness - amount < 0.0 {
+            0.0
+        } else {
+            hsl.lightness - amount
+        };
+
+        Self::from_hsl(hsl)
+    }
+
+    /// Lighten the [`Color`] by an amount
+    pub fn lighten(self, amount: f32) -> Self {
+        let mut hsl = self.to_hsl();
+
+        hsl.lightness = if hsl.lightness + amount > 1.0 {
+            1.0
+        } else {
+            hsl.lightness + amount
+        };
+
+        Self::from_hsl(hsl)
+    }
+
+    /// Darken or Lighten the [`Color`] by a deviation amount
+    pub fn deviate(self, amount: f32) -> Self {
+        if self.is_dark() {
+            self.lighten(amount)
+        } else {
+            self.darken(amount)
+        }
+    }
+
+    /// Return if the lightness of this [`Color`] is dark
+    pub fn is_dark(self) -> bool {
+        self.to_hsl().lightness < 0.6
+    }
+
+    pub(crate) fn to_hsl(self) -> Hsl {
+        Hsl::from_color(Rgb::from(self))
+    }
+
+    pub(crate) fn from_hsl(hsl: Hsl) -> Self {
+        Rgb::from_color(hsl).into()
     }
 }
 
