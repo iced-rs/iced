@@ -313,18 +313,22 @@ impl Highlighter {
             Some(line) if line.0 == text => {}
             _ => {
                 if self.current + 1 < self.lines.len() {
-                    println!("Resetting...");
+                    log::debug!("Resetting highlighter...");
                     self.parser.reset();
                     self.lines.truncate(self.current);
 
                     for line in &self.lines {
-                        println!("Refeeding {n} lines", n = self.lines.len());
+                        log::debug!(
+                            "Refeeding {n} lines",
+                            n = self.lines.len()
+                        );
 
                         let _ = self.parser.highlight_line(&line.0);
                     }
                 }
 
-                println!("Parsing: {text}", text = text.trim_end());
+                log::trace!("Parsing: {text}", text = text.trim_end());
+
                 if self.current + 1 < self.lines.len() {
                     self.parser.commit();
                 }
