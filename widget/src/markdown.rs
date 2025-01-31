@@ -289,6 +289,7 @@ struct State {
 #[derive(Debug)]
 struct Highlighter {
     lines: Vec<(String, Vec<Span>)>,
+    language: String,
     parser: iced_highlighter::Stream,
     current: usize,
 }
@@ -304,6 +305,7 @@ impl Highlighter {
                     token: language.to_string(),
                 },
             ),
+            language: language.to_owned(),
             current: 0,
         }
     }
@@ -484,6 +486,9 @@ fn parse_with<'a>(
                             .borrow_mut()
                             .highlighter
                             .take()
+                            .filter(|highlighter| {
+                                highlighter.language == _language.as_ref()
+                            })
                             .unwrap_or_else(|| Highlighter::new(&_language));
 
                         highlighter.prepare();
