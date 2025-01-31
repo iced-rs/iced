@@ -74,7 +74,7 @@ impl Markdown {
                 if enable_stream {
                     self.mode = Mode::Stream {
                         pending: self.content.text(),
-                        parsed: markdown::Content::parse(""),
+                        parsed: markdown::Content::new(),
                     };
 
                     scrollable::snap_to(

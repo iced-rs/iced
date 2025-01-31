@@ -66,13 +66,17 @@ pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
 pub use url::Url;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Content {
     items: Vec<Item>,
     state: State,
 }
 
 impl Content {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn parse(markdown: &str) -> Self {
         let mut state = State::default();
         let items = parse_with(&mut state, markdown).collect();
@@ -595,15 +599,11 @@ fn parse_with<'a>(
         pulldown_cmark::Event::Text(text) if !metadata && !table => {
             #[cfg(feature = "highlighter")]
             if let Some(highlighter) = &mut highlighter {
-                let start = std::time::Instant::now();
-
                 for line in text.lines() {
                     spans.extend_from_slice(
                         highlighter.highlight_line(&format!("{line}\n")),
                     );
                 }
-
-                dbg!(start.elapsed());
 
                 return None;
             }
