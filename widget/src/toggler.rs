@@ -31,14 +31,18 @@
 //! }
 //! ```
 use crate::core::alignment;
+use crate::core::animation::Easing;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::theme::palette::mix;
+use crate::core::time::Instant;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
+use crate::core::Animation;
 use crate::core::{
     Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
     Rectangle, Shell, Size, Theme, Widget,
@@ -100,6 +104,28 @@ pub struct Toggler<
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
+}
+
+/// The state of the [`Toggler`]
+#[derive(Debug)]
+pub struct State<Paragraph>
+where
+    Paragraph: text::Paragraph,
+{
+    now: Instant,
+    transition: Animation<bool>,
+    text_state: widget::text::State<Paragraph>,
+}
+
+impl<Paragraph> State<Paragraph>
+where
+    Paragraph: text::Paragraph,
+{
+    /// This check is meant to fix cases when we get a tainted state from another
+    /// ['Toggler'] widget by finding impossible cases.
+    fn is_animation_state_tainted(&self, is_toggled: bool) -> bool {
+        is_toggled != self.transition.value()
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
@@ -259,7 +285,11 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+        tree::State::new(State {
+            now: Instant::now(),
+            transition: Animation::new(self.is_toggled).easing(Easing::EaseOut),
+            text_state: widget::text::State::<Renderer::Paragraph>::default(),
+        })
     }
 
     fn size(&self) -> Size<Length> {
@@ -283,12 +313,11 @@ where
             |_| layout::Node::new(Size::new(2.0 * self.size, self.size)),
             |limits| {
                 if let Some(label) = self.label.as_deref() {
-                    let state = tree
-                    .state
-                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+                    let state =
+                        tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
                     widget::text::layout(
-                        state,
+                        &mut state.text_state,
                         renderer,
                         limits,
                         self.width,
@@ -311,7 +340,7 @@ where
 
     fn update(
         &mut self,
-        _state: &mut Tree,
+        tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -330,6 +359,14 @@ where
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {
+                    let state =
+                        tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+                    if cfg!(feature = "animations") {
+                        state.transition.go_mut(!self.is_toggled);
+                    } else {
+                        state.transition.force_mut(!self.is_toggled);
+                    }
+                    shell.request_redraw();
                     shell.publish(on_toggle(!self.is_toggled));
                     shell.capture_event();
                 }
@@ -337,19 +374,35 @@ where
             _ => {}
         }
 
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+
+        let animation_progress =
+            state.transition.interpolate(0.0, 1.0, Instant::now());
         let current_status = if self.on_toggle.is_none() {
             Status::Disabled
         } else if cursor.is_over(layout.bounds()) {
             Status::Hovered {
                 is_toggled: self.is_toggled,
+                animation_progress,
             }
         } else {
             Status::Active {
                 is_toggled: self.is_toggled,
+                animation_progress,
             }
         };
 
-        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+        if let Event::Window(window::Event::RedrawRequested(now)) = event {
+            state.now = *now;
+
+            // Reset animation on tainted state
+            if state.is_animation_state_tainted(self.is_toggled) {
+                state.transition.force_mut(self.is_toggled);
+            }
+
+            if state.transition.is_animating(*now) {
+                shell.request_redraw();
+            }
             self.last_status = Some(current_status);
         } else if self
             .last_status
@@ -397,11 +450,14 @@ where
 
         let mut children = layout.children();
         let toggler_layout = children.next().unwrap();
+        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
 
         if self.label.is_some() {
             let label_layout = children.next().unwrap();
-            let state: &widget::text::State<Renderer::Paragraph> =
-                tree.state.downcast_ref();
+            let state: &widget::text::State<Renderer::Paragraph> = &tree
+                .state
+                .downcast_ref::<State<Renderer::Paragraph>>()
+                .text_state;
 
             crate::text::draw(
                 renderer,
@@ -440,13 +496,10 @@ where
             style.background,
         );
 
+        let x_ratio = state.transition.interpolate(0.0, 1.0, state.now);
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
-                + if self.is_toggled {
-                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
-                } else {
-                    2.0 * space
-                },
+                + (2.0 * space + (x_ratio * (bounds.width - bounds.height))),
             y: bounds.y + (2.0 * space),
             width: bounds.height - (4.0 * space),
             height: bounds.height - (4.0 * space),
@@ -482,17 +535,21 @@ where
 }
 
 /// The possible status of a [`Toggler`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Status {
     /// The [`Toggler`] can be interacted with.
     Active {
         /// Indicates whether the [`Toggler`] is toggled.
         is_toggled: bool,
+        /// Current progress of the transition animation
+        animation_progress: f32,
     },
     /// The [`Toggler`] is being hovered.
     Hovered {
         /// Indicates whether the [`Toggler`] is toggled.
         is_toggled: bool,
+        /// Current progress of the transition animation
+        animation_progress: f32,
     },
     /// The [`Toggler`] is disabled.
     Disabled,
@@ -549,25 +606,46 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     let background = match status {
-        Status::Active { is_toggled } | Status::Hovered { is_toggled } => {
+        Status::Active {
+            is_toggled,
+            animation_progress,
+        }
+        | Status::Hovered {
+            is_toggled,
+            animation_progress,
+        } => {
             if is_toggled {
-                palette.primary.strong.color
+                mix(
+                    palette.primary.strong.color,
+                    palette.background.strong.color,
+                    1.0 - animation_progress,
+                )
             } else {
-                palette.background.strong.color
+                mix(
+                    palette.background.strong.color,
+                    palette.primary.strong.color,
+                    animation_progress,
+                )
             }
         }
         Status::Disabled => palette.background.weak.color,
     };
 
     let foreground = match status {
-        Status::Active { is_toggled } => {
+        Status::Active {
+            is_toggled,
+            animation_progress: _,
+        } => {
             if is_toggled {
                 palette.primary.strong.text
             } else {
                 palette.background.base.color
             }
         }
-        Status::Hovered { is_toggled } => {
+        Status::Hovered {
+            is_toggled,
+            animation_progress: _,
+        } => {
             if is_toggled {
                 Color {
                     a: 0.5,
