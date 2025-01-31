@@ -56,8 +56,6 @@
 //!     column![a, b, c, all].into()
 //! }
 //! ```
-use std::time::Instant;
-
 use crate::core::alignment;
 use crate::core::animation::{Animation, Easing};
 use crate::core::border::{self, Border};
@@ -65,6 +63,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::time::Instant;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
