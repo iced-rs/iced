@@ -19,7 +19,7 @@ struct Markdown {
 }
 
 enum Mode {
-    Oneshot(Vec<markdown::Item>),
+    Preview(Vec<markdown::Item>),
     Stream {
         pending: String,
         parsed: markdown::Content,
@@ -43,14 +43,14 @@ impl Markdown {
         (
             Self {
                 content: text_editor::Content::with_text(INITIAL_CONTENT),
-                mode: Mode::Oneshot(markdown::parse(INITIAL_CONTENT).collect()),
+                mode: Mode::Preview(markdown::parse(INITIAL_CONTENT).collect()),
                 theme,
             },
             widget::focus_next(),
         )
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Edit(action) => {
                 let is_edit = action.is_edit();
@@ -58,48 +58,57 @@ impl Markdown {
                 self.content.perform(action);
 
                 if is_edit {
-                    self.mode = match self.mode {
-                        Mode::Oneshot(_) => Mode::Oneshot(
-                            markdown::parse(&self.content.text()).collect(),
-                        ),
-                        Mode::Stream { .. } => Mode::Stream {
-                            pending: self.content.text(),
-                            parsed: markdown::Content::parse(""),
-                        },
-                    }
+                    self.mode = Mode::Preview(
+                        markdown::parse(&self.content.text()).collect(),
+                    );
                 }
+
+                Task::none()
             }
             Message::LinkClicked(link) => {
                 let _ = open::that_in_background(link.to_string());
+
+                Task::none()
             }
             Message::ToggleStream(enable_stream) => {
-                self.mode = if enable_stream {
-                    Mode::Stream {
+                if enable_stream {
+                    self.mode = Mode::Stream {
                         pending: self.content.text(),
                         parsed: markdown::Content::parse(""),
-                    }
-                } else {
-                    Mode::Oneshot(
-                        markdown::parse(&self.content.text()).collect(),
+                    };
+
+                    scrollable::snap_to(
+                        "preview",
+                        scrollable::RelativeOffset::END,
                     )
-                };
+                } else {
+                    self.mode = Mode::Preview(
+                        markdown::parse(&self.content.text()).collect(),
+                    );
+
+                    Task::none()
+                }
             }
-            Message::NextToken => match &mut self.mode {
-                Mode::Oneshot(_) => {}
-                Mode::Stream { pending, parsed } => {
-                    if pending.is_empty() {
-                        self.mode = Mode::Oneshot(parsed.items().to_vec());
-                    } else {
-                        let mut tokens = pending.split(' ');
+            Message::NextToken => {
+                match &mut self.mode {
+                    Mode::Preview(_) => {}
+                    Mode::Stream { pending, parsed } => {
+                        if pending.is_empty() {
+                            self.mode = Mode::Preview(parsed.items().to_vec());
+                        } else {
+                            let mut tokens = pending.split(' ');
 
-                        if let Some(token) = tokens.next() {
-                            parsed.push_str(&format!("{token} "));
+                            if let Some(token) = tokens.next() {
+                                parsed.push_str(&format!("{token} "));
+                            }
+
+                            *pending = tokens.collect::<Vec<_>>().join(" ");
                         }
-
-                        *pending = tokens.collect::<Vec<_>>().join(" ");
                     }
                 }
-            },
+
+                Task::none()
+            }
         }
     }
 
@@ -113,7 +122,7 @@ impl Markdown {
             .highlight("markdown", highlighter::Theme::Base16Ocean);
 
         let items = match &self.mode {
-            Mode::Oneshot(items) => items.as_slice(),
+            Mode::Preview(items) => items.as_slice(),
             Mode::Stream { parsed, .. } => parsed.items(),
         };
 
@@ -127,7 +136,11 @@ impl Markdown {
         row![
             editor,
             hover(
-                scrollable(preview).spacing(10).width(Fill).height(Fill),
+                scrollable(preview)
+                    .spacing(10)
+                    .width(Fill)
+                    .height(Fill)
+                    .id("preview"),
                 right(
                     toggler(matches!(self.mode, Mode::Stream { .. }))
                         .label("Stream")
@@ -147,7 +160,7 @@ impl Markdown {
 
     fn subscription(&self) -> Subscription<Message> {
         match self.mode {
-            Mode::Oneshot(_) => Subscription::none(),
+            Mode::Preview(_) => Subscription::none(),
             Mode::Stream { .. } => {
                 time::every(milliseconds(20)).map(|_| Message::NextToken)
             }

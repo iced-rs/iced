@@ -57,6 +57,7 @@ use crate::core::{
 };
 use crate::{column, container, rich_text, row, scrollable, span, text};
 
+use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
 use std::ops::Range;
 use std::sync::Arc;
@@ -65,7 +66,7 @@ pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
 pub use url::Url;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Content {
     items: Vec<Item>,
     state: State,
@@ -80,6 +81,10 @@ impl Content {
     }
 
     pub fn push_str(&mut self, markdown: &str) {
+        if markdown.is_empty() {
+            return;
+        }
+
         // Append to last leftover text
         let mut leftover = std::mem::take(&mut self.state.leftover);
         leftover.push_str(markdown);
@@ -90,8 +95,6 @@ impl Content {
         // Re-parse last item and new text
         let new_items = parse_with(&mut self.state, &leftover);
         self.items.extend(new_items);
-
-        dbg!(&self.state);
     }
 
     pub fn items(&self) -> &[Item] {
@@ -271,19 +274,91 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
     parse_with(State::default(), markdown)
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct State {
+#[derive(Debug, Default)]
+struct State {
     leftover: String,
+    #[cfg(feature = "highlighter")]
+    highlighter: Option<Highlighter>,
 }
 
-impl AsMut<Self> for State {
-    fn as_mut(&mut self) -> &mut Self {
-        self
+#[cfg(feature = "highlighter")]
+#[derive(Debug)]
+struct Highlighter {
+    lines: Vec<(String, Vec<Span>)>,
+    parser: iced_highlighter::Stream,
+    current: usize,
+}
+
+#[cfg(feature = "highlighter")]
+impl Highlighter {
+    pub fn new(language: &str) -> Self {
+        Self {
+            lines: Vec::new(),
+            parser: iced_highlighter::Stream::new(
+                &iced_highlighter::Settings {
+                    theme: iced_highlighter::Theme::Base16Ocean,
+                    token: language.to_string(),
+                },
+            ),
+            current: 0,
+        }
+    }
+
+    pub fn prepare(&mut self) {
+        self.current = 0;
+    }
+
+    pub fn highlight_line(&mut self, text: &str) -> &[Span] {
+        match self.lines.get(self.current) {
+            Some(line) if line.0 == text => {}
+            _ => {
+                if self.current + 1 < self.lines.len() {
+                    println!("Resetting...");
+                    self.parser.reset();
+                    self.lines.truncate(self.current);
+
+                    for line in &self.lines {
+                        println!("Refeeding {n} lines", n = self.lines.len());
+
+                        let _ = self.parser.highlight_line(&line.0);
+                    }
+                }
+
+                println!("Parsing: {text}", text = text.trim_end());
+                if self.current + 1 < self.lines.len() {
+                    self.parser.commit();
+                }
+
+                let mut spans = Vec::new();
+
+                for (range, highlight) in self.parser.highlight_line(text) {
+                    spans.push(Span::Highlight {
+                        text: text[range].to_owned(),
+                        color: highlight.color(),
+                        font: highlight.font(),
+                    });
+                }
+
+                if self.current + 1 == self.lines.len() {
+                    let _ = self.lines.pop();
+                }
+
+                self.lines.push((text.to_owned(), spans));
+            }
+        }
+
+        self.current += 1;
+
+        &self
+            .lines
+            .get(self.current - 1)
+            .expect("Line must be parsed")
+            .1
     }
 }
 
 fn parse_with<'a>(
-    mut state: impl AsMut<State> + 'a,
+    mut state: impl BorrowMut<State> + 'a,
     markdown: &'a str,
 ) -> impl Iterator<Item = Item> + 'a {
     struct List {
@@ -312,24 +387,26 @@ fn parse_with<'a>(
     )
     .into_offset_iter();
 
-    let mut produce =
-        move |lists: &mut Vec<List>, item, source: Range<usize>| {
-            if lists.is_empty() {
-                state.as_mut().leftover = markdown[source.start..].to_owned();
+    let produce = move |state: &mut State,
+                        lists: &mut Vec<List>,
+                        item,
+                        source: Range<usize>| {
+        if lists.is_empty() {
+            state.leftover = markdown[source.start..].to_owned();
 
-                Some(item)
-            } else {
-                lists
-                    .last_mut()
-                    .expect("list context")
-                    .items
-                    .last_mut()
-                    .expect("item context")
-                    .push(item);
+            Some(item)
+        } else {
+            lists
+                .last_mut()
+                .expect("list context")
+                .items
+                .last_mut()
+                .expect("item context")
+                .push(item);
 
-                None
-            }
-        };
+            None
+        }
+    };
 
     // We want to keep the `spans` capacity
     #[allow(clippy::drain_collect)]
@@ -367,6 +444,7 @@ fn parse_with<'a>(
                     None
                 } else {
                     produce(
+                        state.borrow_mut(),
                         &mut lists,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
                         source,
@@ -393,20 +471,24 @@ fn parse_with<'a>(
             ) if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
                 {
-                    use iced_highlighter::Highlighter;
-                    use text::Highlighter as _;
+                    highlighter = Some({
+                        let mut highlighter = state
+                            .borrow_mut()
+                            .highlighter
+                            .take()
+                            .unwrap_or_else(|| Highlighter::new(&_language));
 
-                    highlighter =
-                        Some(Highlighter::new(&iced_highlighter::Settings {
-                            theme: iced_highlighter::Theme::Base16Ocean,
-                            token: _language.to_string(),
-                        }));
+                        highlighter.prepare();
+
+                        highlighter
+                    });
                 }
 
                 let prev = if spans.is_empty() {
                     None
                 } else {
                     produce(
+                        state.borrow_mut(),
                         &mut lists,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
                         source,
@@ -428,6 +510,7 @@ fn parse_with<'a>(
         pulldown_cmark::Event::End(tag) => match tag {
             pulldown_cmark::TagEnd::Heading(level) if !metadata && !table => {
                 produce(
+                    state.borrow_mut(),
                     &mut lists,
                     Item::Heading(level, Text::new(spans.drain(..).collect())),
                     source,
@@ -451,6 +534,7 @@ fn parse_with<'a>(
             }
             pulldown_cmark::TagEnd::Paragraph if !metadata && !table => {
                 produce(
+                    state.borrow_mut(),
                     &mut lists,
                     Item::Paragraph(Text::new(spans.drain(..).collect())),
                     source,
@@ -461,6 +545,7 @@ fn parse_with<'a>(
                     None
                 } else {
                     produce(
+                        state.borrow_mut(),
                         &mut lists,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
                         source,
@@ -471,6 +556,7 @@ fn parse_with<'a>(
                 let list = lists.pop().expect("list context");
 
                 produce(
+                    state.borrow_mut(),
                     &mut lists,
                     Item::List {
                         start: list.start,
@@ -482,10 +568,11 @@ fn parse_with<'a>(
             pulldown_cmark::TagEnd::CodeBlock if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
                 {
-                    highlighter = None;
+                    state.borrow_mut().highlighter = highlighter.take();
                 }
 
                 produce(
+                    state.borrow_mut(),
                     &mut lists,
                     Item::CodeBlock(Text::new(spans.drain(..).collect())),
                     source,
@@ -504,19 +591,15 @@ fn parse_with<'a>(
         pulldown_cmark::Event::Text(text) if !metadata && !table => {
             #[cfg(feature = "highlighter")]
             if let Some(highlighter) = &mut highlighter {
-                use text::Highlighter as _;
+                let start = std::time::Instant::now();
 
-                for (range, highlight) in
-                    highlighter.highlight_line(text.as_ref())
-                {
-                    let span = Span::Highlight {
-                        text: text[range].to_owned(),
-                        color: highlight.color(),
-                        font: highlight.font(),
-                    };
-
-                    spans.push(span);
+                for line in text.lines() {
+                    spans.extend_from_slice(
+                        highlighter.highlight_line(&format!("{line}\n")),
+                    );
                 }
+
+                dbg!(start.elapsed());
 
                 return None;
             }
