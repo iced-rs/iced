@@ -47,6 +47,7 @@
 //!     }
 //! }
 //! ```
+#![allow(missing_docs)]
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
@@ -57,11 +58,46 @@ use crate::core::{
 use crate::{column, container, rich_text, row, scrollable, span, text};
 
 use std::cell::{Cell, RefCell};
+use std::ops::Range;
 use std::sync::Arc;
 
 pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
 pub use url::Url;
+
+#[derive(Debug, Clone)]
+pub struct Content {
+    items: Vec<Item>,
+    state: State,
+}
+
+impl Content {
+    pub fn parse(markdown: &str) -> Self {
+        let mut state = State::default();
+        let items = parse_with(&mut state, markdown).collect();
+
+        Self { items, state }
+    }
+
+    pub fn push_str(&mut self, markdown: &str) {
+        // Append to last leftover text
+        let mut leftover = std::mem::take(&mut self.state.leftover);
+        leftover.push_str(markdown);
+
+        // Pop the last item
+        let _ = self.items.pop();
+
+        // Re-parse last item and new text
+        let new_items = parse_with(&mut self.state, &leftover);
+        self.items.extend(new_items);
+
+        dbg!(&self.state);
+    }
+
+    pub fn items(&self) -> &[Item] {
+        &self.items
+    }
+}
 
 /// A Markdown item.
 #[derive(Debug, Clone)]
@@ -232,6 +268,24 @@ impl Span {
 /// }
 /// ```
 pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
+    parse_with(State::default(), markdown)
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct State {
+    leftover: String,
+}
+
+impl AsMut<Self> for State {
+    fn as_mut(&mut self) -> &mut Self {
+        self
+    }
+}
+
+fn parse_with<'a>(
+    mut state: impl AsMut<State> + 'a,
+    markdown: &'a str,
+) -> impl Iterator<Item = Item> + 'a {
     struct List {
         start: Option<u64>,
         items: Vec<Vec<Item>>,
@@ -255,27 +309,31 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
             | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
             | pulldown_cmark::Options::ENABLE_TABLES
             | pulldown_cmark::Options::ENABLE_STRIKETHROUGH,
-    );
+    )
+    .into_offset_iter();
 
-    let produce = |lists: &mut Vec<List>, item| {
-        if lists.is_empty() {
-            Some(item)
-        } else {
-            lists
-                .last_mut()
-                .expect("list context")
-                .items
-                .last_mut()
-                .expect("item context")
-                .push(item);
+    let mut produce =
+        move |lists: &mut Vec<List>, item, source: Range<usize>| {
+            if lists.is_empty() {
+                state.as_mut().leftover = markdown[source.start..].to_owned();
 
-            None
-        }
-    };
+                Some(item)
+            } else {
+                lists
+                    .last_mut()
+                    .expect("list context")
+                    .items
+                    .last_mut()
+                    .expect("item context")
+                    .push(item);
+
+                None
+            }
+        };
 
     // We want to keep the `spans` capacity
     #[allow(clippy::drain_collect)]
-    parser.filter_map(move |event| match event {
+    parser.filter_map(move |(event, source)| match event {
         pulldown_cmark::Event::Start(tag) => match tag {
             pulldown_cmark::Tag::Strong if !metadata && !table => {
                 strong = true;
@@ -311,6 +369,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                     produce(
                         &mut lists,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
+                        source,
                     )
                 };
 
@@ -350,6 +409,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                     produce(
                         &mut lists,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
+                        source,
                     )
                 };
 
@@ -370,6 +430,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                 produce(
                     &mut lists,
                     Item::Heading(level, Text::new(spans.drain(..).collect())),
+                    source,
                 )
             }
             pulldown_cmark::TagEnd::Strong if !metadata && !table => {
@@ -392,6 +453,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                 produce(
                     &mut lists,
                     Item::Paragraph(Text::new(spans.drain(..).collect())),
+                    source,
                 )
             }
             pulldown_cmark::TagEnd::Item if !metadata && !table => {
@@ -401,6 +463,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                     produce(
                         &mut lists,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
+                        source,
                     )
                 }
             }
@@ -413,6 +476,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                         start: list.start,
                         items: list.items,
                     },
+                    source,
                 )
             }
             pulldown_cmark::TagEnd::CodeBlock if !metadata && !table => {
@@ -424,6 +488,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                 produce(
                     &mut lists,
                     Item::CodeBlock(Text::new(spans.drain(..).collect())),
+                    source,
                 )
             }
             pulldown_cmark::TagEnd::MetadataBlock(_) => {
