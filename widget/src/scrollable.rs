@@ -999,9 +999,9 @@ where
                             content_layout,
                             cursor,
                             &Rectangle {
-                                y: bounds.y + translation.y,
-                                x: bounds.x + translation.x,
-                                ..bounds
+                                y: visible_bounds.y + translation.y,
+                                x: visible_bounds.x + translation.x,
+                                ..visible_bounds
                             },
                         );
                     },
@@ -1103,9 +1103,9 @@ where
                 content_layout,
                 cursor,
                 &Rectangle {
-                    x: bounds.x + translation.x,
-                    y: bounds.y + translation.y,
-                    ..bounds
+                    x: visible_bounds.x + translation.x,
+                    y: visible_bounds.y + translation.y,
+                    ..visible_bounds
                 },
             );
         }
