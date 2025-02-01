@@ -239,6 +239,10 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
+        if !layout.bounds().intersects(viewport) {
+            return;
+        }
+
         let state = tree
             .state
             .downcast_ref::<State<Link, Renderer::Paragraph>>();
