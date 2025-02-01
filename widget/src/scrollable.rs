@@ -788,13 +788,7 @@ where
                                 (x, y)
                             };
 
-                            let is_vertical = match self.direction {
-                                Direction::Vertical(_) => true,
-                                Direction::Horizontal(_) => false,
-                                Direction::Both { .. } => !is_shift_pressed,
-                            };
-
-                            let movement = if is_vertical {
+                            let movement = if !is_shift_pressed {
                                 Vector::new(x, y)
                             } else {
                                 Vector::new(y, x)
