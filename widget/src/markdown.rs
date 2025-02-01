@@ -116,7 +116,7 @@ pub enum Item {
     /// A code block.
     ///
     /// You can enable the `highlighter` feature for syntax highlighting.
-    CodeBlock(Text),
+    CodeBlock(Vec<Text>),
     /// A list.
     List {
         /// The first number of the list, if it is ordered.
@@ -377,6 +377,7 @@ fn parse_with<'a>(
     }
 
     let mut spans = Vec::new();
+    let mut code = Vec::new();
     let mut strong = false;
     let mut emphasis = false;
     let mut strikethrough = false;
@@ -587,7 +588,7 @@ fn parse_with<'a>(
                 produce(
                     state.borrow_mut(),
                     &mut lists,
-                    Item::CodeBlock(Text::new(spans.drain(..).collect())),
+                    Item::CodeBlock(code.drain(..).collect()),
                     source,
                 )
             }
@@ -605,9 +606,9 @@ fn parse_with<'a>(
             #[cfg(feature = "highlighter")]
             if let Some(highlighter) = &mut highlighter {
                 for line in text.lines() {
-                    spans.extend_from_slice(
-                        highlighter.highlight_line(&format!("{line}\n")),
-                    );
+                    code.push(Text::new(
+                        highlighter.highlight_line(line).to_vec(),
+                    ));
                 }
 
                 return None;
@@ -871,13 +872,14 @@ where
         }))
         .spacing(spacing * 0.75)
         .into(),
-        Item::CodeBlock(code) => container(
+        Item::CodeBlock(lines) => container(
             scrollable(
-                container(
-                    rich_text(code.spans(style))
+                container(column(lines.iter().map(|line| {
+                    rich_text(line.spans(style))
                         .font(Font::MONOSPACE)
-                        .size(code_size),
-                )
+                        .size(code_size)
+                        .into()
+                })))
                 .padding(spacing.0 / 2.0),
             )
             .direction(scrollable::Direction::Horizontal(
