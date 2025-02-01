@@ -137,6 +137,11 @@ where
         self
     }
 
+    /// Makes the [`Scrollable`] scroll horizontally, with default [`Scrollbar`] settings.
+    pub fn horizontal(self) -> Self {
+        self.direction(Direction::Horizontal(Scrollbar::default()))
+    }
+
     /// Sets the [`Direction`] of the [`Scrollable`].
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
