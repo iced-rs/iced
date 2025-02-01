@@ -395,8 +395,10 @@ where
                     .state
                     .downcast_mut::<State<Link, Renderer::Paragraph>>();
 
-                state.span_pressed = self.hovered_link;
-                shell.capture_event();
+                if self.hovered_link.is_some() {
+                    state.span_pressed = self.hovered_link;
+                    shell.capture_event();
+                }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 let state = tree
