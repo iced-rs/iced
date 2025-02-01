@@ -7,6 +7,6 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["markdown", "highlighter", "debug"]
+iced.features = ["markdown", "highlighter", "tokio", "debug"]
 
 open = "5.3"

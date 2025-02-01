@@ -47,6 +47,7 @@
 //!     }
 //! }
 //! ```
+#![allow(missing_docs)]
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
@@ -56,12 +57,54 @@ use crate::core::{
 };
 use crate::{column, container, rich_text, row, scrollable, span, text};
 
+use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
+use std::ops::Range;
 use std::sync::Arc;
 
 pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
 pub use url::Url;
+
+#[derive(Debug, Default)]
+pub struct Content {
+    items: Vec<Item>,
+    state: State,
+}
+
+impl Content {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn parse(markdown: &str) -> Self {
+        let mut state = State::default();
+        let items = parse_with(&mut state, markdown).collect();
+
+        Self { items, state }
+    }
+
+    pub fn push_str(&mut self, markdown: &str) {
+        if markdown.is_empty() {
+            return;
+        }
+
+        // Append to last leftover text
+        let mut leftover = std::mem::take(&mut self.state.leftover);
+        leftover.push_str(markdown);
+
+        // Pop the last item
+        let _ = self.items.pop();
+
+        // Re-parse last item and new text
+        let new_items = parse_with(&mut self.state, &leftover);
+        self.items.extend(new_items);
+    }
+
+    pub fn items(&self) -> &[Item] {
+        &self.items
+    }
+}
 
 /// A Markdown item.
 #[derive(Debug, Clone)]
@@ -73,7 +116,7 @@ pub enum Item {
     /// A code block.
     ///
     /// You can enable the `highlighter` feature for syntax highlighting.
-    CodeBlock(Text),
+    CodeBlock(Vec<Text>),
     /// A list.
     List {
         /// The first number of the list, if it is ordered.
@@ -232,12 +275,109 @@ impl Span {
 /// }
 /// ```
 pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
+    parse_with(State::default(), markdown)
+}
+
+#[derive(Debug, Default)]
+struct State {
+    leftover: String,
+    #[cfg(feature = "highlighter")]
+    highlighter: Option<Highlighter>,
+}
+
+#[cfg(feature = "highlighter")]
+#[derive(Debug)]
+struct Highlighter {
+    lines: Vec<(String, Vec<Span>)>,
+    language: String,
+    parser: iced_highlighter::Stream,
+    current: usize,
+}
+
+#[cfg(feature = "highlighter")]
+impl Highlighter {
+    pub fn new(language: &str) -> Self {
+        Self {
+            lines: Vec::new(),
+            parser: iced_highlighter::Stream::new(
+                &iced_highlighter::Settings {
+                    theme: iced_highlighter::Theme::Base16Ocean,
+                    token: language.to_string(),
+                },
+            ),
+            language: language.to_owned(),
+            current: 0,
+        }
+    }
+
+    pub fn prepare(&mut self) {
+        self.current = 0;
+    }
+
+    pub fn highlight_line(&mut self, text: &str) -> &[Span] {
+        match self.lines.get(self.current) {
+            Some(line) if line.0 == text => {}
+            _ => {
+                if self.current + 1 < self.lines.len() {
+                    log::debug!("Resetting highlighter...");
+                    self.parser.reset();
+                    self.lines.truncate(self.current);
+
+                    for line in &self.lines {
+                        log::debug!(
+                            "Refeeding {n} lines",
+                            n = self.lines.len()
+                        );
+
+                        let _ = self.parser.highlight_line(&line.0);
+                    }
+                }
+
+                log::trace!("Parsing: {text}", text = text.trim_end());
+
+                if self.current + 1 < self.lines.len() {
+                    self.parser.commit();
+                }
+
+                let mut spans = Vec::new();
+
+                for (range, highlight) in self.parser.highlight_line(text) {
+                    spans.push(Span::Highlight {
+                        text: text[range].to_owned(),
+                        color: highlight.color(),
+                        font: highlight.font(),
+                    });
+                }
+
+                if self.current + 1 == self.lines.len() {
+                    let _ = self.lines.pop();
+                }
+
+                self.lines.push((text.to_owned(), spans));
+            }
+        }
+
+        self.current += 1;
+
+        &self
+            .lines
+            .get(self.current - 1)
+            .expect("Line must be parsed")
+            .1
+    }
+}
+
+fn parse_with<'a>(
+    mut state: impl BorrowMut<State> + 'a,
+    markdown: &'a str,
+) -> impl Iterator<Item = Item> + 'a {
     struct List {
         start: Option<u64>,
         items: Vec<Vec<Item>>,
     }
 
     let mut spans = Vec::new();
+    let mut code = Vec::new();
     let mut strong = false;
     let mut emphasis = false;
     let mut strikethrough = false;
@@ -255,10 +395,16 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
             | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
             | pulldown_cmark::Options::ENABLE_TABLES
             | pulldown_cmark::Options::ENABLE_STRIKETHROUGH,
-    );
+    )
+    .into_offset_iter();
 
-    let produce = |lists: &mut Vec<List>, item| {
+    let produce = move |state: &mut State,
+                        lists: &mut Vec<List>,
+                        item,
+                        source: Range<usize>| {
         if lists.is_empty() {
+            state.leftover = markdown[source.start..].to_owned();
+
             Some(item)
         } else {
             lists
@@ -275,7 +421,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
 
     // We want to keep the `spans` capacity
     #[allow(clippy::drain_collect)]
-    parser.filter_map(move |event| match event {
+    parser.filter_map(move |(event, source)| match event {
         pulldown_cmark::Event::Start(tag) => match tag {
             pulldown_cmark::Tag::Strong if !metadata && !table => {
                 strong = true;
@@ -309,8 +455,10 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                     None
                 } else {
                     produce(
+                        state.borrow_mut(),
                         &mut lists,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
+                        source,
                     )
                 };
 
@@ -334,17 +482,34 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
             ) if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
                 {
-                    use iced_highlighter::Highlighter;
-                    use text::Highlighter as _;
+                    highlighter = Some({
+                        let mut highlighter = state
+                            .borrow_mut()
+                            .highlighter
+                            .take()
+                            .filter(|highlighter| {
+                                highlighter.language == _language.as_ref()
+                            })
+                            .unwrap_or_else(|| Highlighter::new(&_language));
 
-                    highlighter =
-                        Some(Highlighter::new(&iced_highlighter::Settings {
-                            theme: iced_highlighter::Theme::Base16Ocean,
-                            token: _language.to_string(),
-                        }));
+                        highlighter.prepare();
+
+                        highlighter
+                    });
                 }
 
-                None
+                let prev = if spans.is_empty() {
+                    None
+                } else {
+                    produce(
+                        state.borrow_mut(),
+                        &mut lists,
+                        Item::Paragraph(Text::new(spans.drain(..).collect())),
+                        source,
+                    )
+                };
+
+                prev
             }
             pulldown_cmark::Tag::MetadataBlock(_) => {
                 metadata = true;
@@ -359,8 +524,10 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
         pulldown_cmark::Event::End(tag) => match tag {
             pulldown_cmark::TagEnd::Heading(level) if !metadata && !table => {
                 produce(
+                    state.borrow_mut(),
                     &mut lists,
                     Item::Heading(level, Text::new(spans.drain(..).collect())),
+                    source,
                 )
             }
             pulldown_cmark::TagEnd::Strong if !metadata && !table => {
@@ -381,8 +548,10 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
             }
             pulldown_cmark::TagEnd::Paragraph if !metadata && !table => {
                 produce(
+                    state.borrow_mut(),
                     &mut lists,
                     Item::Paragraph(Text::new(spans.drain(..).collect())),
+                    source,
                 )
             }
             pulldown_cmark::TagEnd::Item if !metadata && !table => {
@@ -390,8 +559,10 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                     None
                 } else {
                     produce(
+                        state.borrow_mut(),
                         &mut lists,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
+                        source,
                     )
                 }
             }
@@ -399,22 +570,26 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
                 let list = lists.pop().expect("list context");
 
                 produce(
+                    state.borrow_mut(),
                     &mut lists,
                     Item::List {
                         start: list.start,
                         items: list.items,
                     },
+                    source,
                 )
             }
             pulldown_cmark::TagEnd::CodeBlock if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
                 {
-                    highlighter = None;
+                    state.borrow_mut().highlighter = highlighter.take();
                 }
 
                 produce(
+                    state.borrow_mut(),
                     &mut lists,
-                    Item::CodeBlock(Text::new(spans.drain(..).collect())),
+                    Item::CodeBlock(code.drain(..).collect()),
+                    source,
                 )
             }
             pulldown_cmark::TagEnd::MetadataBlock(_) => {
@@ -430,18 +605,10 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
         pulldown_cmark::Event::Text(text) if !metadata && !table => {
             #[cfg(feature = "highlighter")]
             if let Some(highlighter) = &mut highlighter {
-                use text::Highlighter as _;
-
-                for (range, highlight) in
-                    highlighter.highlight_line(text.as_ref())
-                {
-                    let span = Span::Highlight {
-                        text: text[range].to_owned(),
-                        color: highlight.color(),
-                        font: highlight.font(),
-                    };
-
-                    spans.push(span);
+                for line in text.lines() {
+                    code.push(Text::new(
+                        highlighter.highlight_line(line).to_vec(),
+                    ));
                 }
 
                 return None;
@@ -518,6 +685,8 @@ pub struct Settings {
     pub h6_size: Pixels,
     /// The text size used in code blocks.
     pub code_size: Pixels,
+    /// The spacing to be used between elements.
+    pub spacing: Pixels,
 }
 
 impl Settings {
@@ -538,6 +707,7 @@ impl Settings {
             h5_size: text_size,
             h6_size: text_size,
             code_size: text_size * 0.75,
+            spacing: text_size * 0.875,
         }
     }
 }
@@ -640,9 +810,8 @@ where
         h5_size,
         h6_size,
         code_size,
+        spacing,
     } = settings;
-
-    let spacing = text_size * 0.625;
 
     let blocks = items.into_iter().enumerate().map(|(i, item)| match item {
         Item::Heading(level, heading) => {
@@ -666,11 +835,21 @@ where
         }
         Item::List { start: None, items } => {
             column(items.iter().map(|items| {
-                row![text("•").size(text_size), view(items, settings, style)]
-                    .spacing(spacing)
-                    .into()
+                row![
+                    text("•").size(text_size),
+                    view(
+                        items,
+                        Settings {
+                            spacing: settings.spacing * 0.6,
+                            ..settings
+                        },
+                        style
+                    )
+                ]
+                .spacing(spacing)
+                .into()
             }))
-            .spacing(spacing)
+            .spacing(spacing * 0.75)
             .into()
         }
         Item::List {
@@ -679,20 +858,28 @@ where
         } => column(items.iter().enumerate().map(|(i, items)| {
             row![
                 text!("{}.", i as u64 + *start).size(text_size),
-                view(items, settings, style)
+                view(
+                    items,
+                    Settings {
+                        spacing: settings.spacing * 0.6,
+                        ..settings
+                    },
+                    style
+                )
             ]
             .spacing(spacing)
             .into()
         }))
-        .spacing(spacing)
+        .spacing(spacing * 0.75)
         .into(),
-        Item::CodeBlock(code) => container(
+        Item::CodeBlock(lines) => container(
             scrollable(
-                container(
-                    rich_text(code.spans(style))
+                container(column(lines.iter().map(|line| {
+                    rich_text(line.spans(style))
                         .font(Font::MONOSPACE)
-                        .size(code_size),
-                )
+                        .size(code_size)
+                        .into()
+                })))
                 .padding(spacing.0 / 2.0),
             )
             .direction(scrollable::Direction::Horizontal(
@@ -707,7 +894,7 @@ where
         .into(),
     });
 
-    Element::new(column(blocks).width(Length::Fill).spacing(text_size))
+    Element::new(column(blocks).spacing(spacing))
 }
 
 /// The theme catalog of Markdown items.

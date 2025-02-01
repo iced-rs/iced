@@ -216,6 +216,8 @@ where
         viewport: &Rectangle,
     ) {
         let is_over = cursor.is_over(layout.bounds());
+        let is_mouse_movement =
+            matches!(event, Event::Mouse(mouse::Event::CursorMoved { .. }));
 
         for ((child, state), layout) in self
             .children
@@ -235,7 +237,10 @@ where
                 viewport,
             );
 
-            if is_over && cursor != mouse::Cursor::Unavailable {
+            if is_over
+                && !is_mouse_movement
+                && cursor != mouse::Cursor::Unavailable
+            {
                 let interaction = child.as_widget().mouse_interaction(
                     state, layout, cursor, viewport, renderer,
                 );

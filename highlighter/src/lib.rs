@@ -7,6 +7,7 @@ use crate::core::Color;
 
 use std::ops::Range;
 use std::sync::LazyLock;
+
 use syntect::highlighting;
 use syntect::parsing;
 
@@ -104,34 +105,97 @@ impl highlighter::Highlighter for Highlighter {
 
         let ops = parser.parse_line(line, &SYNTAXES).unwrap_or_default();
 
-        let highlighter = &self.highlighter;
-
-        Box::new(
-            ScopeRangeIterator {
-                ops,
-                line_length: line.len(),
-                index: 0,
-                last_str_index: 0,
-            }
-            .filter_map(move |(range, scope)| {
-                let _ = stack.apply(&scope);
-
-                if range.is_empty() {
-                    None
-                } else {
-                    Some((
-                        range,
-                        Highlight(
-                            highlighter.style_mod_for_stack(&stack.scopes),
-                        ),
-                    ))
-                }
-            }),
-        )
+        Box::new(scope_iterator(ops, line, stack, &self.highlighter))
     }
 
     fn current_line(&self) -> usize {
         self.current_line
+    }
+}
+
+fn scope_iterator<'a>(
+    ops: Vec<(usize, parsing::ScopeStackOp)>,
+    line: &str,
+    stack: &'a mut parsing::ScopeStack,
+    highlighter: &'a highlighting::Highlighter<'static>,
+) -> impl Iterator<Item = (Range<usize>, Highlight)> + 'a {
+    ScopeRangeIterator {
+        ops,
+        line_length: line.len(),
+        index: 0,
+        last_str_index: 0,
+    }
+    .filter_map(move |(range, scope)| {
+        let _ = stack.apply(&scope);
+
+        if range.is_empty() {
+            None
+        } else {
+            Some((
+                range,
+                Highlight(highlighter.style_mod_for_stack(&stack.scopes)),
+            ))
+        }
+    })
+}
+
+/// A streaming syntax highlighter.
+///
+/// It can efficiently highlight an immutable stream of tokens.
+#[derive(Debug)]
+pub struct Stream {
+    syntax: &'static parsing::SyntaxReference,
+    highlighter: highlighting::Highlighter<'static>,
+    commit: (parsing::ParseState, parsing::ScopeStack),
+    state: parsing::ParseState,
+    stack: parsing::ScopeStack,
+}
+
+impl Stream {
+    /// Creates a new [`Stream`] highlighter.
+    pub fn new(settings: &Settings) -> Self {
+        let syntax = SYNTAXES
+            .find_syntax_by_token(&settings.token)
+            .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
+
+        let highlighter = highlighting::Highlighter::new(
+            &THEMES.themes[settings.theme.key()],
+        );
+
+        let state = parsing::ParseState::new(syntax);
+        let stack = parsing::ScopeStack::new();
+
+        Self {
+            syntax,
+            highlighter,
+            commit: (state.clone(), stack.clone()),
+            state,
+            stack,
+        }
+    }
+
+    /// Highlights the given line from the last commit.
+    pub fn highlight_line(
+        &mut self,
+        line: &str,
+    ) -> impl Iterator<Item = (Range<usize>, Highlight)> + '_ {
+        self.state = self.commit.0.clone();
+        self.stack = self.commit.1.clone();
+
+        let ops = self.state.parse_line(line, &SYNTAXES).unwrap_or_default();
+        scope_iterator(ops, line, &mut self.stack, &self.highlighter)
+    }
+
+    /// Commits the last highlighted line.
+    pub fn commit(&mut self) {
+        self.commit = (self.state.clone(), self.stack.clone());
+    }
+
+    /// Resets the [`Stream`] highlighter.
+    pub fn reset(&mut self) {
+        self.state = parsing::ParseState::new(self.syntax);
+        self.stack = parsing::ScopeStack::new();
+        self.commit = (self.state.clone(), self.stack.clone());
     }
 }
 

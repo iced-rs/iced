@@ -144,8 +144,8 @@ where
     }
 
     /// Sets the [`Id`] of the [`Scrollable`].
-    pub fn id(mut self, id: Id) -> Self {
-        self.id = Some(id);
+    pub fn id(mut self, id: impl Into<Id>) -> Self {
+        self.id = Some(id.into());
         self
     }
 
@@ -788,13 +788,7 @@ where
                                 (x, y)
                             };
 
-                            let is_vertical = match self.direction {
-                                Direction::Vertical(_) => true,
-                                Direction::Horizontal(_) => false,
-                                Direction::Both { .. } => !is_shift_pressed,
-                            };
-
-                            let movement = if is_vertical {
+                            let movement = if !is_shift_pressed {
                                 Vector::new(x, y)
                             } else {
                                 Vector::new(y, x)
@@ -999,9 +993,9 @@ where
                             content_layout,
                             cursor,
                             &Rectangle {
-                                y: bounds.y + translation.y,
-                                x: bounds.x + translation.x,
-                                ..bounds
+                                y: visible_bounds.y + translation.y,
+                                x: visible_bounds.x + translation.x,
+                                ..visible_bounds
                             },
                         );
                     },
@@ -1103,9 +1097,9 @@ where
                 content_layout,
                 cursor,
                 &Rectangle {
-                    x: bounds.x + translation.x,
-                    y: bounds.y + translation.y,
-                    ..bounds
+                    x: visible_bounds.x + translation.x,
+                    y: visible_bounds.y + translation.y,
+                    ..visible_bounds
                 },
             );
         }
@@ -1228,25 +1222,36 @@ impl From<Id> for widget::Id {
     }
 }
 
+impl From<&'static str> for Id {
+    fn from(id: &'static str) -> Self {
+        Self::new(id)
+    }
+}
+
 /// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`Id`]
 /// to the provided [`RelativeOffset`].
-pub fn snap_to<T>(id: Id, offset: RelativeOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::snap_to(id.0, offset)))
+pub fn snap_to<T>(id: impl Into<Id>, offset: RelativeOffset) -> Task<T> {
+    task::effect(Action::widget(operation::scrollable::snap_to(
+        id.into().0,
+        offset,
+    )))
 }
 
 /// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
 /// to the provided [`AbsoluteOffset`].
-pub fn scroll_to<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
+pub fn scroll_to<T>(id: impl Into<Id>, offset: AbsoluteOffset) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::scroll_to(
-        id.0, offset,
+        id.into().0,
+        offset,
     )))
 }
 
 /// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
 /// by the provided [`AbsoluteOffset`].
-pub fn scroll_by<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
+pub fn scroll_by<T>(id: impl Into<Id>, offset: AbsoluteOffset) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::scroll_by(
-        id.0, offset,
+        id.into().0,
+        offset,
     )))
 }
 

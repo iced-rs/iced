@@ -30,6 +30,7 @@ where
     align_y: alignment::Vertical,
     wrapping: Wrapping,
     class: Theme::Class<'a>,
+    hovered_link: Option<usize>,
 }
 
 impl<'a, Link, Theme, Renderer> Rich<'a, Link, Theme, Renderer>
@@ -52,6 +53,7 @@ where
             align_y: alignment::Vertical::Top,
             wrapping: Wrapping::default(),
             class: Theme::default(),
+            hovered_link: None,
         }
     }
 
@@ -236,22 +238,21 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
+        if !layout.bounds().intersects(viewport) {
+            return;
+        }
+
         let state = tree
             .state
             .downcast_ref::<State<Link, Renderer::Paragraph>>();
 
         let style = theme.style(&self.class);
 
-        let hovered_span = cursor
-            .position_in(layout.bounds())
-            .and_then(|position| state.paragraph.hit_span(position));
-
         for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
-            let is_hovered_link =
-                span.link.is_some() && Some(index) == hovered_span;
+            let is_hovered_link = Some(index) == self.hovered_link;
 
             if span.highlight.is_some()
                 || span.underline
@@ -365,25 +366,38 @@ where
         shell: &mut Shell<'_, Link>,
         _viewport: &Rectangle,
     ) {
+        let was_hovered = self.hovered_link.is_some();
+
+        if let Some(position) = cursor.position_in(layout.bounds()) {
+            let state = tree
+                .state
+                .downcast_ref::<State<Link, Renderer::Paragraph>>();
+
+            self.hovered_link =
+                state.paragraph.hit_span(position).and_then(|span| {
+                    if self.spans.as_ref().as_ref().get(span)?.link.is_some() {
+                        Some(span)
+                    } else {
+                        None
+                    }
+                });
+        } else {
+            self.hovered_link = None;
+        }
+
+        if was_hovered != self.hovered_link.is_some() {
+            shell.request_redraw();
+        }
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if let Some(position) = cursor.position_in(layout.bounds()) {
-                    let state = tree
-                        .state
-                        .downcast_mut::<State<Link, Renderer::Paragraph>>();
+                let state = tree
+                    .state
+                    .downcast_mut::<State<Link, Renderer::Paragraph>>();
 
-                    if let Some(span) = state.paragraph.hit_span(position) {
-                        if self
-                            .spans
-                            .as_ref()
-                            .as_ref()
-                            .get(span)
-                            .is_some_and(|span| span.link.is_some())
-                        {
-                            state.span_pressed = Some(span);
-                            shell.capture_event();
-                        }
-                    }
+                if self.hovered_link.is_some() {
+                    state.span_pressed = self.hovered_link;
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
@@ -391,27 +405,22 @@ where
                     .state
                     .downcast_mut::<State<Link, Renderer::Paragraph>>();
 
-                if let Some(span_pressed) = state.span_pressed {
-                    state.span_pressed = None;
-
-                    if let Some(position) = cursor.position_in(layout.bounds())
-                    {
-                        match state.paragraph.hit_span(position) {
-                            Some(span) if span == span_pressed => {
-                                if let Some(link) = self
-                                    .spans
-                                    .as_ref()
-                                    .as_ref()
-                                    .get(span)
-                                    .and_then(|span| span.link.clone())
-                                {
-                                    shell.publish(link);
-                                }
-                            }
-                            _ => {}
+                match state.span_pressed {
+                    Some(span) if Some(span) == self.hovered_link => {
+                        if let Some(link) = self
+                            .spans
+                            .as_ref()
+                            .as_ref()
+                            .get(span)
+                            .and_then(|span| span.link.clone())
+                        {
+                            shell.publish(link);
                         }
                     }
+                    _ => {}
                 }
+
+                state.span_pressed = None;
             }
             _ => {}
         }
@@ -419,29 +428,17 @@ where
 
     fn mouse_interaction(
         &self,
-        tree: &Tree,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _tree: &Tree,
+        _layout: Layout<'_>,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if let Some(position) = cursor.position_in(layout.bounds()) {
-            let state = tree
-                .state
-                .downcast_ref::<State<Link, Renderer::Paragraph>>();
-
-            if let Some(span) = state
-                .paragraph
-                .hit_span(position)
-                .and_then(|span| self.spans.as_ref().as_ref().get(span))
-            {
-                if span.link.is_some() {
-                    return mouse::Interaction::Pointer;
-                }
-            }
+        if self.hovered_link.is_some() {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::None
         }
-
-        mouse::Interaction::None
     }
 }
 
