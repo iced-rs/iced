@@ -450,7 +450,6 @@ where
 
         let mut children = layout.children();
         let toggler_layout = children.next().unwrap();
-        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
 
         if self.label.is_some() {
             let label_layout = children.next().unwrap();
@@ -496,7 +495,7 @@ where
             style.background,
         );
 
-        let x_ratio = state.transition.interpolate(0.0, 1.0, state.now);
+        let x_ratio = style.foreground_bounds_horizontal_progress;
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
                 + (2.0 * space + (x_ratio * (bounds.width - bounds.height))),
@@ -570,6 +569,8 @@ pub struct Style {
     pub foreground_border_width: f32,
     /// The [`Color`] of the foreground border of the toggler.
     pub foreground_border_color: Color,
+    /// The horizontal progress ratio of the foreground bounds of the toggler.
+    pub foreground_bounds_horizontal_progress: f32,
 }
 
 /// The theme catalog of a [`Toggler`].
@@ -658,6 +659,18 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Disabled => palette.background.base.color,
     };
 
+    let foreground_bounds_horizontal_progress = match status {
+        Status::Active {
+            is_toggled: _,
+            animation_progress,
+        } => animation_progress,
+        Status::Hovered {
+            is_toggled: _,
+            animation_progress,
+        } => animation_progress,
+        Status::Disabled => 0.0,
+    };
+
     Style {
         background,
         foreground,
@@ -665,5 +678,6 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         foreground_border_color: Color::TRANSPARENT,
         background_border_width: 0.0,
         background_border_color: Color::TRANSPARENT,
+        foreground_bounds_horizontal_progress,
     }
 }

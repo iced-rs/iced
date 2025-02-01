@@ -67,6 +67,8 @@ auto-detect-theme = ["iced_core/auto-detect-theme"]
 strict-assertions = ["iced_renderer/strict-assertions"]
 # Redraws on every runtime event, and not only when a widget requests it
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
+# Enables widget animations
+animations = ["iced_widget/animations"]
 
 [dependencies]
 iced_core.workspace = true
