@@ -47,7 +47,6 @@
 //!     }
 //! }
 //! ```
-#![allow(missing_docs)]
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
@@ -66,6 +65,7 @@ pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
 pub use url::Url;
 
+/// A bunch of Markdown that has been parsed.
 #[derive(Debug, Default)]
 pub struct Content {
     items: Vec<Item>,
@@ -73,10 +73,12 @@ pub struct Content {
 }
 
 impl Content {
+    /// Creates a new empty [`Content`].
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Creates some new [`Content`] by parsing the given Markdown.
     pub fn parse(markdown: &str) -> Self {
         let mut state = State::default();
         let items = parse_with(&mut state, markdown).collect();
@@ -84,6 +86,10 @@ impl Content {
         Self { items, state }
     }
 
+    /// Pushes more Markdown into the [`Content`]; parsing incrementally!
+    ///
+    /// This is specially useful when you have long streams of Markdown; like
+    /// big files or potentially long replies.
     pub fn push_str(&mut self, markdown: &str) {
         if markdown.is_empty() {
             return;
@@ -101,6 +107,9 @@ impl Content {
         self.items.extend(new_items);
     }
 
+    /// Returns the Markdown items, ready to be rendered.
+    ///
+    /// You can use [`view`] to turn them into an [`Element`].
     pub fn items(&self) -> &[Item] {
         &self.items
     }
