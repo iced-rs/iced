@@ -332,6 +332,12 @@ impl Scrollbar {
         Self::default()
     }
 
+    /// Create a [`Scrollbar`] with zero width to allow a [`Scrollable`] to scroll without a visible
+    /// scroller.
+    pub fn hidden() -> Self {
+        Self::default().width(0).scroller_width(0)
+    }
+
     /// Sets the scrollbar width of the [`Scrollbar`] .
     pub fn width(mut self, width: impl Into<Pixels>) -> Self {
         self.width = width.into().0.max(0.0);
