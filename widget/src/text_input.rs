@@ -400,14 +400,13 @@ where
     ) -> InputMethod<&'b str> {
         let Some(Focus {
             is_window_focused: true,
-            is_ime_open,
             ..
         }) = &state.is_focused
         else {
             return InputMethod::Disabled;
         };
 
-        let Some(preedit) = is_ime_open else {
+        let Some(preedit) = &state.is_ime_open else {
             return InputMethod::Allowed;
         };
 
@@ -729,7 +728,6 @@ where
                         updated_at: now,
                         now,
                         is_window_focused: true,
-                        is_ime_open: None,
                     })
                 } else {
                     None
@@ -1257,17 +1255,15 @@ where
                 input_method::Event::Opened | input_method::Event::Closed => {
                     let state = state::<Renderer>(tree);
 
-                    if let Some(focus) = &mut state.is_focused {
-                        focus.is_ime_open =
-                            matches!(event, input_method::Event::Opened)
-                                .then(String::new);
-                    }
+                    state.is_ime_open =
+                        matches!(event, input_method::Event::Opened)
+                            .then(String::new);
                 }
                 input_method::Event::Preedit(content, _range) => {
                     let state = state::<Renderer>(tree);
 
-                    if let Some(focus) = &mut state.is_focused {
-                        focus.is_ime_open = Some(content.to_owned());
+                    if state.is_focused.is_some() {
+                        state.is_ime_open = Some(content.to_owned());
                     }
                 }
                 input_method::Event::Commit(text) => {
@@ -1519,6 +1515,7 @@ pub struct State<P: text::Paragraph> {
     placeholder: paragraph::Plain<P>,
     icon: paragraph::Plain<P>,
     is_focused: Option<Focus>,
+    is_ime_open: Option<String>,
     is_dragging: bool,
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,
@@ -1538,7 +1535,6 @@ struct Focus {
     updated_at: Instant,
     now: Instant,
     is_window_focused: bool,
-    is_ime_open: Option<String>,
 }
 
 impl<P: text::Paragraph> State<P> {
@@ -1565,7 +1561,6 @@ impl<P: text::Paragraph> State<P> {
             updated_at: now,
             now,
             is_window_focused: true,
-            is_ime_open: None,
         });
 
         self.move_cursor_to_end();

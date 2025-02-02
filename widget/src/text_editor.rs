@@ -332,14 +332,13 @@ where
     ) -> InputMethod<&'b str> {
         let Some(Focus {
             is_window_focused: true,
-            is_ime_open,
             ..
         }) = &state.focus
         else {
             return InputMethod::Disabled;
         };
 
-        let Some(preedit) = &is_ime_open else {
+        let Some(preedit) = &state.preedit else {
             return InputMethod::Allowed;
         };
 
@@ -497,6 +496,7 @@ where
 #[derive(Debug)]
 pub struct State<Highlighter: text::Highlighter> {
     focus: Option<Focus>,
+    preedit: Option<String>,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
     partial_scroll: f32,
@@ -510,7 +510,6 @@ struct Focus {
     updated_at: Instant,
     now: Instant,
     is_window_focused: bool,
-    is_ime_open: Option<String>,
 }
 
 impl Focus {
@@ -523,7 +522,6 @@ impl Focus {
             updated_at: now,
             now,
             is_window_focused: true,
-            is_ime_open: None,
         }
     }
 
@@ -573,6 +571,7 @@ where
     fn state(&self) -> widget::tree::State {
         widget::tree::State::new(State {
             focus: None,
+            preedit: None,
             last_click: None,
             drag_click: None,
             partial_scroll: 0.0,
@@ -752,13 +751,11 @@ where
                 }
                 Update::InputMethod(update) => match update {
                     Ime::Toggle(is_open) => {
-                        if let Some(focus) = &mut state.focus {
-                            focus.is_ime_open = is_open.then(String::new);
-                        }
+                        state.preedit = is_open.then(String::new);
                     }
                     Ime::Preedit(text) => {
-                        if let Some(focus) = &mut state.focus {
-                            focus.is_ime_open = Some(text);
+                        if state.focus.is_some() {
+                            state.preedit = Some(text);
                         }
                     }
                     Ime::Commit(text) => {

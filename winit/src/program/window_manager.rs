@@ -205,9 +205,11 @@ where
     pub fn request_input_method(&mut self, input_method: InputMethod) {
         match input_method {
             InputMethod::None => {}
-            InputMethod::Disabled => self.raw.set_ime_allowed(false),
+            InputMethod::Disabled => {
+                self.raw.set_ime_allowed(false);
+            }
             InputMethod::Allowed | InputMethod::Open { .. } => {
-                self.raw.set_ime_allowed(true)
+                self.raw.set_ime_allowed(true);
             }
         }
 
