@@ -206,7 +206,7 @@ fn card<'a>(
             .into()
     } else {
         pop(card)
-            .on_show(Message::ImagePoppedIn(metadata.id))
+            .on_show(|_| Message::ImagePoppedIn(metadata.id))
             .into()
     }
 }

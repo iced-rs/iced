@@ -17,7 +17,8 @@ use crate::core::{
 #[allow(missing_debug_implementations)]
 pub struct Pop<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
-    on_show: Option<Message>,
+    on_show: Option<Box<dyn Fn(Size) -> Message + 'a>>,
+    on_resize: Option<Box<dyn Fn(Size) -> Message + 'a>>,
     on_hide: Option<Message>,
     anticipate: Pixels,
 }
@@ -34,14 +35,28 @@ where
         Self {
             content: content.into(),
             on_show: None,
+            on_resize: None,
             on_hide: None,
             anticipate: Pixels::ZERO,
         }
     }
 
     /// Sets the message to be produced when the content pops into view.
-    pub fn on_show(mut self, on_show: Message) -> Self {
-        self.on_show = Some(on_show);
+    ///
+    /// The closure will receive the relative bounds of the content in that moment.
+    pub fn on_show(mut self, on_show: impl Fn(Size) -> Message + 'a) -> Self {
+        self.on_show = Some(Box::new(on_show));
+        self
+    }
+
+    /// Sets the message to be produced when the content changes [`Size`] once its in view.
+    ///
+    /// The closure will receive the new [`Size`] of the content.
+    pub fn on_resize(
+        mut self,
+        on_resize: impl Fn(Size) -> Message + 'a,
+    ) -> Self {
+        self.on_resize = Some(Box::new(on_resize));
         self
     }
 
@@ -65,6 +80,7 @@ where
 #[derive(Debug, Clone, Copy, Default)]
 struct State {
     has_popped_in: bool,
+    last_size: Option<Size>,
 }
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -112,16 +128,27 @@ where
             let distance = top_left_distance.min(bottom_right_distance);
 
             if state.has_popped_in {
-                if let Some(on_hide) = &self.on_hide {
-                    if distance > self.anticipate.0 {
-                        state.has_popped_in = false;
-                        shell.publish(on_hide.clone());
+                if distance <= self.anticipate.0 {
+                    if let Some(on_resize) = &self.on_resize {
+                        let size = bounds.size();
+
+                        if Some(size) != state.last_size {
+                            state.last_size = Some(size);
+                            shell.publish(on_resize(size));
+                        }
                     }
+                } else if let Some(on_hide) = &self.on_hide {
+                    state.has_popped_in = false;
+                    shell.publish(on_hide.clone());
                 }
             } else if let Some(on_show) = &self.on_show {
                 if distance <= self.anticipate.0 {
+                    let size = bounds.size();
+
                     state.has_popped_in = true;
-                    shell.publish(on_show.clone());
+                    state.last_size = Some(size);
+
+                    shell.publish(on_show(size));
                 }
             }
         }
