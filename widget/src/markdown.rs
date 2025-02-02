@@ -58,7 +58,9 @@ use crate::{column, container, rich_text, row, scrollable, span, text};
 
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
+use std::collections::{HashMap, HashSet};
 use std::ops::Range;
+use std::rc::Rc;
 use std::sync::Arc;
 
 pub use core::text::Highlight;
@@ -69,7 +71,14 @@ pub use url::Url;
 #[derive(Debug, Default)]
 pub struct Content {
     items: Vec<Item>,
+    incomplete: HashMap<usize, Section>,
     state: State,
+}
+
+#[derive(Debug)]
+struct Section {
+    content: String,
+    broken_links: HashSet<String>,
 }
 
 impl Content {
@@ -80,10 +89,9 @@ impl Content {
 
     /// Creates some new [`Content`] by parsing the given Markdown.
     pub fn parse(markdown: &str) -> Self {
-        let mut state = State::default();
-        let items = parse_with(&mut state, markdown).collect();
-
-        Self { items, state }
+        let mut content = Self::new();
+        content.push_str(markdown);
+        content
     }
 
     /// Pushes more Markdown into the [`Content`]; parsing incrementally!
@@ -103,8 +111,52 @@ impl Content {
         let _ = self.items.pop();
 
         // Re-parse last item and new text
-        let new_items = parse_with(&mut self.state, &leftover);
-        self.items.extend(new_items);
+        for (item, source, broken_links) in
+            parse_with(&mut self.state, &leftover)
+        {
+            if !broken_links.is_empty() {
+                let _ = self.incomplete.insert(
+                    self.items.len(),
+                    Section {
+                        content: source.to_owned(),
+                        broken_links,
+                    },
+                );
+            }
+
+            self.items.push(item);
+        }
+
+        // Re-parse incomplete sections if new references are available
+        if !self.incomplete.is_empty() {
+            let mut state = State {
+                leftover: String::new(),
+                references: self.state.references.clone(),
+                highlighter: None,
+            };
+
+            self.incomplete.retain(|index, section| {
+                if self.items.len() <= *index {
+                    return false;
+                }
+
+                let broken_links_before = section.broken_links.len();
+
+                section
+                    .broken_links
+                    .retain(|link| !self.state.references.contains_key(link));
+
+                if broken_links_before != section.broken_links.len() {
+                    if let Some((item, _source, _broken_links)) =
+                        parse_with(&mut state, &section.content).next()
+                    {
+                        self.items[*index] = item;
+                    }
+                }
+
+                !section.broken_links.is_empty()
+            });
+        }
     }
 
     /// Returns the Markdown items, ready to be rendered.
@@ -285,11 +337,13 @@ impl Span {
 /// ```
 pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
     parse_with(State::default(), markdown)
+        .map(|(item, _source, _broken_links)| item)
 }
 
 #[derive(Debug, Default)]
 struct State {
     leftover: String,
+    references: HashMap<String, String>,
     #[cfg(feature = "highlighter")]
     highlighter: Option<Highlighter>,
 }
@@ -379,11 +433,13 @@ impl Highlighter {
 fn parse_with<'a>(
     mut state: impl BorrowMut<State> + 'a,
     markdown: &'a str,
-) -> impl Iterator<Item = Item> + 'a {
+) -> impl Iterator<Item = (Item, &'a str, HashSet<String>)> + 'a {
     struct List {
         start: Option<u64>,
         items: Vec<Vec<Item>>,
     }
+
+    let broken_links = Rc::new(RefCell::new(HashSet::new()));
 
     let mut spans = Vec::new();
     let mut code = Vec::new();
@@ -398,14 +454,40 @@ fn parse_with<'a>(
     #[cfg(feature = "highlighter")]
     let mut highlighter = None;
 
-    let parser = pulldown_cmark::Parser::new_ext(
+    let parser = pulldown_cmark::Parser::new_with_broken_link_callback(
         markdown,
         pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
             | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
             | pulldown_cmark::Options::ENABLE_TABLES
             | pulldown_cmark::Options::ENABLE_STRIKETHROUGH,
-    )
-    .into_offset_iter();
+        {
+            let references = state.borrow().references.clone();
+            let broken_links = broken_links.clone();
+
+            Some(move |broken_link: pulldown_cmark::BrokenLink<'_>| {
+                if let Some(reference) =
+                    references.get(broken_link.reference.as_ref())
+                {
+                    Some((
+                        pulldown_cmark::CowStr::from(reference.to_owned()),
+                        broken_link.reference.into_static(),
+                    ))
+                } else {
+                    let _ = RefCell::borrow_mut(&broken_links)
+                        .insert(broken_link.reference.to_string());
+
+                    None
+                }
+            })
+        },
+    );
+
+    let references = &mut state.borrow_mut().references;
+
+    for reference in parser.reference_definitions().iter() {
+        let _ = references
+            .insert(reference.0.to_owned(), reference.1.dest.to_string());
+    }
 
     let produce = move |state: &mut State,
                         lists: &mut Vec<List>,
@@ -414,7 +496,11 @@ fn parse_with<'a>(
         if lists.is_empty() {
             state.leftover = markdown[source.start..].to_owned();
 
-            Some(item)
+            Some((
+                item,
+                &markdown[source.start..source.end],
+                broken_links.take(),
+            ))
         } else {
             lists
                 .last_mut()
@@ -427,6 +513,8 @@ fn parse_with<'a>(
             None
         }
     };
+
+    let parser = parser.into_offset_iter();
 
     // We want to keep the `spans` capacity
     #[allow(clippy::drain_collect)]

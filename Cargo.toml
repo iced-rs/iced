@@ -166,7 +166,7 @@ num-traits = "0.2"
 ouroboros = "0.18"
 palette = "0.7"
 png = "0.17"
-pulldown-cmark = "0.11"
+pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
 resvg = "0.42"

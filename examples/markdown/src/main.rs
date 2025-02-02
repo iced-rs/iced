@@ -162,7 +162,7 @@ impl Markdown {
         match self.mode {
             Mode::Preview(_) => Subscription::none(),
             Mode::Stream { .. } => {
-                time::every(milliseconds(20)).map(|_| Message::NextToken)
+                time::every(milliseconds(10)).map(|_| Message::NextToken)
             }
         }
     }
