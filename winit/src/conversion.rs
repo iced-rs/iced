@@ -289,7 +289,10 @@ pub fn window_event(
             println!("ime event: {:?}", ime);
             Some(Event::InputMethod(match ime {
                 Ime::Enabled => input_method::Event::Enabled,
-                Ime::Preedit(s, size) => input_method::Event::Preedit(s, size),
+                Ime::Preedit(s, size) => input_method::Event::Preedit(
+                    s,
+                    size.map(|(start, end)| (start..end)),
+                ),
                 Ime::Commit(s) => input_method::Event::Commit(s),
                 Ime::Disabled => input_method::Event::Disabled,
             }))
