@@ -57,7 +57,7 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, CaretInfo, Color, Element, Event, Layout, Length,
+    Background, Border, Color, Element, Event, InputMethod, Layout, Length,
     Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::task::{self, Task};
@@ -392,14 +392,24 @@ where
         }
     }
 
-    fn caret_rect(
+    fn input_method<'b>(
         &self,
-        tree: &Tree,
+        state: &'b State<Renderer::Paragraph>,
         layout: Layout<'_>,
-        value: Option<&Value>,
-    ) -> Option<Rectangle> {
-        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
-        let value = value.unwrap_or(&self.value);
+        value: &Value,
+    ) -> InputMethod<&'b str> {
+        let Some(Focus {
+            is_window_focused: true,
+            is_ime_open,
+            ..
+        }) = &state.is_focused
+        else {
+            return InputMethod::Disabled;
+        };
+
+        let Some(preedit) = is_ime_open else {
+            return InputMethod::Allowed;
+        };
 
         let secure_value = self.is_secure.then(|| value.secure());
         let value = secure_value.as_ref().unwrap_or(value);
@@ -407,38 +417,32 @@ where
         let mut children_layout = layout.children();
         let text_bounds = children_layout.next().unwrap().bounds();
 
-        if state
-            .is_focused
-            .is_some_and(|focus| focus.is_window_focused)
-        {
-            let caret_index = match state.cursor.state(value) {
-                cursor::State::Index(position) => position,
-                cursor::State::Selection { start, end } => start.min(end),
-            };
+        let caret_index = match state.cursor.state(value) {
+            cursor::State::Index(position) => position,
+            cursor::State::Selection { start, end } => start.min(end),
+        };
 
-            let text = state.value.raw();
-            let (caret_x, offset) = measure_cursor_and_scroll_offset(
-                text,
-                text_bounds,
-                caret_index,
-            );
+        let text = state.value.raw();
+        let (cursor_x, scroll_offset) =
+            measure_cursor_and_scroll_offset(text, text_bounds, caret_index);
 
-            let alignment_offset = alignment_offset(
-                text_bounds.width,
-                text.min_width(),
-                self.alignment,
-            );
+        let alignment_offset = alignment_offset(
+            text_bounds.width,
+            text.min_width(),
+            self.alignment,
+        );
 
-            let x = (text_bounds.x + caret_x).floor();
+        let x = (text_bounds.x + cursor_x).floor() - scroll_offset
+            + alignment_offset;
 
-            Some(Rectangle {
-                x: (alignment_offset - offset) + x,
-                y: text_bounds.y,
-                width: 1.0,
-                height: text_bounds.height,
-            })
-        } else {
-            None
+        InputMethod::Open {
+            position: Point::new(x, text_bounds.y),
+            purpose: if self.is_secure {
+                input_method::Purpose::Secure
+            } else {
+                input_method::Purpose::Normal
+            },
+            preedit: Some(preedit),
         }
     }
 
@@ -725,6 +729,7 @@ where
                         updated_at: now,
                         now,
                         is_window_focused: true,
+                        is_ime_open: None,
                     })
                 } else {
                     None
@@ -1248,28 +1253,46 @@ where
 
                 state.keyboard_modifiers = *modifiers;
             }
-            Event::InputMethod(input_method::Event::Commit(text)) => {
-                let state = state::<Renderer>(tree);
+            Event::InputMethod(event) => match event {
+                input_method::Event::Opened | input_method::Event::Closed => {
+                    let state = state::<Renderer>(tree);
 
-                if let Some(focus) = &mut state.is_focused {
-                    let Some(on_input) = &self.on_input else {
-                        return;
-                    };
-
-                    let mut editor =
-                        Editor::new(&mut self.value, &mut state.cursor);
-                    editor.paste(Value::new(text));
-
-                    focus.updated_at = Instant::now();
-                    state.is_pasting = None;
-
-                    let message = (on_input)(editor.contents());
-                    shell.publish(message);
-                    shell.capture_event();
-
-                    update_cache(state, &self.value);
+                    if let Some(focus) = &mut state.is_focused {
+                        focus.is_ime_open =
+                            matches!(event, input_method::Event::Opened)
+                                .then(String::new);
+                    }
                 }
-            }
+                input_method::Event::Preedit(content, _range) => {
+                    let state = state::<Renderer>(tree);
+
+                    if let Some(focus) = &mut state.is_focused {
+                        focus.is_ime_open = Some(content.to_owned());
+                    }
+                }
+                input_method::Event::Commit(text) => {
+                    let state = state::<Renderer>(tree);
+
+                    if let Some(focus) = &mut state.is_focused {
+                        let Some(on_input) = &self.on_input else {
+                            return;
+                        };
+
+                        let mut editor =
+                            Editor::new(&mut self.value, &mut state.cursor);
+                        editor.paste(Value::new(text));
+
+                        focus.updated_at = Instant::now();
+                        state.is_pasting = None;
+
+                        let message = (on_input)(editor.contents());
+                        shell.publish(message);
+                        shell.capture_event();
+
+                        update_cache(state, &self.value);
+                    }
+                }
+            },
             Event::Window(window::Event::Unfocused) => {
                 let state = state::<Renderer>(tree);
 
@@ -1329,21 +1352,14 @@ where
             Status::Active
         };
 
-        shell.update_caret_info(if state.is_focused() {
-            let rect = self
-                .caret_rect(tree, layout, Some(&self.value))
-                .unwrap_or(Rectangle::with_size(Size::<f32>::default()));
-            let bottom_left = Point::new(rect.x, rect.y + rect.height);
-            Some(CaretInfo {
-                position: bottom_left,
-                input_method_allowed: true,
-            })
-        } else {
-            None
-        });
-
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
             self.last_status = Some(status);
+
+            shell.request_input_method(&self.input_method(
+                state,
+                layout,
+                &self.value,
+            ));
         } else if self
             .last_status
             .is_some_and(|last_status| status != last_status)
@@ -1517,11 +1533,12 @@ fn state<Renderer: text::Renderer>(
     tree.state.downcast_mut::<State<Renderer::Paragraph>>()
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct Focus {
     updated_at: Instant,
     now: Instant,
     is_window_focused: bool,
+    is_ime_open: Option<String>,
 }
 
 impl<P: text::Paragraph> State<P> {
@@ -1548,6 +1565,7 @@ impl<P: text::Paragraph> State<P> {
             updated_at: now,
             now,
             is_window_focused: true,
+            is_ime_open: None,
         });
 
         self.move_cursor_to_end();

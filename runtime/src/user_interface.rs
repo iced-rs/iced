@@ -6,7 +6,7 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{
-    CaretInfo, Clipboard, Element, Layout, Rectangle, Shell, Size, Vector,
+    Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector,
 };
 use crate::overlay;
 
@@ -188,8 +188,8 @@ where
         use std::mem::ManuallyDrop;
 
         let mut outdated = false;
-        let mut redraw_request = None;
-        let mut caret_info = None;
+        let mut redraw_request = window::RedrawRequest::Wait;
+        let mut input_method = InputMethod::Disabled;
 
         let mut manual_overlay = ManuallyDrop::new(
             self.root
@@ -223,17 +223,8 @@ where
                 );
 
                 event_statuses.push(shell.event_status());
-
-                match (redraw_request, shell.redraw_request()) {
-                    (None, Some(at)) => {
-                        redraw_request = Some(at);
-                    }
-                    (Some(current), Some(new)) if new < current => {
-                        redraw_request = Some(new);
-                    }
-                    _ => {}
-                }
-                caret_info = caret_info.or(shell.caret_info());
+                redraw_request = redraw_request.min(shell.redraw_request());
+                input_method.merge(shell.input_method());
 
                 if shell.is_layout_invalid() {
                     let _ = ManuallyDrop::into_inner(manual_overlay);
@@ -327,16 +318,8 @@ where
                     self.overlay = None;
                 }
 
-                match (redraw_request, shell.redraw_request()) {
-                    (None, Some(at)) => {
-                        redraw_request = Some(at);
-                    }
-                    (Some(current), Some(new)) if new < current => {
-                        redraw_request = Some(new);
-                    }
-                    _ => {}
-                }
-                caret_info = caret_info.or(shell.caret_info());
+                redraw_request = redraw_request.min(shell.redraw_request());
+                input_method.merge(shell.input_method());
 
                 shell.revalidate_layout(|| {
                     self.base = self.root.as_widget().layout(
@@ -362,7 +345,7 @@ where
             } else {
                 State::Updated {
                     redraw_request,
-                    caret_info,
+                    input_method,
                 }
             },
             event_statuses,
@@ -644,7 +627,7 @@ impl Default for Cache {
 }
 
 /// The resulting state after updating a [`UserInterface`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum State {
     /// The [`UserInterface`] is outdated and needs to be rebuilt.
     Outdated,
@@ -652,9 +635,9 @@ pub enum State {
     /// The [`UserInterface`] is up-to-date and can be reused without
     /// rebuilding.
     Updated {
-        /// The [`window::RedrawRequest`] when a redraw should be performed.
-        redraw_request: Option<window::RedrawRequest>,
-        /// TODO
-        caret_info: Option<CaretInfo>,
+        /// The [`window::RedrawRequest`] describing when a redraw should be performed.
+        redraw_request: window::RedrawRequest,
+        /// The current [`InputMethod`] strategy of the user interface.
+        input_method: InputMethod,
     },
 }

@@ -1,13 +1,20 @@
+use crate::conversion;
+use crate::core::alignment;
 use crate::core::mouse;
+use crate::core::renderer;
+use crate::core::text;
 use crate::core::theme;
 use crate::core::time::Instant;
-use crate::core::window::Id;
-use crate::core::{Point, Size};
+use crate::core::window::{Id, RedrawRequest};
+use crate::core::{
+    Color, InputMethod, Padding, Point, Rectangle, Size, Text, Vector,
+};
 use crate::graphics::Compositor;
 use crate::program::{Program, State};
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::monitor::MonitorHandle;
 
 #[allow(missing_debug_implementations)]
@@ -65,6 +72,7 @@ where
                 renderer,
                 mouse_interaction: mouse::Interaction::None,
                 redraw_at: None,
+                preedit: None,
             },
         );
 
@@ -155,6 +163,7 @@ where
     pub surface: C::Surface,
     pub renderer: P::Renderer,
     pub redraw_at: Option<Instant>,
+    preedit: Option<Preedit<P::Renderer>>,
 }
 
 impl<P, C> Window<P, C>
@@ -178,5 +187,137 @@ where
         let size = self.raw.inner_size().to_logical(self.raw.scale_factor());
 
         Size::new(size.width, size.height)
+    }
+
+    pub fn request_redraw(&mut self, redraw_request: RedrawRequest) {
+        match redraw_request {
+            RedrawRequest::NextFrame => {
+                self.raw.request_redraw();
+                self.redraw_at = None;
+            }
+            RedrawRequest::At(at) => {
+                self.redraw_at = Some(at);
+            }
+            RedrawRequest::Wait => {}
+        }
+    }
+
+    pub fn request_input_method(&mut self, input_method: InputMethod) {
+        self.raw.set_ime_allowed(match input_method {
+            InputMethod::Disabled => false,
+            InputMethod::Allowed | InputMethod::Open { .. } => true,
+        });
+
+        if let InputMethod::Open {
+            position,
+            purpose,
+            preedit,
+        } = input_method
+        {
+            self.raw.set_ime_cursor_area(
+                LogicalPosition::new(position.x, position.y),
+                LogicalSize::new(10, 10),
+            );
+
+            self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
+
+            if let Some(content) = preedit {
+                if let Some(preedit) = &mut self.preedit {
+                    preedit.update(&content, &self.renderer);
+                } else {
+                    let mut preedit = Preedit::new();
+                    preedit.update(&content, &self.renderer);
+
+                    self.preedit = Some(preedit);
+                }
+            }
+        } else {
+            self.preedit = None;
+        }
+    }
+
+    pub fn draw_preedit(&mut self) {
+        if let Some(preedit) = &self.preedit {
+            preedit.draw(
+                &mut self.renderer,
+                self.state.text_color(),
+                self.state.background_color(),
+            );
+        }
+    }
+}
+
+struct Preedit<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    position: Point,
+    content: text::paragraph::Plain<Renderer::Paragraph>,
+}
+
+impl<Renderer> Preedit<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn new() -> Self {
+        Self {
+            position: Point::ORIGIN,
+            content: text::paragraph::Plain::default(),
+        }
+    }
+
+    fn update(&mut self, text: &str, renderer: &Renderer) {
+        self.content.update(Text {
+            content: text,
+            bounds: Size::INFINITY,
+            size: renderer.default_size(),
+            line_height: text::LineHeight::default(),
+            font: renderer.default_font(),
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Top, //Bottom,
+            shaping: text::Shaping::Advanced,
+            wrapping: text::Wrapping::None,
+        });
+    }
+
+    fn draw(&self, renderer: &mut Renderer, color: Color, background: Color) {
+        if self.content.min_width() < 1.0 {
+            return;
+        }
+
+        let top_left =
+            self.position - Vector::new(0.0, self.content.min_height());
+
+        let bounds = Rectangle::new(top_left, self.content.min_bounds());
+
+        renderer.with_layer(bounds, |renderer| {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    ..Default::default()
+                },
+                background,
+            );
+
+            renderer.fill_paragraph(
+                self.content.raw(),
+                top_left,
+                color,
+                bounds,
+            );
+
+            const UNDERLINE: f32 = 2.0;
+
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: bounds.shrink(Padding {
+                        top: bounds.height - UNDERLINE,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+                color,
+            );
+        });
     }
 }

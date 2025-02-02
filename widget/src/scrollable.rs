@@ -33,7 +33,7 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, CaretInfo, Clipboard, Color, Element, Event, Layout,
+    self, Background, Clipboard, Color, Element, Event, InputMethod, Layout,
     Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
     Widget,
 };
@@ -730,7 +730,6 @@ where
                 let translation =
                     state.translation(self.direction, bounds, content_bounds);
 
-                let children_may_have_caret = shell.caret_info().is_none();
                 self.content.as_widget_mut().update(
                     &mut tree.children[0],
                     event.clone(),
@@ -746,17 +745,10 @@ where
                     },
                 );
 
-                if children_may_have_caret {
-                    if let Some(caret_info) = shell.caret_info() {
-                        shell.update_caret_info(Some(CaretInfo {
-                            position: Point::new(
-                                caret_info.position.x - translation.x,
-                                caret_info.position.y - translation.y,
-                            ),
-                            input_method_allowed: caret_info
-                                .input_method_allowed,
-                        }));
-                    }
+                if let InputMethod::Open { position, .. } =
+                    shell.input_method_mut()
+                {
+                    *position = *position + translation;
                 }
             };
 

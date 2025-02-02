@@ -47,7 +47,7 @@ use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, CaretInfo, Color, Element, Event, Length, Padding,
+    Background, Border, Color, Element, Event, InputMethod, Length, Padding,
     Pixels, Point, Rectangle, Shell, Size, SmolStr, Theme, Vector,
 };
 
@@ -324,43 +324,49 @@ where
         self
     }
 
-    fn caret_rect(
+    fn input_method<'b>(
         &self,
-        tree: &widget::Tree,
+        state: &'b State<Highlighter>,
         renderer: &Renderer,
         layout: Layout<'_>,
-    ) -> Option<Rectangle> {
-        let bounds = layout.bounds();
+    ) -> InputMethod<&'b str> {
+        let Some(Focus {
+            is_window_focused: true,
+            is_ime_open,
+            ..
+        }) = &state.focus
+        else {
+            return InputMethod::Disabled;
+        };
 
+        let Some(preedit) = &is_ime_open else {
+            return InputMethod::Allowed;
+        };
+
+        let bounds = layout.bounds();
         let internal = self.content.0.borrow_mut();
-        let state = tree.state.downcast_ref::<State<Highlighter>>();
 
         let text_bounds = bounds.shrink(self.padding);
         let translation = text_bounds.position() - Point::ORIGIN;
 
-        if state.focus.is_some() {
-            let position = match internal.editor.cursor() {
-                Cursor::Caret(position) => position,
-                Cursor::Selection(ranges) => ranges
-                    .first()
-                    .cloned()
-                    .unwrap_or(Rectangle::default())
-                    .position(),
-            };
-            Some(Rectangle::new(
-                position + translation,
-                Size::new(
-                    1.0,
-                    self.line_height
-                        .to_absolute(
-                            self.text_size
-                                .unwrap_or_else(|| renderer.default_size()),
-                        )
-                        .into(),
-                ),
-            ))
-        } else {
-            None
+        let cursor = match internal.editor.cursor() {
+            Cursor::Caret(position) => position,
+            Cursor::Selection(ranges) => {
+                ranges.first().cloned().unwrap_or_default().position()
+            }
+        };
+
+        let line_height = self.line_height.to_absolute(
+            self.text_size.unwrap_or_else(|| renderer.default_size()),
+        );
+
+        let position =
+            cursor + translation + Vector::new(0.0, f32::from(line_height));
+
+        InputMethod::Open {
+            position,
+            purpose: input_method::Purpose::Normal,
+            preedit: Some(preedit),
         }
     }
 }
@@ -499,11 +505,12 @@ pub struct State<Highlighter: text::Highlighter> {
     highlighter_format_address: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct Focus {
     updated_at: Instant,
     now: Instant,
     is_window_focused: bool,
+    is_ime_open: Option<String>,
 }
 
 impl Focus {
@@ -516,6 +523,7 @@ impl Focus {
             updated_at: now,
             now,
             is_window_focused: true,
+            is_ime_open: None,
         }
     }
 
@@ -742,11 +750,23 @@ where
                     }));
                     shell.capture_event();
                 }
-                Update::Commit(text) => {
-                    shell.publish(on_edit(Action::Edit(Edit::Paste(
-                        Arc::new(text),
-                    ))));
-                }
+                Update::InputMethod(update) => match update {
+                    Ime::Toggle(is_open) => {
+                        if let Some(focus) = &mut state.focus {
+                            focus.is_ime_open = is_open.then(String::new);
+                        }
+                    }
+                    Ime::Preedit(text) => {
+                        if let Some(focus) = &mut state.focus {
+                            focus.is_ime_open = Some(text);
+                        }
+                    }
+                    Ime::Commit(text) => {
+                        shell.publish(on_edit(Action::Edit(Edit::Paste(
+                            Arc::new(text),
+                        ))));
+                    }
+                },
                 Update::Binding(binding) => {
                     fn apply_binding<
                         H: text::Highlighter,
@@ -871,22 +891,12 @@ where
             }
         };
 
-        shell.update_caret_info(if state.is_focused() {
-            let rect =
-                self.caret_rect(tree, renderer, layout).unwrap_or_default();
-
-            let bottom_left = Point::new(rect.x, rect.y + rect.height);
-
-            Some(CaretInfo {
-                position: bottom_left,
-                input_method_allowed: true,
-            })
-        } else {
-            None
-        });
-
         if is_redraw {
             self.last_status = Some(status);
+
+            shell.request_input_method(
+                &self.input_method(state, renderer, layout),
+            );
         } else if self
             .last_status
             .is_some_and(|last_status| status != last_status)
@@ -1189,8 +1199,14 @@ enum Update<Message> {
     Drag(Point),
     Release,
     Scroll(f32),
-    Commit(String),
+    InputMethod(Ime),
     Binding(Binding<Message>),
+}
+
+enum Ime {
+    Toggle(bool),
+    Preedit(String),
+    Commit(String),
 }
 
 impl<Message> Update<Message> {
@@ -1252,9 +1268,20 @@ impl<Message> Update<Message> {
                 }
                 _ => None,
             },
-            Event::InputMethod(input_method::Event::Commit(text)) => {
-                Some(Update::Commit(text))
-            }
+            Event::InputMethod(event) => match event {
+                input_method::Event::Opened | input_method::Event::Closed => {
+                    Some(Update::InputMethod(Ime::Toggle(matches!(
+                        event,
+                        input_method::Event::Opened
+                    ))))
+                }
+                input_method::Event::Preedit(content, _range) => {
+                    Some(Update::InputMethod(Ime::Preedit(content)))
+                }
+                input_method::Event::Commit(content) => {
+                    Some(Update::InputMethod(Ime::Commit(content)))
+                }
+            },
             Event::Keyboard(keyboard::Event::KeyPressed {
                 key,
                 modifiers,

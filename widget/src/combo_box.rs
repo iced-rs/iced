@@ -63,7 +63,6 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
-use crate::core::window;
 use crate::core::{
     Clipboard, Element, Event, Length, Padding, Rectangle, Shell, Size, Theme,
     Vector,
@@ -554,17 +553,8 @@ where
             shell.capture_event();
         }
 
-        if let Some(redraw_request) = local_shell.redraw_request() {
-            match redraw_request {
-                window::RedrawRequest::NextFrame => {
-                    shell.request_redraw();
-                }
-                window::RedrawRequest::At(at) => {
-                    shell.request_redraw_at(at);
-                }
-            }
-        }
-        shell.update_caret_info(local_shell.caret_info());
+        shell.request_redraw_at(local_shell.redraw_request());
+        shell.request_input_method(local_shell.input_method());
 
         // Then finally react to them here
         for message in local_messages {
@@ -757,7 +747,7 @@ where
                     &mut local_shell,
                     viewport,
                 );
-                shell.update_caret_info(local_shell.caret_info());
+                shell.request_input_method(local_shell.input_method());
             }
         });
 

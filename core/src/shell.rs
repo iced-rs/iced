@@ -1,15 +1,6 @@
-use crate::time::Instant;
+use crate::event;
 use crate::window;
-use crate::{event, Point};
-
-/// TODO
-#[derive(Clone, Copy, Debug)]
-pub struct CaretInfo {
-    /// TODO
-    pub position: Point,
-    /// TODO
-    pub input_method_allowed: bool,
-}
+use crate::InputMethod;
 
 /// A connection to the state of a shell.
 ///
@@ -21,10 +12,10 @@ pub struct CaretInfo {
 pub struct Shell<'a, Message> {
     messages: &'a mut Vec<Message>,
     event_status: event::Status,
-    redraw_request: Option<window::RedrawRequest>,
+    redraw_request: window::RedrawRequest,
+    input_method: InputMethod,
     is_layout_invalid: bool,
     are_widgets_invalid: bool,
-    caret_info: Option<CaretInfo>,
 }
 
 impl<'a, Message> Shell<'a, Message> {
@@ -33,10 +24,10 @@ impl<'a, Message> Shell<'a, Message> {
         Self {
             messages,
             event_status: event::Status::Ignored,
-            redraw_request: None,
+            redraw_request: window::RedrawRequest::Wait,
             is_layout_invalid: false,
             are_widgets_invalid: false,
-            caret_info: None,
+            input_method: InputMethod::Disabled,
         }
     }
 
@@ -70,35 +61,38 @@ impl<'a, Message> Shell<'a, Message> {
 
     /// Requests a new frame to be drawn as soon as possible.
     pub fn request_redraw(&mut self) {
-        self.redraw_request = Some(window::RedrawRequest::NextFrame);
+        self.redraw_request = window::RedrawRequest::NextFrame;
     }
 
-    /// Requests a new frame to be drawn at the given [`Instant`].
-    pub fn request_redraw_at(&mut self, at: Instant) {
-        match self.redraw_request {
-            None => {
-                self.redraw_request = Some(window::RedrawRequest::At(at));
-            }
-            Some(window::RedrawRequest::At(current)) if at < current => {
-                self.redraw_request = Some(window::RedrawRequest::At(at));
-            }
-            _ => {}
-        }
+    /// Requests a new frame to be drawn at the given [`window::RedrawRequest`].
+    pub fn request_redraw_at(
+        &mut self,
+        redraw_request: impl Into<window::RedrawRequest>,
+    ) {
+        self.redraw_request = self.redraw_request.min(redraw_request.into());
     }
 
     /// Returns the request a redraw should happen, if any.
-    pub fn redraw_request(&self) -> Option<window::RedrawRequest> {
+    pub fn redraw_request(&self) -> window::RedrawRequest {
         self.redraw_request
     }
 
-    /// TODO
-    pub fn update_caret_info(&mut self, caret_info: Option<CaretInfo>) {
-        self.caret_info = caret_info.or(self.caret_info);
+    /// Requests the current [`InputMethod`] strategy.
+    pub fn request_input_method<T: AsRef<str>>(
+        &mut self,
+        ime: &InputMethod<T>,
+    ) {
+        self.input_method.merge(ime);
     }
 
-    /// TODO
-    pub fn caret_info(&self) -> Option<CaretInfo> {
-        self.caret_info
+    /// Returns the current [`InputMethod`] strategy.
+    pub fn input_method(&self) -> &InputMethod {
+        &self.input_method
+    }
+
+    /// Returns the current [`InputMethod`] strategy.
+    pub fn input_method_mut(&mut self) -> &mut InputMethod {
+        &mut self.input_method
     }
 
     /// Returns whether the current layout is invalid or not.
@@ -143,22 +137,14 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn merge<B>(&mut self, other: Shell<'_, B>, f: impl Fn(B) -> Message) {
         self.messages.extend(other.messages.drain(..).map(f));
 
-        if let Some(new) = other.redraw_request {
-            self.redraw_request = Some(
-                self.redraw_request
-                    .map(|current| if current < new { current } else { new })
-                    .unwrap_or(new),
-            );
-        }
-
-        self.update_caret_info(other.caret_info());
-
         self.is_layout_invalid =
             self.is_layout_invalid || other.is_layout_invalid;
 
         self.are_widgets_invalid =
             self.are_widgets_invalid || other.are_widgets_invalid;
 
+        self.redraw_request = self.redraw_request.min(other.redraw_request);
         self.event_status = self.event_status.merge(other.event_status);
+        self.input_method.merge(&other.input_method);
     }
 }

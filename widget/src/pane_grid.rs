@@ -687,7 +687,7 @@ where
             _ => {}
         }
 
-        if shell.redraw_request() != Some(window::RedrawRequest::NextFrame) {
+        if shell.redraw_request() != window::RedrawRequest::NextFrame {
             let interaction = self
                 .grid_interaction(action, layout, cursor)
                 .or_else(|| {
