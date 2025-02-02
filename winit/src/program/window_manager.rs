@@ -203,10 +203,13 @@ where
     }
 
     pub fn request_input_method(&mut self, input_method: InputMethod) {
-        self.raw.set_ime_allowed(match input_method {
-            InputMethod::Disabled => false,
-            InputMethod::Allowed | InputMethod::Open { .. } => true,
-        });
+        match input_method {
+            InputMethod::None => {}
+            InputMethod::Disabled => self.raw.set_ime_allowed(false),
+            InputMethod::Allowed | InputMethod::Open { .. } => {
+                self.raw.set_ime_allowed(true)
+            }
+        }
 
         if let InputMethod::Open {
             position,

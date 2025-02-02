@@ -6,6 +6,8 @@ use std::ops::Range;
 /// The input method strategy of a widget.
 #[derive(Debug, Clone, PartialEq)]
 pub enum InputMethod<T = String> {
+    /// No input method strategy has been specified.
+    None,
     /// No input method is allowed.
     Disabled,
     /// Input methods are allowed, but not open yet.
@@ -73,7 +75,7 @@ impl InputMethod {
     /// ```
     pub fn merge<T: AsRef<str>>(&mut self, other: &InputMethod<T>) {
         match other {
-            InputMethod::Disabled => {}
+            InputMethod::None => {}
             InputMethod::Open {
                 position,
                 purpose,
@@ -88,10 +90,15 @@ impl InputMethod {
                         .map(str::to_owned),
                 };
             }
-            InputMethod::Allowed if matches!(self, Self::Disabled) => {
+            InputMethod::Allowed
+                if matches!(self, Self::None | Self::Disabled) =>
+            {
                 *self = Self::Allowed;
             }
-            InputMethod::Allowed => {}
+            InputMethod::Disabled if matches!(self, Self::None) => {
+                *self = Self::Disabled;
+            }
+            _ => {}
         }
     }
 }
