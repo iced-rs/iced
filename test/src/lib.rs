@@ -539,6 +539,11 @@ impl Snapshot {
             Ok(true)
         }
     }
+
+    /// Returns the inner [`window::Screenshot`] of the [`Snapshot`].
+    pub fn into_inner(self) -> window::Screenshot {
+        self.screenshot
+    }
 }
 
 /// Returns the sequence of events of a click.
