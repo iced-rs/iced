@@ -129,12 +129,6 @@ impl Content {
 
         // Re-parse incomplete sections if new references are available
         if !self.incomplete.is_empty() {
-            let mut state = State {
-                leftover: String::new(),
-                references: self.state.references.clone(),
-                highlighter: None,
-            };
-
             self.incomplete.retain(|index, section| {
                 if self.items.len() <= *index {
                     return false;
@@ -147,11 +141,19 @@ impl Content {
                     .retain(|link| !self.state.references.contains_key(link));
 
                 if broken_links_before != section.broken_links.len() {
+                    let mut state = State {
+                        leftover: String::new(),
+                        references: self.state.references.clone(),
+                        highlighter: None,
+                    };
+
                     if let Some((item, _source, _broken_links)) =
                         parse_with(&mut state, &section.content).next()
                     {
                         self.items[*index] = item;
                     }
+
+                    drop(state);
                 }
 
                 !section.broken_links.is_empty()
