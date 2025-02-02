@@ -737,6 +737,17 @@ async fn run_instance<P, C>(
                                 }
                             }
                         }
+
+                        if let Some(redraw_at) = window_manager.redraw_at() {
+                            let _ =
+                                control_sender.start_send(Control::ChangeFlow(
+                                    ControlFlow::WaitUntil(redraw_at),
+                                ));
+                        } else {
+                            let _ = control_sender.start_send(
+                                Control::ChangeFlow(ControlFlow::Wait),
+                            );
+                        }
                     }
                     event::Event::PlatformSpecific(
                         event::PlatformSpecific::MacOS(
@@ -868,6 +879,7 @@ async fn run_instance<P, C>(
                             match redraw_request {
                                 window::RedrawRequest::NextFrame => {
                                     window.raw.request_redraw();
+                                    window.redraw_at = None;
                                 }
                                 window::RedrawRequest::At(at) => {
                                     window.redraw_at = Some(at);
@@ -1028,6 +1040,7 @@ async fn run_instance<P, C>(
                                 } => match redraw_request {
                                     window::RedrawRequest::NextFrame => {
                                         window.raw.request_redraw();
+                                        window.redraw_at = None;
                                     }
                                     window::RedrawRequest::At(at) => {
                                         window.redraw_at = Some(at);
