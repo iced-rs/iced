@@ -43,7 +43,7 @@ where
 
     /// Sets the message to be produced when the content pops into view.
     ///
-    /// The closure will receive the relative bounds of the content in that moment.
+    /// The closure will receive the [`Size`] of the content in that moment.
     pub fn on_show(mut self, on_show: impl Fn(Size) -> Message + 'a) -> Self {
         self.on_show = Some(Box::new(on_show));
         self
