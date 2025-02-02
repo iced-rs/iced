@@ -186,10 +186,8 @@ where
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = new_modifiers.state();
             }
-            WindowEvent::Ime(ime) => {
-                if let Ime::Preedit(text, _) = ime {
-                    self.preedit = text.clone();
-                }
+            WindowEvent::Ime(Ime::Preedit(text, _)) => {
+                self.preedit = text.clone();
             }
             #[cfg(feature = "debug")]
             WindowEvent::KeyboardInput {

@@ -407,18 +407,15 @@ where
         let mut children_layout = layout.children();
         let text_bounds = children_layout.next().unwrap().bounds();
 
-        if let Some(_) = state
+        if state
             .is_focused
-            .as_ref()
-            .filter(|focus| focus.is_window_focused)
+            .is_some_and(|focus| focus.is_window_focused)
         {
             let caret_index = match state.cursor.state(value) {
                 cursor::State::Index(position) => position,
-                cursor::State::Selection { start, end } => {
-                    let left = start.min(end);
-                    left
-                }
+                cursor::State::Selection { start, end } => start.min(end),
             };
+
             let text = state.value.raw();
             let (caret_x, offset) = measure_cursor_and_scroll_offset(
                 text,
@@ -433,6 +430,7 @@ where
             );
 
             let x = (text_bounds.x + caret_x).floor();
+
             Some(Rectangle {
                 x: (alignment_offset - offset) + x,
                 y: text_bounds.y,
@@ -1250,7 +1248,7 @@ where
 
                 state.keyboard_modifiers = *modifiers;
             }
-            Event::InputMethod(input_method::Event::Commit(string)) => {
+            Event::InputMethod(input_method::Event::Commit(text)) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
@@ -1258,21 +1256,18 @@ where
                         return;
                     };
 
-                    state.is_pasting = None;
-
                     let mut editor =
                         Editor::new(&mut self.value, &mut state.cursor);
+                    editor.paste(Value::new(text));
 
-                    editor.paste(Value::new(&string));
+                    focus.updated_at = Instant::now();
+                    state.is_pasting = None;
 
                     let message = (on_input)(editor.contents());
                     shell.publish(message);
-
-                    focus.updated_at = Instant::now();
+                    shell.capture_event();
 
                     update_cache(state, &self.value);
-
-                    shell.capture_event();
                 }
             }
             Event::Window(window::Event::Unfocused) => {

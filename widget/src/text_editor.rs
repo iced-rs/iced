@@ -338,7 +338,7 @@ where
         let text_bounds = bounds.shrink(self.padding);
         let translation = text_bounds.position() - Point::ORIGIN;
 
-        if let Some(_) = state.focus.as_ref() {
+        if state.focus.is_some() {
             let position = match internal.editor.cursor() {
                 Cursor::Caret(position) => position,
                 Cursor::Selection(ranges) => ranges
@@ -872,10 +872,11 @@ where
         };
 
         shell.update_caret_info(if state.is_focused() {
-            let rect = self
-                .caret_rect(tree, renderer, layout)
-                .unwrap_or(Rectangle::default());
+            let rect =
+                self.caret_rect(tree, renderer, layout).unwrap_or_default();
+
             let bottom_left = Point::new(rect.x, rect.y + rect.height);
+
             Some(CaretInfo {
                 position: bottom_left,
                 input_method_allowed: true,
