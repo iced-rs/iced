@@ -80,6 +80,18 @@ impl<'a, Message> Shell<'a, Message> {
         self.redraw_request
     }
 
+    /// Replaces the redraw request of the [`Shell`]; without conflict resolution.
+    ///
+    /// This is useful if you want to overwrite the redraw request to a previous value.
+    /// Since it's a fairly advanced use case and should rarely be used, it is a static
+    /// method.
+    pub fn replace_redraw_request(
+        shell: &mut Self,
+        redraw_request: Option<window::RedrawRequest>,
+    ) {
+        shell.redraw_request = redraw_request;
+    }
+
     /// Returns whether the current layout is invalid or not.
     pub fn is_layout_invalid(&self) -> bool {
         self.is_layout_invalid
