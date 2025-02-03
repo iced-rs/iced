@@ -380,7 +380,7 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        style: &renderer::Style,
+        defaults: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
@@ -395,6 +395,9 @@ where
         let mut children = layout.children();
         let toggler_layout = children.next().unwrap();
 
+        let style = theme
+            .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
+
         if self.label.is_some() {
             let label_layout = children.next().unwrap();
             let state: &widget::text::State<Renderer::Paragraph> =
@@ -402,17 +405,17 @@ where
 
             crate::text::draw(
                 renderer,
-                style,
+                defaults,
                 label_layout,
                 state.0.raw(),
-                crate::text::Style::default(),
+                crate::text::Style {
+                    color: style.text_color,
+                },
                 viewport,
             );
         }
 
         let bounds = toggler_layout.bounds();
-        let style = theme
-            .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
         let space = SPACE_RATIO * bounds.height;
@@ -510,6 +513,8 @@ pub struct Style {
     pub foreground_border_width: f32,
     /// The [`Color`] of the foreground border of the toggler.
     pub foreground_border_color: Color,
+    /// The text [`Color`] of the toggler.
+    pub text_color: Option<Color>,
 }
 
 /// The theme catalog of a [`Toggler`].
@@ -584,5 +589,6 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         foreground_border_color: Color::TRANSPARENT,
         background_border_width: 0.0,
         background_border_color: Color::TRANSPARENT,
+        text_color: None,
     }
 }
