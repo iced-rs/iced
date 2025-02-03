@@ -754,6 +754,8 @@ where
                     Ime::Toggle(is_open) => {
                         state.preedit =
                             is_open.then(input_method::Preedit::new);
+
+                        shell.request_redraw();
                     }
                     Ime::Preedit { content, selection } => {
                         if state.focus.is_some() {
@@ -761,6 +763,8 @@ where
                                 content,
                                 selection,
                             });
+
+                            shell.request_redraw();
                         }
                     }
                     Ime::Commit(text) => {

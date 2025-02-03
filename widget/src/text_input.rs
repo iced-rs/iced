@@ -36,13 +36,13 @@ mod value;
 pub mod cursor;
 
 pub use cursor::Cursor;
-use iced_runtime::core::input_method;
 pub use value::Value;
 
 use editor::Editor;
 
 use crate::core::alignment;
 use crate::core::clipboard::{self, Clipboard};
+use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout;
@@ -1257,6 +1257,8 @@ where
                     state.is_ime_open =
                         matches!(event, input_method::Event::Opened)
                             .then(input_method::Preedit::new);
+
+                    shell.request_redraw();
                 }
                 input_method::Event::Preedit(content, selection) => {
                     let state = state::<Renderer>(tree);
@@ -1266,6 +1268,8 @@ where
                             content: content.to_owned(),
                             selection: selection.clone(),
                         });
+
+                        shell.request_redraw();
                     }
                 }
                 input_method::Event::Commit(text) => {
