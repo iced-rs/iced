@@ -270,23 +270,6 @@ pub struct Span<'a, Link = (), Font = crate::Font> {
     pub strikethrough: bool,
 }
 
-impl<Link, Font> Default for Span<'_, Link, Font> {
-    fn default() -> Self {
-        Self {
-            text: Cow::default(),
-            size: None,
-            line_height: None,
-            font: None,
-            color: None,
-            link: None,
-            highlight: None,
-            padding: Padding::default(),
-            underline: false,
-            strikethrough: false,
-        }
-    }
-}
-
 /// A text highlight.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Highlight {
@@ -301,15 +284,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
     pub fn new(fragment: impl IntoFragment<'a>) -> Self {
         Self {
             text: fragment.into_fragment(),
-            size: None,
-            line_height: None,
-            font: None,
-            color: None,
-            highlight: None,
-            link: None,
-            padding: Padding::ZERO,
-            underline: false,
-            strikethrough: false,
+            ..Self::default()
         }
     }
 
@@ -453,6 +428,23 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             padding: self.padding,
             underline: self.underline,
             strikethrough: self.strikethrough,
+        }
+    }
+}
+
+impl<Link, Font> Default for Span<'_, Link, Font> {
+    fn default() -> Self {
+        Self {
+            text: Cow::default(),
+            size: None,
+            line_height: None,
+            font: None,
+            color: None,
+            link: None,
+            highlight: None,
+            padding: Padding::default(),
+            underline: false,
+            strikethrough: false,
         }
     }
 }

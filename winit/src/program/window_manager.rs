@@ -16,7 +16,6 @@ use crate::program::{Program, State};
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::monitor::MonitorHandle;
 
-use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -304,33 +303,17 @@ where
         let spans = match &preedit.selection {
             Some(selection) => {
                 vec![
-                    text::Span {
-                        text: Cow::Borrowed(
-                            &preedit.content[..selection.start],
-                        ),
-                        ..text::Span::default()
-                    },
-                    text::Span {
-                        text: Cow::Borrowed(
-                            if selection.start == selection.end {
-                                "\u{200A}"
-                            } else {
-                                &preedit.content[selection.start..selection.end]
-                            },
-                        ),
-                        color: Some(background),
-                        ..text::Span::default()
-                    },
-                    text::Span {
-                        text: Cow::Borrowed(&preedit.content[selection.end..]),
-                        ..text::Span::default()
-                    },
+                    text::Span::new(&preedit.content[..selection.start]),
+                    text::Span::new(if selection.start == selection.end {
+                        "\u{200A}"
+                    } else {
+                        &preedit.content[selection.start..selection.end]
+                    })
+                    .color(background),
+                    text::Span::new(&preedit.content[selection.end..]),
                 ]
             }
-            _ => vec![text::Span {
-                text: Cow::Borrowed(&preedit.content),
-                ..text::Span::default()
-            }],
+            _ => vec![text::Span::new(&preedit.content)],
         };
 
         if spans != self.spans.as_slice() {
