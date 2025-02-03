@@ -1025,19 +1025,19 @@ async fn run_instance<P, C>(
                                 );
 
                             #[cfg(feature = "unconditional-rendering")]
-                            window.raw.request_redraw();
+                            window.request_redraw(
+                                window::RedrawRequest::NextFrame,
+                            );
 
                             match ui_state {
                                 user_interface::State::Updated {
                                     redraw_request: _redraw_request,
-                                    input_method,
+                                    ..
                                 } => {
                                     #[cfg(not(
                                         feature = "unconditional-rendering"
                                     ))]
                                     window.request_redraw(_redraw_request);
-
-                                    window.request_input_method(input_method);
                                 }
                                 user_interface::State::Outdated => {
                                     uis_stale = true;

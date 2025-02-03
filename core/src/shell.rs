@@ -78,6 +78,9 @@ impl<'a, Message> Shell<'a, Message> {
     }
 
     /// Requests the current [`InputMethod`] strategy.
+    ///
+    /// __Important__: This request will only be honored by the
+    /// [`Shell`] only during a [`window::Event::RedrawRequested`].
     pub fn request_input_method<T: AsRef<str>>(
         &mut self,
         ime: &InputMethod<T>,
