@@ -25,7 +25,7 @@ pub enum Event {
     /// A touch event
     Touch(touch::Event),
 
-    /// A input method event
+    /// An input method event
     InputMethod(input_method::Event),
 }
 
