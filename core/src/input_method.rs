@@ -82,21 +82,21 @@ pub enum Purpose {
 }
 
 impl InputMethod {
-    /// Merges two [`InputMethod`] strategies, prioritizing the second one when both ready:
+    /// Merges two [`InputMethod`] strategies, prioritizing the first one when both open:
     /// ```
-    /// # use iced_core::input_method::{InputMethod, Purpose};
+    /// # use iced_core::input_method::{InputMethod, Purpose, Preedit};
     /// # use iced_core::Point;
     ///
     /// let open = InputMethod::Open {
     ///     position: Point::ORIGIN,
     ///     purpose: Purpose::Normal,
-    ///     preedit: None,
+    ///     preedit: Some(Preedit { content: "1".to_owned(), selection: None }),
     /// };
     ///
     /// let open_2 = InputMethod::Open {
     ///     position: Point::ORIGIN,
     ///     purpose: Purpose::Secure,
-    ///     preedit: None,
+    ///     preedit: Some(Preedit { content: "2".to_owned(), selection: None }),
     /// };
     ///
     /// let mut ime = InputMethod::Disabled;
@@ -111,31 +111,47 @@ impl InputMethod {
     /// assert_eq!(ime, open);
     ///
     /// ime.merge(&open_2);
-    /// assert_eq!(ime, open_2);
+    /// assert_eq!(ime, open);
     /// ```
     pub fn merge<T: AsRef<str>>(&mut self, other: &InputMethod<T>) {
-        match other {
-            InputMethod::None => {}
-            InputMethod::Open {
+        match (&self, other) {
+            (InputMethod::Open { .. }, _)
+            | (
+                InputMethod::Allowed,
+                InputMethod::None | InputMethod::Disabled,
+            )
+            | (InputMethod::Disabled, InputMethod::None) => {}
+            _ => {
+                *self = other.to_owned();
+            }
+        }
+    }
+
+    /// Returns true if the [`InputMethod`] is open.
+    pub fn is_open(&self) -> bool {
+        matches!(self, Self::Open { .. })
+    }
+}
+
+impl<T> InputMethod<T> {
+    /// Turns an [`InputMethod`] into its owned version.
+    pub fn to_owned(&self) -> InputMethod
+    where
+        T: AsRef<str>,
+    {
+        match self {
+            Self::None => InputMethod::None,
+            Self::Disabled => InputMethod::Disabled,
+            Self::Allowed => InputMethod::Allowed,
+            Self::Open {
                 position,
                 purpose,
                 preedit,
-            } => {
-                *self = Self::Open {
-                    position: *position,
-                    purpose: *purpose,
-                    preedit: preedit.as_ref().map(Preedit::to_owned),
-                };
-            }
-            InputMethod::Allowed
-                if matches!(self, Self::None | Self::Disabled) =>
-            {
-                *self = Self::Allowed;
-            }
-            InputMethod::Disabled if matches!(self, Self::None) => {
-                *self = Self::Disabled;
-            }
-            _ => {}
+            } => InputMethod::Open {
+                position: *position,
+                purpose: *purpose,
+                preedit: preedit.as_ref().map(Preedit::to_owned),
+            },
         }
     }
 }

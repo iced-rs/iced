@@ -727,6 +727,8 @@ where
                     _ => mouse::Cursor::Unavailable,
                 };
 
+                let had_input_method = shell.input_method().is_open();
+
                 let translation =
                     state.translation(self.direction, bounds, content_bounds);
 
@@ -745,10 +747,12 @@ where
                     },
                 );
 
-                if let InputMethod::Open { position, .. } =
-                    shell.input_method_mut()
-                {
-                    *position = *position + translation;
+                if !had_input_method {
+                    if let InputMethod::Open { position, .. } =
+                        shell.input_method_mut()
+                    {
+                        *position = *position + translation;
+                    }
                 }
             };
 
