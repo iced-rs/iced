@@ -221,17 +221,19 @@ where
         {
             self.raw.set_ime_cursor_area(
                 LogicalPosition::new(position.x, position.y),
-                LogicalSize::new(10, 10),
+                LogicalSize::new(10, 10), // TODO?
             );
 
             self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
 
             if let Some(content) = preedit {
-                if let Some(preedit) = &mut self.preedit {
-                    preedit.update(&content, &self.renderer);
+                if content.is_empty() {
+                    self.preedit = None;
+                } else if let Some(preedit) = &mut self.preedit {
+                    preedit.update(position, &content, &self.renderer);
                 } else {
                     let mut preedit = Preedit::new();
-                    preedit.update(&content, &self.renderer);
+                    preedit.update(position, &content, &self.renderer);
 
                     self.preedit = Some(preedit);
                 }
@@ -247,6 +249,10 @@ where
                 &mut self.renderer,
                 self.state.text_color(),
                 self.state.background_color(),
+                &Rectangle::new(
+                    Point::ORIGIN,
+                    self.state.viewport().logical_size(),
+                ),
             );
         }
     }
@@ -271,7 +277,9 @@ where
         }
     }
 
-    fn update(&mut self, text: &str, renderer: &Renderer) {
+    fn update(&mut self, position: Point, text: &str, renderer: &Renderer) {
+        self.position = position;
+
         self.content.update(Text {
             content: text,
             bounds: Size::INFINITY,
@@ -279,21 +287,37 @@ where
             line_height: text::LineHeight::default(),
             font: renderer.default_font(),
             horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Top, //Bottom,
+            vertical_alignment: alignment::Vertical::Top,
             shaping: text::Shaping::Advanced,
             wrapping: text::Wrapping::None,
         });
     }
 
-    fn draw(&self, renderer: &mut Renderer, color: Color, background: Color) {
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        color: Color,
+        background: Color,
+        viewport: &Rectangle,
+    ) {
         if self.content.min_width() < 1.0 {
             return;
         }
 
-        let top_left =
-            self.position - Vector::new(0.0, self.content.min_height());
+        let mut bounds = Rectangle::new(
+            self.position - Vector::new(0.0, self.content.min_height()),
+            self.content.min_bounds(),
+        );
 
-        let bounds = Rectangle::new(top_left, self.content.min_bounds());
+        bounds.x = bounds
+            .x
+            .max(viewport.x)
+            .min(viewport.x + viewport.width - bounds.width);
+
+        bounds.y = bounds
+            .y
+            .max(viewport.y)
+            .min(viewport.y + viewport.height - bounds.height);
 
         renderer.with_layer(bounds, |renderer| {
             renderer.fill_quad(
@@ -306,7 +330,7 @@ where
 
             renderer.fill_paragraph(
                 self.content.raw(),
-                top_left,
+                bounds.position(),
                 color,
                 bounds,
             );

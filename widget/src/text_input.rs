@@ -413,8 +413,7 @@ where
         let secure_value = self.is_secure.then(|| value.secure());
         let value = secure_value.as_ref().unwrap_or(value);
 
-        let mut children_layout = layout.children();
-        let text_bounds = children_layout.next().unwrap().bounds();
+        let text_bounds = layout.children().next().unwrap().bounds();
 
         let caret_index = match state.cursor.state(value) {
             cursor::State::Index(position) => position,
@@ -435,7 +434,7 @@ where
             + alignment_offset;
 
         InputMethod::Open {
-            position: Point::new(x, text_bounds.y),
+            position: Point::new(x, text_bounds.y + text_bounds.height),
             purpose: if self.is_secure {
                 input_method::Purpose::Secure
             } else {
