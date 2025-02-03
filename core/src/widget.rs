@@ -101,7 +101,7 @@ where
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
         &self,
-        _state: &mut Tree,
+        _tree: &mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
         _operation: &mut dyn Operation,
@@ -113,7 +113,7 @@ where
     /// By default, it does nothing.
     fn update(
         &mut self,
-        _state: &mut Tree,
+        _tree: &mut Tree,
         _event: Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
@@ -129,7 +129,7 @@ where
     /// By default, it returns [`mouse::Interaction::Idle`].
     fn mouse_interaction(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
@@ -141,7 +141,7 @@ where
     /// Returns the overlay of the [`Widget`], if there is any.
     fn overlay<'a>(
         &'a mut self,
-        _state: &'a mut Tree,
+        _tree: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
         _translation: Vector,
