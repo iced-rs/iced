@@ -557,6 +557,16 @@ impl core::svg::Renderer for Renderer {
 
 impl graphics::mesh::Renderer for Renderer {
     fn draw_mesh(&mut self, mesh: graphics::Mesh) {
+        debug_assert!(
+            !mesh.indices().is_empty(),
+            "Mesh must not have empty indices"
+        );
+
+        debug_assert!(
+            mesh.indices().len() % 3 == 0,
+            "Mesh indices length must be a multiple of 3"
+        );
+
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_mesh(mesh, transformation);
     }
