@@ -71,8 +71,18 @@ impl Engine {
         queue: &wgpu::Queue,
         encoder: wgpu::CommandEncoder,
     ) -> wgpu::SubmissionIndex {
-        self.staging_belt.finish();
+        self.finish();
         let index = queue.submit(Some(encoder.finish()));
+        self.end_frame();
+
+        index
+    }
+
+    pub fn finish(&mut self) {
+        self.staging_belt.finish();
+    }
+
+    pub fn end_frame(&mut self) {
         self.staging_belt.recall();
 
         self.quad_pipeline.end_frame();
@@ -81,7 +91,5 @@ impl Engine {
 
         #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.end_frame();
-
-        index
     }
 }
