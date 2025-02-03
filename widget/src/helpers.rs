@@ -871,16 +871,19 @@ where
                 shell.request_redraw();
             }
 
+            let is_visible =
+                is_hovered || self.is_top_focused || self.is_top_overlay_active;
+
             if matches!(
                 event,
                 Event::Mouse(
                     mouse::Event::CursorMoved { .. }
                         | mouse::Event::ButtonReleased(_)
                 )
-            ) || is_hovered
-                || self.is_top_focused
-                || self.is_top_overlay_active
+            ) || is_visible
             {
+                let redraw_request = shell.redraw_request();
+
                 self.top.as_widget_mut().update(
                     top_tree,
                     event.clone(),
@@ -891,6 +894,11 @@ where
                     shell,
                     viewport,
                 );
+
+                // Ignore redraw requests of invisible content
+                if !is_visible {
+                    Shell::replace_redraw_request(shell, redraw_request);
+                }
             };
 
             if shell.is_event_captured() {

@@ -77,6 +77,18 @@ impl<'a, Message> Shell<'a, Message> {
         self.redraw_request
     }
 
+    /// Replaces the redraw request of the [`Shell`]; without conflict resolution.
+    ///
+    /// This is useful if you want to overwrite the redraw request to a previous value.
+    /// Since it's a fairly advanced use case and should rarely be used, it is a static
+    /// method.
+    pub fn replace_redraw_request(
+        shell: &mut Self,
+        redraw_request: window::RedrawRequest,
+    ) {
+        shell.redraw_request = redraw_request;
+    }
+
     /// Requests the current [`InputMethod`] strategy.
     ///
     /// __Important__: This request will only be honored by the

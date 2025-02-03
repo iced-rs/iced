@@ -564,7 +564,8 @@ where
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
                         if let Some(scrollbar) = scrollbars.y {
-                            let Some(cursor_position) = cursor.position()
+                            let Some(cursor_position) =
+                                cursor.land().position()
                             else {
                                 return;
                             };
@@ -636,7 +637,8 @@ where
                 match event {
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        let Some(cursor_position) = cursor.position() else {
+                        let Some(cursor_position) = cursor.land().position()
+                        else {
                             return;
                         };
 

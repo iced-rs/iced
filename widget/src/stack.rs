@@ -216,15 +216,15 @@ where
         viewport: &Rectangle,
     ) {
         let is_over = cursor.is_over(layout.bounds());
-        let is_mouse_movement =
-            matches!(event, Event::Mouse(mouse::Event::CursorMoved { .. }));
+        let end = self.children.len() - 1;
 
-        for ((child, state), layout) in self
+        for (i, ((child, state), layout)) in self
             .children
             .iter_mut()
             .rev()
             .zip(tree.children.iter_mut().rev())
             .zip(layout.children().rev())
+            .enumerate()
         {
             child.as_widget_mut().update(
                 state,
@@ -237,21 +237,18 @@ where
                 viewport,
             );
 
-            if is_over
-                && !is_mouse_movement
-                && cursor != mouse::Cursor::Unavailable
-            {
+            if shell.is_event_captured() {
+                return;
+            }
+
+            if i < end && is_over && !cursor.is_levitating() {
                 let interaction = child.as_widget().mouse_interaction(
                     state, layout, cursor, viewport, renderer,
                 );
 
                 if interaction != mouse::Interaction::None {
-                    cursor = mouse::Cursor::Unavailable;
+                    cursor = cursor.levitate();
                 }
-            }
-
-            if shell.is_event_captured() {
-                return;
             }
         }
     }
