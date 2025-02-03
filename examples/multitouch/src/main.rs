@@ -55,11 +55,11 @@ impl canvas::Program<Message> for Multitouch {
     fn update(
         &self,
         _state: &mut Self::State,
-        event: Event,
+        event: &Event,
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Option<canvas::Action<Message>> {
-        let message = match event {
+        let message = match event.clone() {
             Event::Touch(
                 touch::Event::FingerPressed { id, position }
                 | touch::Event::FingerMoved { id, position },

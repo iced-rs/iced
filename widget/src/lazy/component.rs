@@ -313,7 +313,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: core::Event,
+        event: &core::Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -593,7 +593,7 @@ where
 
     fn update(
         &mut self,
-        event: core::Event,
+        event: &core::Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,

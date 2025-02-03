@@ -242,7 +242,7 @@ where
     pub(crate) fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -256,7 +256,7 @@ where
 
             title_bar.update(
                 &mut tree.children[1],
-                event.clone(),
+                event,
                 children.next().unwrap(),
                 cursor,
                 renderer,

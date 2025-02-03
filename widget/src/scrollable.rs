@@ -517,7 +517,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -736,7 +736,7 @@ where
 
                 self.content.as_widget_mut().update(
                     &mut tree.children[0],
-                    event.clone(),
+                    event,
                     content,
                     cursor,
                     renderer,
@@ -781,7 +781,7 @@ where
                 modifiers,
             )) = event
             {
-                state.keyboard_modifiers = modifiers;
+                state.keyboard_modifiers = *modifiers;
 
                 return;
             }
@@ -792,7 +792,7 @@ where
                         return;
                     }
 
-                    let delta = match delta {
+                    let delta = match *delta {
                         mouse::ScrollDelta::Lines { x, y } => {
                             let is_shift_pressed =
                                 state.keyboard_modifiers.shift();

@@ -651,7 +651,7 @@ where
     fn update(
         &mut self,
         tree: &mut widget::Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -686,17 +686,18 @@ where
             Event::Window(window::Event::RedrawRequested(now)) => {
                 if let Some(focus) = &mut state.focus {
                     if focus.is_window_focused {
-                        focus.now = now;
+                        focus.now = *now;
 
                         let millis_until_redraw =
                             Focus::CURSOR_BLINK_INTERVAL_MILLIS
-                                - (now - focus.updated_at).as_millis()
+                                - (focus.now - focus.updated_at).as_millis()
                                     % Focus::CURSOR_BLINK_INTERVAL_MILLIS;
 
                         shell.request_redraw_at(
-                            now + Duration::from_millis(
-                                millis_until_redraw as u64,
-                            ),
+                            focus.now
+                                + Duration::from_millis(
+                                    millis_until_redraw as u64,
+                                ),
                         );
                     }
                 }
@@ -1216,7 +1217,7 @@ enum Ime {
 
 impl<Message> Update<Message> {
     fn from_event<H: Highlighter>(
-        event: Event,
+        event: &Event,
         state: &State<H>,
         bounds: Rectangle,
         padding: Padding,
@@ -1284,14 +1285,14 @@ impl<Message> Update<Message> {
                     if state.focus.is_some() =>
                 {
                     Some(Update::InputMethod(Ime::Preedit {
-                        content,
-                        selection,
+                        content: content.clone(),
+                        selection: selection.clone(),
                     }))
                 }
                 input_method::Event::Commit(content)
                     if state.focus.is_some() =>
                 {
-                    Some(Update::InputMethod(Ime::Commit(content)))
+                    Some(Update::InputMethod(Ime::Commit(content.clone())))
                 }
                 _ => None,
             },
@@ -1310,9 +1311,9 @@ impl<Message> Update<Message> {
                 };
 
                 let key_press = KeyPress {
-                    key,
-                    modifiers,
-                    text,
+                    key: key.clone(),
+                    modifiers: *modifiers,
+                    text: text.clone(),
                     status,
                 };
 

@@ -210,7 +210,7 @@ where
             let mut layout = overlay.layout(renderer, bounds);
             let mut event_statuses = Vec::new();
 
-            for event in events.iter().cloned() {
+            for event in events {
                 let mut shell = Shell::new(messages);
 
                 overlay.update(
@@ -294,7 +294,6 @@ where
 
         let event_statuses = events
             .iter()
-            .cloned()
             .zip(overlay_statuses)
             .map(|(event, overlay_status)| {
                 if matches!(overlay_status, event::Status::Captured) {
