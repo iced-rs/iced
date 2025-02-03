@@ -758,14 +758,10 @@ where
                         shell.request_redraw();
                     }
                     Ime::Preedit { content, selection } => {
-                        if state.focus.is_some() {
-                            state.preedit = Some(input_method::Preedit {
-                                content,
-                                selection,
-                            });
+                        state.preedit =
+                            Some(input_method::Preedit { content, selection });
 
-                            shell.request_redraw();
-                        }
+                        shell.request_redraw();
                     }
                     Ime::Commit(text) => {
                         shell.publish(on_edit(Action::Edit(Edit::Paste(
@@ -1284,15 +1280,20 @@ impl<Message> Update<Message> {
                         input_method::Event::Opened
                     ))))
                 }
-                input_method::Event::Preedit(content, selection) => {
+                input_method::Event::Preedit(content, selection)
+                    if state.focus.is_some() =>
+                {
                     Some(Update::InputMethod(Ime::Preedit {
                         content,
                         selection,
                     }))
                 }
-                input_method::Event::Commit(content) => {
+                input_method::Event::Commit(content)
+                    if state.focus.is_some() =>
+                {
                     Some(Update::InputMethod(Ime::Commit(content)))
                 }
+                _ => None,
             },
             Event::Keyboard(keyboard::Event::KeyPressed {
                 key,
