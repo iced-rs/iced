@@ -23,8 +23,48 @@ pub enum InputMethod<T = String> {
         /// Ideally, your widget will show pre-edits on-the-spot; but, since that can
         /// be tricky, you can instead provide the current pre-edit here and the
         /// runtime will display it as an overlay (i.e. "Over-the-spot IME").
-        preedit: Option<T>,
+        preedit: Option<Preedit<T>>,
     },
+}
+
+/// The pre-edit of an [`InputMethod`].
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Preedit<T = String> {
+    /// The current content.
+    pub content: T,
+    /// The selected range of the content.
+    pub selection: Option<Range<usize>>,
+}
+
+impl<T> Preedit<T> {
+    /// Creates a new empty [`Preedit`].
+    pub fn new() -> Self
+    where
+        T: Default,
+    {
+        Self::default()
+    }
+
+    /// Turns a [`Preedit`] into its owned version.
+    pub fn to_owned(&self) -> Preedit
+    where
+        T: AsRef<str>,
+    {
+        Preedit {
+            content: self.content.as_ref().to_owned(),
+            selection: self.selection.clone(),
+        }
+    }
+}
+
+impl Preedit {
+    /// Borrows the contents of a [`Preedit`].
+    pub fn as_ref(&self) -> Preedit<&str> {
+        Preedit {
+            content: &self.content,
+            selection: self.selection.clone(),
+        }
+    }
 }
 
 /// The purpose of an [`InputMethod`].
@@ -84,10 +124,7 @@ impl InputMethod {
                 *self = Self::Open {
                     position: *position,
                     purpose: *purpose,
-                    preedit: preedit
-                        .as_ref()
-                        .map(AsRef::as_ref)
-                        .map(str::to_owned),
+                    preedit: preedit.as_ref().map(Preedit::to_owned),
                 };
             }
             InputMethod::Allowed

@@ -55,6 +55,7 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::fmt;
 use std::ops::DerefMut;
+use std::ops::Range;
 use std::sync::Arc;
 
 pub use text::editor::{Action, Edit, Line, LineEnding, Motion};
@@ -365,7 +366,7 @@ where
         InputMethod::Open {
             position,
             purpose: input_method::Purpose::Normal,
-            preedit: Some(preedit),
+            preedit: Some(preedit.as_ref()),
         }
     }
 }
@@ -496,7 +497,7 @@ where
 #[derive(Debug)]
 pub struct State<Highlighter: text::Highlighter> {
     focus: Option<Focus>,
-    preedit: Option<String>,
+    preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
     partial_scroll: f32,
@@ -751,11 +752,15 @@ where
                 }
                 Update::InputMethod(update) => match update {
                     Ime::Toggle(is_open) => {
-                        state.preedit = is_open.then(String::new);
+                        state.preedit =
+                            is_open.then(input_method::Preedit::new);
                     }
-                    Ime::Preedit(text) => {
+                    Ime::Preedit { content, selection } => {
                         if state.focus.is_some() {
-                            state.preedit = Some(text);
+                            state.preedit = Some(input_method::Preedit {
+                                content,
+                                selection,
+                            });
                         }
                     }
                     Ime::Commit(text) => {
@@ -1202,7 +1207,10 @@ enum Update<Message> {
 
 enum Ime {
     Toggle(bool),
-    Preedit(String),
+    Preedit {
+        content: String,
+        selection: Option<Range<usize>>,
+    },
     Commit(String),
 }
 
@@ -1272,8 +1280,11 @@ impl<Message> Update<Message> {
                         input_method::Event::Opened
                     ))))
                 }
-                input_method::Event::Preedit(content, _range) => {
-                    Some(Update::InputMethod(Ime::Preedit(content)))
+                input_method::Event::Preedit(content, selection) => {
+                    Some(Update::InputMethod(Ime::Preedit {
+                        content,
+                        selection,
+                    }))
                 }
                 input_method::Event::Commit(content) => {
                     Some(Update::InputMethod(Ime::Commit(content)))

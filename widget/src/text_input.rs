@@ -440,7 +440,7 @@ where
             } else {
                 input_method::Purpose::Normal
             },
-            preedit: Some(preedit),
+            preedit: Some(preedit.as_ref()),
         }
     }
 
@@ -1256,13 +1256,16 @@ where
 
                     state.is_ime_open =
                         matches!(event, input_method::Event::Opened)
-                            .then(String::new);
+                            .then(input_method::Preedit::new);
                 }
-                input_method::Event::Preedit(content, _range) => {
+                input_method::Event::Preedit(content, selection) => {
                     let state = state::<Renderer>(tree);
 
                     if state.is_focused.is_some() {
-                        state.is_ime_open = Some(content.to_owned());
+                        state.is_ime_open = Some(input_method::Preedit {
+                            content: content.to_owned(),
+                            selection: selection.clone(),
+                        });
                     }
                 }
                 input_method::Event::Commit(text) => {
@@ -1514,7 +1517,7 @@ pub struct State<P: text::Paragraph> {
     placeholder: paragraph::Plain<P>,
     icon: paragraph::Plain<P>,
     is_focused: Option<Focus>,
-    is_ime_open: Option<String>,
+    is_ime_open: Option<input_method::Preedit>,
     is_dragging: bool,
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,

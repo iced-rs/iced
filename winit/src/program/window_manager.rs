@@ -1,5 +1,6 @@
 use crate::conversion;
 use crate::core::alignment;
+use crate::core::input_method;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
@@ -12,10 +13,12 @@ use crate::core::{
 use crate::graphics::Compositor;
 use crate::program::{Program, State};
 
-use std::collections::BTreeMap;
-use std::sync::Arc;
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::monitor::MonitorHandle;
+
+use std::borrow::Cow;
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 #[allow(missing_debug_implementations)]
 pub struct WindowManager<P, C>
@@ -226,16 +229,26 @@ where
 
             self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
 
-            if let Some(content) = preedit {
-                if content.is_empty() {
+            if let Some(preedit) = preedit {
+                if preedit.content.is_empty() {
                     self.preedit = None;
-                } else if let Some(preedit) = &mut self.preedit {
-                    preedit.update(position, &content, &self.renderer);
+                } else if let Some(overlay) = &mut self.preedit {
+                    overlay.update(
+                        position,
+                        &preedit,
+                        self.state.background_color(),
+                        &self.renderer,
+                    );
                 } else {
-                    let mut preedit = Preedit::new();
-                    preedit.update(position, &content, &self.renderer);
+                    let mut overlay = Preedit::new();
+                    overlay.update(
+                        position,
+                        &preedit,
+                        self.state.background_color(),
+                        &self.renderer,
+                    );
 
-                    self.preedit = Some(preedit);
+                    self.preedit = Some(overlay);
                 }
             }
         } else {
@@ -263,7 +276,8 @@ where
     Renderer: text::Renderer,
 {
     position: Point,
-    content: text::paragraph::Plain<Renderer::Paragraph>,
+    content: Renderer::Paragraph,
+    spans: Vec<text::Span<'static, (), Renderer::Font>>,
 }
 
 impl<Renderer> Preedit<Renderer>
@@ -273,24 +287,67 @@ where
     fn new() -> Self {
         Self {
             position: Point::ORIGIN,
-            content: text::paragraph::Plain::default(),
+            spans: Vec::new(),
+            content: Renderer::Paragraph::default(),
         }
     }
 
-    fn update(&mut self, position: Point, text: &str, renderer: &Renderer) {
+    fn update(
+        &mut self,
+        position: Point,
+        preedit: &input_method::Preedit,
+        background: Color,
+        renderer: &Renderer,
+    ) {
         self.position = position;
 
-        self.content.update(Text {
-            content: text,
-            bounds: Size::INFINITY,
-            size: renderer.default_size(),
-            line_height: text::LineHeight::default(),
-            font: renderer.default_font(),
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Top,
-            shaping: text::Shaping::Advanced,
-            wrapping: text::Wrapping::None,
-        });
+        let spans = match &preedit.selection {
+            Some(selection) => {
+                vec![
+                    text::Span {
+                        text: Cow::Borrowed(
+                            &preedit.content[..selection.start],
+                        ),
+                        ..text::Span::default()
+                    },
+                    text::Span {
+                        text: Cow::Borrowed(
+                            if selection.start == selection.end {
+                                "\u{200A}"
+                            } else {
+                                &preedit.content[selection.start..selection.end]
+                            },
+                        ),
+                        color: Some(background),
+                        ..text::Span::default()
+                    },
+                    text::Span {
+                        text: Cow::Borrowed(&preedit.content[selection.end..]),
+                        ..text::Span::default()
+                    },
+                ]
+            }
+            _ => vec![text::Span {
+                text: Cow::Borrowed(&preedit.content),
+                ..text::Span::default()
+            }],
+        };
+
+        if spans != self.spans.as_slice() {
+            use text::Paragraph as _;
+
+            self.content = Renderer::Paragraph::with_spans(Text {
+                content: &spans,
+                bounds: Size::INFINITY,
+                size: renderer.default_size(),
+                line_height: text::LineHeight::default(),
+                font: renderer.default_font(),
+                horizontal_alignment: alignment::Horizontal::Left,
+                vertical_alignment: alignment::Vertical::Top,
+                shaping: text::Shaping::Advanced,
+                wrapping: text::Wrapping::None,
+            });
+        }
     }
 
     fn draw(
@@ -300,6 +357,8 @@ where
         background: Color,
         viewport: &Rectangle,
     ) {
+        use text::Paragraph as _;
+
         if self.content.min_width() < 1.0 {
             return;
         }
@@ -329,7 +388,7 @@ where
             );
 
             renderer.fill_paragraph(
-                self.content.raw(),
+                &self.content,
                 bounds.position(),
                 color,
                 bounds,
@@ -347,6 +406,17 @@ where
                 },
                 color,
             );
+
+            for span_bounds in self.content.span_bounds(1) {
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: span_bounds
+                            + (bounds.position() - Point::ORIGIN),
+                        ..Default::default()
+                    },
+                    color,
+                );
+            }
         });
     }
 }

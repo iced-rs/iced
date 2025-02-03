@@ -270,6 +270,23 @@ pub struct Span<'a, Link = (), Font = crate::Font> {
     pub strikethrough: bool,
 }
 
+impl<Link, Font> Default for Span<'_, Link, Font> {
+    fn default() -> Self {
+        Self {
+            text: Cow::default(),
+            size: None,
+            line_height: None,
+            font: None,
+            color: None,
+            link: None,
+            highlight: None,
+            padding: Padding::default(),
+            underline: false,
+            strikethrough: false,
+        }
+    }
+}
+
 /// A text highlight.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Highlight {
