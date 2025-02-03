@@ -41,4 +41,4 @@ tokio.features = ["rt", "rt-multi-thread", "time"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures.workspace = true
-wasm-timer.workspace = true
+wasmtimer.workspace = true

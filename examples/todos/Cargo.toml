@@ -24,7 +24,7 @@ iced.features = ["debug", "webgl", "fira-sans"]
 
 uuid = { version = "1.0", features = ["js"] }
 web-sys = { workspace = true, features = ["Window", "Storage"] }
-wasm-timer.workspace = true
+wasmtimer.workspace = true
 
 [dev-dependencies]
 iced_test.workspace = true
