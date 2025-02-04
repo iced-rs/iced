@@ -29,13 +29,9 @@
 //!     }
 //!
 //!     fn view(&self) -> Element<'_, Message> {
-//!         markdown::view(
-//!             &self.markdown,
-//!             markdown::Settings::default(),
-//!             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
-//!         )
-//!         .map(Message::LinkClicked)
-//!         .into()
+//!         markdown::view(&self.markdown, Theme::TokyoNight)
+//!             .map(Message::LinkClicked)
+//!             .into()
 //!     }
 //!
 //!     fn update(state: &mut State, message: Message) {
@@ -47,7 +43,6 @@
 //!     }
 //! }
 //! ```
-#![allow(missing_docs)]
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
@@ -334,13 +329,9 @@ impl Span {
 ///     }
 ///
 ///     fn view(&self) -> Element<'_, Message> {
-///         markdown::view(
-///             &self.markdown,
-///             markdown::Settings::default(),
-///             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
-///         )
-///         .map(Message::LinkClicked)
-///         .into()
+///         markdown::view(&self.markdown, Theme::TokyoNight)
+///            .map(Message::LinkClicked)
+///            .into()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -867,6 +858,12 @@ impl From<&Theme> for Settings {
     }
 }
 
+impl From<Theme> for Settings {
+    fn from(theme: Theme) -> Self {
+        Self::with_style(Style::from(theme))
+    }
+}
+
 /// The text styling of some Markdown rendering in [`view`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
@@ -907,6 +904,12 @@ impl From<&Theme> for Style {
     }
 }
 
+impl From<Theme> for Style {
+    fn from(theme: Theme) -> Self {
+        Self::from_palette(theme.palette())
+    }
+}
+
 /// Display a bunch of Markdown items.
 ///
 /// You can obtain the items with [`parse`].
@@ -935,13 +938,9 @@ impl From<&Theme> for Style {
 ///     }
 ///
 ///     fn view(&self) -> Element<'_, Message> {
-///         markdown::view(
-///             &self.markdown,
-///             markdown::Settings::default(),
-///             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
-///         )
-///         .map(Message::LinkClicked)
-///         .into()
+///         markdown::view(&self.markdown, Theme::TokyoNight)
+///             .map(Message::LinkClicked)
+///             .into()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -954,28 +953,25 @@ impl From<&Theme> for Style {
 /// }
 /// ```
 pub fn view<'a, Theme, Renderer>(
-    settings: impl Into<Settings>,
     items: impl IntoIterator<Item = &'a Item>,
+    settings: impl Into<Settings>,
 ) -> Element<'a, Url, Theme, Renderer>
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    view_with(&DefaultViewer, settings, items)
+    view_with(items, settings, &DefaultViewer)
 }
 
-/// Runs [`view`] but with a custom [`View`] to turn an [`Item`] into
+/// Runs [`view`] but with a custom [`Viewer`] to turn an [`Item`] into
 /// an [`Element`].
 ///
 /// This is useful if you want to customize the look of certain Markdown
 /// elements.
-///
-/// You can use [`Item::view`] and [`Item::view_with`] for the default
-/// look.
 pub fn view_with<'a, Message, Theme, Renderer>(
-    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
-    settings: impl Into<Settings>,
     items: impl IntoIterator<Item = &'a Item>,
+    settings: impl Into<Settings>,
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -992,6 +988,7 @@ where
     Element::new(column(blocks).spacing(settings.spacing))
 }
 
+/// Displays an [`Item`] using the given [`Viewer`].
 pub fn item<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
@@ -1006,7 +1003,7 @@ where
     match item {
         Item::Image { title, url } => viewer.image(settings, title, url),
         Item::Heading(level, text) => {
-            viewer.heading(settings, index, level, text)
+            viewer.heading(settings, level, text, index)
         }
         Item::Paragraph(text) => viewer.paragraph(settings, text),
         Item::CodeBlock(lines) => viewer.code_block(settings, lines),
@@ -1020,11 +1017,12 @@ where
     }
 }
 
+/// Displays a heading using the default look.
 pub fn heading<'a, Message, Theme, Renderer>(
     settings: Settings,
-    index: usize,
     level: &'a HeadingLevel,
     text: &'a Text,
+    index: usize,
     on_link_clicked: impl Fn(Url) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -1063,6 +1061,7 @@ where
     .into()
 }
 
+/// Displays a paragraph using the default look.
 pub fn paragraph<'a, Message, Theme, Renderer>(
     settings: Settings,
     text: &'a Text,
@@ -1079,6 +1078,8 @@ where
         .into()
 }
 
+/// Displays an unordered list using the default look and
+/// calling the [`Viewer`] for each bullet point item.
 pub fn unordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
@@ -1093,12 +1094,12 @@ where
         row![
             text("•").size(settings.text_size),
             view_with(
-                viewer,
+                items,
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
                 },
-                items,
+                viewer,
             )
         ]
         .spacing(settings.spacing)
@@ -1109,6 +1110,8 @@ where
     .into()
 }
 
+/// Displays an ordered list using the default look and
+/// calling the [`Viewer`] for each numbered item.
 pub fn ordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
@@ -1124,12 +1127,12 @@ where
         row![
             text!("{}.", i as u64 + start).size(settings.text_size),
             view_with(
-                viewer,
+                items,
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
                 },
-                items,
+                viewer,
             )
         ]
         .spacing(settings.spacing)
@@ -1140,6 +1143,7 @@ where
     .into()
 }
 
+/// Displays a code block using the default look.
 pub fn code_block<'a, Message, Theme, Renderer>(
     settings: Settings,
     lines: &'a [Text],
@@ -1181,8 +1185,12 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
+    /// Produces a message when a link is clicked with the given [`Url`].
     fn on_link_clicked(url: Url) -> Message;
 
+    /// Displays an image.
+    ///
+    /// By default, it will show a container with the image title.
     fn image(
         &self,
         settings: Settings,
@@ -1200,16 +1208,22 @@ where
         .into()
     }
 
+    /// Displays a heading.
+    ///
+    /// By default, it calls [`heading`].
     fn heading(
         &self,
         settings: Settings,
-        index: usize,
         level: &'a HeadingLevel,
         text: &'a Text,
+        index: usize,
     ) -> Element<'a, Message, Theme, Renderer> {
-        heading(settings, index, level, text, Self::on_link_clicked)
+        heading(settings, level, text, index, Self::on_link_clicked)
     }
 
+    /// Displays a paragraph.
+    ///
+    /// By default, it calls [`paragraph`].
     fn paragraph(
         &self,
         settings: Settings,
@@ -1218,6 +1232,9 @@ where
         paragraph(settings, text, Self::on_link_clicked)
     }
 
+    /// Displays a code block.
+    ///
+    /// By default, it calls [`code_block`].
     fn code_block(
         &self,
         settings: Settings,
@@ -1226,6 +1243,9 @@ where
         code_block(settings, lines, Self::on_link_clicked)
     }
 
+    /// Displays an unordered list.
+    ///
+    /// By default, it calls [`unordered_list`].
     fn unordered_list(
         &self,
         settings: Settings,
@@ -1234,6 +1254,9 @@ where
         unordered_list(self, settings, items)
     }
 
+    /// Displays an ordered list.
+    ///
+    /// By default, it calls [`ordered_list`].
     fn ordered_list(
         &self,
         settings: Settings,

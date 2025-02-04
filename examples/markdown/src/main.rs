@@ -164,11 +164,11 @@ impl Markdown {
         };
 
         let preview = markdown::view_with(
+            items,
+            &self.theme,
             &MarkdownViewer {
                 images: &self.images,
             },
-            &self.theme,
-            items,
         );
 
         row![

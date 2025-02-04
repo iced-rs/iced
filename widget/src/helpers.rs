@@ -167,7 +167,7 @@ macro_rules! text {
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::font;
 /// use iced::widget::{rich_text, span};
-/// use iced::{color, Font};
+/// use iced::{color, never, Font};
 ///
 /// #[derive(Debug, Clone)]
 /// enum Message {
@@ -177,9 +177,10 @@ macro_rules! text {
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     rich_text![
 ///         span("I am red!").color(color!(0xff0000)),
-///         " ",
+///         span(" "),
 ///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
 ///     ]
+///     .on_link_clicked(never)
 ///     .size(20)
 ///     .into()
 /// }
@@ -1138,10 +1139,11 @@ where
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::font;
 /// use iced::widget::{rich_text, span};
-/// use iced::{color, Font};
+/// use iced::{color, never, Font};
 ///
 /// #[derive(Debug, Clone)]
 /// enum Message {
+///     LinkClicked(&'static str),
 ///     // ...
 /// }
 ///
@@ -1151,6 +1153,7 @@ where
 ///         span(" "),
 ///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
 ///     ])
+///     .on_link_clicked(never)
 ///     .size(20)
 ///     .into()
 /// }
@@ -1181,7 +1184,7 @@ where
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::font;
 /// use iced::widget::{rich_text, span};
-/// use iced::{color, Font};
+/// use iced::{color, never, Font};
 ///
 /// #[derive(Debug, Clone)]
 /// enum Message {
@@ -1194,6 +1197,7 @@ where
 ///         " ",
 ///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
 ///     ]
+///     .on_link_clicked(never)
 ///     .size(20)
 ///     .into()
 /// }

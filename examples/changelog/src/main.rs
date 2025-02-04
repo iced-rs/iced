@@ -280,7 +280,7 @@ impl Generator {
                             .font(Font::MONOSPACE);
 
                             let description =
-                                markdown::view(&self.theme(), description)
+                                markdown(description, self.theme())
                                     .map(Message::UrlClicked);
 
                             let labels =
@@ -344,12 +344,12 @@ impl Generator {
                 } else {
                     container(
                         scrollable(
-                            markdown::view(
+                            markdown(
+                                preview,
                                 markdown::Settings::with_text_size(
                                     12,
-                                    &self.theme(),
+                                    self.theme(),
                                 ),
-                                preview,
                             )
                             .map(Message::UrlClicked),
                         )
