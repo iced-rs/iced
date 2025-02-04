@@ -195,7 +195,7 @@ impl Markdown {
         let preview = markdown::view_with(
             self.content.items(),
             &self.theme,
-            &MarkdownViewer {
+            &CustomViewer {
                 images: &self.images,
                 now: self.now,
             },
@@ -251,12 +251,12 @@ impl Markdown {
     }
 }
 
-struct MarkdownViewer<'a> {
+struct CustomViewer<'a> {
     images: &'a HashMap<markdown::Url, Image>,
     now: Instant,
 }
 
-impl<'a> markdown::Viewer<'a, Message> for MarkdownViewer<'a> {
+impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
     fn on_link_clicked(url: markdown::Url) -> Message {
         Message::LinkClicked(url)
     }
@@ -264,8 +264,9 @@ impl<'a> markdown::Viewer<'a, Message> for MarkdownViewer<'a> {
     fn image(
         &self,
         _settings: markdown::Settings,
-        _title: &markdown::Text,
         url: &'a markdown::Url,
+        _title: &'a str,
+        _alt: &markdown::Text,
     ) -> Element<'a, Message> {
         if let Some(Image::Ready { handle, fade_in }) = self.images.get(url) {
             center_x(

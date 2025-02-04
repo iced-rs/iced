@@ -195,7 +195,9 @@ pub enum Item {
         /// The destination URL of the image.
         url: Url,
         /// The title of the image.
-        title: Text,
+        title: String,
+        /// The alternative text of the image.
+        alt: Text,
     },
 }
 
@@ -374,7 +376,7 @@ impl Highlighter {
             parser: iced_highlighter::Stream::new(
                 &iced_highlighter::Settings {
                     theme: iced_highlighter::Theme::Base16Ocean,
-                    token: language.to_string(),
+                    token: language.to_owned(),
                 },
             ),
             language: language.to_owned(),
@@ -488,7 +490,7 @@ fn parse_with<'a>(
                     ))
                 } else {
                     let _ = RefCell::borrow_mut(&broken_links)
-                        .insert(broken_link.reference.to_string());
+                        .insert(broken_link.reference.into_string());
 
                     None
                 }
@@ -559,10 +561,12 @@ fn parse_with<'a>(
 
                 None
             }
-            pulldown_cmark::Tag::Image { dest_url, .. }
-                if !metadata && !table =>
-            {
-                image = Url::parse(&dest_url).ok();
+            pulldown_cmark::Tag::Image {
+                dest_url, title, ..
+            } if !metadata && !table => {
+                image = Url::parse(&dest_url)
+                    .ok()
+                    .map(|url| (url, title.into_string()));
                 None
             }
             pulldown_cmark::Tag::List(first_item) if !metadata && !table => {
@@ -700,13 +704,18 @@ fn parse_with<'a>(
                 )
             }
             pulldown_cmark::TagEnd::Image if !metadata && !table => {
-                let url = image.take()?;
-                let title = Text::new(spans.drain(..).collect());
+                let (url, title) = image.take()?;
+                let alt = Text::new(spans.drain(..).collect());
 
                 let state = state.borrow_mut();
                 let _ = state.images.insert(url.clone());
 
-                produce(state, &mut stack, Item::Image { url, title }, source)
+                produce(
+                    state,
+                    &mut stack,
+                    Item::Image { url, title, alt },
+                    source,
+                )
             }
             pulldown_cmark::TagEnd::CodeBlock if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
@@ -1001,7 +1010,9 @@ where
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     match item {
-        Item::Image { title, url } => viewer.image(settings, title, url),
+        Item::Image { url, title, alt } => {
+            viewer.image(settings, url, title, alt)
+        }
         Item::Heading(level, text) => {
             viewer.heading(settings, level, text, index)
         }
@@ -1194,13 +1205,15 @@ where
     fn image(
         &self,
         settings: Settings,
-        title: &Text,
         url: &'a Url,
+        title: &'a str,
+        alt: &Text,
     ) -> Element<'a, Message, Theme, Renderer> {
         let _url = url;
+        let _title = title;
 
         container(
-            rich_text(title.spans(settings.style))
+            rich_text(alt.spans(settings.style))
                 .on_link_clicked(Self::on_link_clicked),
         )
         .padding(settings.spacing.0)
