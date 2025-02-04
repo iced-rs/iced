@@ -3,6 +3,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::text;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -17,6 +18,7 @@ use crate::core::{
 #[allow(missing_debug_implementations)]
 pub struct Pop<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
+    key: Option<text::Fragment<'a>>,
     on_show: Option<Box<dyn Fn(Size) -> Message + 'a>>,
     on_resize: Option<Box<dyn Fn(Size) -> Message + 'a>>,
     on_hide: Option<Message>,
@@ -34,6 +36,7 @@ where
     ) -> Self {
         Self {
             content: content.into(),
+            key: None,
             on_show: None,
             on_resize: None,
             on_hide: None,
@@ -66,6 +69,14 @@ where
         self
     }
 
+    /// Sets the key of the [`Pop`] widget, for continuity.
+    ///
+    /// If the key changes, the [`Pop`] widget will trigger again.
+    pub fn key(mut self, key: impl text::IntoFragment<'a>) -> Self {
+        self.key = Some(key.into_fragment());
+        self
+    }
+
     /// Sets the distance in [`Pixels`] to use in anticipation of the
     /// content popping into view.
     ///
@@ -77,10 +88,11 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 struct State {
     has_popped_in: bool,
     last_size: Option<Size>,
+    last_key: Option<String>,
 }
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -118,8 +130,16 @@ where
     ) {
         if let Event::Window(window::Event::RedrawRequested(_)) = &event {
             let state = tree.state.downcast_mut::<State>();
-            let bounds = layout.bounds();
 
+            if state.has_popped_in
+                && state.last_key.as_deref() != self.key.as_deref()
+            {
+                state.has_popped_in = false;
+                state.last_key =
+                    self.key.as_ref().cloned().map(text::Fragment::into_owned);
+            }
+
+            let bounds = layout.bounds();
             let top_left_distance = viewport.distance(bounds.position());
 
             let bottom_right_distance = viewport

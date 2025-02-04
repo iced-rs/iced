@@ -14,8 +14,13 @@ use crate::core::{
 
 /// A bunch of [`Rich`] text.
 #[allow(missing_debug_implementations)]
-pub struct Rich<'a, Link, Theme = crate::Theme, Renderer = crate::Renderer>
-where
+pub struct Rich<
+    'a,
+    Link,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
     Link: Clone + 'static,
     Theme: Catalog,
     Renderer: core::text::Renderer,
@@ -31,9 +36,11 @@ where
     wrapping: Wrapping,
     class: Theme::Class<'a>,
     hovered_link: Option<usize>,
+    on_link_clicked: Option<Box<dyn Fn(Link) -> Message + 'a>>,
 }
 
-impl<'a, Link, Theme, Renderer> Rich<'a, Link, Theme, Renderer>
+impl<'a, Link, Message, Theme, Renderer>
+    Rich<'a, Link, Message, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: Catalog,
@@ -54,6 +61,7 @@ where
             wrapping: Wrapping::default(),
             class: Theme::default(),
             hovered_link: None,
+            on_link_clicked: None,
         }
     }
 
@@ -127,6 +135,16 @@ where
         self
     }
 
+    /// Sets the message that will be produced when a link of the [`Rich`] text
+    /// is clicked.
+    pub fn on_link_clicked(
+        mut self,
+        on_link_clicked: impl Fn(Link) -> Message + 'a,
+    ) -> Self {
+        self.on_link_clicked = Some(Box::new(on_link_clicked));
+        self
+    }
+
     /// Sets the default style of the [`Rich`] text.
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
@@ -164,7 +182,8 @@ where
     }
 }
 
-impl<'a, Link, Theme, Renderer> Default for Rich<'a, Link, Theme, Renderer>
+impl<'a, Link, Message, Theme, Renderer> Default
+    for Rich<'a, Link, Message, Theme, Renderer>
 where
     Link: Clone + 'a,
     Theme: Catalog,
@@ -182,8 +201,8 @@ struct State<Link, P: Paragraph> {
     paragraph: P,
 }
 
-impl<Link, Theme, Renderer> Widget<Link, Theme, Renderer>
-    for Rich<'_, Link, Theme, Renderer>
+impl<Link, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Rich<'_, Link, Message, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: Catalog,
@@ -252,7 +271,8 @@ where
         let style = theme.style(&self.class);
 
         for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
-            let is_hovered_link = Some(index) == self.hovered_link;
+            let is_hovered_link = self.on_link_clicked.is_some()
+                && Some(index) == self.hovered_link;
 
             if span.highlight.is_some()
                 || span.underline
@@ -363,9 +383,13 @@ where
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Link>,
+        shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
+        let Some(on_link_clicked) = &self.on_link_clicked else {
+            return;
+        };
+
         let was_hovered = self.hovered_link.is_some();
 
         if let Some(position) = cursor.position_in(layout.bounds()) {
@@ -414,7 +438,7 @@ where
                             .get(span)
                             .and_then(|span| span.link.clone())
                         {
-                            shell.publish(link);
+                            shell.publish(on_link_clicked(link));
                         }
                     }
                     _ => {}
@@ -509,8 +533,9 @@ where
     })
 }
 
-impl<'a, Link, Theme, Renderer> FromIterator<Span<'a, Link, Renderer::Font>>
-    for Rich<'a, Link, Theme, Renderer>
+impl<'a, Link, Message, Theme, Renderer>
+    FromIterator<Span<'a, Link, Renderer::Font>>
+    for Rich<'a, Link, Message, Theme, Renderer>
 where
     Link: Clone + 'a,
     Theme: Catalog,
@@ -524,16 +549,18 @@ where
     }
 }
 
-impl<'a, Link, Theme, Renderer> From<Rich<'a, Link, Theme, Renderer>>
-    for Element<'a, Link, Theme, Renderer>
+impl<'a, Link, Message, Theme, Renderer>
+    From<Rich<'a, Link, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
+    Message: 'a,
     Link: Clone + 'a,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer + 'a,
 {
     fn from(
-        text: Rich<'a, Link, Theme, Renderer>,
-    ) -> Element<'a, Link, Theme, Renderer> {
+        text: Rich<'a, Link, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text)
     }
 }

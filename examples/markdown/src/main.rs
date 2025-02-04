@@ -1,9 +1,16 @@
 use iced::highlighter;
 use iced::time::{self, milliseconds};
 use iced::widget::{
-    self, hover, markdown, right, row, scrollable, text_editor, toggler,
+    self, center_x, horizontal_space, hover, image, markdown, pop, right, row,
+    scrollable, text_editor, toggler,
 };
 use iced::{Element, Fill, Font, Subscription, Task, Theme};
+
+use tokio::task;
+
+use std::collections::HashMap;
+use std::io;
+use std::sync::Arc;
 
 pub fn main() -> iced::Result {
     iced::application("Markdown - Iced", Markdown::update, Markdown::view)
@@ -14,6 +21,7 @@ pub fn main() -> iced::Result {
 
 struct Markdown {
     content: text_editor::Content,
+    images: HashMap<markdown::Url, Image>,
     mode: Mode,
     theme: Theme,
 }
@@ -26,10 +34,19 @@ enum Mode {
     },
 }
 
+enum Image {
+    Loading,
+    Ready(image::Handle),
+    #[allow(dead_code)]
+    Errored(Error),
+}
+
 #[derive(Debug, Clone)]
 enum Message {
     Edit(text_editor::Action),
     LinkClicked(markdown::Url),
+    ImageShown(markdown::Url),
+    ImageDownloaded(markdown::Url, Result<image::Handle, Error>),
     ToggleStream(bool),
     NextToken,
 }
@@ -43,6 +60,7 @@ impl Markdown {
         (
             Self {
                 content: text_editor::Content::with_text(INITIAL_CONTENT),
+                images: HashMap::new(),
                 mode: Mode::Preview(markdown::parse(INITIAL_CONTENT).collect()),
                 theme,
             },
@@ -67,6 +85,25 @@ impl Markdown {
             }
             Message::LinkClicked(link) => {
                 let _ = open::that_in_background(link.to_string());
+
+                Task::none()
+            }
+            Message::ImageShown(url) => {
+                if self.images.contains_key(&url) {
+                    return Task::none();
+                }
+
+                let _ = self.images.insert(url.clone(), Image::Loading);
+
+                Task::perform(download_image(url.clone()), move |result| {
+                    Message::ImageDownloaded(url.clone(), result)
+                })
+            }
+            Message::ImageDownloaded(url, result) => {
+                let _ = self.images.insert(
+                    url,
+                    result.map(Image::Ready).unwrap_or_else(Image::Errored),
+                );
 
                 Task::none()
             }
@@ -126,12 +163,13 @@ impl Markdown {
             Mode::Stream { parsed, .. } => parsed.items(),
         };
 
-        let preview = markdown(
+        let preview = markdown::view_with(
+            &MarkdownViewer {
+                images: &self.images,
+            },
+            &self.theme,
             items,
-            markdown::Settings::default(),
-            markdown::Style::from_palette(self.theme.palette()),
-        )
-        .map(Message::LinkClicked);
+        );
 
         row![
             editor,
@@ -165,5 +203,94 @@ impl Markdown {
                 time::every(milliseconds(10)).map(|_| Message::NextToken)
             }
         }
+    }
+}
+
+struct MarkdownViewer<'a> {
+    images: &'a HashMap<markdown::Url, Image>,
+}
+
+impl<'a> markdown::Viewer<'a, Message> for MarkdownViewer<'a> {
+    fn on_link_clicked(url: markdown::Url) -> Message {
+        Message::LinkClicked(url)
+    }
+
+    fn image(
+        &self,
+        _settings: markdown::Settings,
+        _title: &markdown::Text,
+        url: &'a markdown::Url,
+    ) -> Element<'a, Message> {
+        if let Some(Image::Ready(handle)) = self.images.get(url) {
+            center_x(image(handle)).into()
+        } else {
+            pop(horizontal_space().width(0))
+                .key(url.as_str())
+                .on_show(|_size| Message::ImageShown(url.clone()))
+                .into()
+        }
+    }
+}
+
+async fn download_image(url: markdown::Url) -> Result<image::Handle, Error> {
+    use std::io;
+    use tokio::task;
+
+    let client = reqwest::Client::new();
+
+    let bytes = client
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .bytes()
+        .await?;
+
+    let image = task::spawn_blocking(move || {
+        Ok::<_, Error>(
+            ::image::ImageReader::new(io::Cursor::new(bytes))
+                .with_guessed_format()?
+                .decode()?
+                .to_rgba8(),
+        )
+    })
+    .await??;
+
+    Ok(image::Handle::from_rgba(
+        image.width(),
+        image.height(),
+        image.into_raw(),
+    ))
+}
+
+#[derive(Debug, Clone)]
+pub enum Error {
+    RequestFailed(Arc<reqwest::Error>),
+    IOFailed(Arc<io::Error>),
+    JoinFailed(Arc<task::JoinError>),
+    ImageDecodingFailed(Arc<::image::ImageError>),
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(error: reqwest::Error) -> Self {
+        Self::RequestFailed(Arc::new(error))
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Self {
+        Self::IOFailed(Arc::new(error))
+    }
+}
+
+impl From<task::JoinError> for Error {
+    fn from(error: task::JoinError) -> Self {
+        Self::JoinFailed(Arc::new(error))
+    }
+}
+
+impl From<::image::ImageError> for Error {
+    fn from(error: ::image::ImageError) -> Self {
+        Self::ImageDecodingFailed(Arc::new(error))
     }
 }

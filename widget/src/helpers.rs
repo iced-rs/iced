@@ -187,7 +187,7 @@ macro_rules! text {
 #[macro_export]
 macro_rules! rich_text {
     () => (
-        $crate::Column::new()
+        $crate::text::Rich::new()
     );
     ($($x:expr),+ $(,)?) => (
         $crate::text::Rich::from_iter([$($crate::text::Span::from($x)),+])
@@ -1155,9 +1155,9 @@ where
 ///     .into()
 /// }
 /// ```
-pub fn rich_text<'a, Link, Theme, Renderer>(
+pub fn rich_text<'a, Link, Message, Theme, Renderer>(
     spans: impl AsRef<[text::Span<'a, Link, Renderer::Font>]> + 'a,
-) -> text::Rich<'a, Link, Theme, Renderer>
+) -> text::Rich<'a, Link, Message, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: text::Catalog + 'a,

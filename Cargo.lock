@@ -3299,7 +3299,10 @@ name = "markdown"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "image",
  "open",
+ "reqwest",
+ "tokio",
 ]
 
 [[package]]
