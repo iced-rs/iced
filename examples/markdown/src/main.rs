@@ -265,7 +265,7 @@ struct CustomViewer<'a> {
 }
 
 impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
-    fn on_link_clicked(url: markdown::Url) -> Message {
+    fn on_link_click(url: markdown::Url) -> Message {
         Message::LinkClicked(url)
     }
 

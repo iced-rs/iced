@@ -1048,7 +1048,7 @@ pub fn heading<'a, Message, Theme, Renderer>(
     level: &'a HeadingLevel,
     text: &'a Text,
     index: usize,
-    on_link_clicked: impl Fn(Url) -> Message + 'a,
+    on_link_click: impl Fn(Url) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1068,7 +1068,7 @@ where
 
     container(
         rich_text(text.spans(settings.style))
-            .on_link_clicked(on_link_clicked)
+            .on_link_click(on_link_click)
             .size(match level {
                 pulldown_cmark::HeadingLevel::H1 => h1_size,
                 pulldown_cmark::HeadingLevel::H2 => h2_size,
@@ -1090,7 +1090,7 @@ where
 pub fn paragraph<'a, Message, Theme, Renderer>(
     settings: Settings,
     text: &'a Text,
-    on_link_clicked: impl Fn(Url) -> Message + 'a,
+    on_link_click: impl Fn(Url) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1099,7 +1099,7 @@ where
 {
     rich_text(text.spans(settings.style))
         .size(settings.text_size)
-        .on_link_clicked(on_link_clicked)
+        .on_link_click(on_link_click)
         .into()
 }
 
@@ -1173,7 +1173,7 @@ pub fn code_block<'a, Message, Theme, Renderer>(
     settings: Settings,
     _code: &'a str,
     lines: &'a [Text],
-    on_link_clicked: impl Fn(Url) -> Message + Clone + 'a,
+    on_link_click: impl Fn(Url) -> Message + Clone + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1184,7 +1184,7 @@ where
         scrollable(
             container(column(lines.iter().map(|line| {
                 rich_text(line.spans(settings.style))
-                    .on_link_clicked(on_link_clicked.clone())
+                    .on_link_click(on_link_click.clone())
                     .font(Font::MONOSPACE)
                     .size(settings.code_size)
                     .into()
@@ -1212,7 +1212,7 @@ where
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     /// Produces a message when a link is clicked with the given [`Url`].
-    fn on_link_clicked(url: Url) -> Message;
+    fn on_link_click(url: Url) -> Message;
 
     /// Displays an image.
     ///
@@ -1229,7 +1229,7 @@ where
 
         container(
             rich_text(alt.spans(settings.style))
-                .on_link_clicked(Self::on_link_clicked),
+                .on_link_click(Self::on_link_click),
         )
         .padding(settings.spacing.0)
         .class(Theme::code_block())
@@ -1246,7 +1246,7 @@ where
         text: &'a Text,
         index: usize,
     ) -> Element<'a, Message, Theme, Renderer> {
-        heading(settings, level, text, index, Self::on_link_clicked)
+        heading(settings, level, text, index, Self::on_link_click)
     }
 
     /// Displays a paragraph.
@@ -1257,7 +1257,7 @@ where
         settings: Settings,
         text: &'a Text,
     ) -> Element<'a, Message, Theme, Renderer> {
-        paragraph(settings, text, Self::on_link_clicked)
+        paragraph(settings, text, Self::on_link_click)
     }
 
     /// Displays a code block.
@@ -1269,7 +1269,7 @@ where
         code: &'a str,
         lines: &'a [Text],
     ) -> Element<'a, Message, Theme, Renderer> {
-        code_block(settings, code, lines, Self::on_link_clicked)
+        code_block(settings, code, lines, Self::on_link_click)
     }
 
     /// Displays an unordered list.
@@ -1304,7 +1304,7 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    fn on_link_clicked(url: Url) -> Url {
+    fn on_link_click(url: Url) -> Url {
         url
     }
 }

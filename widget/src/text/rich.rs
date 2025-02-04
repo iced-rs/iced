@@ -36,7 +36,7 @@ pub struct Rich<
     wrapping: Wrapping,
     class: Theme::Class<'a>,
     hovered_link: Option<usize>,
-    on_link_clicked: Option<Box<dyn Fn(Link) -> Message + 'a>>,
+    on_link_click: Option<Box<dyn Fn(Link) -> Message + 'a>>,
 }
 
 impl<'a, Link, Message, Theme, Renderer>
@@ -61,7 +61,7 @@ where
             wrapping: Wrapping::default(),
             class: Theme::default(),
             hovered_link: None,
-            on_link_clicked: None,
+            on_link_click: None,
         }
     }
 
@@ -137,11 +137,11 @@ where
 
     /// Sets the message that will be produced when a link of the [`Rich`] text
     /// is clicked.
-    pub fn on_link_clicked(
+    pub fn on_link_click(
         mut self,
         on_link_clicked: impl Fn(Link) -> Message + 'a,
     ) -> Self {
-        self.on_link_clicked = Some(Box::new(on_link_clicked));
+        self.on_link_click = Some(Box::new(on_link_clicked));
         self
     }
 
@@ -271,7 +271,7 @@ where
         let style = theme.style(&self.class);
 
         for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
-            let is_hovered_link = self.on_link_clicked.is_some()
+            let is_hovered_link = self.on_link_click.is_some()
                 && Some(index) == self.hovered_link;
 
             if span.highlight.is_some()
@@ -386,7 +386,7 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
-        let Some(on_link_clicked) = &self.on_link_clicked else {
+        let Some(on_link_clicked) = &self.on_link_click else {
             return;
         };
 

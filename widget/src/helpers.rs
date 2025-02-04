@@ -180,7 +180,7 @@ macro_rules! text {
 ///         span(" "),
 ///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
 ///     ]
-///     .on_link_clicked(never)
+///     .on_link_click(never)
 ///     .size(20)
 ///     .into()
 /// }
@@ -1153,7 +1153,7 @@ where
 ///         span(" "),
 ///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
 ///     ])
-///     .on_link_clicked(never)
+///     .on_link_click(never)
 ///     .size(20)
 ///     .into()
 /// }
@@ -1197,7 +1197,7 @@ where
 ///         " ",
 ///         span("And I am bold!").font(Font { weight: font::Weight::Bold, ..Font::default() }),
 ///     ]
-///     .on_link_clicked(never)
+///     .on_link_click(never)
 ///     .size(20)
 ///     .into()
 /// }

@@ -276,7 +276,7 @@ impl Generator {
                                         ..Font::default()
                                     }),
                             ]
-                            .on_link_clicked(Message::OpenPullRequest)
+                            .on_link_click(Message::OpenPullRequest)
                             .font(Font::MONOSPACE);
 
                             let description =
