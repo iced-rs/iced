@@ -582,7 +582,13 @@ where
         };
 
         let draw = |renderer: &mut Renderer, viewport| {
-            let paragraph = if text.is_empty() {
+            let paragraph = if text.is_empty()
+                && state
+                    .is_ime_open
+                    .as_ref()
+                    .map(|preedit| preedit.content.is_empty())
+                    .unwrap_or(true)
+            {
                 state.placeholder.raw()
             } else {
                 state.value.raw()
