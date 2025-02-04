@@ -88,7 +88,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: crate::core::Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
@@ -174,7 +174,7 @@ where
     fn update(
         &self,
         state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Option<Action<Message>> {

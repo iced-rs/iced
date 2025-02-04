@@ -58,7 +58,7 @@ where
     /// By default, it does nothing.
     fn update(
         &mut self,
-        _event: Event,
+        _event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,

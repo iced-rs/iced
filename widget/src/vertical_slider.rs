@@ -249,7 +249,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
@@ -379,7 +379,7 @@ where
                 if state.keyboard_modifiers.control() =>
             {
                 if cursor.is_over(layout.bounds()) {
-                    let delta = match delta {
+                    let delta = match *delta {
                         mouse::ScrollDelta::Lines { x: _, y } => y,
                         mouse::ScrollDelta::Pixels { x: _, y } => y,
                     };
@@ -411,7 +411,7 @@ where
                 }
             }
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                state.keyboard_modifiers = modifiers;
+                state.keyboard_modifiers = *modifiers;
             }
             _ => {}
         }

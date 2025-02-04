@@ -512,7 +512,7 @@ where
     fn update(
         &mut self,
         tree: &mut widget::Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -540,7 +540,7 @@ where
         // Provide it to the widget
         self.text_input.update(
             &mut tree.children[0],
-            event.clone(),
+            event,
             layout,
             cursor,
             renderer,
@@ -737,7 +737,7 @@ where
                 let mut local_shell = Shell::new(&mut local_messages);
                 self.text_input.update(
                     &mut tree.children[0],
-                    Event::Mouse(mouse::Event::ButtonPressed(
+                    &Event::Mouse(mouse::Event::ButtonPressed(
                         mouse::Button::Left,
                     )),
                     layout,

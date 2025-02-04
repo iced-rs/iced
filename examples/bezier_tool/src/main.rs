@@ -93,7 +93,7 @@ mod bezier {
         fn update(
             &self,
             state: &mut Self::State,
-            event: Event,
+            event: &Event,
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> Option<canvas::Action<Curve>> {

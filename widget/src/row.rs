@@ -256,7 +256,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -271,13 +271,7 @@ where
             .zip(layout.children())
         {
             child.as_widget_mut().update(
-                state,
-                event.clone(),
-                layout,
-                cursor,
-                renderer,
-                clipboard,
-                shell,
+                state, event, layout, cursor, renderer, clipboard, shell,
                 viewport,
             );
         }
@@ -495,7 +489,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,

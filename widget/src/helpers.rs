@@ -633,7 +633,7 @@ where
         fn update(
             &mut self,
             state: &mut Tree,
-            event: Event,
+            event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
@@ -836,7 +836,7 @@ where
         fn update(
             &mut self,
             tree: &mut Tree,
-            event: Event,
+            event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
@@ -885,14 +885,8 @@ where
                 let redraw_request = shell.redraw_request();
 
                 self.top.as_widget_mut().update(
-                    top_tree,
-                    event.clone(),
-                    top_layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                    viewport,
+                    top_tree, event, top_layout, cursor, renderer, clipboard,
+                    shell, viewport,
                 );
 
                 // Ignore redraw requests of invisible content
@@ -907,7 +901,7 @@ where
 
             self.base.as_widget_mut().update(
                 base_tree,
-                event.clone(),
+                event,
                 base_layout,
                 cursor,
                 renderer,
