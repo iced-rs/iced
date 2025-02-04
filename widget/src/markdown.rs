@@ -189,6 +189,130 @@ pub enum Item {
     },
 }
 
+impl Item {
+    /// Displays a Markdown [`Item`] using the default, built-in look for its children.
+    pub fn view<'a, 'b, Theme, Renderer>(
+        &'b self,
+        settings: Settings,
+        style: Style,
+        index: usize,
+    ) -> Element<'a, Url, Theme, Renderer>
+    where
+        Theme: Catalog + 'a,
+        Renderer: core::text::Renderer<Font = Font> + 'a,
+    {
+        self.view_with(index, settings, style, &DefaultView)
+    }
+
+    /// Displays a Markdown [`Item`] using the given [`View`] for its children.
+    pub fn view_with<'a, 'b, Theme, Renderer>(
+        &'b self,
+        index: usize,
+        settings: Settings,
+        style: Style,
+        view: &dyn View<'a, 'b, Url, Theme, Renderer>,
+    ) -> Element<'a, Url, Theme, Renderer>
+    where
+        Theme: Catalog + 'a,
+        Renderer: core::text::Renderer<Font = Font> + 'a,
+    {
+        let Settings {
+            text_size,
+            h1_size,
+            h2_size,
+            h3_size,
+            h4_size,
+            h5_size,
+            h6_size,
+            code_size,
+            spacing,
+        } = settings;
+
+        match self {
+            Item::Heading(level, heading) => {
+                container(rich_text(heading.spans(style)).size(match level {
+                    pulldown_cmark::HeadingLevel::H1 => h1_size,
+                    pulldown_cmark::HeadingLevel::H2 => h2_size,
+                    pulldown_cmark::HeadingLevel::H3 => h3_size,
+                    pulldown_cmark::HeadingLevel::H4 => h4_size,
+                    pulldown_cmark::HeadingLevel::H5 => h5_size,
+                    pulldown_cmark::HeadingLevel::H6 => h6_size,
+                }))
+                .padding(padding::top(if index > 0 {
+                    text_size / 2.0
+                } else {
+                    Pixels::ZERO
+                }))
+                .into()
+            }
+            Item::Paragraph(paragraph) => {
+                rich_text(paragraph.spans(style)).size(text_size).into()
+            }
+            Item::List { start: None, items } => {
+                column(items.iter().map(|items| {
+                    row![
+                        text("•").size(text_size),
+                        view_with(
+                            items,
+                            Settings {
+                                spacing: settings.spacing * 0.6,
+                                ..settings
+                            },
+                            style,
+                            view
+                        )
+                    ]
+                    .spacing(spacing)
+                    .into()
+                }))
+                .spacing(spacing * 0.75)
+                .into()
+            }
+            Item::List {
+                start: Some(start),
+                items,
+            } => column(items.iter().enumerate().map(|(i, items)| {
+                row![
+                    text!("{}.", i as u64 + *start).size(text_size),
+                    view_with(
+                        items,
+                        Settings {
+                            spacing: settings.spacing * 0.6,
+                            ..settings
+                        },
+                        style,
+                        view
+                    )
+                ]
+                .spacing(spacing)
+                .into()
+            }))
+            .spacing(spacing * 0.75)
+            .into(),
+            Item::CodeBlock(lines) => container(
+                scrollable(
+                    container(column(lines.iter().map(|line| {
+                        rich_text(line.spans(style))
+                            .font(Font::MONOSPACE)
+                            .size(code_size)
+                            .into()
+                    })))
+                    .padding(spacing.0 / 2.0),
+                )
+                .direction(scrollable::Direction::Horizontal(
+                    scrollable::Scrollbar::default()
+                        .width(spacing.0 / 2.0)
+                        .scroller_width(spacing.0 / 2.0),
+                )),
+            )
+            .width(Length::Fill)
+            .padding(spacing.0 / 2.0)
+            .class(Theme::code_block())
+            .into(),
+        }
+    }
+}
+
 /// A bunch of parsed Markdown text.
 #[derive(Debug, Clone)]
 pub struct Text {
@@ -900,100 +1024,68 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    let Settings {
-        text_size,
-        h1_size,
-        h2_size,
-        h3_size,
-        h4_size,
-        h5_size,
-        h6_size,
-        code_size,
-        spacing,
-    } = settings;
+    view_with(items, settings, style, &DefaultView)
+}
 
-    let blocks = items.into_iter().enumerate().map(|(i, item)| match item {
-        Item::Heading(level, heading) => {
-            container(rich_text(heading.spans(style)).size(match level {
-                pulldown_cmark::HeadingLevel::H1 => h1_size,
-                pulldown_cmark::HeadingLevel::H2 => h2_size,
-                pulldown_cmark::HeadingLevel::H3 => h3_size,
-                pulldown_cmark::HeadingLevel::H4 => h4_size,
-                pulldown_cmark::HeadingLevel::H5 => h5_size,
-                pulldown_cmark::HeadingLevel::H6 => h6_size,
-            }))
-            .padding(padding::top(if i > 0 {
-                text_size / 2.0
-            } else {
-                Pixels::ZERO
-            }))
-            .into()
-        }
-        Item::Paragraph(paragraph) => {
-            rich_text(paragraph.spans(style)).size(text_size).into()
-        }
-        Item::List { start: None, items } => {
-            column(items.iter().map(|items| {
-                row![
-                    text("•").size(text_size),
-                    view(
-                        items,
-                        Settings {
-                            spacing: settings.spacing * 0.6,
-                            ..settings
-                        },
-                        style
-                    )
-                ]
-                .spacing(spacing)
-                .into()
-            }))
-            .spacing(spacing * 0.75)
-            .into()
-        }
-        Item::List {
-            start: Some(start),
-            items,
-        } => column(items.iter().enumerate().map(|(i, items)| {
-            row![
-                text!("{}.", i as u64 + *start).size(text_size),
-                view(
-                    items,
-                    Settings {
-                        spacing: settings.spacing * 0.6,
-                        ..settings
-                    },
-                    style
-                )
-            ]
-            .spacing(spacing)
-            .into()
-        }))
-        .spacing(spacing * 0.75)
-        .into(),
-        Item::CodeBlock(lines) => container(
-            scrollable(
-                container(column(lines.iter().map(|line| {
-                    rich_text(line.spans(style))
-                        .font(Font::MONOSPACE)
-                        .size(code_size)
-                        .into()
-                })))
-                .padding(spacing.0 / 2.0),
-            )
-            .direction(scrollable::Direction::Horizontal(
-                scrollable::Scrollbar::default()
-                    .width(spacing.0 / 2.0)
-                    .scroller_width(spacing.0 / 2.0),
-            )),
-        )
-        .width(Length::Fill)
-        .padding(spacing.0 / 2.0)
-        .class(Theme::code_block())
-        .into(),
-    });
+/// Runs [`view`] but with a custom [`View`] to turn an [`Item`] into
+/// an [`Element`].
+///
+/// This is useful if you want to customize the look of certain Markdown
+/// elements.
+///
+/// You can use [`Item::view`] and [`Item::view_with`] for the default
+/// look.
+pub fn view_with<'a, 'b, Message, Theme, Renderer>(
+    items: impl IntoIterator<Item = &'b Item>,
+    settings: Settings,
+    style: Style,
+    view: &dyn View<'a, 'b, Message, Theme, Renderer>,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    let blocks = items
+        .into_iter()
+        .enumerate()
+        .map(move |(i, item)| view.view(settings, style, item, i));
 
-    Element::new(column(blocks).spacing(spacing))
+    Element::new(column(blocks).spacing(settings.spacing))
+}
+
+/// A view strategy to display a Markdown [`Item`].
+pub trait View<'a, 'b, Message, Theme, Renderer> {
+    /// Displays a Markdown [`Item`] by projecting it into an [`Element`].
+    ///
+    /// You can use [`Item::view`] and [`Item::view_with`] for the default
+    /// look.
+    fn view(
+        &self,
+        settings: Settings,
+        style: Style,
+        item: &'b Item,
+        index: usize,
+    ) -> Element<'a, Message, Theme, Renderer>;
+}
+
+#[derive(Debug, Clone, Copy)]
+struct DefaultView;
+
+impl<'a, 'b, Theme, Renderer> View<'a, 'b, Url, Theme, Renderer> for DefaultView
+where
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    fn view(
+        &self,
+        settings: Settings,
+        style: Style,
+        item: &'b Item,
+        index: usize,
+    ) -> Element<'a, Url, Theme, Renderer> {
+        item.view(settings, style, index)
+    }
 }
 
 /// The theme catalog of Markdown items.
