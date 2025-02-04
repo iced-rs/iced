@@ -16,3 +16,8 @@ image.workspace = true
 tokio.workspace = true
 
 open = "5.3"
+
+# Disabled to keep amount of build dependencies low
+# This can be re-enabled on demand
+# [build-dependencies]
+# iced_fontello = "0.13"

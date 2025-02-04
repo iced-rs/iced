@@ -55,6 +55,7 @@ use crate::{column, container, rich_text, row, scrollable, span, text};
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
+use std::mem;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -182,7 +183,12 @@ pub enum Item {
     /// A code block.
     ///
     /// You can enable the `highlighter` feature for syntax highlighting.
-    CodeBlock(Vec<Text>),
+    CodeBlock {
+        /// The raw code of the code block.
+        code: String,
+        /// The styled lines of text in the code block.
+        lines: Vec<Text>,
+    },
     /// A list.
     List {
         /// The first number of the list, if it is ordered.
@@ -457,7 +463,8 @@ fn parse_with<'a>(
     let broken_links = Rc::new(RefCell::new(HashSet::new()));
 
     let mut spans = Vec::new();
-    let mut code = Vec::new();
+    let mut code = String::new();
+    let mut code_lines = Vec::new();
     let mut strong = false;
     let mut emphasis = false;
     let mut strikethrough = false;
@@ -726,7 +733,10 @@ fn parse_with<'a>(
                 produce(
                     state.borrow_mut(),
                     &mut stack,
-                    Item::CodeBlock(code.drain(..).collect()),
+                    Item::CodeBlock {
+                        code: mem::take(&mut code),
+                        lines: code_lines.drain(..).collect(),
+                    },
                     source,
                 )
             }
@@ -743,8 +753,10 @@ fn parse_with<'a>(
         pulldown_cmark::Event::Text(text) if !metadata && !table => {
             #[cfg(feature = "highlighter")]
             if let Some(highlighter) = &mut highlighter {
+                code.push_str(&text);
+
                 for line in text.lines() {
-                    code.push(Text::new(
+                    code_lines.push(Text::new(
                         highlighter.highlight_line(line).to_vec(),
                     ));
                 }
@@ -1017,7 +1029,9 @@ where
             viewer.heading(settings, level, text, index)
         }
         Item::Paragraph(text) => viewer.paragraph(settings, text),
-        Item::CodeBlock(lines) => viewer.code_block(settings, lines),
+        Item::CodeBlock { code, lines } => {
+            viewer.code_block(settings, code, lines)
+        }
         Item::List { start: None, items } => {
             viewer.unordered_list(settings, items)
         }
@@ -1157,6 +1171,7 @@ where
 /// Displays a code block using the default look.
 pub fn code_block<'a, Message, Theme, Renderer>(
     settings: Settings,
+    _code: &'a str,
     lines: &'a [Text],
     on_link_clicked: impl Fn(Url) -> Message + Clone + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1251,9 +1266,10 @@ where
     fn code_block(
         &self,
         settings: Settings,
+        code: &'a str,
         lines: &'a [Text],
     ) -> Element<'a, Message, Theme, Renderer> {
-        code_block(settings, lines, Self::on_link_clicked)
+        code_block(settings, code, lines, Self::on_link_clicked)
     }
 
     /// Displays an unordered list.

@@ -1,10 +1,13 @@
+mod icon;
+
 use iced::animation;
+use iced::clipboard;
 use iced::highlighter;
 use iced::task;
 use iced::time::{self, milliseconds, Instant};
 use iced::widget::{
-    self, center_x, horizontal_space, hover, image, markdown, pop, right, row,
-    scrollable, text_editor, toggler,
+    self, button, center_x, horizontal_space, hover, image, markdown, pop,
+    right, row, scrollable, text_editor, toggler,
 };
 use iced::window;
 use iced::{Animation, Element, Fill, Font, Subscription, Task, Theme};
@@ -15,6 +18,7 @@ use std::sync::Arc;
 
 pub fn main() -> iced::Result {
     iced::application("Markdown - Iced", Markdown::update, Markdown::view)
+        .font(icon::FONT)
         .subscription(Markdown::subscription)
         .theme(Markdown::theme)
         .run_with(Markdown::new)
@@ -49,6 +53,7 @@ enum Image {
 #[derive(Debug, Clone)]
 enum Message {
     Edit(text_editor::Action),
+    Copy(String),
     LinkClicked(markdown::Url),
     ImageShown(markdown::Url),
     ImageDownloaded(markdown::Url, Result<image::Handle, Error>),
@@ -91,6 +96,7 @@ impl Markdown {
 
                 Task::none()
             }
+            Message::Copy(content) => clipboard::write(content),
             Message::LinkClicked(link) => {
                 let _ = open::that_in_background(link.to_string());
 
@@ -141,6 +147,8 @@ impl Markdown {
             }
             Message::ToggleStream(enable_stream) => {
                 if enable_stream {
+                    self.content = markdown::Content::new();
+
                     self.mode = Mode::Stream {
                         pending: self.raw.text(),
                     };
@@ -281,6 +289,26 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
                 .on_show(|_size| Message::ImageShown(url.clone()))
                 .into()
         }
+    }
+
+    fn code_block(
+        &self,
+        settings: markdown::Settings,
+        code: &'a str,
+        lines: &'a [markdown::Text],
+    ) -> Element<'a, Message> {
+        let code_block =
+            markdown::code_block(settings, code, lines, Message::LinkClicked);
+
+        hover(
+            code_block,
+            right(
+                button(icon::copy().size(12))
+                    .padding(settings.spacing / 2)
+                    .on_press_with(|| Message::Copy(code.to_owned()))
+                    .style(button::text),
+            ),
+        )
     }
 }
 
