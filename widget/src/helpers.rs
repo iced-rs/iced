@@ -633,7 +633,7 @@ where
         fn update(
             &mut self,
             state: &mut Tree,
-            event: Event,
+            event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
@@ -836,7 +836,7 @@ where
         fn update(
             &mut self,
             tree: &mut Tree,
-            event: Event,
+            event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
@@ -871,26 +871,28 @@ where
                 shell.request_redraw();
             }
 
+            let is_visible =
+                is_hovered || self.is_top_focused || self.is_top_overlay_active;
+
             if matches!(
                 event,
                 Event::Mouse(
                     mouse::Event::CursorMoved { .. }
                         | mouse::Event::ButtonReleased(_)
                 )
-            ) || is_hovered
-                || self.is_top_focused
-                || self.is_top_overlay_active
+            ) || is_visible
             {
+                let redraw_request = shell.redraw_request();
+
                 self.top.as_widget_mut().update(
-                    top_tree,
-                    event.clone(),
-                    top_layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                    viewport,
+                    top_tree, event, top_layout, cursor, renderer, clipboard,
+                    shell, viewport,
                 );
+
+                // Ignore redraw requests of invisible content
+                if !is_visible {
+                    Shell::replace_redraw_request(shell, redraw_request);
+                }
             };
 
             if shell.is_event_captured() {
@@ -899,7 +901,7 @@ where
 
             self.base.as_widget_mut().update(
                 base_tree,
-                event.clone(),
+                event,
                 base_layout,
                 cursor,
                 renderer,

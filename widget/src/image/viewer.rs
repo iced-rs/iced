@@ -151,7 +151,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -167,7 +167,7 @@ where
                     return;
                 };
 
-                match delta {
+                match *delta {
                     mouse::ScrollDelta::Lines { y, .. }
                     | mouse::ScrollDelta::Pixels { y, .. } => {
                         let state = tree.state.downcast_mut::<State>();
@@ -256,7 +256,7 @@ where
                         .max(0.0)
                         .round();
 
-                    let delta = position - origin;
+                    let delta = *position - origin;
 
                     let x = if bounds.width < scaled_size.width {
                         (state.starting_offset.x - delta.x)

@@ -288,7 +288,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -298,7 +298,7 @@ where
     ) {
         self.content.as_widget_mut().update(
             &mut tree.children[0],
-            event.clone(),
+            event,
             layout,
             cursor,
             renderer,
@@ -396,7 +396,7 @@ where
 fn update<Message: Clone, Theme, Renderer>(
     widget: &mut MouseArea<'_, Message, Theme, Renderer>,
     tree: &mut Tree,
-    event: Event,
+    event: &Event,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
@@ -507,7 +507,7 @@ fn update<Message: Clone, Theme, Renderer>(
         }
         Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
             if let Some(on_scroll) = widget.on_scroll.as_ref() {
-                shell.publish(on_scroll(delta));
+                shell.publish(on_scroll(*delta));
                 shell.capture_event();
             }
         }

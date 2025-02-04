@@ -26,7 +26,7 @@ pub trait Program<Message> {
     fn update(
         &self,
         _state: &mut Self::State,
-        _event: shader::Event,
+        _event: &shader::Event,
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Option<Action<Message>> {

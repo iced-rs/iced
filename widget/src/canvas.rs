@@ -218,7 +218,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -238,19 +238,10 @@ where
         {
             let (message, redraw_request, event_status) = action.into_inner();
 
+            shell.request_redraw_at(redraw_request);
+
             if let Some(message) = message {
                 shell.publish(message);
-            }
-
-            if let Some(redraw_request) = redraw_request {
-                match redraw_request {
-                    window::RedrawRequest::NextFrame => {
-                        shell.request_redraw();
-                    }
-                    window::RedrawRequest::At(at) => {
-                        shell.request_redraw_at(at);
-                    }
-                }
             }
 
             if event_status == event::Status::Captured {
@@ -258,7 +249,7 @@ where
             }
         }
 
-        if shell.redraw_request() != Some(window::RedrawRequest::NextFrame) {
+        if shell.redraw_request() != window::RedrawRequest::NextFrame {
             let mouse_interaction = self
                 .mouse_interaction(tree, layout, cursor, viewport, renderer);
 

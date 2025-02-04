@@ -264,7 +264,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
@@ -278,7 +278,7 @@ where
             state.animation = state.animation.timed_transition(
                 self.cycle_duration,
                 self.rotation_duration,
-                now,
+                *now,
             );
 
             state.cache.clear();

@@ -129,6 +129,12 @@ impl<P: Paragraph> Plain<P> {
         self.raw.min_width()
     }
 
+    /// Returns the minimum height that can fit the contents of the
+    /// [`Paragraph`].
+    pub fn min_height(&self) -> f32 {
+        self.raw.min_height()
+    }
+
     /// Returns the cached [`Paragraph`].
     pub fn raw(&self) -> &P {
         &self.raw

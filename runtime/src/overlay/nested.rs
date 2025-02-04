@@ -160,7 +160,7 @@ where
     /// Processes a runtime [`Event`].
     pub fn update(
         &mut self,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -170,7 +170,7 @@ where
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
-            event: Event,
+            event: &Event,
             cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
@@ -188,7 +188,7 @@ where
                     recurse(
                         &mut nested,
                         nested_layout,
-                        event.clone(),
+                        event,
                         cursor,
                         renderer,
                         clipboard,

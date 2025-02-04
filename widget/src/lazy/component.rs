@@ -6,7 +6,6 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::window;
 use crate::core::{
     self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
     Widget,
@@ -314,7 +313,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: core::Event,
+        event: &core::Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -344,17 +343,8 @@ where
         }
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
-
-        if let Some(redraw_request) = local_shell.redraw_request() {
-            match redraw_request {
-                window::RedrawRequest::NextFrame => {
-                    shell.request_redraw();
-                }
-                window::RedrawRequest::At(at) => {
-                    shell.request_redraw_at(at);
-                }
-            }
-        }
+        shell.request_redraw_at(local_shell.redraw_request());
+        shell.request_input_method(local_shell.input_method());
 
         if !local_messages.is_empty() {
             let mut heads = self.state.take().unwrap().into_heads();
@@ -603,7 +593,7 @@ where
 
     fn update(
         &mut self,
-        event: core::Event,
+        event: &core::Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -629,17 +619,8 @@ where
         }
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
-
-        if let Some(redraw_request) = local_shell.redraw_request() {
-            match redraw_request {
-                window::RedrawRequest::NextFrame => {
-                    shell.request_redraw();
-                }
-                window::RedrawRequest::At(at) => {
-                    shell.request_redraw_at(at);
-                }
-            }
-        }
+        shell.request_redraw_at(local_shell.redraw_request());
+        shell.request_input_method(local_shell.input_method());
 
         if !local_messages.is_empty() {
             let mut inner =

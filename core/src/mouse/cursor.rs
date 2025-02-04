@@ -1,12 +1,13 @@
 use crate::{Point, Rectangle, Transformation, Vector};
 
-use std::ops::Mul;
-
 /// The mouse cursor state.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Cursor {
     /// The cursor has a defined position.
     Available(Point),
+
+    /// The cursor has a defined position, but it's levitating over a layer above.
+    Levitating(Point),
 
     /// The cursor is currently unavailable (i.e. out of bounds or busy).
     #[default]
@@ -18,7 +19,7 @@ impl Cursor {
     pub fn position(self) -> Option<Point> {
         match self {
             Cursor::Available(position) => Some(position),
-            Cursor::Unavailable => None,
+            Cursor::Levitating(_) | Cursor::Unavailable => None,
         }
     }
 
@@ -51,17 +52,41 @@ impl Cursor {
     pub fn is_over(self, bounds: Rectangle) -> bool {
         self.position_over(bounds).is_some()
     }
+
+    /// Returns true if the [`Cursor`] is levitating over a layer above.
+    pub fn is_levitating(self) -> bool {
+        matches!(self, Self::Levitating(_))
+    }
+
+    /// Makes the [`Cursor`] levitate over a layer above.
+    pub fn levitate(self) -> Self {
+        match self {
+            Self::Available(position) => Self::Levitating(position),
+            _ => self,
+        }
+    }
+
+    /// Brings the [`Cursor`] back to the current layer.
+    pub fn land(self) -> Self {
+        match self {
+            Cursor::Levitating(position) => Cursor::Available(position),
+            _ => self,
+        }
+    }
 }
 
-impl Mul<Transformation> for Cursor {
+impl std::ops::Mul<Transformation> for Cursor {
     type Output = Self;
 
     fn mul(self, transformation: Transformation) -> Self {
         match self {
-            Cursor::Unavailable => Cursor::Unavailable,
-            Cursor::Available(point) => {
-                Cursor::Available(point * transformation)
+            Self::Available(position) => {
+                Self::Available(position * transformation)
             }
+            Self::Levitating(position) => {
+                Self::Levitating(position * transformation)
+            }
+            Self::Unavailable => Self::Unavailable,
         }
     }
 }

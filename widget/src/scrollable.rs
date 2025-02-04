@@ -33,8 +33,9 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Event, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    self, Background, Clipboard, Color, Element, Event, InputMethod, Layout,
+    Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
+    Widget,
 };
 use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
@@ -516,7 +517,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -563,7 +564,8 @@ where
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
                         if let Some(scrollbar) = scrollbars.y {
-                            let Some(cursor_position) = cursor.position()
+                            let Some(cursor_position) =
+                                cursor.land().position()
                             else {
                                 return;
                             };
@@ -635,7 +637,8 @@ where
                 match event {
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        let Some(cursor_position) = cursor.position() else {
+                        let Some(cursor_position) = cursor.land().position()
+                        else {
                             return;
                         };
 
@@ -726,12 +729,14 @@ where
                     _ => mouse::Cursor::Unavailable,
                 };
 
+                let had_input_method = shell.input_method().is_open();
+
                 let translation =
                     state.translation(self.direction, bounds, content_bounds);
 
                 self.content.as_widget_mut().update(
                     &mut tree.children[0],
-                    event.clone(),
+                    event,
                     content,
                     cursor,
                     renderer,
@@ -743,6 +748,14 @@ where
                         ..bounds
                     },
                 );
+
+                if !had_input_method {
+                    if let InputMethod::Open { position, .. } =
+                        shell.input_method_mut()
+                    {
+                        *position = *position + translation;
+                    }
+                }
             };
 
             if matches!(
@@ -768,7 +781,7 @@ where
                 modifiers,
             )) = event
             {
-                state.keyboard_modifiers = modifiers;
+                state.keyboard_modifiers = *modifiers;
 
                 return;
             }
@@ -779,7 +792,7 @@ where
                         return;
                     }
 
-                    let delta = match delta {
+                    let delta = match *delta {
                         mouse::ScrollDelta::Lines { x, y } => {
                             let is_shift_pressed =
                                 state.keyboard_modifiers.shift();

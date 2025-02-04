@@ -32,7 +32,7 @@ where
     fn update(
         &self,
         _state: &mut Self::State,
-        _event: Event,
+        _event: &Event,
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Option<Action<Message>> {
@@ -82,7 +82,7 @@ where
     fn update(
         &self,
         state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Option<Action<Message>> {

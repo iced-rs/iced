@@ -361,7 +361,7 @@ mod toast {
         fn update(
             &mut self,
             state: &mut Tree,
-            event: Event,
+            event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
@@ -491,7 +491,7 @@ mod toast {
 
         fn update(
             &mut self,
-            event: Event,
+            event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
@@ -530,7 +530,7 @@ mod toast {
 
                 child.as_widget_mut().update(
                     state,
-                    event.clone(),
+                    event,
                     layout,
                     cursor,
                     renderer,
