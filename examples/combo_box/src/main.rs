@@ -1,3 +1,4 @@
+use iced::widget::text::Shaping;
 use iced::widget::{
     center, column, combo_box, scrollable, text, vertical_space,
 };
@@ -54,12 +55,13 @@ impl Example {
             self.selected_language.as_ref(),
             Message::Selected,
         )
+        .text_shaping(Shaping::Advanced)
         .on_option_hovered(Message::OptionHovered)
         .on_close(Message::Closed)
         .width(250);
 
         let content = column![
-            text(&self.text),
+            text(&self.text).shaping(Shaping::Advanced),
             "What is your language?",
             combo_box,
             vertical_space().height(150),
@@ -86,18 +88,20 @@ pub enum Language {
     French,
     German,
     Italian,
+    Japanese,
     Portuguese,
     Spanish,
     Other,
 }
 
 impl Language {
-    const ALL: [Language; 8] = [
+    const ALL: [Language; 9] = [
         Language::Danish,
         Language::English,
         Language::French,
         Language::German,
         Language::Italian,
+        Language::Japanese,
         Language::Portuguese,
         Language::Spanish,
         Language::Other,
@@ -110,6 +114,7 @@ impl Language {
             Language::French => "Salut!",
             Language::German => "Hallo!",
             Language::Italian => "Ciao!",
+            Language::Japanese => "こんにちは!",
             Language::Portuguese => "Olá!",
             Language::Spanish => "¡Hola!",
             Language::Other => "... hello?",
@@ -128,6 +133,7 @@ impl std::fmt::Display for Language {
                 Language::French => "French",
                 Language::German => "German",
                 Language::Italian => "Italian",
+                Language::Japanese => "日本語",
                 Language::Portuguese => "Portuguese",
                 Language::Spanish => "Spanish",
                 Language::Other => "Some other language",
