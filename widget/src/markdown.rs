@@ -167,8 +167,8 @@ impl Content {
     }
 
     /// Returns the URLs of the Markdown images present in the [`Content`].
-    pub fn images(&self) -> impl Iterator<Item = &Url> {
-        self.state.images.iter()
+    pub fn images(&self) -> &HashSet<Url> {
+        &self.state.images
     }
 }
 

@@ -1,12 +1,13 @@
+use iced::animation;
 use iced::highlighter;
-use iced::time::{self, milliseconds};
+use iced::task;
+use iced::time::{self, milliseconds, Instant};
 use iced::widget::{
     self, center_x, horizontal_space, hover, image, markdown, pop, right, row,
     scrollable, text_editor, toggler,
 };
-use iced::{Element, Fill, Font, Subscription, Task, Theme};
-
-use tokio::task;
+use iced::window;
+use iced::{Animation, Element, Fill, Font, Subscription, Task, Theme};
 
 use std::collections::HashMap;
 use std::io;
@@ -20,23 +21,27 @@ pub fn main() -> iced::Result {
 }
 
 struct Markdown {
-    content: text_editor::Content,
+    content: markdown::Content,
+    raw: text_editor::Content,
     images: HashMap<markdown::Url, Image>,
     mode: Mode,
     theme: Theme,
+    now: Instant,
 }
 
 enum Mode {
-    Preview(Vec<markdown::Item>),
-    Stream {
-        pending: String,
-        parsed: markdown::Content,
-    },
+    Preview,
+    Stream { pending: String },
 }
 
 enum Image {
-    Loading,
-    Ready(image::Handle),
+    Loading {
+        _download: task::Handle,
+    },
+    Ready {
+        handle: image::Handle,
+        fade_in: Animation<bool>,
+    },
     #[allow(dead_code)]
     Errored(Error),
 }
@@ -49,20 +54,21 @@ enum Message {
     ImageDownloaded(markdown::Url, Result<image::Handle, Error>),
     ToggleStream(bool),
     NextToken,
+    Animate(Instant),
 }
 
 impl Markdown {
     fn new() -> (Self, Task<Message>) {
         const INITIAL_CONTENT: &str = include_str!("../overview.md");
 
-        let theme = Theme::TokyoNight;
-
         (
             Self {
-                content: text_editor::Content::with_text(INITIAL_CONTENT),
+                content: markdown::Content::parse(INITIAL_CONTENT),
+                raw: text_editor::Content::with_text(INITIAL_CONTENT),
                 images: HashMap::new(),
-                mode: Mode::Preview(markdown::parse(INITIAL_CONTENT).collect()),
-                theme,
+                mode: Mode::Preview,
+                theme: Theme::TokyoNight,
+                now: Instant::now(),
             },
             widget::focus_next(),
         )
@@ -73,12 +79,14 @@ impl Markdown {
             Message::Edit(action) => {
                 let is_edit = action.is_edit();
 
-                self.content.perform(action);
+                self.raw.perform(action);
 
                 if is_edit {
-                    self.mode = Mode::Preview(
-                        markdown::parse(&self.content.text()).collect(),
-                    );
+                    self.content = markdown::Content::parse(&self.raw.text());
+                    self.mode = Mode::Preview;
+
+                    let images = self.content.images();
+                    self.images.retain(|url, _image| images.contains(url));
                 }
 
                 Task::none()
@@ -93,16 +101,40 @@ impl Markdown {
                     return Task::none();
                 }
 
-                let _ = self.images.insert(url.clone(), Image::Loading);
+                let (download_image, handle) = Task::future({
+                    let url = url.clone();
 
-                Task::perform(download_image(url.clone()), move |result| {
+                    async move {
+                        // Wait half a second for further editions before attempting download
+                        tokio::time::sleep(milliseconds(500)).await;
+                        download_image(url).await
+                    }
+                })
+                .abortable();
+
+                let _ = self.images.insert(
+                    url.clone(),
+                    Image::Loading {
+                        _download: handle.abort_on_drop(),
+                    },
+                );
+
+                download_image.map(move |result| {
                     Message::ImageDownloaded(url.clone(), result)
                 })
             }
             Message::ImageDownloaded(url, result) => {
                 let _ = self.images.insert(
                     url,
-                    result.map(Image::Ready).unwrap_or_else(Image::Errored),
+                    result
+                        .map(|handle| Image::Ready {
+                            handle,
+                            fade_in: Animation::new(false)
+                                .quick()
+                                .easing(animation::Easing::EaseInOut)
+                                .go(true),
+                        })
+                        .unwrap_or_else(Image::Errored),
                 );
 
                 Task::none()
@@ -110,8 +142,7 @@ impl Markdown {
             Message::ToggleStream(enable_stream) => {
                 if enable_stream {
                     self.mode = Mode::Stream {
-                        pending: self.content.text(),
-                        parsed: markdown::Content::new(),
+                        pending: self.raw.text(),
                     };
 
                     scrollable::snap_to(
@@ -119,24 +150,22 @@ impl Markdown {
                         scrollable::RelativeOffset::END,
                     )
                 } else {
-                    self.mode = Mode::Preview(
-                        markdown::parse(&self.content.text()).collect(),
-                    );
+                    self.mode = Mode::Preview;
 
                     Task::none()
                 }
             }
             Message::NextToken => {
                 match &mut self.mode {
-                    Mode::Preview(_) => {}
-                    Mode::Stream { pending, parsed } => {
+                    Mode::Preview => {}
+                    Mode::Stream { pending } => {
                         if pending.is_empty() {
-                            self.mode = Mode::Preview(parsed.items().to_vec());
+                            self.mode = Mode::Preview;
                         } else {
                             let mut tokens = pending.split(' ');
 
                             if let Some(token) = tokens.next() {
-                                parsed.push_str(&format!("{token} "));
+                                self.content.push_str(&format!("{token} "));
                             }
 
                             *pending = tokens.collect::<Vec<_>>().join(" ");
@@ -146,11 +175,16 @@ impl Markdown {
 
                 Task::none()
             }
+            Message::Animate(now) => {
+                self.now = now;
+
+                Task::none()
+            }
         }
     }
 
     fn view(&self) -> Element<Message> {
-        let editor = text_editor(&self.content)
+        let editor = text_editor(&self.raw)
             .placeholder("Type your Markdown here...")
             .on_action(Message::Edit)
             .height(Fill)
@@ -158,16 +192,12 @@ impl Markdown {
             .font(Font::MONOSPACE)
             .highlight("markdown", highlighter::Theme::Base16Ocean);
 
-        let items = match &self.mode {
-            Mode::Preview(items) => items.as_slice(),
-            Mode::Stream { parsed, .. } => parsed.items(),
-        };
-
         let preview = markdown::view_with(
-            items,
+            self.content.items(),
             &self.theme,
             &MarkdownViewer {
                 images: &self.images,
+                now: self.now,
             },
         );
 
@@ -197,17 +227,33 @@ impl Markdown {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        match self.mode {
-            Mode::Preview(_) => Subscription::none(),
+        let listen_stream = match self.mode {
+            Mode::Preview => Subscription::none(),
             Mode::Stream { .. } => {
                 time::every(milliseconds(10)).map(|_| Message::NextToken)
             }
-        }
+        };
+
+        let animate = {
+            let is_animating = self.images.values().any(|image| match image {
+                Image::Ready { fade_in, .. } => fade_in.is_animating(self.now),
+                _ => false,
+            });
+
+            if is_animating {
+                window::frames().map(Message::Animate)
+            } else {
+                Subscription::none()
+            }
+        };
+
+        Subscription::batch([listen_stream, animate])
     }
 }
 
 struct MarkdownViewer<'a> {
     images: &'a HashMap<markdown::Url, Image>,
+    now: Instant,
 }
 
 impl<'a> markdown::Viewer<'a, Message> for MarkdownViewer<'a> {
@@ -221,10 +267,15 @@ impl<'a> markdown::Viewer<'a, Message> for MarkdownViewer<'a> {
         _title: &markdown::Text,
         url: &'a markdown::Url,
     ) -> Element<'a, Message> {
-        if let Some(Image::Ready(handle)) = self.images.get(url) {
-            center_x(image(handle)).into()
+        if let Some(Image::Ready { handle, fade_in }) = self.images.get(url) {
+            center_x(
+                image(handle)
+                    .opacity(fade_in.interpolate(0.0, 1.0, self.now))
+                    .scale(fade_in.interpolate(1.2, 1.0, self.now)),
+            )
+            .into()
         } else {
-            pop(horizontal_space().width(0))
+            pop(horizontal_space())
                 .key(url.as_str())
                 .on_show(|_size| Message::ImageShown(url.clone()))
                 .into()
@@ -235,6 +286,8 @@ impl<'a> markdown::Viewer<'a, Message> for MarkdownViewer<'a> {
 async fn download_image(url: markdown::Url) -> Result<image::Handle, Error> {
     use std::io;
     use tokio::task;
+
+    println!("Trying to download image: {url}");
 
     let client = reqwest::Client::new();
 
@@ -267,7 +320,7 @@ async fn download_image(url: markdown::Url) -> Result<image::Handle, Error> {
 pub enum Error {
     RequestFailed(Arc<reqwest::Error>),
     IOFailed(Arc<io::Error>),
-    JoinFailed(Arc<task::JoinError>),
+    JoinFailed(Arc<tokio::task::JoinError>),
     ImageDecodingFailed(Arc<::image::ImageError>),
 }
 
@@ -283,8 +336,8 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<task::JoinError> for Error {
-    fn from(error: task::JoinError) -> Self {
+impl From<tokio::task::JoinError> for Error {
+    fn from(error: tokio::task::JoinError) -> Self {
         Self::JoinFailed(Arc::new(error))
     }
 }
