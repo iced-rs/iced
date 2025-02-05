@@ -1197,16 +1197,16 @@ where
                     .size(settings.code_size)
                     .into()
             })))
-            .padding(settings.spacing.0 / 2.0),
+            .padding(settings.code_size),
         )
         .direction(scrollable::Direction::Horizontal(
             scrollable::Scrollbar::default()
-                .width(settings.spacing.0 / 2.0)
-                .scroller_width(settings.spacing.0 / 2.0),
+                .width(settings.code_size / 2)
+                .scroller_width(settings.code_size / 2),
         )),
     )
     .width(Length::Fill)
-    .padding(settings.spacing.0 / 2.0)
+    .padding(settings.code_size / 4)
     .class(Theme::code_block())
     .into()
 }
