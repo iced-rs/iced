@@ -54,7 +54,7 @@ use crate::core::theme;
 use crate::core::{
     self, color, Color, Element, Length, Padding, Pixels, Theme,
 };
-use crate::{column, container, rich_text, row, scrollable, span, text};
+use crate::{column, container, image, rich_text, row, scrollable, span, text};
 
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
@@ -64,7 +64,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 pub use core::text::Highlight;
-pub use pulldown_cmark::HeadingLevel;
 pub use String as Url;
 
 /// A bunch of Markdown that has been parsed.
@@ -187,6 +186,8 @@ pub enum Item {
         /// The items of the list.
         items: Vec<Vec<Item>>,
     },
+    /// An image
+    Image(String),
 }
 
 /// A bunch of parsed Markdown text.
@@ -251,7 +252,8 @@ impl Span {
                 emphasis,
                 code,
             } => {
-                let span = span(text.clone()).strikethrough(*strikethrough);
+                let span = span(text.clone())
+                    .strikethrough(*strikethrough);
 
                 let span = if *code {
                     span.font(Font::MONOSPACE)
@@ -450,6 +452,7 @@ fn parse_with<'a>(
     let mut strikethrough = false;
     let mut metadata = false;
     let mut table = false;
+    let mut image = false;
     let mut link = None;
     let mut lists = Vec::new();
 
@@ -534,22 +537,13 @@ fn parse_with<'a>(
                 strikethrough = true;
                 None
             }
-            pulldown_cmark::Tag::Link { dest_url, .. }
-                if !metadata && !table =>
-            {
-                match Url::parse(&dest_url) {
-                    Ok(url)
-                        if url.scheme() == "http"
-                            || url.scheme() == "https" =>
-                    {
-                        link = Some(url);
-                    }
-                    _ => {}
-                }
-
+            pulldown_cmark::Tag::Link { dest_url, .. } if !metadata && !table => {
+                link = Some(dest_url.to_string());
                 None
             }
-            pulldown_cmark::Tag::List(first_item) if !metadata && !table => {
+            pulldown_cmark::Tag::List(first_item)
+                if !metadata && !table =>
+            {
                 let prev = if spans.is_empty() {
                     None
                 } else {
@@ -618,10 +612,22 @@ fn parse_with<'a>(
                 table = true;
                 None
             }
+            pulldown_cmark::Tag::Image { dest_url, .. } => {
+                image = true;
+
+                produce(
+                    state.borrow_mut(),
+                    &mut lists,
+                    Item::Image(dest_url.to_string()),
+                    source,
+                )
+            }
             _ => None,
         },
         pulldown_cmark::Event::End(tag) => match tag {
-            pulldown_cmark::TagEnd::Heading(level) if !metadata && !table => {
+            pulldown_cmark::TagEnd::Heading(level)
+                if !metadata && !table =>
+            {
                 produce(
                     state.borrow_mut(),
                     &mut lists,
@@ -637,7 +643,9 @@ fn parse_with<'a>(
                 emphasis = false;
                 None
             }
-            pulldown_cmark::TagEnd::Strikethrough if !metadata && !table => {
+            pulldown_cmark::TagEnd::Strikethrough
+                if !metadata && !table =>
+            {
                 strikethrough = false;
                 None
             }
@@ -699,9 +707,15 @@ fn parse_with<'a>(
                 table = false;
                 None
             }
+            pulldown_cmark::TagEnd::Image => {
+                image = false;
+                None
+            }
             _ => None,
         },
-        pulldown_cmark::Event::Text(text) if !metadata && !table => {
+        pulldown_cmark::Event::Text(text)
+            if !metadata && !table && !image =>
+        {
             #[cfg(feature = "highlighter")]
             if let Some(highlighter) = &mut highlighter {
                 for line in text.lines() {
@@ -762,7 +776,8 @@ fn parse_with<'a>(
             None
         }
         _ => None,
-    })
+    }
+    )
 }
 
 /// Configuration controlling Markdown rendering in [`view`].
@@ -898,7 +913,8 @@ pub fn view<'a, 'b, Theme, Renderer>(
 ) -> Element<'a, Url, Theme, Renderer>
 where
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a + core::image::Renderer,
+    <Renderer as core::image::Renderer>::Handle: From<String>,
 {
     let Settings {
         text_size,
@@ -913,6 +929,11 @@ where
     } = settings;
 
     let blocks = items.into_iter().enumerate().map(|(i, item)| match item {
+        Item::Image(url) => {
+            let path =
+                format!("/home/matteo/.cache/matteo_contribution_img/{url}");
+            container(image(path)).into()
+        }
         Item::Heading(level, heading) => {
             container(rich_text(heading.spans(style)).size(match level {
                 pulldown_cmark::HeadingLevel::H1 => h1_size,
