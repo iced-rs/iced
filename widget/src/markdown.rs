@@ -65,7 +65,7 @@ use std::sync::Arc;
 
 pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
-pub use url::Url;
+pub use String as Url;
 
 /// A bunch of Markdown that has been parsed.
 #[derive(Debug, Default)]
