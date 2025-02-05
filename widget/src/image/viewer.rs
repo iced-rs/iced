@@ -231,9 +231,20 @@ where
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 let state = tree.state.downcast_mut::<State>();
 
-                if state.cursor_grabbed_at.is_some() {
+                if let Some(grab_start) = state.cursor_grabbed_at {
                     state.cursor_grabbed_at = None;
-                    shell.capture_event();
+
+                    let dragged = cursor
+                        .position_over(bounds)
+                        .map(|grab_end| {
+                            (grab_start.x - grab_end.x).abs() >= 1.0
+                                || (grab_start.y - grab_end.y).abs() >= 1.0
+                        })
+                        .unwrap_or(true);
+
+                    if dragged {
+                        shell.capture_event();
+                    }
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
