@@ -6,8 +6,8 @@ use iced::highlighter;
 use iced::task;
 use iced::time::{self, milliseconds, Instant};
 use iced::widget::{
-    self, button, center_x, horizontal_space, hover, image, markdown, pop,
-    right, row, scrollable, text_editor, toggler,
+    self, button, center_x, container, horizontal_space, hover, image,
+    markdown, pop, right, row, scrollable, text_editor, toggler,
 };
 use iced::window;
 use iced::{Animation, Element, Fill, Font, Subscription, Task, Theme};
@@ -294,20 +294,22 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
     fn code_block(
         &self,
         settings: markdown::Settings,
+        _language: Option<&'a str>,
         code: &'a str,
         lines: &'a [markdown::Text],
     ) -> Element<'a, Message> {
         let code_block =
-            markdown::code_block(settings, code, lines, Message::LinkClicked);
+            markdown::code_block(settings, lines, Message::LinkClicked);
+
+        let copy = button(icon::copy().size(12))
+            .padding(2)
+            .on_press_with(|| Message::Copy(code.to_owned()))
+            .style(button::text);
 
         hover(
             code_block,
-            right(
-                button(icon::copy().size(12))
-                    .padding(settings.spacing / 2)
-                    .on_press_with(|| Message::Copy(code.to_owned()))
-                    .style(button::text),
-            ),
+            right(container(copy).style(container::dark))
+                .padding(settings.spacing / 2),
         )
     }
 }

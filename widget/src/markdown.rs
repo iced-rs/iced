@@ -184,6 +184,8 @@ pub enum Item {
     ///
     /// You can enable the `highlighter` feature for syntax highlighting.
     CodeBlock {
+        /// The language of the code block, if any.
+        language: Option<String>,
         /// The raw code of the code block.
         code: String,
         /// The styled lines of text in the code block.
@@ -464,6 +466,7 @@ fn parse_with<'a>(
 
     let mut spans = Vec::new();
     let mut code = String::new();
+    let mut code_language = None;
     let mut code_lines = Vec::new();
     let mut strong = false;
     let mut emphasis = false;
@@ -603,7 +606,7 @@ fn parse_with<'a>(
                 None
             }
             pulldown_cmark::Tag::CodeBlock(
-                pulldown_cmark::CodeBlockKind::Fenced(_language),
+                pulldown_cmark::CodeBlockKind::Fenced(language),
             ) if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
                 {
@@ -613,15 +616,18 @@ fn parse_with<'a>(
                             .highlighter
                             .take()
                             .filter(|highlighter| {
-                                highlighter.language == _language.as_ref()
+                                highlighter.language == language.as_ref()
                             })
-                            .unwrap_or_else(|| Highlighter::new(&_language));
+                            .unwrap_or_else(|| Highlighter::new(&language));
 
                         highlighter.prepare();
 
                         highlighter
                     });
                 }
+
+                code_language =
+                    (!language.is_empty()).then(|| language.into_string());
 
                 let prev = if spans.is_empty() {
                     None
@@ -734,6 +740,7 @@ fn parse_with<'a>(
                     state.borrow_mut(),
                     &mut stack,
                     Item::CodeBlock {
+                        language: code_language.take(),
                         code: mem::take(&mut code),
                         lines: code_lines.drain(..).collect(),
                     },
@@ -1029,9 +1036,11 @@ where
             viewer.heading(settings, level, text, index)
         }
         Item::Paragraph(text) => viewer.paragraph(settings, text),
-        Item::CodeBlock { code, lines } => {
-            viewer.code_block(settings, code, lines)
-        }
+        Item::CodeBlock {
+            language,
+            code,
+            lines,
+        } => viewer.code_block(settings, language.as_deref(), code, lines),
         Item::List { start: None, items } => {
             viewer.unordered_list(settings, items)
         }
@@ -1171,7 +1180,6 @@ where
 /// Displays a code block using the default look.
 pub fn code_block<'a, Message, Theme, Renderer>(
     settings: Settings,
-    _code: &'a str,
     lines: &'a [Text],
     on_link_click: impl Fn(Url) -> Message + Clone + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1266,10 +1274,14 @@ where
     fn code_block(
         &self,
         settings: Settings,
+        language: Option<&'a str>,
         code: &'a str,
         lines: &'a [Text],
     ) -> Element<'a, Message, Theme, Renderer> {
-        code_block(settings, code, lines, Self::on_link_click)
+        let _language = language;
+        let _code = code;
+
+        code_block(settings, lines, Self::on_link_click)
     }
 
     /// Displays an unordered list.
