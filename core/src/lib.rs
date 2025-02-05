@@ -84,3 +84,12 @@ pub use vector::Vector;
 pub use widget::Widget;
 
 pub use smol_str::SmolStr;
+
+/// A function that can _never_ be called.
+///
+/// This is useful to turn generic types into anything
+/// you want by coercing them into a type with no possible
+/// values.
+pub fn never<T>(never: std::convert::Infallible) -> T {
+    match never {}
+}

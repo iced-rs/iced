@@ -29,13 +29,9 @@
 //!     }
 //!
 //!     fn view(&self) -> Element<'_, Message> {
-//!         markdown::view(
-//!             &self.markdown,
-//!             markdown::Settings::default(),
-//!             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
-//!         )
-//!         .map(Message::LinkClicked)
-//!         .into()
+//!         markdown::view(&self.markdown, Theme::TokyoNight)
+//!             .map(Message::LinkClicked)
+//!             .into()
 //!     }
 //!
 //!     fn update(state: &mut State, message: Message) {
@@ -59,6 +55,7 @@ use crate::{column, container, rich_text, row, scrollable, span, text};
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
+use std::mem;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -144,6 +141,7 @@ impl Content {
                     let mut state = State {
                         leftover: String::new(),
                         references: self.state.references.clone(),
+                        images: HashSet::new(),
                         highlighter: None,
                     };
 
@@ -153,6 +151,7 @@ impl Content {
                         self.items[*index] = item;
                     }
 
+                    self.state.images.extend(state.images.drain());
                     drop(state);
                 }
 
@@ -167,6 +166,11 @@ impl Content {
     pub fn items(&self) -> &[Item] {
         &self.items
     }
+
+    /// Returns the URLs of the Markdown images present in the [`Content`].
+    pub fn images(&self) -> &HashSet<Url> {
+        &self.state.images
+    }
 }
 
 /// A Markdown item.
@@ -179,13 +183,29 @@ pub enum Item {
     /// A code block.
     ///
     /// You can enable the `highlighter` feature for syntax highlighting.
-    CodeBlock(Vec<Text>),
+    CodeBlock {
+        /// The language of the code block, if any.
+        language: Option<String>,
+        /// The raw code of the code block.
+        code: String,
+        /// The styled lines of text in the code block.
+        lines: Vec<Text>,
+    },
     /// A list.
     List {
         /// The first number of the list, if it is ordered.
         start: Option<u64>,
         /// The items of the list.
         items: Vec<Vec<Item>>,
+    },
+    /// An image.
+    Image {
+        /// The destination URL of the image.
+        url: Url,
+        /// The title of the image.
+        title: String,
+        /// The alternative text of the image.
+        alt: Text,
     },
 }
 
@@ -319,13 +339,9 @@ impl Span {
 ///     }
 ///
 ///     fn view(&self) -> Element<'_, Message> {
-///         markdown::view(
-///             &self.markdown,
-///             markdown::Settings::default(),
-///             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
-///         )
-///         .map(Message::LinkClicked)
-///         .into()
+///         markdown::view(&self.markdown, Theme::TokyoNight)
+///            .map(Message::LinkClicked)
+///            .into()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -346,6 +362,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
 struct State {
     leftover: String,
     references: HashMap<String, String>,
+    images: HashSet<Url>,
     #[cfg(feature = "highlighter")]
     highlighter: Option<Highlighter>,
 }
@@ -367,7 +384,7 @@ impl Highlighter {
             parser: iced_highlighter::Stream::new(
                 &iced_highlighter::Settings {
                     theme: iced_highlighter::Theme::Base16Ocean,
-                    token: language.to_string(),
+                    token: language.to_owned(),
                 },
             ),
             language: language.to_owned(),
@@ -436,6 +453,10 @@ fn parse_with<'a>(
     mut state: impl BorrowMut<State> + 'a,
     markdown: &'a str,
 ) -> impl Iterator<Item = (Item, &'a str, HashSet<String>)> + 'a {
+    enum Scope {
+        List(List),
+    }
+
     struct List {
         start: Option<u64>,
         items: Vec<Vec<Item>>,
@@ -444,14 +465,17 @@ fn parse_with<'a>(
     let broken_links = Rc::new(RefCell::new(HashSet::new()));
 
     let mut spans = Vec::new();
-    let mut code = Vec::new();
+    let mut code = String::new();
+    let mut code_language = None;
+    let mut code_lines = Vec::new();
     let mut strong = false;
     let mut emphasis = false;
     let mut strikethrough = false;
     let mut metadata = false;
     let mut table = false;
     let mut link = None;
-    let mut lists = Vec::new();
+    let mut image = None;
+    let mut stack = Vec::new();
 
     #[cfg(feature = "highlighter")]
     let mut highlighter = None;
@@ -476,7 +500,7 @@ fn parse_with<'a>(
                     ))
                 } else {
                     let _ = RefCell::borrow_mut(&broken_links)
-                        .insert(broken_link.reference.to_string());
+                        .insert(broken_link.reference.into_string());
 
                     None
                 }
@@ -492,10 +516,18 @@ fn parse_with<'a>(
     }
 
     let produce = move |state: &mut State,
-                        lists: &mut Vec<List>,
+                        stack: &mut Vec<Scope>,
                         item,
                         source: Range<usize>| {
-        if lists.is_empty() {
+        if let Some(scope) = stack.last_mut() {
+            match scope {
+                Scope::List(list) => {
+                    list.items.last_mut().expect("item context").push(item);
+                }
+            }
+
+            None
+        } else {
             state.leftover = markdown[source.start..].to_owned();
 
             Some((
@@ -503,16 +535,6 @@ fn parse_with<'a>(
                 &markdown[source.start..source.end],
                 broken_links.take(),
             ))
-        } else {
-            lists
-                .last_mut()
-                .expect("list context")
-                .items
-                .last_mut()
-                .expect("item context")
-                .push(item);
-
-            None
         }
     };
 
@@ -549,35 +571,42 @@ fn parse_with<'a>(
 
                 None
             }
+            pulldown_cmark::Tag::Image {
+                dest_url, title, ..
+            } if !metadata && !table => {
+                image = Url::parse(&dest_url)
+                    .ok()
+                    .map(|url| (url, title.into_string()));
+                None
+            }
             pulldown_cmark::Tag::List(first_item) if !metadata && !table => {
                 let prev = if spans.is_empty() {
                     None
                 } else {
                     produce(
                         state.borrow_mut(),
-                        &mut lists,
+                        &mut stack,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
                         source,
                     )
                 };
 
-                lists.push(List {
+                stack.push(Scope::List(List {
                     start: first_item,
                     items: Vec::new(),
-                });
+                }));
 
                 prev
             }
             pulldown_cmark::Tag::Item => {
-                lists
-                    .last_mut()
-                    .expect("list context")
-                    .items
-                    .push(Vec::new());
+                if let Some(Scope::List(list)) = stack.last_mut() {
+                    list.items.push(Vec::new());
+                }
+
                 None
             }
             pulldown_cmark::Tag::CodeBlock(
-                pulldown_cmark::CodeBlockKind::Fenced(_language),
+                pulldown_cmark::CodeBlockKind::Fenced(language),
             ) if !metadata && !table => {
                 #[cfg(feature = "highlighter")]
                 {
@@ -587,9 +616,9 @@ fn parse_with<'a>(
                             .highlighter
                             .take()
                             .filter(|highlighter| {
-                                highlighter.language == _language.as_ref()
+                                highlighter.language == language.as_ref()
                             })
-                            .unwrap_or_else(|| Highlighter::new(&_language));
+                            .unwrap_or_else(|| Highlighter::new(&language));
 
                         highlighter.prepare();
 
@@ -597,12 +626,15 @@ fn parse_with<'a>(
                     });
                 }
 
+                code_language =
+                    (!language.is_empty()).then(|| language.into_string());
+
                 let prev = if spans.is_empty() {
                     None
                 } else {
                     produce(
                         state.borrow_mut(),
-                        &mut lists,
+                        &mut stack,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
                         source,
                     )
@@ -624,7 +656,7 @@ fn parse_with<'a>(
             pulldown_cmark::TagEnd::Heading(level) if !metadata && !table => {
                 produce(
                     state.borrow_mut(),
-                    &mut lists,
+                    &mut stack,
                     Item::Heading(level, Text::new(spans.drain(..).collect())),
                     source,
                 )
@@ -646,12 +678,16 @@ fn parse_with<'a>(
                 None
             }
             pulldown_cmark::TagEnd::Paragraph if !metadata && !table => {
-                produce(
-                    state.borrow_mut(),
-                    &mut lists,
-                    Item::Paragraph(Text::new(spans.drain(..).collect())),
-                    source,
-                )
+                if spans.is_empty() {
+                    None
+                } else {
+                    produce(
+                        state.borrow_mut(),
+                        &mut stack,
+                        Item::Paragraph(Text::new(spans.drain(..).collect())),
+                        source,
+                    )
+                }
             }
             pulldown_cmark::TagEnd::Item if !metadata && !table => {
                 if spans.is_empty() {
@@ -659,22 +695,38 @@ fn parse_with<'a>(
                 } else {
                     produce(
                         state.borrow_mut(),
-                        &mut lists,
+                        &mut stack,
                         Item::Paragraph(Text::new(spans.drain(..).collect())),
                         source,
                     )
                 }
             }
             pulldown_cmark::TagEnd::List(_) if !metadata && !table => {
-                let list = lists.pop().expect("list context");
+                let scope = stack.pop()?;
+
+                let Scope::List(list) = scope;
 
                 produce(
                     state.borrow_mut(),
-                    &mut lists,
+                    &mut stack,
                     Item::List {
                         start: list.start,
                         items: list.items,
                     },
+                    source,
+                )
+            }
+            pulldown_cmark::TagEnd::Image if !metadata && !table => {
+                let (url, title) = image.take()?;
+                let alt = Text::new(spans.drain(..).collect());
+
+                let state = state.borrow_mut();
+                let _ = state.images.insert(url.clone());
+
+                produce(
+                    state,
+                    &mut stack,
+                    Item::Image { url, title, alt },
                     source,
                 )
             }
@@ -686,8 +738,12 @@ fn parse_with<'a>(
 
                 produce(
                     state.borrow_mut(),
-                    &mut lists,
-                    Item::CodeBlock(code.drain(..).collect()),
+                    &mut stack,
+                    Item::CodeBlock {
+                        language: code_language.take(),
+                        code: mem::take(&mut code),
+                        lines: code_lines.drain(..).collect(),
+                    },
                     source,
                 )
             }
@@ -704,8 +760,10 @@ fn parse_with<'a>(
         pulldown_cmark::Event::Text(text) if !metadata && !table => {
             #[cfg(feature = "highlighter")]
             if let Some(highlighter) = &mut highlighter {
+                code.push_str(&text);
+
                 for line in text.lines() {
-                    code.push(Text::new(
+                    code_lines.push(Text::new(
                         highlighter.highlight_line(line).to_vec(),
                     ));
                 }
@@ -786,15 +844,25 @@ pub struct Settings {
     pub code_size: Pixels,
     /// The spacing to be used between elements.
     pub spacing: Pixels,
+    /// The styling of the Markdown.
+    pub style: Style,
 }
 
 impl Settings {
+    /// Creates new [`Settings`] with default text size and the given [`Style`].
+    pub fn with_style(style: impl Into<Style>) -> Self {
+        Self::with_text_size(16, style)
+    }
+
     /// Creates new [`Settings`] with the given base text size in [`Pixels`].
     ///
     /// Heading levels will be adjusted automatically. Specifically,
     /// the first level will be twice the base size, and then every level
     /// after that will be 25% smaller.
-    pub fn with_text_size(text_size: impl Into<Pixels>) -> Self {
+    pub fn with_text_size(
+        text_size: impl Into<Pixels>,
+        style: impl Into<Style>,
+    ) -> Self {
         let text_size = text_size.into();
 
         Self {
@@ -807,13 +875,20 @@ impl Settings {
             h6_size: text_size,
             code_size: text_size * 0.75,
             spacing: text_size * 0.875,
+            style: style.into(),
         }
     }
 }
 
-impl Default for Settings {
-    fn default() -> Self {
-        Self::with_text_size(16)
+impl From<&Theme> for Settings {
+    fn from(theme: &Theme) -> Self {
+        Self::with_style(Style::from(theme))
+    }
+}
+
+impl From<Theme> for Settings {
+    fn from(theme: Theme) -> Self {
+        Self::with_style(Style::from(theme))
     }
 }
 
@@ -845,6 +920,24 @@ impl Style {
     }
 }
 
+impl From<theme::Palette> for Style {
+    fn from(palette: theme::Palette) -> Self {
+        Self::from_palette(palette)
+    }
+}
+
+impl From<&Theme> for Style {
+    fn from(theme: &Theme) -> Self {
+        Self::from_palette(theme.palette())
+    }
+}
+
+impl From<Theme> for Style {
+    fn from(theme: Theme) -> Self {
+        Self::from_palette(theme.palette())
+    }
+}
+
 /// Display a bunch of Markdown items.
 ///
 /// You can obtain the items with [`parse`].
@@ -873,13 +966,9 @@ impl Style {
 ///     }
 ///
 ///     fn view(&self) -> Element<'_, Message> {
-///         markdown::view(
-///             &self.markdown,
-///             markdown::Settings::default(),
-///             markdown::Style::from_palette(Theme::TokyoNightStorm.palette()),
-///         )
-///         .map(Message::LinkClicked)
-///         .into()
+///         markdown::view(&self.markdown, Theme::TokyoNight)
+///             .map(Message::LinkClicked)
+///             .into()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -891,109 +980,345 @@ impl Style {
 ///     }
 /// }
 /// ```
-pub fn view<'a, 'b, Theme, Renderer>(
-    items: impl IntoIterator<Item = &'b Item>,
-    settings: Settings,
-    style: Style,
+pub fn view<'a, Theme, Renderer>(
+    items: impl IntoIterator<Item = &'a Item>,
+    settings: impl Into<Settings>,
 ) -> Element<'a, Url, Theme, Renderer>
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
+    view_with(items, settings, &DefaultViewer)
+}
+
+/// Runs [`view`] but with a custom [`Viewer`] to turn an [`Item`] into
+/// an [`Element`].
+///
+/// This is useful if you want to customize the look of certain Markdown
+/// elements.
+pub fn view_with<'a, Message, Theme, Renderer>(
+    items: impl IntoIterator<Item = &'a Item>,
+    settings: impl Into<Settings>,
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    let settings = settings.into();
+
+    let blocks = items
+        .into_iter()
+        .enumerate()
+        .map(|(i, item_)| item(viewer, settings, item_, i));
+
+    Element::new(column(blocks).spacing(settings.spacing))
+}
+
+/// Displays an [`Item`] using the given [`Viewer`].
+pub fn item<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
+    settings: Settings,
+    item: &'a Item,
+    index: usize,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    match item {
+        Item::Image { url, title, alt } => {
+            viewer.image(settings, url, title, alt)
+        }
+        Item::Heading(level, text) => {
+            viewer.heading(settings, level, text, index)
+        }
+        Item::Paragraph(text) => viewer.paragraph(settings, text),
+        Item::CodeBlock {
+            language,
+            code,
+            lines,
+        } => viewer.code_block(settings, language.as_deref(), code, lines),
+        Item::List { start: None, items } => {
+            viewer.unordered_list(settings, items)
+        }
+        Item::List {
+            start: Some(start),
+            items,
+        } => viewer.ordered_list(settings, *start, items),
+    }
+}
+
+/// Displays a heading using the default look.
+pub fn heading<'a, Message, Theme, Renderer>(
+    settings: Settings,
+    level: &'a HeadingLevel,
+    text: &'a Text,
+    index: usize,
+    on_link_click: impl Fn(Url) -> Message + 'a,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
     let Settings {
-        text_size,
         h1_size,
         h2_size,
         h3_size,
         h4_size,
         h5_size,
         h6_size,
-        code_size,
-        spacing,
+        text_size,
+        ..
     } = settings;
 
-    let blocks = items.into_iter().enumerate().map(|(i, item)| match item {
-        Item::Heading(level, heading) => {
-            container(rich_text(heading.spans(style)).size(match level {
+    container(
+        rich_text(text.spans(settings.style))
+            .on_link_click(on_link_click)
+            .size(match level {
                 pulldown_cmark::HeadingLevel::H1 => h1_size,
                 pulldown_cmark::HeadingLevel::H2 => h2_size,
                 pulldown_cmark::HeadingLevel::H3 => h3_size,
                 pulldown_cmark::HeadingLevel::H4 => h4_size,
                 pulldown_cmark::HeadingLevel::H5 => h5_size,
                 pulldown_cmark::HeadingLevel::H6 => h6_size,
-            }))
-            .padding(padding::top(if i > 0 {
-                text_size / 2.0
-            } else {
-                Pixels::ZERO
-            }))
-            .into()
-        }
-        Item::Paragraph(paragraph) => {
-            rich_text(paragraph.spans(style)).size(text_size).into()
-        }
-        Item::List { start: None, items } => {
-            column(items.iter().map(|items| {
-                row![
-                    text("•").size(text_size),
-                    view(
-                        items,
-                        Settings {
-                            spacing: settings.spacing * 0.6,
-                            ..settings
-                        },
-                        style
-                    )
-                ]
-                .spacing(spacing)
-                .into()
-            }))
-            .spacing(spacing * 0.75)
-            .into()
-        }
-        Item::List {
-            start: Some(start),
-            items,
-        } => column(items.iter().enumerate().map(|(i, items)| {
-            row![
-                text!("{}.", i as u64 + *start).size(text_size),
-                view(
-                    items,
-                    Settings {
-                        spacing: settings.spacing * 0.6,
-                        ..settings
-                    },
-                    style
-                )
-            ]
-            .spacing(spacing)
-            .into()
-        }))
-        .spacing(spacing * 0.75)
-        .into(),
-        Item::CodeBlock(lines) => container(
-            scrollable(
-                container(column(lines.iter().map(|line| {
-                    rich_text(line.spans(style))
-                        .font(Font::MONOSPACE)
-                        .size(code_size)
-                        .into()
-                })))
-                .padding(spacing.0 / 2.0),
-            )
-            .direction(scrollable::Direction::Horizontal(
-                scrollable::Scrollbar::default()
-                    .width(spacing.0 / 2.0)
-                    .scroller_width(spacing.0 / 2.0),
-            )),
-        )
-        .width(Length::Fill)
-        .padding(spacing.0 / 2.0)
-        .class(Theme::code_block())
-        .into(),
-    });
+            }),
+    )
+    .padding(padding::top(if index > 0 {
+        text_size / 2.0
+    } else {
+        Pixels::ZERO
+    }))
+    .into()
+}
 
-    Element::new(column(blocks).spacing(spacing))
+/// Displays a paragraph using the default look.
+pub fn paragraph<'a, Message, Theme, Renderer>(
+    settings: Settings,
+    text: &'a Text,
+    on_link_click: impl Fn(Url) -> Message + 'a,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    rich_text(text.spans(settings.style))
+        .size(settings.text_size)
+        .on_link_click(on_link_click)
+        .into()
+}
+
+/// Displays an unordered list using the default look and
+/// calling the [`Viewer`] for each bullet point item.
+pub fn unordered_list<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
+    settings: Settings,
+    items: &'a [Vec<Item>],
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    column(items.iter().map(|items| {
+        row![
+            text("•").size(settings.text_size),
+            view_with(
+                items,
+                Settings {
+                    spacing: settings.spacing * 0.6,
+                    ..settings
+                },
+                viewer,
+            )
+        ]
+        .spacing(settings.spacing)
+        .into()
+    }))
+    .spacing(settings.spacing * 0.75)
+    .padding([0.0, settings.spacing.0])
+    .into()
+}
+
+/// Displays an ordered list using the default look and
+/// calling the [`Viewer`] for each numbered item.
+pub fn ordered_list<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
+    settings: Settings,
+    start: u64,
+    items: &'a [Vec<Item>],
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    column(items.iter().enumerate().map(|(i, items)| {
+        row![
+            text!("{}.", i as u64 + start).size(settings.text_size),
+            view_with(
+                items,
+                Settings {
+                    spacing: settings.spacing * 0.6,
+                    ..settings
+                },
+                viewer,
+            )
+        ]
+        .spacing(settings.spacing)
+        .into()
+    }))
+    .spacing(settings.spacing * 0.75)
+    .padding([0.0, settings.spacing.0])
+    .into()
+}
+
+/// Displays a code block using the default look.
+pub fn code_block<'a, Message, Theme, Renderer>(
+    settings: Settings,
+    lines: &'a [Text],
+    on_link_click: impl Fn(Url) -> Message + Clone + 'a,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    container(
+        scrollable(
+            container(column(lines.iter().map(|line| {
+                rich_text(line.spans(settings.style))
+                    .on_link_click(on_link_click.clone())
+                    .font(Font::MONOSPACE)
+                    .size(settings.code_size)
+                    .into()
+            })))
+            .padding(settings.code_size),
+        )
+        .direction(scrollable::Direction::Horizontal(
+            scrollable::Scrollbar::default()
+                .width(settings.code_size / 2)
+                .scroller_width(settings.code_size / 2),
+        )),
+    )
+    .width(Length::Fill)
+    .padding(settings.code_size / 4)
+    .class(Theme::code_block())
+    .into()
+}
+
+/// A view strategy to display a Markdown [`Item`].j
+pub trait Viewer<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
+    Self: Sized + 'a,
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    /// Produces a message when a link is clicked with the given [`Url`].
+    fn on_link_click(url: Url) -> Message;
+
+    /// Displays an image.
+    ///
+    /// By default, it will show a container with the image title.
+    fn image(
+        &self,
+        settings: Settings,
+        url: &'a Url,
+        title: &'a str,
+        alt: &Text,
+    ) -> Element<'a, Message, Theme, Renderer> {
+        let _url = url;
+        let _title = title;
+
+        container(
+            rich_text(alt.spans(settings.style))
+                .on_link_click(Self::on_link_click),
+        )
+        .padding(settings.spacing.0)
+        .class(Theme::code_block())
+        .into()
+    }
+
+    /// Displays a heading.
+    ///
+    /// By default, it calls [`heading`].
+    fn heading(
+        &self,
+        settings: Settings,
+        level: &'a HeadingLevel,
+        text: &'a Text,
+        index: usize,
+    ) -> Element<'a, Message, Theme, Renderer> {
+        heading(settings, level, text, index, Self::on_link_click)
+    }
+
+    /// Displays a paragraph.
+    ///
+    /// By default, it calls [`paragraph`].
+    fn paragraph(
+        &self,
+        settings: Settings,
+        text: &'a Text,
+    ) -> Element<'a, Message, Theme, Renderer> {
+        paragraph(settings, text, Self::on_link_click)
+    }
+
+    /// Displays a code block.
+    ///
+    /// By default, it calls [`code_block`].
+    fn code_block(
+        &self,
+        settings: Settings,
+        language: Option<&'a str>,
+        code: &'a str,
+        lines: &'a [Text],
+    ) -> Element<'a, Message, Theme, Renderer> {
+        let _language = language;
+        let _code = code;
+
+        code_block(settings, lines, Self::on_link_click)
+    }
+
+    /// Displays an unordered list.
+    ///
+    /// By default, it calls [`unordered_list`].
+    fn unordered_list(
+        &self,
+        settings: Settings,
+        items: &'a [Vec<Item>],
+    ) -> Element<'a, Message, Theme, Renderer> {
+        unordered_list(self, settings, items)
+    }
+
+    /// Displays an ordered list.
+    ///
+    /// By default, it calls [`ordered_list`].
+    fn ordered_list(
+        &self,
+        settings: Settings,
+        start: u64,
+        items: &'a [Vec<Item>],
+    ) -> Element<'a, Message, Theme, Renderer> {
+        ordered_list(self, settings, start, items)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct DefaultViewer;
+
+impl<'a, Theme, Renderer> Viewer<'a, Url, Theme, Renderer> for DefaultViewer
+where
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    fn on_link_click(url: Url) -> Url {
+        url
+    }
 }
 
 /// The theme catalog of Markdown items.
