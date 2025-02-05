@@ -217,7 +217,10 @@ impl Rectangle<f32> {
     }
 
     /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
-    pub fn snap(self) -> Option<Rectangle<u32>> {
+    pub fn snap(mut self) -> Option<Rectangle<u32>> {
+        self.width += self.x.fract();
+        self.height += self.y.fract();
+
         let width = self.width as u32;
         let height = self.height as u32;
 
