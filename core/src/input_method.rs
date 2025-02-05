@@ -1,5 +1,5 @@
 //! Listen to input method events.
-use crate::Point;
+use crate::{Pixels, Point};
 
 use std::ops::Range;
 
@@ -34,15 +34,20 @@ pub struct Preedit<T = String> {
     pub content: T,
     /// The selected range of the content.
     pub selection: Option<Range<usize>>,
+    /// The text size of the content.
+    pub text_size: Option<Pixels>,
 }
 
 impl<T> Preedit<T> {
     /// Creates a new empty [`Preedit`].
-    pub fn new() -> Self
+    pub fn new(text_size: Option<impl Into<Pixels>>) -> Self
     where
         T: Default,
     {
-        Self::default()
+        Self {
+            text_size: text_size.map(Into::into),
+            ..Default::default()
+        }
     }
 
     /// Turns a [`Preedit`] into its owned version.
@@ -53,6 +58,7 @@ impl<T> Preedit<T> {
         Preedit {
             content: self.content.as_ref().to_owned(),
             selection: self.selection.clone(),
+            text_size: self.text_size,
         }
     }
 }
@@ -63,6 +69,7 @@ impl Preedit {
         Preedit {
             content: &self.content,
             selection: self.selection.clone(),
+            text_size: self.text_size,
         }
     }
 }
@@ -90,13 +97,13 @@ impl InputMethod {
     /// let open = InputMethod::Open {
     ///     position: Point::ORIGIN,
     ///     purpose: Purpose::Normal,
-    ///     preedit: Some(Preedit { content: "1".to_owned(), selection: None }),
+    ///     preedit: Some(Preedit { content: "1".to_owned(), selection: None, text_size: None }),
     /// };
     ///
     /// let open_2 = InputMethod::Open {
     ///     position: Point::ORIGIN,
     ///     purpose: Purpose::Secure,
-    ///     preedit: Some(Preedit { content: "2".to_owned(), selection: None }),
+    ///     preedit: Some(Preedit { content: "2".to_owned(), selection: None, text_size: None }),
     /// };
     ///
     /// let mut ime = InputMethod::Disabled;

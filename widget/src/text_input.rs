@@ -1262,7 +1262,7 @@ where
 
                     state.is_ime_open =
                         matches!(event, input_method::Event::Opened)
-                            .then(input_method::Preedit::new);
+                            .then(|| input_method::Preedit::new(self.size));
 
                     shell.request_redraw();
                 }
@@ -1273,6 +1273,7 @@ where
                         state.is_ime_open = Some(input_method::Preedit {
                             content: content.to_owned(),
                             selection: selection.clone(),
+                            text_size: self.size,
                         });
 
                         shell.request_redraw();
