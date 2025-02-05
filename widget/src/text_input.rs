@@ -431,7 +431,8 @@ where
         );
 
         let x = (text_bounds.x + cursor_x).floor() - scroll_offset
-            + alignment_offset;
+            + alignment_offset
+            + 1.0;
 
         InputMethod::Open {
             position: Point::new(x, text_bounds.y + text_bounds.height),
