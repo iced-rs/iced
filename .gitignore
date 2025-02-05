@@ -3,3 +3,4 @@ pkg/
 **/*.rs.bk
 dist/
 traces/
+.idea/
