@@ -210,8 +210,13 @@ where
             InputMethod::Disabled => {
                 self.raw.set_ime_allowed(false);
             }
-            InputMethod::Allowed | InputMethod::Open { .. } => {
+            InputMethod::Allowed { position }
+            | InputMethod::Open { position, .. } => {
                 self.raw.set_ime_allowed(true);
+                self.raw.set_ime_cursor_area(
+                    LogicalPosition::new(position.x, position.y),
+                    LogicalSize::new(10, 10), // TODO?
+                );
             }
         }
 
@@ -221,11 +226,6 @@ where
             preedit,
         } = input_method
         {
-            self.raw.set_ime_cursor_area(
-                LogicalPosition::new(position.x, position.y),
-                LogicalSize::new(10, 10), // TODO?
-            );
-
             self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
 
             if let Some(preedit) = preedit {

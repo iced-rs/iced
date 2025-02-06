@@ -11,7 +11,10 @@ pub enum InputMethod<T = String> {
     /// No input method is allowed.
     Disabled,
     /// Input methods are allowed, but not open yet.
-    Allowed,
+    Allowed {
+        /// The position at which the input method dialog should be placed.
+        position: Point,
+    },
     /// Input method is open.
     Open {
         /// The position at which the input method dialog should be placed.
@@ -101,11 +104,11 @@ impl InputMethod {
     ///
     /// let mut ime = InputMethod::Disabled;
     ///
-    /// ime.merge(&InputMethod::<String>::Allowed);
-    /// assert_eq!(ime, InputMethod::Allowed);
+    /// ime.merge(&InputMethod::<String>::Allowed { position: Point::ORIGIN });
+    /// assert_eq!(ime, InputMethod::Allowed{ position: Point::ORIGIN });
     ///
     /// ime.merge(&InputMethod::<String>::Disabled);
-    /// assert_eq!(ime, InputMethod::Allowed);
+    /// assert_eq!(ime, InputMethod::Allowed{ position: Point::ORIGIN });
     ///
     /// ime.merge(&open);
     /// assert_eq!(ime, open);
@@ -117,7 +120,7 @@ impl InputMethod {
         match (&self, other) {
             (InputMethod::Open { .. }, _)
             | (
-                InputMethod::Allowed,
+                InputMethod::Allowed { .. },
                 InputMethod::None | InputMethod::Disabled,
             )
             | (InputMethod::Disabled, InputMethod::None) => {}
@@ -142,7 +145,9 @@ impl<T> InputMethod<T> {
         match self {
             Self::None => InputMethod::None,
             Self::Disabled => InputMethod::Disabled,
-            Self::Allowed => InputMethod::Allowed,
+            Self::Allowed { position } => InputMethod::Allowed {
+                position: *position,
+            },
             Self::Open {
                 position,
                 purpose,

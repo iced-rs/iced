@@ -406,10 +406,6 @@ where
             return InputMethod::Disabled;
         };
 
-        let Some(preedit) = &state.is_ime_open else {
-            return InputMethod::Allowed;
-        };
-
         let secure_value = self.is_secure.then(|| value.secure());
         let value = secure_value.as_ref().unwrap_or(value);
 
@@ -432,9 +428,14 @@ where
 
         let x = (text_bounds.x + cursor_x).floor() - scroll_offset
             + alignment_offset;
+        let position = Point::new(x, text_bounds.y + text_bounds.height);
+
+        let Some(preedit) = &state.is_ime_open else {
+            return InputMethod::Allowed { position };
+        };
 
         InputMethod::Open {
-            position: Point::new(x, text_bounds.y + text_bounds.height),
+            position,
             purpose: if self.is_secure {
                 input_method::Purpose::Secure
             } else {

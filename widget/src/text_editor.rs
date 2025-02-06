@@ -339,10 +339,6 @@ where
             return InputMethod::Disabled;
         };
 
-        let Some(preedit) = &state.preedit else {
-            return InputMethod::Allowed;
-        };
-
         let bounds = layout.bounds();
         let internal = self.content.0.borrow_mut();
 
@@ -362,6 +358,10 @@ where
 
         let position =
             cursor + translation + Vector::new(0.0, f32::from(line_height));
+
+        let Some(preedit) = &state.preedit else {
+            return InputMethod::Allowed { position };
+        };
 
         InputMethod::Open {
             position,
