@@ -1261,8 +1261,13 @@ where
                     let state = state::<Renderer>(tree);
 
                     state.is_ime_open =
-                        matches!(event, input_method::Event::Opened)
-                            .then(|| input_method::Preedit::new(self.size));
+                        matches!(event, input_method::Event::Opened).then(
+                            || {
+                                let mut preedit = input_method::Preedit::new();
+                                preedit.text_size = self.size;
+                                preedit
+                            },
+                        );
 
                     shell.request_redraw();
                 }

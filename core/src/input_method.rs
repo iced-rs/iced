@@ -40,14 +40,11 @@ pub struct Preedit<T = String> {
 
 impl<T> Preedit<T> {
     /// Creates a new empty [`Preedit`].
-    pub fn new(text_size: Option<impl Into<Pixels>>) -> Self
+    pub fn new() -> Self
     where
         T: Default,
     {
-        Self {
-            text_size: text_size.map(Into::into),
-            ..Default::default()
-        }
+        Self::default()
     }
 
     /// Turns a [`Preedit`] into its owned version.
