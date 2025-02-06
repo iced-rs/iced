@@ -162,6 +162,7 @@ impl Theme {
     }
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for Theme {
     fn default() -> Self {
         #[cfg(feature = "auto-detect-theme")]
