@@ -3,7 +3,7 @@ use crate::{color, Color};
 
 use palette::color_difference::Wcag21RelativeContrast;
 use palette::rgb::Rgb;
-use palette::{FromColor, Hsl, Mix};
+use palette::{FromColor, Hsl};
 
 use std::sync::LazyLock;
 
@@ -462,8 +462,8 @@ pub struct Background {
 impl Background {
     /// Generates a set of [`Background`] colors from the base and text colors.
     pub fn new(base: Color, text: Color) -> Self {
-        let weak = mix(base, text, 0.15);
-        let strong = mix(base, text, 0.40);
+        let weak = base.mix(text, 0.15);
+        let strong = base.mix(text, 0.40);
 
         Self {
             base: Pair::new(base, text),
@@ -487,7 +487,7 @@ pub struct Primary {
 impl Primary {
     /// Generates a set of [`Primary`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
+        let weak = base.mix(background, 0.4);
         let strong = deviate(base, 0.1);
 
         Self {
@@ -512,9 +512,9 @@ pub struct Secondary {
 impl Secondary {
     /// Generates a set of [`Secondary`] colors from the base and text colors.
     pub fn generate(base: Color, text: Color) -> Self {
-        let base = mix(base, text, 0.2);
-        let weak = mix(base, text, 0.1);
-        let strong = mix(base, text, 0.3);
+        let base = base.mix(text, 0.2);
+        let weak = base.mix(text, 0.1);
+        let strong = base.mix(text, 0.3);
 
         Self {
             base: Pair::new(base, text),
@@ -538,7 +538,7 @@ pub struct Success {
 impl Success {
     /// Generates a set of [`Success`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
+        let weak = base.mix(background, 0.4);
         let strong = deviate(base, 0.1);
 
         Self {
@@ -563,7 +563,7 @@ pub struct Warning {
 impl Warning {
     /// Generates a set of [`Warning`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
+        let weak = base.mix(background, 0.4);
         let strong = deviate(base, 0.1);
 
         Self {
@@ -588,7 +588,7 @@ pub struct Danger {
 impl Danger {
     /// Generates a set of [`Danger`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
+        let weak = base.mix(background, 0.4);
         let strong = deviate(base, 0.1);
 
         Self {
@@ -629,14 +629,6 @@ fn deviate(color: Color, amount: f32) -> Color {
     } else {
         darken(color, amount)
     }
-}
-
-fn mix(a: Color, b: Color, factor: f32) -> Color {
-    let a_lin = Rgb::from(a).into_linear();
-    let b_lin = Rgb::from(b).into_linear();
-
-    let mixed = a_lin.mix(b_lin, factor);
-    Rgb::from_linear(mixed).into()
 }
 
 fn readable(background: Color, text: Color) -> Color {
