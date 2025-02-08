@@ -430,18 +430,14 @@ where
             + alignment_offset;
         let position = Point::new(x, text_bounds.y + text_bounds.height);
 
-        let Some(preedit) = &state.is_ime_open else {
-            return InputMethod::Allowed { position };
-        };
-
-        InputMethod::Open {
+        InputMethod::Allowed {
             position,
             purpose: if self.is_secure {
                 input_method::Purpose::Secure
             } else {
                 input_method::Purpose::Normal
             },
-            preedit: Some(preedit.as_ref()),
+            preedit: state.is_ime_open.as_ref().map(|preedit| preedit.as_ref()),
         }
     }
 

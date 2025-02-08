@@ -210,9 +210,11 @@ where
             InputMethod::Disabled => {
                 self.raw.set_ime_allowed(false);
             }
-            InputMethod::Allowed { position }
-            | InputMethod::Open { position, .. } => {
+            InputMethod::Allowed {
+                position, purpose, ..
+            } => {
                 self.raw.set_ime_allowed(true);
+                self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
                 self.raw.set_ime_cursor_area(
                     LogicalPosition::new(position.x, position.y),
                     LogicalSize::new(10, 10), // TODO?
@@ -220,35 +222,31 @@ where
             }
         }
 
-        if let InputMethod::Open {
+        if let InputMethod::Allowed {
             position,
-            purpose,
-            preedit,
+            purpose: _,
+            preedit: Some(preedit),
         } = input_method
         {
-            self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
+            if preedit.content.is_empty() {
+                self.preedit = None;
+            } else if let Some(overlay) = &mut self.preedit {
+                overlay.update(
+                    position,
+                    &preedit,
+                    self.state.background_color(),
+                    &self.renderer,
+                );
+            } else {
+                let mut overlay = Preedit::new();
+                overlay.update(
+                    position,
+                    &preedit,
+                    self.state.background_color(),
+                    &self.renderer,
+                );
 
-            if let Some(preedit) = preedit {
-                if preedit.content.is_empty() {
-                    self.preedit = None;
-                } else if let Some(overlay) = &mut self.preedit {
-                    overlay.update(
-                        position,
-                        &preedit,
-                        self.state.background_color(),
-                        &self.renderer,
-                    );
-                } else {
-                    let mut overlay = Preedit::new();
-                    overlay.update(
-                        position,
-                        &preedit,
-                        self.state.background_color(),
-                        &self.renderer,
-                    );
-
-                    self.preedit = Some(overlay);
-                }
+                self.preedit = Some(overlay);
             }
         } else {
             self.preedit = None;

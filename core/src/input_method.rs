@@ -10,13 +10,8 @@ pub enum InputMethod<T = String> {
     None,
     /// No input method is allowed.
     Disabled,
-    /// Input methods are allowed, but not open yet.
+    /// Input methods are allowed.
     Allowed {
-        /// The position at which the input method dialog should be placed.
-        position: Point,
-    },
-    /// Input method is open.
-    Open {
         /// The position at which the input method dialog should be placed.
         position: Point,
         /// The [`Purpose`] of the input method.
@@ -118,7 +113,12 @@ impl InputMethod {
     /// ```
     pub fn merge<T: AsRef<str>>(&mut self, other: &InputMethod<T>) {
         match (&self, other) {
-            (InputMethod::Open { .. }, _)
+            (
+                InputMethod::Allowed {
+                    preedit: Some(_), ..
+                },
+                _,
+            )
             | (
                 InputMethod::Allowed { .. },
                 InputMethod::None | InputMethod::Disabled,
@@ -132,7 +132,13 @@ impl InputMethod {
 
     /// Returns true if the [`InputMethod`] is open.
     pub fn is_open(&self) -> bool {
-        matches!(self, Self::Open { .. })
+        matches!(
+            self,
+            Self::Allowed {
+                preedit: Some(_),
+                ..
+            }
+        )
     }
 }
 
@@ -145,14 +151,11 @@ impl<T> InputMethod<T> {
         match self {
             Self::None => InputMethod::None,
             Self::Disabled => InputMethod::Disabled,
-            Self::Allowed { position } => InputMethod::Allowed {
-                position: *position,
-            },
-            Self::Open {
+            Self::Allowed {
                 position,
                 purpose,
                 preedit,
-            } => InputMethod::Open {
+            } => InputMethod::Allowed {
                 position: *position,
                 purpose: *purpose,
                 preedit: preedit.as_ref().map(Preedit::to_owned),

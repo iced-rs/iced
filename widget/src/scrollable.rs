@@ -750,7 +750,7 @@ where
                 );
 
                 if !had_input_method {
-                    if let InputMethod::Open { position, .. } =
+                    if let InputMethod::Allowed { position, .. } =
                         shell.input_method_mut()
                     {
                         *position = *position + translation;

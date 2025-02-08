@@ -359,14 +359,10 @@ where
         let position =
             cursor + translation + Vector::new(0.0, f32::from(line_height));
 
-        let Some(preedit) = &state.preedit else {
-            return InputMethod::Allowed { position };
-        };
-
-        InputMethod::Open {
+        InputMethod::Allowed {
             position,
             purpose: input_method::Purpose::Normal,
-            preedit: Some(preedit.as_ref()),
+            preedit: state.preedit.as_ref().map(|preedit| preedit.as_ref()),
         }
     }
 }
