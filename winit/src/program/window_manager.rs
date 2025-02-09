@@ -75,6 +75,7 @@ where
                 mouse_interaction: mouse::Interaction::None,
                 redraw_at: None,
                 preedit: None,
+                ime_allowed: false,
             },
         );
 
@@ -166,6 +167,7 @@ where
     pub renderer: P::Renderer,
     pub redraw_at: Option<Instant>,
     preedit: Option<Preedit<P::Renderer>>,
+    ime_allowed: bool,
 }
 
 impl<P, C> Window<P, C>
@@ -208,13 +210,19 @@ where
         match input_method {
             InputMethod::None => {}
             InputMethod::Disabled => {
-                self.raw.set_ime_allowed(false);
+                if self.ime_allowed {
+                    self.raw.set_ime_allowed(false);
+                    self.ime_allowed = false;
+                }
             }
             InputMethod::Allowed {
                 position, purpose, ..
             } => {
-                self.raw.set_ime_allowed(true);
-                self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
+                if !self.ime_allowed {
+                    self.raw.set_ime_allowed(true);
+                    self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
+                    self.ime_allowed = true;
+                }
                 self.raw.set_ime_cursor_area(
                     LogicalPosition::new(position.x, position.y),
                     LogicalSize::new(10, 10), // TODO?
