@@ -18,7 +18,6 @@ use iced::{
 };
 
 use std::collections::HashMap;
-use std::time::Duration;
 
 fn main() -> iced::Result {
     iced::application("Gallery - Iced", Gallery::update, Gallery::view)
@@ -68,7 +67,7 @@ impl Gallery {
         let is_animating = self
             .previews
             .values()
-            .any(|thumbnail| thumbnail.is_animating(self.now))
+            .any(|preview| preview.is_animating(self.now))
             || self.viewer.is_animating(self.now);
 
         if is_animating {
@@ -114,28 +113,28 @@ impl Gallery {
                 Task::none()
             }
             Message::ThumbnailDownloaded(id, Ok(rgba)) => {
-                let blurhash = match self.previews.remove(&id) {
-                    Some(Preview::Blurhash(blurhash)) => Some(blurhash),
-                    _ => None,
+                let thumbnail = if let Some(preview) = self.previews.remove(&id)
+                {
+                    preview.load(rgba)
+                } else {
+                    Preview::ready(rgba)
                 };
 
-                let _ = self
-                    .previews
-                    .insert(id, Preview::thumbnail(self.now, blurhash, rgba));
+                let _ = self.previews.insert(id, thumbnail);
 
                 Task::none()
             }
             Message::ThumbnailHovered(id, is_hovered) => {
-                if let Some(Preview::Thumbnail { zoom, .. }) =
-                    self.previews.get_mut(&id)
-                {
-                    zoom.go_mut(is_hovered);
+                if let Some(preview) = self.previews.get_mut(&id) {
+                    preview.toggle_zoom(is_hovered);
                 }
 
                 Task::none()
             }
             Message::BlurhashDecoded(id, Ok(rgba)) => {
-                let _ = self.previews.insert(id, Preview::blurhash(rgba));
+                if !self.previews.contains_key(&id) {
+                    let _ = self.previews.insert(id, Preview::loading(rgba));
+                }
 
                 Task::none()
             }
@@ -202,59 +201,38 @@ fn card<'a>(
     preview: Option<&'a Preview>,
     now: Instant,
 ) -> Element<'a, Message> {
-    let image: Element<'_, _> = match preview {
-        Some(Preview::Blurhash(Blurhash { handle, fade_in })) => image(handle)
-            .width(Fill)
-            .height(Fill)
-            .content_fit(ContentFit::Cover)
-            .opacity(fade_in.interpolate(0.0, Blurhash::MAX_OPACITY, now))
-            .into(),
-        // Blurhash still needs to fade all the way in
-        Some(Preview::Thumbnail {
-            blurhash: Some(blurhash),
-            ..
-        }) if blurhash.fade_in.is_animating(now) => image(&blurhash.handle)
-            .width(Fill)
-            .height(Fill)
-            .content_fit(ContentFit::Cover)
-            .opacity(blurhash.fade_in.interpolate(
-                0.0,
-                Blurhash::MAX_OPACITY,
-                now,
-            ))
-            .into(),
-        Some(Preview::Thumbnail {
-            blurhash,
+    let image = if let Some(preview) = preview {
+        let thumbnail: Element<'_, _> = if let Preview::Ready {
             thumbnail,
             fade_in,
             zoom,
-        }) => stack![]
-            // Transition between blurhash & thumbnail over the fade-in period
-            .push_maybe(
-                blurhash.as_ref().filter(|_| fade_in.is_animating(now)).map(
-                    |blurhash| {
-                        image(&blurhash.handle)
-                            .width(Fill)
-                            .height(Fill)
-                            .content_fit(ContentFit::Cover)
-                            .opacity(fade_in.interpolate(
-                                Blurhash::MAX_OPACITY,
-                                0.0,
-                                now,
-                            ))
-                    },
-                ),
-            )
-            .push(
-                image(thumbnail)
-                    .width(Fill)
-                    .height(Fill)
-                    .content_fit(ContentFit::Cover)
-                    .opacity(fade_in.interpolate(0.0, 1.0, now))
-                    .scale(zoom.interpolate(1.0, 1.1, now)),
-            )
-            .into(),
-        None => horizontal_space().into(),
+            ..
+        } = &preview
+        {
+            image(thumbnail)
+                .width(Fill)
+                .height(Fill)
+                .content_fit(ContentFit::Cover)
+                .opacity(fade_in.interpolate(0.0, 1.0, now))
+                .scale(zoom.interpolate(1.0, 1.1, now))
+                .into()
+        } else {
+            horizontal_space().into()
+        };
+
+        if let Some(blurhash) = preview.blurhash(now) {
+            let blurhash = image(&blurhash.handle)
+                .width(Fill)
+                .height(Fill)
+                .content_fit(ContentFit::Cover)
+                .opacity(blurhash.fade_in.interpolate(0.0, 1.0, now));
+
+            stack![blurhash, thumbnail].into()
+        } else {
+            thumbnail
+        }
+    } else {
+        horizontal_space().into()
     };
 
     let card = mouse_area(
@@ -267,7 +245,7 @@ fn card<'a>(
     .on_exit(Message::ThumbnailHovered(metadata.id, false));
 
     if let Some(preview) = preview {
-        let is_thumbnail = matches!(preview, Preview::Thumbnail { .. });
+        let is_thumbnail = matches!(preview, Preview::Ready { .. });
 
         button(card)
             .on_press_maybe(is_thumbnail.then_some(Message::Open(metadata.id)))
@@ -289,19 +267,11 @@ fn placeholder<'a>() -> Element<'a, Message> {
         .into()
 }
 
-struct Blurhash {
-    fade_in: Animation<bool>,
-    handle: image::Handle,
-}
-
-impl Blurhash {
-    const FADE_IN: Duration = Duration::from_millis(200);
-    const MAX_OPACITY: f32 = 0.6;
-}
-
 enum Preview {
-    Blurhash(Blurhash),
-    Thumbnail {
+    Loading {
+        blurhash: Blurhash,
+    },
+    Ready {
         blurhash: Option<Blurhash>,
         thumbnail: image::Handle,
         fade_in: Animation<bool>,
@@ -309,57 +279,86 @@ enum Preview {
     },
 }
 
+struct Blurhash {
+    handle: image::Handle,
+    fade_in: Animation<bool>,
+}
+
 impl Preview {
     const WIDTH: u32 = 320;
     const HEIGHT: u32 = 410;
 
-    fn blurhash(rgba: Rgba) -> Self {
-        Self::Blurhash(Blurhash {
-            fade_in: Animation::new(false).duration(Blurhash::FADE_IN).go(true),
-            handle: image::Handle::from_rgba(
-                rgba.width,
-                rgba.height,
-                rgba.pixels,
-            ),
-        })
+    fn loading(rgba: Rgba) -> Self {
+        Self::Loading {
+            blurhash: Blurhash {
+                fade_in: Animation::new(false).slow().go(true),
+                handle: image::Handle::from_rgba(
+                    rgba.width,
+                    rgba.height,
+                    rgba.pixels,
+                ),
+            },
+        }
     }
 
-    fn thumbnail(now: Instant, blurhash: Option<Blurhash>, rgba: Rgba) -> Self {
-        // Delay the thumbnail fade in until blurhash is fully
-        // faded in itself
-        let delay = blurhash
-            .as_ref()
-            .map(|blurhash| {
-                Duration::from_secs_f32(blurhash.fade_in.interpolate(
-                    0.0,
-                    Blurhash::FADE_IN.as_secs_f32(),
-                    now,
-                ))
-            })
-            .unwrap_or_default();
-
-        Self::Thumbnail {
-            blurhash,
+    fn ready(rgba: Rgba) -> Self {
+        Self::Ready {
+            blurhash: None,
             thumbnail: image::Handle::from_rgba(
                 rgba.width,
                 rgba.height,
                 rgba.pixels,
             ),
-            fade_in: Animation::new(false).very_slow().delay(delay).go(true),
+            fade_in: Animation::new(false).slow().go(true),
             zoom: Animation::new(false)
                 .quick()
                 .easing(animation::Easing::EaseInOut),
         }
     }
 
+    fn load(self, rgba: Rgba) -> Self {
+        let Self::Loading { blurhash } = self else {
+            return self;
+        };
+
+        Self::Ready {
+            blurhash: Some(blurhash),
+            thumbnail: image::Handle::from_rgba(
+                rgba.width,
+                rgba.height,
+                rgba.pixels,
+            ),
+            fade_in: Animation::new(false).slow().go(true),
+            zoom: Animation::new(false)
+                .quick()
+                .easing(animation::Easing::EaseInOut),
+        }
+    }
+
+    fn toggle_zoom(&mut self, enabled: bool) {
+        if let Self::Ready { zoom, .. } = self {
+            zoom.go_mut(enabled);
+        }
+    }
+
     fn is_animating(&self, now: Instant) -> bool {
-        match self {
-            Preview::Blurhash(Blurhash { fade_in, .. }) => {
-                fade_in.is_animating(now)
-            }
-            Preview::Thumbnail { fade_in, zoom, .. } => {
+        match &self {
+            Self::Loading { blurhash } => blurhash.fade_in.is_animating(now),
+            Self::Ready { fade_in, zoom, .. } => {
                 fade_in.is_animating(now) || zoom.is_animating(now)
             }
+        }
+    }
+
+    fn blurhash(&self, now: Instant) -> Option<&Blurhash> {
+        match self {
+            Self::Loading { blurhash, .. } => Some(blurhash),
+            Self::Ready {
+                blurhash: Some(blurhash),
+                fade_in,
+                ..
+            } if fade_in.is_animating(now) => Some(blurhash),
+            _ => None,
         }
     }
 }

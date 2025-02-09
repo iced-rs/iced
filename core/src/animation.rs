@@ -13,6 +13,7 @@ where
     T: Clone + Copy + PartialEq + Float,
 {
     raw: lilt::Animated<T, Instant>,
+    duration: Duration, // TODO: Expose duration getter in `lilt`
 }
 
 impl<T> Animation<T>
@@ -23,6 +24,7 @@ where
     pub fn new(state: T) -> Self {
         Self {
             raw: lilt::Animated::new(state),
+            duration: Duration::from_millis(100),
         }
     }
 
@@ -58,6 +60,7 @@ where
     /// Sets the duration of the [`Animation`] to the given value.
     pub fn duration(mut self, duration: Duration) -> Self {
         self.raw = self.raw.duration(duration.as_secs_f32() * 1_000.0);
+        self.duration = duration;
         self
     }
 
@@ -132,5 +135,14 @@ impl Animation<bool> {
         I: Interpolable + Clone,
     {
         self.raw.animate_bool(start, end, at)
+    }
+
+    /// Returns the remaining [`Duration`] of the [`Animation`].
+    pub fn remaining(&self, at: Instant) -> Duration {
+        Duration::from_secs_f32(self.interpolate(
+            self.duration.as_secs_f32(),
+            0.0,
+            at,
+        ))
     }
 }

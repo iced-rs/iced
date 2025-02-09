@@ -69,7 +69,7 @@ impl Image {
                     .split("/")
                     .map(|part| {
                         if part.starts_with("width=") {
-                            format!("width={width}")
+                            format!("width={}", width * 2) // High DPI
                         } else {
                             part.to_owned()
                         }
