@@ -71,7 +71,7 @@ impl Image {
                         if part.starts_with("width=") {
                             format!("width={width}")
                         } else {
-                            part.to_string()
+                            part.to_owned()
                         }
                     })
                     .collect::<Vec<_>>()
