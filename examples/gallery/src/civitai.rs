@@ -125,7 +125,7 @@ impl fmt::Debug for Rgba {
 #[derive(Debug, Clone, Copy)]
 pub enum Size {
     Original,
-    Thumbnail { width: u16 },
+    Thumbnail { width: u32 },
 }
 
 #[derive(Debug, Clone)]

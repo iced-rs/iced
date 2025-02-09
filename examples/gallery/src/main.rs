@@ -97,10 +97,7 @@ impl Gallery {
 
                 Task::batch(vec![
                     Task::perform(
-                        image.clone().blurhash(
-                            Preview::WIDTH as u32,
-                            Preview::HEIGHT as u32,
-                        ),
+                        image.clone().blurhash(Preview::WIDTH, Preview::HEIGHT),
                         move |result| Message::BlurhashDecoded(id, result),
                     ),
                     Task::perform(
@@ -313,8 +310,8 @@ enum Preview {
 }
 
 impl Preview {
-    const WIDTH: u16 = 320;
-    const HEIGHT: u16 = 410;
+    const WIDTH: u32 = 320;
+    const HEIGHT: u32 = 410;
 
     fn blurhash(rgba: Rgba) -> Self {
         Self::Blurhash(Blurhash {

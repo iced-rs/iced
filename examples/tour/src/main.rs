@@ -24,12 +24,12 @@ pub struct Tour {
     screen: Screen,
     slider: u8,
     layout: Layout,
-    spacing: u16,
-    text_size: u16,
+    spacing: u32,
+    text_size: u32,
     text_color: Color,
     language: Option<Language>,
     toggler: bool,
-    image_width: u16,
+    image_width: u32,
     image_filter_method: image::FilterMethod,
     input_value: String,
     input_is_secure: bool,
@@ -43,11 +43,11 @@ pub enum Message {
     NextPressed,
     SliderChanged(u8),
     LayoutChanged(Layout),
-    SpacingChanged(u16),
-    TextSizeChanged(u16),
+    SpacingChanged(u32),
+    TextSizeChanged(u32),
     TextColorChanged(Color),
     LanguageSelected(Language),
-    ImageWidthChanged(u16),
+    ImageWidthChanged(u32),
     ImageUseNearestToggled(bool),
     InputChanged(String),
     ToggleSecureInput(bool),
@@ -537,7 +537,7 @@ impl Screen {
 }
 
 fn ferris<'a>(
-    width: u16,
+    width: u32,
     filter_method: image::FilterMethod,
 ) -> Container<'a, Message> {
     center_x(
