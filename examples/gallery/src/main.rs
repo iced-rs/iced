@@ -202,23 +202,18 @@ fn card<'a>(
     now: Instant,
 ) -> Element<'a, Message> {
     let image = if let Some(preview) = preview {
-        let thumbnail: Element<'_, _> = if let Preview::Ready {
-            thumbnail,
-            fade_in,
-            zoom,
-            ..
-        } = &preview
-        {
-            image(thumbnail)
-                .width(Fill)
-                .height(Fill)
-                .content_fit(ContentFit::Cover)
-                .opacity(fade_in.interpolate(0.0, 1.0, now))
-                .scale(zoom.interpolate(1.0, 1.1, now))
-                .into()
-        } else {
-            horizontal_space().into()
-        };
+        let thumbnail: Element<'_, _> =
+            if let Preview::Ready { thumbnail, .. } = &preview {
+                image(&thumbnail.handle)
+                    .width(Fill)
+                    .height(Fill)
+                    .content_fit(ContentFit::Cover)
+                    .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now))
+                    .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
+                    .into()
+            } else {
+                horizontal_space().into()
+            };
 
         if let Some(blurhash) = preview.blurhash(now) {
             let blurhash = image(&blurhash.handle)
@@ -273,15 +268,19 @@ enum Preview {
     },
     Ready {
         blurhash: Option<Blurhash>,
-        thumbnail: image::Handle,
-        fade_in: Animation<bool>,
-        zoom: Animation<bool>,
+        thumbnail: Thumbnail,
     },
 }
 
 struct Blurhash {
     handle: image::Handle,
     fade_in: Animation<bool>,
+}
+
+struct Thumbnail {
+    handle: image::Handle,
+    fade_in: Animation<bool>,
+    zoom: Animation<bool>,
 }
 
 impl Preview {
@@ -304,15 +303,7 @@ impl Preview {
     fn ready(rgba: Rgba) -> Self {
         Self::Ready {
             blurhash: None,
-            thumbnail: image::Handle::from_rgba(
-                rgba.width,
-                rgba.height,
-                rgba.pixels,
-            ),
-            fade_in: Animation::new(false).slow().go(true),
-            zoom: Animation::new(false)
-                .quick()
-                .easing(animation::Easing::EaseInOut),
+            thumbnail: Thumbnail::new(rgba),
         }
     }
 
@@ -323,29 +314,22 @@ impl Preview {
 
         Self::Ready {
             blurhash: Some(blurhash),
-            thumbnail: image::Handle::from_rgba(
-                rgba.width,
-                rgba.height,
-                rgba.pixels,
-            ),
-            fade_in: Animation::new(false).slow().go(true),
-            zoom: Animation::new(false)
-                .quick()
-                .easing(animation::Easing::EaseInOut),
+            thumbnail: Thumbnail::new(rgba),
         }
     }
 
     fn toggle_zoom(&mut self, enabled: bool) {
-        if let Self::Ready { zoom, .. } = self {
-            zoom.go_mut(enabled);
+        if let Self::Ready { thumbnail, .. } = self {
+            thumbnail.zoom.go_mut(enabled);
         }
     }
 
     fn is_animating(&self, now: Instant) -> bool {
         match &self {
             Self::Loading { blurhash } => blurhash.fade_in.is_animating(now),
-            Self::Ready { fade_in, zoom, .. } => {
-                fade_in.is_animating(now) || zoom.is_animating(now)
+            Self::Ready { thumbnail, .. } => {
+                thumbnail.fade_in.is_animating(now)
+                    || thumbnail.zoom.is_animating(now)
             }
         }
     }
@@ -355,10 +339,26 @@ impl Preview {
             Self::Loading { blurhash, .. } => Some(blurhash),
             Self::Ready {
                 blurhash: Some(blurhash),
-                fade_in,
+                thumbnail,
                 ..
-            } if fade_in.is_animating(now) => Some(blurhash),
-            _ => None,
+            } if thumbnail.fade_in.is_animating(now) => Some(blurhash),
+            Self::Ready { .. } => None,
+        }
+    }
+}
+
+impl Thumbnail {
+    pub fn new(rgba: Rgba) -> Self {
+        Self {
+            handle: image::Handle::from_rgba(
+                rgba.width,
+                rgba.height,
+                rgba.pixels,
+            ),
+            fade_in: Animation::new(false).slow().go(true),
+            zoom: Animation::new(false)
+                .quick()
+                .easing(animation::Easing::EaseInOut),
         }
     }
 }
