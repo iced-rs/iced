@@ -26,6 +26,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
@@ -714,9 +715,44 @@ pub fn bordered_box(theme: &Theme) -> Style {
 
 /// A [`Container`] with a dark background and white text.
 pub fn dark(_theme: &Theme) -> Style {
+    style(theme::palette::Pair {
+        color: color!(0x111111),
+        text: Color::WHITE,
+    })
+}
+
+/// A [`Container`] with a primary background color.
+pub fn primary(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.primary.base)
+}
+
+/// A [`Container`] with a secondary background color.
+pub fn secondary(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.secondary.base)
+}
+
+/// A [`Container`] with a success background color.
+pub fn success(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.success.base)
+}
+
+/// A [`Container`] with a danger background color.
+pub fn danger(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.danger.base)
+}
+
+fn style(pair: theme::palette::Pair) -> Style {
     Style {
-        background: Some(color!(0x111111).into()),
-        text_color: Some(Color::WHITE),
+        background: Some(pair.color.into()),
+        text_color: Some(pair.text),
         border: border::rounded(2),
         ..Style::default()
     }
