@@ -133,11 +133,15 @@ where
 
     /// Sets the message that will be produced when a link of the [`Rich`] text
     /// is clicked.
+    ///
+    /// If the spans of the [`Rich`] text contain no links, you may need to call
+    /// this method with `on_link_click(never)` in order for the compiler to infer
+    /// the proper `Link` generic type.
     pub fn on_link_click(
         mut self,
-        on_link_clicked: impl Fn(Link) -> Message + 'a,
+        on_link_click: impl Fn(Link) -> Message + 'a,
     ) -> Self {
-        self.on_link_click = Some(Box::new(on_link_clicked));
+        self.on_link_click = Some(Box::new(on_link_click));
         self
     }
 
