@@ -10,6 +10,7 @@ use std::sync::Arc;
 pub struct Image {
     pub id: Id,
     url: String,
+    hash: String,
 }
 
 impl Image {
@@ -40,20 +41,37 @@ impl Image {
         Ok(response.items)
     }
 
+    pub async fn blurhash(
+        self,
+        width: u32,
+        height: u32,
+    ) -> Result<Rgba, Error> {
+        task::spawn_blocking(move || {
+            let pixels = blurhash::decode(&self.hash, width, height, 1.0)?;
+
+            Ok::<_, Error>(Rgba {
+                width,
+                height,
+                pixels: Bytes::from(pixels),
+            })
+        })
+        .await?
+    }
+
     pub async fn download(self, size: Size) -> Result<Rgba, Error> {
         let client = reqwest::Client::new();
 
         let bytes = client
             .get(match size {
                 Size::Original => self.url,
-                Size::Thumbnail => self
+                Size::Thumbnail { width } => self
                     .url
                     .split("/")
                     .map(|part| {
                         if part.starts_with("width=") {
-                            "width=640"
+                            format!("width={}", width * 2) // High DPI
                         } else {
-                            part
+                            part.to_owned()
                         }
                     })
                     .collect::<Vec<_>>()
@@ -107,7 +125,7 @@ impl fmt::Debug for Rgba {
 #[derive(Debug, Clone, Copy)]
 pub enum Size {
     Original,
-    Thumbnail,
+    Thumbnail { width: u32 },
 }
 
 #[derive(Debug, Clone)]
@@ -117,6 +135,7 @@ pub enum Error {
     IOFailed(Arc<io::Error>),
     JoinFailed(Arc<task::JoinError>),
     ImageDecodingFailed(Arc<image::ImageError>),
+    BlurhashDecodingFailed(Arc<blurhash::Error>),
 }
 
 impl From<reqwest::Error> for Error {
@@ -140,5 +159,11 @@ impl From<task::JoinError> for Error {
 impl From<image::ImageError> for Error {
     fn from(error: image::ImageError) -> Self {
         Self::ImageDecodingFailed(Arc::new(error))
+    }
+}
+
+impl From<blurhash::Error> for Error {
+    fn from(error: blurhash::Error) -> Self {
+        Self::BlurhashDecodingFailed(Arc::new(error))
     }
 }

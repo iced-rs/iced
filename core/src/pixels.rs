@@ -20,9 +20,9 @@ impl From<f32> for Pixels {
     }
 }
 
-impl From<u16> for Pixels {
-    fn from(amount: u16) -> Self {
-        Self(f32::from(amount))
+impl From<u32> for Pixels {
+    fn from(amount: u32) -> Self {
+        Self(amount as f32)
     }
 }
 

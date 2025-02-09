@@ -665,6 +665,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "blurhash"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e79769241dcd44edf79a732545e8b5cec84c247ac060f5252cd51885d093a8fc"
+
+[[package]]
 name = "built"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1863,6 +1869,7 @@ dependencies = [
 name = "gallery"
 version = "0.1.0"
 dependencies = [
+ "blurhash",
  "bytes",
  "iced",
  "image",
