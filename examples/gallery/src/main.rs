@@ -7,7 +7,7 @@ mod civitai;
 use crate::civitai::{Error, Id, Image, Rgba, Size};
 
 use iced::animation;
-use iced::time::Instant;
+use iced::time::{milliseconds, Instant};
 use iced::widget::{
     button, center_x, container, horizontal_space, image, mouse_area, opaque,
     pop, row, scrollable, stack,
@@ -290,7 +290,10 @@ impl Preview {
     fn loading(rgba: Rgba) -> Self {
         Self::Loading {
             blurhash: Blurhash {
-                fade_in: Animation::new(false).slow().go(true),
+                fade_in: Animation::new(false)
+                    .duration(milliseconds(700))
+                    .easing(animation::Easing::EaseIn)
+                    .go(true),
                 handle: image::Handle::from_rgba(
                     rgba.width,
                     rgba.height,
