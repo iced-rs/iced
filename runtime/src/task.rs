@@ -3,13 +3,15 @@ use crate::core::widget;
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::future::{self, FutureExt};
-use crate::futures::futures::never::Never;
 use crate::futures::futures::stream::{self, Stream, StreamExt};
 use crate::futures::{boxed_stream, BoxStream, MaybeSend};
 use crate::Action;
 
 use std::future::Future;
 use std::sync::Arc;
+
+#[doc(no_inline)]
+pub use sipper::{sipper, stream, Never, Sender, Sipper, Straw};
 
 /// A set of concurrent actions to be performed by the iced runtime.
 ///
@@ -55,6 +57,25 @@ impl<T> Task<T> {
         T: 'static,
     {
         Self::stream(stream.map(f))
+    }
+
+    /// Creates a [`Task`] that runs the given [`Sipper`] to completion, mapping
+    /// progress with the first closure and the output with the second one.
+    pub fn sip<S, Output, Progress>(
+        sipper: S,
+        on_progress: impl Fn(Progress) -> T + Send + 'static,
+        on_output: impl FnOnce(Output) -> T + Send + 'static,
+    ) -> Self
+    where
+        S: Sipper<Output, Progress> + Send + 'static,
+        S::Future: Send + 'static,
+        Output: Send,
+        Progress: Send,
+        T: Send + 'static,
+    {
+        Self::stream(stream(sipper::sipper(move |sender| async move {
+            on_output(sipper.map(on_progress).run(sender).await)
+        })))
     }
 
     /// Combines the given tasks and produces a single [`Task`] that will run all of them
