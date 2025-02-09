@@ -5230,11 +5230,12 @@ checksum = "56199f7ddabf13fe5074ce809e7d3f42b42ae711800501b5b16ea82ad029c39d"
 
 [[package]]
 name = "sipper"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d936de9741a68cb9452b683ffcc1fce44be7a79446ac5918319a42738da2d165"
+checksum = "273c7573677e3835339763d44dd6ee0683b92108d04b311108809e9819f4bc13"
 dependencies = [
  "futures",
+ "pin-project-lite",
 ]
 
 [[package]]

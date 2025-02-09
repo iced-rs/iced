@@ -63,18 +63,15 @@ impl<T> Task<T> {
     /// progress with the first closure and the output with the second one.
     pub fn sip<S, Output, Progress>(
         sipper: S,
-        on_progress: impl Fn(Progress) -> T + Send + 'static,
-        on_output: impl FnOnce(Output) -> T + Send + 'static,
+        on_progress: impl Fn(Progress) -> T + MaybeSend + 'static,
+        on_output: impl FnOnce(Output) -> T + MaybeSend + 'static,
     ) -> Self
     where
-        S: Sipper<Output, Progress> + Send + 'static,
-        S::Future: Send + 'static,
-        Output: Send,
-        Progress: Send,
-        T: Send + 'static,
+        S: Sipper<Output, Progress> + MaybeSend + 'static,
+        T: MaybeSend + 'static,
     {
         Self::stream(stream(sipper::sipper(move |sender| async move {
-            on_output(sipper.map(on_progress).run(sender).await)
+            on_output(sipper.with(on_progress).run(sender).await)
         })))
     }
 
