@@ -61,13 +61,13 @@ impl<T> Task<T> {
 
     /// Creates a [`Task`] that runs the given [`Sipper`] to completion, mapping
     /// progress with the first closure and the output with the second one.
-    pub fn sip<S, Output, Progress>(
+    pub fn sip<S>(
         sipper: S,
-        on_progress: impl Fn(Progress) -> T + MaybeSend + 'static,
-        on_output: impl FnOnce(Output) -> T + MaybeSend + 'static,
+        on_progress: impl Fn(S::Progress) -> T + MaybeSend + 'static,
+        on_output: impl FnOnce(<S as Future>::Output) -> T + MaybeSend + 'static,
     ) -> Self
     where
-        S: Sipper<Output, Progress> + MaybeSend + 'static,
+        S: sipper::Core + MaybeSend + 'static,
         T: MaybeSend + 'static,
     {
         Self::stream(stream(sipper::sipper(move |sender| async move {
