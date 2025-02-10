@@ -519,7 +519,9 @@ pub use Length::{Fill, FillPortion, Shrink};
 
 pub mod task {
     //! Create runtime tasks.
-    pub use crate::runtime::task::{Handle, Task};
+    pub use crate::runtime::task::{
+        sipper, stream, Handle, Never, Sipper, Straw, Task,
+    };
 }
 
 pub mod clipboard {
