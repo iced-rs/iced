@@ -505,7 +505,7 @@ pub use crate::core::gradient;
 pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
-    never, Alignment, Animation, Background, Border, Color, ContentFit,
+    never, with, Alignment, Animation, Background, Border, Color, ContentFit,
     Degrees, Gradient, Length, Padding, Pixels, Point, Radians, Rectangle,
     Rotation, Settings, Shadow, Size, Theme, Transformation, Vector,
 };

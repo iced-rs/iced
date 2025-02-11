@@ -14,7 +14,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    color, Animation, ContentFit, Element, Fill, Subscription, Task, Theme,
+    color, with, Animation, ContentFit, Element, Fill, Subscription, Task,
+    Theme,
 };
 
 use std::collections::HashMap;
@@ -40,7 +41,7 @@ enum Message {
     ImageDownloaded(Result<Rgba, Error>),
     ThumbnailDownloaded(Id, Result<Rgba, Error>),
     ThumbnailHovered(Id, bool),
-    BlurhashDecoded(Id, Result<Rgba, Error>),
+    BlurhashDecoded(Id, civitai::Blurhash),
     Open(Id),
     Close,
     Animate(Instant),
@@ -94,16 +95,14 @@ impl Gallery {
                     return Task::none();
                 };
 
-                Task::batch([
-                    Task::future(
-                        image.clone().blurhash(Preview::WIDTH, Preview::HEIGHT),
-                    )
-                    .map_with(id, Message::BlurhashDecoded),
-                    Task::future(image.download(Size::Thumbnail {
+                Task::sip(
+                    image.download(Size::Thumbnail {
                         width: Preview::WIDTH,
-                    }))
-                    .map_with(id, Message::ThumbnailDownloaded),
-                ])
+                        height: Preview::HEIGHT,
+                    }),
+                    with(Message::BlurhashDecoded, id),
+                    with(Message::ThumbnailDownloaded, id),
+                )
             }
             Message::ImageDownloaded(Ok(rgba)) => {
                 self.viewer.show(rgba);
@@ -129,9 +128,11 @@ impl Gallery {
 
                 Task::none()
             }
-            Message::BlurhashDecoded(id, Ok(rgba)) => {
+            Message::BlurhashDecoded(id, blurhash) => {
                 if !self.previews.contains_key(&id) {
-                    let _ = self.previews.insert(id, Preview::loading(rgba));
+                    let _ = self
+                        .previews
+                        .insert(id, Preview::loading(blurhash.rgba));
                 }
 
                 Task::none()
@@ -165,8 +166,7 @@ impl Gallery {
             }
             Message::ImagesListed(Err(error))
             | Message::ImageDownloaded(Err(error))
-            | Message::ThumbnailDownloaded(_, Err(error))
-            | Message::BlurhashDecoded(_, Err(error)) => {
+            | Message::ThumbnailDownloaded(_, Err(error)) => {
                 dbg!(error);
 
                 Task::none()

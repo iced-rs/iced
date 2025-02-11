@@ -93,3 +93,63 @@ pub use smol_str::SmolStr;
 pub fn never<T>(never: std::convert::Infallible) -> T {
     match never {}
 }
+
+/// Applies the given prefix value to the provided closure and returns
+/// a new closure that takes the other argument.
+///
+/// This lets you partially "apply" a function—equivalent to currying,
+/// but it only works with binary functions. If you want to apply an
+/// arbitrary number of arguments, use the [`with!`] macro instead.
+///
+/// # When is this useful?
+/// Sometimes you will want to identify the source or target
+/// of some message in your user interface. This can be achieved through
+/// normal means by defining a closure and moving the identifier
+/// inside:
+///
+/// ```rust
+/// # let element: Option<()> = Some(());
+/// # enum Message { ButtonPressed(u32, ()) }
+/// let id = 123;
+///
+/// # let _ = {
+/// element.map(move |result| Message::ButtonPressed(id, result))
+/// # };
+/// ```
+///
+/// That's quite a mouthful. [`with()`] lets you write:
+///
+/// ```rust
+/// # use iced_core::with;
+/// # let element: Option<()> = Some(());
+/// # enum Message { ButtonPressed(u32, ()) }
+/// let id = 123;
+///
+/// # let _ = {
+/// element.map(with(Message::ButtonPressed, id))
+/// # };
+/// ```
+///
+/// Effectively creating the same closure that partially applies
+/// the `id` to the message—but much more concise!
+pub fn with<T, R, O>(
+    mut f: impl FnMut(T, R) -> O,
+    prefix: T,
+) -> impl FnMut(R) -> O
+where
+    T: Clone,
+{
+    move |result| f(prefix.clone(), result)
+}
+
+/// Applies the given prefix values to the provided closure in the first
+/// argument and returns a new closure that takes its last argument.
+///
+/// This is variadic version of [`with()`] which works with any number of
+/// arguments.
+#[macro_export]
+macro_rules! with {
+    ($f:expr, $($x:expr),+ $(,)?) => {
+        move |result| $f($($x),+, result)
+    };
+}

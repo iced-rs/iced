@@ -1875,6 +1875,7 @@ dependencies = [
  "image",
  "reqwest",
  "serde",
+ "sipper",
  "tokio",
 ]
 

@@ -4,7 +4,7 @@ use download::download;
 
 use iced::task;
 use iced::widget::{button, center, column, progress_bar, text, Column};
-use iced::{Center, Element, Right, Task};
+use iced::{with, Center, Element, Right, Task};
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -52,7 +52,7 @@ impl Example {
 
                 let task = download.start();
 
-                task.map_with(index, Message::DownloadUpdated)
+                task.map(with(Message::DownloadUpdated, index))
             }
             Message::DownloadUpdated(id, update) => {
                 if let Some(download) =

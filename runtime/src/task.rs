@@ -63,7 +63,7 @@ impl<T> Task<T> {
     /// progress with the first closure and the output with the second one.
     pub fn sip<S>(
         sipper: S,
-        on_progress: impl Fn(S::Progress) -> T + MaybeSend + 'static,
+        on_progress: impl FnMut(S::Progress) -> T + MaybeSend + 'static,
         on_output: impl FnOnce(<S as Future>::Output) -> T + MaybeSend + 'static,
     ) -> Self
     where
@@ -96,50 +96,6 @@ impl<T> Task<T> {
         O: MaybeSend + 'static,
     {
         self.then(move |output| Task::done(f(output)))
-    }
-
-    /// Combines a prefix value with the result of the [`Task`] using
-    /// the provided closure.
-    ///
-    /// Sometimes you will want to identify the source or target
-    /// of some [`Task`] in your UI. This can be achieved through
-    /// normal means by using [`map`]:
-    ///
-    /// ```rust
-    /// # use iced_runtime::Task;
-    /// # let task = Task::none();
-    /// # enum Message { TaskCompleted(u32, ()) }
-    /// let id = 123;
-    ///
-    /// # let _ = {
-    /// task.map(move |result| Message::TaskCompleted(id, result))
-    /// # };
-    /// ```
-    ///
-    /// Quite a mouthful. [`map_with`] lets you write:
-    ///
-    /// ```rust
-    /// # use iced_runtime::Task;
-    /// # let task = Task::none();
-    /// # enum Message { TaskCompleted(u32, ()) }
-    /// # let id = 123;
-    /// # let _ = {
-    /// task.map_with(id, Message::TaskCompleted)
-    /// # };
-    /// ```
-    ///
-    /// Much nicer!
-    pub fn map_with<P, O>(
-        self,
-        prefix: P,
-        mut f: impl FnMut(P, T) -> O + MaybeSend + 'static,
-    ) -> Task<O>
-    where
-        T: MaybeSend + 'static,
-        P: MaybeSend + Clone + 'static,
-        O: MaybeSend + 'static,
-    {
-        self.map(move |result| f(prefix.clone(), result))
     }
 
     /// Performs a new [`Task`] for every output of the current [`Task`] using the
