@@ -3,7 +3,9 @@ use iced::widget::{
     text_input,
 };
 use iced::window;
-use iced::{Center, Element, Fill, Subscription, Task, Theme, Vector};
+use iced::{
+    Center, Element, Fill, Function, Subscription, Task, Theme, Vector,
+};
 
 use std::collections::BTreeMap;
 
@@ -169,7 +171,7 @@ impl Window {
         let scale_input = column![
             text("Window scale factor:"),
             text_input("Window Scale", &self.scale_input)
-                .on_input(move |msg| { Message::ScaleInputChanged(id, msg) })
+                .on_input(Message::ScaleInputChanged.with(id))
                 .on_submit(Message::ScaleChanged(
                     id,
                     self.scale_input.to_string()
@@ -179,7 +181,7 @@ impl Window {
         let title_input = column![
             text("Window title:"),
             text_input("Window Title", &self.title)
-                .on_input(move |msg| { Message::TitleChanged(id, msg) })
+                .on_input(Message::TitleChanged.with(id))
                 .id(format!("input-{id}"))
         ];
 

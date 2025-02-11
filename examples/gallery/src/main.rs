@@ -14,7 +14,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    color, with, Animation, ContentFit, Element, Fill, Subscription, Task,
+    color, Animation, ContentFit, Element, Fill, Function, Subscription, Task,
     Theme,
 };
 
@@ -100,8 +100,8 @@ impl Gallery {
                         width: Preview::WIDTH,
                         height: Preview::HEIGHT,
                     }),
-                    with(Message::BlurhashDecoded, id),
-                    with(Message::ThumbnailDownloaded, id),
+                    Message::BlurhashDecoded.with(id),
+                    Message::ThumbnailDownloaded.with(id),
                 )
             }
             Message::ImageDownloaded(Ok(rgba)) => {
