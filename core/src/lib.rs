@@ -122,7 +122,7 @@ pub trait Function<A, B, O> {
     /// # };
     /// ```
     ///
-    /// That's quite a mouthful. [`with`] lets you write:
+    /// That's quite a mouthful. [`with`](Self::with) lets you write:
     ///
     /// ```rust
     /// # use iced_core::Function;
