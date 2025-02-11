@@ -94,17 +94,15 @@ impl Gallery {
                     return Task::none();
                 };
 
-                Task::batch(vec![
-                    Task::perform(
+                Task::batch([
+                    Task::future(
                         image.clone().blurhash(Preview::WIDTH, Preview::HEIGHT),
-                        move |result| Message::BlurhashDecoded(id, result),
-                    ),
-                    Task::perform(
-                        image.download(Size::Thumbnail {
-                            width: Preview::WIDTH,
-                        }),
-                        move |result| Message::ThumbnailDownloaded(id, result),
-                    ),
+                    )
+                    .map_with(id, Message::BlurhashDecoded),
+                    Task::future(image.download(Size::Thumbnail {
+                        width: Preview::WIDTH,
+                    }))
+                    .map_with(id, Message::ThumbnailDownloaded),
                 ])
             }
             Message::ImageDownloaded(Ok(rgba)) => {

@@ -52,7 +52,7 @@ impl Example {
 
                 let task = download.start();
 
-                task.map(move |update| Message::DownloadUpdated(index, update))
+                task.map_with(index, Message::DownloadUpdated)
             }
             Message::DownloadUpdated(id, update) => {
                 if let Some(download) =
