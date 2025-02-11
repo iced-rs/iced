@@ -61,7 +61,7 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
     Focus { target }
 }
 
-/// Produces an [`Operation`] that unfocuses the focused widget
+/// Produces an [`Operation`] that unfocuses the focused widget.
 pub fn unfocus<T>() -> impl Operation<T> {
     struct Unfocus;
 
