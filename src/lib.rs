@@ -478,7 +478,6 @@ use iced_winit::core;
 use iced_winit::runtime;
 
 pub use iced_futures::futures;
-pub use iced_futures::stream;
 
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
