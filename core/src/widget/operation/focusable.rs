@@ -61,6 +61,33 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
     Focus { target }
 }
 
+/// Produces an [`Operation`] that unfocuses the focused widget.
+pub fn unfocus<T>() -> impl Operation<T> {
+    struct Unfocus;
+
+    impl<T> Operation<T> for Unfocus {
+        fn focusable(
+            &mut self,
+            _id: Option<&Id>,
+            _bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
+            state.unfocus();
+        }
+
+        fn container(
+            &mut self,
+            _id: Option<&Id>,
+            _bounds: Rectangle,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
+        ) {
+            operate_on_children(self);
+        }
+    }
+
+    Unfocus
+}
+
 /// Produces an [`Operation`] that generates a [`Count`] and chains it with the
 /// provided function to build a new [`Operation`].
 pub fn count() -> impl Operation<Count> {
