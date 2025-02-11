@@ -22,9 +22,7 @@ pub fn connect() -> impl Sipper<Never, Event> {
                     Ok((websocket, _)) => {
                         let (sender, receiver) = mpsc::channel(100);
 
-                        let _ = output
-                            .send(Event::Connected(Connection(sender)))
-                            .await;
+                        output.send(Event::Connected(Connection(sender))).await;
 
                         (websocket.fuse(), receiver)
                     }
@@ -32,8 +30,7 @@ pub fn connect() -> impl Sipper<Never, Event> {
                         tokio::time::sleep(tokio::time::Duration::from_secs(1))
                             .await;
 
-                        let _ = output.send(Event::Disconnected).await;
-
+                        output.send(Event::Disconnected).await;
                         continue;
                     }
                 };
@@ -43,21 +40,20 @@ pub fn connect() -> impl Sipper<Never, Event> {
                     received = websocket.select_next_some() => {
                         match received {
                             Ok(tungstenite::Message::Text(message)) => {
-                               let _ = output.send(Event::MessageReceived(Message::User(message))).await;
+                                output.send(Event::MessageReceived(Message::User(message))).await;
                             }
                             Err(_) => {
-                                let _ = output.send(Event::Disconnected).await;
+                                output.send(Event::Disconnected).await;
                                 break;
                             }
-                            Ok(_) => continue,
+                            Ok(_) => {},
                         }
                     }
-
                     message = input.select_next_some() => {
                         let result = websocket.send(tungstenite::Message::Text(message.to_string())).await;
 
                         if result.is_err() {
-                            let _ = output.send(Event::Disconnected).await;
+                            output.send(Event::Disconnected).await;
                         }
                     }
                 }
