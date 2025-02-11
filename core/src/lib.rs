@@ -137,9 +137,9 @@ pub fn with<T, R, O>(
     prefix: T,
 ) -> impl FnMut(R) -> O
 where
-    T: Clone,
+    T: Copy,
 {
-    move |result| f(prefix.clone(), result)
+    move |result| f(prefix, result)
 }
 
 /// Applies the given prefix values to the provided closure in the first
