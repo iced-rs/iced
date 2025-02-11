@@ -145,7 +145,7 @@ where
 /// Applies the given prefix values to the provided closure in the first
 /// argument and returns a new closure that takes its last argument.
 ///
-/// This is variadic version of [`with()`] which works with any number of
+/// This is a variadic version of [`with()`] which works with any number of
 /// arguments.
 #[macro_export]
 macro_rules! with {
