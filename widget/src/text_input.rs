@@ -1319,23 +1319,24 @@ where
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
-                    if focus.is_window_focused
-                        && matches!(
+                    if focus.is_window_focused {
+                        if matches!(
                             state.cursor.state(&self.value),
                             cursor::State::Index(_)
-                        )
-                    {
-                        focus.now = *now;
+                        ) {
+                            focus.now = *now;
 
-                        let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
-                            - (*now - focus.updated_at).as_millis()
-                                % CURSOR_BLINK_INTERVAL_MILLIS;
+                            let millis_until_redraw =
+                                CURSOR_BLINK_INTERVAL_MILLIS
+                                    - (*now - focus.updated_at).as_millis()
+                                        % CURSOR_BLINK_INTERVAL_MILLIS;
 
-                        shell.request_redraw_at(
-                            *now + Duration::from_millis(
-                                millis_until_redraw as u64,
-                            ),
-                        );
+                            shell.request_redraw_at(
+                                *now + Duration::from_millis(
+                                    millis_until_redraw as u64,
+                                ),
+                            );
+                        }
 
                         shell.request_input_method(&self.input_method(
                             state,
