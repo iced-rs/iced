@@ -1273,6 +1273,7 @@ where
                         state.is_ime_open = Some(input_method::Preedit {
                             content: content.to_owned(),
                             selection: selection.clone(),
+                            text_size: self.size,
                         });
 
                         shell.request_redraw();

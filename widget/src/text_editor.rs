@@ -759,8 +759,11 @@ where
                         shell.request_redraw();
                     }
                     Ime::Preedit { content, selection } => {
-                        state.preedit =
-                            Some(input_method::Preedit { content, selection });
+                        state.preedit = Some(input_method::Preedit {
+                            content,
+                            selection,
+                            text_size: self.text_size,
+                        });
 
                         shell.request_redraw();
                     }
