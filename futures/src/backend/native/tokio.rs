@@ -23,11 +23,10 @@ impl crate::Executor for Executor {
 pub mod time {
     //! Listen and react to time.
     use crate::core::time::{Duration, Instant};
-    use crate::stream;
     use crate::subscription::Subscription;
     use crate::MaybeSend;
 
-    use futures::SinkExt;
+    use futures::stream;
     use std::future::Future;
 
     /// Returns a [`Subscription`] that produces messages at a set interval.
@@ -66,12 +65,12 @@ pub mod time {
             let f = *f;
             let interval = *interval;
 
-            stream::channel(1, move |mut output| async move {
-                loop {
-                    let _ = output.send(f().await).await;
-
+            stream::unfold(0, move |i| async move {
+                if i > 0 {
                     tokio::time::sleep(interval).await;
                 }
+
+                Some((f().await, i + 1))
             })
         })
     }

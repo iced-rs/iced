@@ -506,8 +506,8 @@ pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
     never, Alignment, Animation, Background, Border, Color, ContentFit,
-    Degrees, Gradient, Length, Padding, Pixels, Point, Radians, Rectangle,
-    Rotation, Settings, Shadow, Size, Theme, Transformation, Vector,
+    Degrees, Function, Gradient, Length, Padding, Pixels, Point, Radians,
+    Rectangle, Rotation, Settings, Shadow, Size, Theme, Transformation, Vector,
 };
 pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
@@ -519,7 +519,9 @@ pub use Length::{Fill, FillPortion, Shrink};
 
 pub mod task {
     //! Create runtime tasks.
-    pub use crate::runtime::task::{Handle, Task};
+    pub use crate::runtime::task::{
+        sipper, stream, Handle, Never, Sipper, Straw, Task,
+    };
 }
 
 pub mod clipboard {

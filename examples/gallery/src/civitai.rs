@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use serde::Deserialize;
+use sipper::{sipper, Straw};
 use tokio::task;
 
 use std::fmt;
@@ -45,58 +46,72 @@ impl Image {
         self,
         width: u32,
         height: u32,
-    ) -> Result<Rgba, Error> {
+    ) -> Result<Blurhash, Error> {
         task::spawn_blocking(move || {
             let pixels = blurhash::decode(&self.hash, width, height, 1.0)?;
 
-            Ok::<_, Error>(Rgba {
-                width,
-                height,
-                pixels: Bytes::from(pixels),
+            Ok::<_, Error>(Blurhash {
+                rgba: Rgba {
+                    width,
+                    height,
+                    pixels: Bytes::from(pixels),
+                },
             })
         })
         .await?
     }
 
-    pub async fn download(self, size: Size) -> Result<Rgba, Error> {
-        let client = reqwest::Client::new();
+    pub fn download(self, size: Size) -> impl Straw<Rgba, Blurhash, Error> {
+        sipper(move |mut sender| async move {
+            let client = reqwest::Client::new();
 
-        let bytes = client
-            .get(match size {
-                Size::Original => self.url,
-                Size::Thumbnail { width } => self
-                    .url
-                    .split("/")
-                    .map(|part| {
-                        if part.starts_with("width=") {
-                            format!("width={}", width * 2) // High DPI
-                        } else {
-                            part.to_owned()
-                        }
-                    })
-                    .collect::<Vec<_>>()
-                    .join("/"),
+            if let Size::Thumbnail { width, height } = size {
+                let image = self.clone();
+
+                drop(task::spawn(async move {
+                    if let Ok(blurhash) = image.blurhash(width, height).await {
+                        sender.send(blurhash).await;
+                    }
+                }));
+            }
+
+            let bytes = client
+                .get(match size {
+                    Size::Original => self.url,
+                    Size::Thumbnail { width, .. } => self
+                        .url
+                        .split("/")
+                        .map(|part| {
+                            if part.starts_with("width=") {
+                                format!("width={}", width * 2) // High DPI
+                            } else {
+                                part.to_owned()
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join("/"),
+                })
+                .send()
+                .await?
+                .error_for_status()?
+                .bytes()
+                .await?;
+
+            let image = task::spawn_blocking(move || {
+                Ok::<_, Error>(
+                    image::ImageReader::new(io::Cursor::new(bytes))
+                        .with_guessed_format()?
+                        .decode()?
+                        .to_rgba8(),
+                )
             })
-            .send()
-            .await?
-            .error_for_status()?
-            .bytes()
-            .await?;
+            .await??;
 
-        let image = task::spawn_blocking(move || {
-            Ok::<_, Error>(
-                image::ImageReader::new(io::Cursor::new(bytes))
-                    .with_guessed_format()?
-                    .decode()?
-                    .to_rgba8(),
-            )
-        })
-        .await??;
-
-        Ok(Rgba {
-            width: image.width(),
-            height: image.height(),
-            pixels: Bytes::from(image.into_raw()),
+            Ok(Rgba {
+                width: image.width(),
+                height: image.height(),
+                pixels: Bytes::from(image.into_raw()),
+            })
         })
     }
 }
@@ -105,6 +120,11 @@ impl Image {
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize,
 )]
 pub struct Id(u32);
+
+#[derive(Debug, Clone)]
+pub struct Blurhash {
+    pub rgba: Rgba,
+}
 
 #[derive(Clone)]
 pub struct Rgba {
@@ -125,7 +145,7 @@ impl fmt::Debug for Rgba {
 #[derive(Debug, Clone, Copy)]
 pub enum Size {
     Original,
-    Thumbnail { width: u32 },
+    Thumbnail { width: u32, height: u32 },
 }
 
 #[derive(Debug, Clone)]

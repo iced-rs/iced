@@ -93,3 +93,60 @@ pub use smol_str::SmolStr;
 pub fn never<T>(never: std::convert::Infallible) -> T {
     match never {}
 }
+
+/// A trait extension for binary functions (`Fn(A, B) -> O`).
+///
+/// It enables you to use a bunch of nifty functional programming paradigms
+/// that work well with iced.
+pub trait Function<A, B, O> {
+    /// Applies the given first argument to a binary function and returns
+    /// a new function that takes the other argument.
+    ///
+    /// This lets you partially "apply" a function—equivalent to currying,
+    /// but it only works with binary functions. If you want to apply an
+    /// arbitrary number of arguments, create a little struct for them.
+    ///
+    /// # When is this useful?
+    /// Sometimes you will want to identify the source or target
+    /// of some message in your user interface. This can be achieved through
+    /// normal means by defining a closure and moving the identifier
+    /// inside:
+    ///
+    /// ```rust
+    /// # let element: Option<()> = Some(());
+    /// # enum Message { ButtonPressed(u32, ()) }
+    /// let id = 123;
+    ///
+    /// # let _ = {
+    /// element.map(move |result| Message::ButtonPressed(id, result))
+    /// # };
+    /// ```
+    ///
+    /// That's quite a mouthful. [`with`](Self::with) lets you write:
+    ///
+    /// ```rust
+    /// # use iced_core::Function;
+    /// # let element: Option<()> = Some(());
+    /// # enum Message { ButtonPressed(u32, ()) }
+    /// let id = 123;
+    ///
+    /// # let _ = {
+    /// element.map(Message::ButtonPressed.with(id))
+    /// # };
+    /// ```
+    ///
+    /// Effectively creating the same closure that partially applies
+    /// the `id` to the message—but much more concise!
+    fn with(self, prefix: A) -> impl Fn(B) -> O;
+}
+
+impl<F, A, B, O> Function<A, B, O> for F
+where
+    F: Fn(A, B) -> O,
+    Self: Sized,
+    A: Copy,
+{
+    fn with(self, prefix: A) -> impl Fn(B) -> O {
+        move |result| self(prefix, result)
+    }
+}

@@ -1875,6 +1875,7 @@ dependencies = [
  "image",
  "reqwest",
  "serde",
+ "sipper",
  "tokio",
 ]
 
@@ -2592,6 +2593,7 @@ dependencies = [
  "iced_core",
  "iced_futures",
  "raw-window-handle 0.6.2",
+ "sipper",
  "thiserror 1.0.69",
 ]
 
@@ -5226,6 +5228,16 @@ name = "siphasher"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56199f7ddabf13fe5074ce809e7d3f42b42ae711800501b5b16ea82ad029c39d"
+
+[[package]]
+name = "sipper"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bccb4192828b3d9a08e0b5a73f17795080dfb278b50190216e3ae2132cf4f95"
+dependencies = [
+ "futures",
+ "pin-project-lite",
+]
 
 [[package]]
 name = "skrifa"

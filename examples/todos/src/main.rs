@@ -4,7 +4,9 @@ use iced::widget::{
     scrollable, text, text_input, Text,
 };
 use iced::window;
-use iced::{Center, Element, Fill, Font, Subscription, Task as Command};
+use iced::{
+    Center, Element, Fill, Font, Function, Subscription, Task as Command,
+};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -215,9 +217,8 @@ impl Todos {
                             .map(|(i, task)| {
                                 (
                                     task.id,
-                                    task.view(i).map(move |message| {
-                                        Message::TaskMessage(i, message)
-                                    }),
+                                    task.view(i)
+                                        .map(Message::TaskMessage.with(i)),
                                 )
                             }),
                     )

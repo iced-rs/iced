@@ -93,6 +93,7 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     ///
     /// ```no_run
     /// # mod iced {
+    /// #     pub use iced_core::Function;
     /// #     pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
     /// #
     /// #     pub mod widget {
@@ -119,7 +120,7 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     /// use counter::Counter;
     ///
     /// use iced::widget::row;
-    /// use iced::Element;
+    /// use iced::{Element, Function};
     ///
     /// struct ManyCounters {
     ///     counters: Vec<Counter>,
@@ -142,7 +143,7 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     ///                     // Here we turn our `Element<counter::Message>` into
     ///                     // an `Element<Message>` by combining the `index` and the
     ///                     // message of the `element`.
-    ///                     counter.map(move |message| Message::Counter(index, message))
+    ///                     counter.map(Message::Counter.with(index))
     ///                 }),
     ///         )
     ///         .into()
