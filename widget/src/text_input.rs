@@ -1726,7 +1726,7 @@ fn replace_paragraph<Renderer>(
         bounds: Size::new(f32::INFINITY, text_bounds.height),
         size: text_size,
         horizontal_alignment: alignment::Horizontal::Left,
-        vertical_alignment: alignment::Vertical::Top,
+        vertical_alignment: alignment::Vertical::Center,
         shaping: text::Shaping::Advanced,
         wrapping: text::Wrapping::default(),
     });
