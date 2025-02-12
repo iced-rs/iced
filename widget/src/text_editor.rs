@@ -753,11 +753,8 @@ where
                 }
                 Update::InputMethod(update) => match update {
                     Ime::Toggle(is_open) => {
-                        state.preedit = is_open.then(|| {
-                            let mut preedit = input_method::Preedit::new();
-                            preedit.text_size = self.text_size;
-                            preedit
-                        });
+                        state.preedit =
+                            is_open.then(input_method::Preedit::new);
 
                         shell.request_redraw();
                     }
