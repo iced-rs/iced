@@ -406,10 +406,6 @@ where
             return InputMethod::Disabled;
         };
 
-        let Some(preedit) = &state.is_ime_open else {
-            return InputMethod::Allowed;
-        };
-
         let secure_value = self.is_secure.then(|| value.secure());
         let value = secure_value.as_ref().unwrap_or(value);
 
@@ -433,14 +429,14 @@ where
         let x = (text_bounds.x + cursor_x).floor() - scroll_offset
             + alignment_offset;
 
-        InputMethod::Open {
+        InputMethod::Enabled {
             position: Point::new(x, text_bounds.y + text_bounds.height),
             purpose: if self.is_secure {
                 input_method::Purpose::Secure
             } else {
                 input_method::Purpose::Normal
             },
-            preedit: Some(preedit.as_ref()),
+            preedit: state.preedit.as_ref().map(input_method::Preedit::as_ref),
         }
     }
 
@@ -584,7 +580,7 @@ where
         let draw = |renderer: &mut Renderer, viewport| {
             let paragraph = if text.is_empty()
                 && state
-                    .is_ime_open
+                    .preedit
                     .as_ref()
                     .map(|preedit| preedit.content.is_empty())
                     .unwrap_or(true)
@@ -1260,7 +1256,7 @@ where
                 input_method::Event::Opened | input_method::Event::Closed => {
                     let state = state::<Renderer>(tree);
 
-                    state.is_ime_open =
+                    state.preedit =
                         matches!(event, input_method::Event::Opened)
                             .then(input_method::Preedit::new);
 
@@ -1270,7 +1266,7 @@ where
                     let state = state::<Renderer>(tree);
 
                     if state.is_focused.is_some() {
-                        state.is_ime_open = Some(input_method::Preedit {
+                        state.preedit = Some(input_method::Preedit {
                             content: content.to_owned(),
                             selection: selection.clone(),
                             text_size: self.size,
@@ -1340,6 +1336,12 @@ where
                                 millis_until_redraw as u64,
                             ),
                         );
+
+                        shell.request_input_method(&self.input_method(
+                            state,
+                            layout,
+                            &self.value,
+                        ));
                     }
                 }
             }
@@ -1363,12 +1365,6 @@ where
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
             self.last_status = Some(status);
-
-            shell.request_input_method(&self.input_method(
-                state,
-                layout,
-                &self.value,
-            ));
         } else if self
             .last_status
             .is_some_and(|last_status| status != last_status)
@@ -1528,9 +1524,9 @@ pub struct State<P: text::Paragraph> {
     placeholder: paragraph::Plain<P>,
     icon: paragraph::Plain<P>,
     is_focused: Option<Focus>,
-    is_ime_open: Option<input_method::Preedit>,
     is_dragging: bool,
     is_pasting: Option<Value>,
+    preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,

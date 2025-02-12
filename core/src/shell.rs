@@ -27,7 +27,7 @@ impl<'a, Message> Shell<'a, Message> {
             redraw_request: window::RedrawRequest::Wait,
             is_layout_invalid: false,
             are_widgets_invalid: false,
-            input_method: InputMethod::None,
+            input_method: InputMethod::Disabled,
         }
     }
 
