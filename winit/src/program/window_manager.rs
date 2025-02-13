@@ -221,15 +221,10 @@ where
                 if let Some(preedit) = preedit {
                     if preedit.content.is_empty() {
                         self.preedit = None;
-                    } else if let Some(overlay) = &mut self.preedit {
-                        overlay.update(
-                            position,
-                            &preedit,
-                            self.state.background_color(),
-                            &self.renderer,
-                        );
                     } else {
-                        let mut overlay = Preedit::new();
+                        let mut overlay =
+                            self.preedit.take().unwrap_or_else(Preedit::new);
+
                         overlay.update(
                             position,
                             &preedit,
