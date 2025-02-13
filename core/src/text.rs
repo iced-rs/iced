@@ -191,7 +191,7 @@ pub trait Renderer: crate::Renderer {
     type Paragraph: Paragraph<Font = Self::Font> + 'static;
 
     /// The [`Editor`] of this [`Renderer`].
-    type Editor: Editor<Font = Self::Font> + 'static;
+    type Editor: Editor<Font = Self::Font> + Clone + 'static;
 
     /// The icon font of the backend.
     const ICON_FONT: Self::Font;

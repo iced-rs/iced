@@ -368,10 +368,12 @@ where
 }
 
 /// The content of a [`TextEditor`].
+#[derive(Clone)]
 pub struct Content<R = crate::Renderer>(RefCell<Internal<R>>)
 where
     R: text::Renderer;
 
+#[derive(Clone)]
 struct Internal<R>
 where
     R: text::Renderer,
