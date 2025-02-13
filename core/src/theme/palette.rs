@@ -3,7 +3,7 @@ use crate::{color, Color};
 
 use palette::color_difference::Wcag21RelativeContrast;
 use palette::rgb::Rgb;
-use palette::{FromColor, Hsl, Mix};
+use palette::Mix;
 
 use std::sync::LazyLock;
 
@@ -419,7 +419,7 @@ impl Extended {
                 palette.background,
                 palette.text,
             ),
-            is_dark: is_dark(palette.background),
+            is_dark: palette.background.is_dark(),
         }
     }
 }
@@ -488,7 +488,7 @@ impl Primary {
     /// Generates a set of [`Primary`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = mix(base, background, 0.4);
-        let strong = deviate(base, 0.1);
+        let strong = base.deviate(0.1);
 
         Self {
             base: Pair::new(base, text),
@@ -539,7 +539,7 @@ impl Success {
     /// Generates a set of [`Success`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = mix(base, background, 0.4);
-        let strong = deviate(base, 0.1);
+        let strong = base.deviate(0.1);
 
         Self {
             base: Pair::new(base, text),
@@ -564,7 +564,7 @@ impl Warning {
     /// Generates a set of [`Warning`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = mix(base, background, 0.4);
-        let strong = deviate(base, 0.1);
+        let strong = base.deviate(0.1);
 
         Self {
             base: Pair::new(base, text),
@@ -589,45 +589,13 @@ impl Danger {
     /// Generates a set of [`Danger`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = mix(base, background, 0.4);
-        let strong = deviate(base, 0.1);
+        let strong = base.deviate(0.1);
 
         Self {
             base: Pair::new(base, text),
             weak: Pair::new(weak, text),
             strong: Pair::new(strong, text),
         }
-    }
-}
-
-fn darken(color: Color, amount: f32) -> Color {
-    let mut hsl = to_hsl(color);
-
-    hsl.lightness = if hsl.lightness - amount < 0.0 {
-        0.0
-    } else {
-        hsl.lightness - amount
-    };
-
-    from_hsl(hsl)
-}
-
-fn lighten(color: Color, amount: f32) -> Color {
-    let mut hsl = to_hsl(color);
-
-    hsl.lightness = if hsl.lightness + amount > 1.0 {
-        1.0
-    } else {
-        hsl.lightness + amount
-    };
-
-    from_hsl(hsl)
-}
-
-fn deviate(color: Color, amount: f32) -> Color {
-    if is_dark(color) {
-        lighten(color, amount)
-    } else {
-        darken(color, amount)
     }
 }
 
@@ -654,10 +622,6 @@ fn readable(background: Color, text: Color) -> Color {
     }
 }
 
-fn is_dark(color: Color) -> bool {
-    to_hsl(color).lightness < 0.6
-}
-
 fn is_readable(a: Color, b: Color) -> bool {
     let a_srgb = Rgb::from(a);
     let b_srgb = Rgb::from(b);
@@ -670,12 +634,4 @@ fn relative_contrast(a: Color, b: Color) -> f32 {
     let b_srgb = Rgb::from(b);
 
     a_srgb.relative_contrast(b_srgb)
-}
-
-fn to_hsl(color: Color) -> Hsl {
-    Hsl::from_color(Rgb::from(color))
-}
-
-fn from_hsl(hsl: Hsl) -> Color {
-    Rgb::from_color(hsl).into()
 }
