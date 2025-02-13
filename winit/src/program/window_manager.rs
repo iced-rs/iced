@@ -234,6 +234,8 @@ where
 
                         self.preedit = Some(overlay);
                     }
+                } else {
+                    self.preedit = None;
                 }
             }
         }
