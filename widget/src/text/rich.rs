@@ -137,6 +137,9 @@ where
 
     /// Sets the message that will be produced when a link of the [`Rich`] text
     /// is clicked.
+    ///
+    /// If there is no link to click, you can call this method with
+    /// `on_link_clicked(never)`.
     pub fn on_link_click(
         mut self,
         on_link_clicked: impl Fn(Link) -> Message + 'a,
