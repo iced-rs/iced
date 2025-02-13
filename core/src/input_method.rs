@@ -6,14 +6,10 @@ use std::ops::Range;
 /// The input method strategy of a widget.
 #[derive(Debug, Clone, PartialEq)]
 pub enum InputMethod<T = String> {
-    /// No input method strategy has been specified.
-    None,
-    /// No input method is allowed.
+    /// Input method is disabled.
     Disabled,
-    /// Input methods are allowed, but not open yet.
-    Allowed,
-    /// Input method is open.
-    Open {
+    /// Input method is enabled.
+    Enabled {
         /// The position at which the input method dialog should be placed.
         position: Point,
         /// The [`Purpose`] of the input method.
@@ -91,25 +87,19 @@ impl InputMethod {
     /// # use iced_core::input_method::{InputMethod, Purpose, Preedit};
     /// # use iced_core::Point;
     ///
-    /// let open = InputMethod::Open {
+    /// let open = InputMethod::Enabled {
     ///     position: Point::ORIGIN,
     ///     purpose: Purpose::Normal,
     ///     preedit: Some(Preedit { content: "1".to_owned(), selection: None, text_size: None }),
     /// };
     ///
-    /// let open_2 = InputMethod::Open {
+    /// let open_2 = InputMethod::Enabled {
     ///     position: Point::ORIGIN,
     ///     purpose: Purpose::Secure,
     ///     preedit: Some(Preedit { content: "2".to_owned(), selection: None, text_size: None }),
     /// };
     ///
     /// let mut ime = InputMethod::Disabled;
-    ///
-    /// ime.merge(&InputMethod::<String>::Allowed);
-    /// assert_eq!(ime, InputMethod::Allowed);
-    ///
-    /// ime.merge(&InputMethod::<String>::Disabled);
-    /// assert_eq!(ime, InputMethod::Allowed);
     ///
     /// ime.merge(&open);
     /// assert_eq!(ime, open);
@@ -118,22 +108,16 @@ impl InputMethod {
     /// assert_eq!(ime, open);
     /// ```
     pub fn merge<T: AsRef<str>>(&mut self, other: &InputMethod<T>) {
-        match (&self, other) {
-            (InputMethod::Open { .. }, _)
-            | (
-                InputMethod::Allowed,
-                InputMethod::None | InputMethod::Disabled,
-            )
-            | (InputMethod::Disabled, InputMethod::None) => {}
-            _ => {
-                *self = other.to_owned();
-            }
+        if let InputMethod::Enabled { .. } = self {
+            return;
         }
+
+        *self = other.to_owned();
     }
 
     /// Returns true if the [`InputMethod`] is open.
-    pub fn is_open(&self) -> bool {
-        matches!(self, Self::Open { .. })
+    pub fn is_enabled(&self) -> bool {
+        matches!(self, Self::Enabled { .. })
     }
 }
 
@@ -144,14 +128,12 @@ impl<T> InputMethod<T> {
         T: AsRef<str>,
     {
         match self {
-            Self::None => InputMethod::None,
             Self::Disabled => InputMethod::Disabled,
-            Self::Allowed => InputMethod::Allowed,
-            Self::Open {
+            Self::Enabled {
                 position,
                 purpose,
                 preedit,
-            } => InputMethod::Open {
+            } => InputMethod::Enabled {
                 position: *position,
                 purpose: *purpose,
                 preedit: preedit.as_ref().map(Preedit::to_owned),

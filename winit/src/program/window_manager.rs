@@ -75,6 +75,7 @@ where
                 mouse_interaction: mouse::Interaction::None,
                 redraw_at: None,
                 preedit: None,
+                ime_state: None,
             },
         );
 
@@ -166,6 +167,7 @@ where
     pub renderer: P::Renderer,
     pub redraw_at: Option<Instant>,
     preedit: Option<Preedit<P::Renderer>>,
+    ime_state: Option<(Point, input_method::Purpose)>,
 }
 
 impl<P, C> Window<P, C>
@@ -206,52 +208,36 @@ where
 
     pub fn request_input_method(&mut self, input_method: InputMethod) {
         match input_method {
-            InputMethod::None => {}
             InputMethod::Disabled => {
-                self.raw.set_ime_allowed(false);
+                self.disable_ime();
             }
-            InputMethod::Allowed | InputMethod::Open { .. } => {
-                self.raw.set_ime_allowed(true);
-            }
-        }
+            InputMethod::Enabled {
+                position,
+                purpose,
+                preedit,
+            } => {
+                self.enable_ime(position, purpose);
 
-        if let InputMethod::Open {
-            position,
-            purpose,
-            preedit,
-        } = input_method
-        {
-            self.raw.set_ime_cursor_area(
-                LogicalPosition::new(position.x, position.y),
-                LogicalSize::new(10, 10), // TODO?
-            );
+                if let Some(preedit) = preedit {
+                    if preedit.content.is_empty() {
+                        self.preedit = None;
+                    } else {
+                        let mut overlay =
+                            self.preedit.take().unwrap_or_else(Preedit::new);
 
-            self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
+                        overlay.update(
+                            position,
+                            &preedit,
+                            self.state.background_color(),
+                            &self.renderer,
+                        );
 
-            if let Some(preedit) = preedit {
-                if preedit.content.is_empty() {
-                    self.preedit = None;
-                } else if let Some(overlay) = &mut self.preedit {
-                    overlay.update(
-                        position,
-                        &preedit,
-                        self.state.background_color(),
-                        &self.renderer,
-                    );
+                        self.preedit = Some(overlay);
+                    }
                 } else {
-                    let mut overlay = Preedit::new();
-                    overlay.update(
-                        position,
-                        &preedit,
-                        self.state.background_color(),
-                        &self.renderer,
-                    );
-
-                    self.preedit = Some(overlay);
+                    self.preedit = None;
                 }
             }
-        } else {
-            self.preedit = None;
         }
     }
 
@@ -267,6 +253,31 @@ where
                 ),
             );
         }
+    }
+
+    fn enable_ime(&mut self, position: Point, purpose: input_method::Purpose) {
+        if self.ime_state.is_none() {
+            self.raw.set_ime_allowed(true);
+        }
+
+        if self.ime_state != Some((position, purpose)) {
+            self.raw.set_ime_cursor_area(
+                LogicalPosition::new(position.x, position.y),
+                LogicalSize::new(10, 10), // TODO?
+            );
+            self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
+
+            self.ime_state = Some((position, purpose));
+        }
+    }
+
+    fn disable_ime(&mut self) {
+        if self.ime_state.is_some() {
+            self.raw.set_ime_allowed(false);
+            self.ime_state = None;
+        }
+
+        self.preedit = None;
     }
 }
 

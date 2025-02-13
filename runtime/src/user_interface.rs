@@ -189,7 +189,7 @@ where
 
         let mut outdated = false;
         let mut redraw_request = window::RedrawRequest::Wait;
-        let mut input_method = InputMethod::None;
+        let mut input_method = InputMethod::Disabled;
 
         let mut manual_overlay = ManuallyDrop::new(
             self.root

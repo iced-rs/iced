@@ -11,7 +11,7 @@ use cosmic_text::Edit as _;
 
 use std::borrow::Cow;
 use std::fmt;
-use std::sync::{self, Arc};
+use std::sync::{self, Arc, RwLock};
 
 /// A multi-line text editor.
 #[derive(Debug, PartialEq)]
@@ -19,6 +19,7 @@ pub struct Editor(Option<Arc<Internal>>);
 
 struct Internal {
     editor: cosmic_text::Editor<'static>,
+    cursor: RwLock<Option<Cursor>>,
     font: Font,
     bounds: Size,
     topmost_line_changed: Option<usize>,
@@ -114,10 +115,14 @@ impl editor::Editor for Editor {
     fn cursor(&self) -> editor::Cursor {
         let internal = self.internal();
 
+        if let Ok(Some(cursor)) = internal.cursor.read().as_deref() {
+            return cursor.clone();
+        }
+
         let cursor = internal.editor.cursor();
         let buffer = buffer_from_editor(&internal.editor);
 
-        match internal.editor.selection_bounds() {
+        let cursor = match internal.editor.selection_bounds() {
             Some((start, end)) => {
                 let line_height = buffer.metrics().line_height;
                 let selected_lines = end.line - start.line + 1;
@@ -237,7 +242,12 @@ impl editor::Editor for Editor {
                         - buffer.scroll().vertical,
                 ))
             }
-        }
+        };
+
+        *internal.cursor.write().expect("Write to cursor cache") =
+            Some(cursor.clone());
+
+        cursor
     }
 
     fn cursor_position(&self) -> (usize, usize) {
@@ -258,6 +268,13 @@ impl editor::Editor for Editor {
             .expect("Editor cannot have multiple strong references");
 
         let editor = &mut internal.editor;
+
+        // Clear cursor cache
+        let _ = internal
+            .cursor
+            .write()
+            .expect("Write to cursor cache")
+            .take();
 
         match action {
             // Motion events
@@ -527,6 +544,13 @@ impl editor::Editor for Editor {
 
         internal.editor.shape_as_needed(font_system.raw(), false);
 
+        // Clear cursor cache
+        let _ = internal
+            .cursor
+            .write()
+            .expect("Write to cursor cache")
+            .take();
+
         self.0 = Some(Arc::new(internal));
     }
 
@@ -635,6 +659,7 @@ impl Default for Internal {
                     line_height: 1.0,
                 },
             )),
+            cursor: RwLock::new(None),
             font: Font::default(),
             bounds: Size::ZERO,
             topmost_line_changed: None,
