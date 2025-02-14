@@ -280,10 +280,13 @@ impl Renderer {
         let scale = Transformation::scale(scale_factor);
 
         for layer in self.layers.iter() {
-            let Some(scissor_rect) = physical_bounds
-                .intersection(&(layer.bounds * scale_factor))
-                .and_then(Rectangle::snap)
+            let Some(physical_bounds) =
+                physical_bounds.intersection(&(layer.bounds * scale_factor))
             else {
+                continue;
+            };
+
+            let Some(scissor_rect) = physical_bounds.snap() else {
                 continue;
             };
 
