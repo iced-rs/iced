@@ -363,7 +363,7 @@ where
                                     (
                                         ControlFlow::WaitUntil(current),
                                         ControlFlow::WaitUntil(new),
-                                    ) if new < current => {}
+                                    ) if current < new => {}
                                     (
                                         ControlFlow::WaitUntil(target),
                                         ControlFlow::Wait,
