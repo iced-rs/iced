@@ -343,6 +343,10 @@ where
                 shaping: text::Shaping::Advanced,
                 wrapping: text::Wrapping::None,
             });
+
+            self.spans.clear();
+            self.spans
+                .extend(spans.into_iter().map(text::Span::to_static));
         }
     }
 
