@@ -266,7 +266,10 @@ where
             state: tree::State::new(S::default()),
             children: vec![Tree::empty()],
         })));
+
         *self.tree.borrow_mut() = state.clone();
+        self.diff_self();
+
         tree::State::new(state)
     }
 
