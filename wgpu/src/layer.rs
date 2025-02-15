@@ -287,6 +287,7 @@ impl Default for Layer {
             triangles: triangle::Batch::default(),
             primitives: primitive::Batch::default(),
             text: text::Batch::default(),
+            #[allow(clippy::default_constructed_unit_structs)]
             images: image::Batch::default(),
             pending_meshes: Vec::new(),
             pending_text: Vec::new(),
