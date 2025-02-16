@@ -17,12 +17,14 @@
 //! }
 //! ```
 use crate::core::border::{self, Border};
+use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme::palette;
 use crate::core::touch;
+use crate::core::widget::operation::Focusable;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::window;
@@ -82,6 +84,7 @@ where
     clip: bool,
     class: Theme::Class<'a>,
     status: Option<Status>,
+    focusable: bool,
 }
 
 enum OnPress<'a, Message> {
@@ -119,6 +122,7 @@ where
             clip: false,
             class: Theme::default(),
             status: None,
+            focusable: false,
         }
     }
 
@@ -197,11 +201,33 @@ where
         self.class = class.into();
         self
     }
+
+    /// Sets whether the [`Button`] is focusable.
+    #[must_use]
+    pub fn focusable(mut self, focusable: bool) -> Self {
+        self.focusable = focusable;
+        self
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct State {
     is_pressed: bool,
+    is_focused: bool,
+}
+
+impl Focusable for State {
+    fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    fn unfocus(&mut self) {
+        self.is_focused = false;
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -262,6 +288,10 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
+        if self.focusable {
+            let state = tree.state.downcast_mut::<State>();
+            operation.focusable(None, layout.bounds(), state);
+        }
         operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],
@@ -336,6 +366,36 @@ where
 
                 state.is_pressed = false;
             }
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key:
+                    keyboard::Key::Named(keyboard::key::Named::Enter)
+                    | keyboard::Key::Named(keyboard::key::Named::Space),
+                ..
+            }) if self.focusable => {
+                if self.on_press.is_some() {
+                    let state = tree.state.downcast_mut::<State>();
+                    if state.is_focused {
+                        state.is_pressed = true;
+
+                        shell.capture_event();
+                    }
+                }
+            }
+            Event::Keyboard(keyboard::Event::KeyReleased {
+                key:
+                    keyboard::Key::Named(keyboard::key::Named::Enter)
+                    | keyboard::Key::Named(keyboard::key::Named::Space),
+                ..
+            }) if self.focusable => {
+                if let Some(on_press) = &self.on_press {
+                    let state = tree.state.downcast_mut::<State>();
+                    if state.is_focused && state.is_pressed {
+                        state.is_pressed = false;
+                        shell.publish(on_press.get());
+                        shell.capture_event();
+                    }
+                }
+            }
             _ => {}
         }
 
@@ -348,6 +408,15 @@ where
                 Status::Pressed
             } else {
                 Status::Hovered
+            }
+        } else if self.focusable {
+            let state = tree.state.downcast_ref::<State>();
+            if state.is_pressed {
+                Status::Pressed
+            } else if state.is_focused {
+                Status::Focused
+            } else {
+                Status::Active
             }
         } else {
             Status::Active
@@ -474,6 +543,8 @@ pub enum Status {
     Pressed,
     /// The [`Button`] cannot be pressed.
     Disabled,
+    /// The [`Button`] is focused.
+    Focused,
 }
 
 /// The style of a button.
@@ -595,7 +666,7 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.primary.base.color)),
             ..base
         },
@@ -610,7 +681,7 @@ pub fn secondary(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.secondary.strong.color)),
             ..base
         },
@@ -625,7 +696,7 @@ pub fn success(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.success.strong.color)),
             ..base
         },
@@ -640,7 +711,7 @@ pub fn warning(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.warning.strong.color)),
             ..base
         },
@@ -655,7 +726,7 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.danger.strong.color)),
             ..base
         },
@@ -674,7 +745,7 @@ pub fn text(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             text_color: palette.background.base.text.scale_alpha(0.8),
             ..base
         },
