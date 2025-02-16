@@ -579,7 +579,8 @@ impl SavedState {
             .set_item("state", &json)
             .map_err(|_| SaveError::Write)?;
 
-        let _ = wasm_timer::Delay::new(std::time::Duration::from_secs(2)).await;
+        let _ =
+            wasmtimer::tokio::sleep(std::time::Duration::from_secs(2)).await;
 
         Ok(())
     }
