@@ -257,3 +257,48 @@ pub fn find_focused() -> impl Operation<Id> {
 
     FindFocused { focused: None }
 }
+
+/// Produces an [`Operation`] that searches for the focusable widget
+/// and stores whether it is focused or not. This ignores widgets that
+/// do not have an ID.
+pub fn is_focused(target: Id) -> impl Operation<bool> {
+    struct IsFocused {
+        target: Id,
+        is_focused: Option<bool>,
+    }
+
+    impl Operation<bool> for IsFocused {
+        fn focusable(
+            &mut self,
+            id: Option<&Id>,
+            _bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
+            if id.is_some_and(|id| *id == self.target) {
+                self.is_focused = Some(state.is_focused());
+            }
+        }
+
+        fn container(
+            &mut self,
+            _id: Option<&Id>,
+            _bounds: Rectangle,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<bool>),
+        ) {
+            operate_on_children(self);
+        }
+
+        fn finish(&self) -> Outcome<bool> {
+            if let Some(is_focused) = &self.is_focused {
+                Outcome::Some(*is_focused)
+            } else {
+                Outcome::None
+            }
+        }
+    }
+
+    IsFocused {
+        target,
+        is_focused: None,
+    }
+}
