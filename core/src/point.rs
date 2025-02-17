@@ -107,3 +107,13 @@ where
         write!(f, "Point {{ x: {}, y: {} }}", self.x, self.y)
     }
 }
+
+impl Point<f32> {
+    /// Snaps the [`Point`] to __unsigned__ integer coordinates.
+    pub fn snap(self) -> Point<u32> {
+        Point {
+            x: self.x.round() as u32,
+            y: self.y.round() as u32,
+        }
+    }
+}
