@@ -62,6 +62,18 @@ pub struct Settings {
     /// Whether the window should be transparent.
     pub transparent: bool,
 
+    /// Whether the window should have blurry background.
+    ///
+    /// Note that the blurry effect is applied to the transparent window. You need to enable
+    /// [`Settings::transparent`] and set a proper opacity value to the background color with
+    /// `Application::style`.
+    ///
+    /// This option is only supported on macOS and Linux. Please read the [winit document][winit]
+    /// for more details.
+    ///
+    /// [winit]: https://docs.rs/winit/latest/winit/window/struct.Window.html#method.set_blur
+    pub blur: bool,
+
     /// The window [`Level`].
     pub level: Level,
 
@@ -95,6 +107,7 @@ impl Default for Settings {
             resizable: true,
             decorations: true,
             transparent: false,
+            blur: false,
             level: Level::default(),
             icon: None,
             exit_on_close_request: true,
