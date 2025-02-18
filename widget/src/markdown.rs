@@ -142,6 +142,7 @@ impl Content {
                         leftover: String::new(),
                         references: self.state.references.clone(),
                         images: HashSet::new(),
+                        #[cfg(feature = "highlighter")]
                         highlighter: None,
                     };
 
