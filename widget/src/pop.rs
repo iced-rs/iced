@@ -4,6 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::time::{Duration, Instant};
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -23,6 +24,7 @@ pub struct Pop<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     on_resize: Option<Box<dyn Fn(Size) -> Message + 'a>>,
     on_hide: Option<Message>,
     anticipate: Pixels,
+    delay: Duration,
 }
 
 impl<'a, Message, Theme, Renderer> Pop<'a, Message, Theme, Renderer>
@@ -41,6 +43,7 @@ where
             on_resize: None,
             on_hide: None,
             anticipate: Pixels::ZERO,
+            delay: Duration::ZERO,
         }
     }
 
@@ -86,11 +89,21 @@ where
         self.anticipate = distance.into();
         self
     }
+
+    /// Sets the amount of time to wait before firing an [`on_show`] or
+    /// [`on_hide`] event; after the content is shown or hidden.
+    ///
+    /// When combined with [`key`], this can be useful to debounce key changes.
+    pub fn delay(mut self, delay: impl Into<Duration>) -> Self {
+        self.delay = delay.into();
+        self
+    }
 }
 
 #[derive(Debug, Clone, Default)]
 struct State {
     has_popped_in: bool,
+    should_notify_at: Option<(bool, Instant)>,
     last_size: Option<Size>,
     last_key: Option<String>,
 }
@@ -128,13 +141,14 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        if let Event::Window(window::Event::RedrawRequested(_)) = &event {
+        if let Event::Window(window::Event::RedrawRequested(now)) = &event {
             let state = tree.state.downcast_mut::<State>();
 
             if state.has_popped_in
                 && state.last_key.as_deref() != self.key.as_deref()
             {
                 state.has_popped_in = false;
+                state.should_notify_at = None;
                 state.last_key =
                     self.key.as_ref().cloned().map(text::Fragment::into_owned);
             }
@@ -157,19 +171,34 @@ where
                             shell.publish(on_resize(size));
                         }
                     }
-                } else if let Some(on_hide) = &self.on_hide {
+                } else if self.on_hide.is_some() {
                     state.has_popped_in = false;
-                    shell.publish(on_hide.clone());
+                    state.should_notify_at = Some((false, *now + self.delay));
                 }
-            } else if let Some(on_show) = &self.on_show {
-                if distance <= self.anticipate.0 {
-                    let size = bounds.size();
+            } else if self.on_show.is_some() && distance <= self.anticipate.0 {
+                let size = bounds.size();
 
-                    state.has_popped_in = true;
-                    state.last_size = Some(size);
+                state.has_popped_in = true;
+                state.should_notify_at = Some((true, *now + self.delay));
+                state.last_size = Some(size);
+            }
 
-                    shell.publish(on_show(size));
+            match &state.should_notify_at {
+                Some((has_popped_in, at)) if at <= now => {
+                    if *has_popped_in {
+                        if let Some(on_show) = &self.on_show {
+                            shell.publish(on_show(layout.bounds().size()));
+                        }
+                    } else if let Some(on_hide) = &self.on_hide {
+                        shell.publish(on_hide.clone());
+                    }
+
+                    state.should_notify_at = None;
                 }
+                Some((_, at)) => {
+                    shell.request_redraw_at(*at);
+                }
+                None => {}
             }
         }
 

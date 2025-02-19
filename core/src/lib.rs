@@ -144,9 +144,9 @@ impl<F, A, B, O> Function<A, B, O> for F
 where
     F: Fn(A, B) -> O,
     Self: Sized,
-    A: Copy,
+    A: Clone,
 {
     fn with(self, prefix: A) -> impl Fn(B) -> O {
-        move |result| self(prefix, result)
+        move |result| self(prefix.clone(), result)
     }
 }

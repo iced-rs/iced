@@ -3,14 +3,15 @@ mod icon;
 use iced::animation;
 use iced::clipboard;
 use iced::highlighter;
-use iced::task;
 use iced::time::{self, milliseconds, Instant};
 use iced::widget::{
     self, button, center_x, container, horizontal_space, hover, image,
     markdown, pop, right, row, scrollable, text_editor, toggler,
 };
 use iced::window;
-use iced::{Animation, Element, Fill, Font, Subscription, Task, Theme};
+use iced::{
+    Animation, Element, Fill, Font, Function, Subscription, Task, Theme,
+};
 
 use std::collections::HashMap;
 use std::io;
@@ -39,9 +40,7 @@ enum Mode {
 }
 
 enum Image {
-    Loading {
-        _download: task::Handle,
-    },
+    Loading,
     Ready {
         handle: image::Handle,
         fade_in: Animation<bool>,
@@ -89,9 +88,6 @@ impl Markdown {
                 if is_edit {
                     self.content = markdown::Content::parse(&self.raw.text());
                     self.mode = Mode::Preview;
-
-                    let images = self.content.images();
-                    self.images.retain(|url, _image| images.contains(url));
                 }
 
                 Task::none()
@@ -107,27 +103,12 @@ impl Markdown {
                     return Task::none();
                 }
 
-                let (download_image, handle) = Task::future({
-                    let url = url.clone();
+                let _ = self.images.insert(url.clone(), Image::Loading);
 
-                    async move {
-                        // Wait half a second for further editions before attempting download
-                        tokio::time::sleep(milliseconds(500)).await;
-                        download_image(url).await
-                    }
-                })
-                .abortable();
-
-                let _ = self.images.insert(
-                    url.clone(),
-                    Image::Loading {
-                        _download: handle.abort_on_drop(),
-                    },
-                );
-
-                download_image.map(move |result| {
-                    Message::ImageDownloaded(url.clone(), result)
-                })
+                Task::perform(
+                    download_image(url.clone()),
+                    Message::ImageDownloaded.with(url),
+                )
             }
             Message::ImageDownloaded(url, result) => {
                 let _ = self.images.insert(
@@ -286,6 +267,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
         } else {
             pop(horizontal_space())
                 .key(url.as_str())
+                .delay(milliseconds(500))
                 .on_show(|_size| Message::ImageShown(url.clone()))
                 .into()
         }
