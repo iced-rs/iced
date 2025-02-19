@@ -1099,7 +1099,7 @@ where
 /// Displays a paragraph using the default look.
 pub fn paragraph<'a, Message, Theme, Renderer>(
     settings: Settings,
-    text: &'a Text,
+    text: &Text,
     on_link_click: impl Fn(Url) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -1264,7 +1264,7 @@ where
     fn paragraph(
         &self,
         settings: Settings,
-        text: &'a Text,
+        text: &Text,
     ) -> Element<'a, Message, Theme, Renderer> {
         paragraph(settings, text, Self::on_link_click)
     }
