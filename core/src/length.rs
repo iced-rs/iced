@@ -77,8 +77,8 @@ impl From<f32> for Length {
     }
 }
 
-impl From<u16> for Length {
-    fn from(units: u16) -> Self {
-        Length::Fixed(f32::from(units))
+impl From<u32> for Length {
+    fn from(units: u32) -> Self {
+        Length::Fixed(units as f32)
     }
 }

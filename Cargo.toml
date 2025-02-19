@@ -128,7 +128,7 @@ repository = "https://github.com/iced-rs/iced"
 homepage = "https://iced.rs"
 categories = ["gui"]
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-rust-version = "1.81"
+rust-version = "1.82"
 
 [workspace.dependencies]
 iced = { version = "0.14.0-dev", path = "." }
@@ -149,15 +149,16 @@ bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cosmic-text = "0.12"
-dark-light = "1.0"
+dark-light = "2.0"
 futures = "0.3"
 glam = "0.25"
 glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "09712a70df7431e9a3b1ac1bbd4fb634096cb3b4" }
 guillotiere = "0.6"
 half = "2.2"
-image = { version = "0.24", default-features = false }
+image = { version = "0.25", default-features = false }
 kamadak-exif = "0.5"
 kurbo = "0.10"
+lilt = "0.8"
 log = "0.4"
 lyon = "1.0"
 lyon_path = "1.0"
@@ -165,17 +166,18 @@ num-traits = "0.2"
 ouroboros = "0.18"
 palette = "0.7"
 png = "0.17"
-pulldown-cmark = "0.11"
+pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
 resvg = "0.42"
 rustc-hash = "2.0"
 sha2 = "0.10"
+sipper = "0.1"
 smol = "1.0"
 smol_str = "0.2"
 softbuffer = "0.4"
 syntect = "5.1"
-sysinfo = "0.30"
+sysinfo = "0.33"
 thiserror = "1.0"
 tiny-skia = "0.11"
 tokio = "1.0"
@@ -183,16 +185,15 @@ tracing = "0.1"
 unicode-segmentation = "1.0"
 url = "2.5"
 wasm-bindgen-futures = "0.4"
-wasm-timer = "0.2"
+wasmtimer = "0.4.1"
 web-sys = "0.3.69"
 web-time = "1.1"
 wgpu = "23.0"
-winapi = "0.3"
 window_clipboard = "0.4.1"
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "254d6b3420ce4e674f516f7a2bd440665e05484d" }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b" }
 
 [workspace.lints.rust]
-rust_2018_idioms = { level = "forbid", priority = -1 }
+rust_2018_idioms = { level = "deny", priority = -1 }
 missing_debug_implementations = "deny"
 missing_docs = "deny"
 unsafe_code = "deny"
@@ -200,6 +201,7 @@ unused_results = "deny"
 
 [workspace.lints.clippy]
 type-complexity = "allow"
+map-entry = "allow"
 semicolon_if_nothing_returned = "deny"
 trivially-copy-pass-by-ref = "deny"
 default_trait_access = "deny"

@@ -1,10 +1,12 @@
 use iced::keyboard;
 use iced::widget::{
-    self, button, center, checkbox, column, container, keyed_column, row,
+    self, button, center, center_x, checkbox, column, keyed_column, row,
     scrollable, text, text_input, Text,
 };
 use iced::window;
-use iced::{Center, Element, Fill, Font, Subscription, Task as Command};
+use iced::{
+    Center, Element, Fill, Font, Function, Subscription, Task as Command,
+};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -215,9 +217,8 @@ impl Todos {
                             .map(|(i, task)| {
                                 (
                                     task.id,
-                                    task.view(i).map(move |message| {
-                                        Message::TaskMessage(i, message)
-                                    }),
+                                    task.view(i)
+                                        .map(Message::TaskMessage.with(i)),
                                 )
                             }),
                     )
@@ -237,7 +238,7 @@ impl Todos {
                     .spacing(20)
                     .max_width(800);
 
-                scrollable(container(content).center_x(Fill).padding(40)).into()
+                scrollable(center_x(content).padding(40)).into()
             }
         }
     }
@@ -490,7 +491,7 @@ enum SaveError {
 impl SavedState {
     fn path() -> std::path::PathBuf {
         let mut path = if let Some(project_dirs) =
-            directories_next::ProjectDirs::from("rs", "Iced", "Todos")
+            directories::ProjectDirs::from("rs", "Iced", "Todos")
         {
             project_dirs.data_dir().into()
         } else {
@@ -578,7 +579,8 @@ impl SavedState {
             .set_item("state", &json)
             .map_err(|_| SaveError::Write)?;
 
-        let _ = wasm_timer::Delay::new(std::time::Duration::from_secs(2)).await;
+        let _ =
+            wasmtimer::tokio::sleep(std::time::Duration::from_secs(2)).await;
 
         Ok(())
     }

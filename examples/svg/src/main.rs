@@ -1,4 +1,4 @@
-use iced::widget::{center, checkbox, column, container, svg};
+use iced::widget::{center, center_x, checkbox, column, svg};
 use iced::{color, Element, Fill};
 
 pub fn main() -> iced::Result {
@@ -46,12 +46,8 @@ impl Tiger {
             checkbox("Apply a color filter", self.apply_color_filter)
                 .on_toggle(Message::ToggleColorFilter);
 
-        center(
-            column![svg, container(apply_color_filter).center_x(Fill)]
-                .spacing(20)
-                .height(Fill),
-        )
-        .padding(20)
-        .into()
+        center(column![svg, center_x(apply_color_filter)].spacing(20))
+            .padding(20)
+            .into()
     }
 }

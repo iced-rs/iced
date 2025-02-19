@@ -26,6 +26,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
@@ -107,8 +108,8 @@ where
     }
 
     /// Sets the [`Id`] of the [`Container`].
-    pub fn id(mut self, id: Id) -> Self {
-        self.id = Some(id);
+    pub fn id(mut self, id: impl Into<Id>) -> Self {
+        self.id = Some(id.into());
         self
     }
 
@@ -300,7 +301,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -480,9 +481,17 @@ impl From<Id> for widget::Id {
     }
 }
 
+impl From<&'static str> for Id {
+    fn from(value: &'static str) -> Self {
+        Id::new(value)
+    }
+}
+
 /// Produces a [`Task`] that queries the visible screen bounds of the
 /// [`Container`] with the given [`Id`].
-pub fn visible_bounds(id: Id) -> Task<Option<Rectangle>> {
+pub fn visible_bounds(id: impl Into<Id>) -> Task<Option<Rectangle>> {
+    let id = id.into();
+
     struct VisibleBounds {
         target: widget::Id,
         depth: usize,
@@ -706,9 +715,44 @@ pub fn bordered_box(theme: &Theme) -> Style {
 
 /// A [`Container`] with a dark background and white text.
 pub fn dark(_theme: &Theme) -> Style {
+    style(theme::palette::Pair {
+        color: color!(0x111111),
+        text: Color::WHITE,
+    })
+}
+
+/// A [`Container`] with a primary background color.
+pub fn primary(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.primary.base)
+}
+
+/// A [`Container`] with a secondary background color.
+pub fn secondary(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.secondary.base)
+}
+
+/// A [`Container`] with a success background color.
+pub fn success(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.success.base)
+}
+
+/// A [`Container`] with a danger background color.
+pub fn danger(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.danger.base)
+}
+
+fn style(pair: theme::palette::Pair) -> Style {
     Style {
-        background: Some(color!(0x111111).into()),
-        text_color: Some(Color::WHITE),
+        background: Some(pair.color.into()),
+        text_color: Some(pair.text),
         border: border::rounded(2),
         ..Style::default()
     }

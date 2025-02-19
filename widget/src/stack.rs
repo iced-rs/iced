@@ -207,7 +207,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         mut cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -216,37 +216,33 @@ where
         viewport: &Rectangle,
     ) {
         let is_over = cursor.is_over(layout.bounds());
+        let end = self.children.len() - 1;
 
-        for ((child, state), layout) in self
+        for (i, ((child, state), layout)) in self
             .children
             .iter_mut()
             .rev()
             .zip(tree.children.iter_mut().rev())
             .zip(layout.children().rev())
+            .enumerate()
         {
             child.as_widget_mut().update(
-                state,
-                event.clone(),
-                layout,
-                cursor,
-                renderer,
-                clipboard,
-                shell,
+                state, event, layout, cursor, renderer, clipboard, shell,
                 viewport,
             );
 
-            if is_over && cursor != mouse::Cursor::Unavailable {
+            if shell.is_event_captured() {
+                return;
+            }
+
+            if i < end && is_over && !cursor.is_levitating() {
                 let interaction = child.as_widget().mouse_interaction(
                     state, layout, cursor, viewport, renderer,
                 );
 
                 if interaction != mouse::Interaction::None {
-                    cursor = mouse::Cursor::Unavailable;
+                    cursor = cursor.levitate();
                 }
-            }
-
-            if shell.is_event_captured() {
-                return;
             }
         }
     }

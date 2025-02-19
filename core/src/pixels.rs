@@ -20,9 +20,9 @@ impl From<f32> for Pixels {
     }
 }
 
-impl From<u16> for Pixels {
-    fn from(amount: u16) -> Self {
-        Self(f32::from(amount))
+impl From<u32> for Pixels {
+    fn from(amount: u32) -> Self {
+        Self(amount as f32)
     }
 }
 
@@ -77,5 +77,13 @@ impl std::ops::Div<f32> for Pixels {
 
     fn div(self, rhs: f32) -> Self {
         Pixels(self.0 / rhs)
+    }
+}
+
+impl std::ops::Div<u32> for Pixels {
+    type Output = Pixels;
+
+    fn div(self, rhs: u32) -> Self {
+        Pixels(self.0 / rhs as f32)
     }
 }

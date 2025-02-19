@@ -4,6 +4,7 @@ use iced::mouse;
 use iced::widget::canvas::{
     self, stroke, Cache, Canvas, Geometry, Path, Stroke,
 };
+use iced::window;
 use iced::{Element, Fill, Point, Rectangle, Renderer, Subscription, Theme};
 
 pub fn main() -> iced::Result {
@@ -34,8 +35,7 @@ impl Arc {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        iced::time::every(std::time::Duration::from_millis(10))
-            .map(|_| Message::Tick)
+        window::frames().map(|_| Message::Tick)
     }
 }
 

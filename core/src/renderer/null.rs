@@ -137,7 +137,7 @@ impl text::Editor for () {
         None
     }
 
-    fn line(&self, _index: usize) -> Option<&str> {
+    fn line(&self, _index: usize) -> Option<text::editor::Line<'_>> {
         None
     }
 

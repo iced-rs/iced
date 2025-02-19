@@ -365,9 +365,9 @@
 //!
 //! As with tasks, some modules expose convenient functions that build a [`Subscription`] for you—like
 //! [`time::every`] which can be used to listen to time, or [`keyboard::on_key_press`] which will notify you
-//! of any key presses. But you can also create your own with [`Subscription::run`] and [`run_with_id`].
+//! of any key presses. But you can also create your own with [`Subscription::run`] and [`run_with`].
 //!
-//! [`run_with_id`]: Subscription::run_with_id
+//! [`run_with`]: Subscription::run_with
 //!
 //! ## Scaling Applications
 //! The `update`, `view`, and `Message` triplet composes very nicely.
@@ -498,15 +498,16 @@ pub mod window;
 pub mod advanced;
 
 pub use crate::core::alignment;
+pub use crate::core::animation;
 pub use crate::core::border;
 pub use crate::core::color;
 pub use crate::core::gradient;
 pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
-    Alignment, Background, Border, Color, ContentFit, Degrees, Gradient,
-    Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Settings,
-    Shadow, Size, Theme, Transformation, Vector,
+    never, Alignment, Animation, Background, Border, Color, ContentFit,
+    Degrees, Function, Gradient, Length, Padding, Pixels, Point, Radians,
+    Rectangle, Rotation, Settings, Shadow, Size, Theme, Transformation, Vector,
 };
 pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
@@ -518,7 +519,9 @@ pub use Length::{Fill, FillPortion, Shrink};
 
 pub mod task {
     //! Create runtime tasks.
-    pub use crate::runtime::task::{Handle, Task};
+    pub use crate::runtime::task::{
+        sipper, stream, Handle, Never, Sipper, Straw, Task,
+    };
 }
 
 pub mod clipboard {

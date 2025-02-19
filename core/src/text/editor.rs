@@ -3,6 +3,7 @@ use crate::text::highlighter::{self, Highlighter};
 use crate::text::{LineHeight, Wrapping};
 use crate::{Pixels, Point, Rectangle, Size};
 
+use std::borrow::Cow;
 use std::sync::Arc;
 
 /// A component that can be used by widgets to edit multi-line text.
@@ -28,7 +29,7 @@ pub trait Editor: Sized + Default {
     fn selection(&self) -> Option<String>;
 
     /// Returns the text of the given line in the [`Editor`], if it exists.
-    fn line(&self, index: usize) -> Option<&str>;
+    fn line(&self, index: usize) -> Option<Line<'_>>;
 
     /// Returns the amount of lines in the [`Editor`].
     fn line_count(&self) -> usize;
@@ -188,4 +189,42 @@ pub enum Cursor {
 
     /// Cursor selecting a range of text
     Selection(Vec<Rectangle>),
+}
+
+/// A line of an [`Editor`].
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Line<'a> {
+    /// The raw text of the [`Line`].
+    pub text: Cow<'a, str>,
+    /// The line ending of the [`Line`].
+    pub ending: LineEnding,
+}
+
+/// The line ending of a [`Line`].
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum LineEnding {
+    /// Use `\n` for line ending (POSIX-style)
+    #[default]
+    Lf,
+    /// Use `\r\n` for line ending (Windows-style)
+    CrLf,
+    /// Use `\r` for line ending (many legacy systems)
+    Cr,
+    /// Use `\n\r` for line ending (some legacy systems)
+    LfCr,
+    /// No line ending
+    None,
+}
+
+impl LineEnding {
+    /// Gets the string representation of the [`LineEnding`].
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Lf => "\n",
+            Self::CrLf => "\r\n",
+            Self::Cr => "\r",
+            Self::LfCr => "\n\r",
+            Self::None => "",
+        }
+    }
 }

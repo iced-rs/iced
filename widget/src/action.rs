@@ -6,7 +6,7 @@ use crate::core::window;
 #[derive(Debug, Clone)]
 pub struct Action<Message> {
     message_to_publish: Option<Message>,
-    redraw_request: Option<window::RedrawRequest>,
+    redraw_request: window::RedrawRequest,
     event_status: event::Status,
 }
 
@@ -14,7 +14,7 @@ impl<Message> Action<Message> {
     fn new() -> Self {
         Self {
             message_to_publish: None,
-            redraw_request: None,
+            redraw_request: window::RedrawRequest::Wait,
             event_status: event::Status::Ignored,
         }
     }
@@ -46,7 +46,7 @@ impl<Message> Action<Message> {
     /// soon as possible; without publishing any `Message`.
     pub fn request_redraw() -> Self {
         Self {
-            redraw_request: Some(window::RedrawRequest::NextFrame),
+            redraw_request: window::RedrawRequest::NextFrame,
             ..Self::new()
         }
     }
@@ -58,7 +58,7 @@ impl<Message> Action<Message> {
     /// blinking caret on a text input.
     pub fn request_redraw_at(at: Instant) -> Self {
         Self {
-            redraw_request: Some(window::RedrawRequest::At(at)),
+            redraw_request: window::RedrawRequest::At(at),
             ..Self::new()
         }
     }
@@ -75,11 +75,7 @@ impl<Message> Action<Message> {
     /// widget implementations.
     pub fn into_inner(
         self,
-    ) -> (
-        Option<Message>,
-        Option<window::RedrawRequest>,
-        event::Status,
-    ) {
+    ) -> (Option<Message>, window::RedrawRequest, event::Status) {
         (
             self.message_to_publish,
             self.redraw_request,

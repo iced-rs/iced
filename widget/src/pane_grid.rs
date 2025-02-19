@@ -474,7 +474,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -509,15 +509,8 @@ where
             let is_picked = picked_pane == Some(pane);
 
             content.update(
-                tree,
-                event.clone(),
-                layout,
-                cursor,
-                renderer,
-                clipboard,
-                shell,
-                viewport,
-                is_picked,
+                tree, event, layout, cursor, renderer, clipboard, shell,
+                viewport, is_picked,
             );
         }
 
@@ -687,7 +680,7 @@ where
             _ => {}
         }
 
-        if shell.redraw_request() != Some(window::RedrawRequest::NextFrame) {
+        if shell.redraw_request() != window::RedrawRequest::NextFrame {
             let interaction = self
                 .grid_interaction(action, layout, cursor)
                 .or_else(|| {

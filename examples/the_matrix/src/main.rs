@@ -1,5 +1,5 @@
 use iced::mouse;
-use iced::time::{self, Instant};
+use iced::time::{self, milliseconds, Instant};
 use iced::widget::canvas;
 use iced::{
     Color, Element, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme,
@@ -36,11 +36,11 @@ impl TheMatrix {
     }
 
     fn view(&self) -> Element<Message> {
-        canvas(self as &Self).width(Fill).height(Fill).into()
+        canvas(self).width(Fill).height(Fill).into()
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(std::time::Duration::from_millis(50)).map(Message::Tick)
+        time::every(milliseconds(50)).map(Message::Tick)
     }
 }
 

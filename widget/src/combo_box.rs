@@ -63,7 +63,6 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
-use crate::core::window;
 use crate::core::{
     Clipboard, Element, Event, Length, Padding, Rectangle, Shell, Size, Theme,
     Vector,
@@ -513,7 +512,7 @@ where
     fn update(
         &mut self,
         tree: &mut widget::Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -541,7 +540,7 @@ where
         // Provide it to the widget
         self.text_input.update(
             &mut tree.children[0],
-            event.clone(),
+            event,
             layout,
             cursor,
             renderer,
@@ -554,16 +553,8 @@ where
             shell.capture_event();
         }
 
-        if let Some(redraw_request) = local_shell.redraw_request() {
-            match redraw_request {
-                window::RedrawRequest::NextFrame => {
-                    shell.request_redraw();
-                }
-                window::RedrawRequest::At(at) => {
-                    shell.request_redraw_at(at);
-                }
-            }
-        }
+        shell.request_redraw_at(local_shell.redraw_request());
+        shell.request_input_method(local_shell.input_method());
 
         // Then finally react to them here
         for message in local_messages {
@@ -742,18 +733,21 @@ where
                 published_message_to_shell = true;
 
                 // Unfocus the input
+                let mut local_messages = Vec::new();
+                let mut local_shell = Shell::new(&mut local_messages);
                 self.text_input.update(
                     &mut tree.children[0],
-                    Event::Mouse(mouse::Event::ButtonPressed(
+                    &Event::Mouse(mouse::Event::ButtonPressed(
                         mouse::Button::Left,
                     )),
                     layout,
                     mouse::Cursor::Unavailable,
                     renderer,
                     clipboard,
-                    &mut Shell::new(&mut vec![]),
+                    &mut local_shell,
                     viewport,
                 );
+                shell.request_input_method(local_shell.input_method());
             }
         });
 

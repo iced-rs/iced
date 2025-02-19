@@ -430,7 +430,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
@@ -489,13 +489,13 @@ where
                     let options = self.options.borrow();
                     let selected = self.selected.as_ref().map(Borrow::borrow);
 
-                    let next_option = if y < 0.0 {
+                    let next_option = if *y < 0.0 {
                         if let Some(selected) = selected {
                             find_next(selected, options.iter())
                         } else {
                             options.first()
                         }
-                    } else if y > 0.0 {
+                    } else if *y > 0.0 {
                         if let Some(selected) = selected {
                             find_next(selected, options.iter().rev())
                         } else {
@@ -513,7 +513,7 @@ where
                 }
             }
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                state.keyboard_modifiers = modifiers;
+                state.keyboard_modifiers = *modifiers;
             }
             _ => {}
         };

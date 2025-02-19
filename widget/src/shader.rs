@@ -9,7 +9,6 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::window;
 use crate::core::{Clipboard, Element, Event, Length, Rectangle, Shell, Size};
 use crate::renderer::wgpu::primitive;
 
@@ -89,7 +88,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: crate::core::Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
@@ -105,19 +104,10 @@ where
         {
             let (message, redraw_request, event_status) = action.into_inner();
 
+            shell.request_redraw_at(redraw_request);
+
             if let Some(message) = message {
                 shell.publish(message);
-            }
-
-            if let Some(redraw_request) = redraw_request {
-                match redraw_request {
-                    window::RedrawRequest::NextFrame => {
-                        shell.request_redraw();
-                    }
-                    window::RedrawRequest::At(at) => {
-                        shell.request_redraw_at(at);
-                    }
-                }
             }
 
             if event_status == event::Status::Captured {
@@ -184,7 +174,7 @@ where
     fn update(
         &self,
         state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Option<Action<Message>> {
