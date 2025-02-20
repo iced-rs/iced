@@ -94,6 +94,10 @@ where
     /// [`on_hide`] event; after the content is shown or hidden.
     ///
     /// When combined with [`key`], this can be useful to debounce key changes.
+    ///
+    /// [`on_show`]: Self::on_show
+    /// [`on_hide`]: Self::on_hide
+    /// [`key`]: Self::key
     pub fn delay(mut self, delay: impl Into<Duration>) -> Self {
         self.delay = delay.into();
         self
