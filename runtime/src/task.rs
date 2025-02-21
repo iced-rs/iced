@@ -1,17 +1,17 @@
 //! Create runtime tasks.
+use crate::Action;
 use crate::core::widget;
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::future::{self, FutureExt};
 use crate::futures::futures::stream::{self, Stream, StreamExt};
-use crate::futures::{boxed_stream, BoxStream, MaybeSend};
-use crate::Action;
+use crate::futures::{BoxStream, MaybeSend, boxed_stream};
 
 use std::future::Future;
 use std::sync::Arc;
 
 #[doc(no_inline)]
-pub use sipper::{sipper, stream, Never, Sender, Sipper, Straw};
+pub use sipper::{Never, Sender, Sipper, Straw, sipper, stream};
 
 /// A set of concurrent actions to be performed by the iced runtime.
 ///

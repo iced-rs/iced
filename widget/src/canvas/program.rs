@@ -1,8 +1,8 @@
+use crate::Action;
 use crate::canvas::mouse;
 use crate::canvas::{Event, Geometry};
 use crate::core::Rectangle;
 use crate::graphics::geometry;
-use crate::Action;
 
 /// The state and logic of a [`Canvas`].
 ///

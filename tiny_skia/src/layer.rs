@@ -1,3 +1,4 @@
+use crate::Primitive;
 use crate::core::renderer::Quad;
 use crate::core::{
     self, Background, Color, Point, Rectangle, Svg, Transformation,
@@ -6,7 +7,6 @@ use crate::graphics::damage;
 use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph, Text};
 use crate::graphics::{self, Image};
-use crate::Primitive;
 
 use std::rc::Rc;
 

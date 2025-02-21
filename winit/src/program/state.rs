@@ -1,6 +1,6 @@
 use crate::conversion;
-use crate::core::{mouse, theme, window};
 use crate::core::{Color, Size};
+use crate::core::{mouse, theme, window};
 use crate::graphics::Viewport;
 use crate::program::Program;
 

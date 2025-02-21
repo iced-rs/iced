@@ -22,9 +22,9 @@ impl crate::Executor for Executor {
 
 pub mod time {
     //! Listen and react to time.
+    use crate::MaybeSend;
     use crate::core::time::{Duration, Instant};
     use crate::subscription::Subscription;
-    use crate::MaybeSend;
 
     use futures::stream;
     use std::future::Future;

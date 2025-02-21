@@ -24,8 +24,8 @@ mod platform;
 #[path = "settings/other.rs"]
 mod platform;
 
-use crate::window::{Icon, Level, Position};
 use crate::Size;
+use crate::window::{Icon, Level, Position};
 
 pub use platform::PlatformSpecific;
 

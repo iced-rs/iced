@@ -120,9 +120,7 @@ pub trait Default {
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum SurfaceError {
     /// A timeout was encountered while trying to acquire the next frame.
-    #[error(
-        "A timeout was encountered while trying to acquire the next frame"
-    )]
+    #[error("A timeout was encountered while trying to acquire the next frame")]
     Timeout,
     /// The underlying surface has changed, and therefore the surface must be updated.
     #[error(

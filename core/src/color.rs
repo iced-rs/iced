@@ -227,12 +227,8 @@ macro_rules! color {
     ($r:expr, $g:expr, $b:expr) => {
         $crate::Color::from_rgb8($r, $g, $b)
     };
-    ($r:expr, $g:expr, $b:expr, $a:expr) => {{
-        $crate::Color::from_rgba8($r, $g, $b, $a)
-    }};
-    ($hex:expr) => {{
-        $crate::color!($hex, 1.0)
-    }};
+    ($r:expr, $g:expr, $b:expr, $a:expr) => {{ $crate::Color::from_rgba8($r, $g, $b, $a) }};
+    ($hex:expr) => {{ $crate::color!($hex, 1.0) }};
     ($hex:expr, $a:expr) => {{
         let hex = $hex as u32;
 

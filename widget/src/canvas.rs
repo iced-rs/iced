@@ -52,13 +52,13 @@ mod program;
 
 pub use program::Program;
 
+pub use crate::Action;
 pub use crate::core::event::Event;
 pub use crate::graphics::cache::Group;
 pub use crate::graphics::geometry::{
-    fill, gradient, path, stroke, Fill, Gradient, Image, LineCap, LineDash,
-    LineJoin, Path, Stroke, Style, Text,
+    Fill, Gradient, Image, LineCap, LineDash, LineJoin, Path, Stroke, Style,
+    Text, fill, gradient, path, stroke,
 };
-pub use crate::Action;
 
 use crate::core::event;
 use crate::core::layout::{self, Layout};

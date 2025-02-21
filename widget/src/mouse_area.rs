@@ -4,7 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::touch;
-use crate::core::widget::{tree, Operation, Tree};
+use crate::core::widget::{Operation, Tree, tree};
 use crate::core::{
     Clipboard, Element, Event, Layout, Length, Point, Rectangle, Shell, Size,
     Vector, Widget,

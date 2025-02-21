@@ -470,8 +470,10 @@ where
 
         layout::Node::with_children(
             tooltip_bounds.size(),
-            vec![tooltip_layout
-                .translate(Vector::new(self.padding, self.padding))],
+            vec![
+                tooltip_layout
+                    .translate(Vector::new(self.padding, self.padding)),
+            ],
         )
         .translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
     }

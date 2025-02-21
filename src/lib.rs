@@ -505,22 +505,22 @@ pub use crate::core::gradient;
 pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
-    never, Alignment, Animation, Background, Border, Color, ContentFit,
-    Degrees, Function, Gradient, Length, Padding, Pixels, Point, Radians,
-    Rectangle, Rotation, Settings, Shadow, Size, Theme, Transformation, Vector,
+    Alignment, Animation, Background, Border, Color, ContentFit, Degrees,
+    Function, Gradient, Length, Padding, Pixels, Point, Radians, Rectangle,
+    Rotation, Settings, Shadow, Size, Theme, Transformation, Vector, never,
 };
 pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
 
-pub use alignment::Horizontal::{Left, Right};
-pub use alignment::Vertical::{Bottom, Top};
 pub use Alignment::Center;
 pub use Length::{Fill, FillPortion, Shrink};
+pub use alignment::Horizontal::{Left, Right};
+pub use alignment::Vertical::{Bottom, Top};
 
 pub mod task {
     //! Create runtime tasks.
     pub use crate::runtime::task::{
-        sipper, stream, Handle, Never, Sipper, Straw, Task,
+        Handle, Never, Sipper, Straw, Task, sipper, stream,
     };
 }
 
@@ -683,7 +683,7 @@ pub fn run<State, Message, Theme, Renderer>(
     title: impl application::Title<State> + 'static,
     update: impl application::Update<State, Message> + 'static,
     view: impl for<'a> application::View<'a, State, Message, Theme, Renderer>
-        + 'static,
+    + 'static,
 ) -> Result
 where
     State: Default + 'static,
