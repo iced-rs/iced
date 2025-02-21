@@ -1,12 +1,12 @@
+use iced::alignment;
 use iced::mouse;
 use iced::time::{self, milliseconds};
 use iced::widget::canvas::{Cache, Geometry, LineCap, Path, Stroke, stroke};
 use iced::widget::{canvas, container};
 use iced::{
-    Degrees, Element, Fill, Font, Point, Rectangle, Renderer, Size,
+    Degrees, Element, Fill, Font, Point, Radians, Rectangle, Renderer, Size,
     Subscription, Theme, Vector,
 };
-use iced::{Radians, alignment};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
