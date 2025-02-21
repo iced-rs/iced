@@ -8,7 +8,6 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
 
 use std::borrow::Cow;
-use std::future::Future;
 
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {

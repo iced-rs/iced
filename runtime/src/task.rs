@@ -7,7 +7,6 @@ use crate::futures::futures::future::{self, FutureExt};
 use crate::futures::futures::stream::{self, Stream, StreamExt};
 use crate::futures::{BoxStream, MaybeSend, boxed_stream};
 
-use std::future::Future;
 use std::sync::Arc;
 
 #[doc(no_inline)]

@@ -2,8 +2,6 @@
 use futures::channel::mpsc;
 use futures::stream::{self, Stream, StreamExt};
 
-use std::future::Future;
-
 /// Creates a new [`Stream`] that produces the items sent from a [`Future`]
 /// to the [`mpsc::Sender`] provided to the closure.
 ///

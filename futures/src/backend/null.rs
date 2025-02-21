@@ -1,5 +1,4 @@
 //! A backend that does nothing!
-use futures::Future;
 
 /// An executor that drops all the futures, instead of spawning them.
 #[derive(Debug)]

@@ -1,5 +1,4 @@
 //! A `tokio` backend.
-use futures::Future;
 
 /// A `tokio` executor.
 pub type Executor = tokio::runtime::Runtime;
@@ -27,7 +26,6 @@ pub mod time {
     use crate::subscription::Subscription;
 
     use futures::stream;
-    use std::future::Future;
 
     /// Returns a [`Subscription`] that produces messages at a set interval.
     ///

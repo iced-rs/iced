@@ -196,7 +196,6 @@ mod grid {
         Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
-    use std::future::Future;
     use std::ops::RangeInclusive;
 
     pub struct Grid {
