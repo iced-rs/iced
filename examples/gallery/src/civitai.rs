@@ -62,7 +62,7 @@ impl Image {
     }
 
     pub fn download(self, size: Size) -> impl Straw<Rgba, Blurhash, Error> {
-        sipper(move |mut sender| async move {
+        sipper(async move |mut sender| {
             let client = reqwest::Client::new();
 
             if let Size::Thumbnail { width, height } = size {
