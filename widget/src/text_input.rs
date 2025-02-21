@@ -1802,10 +1802,10 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
-            color: palette.background.strong.color,
+            color: palette.background.strongest.color,
         },
         icon: palette.background.weak.text,
-        placeholder: palette.background.strong.color,
+        placeholder: palette.background.strongest.color,
         value: palette.background.base.text,
         selection: palette.primary.weak.color,
     };
