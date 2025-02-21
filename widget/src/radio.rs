@@ -57,11 +57,13 @@
 //! }
 //! ```
 use crate::core::alignment;
+use crate::core::animation::{Animation, Easing};
 use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::time::Instant;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
@@ -267,6 +269,31 @@ where
     }
 }
 
+struct State<Paragraph>
+where
+    Paragraph: text::Paragraph,
+{
+    /// The last update instant - used for animations.
+    pub now: Instant,
+    /// Animation scaling the dot in and out.
+    pub scale_in: Animation<bool>,
+    pub text_state: widget::text::State<Paragraph>,
+}
+
+impl<Paragraph> State<Paragraph>
+where
+    Paragraph: text::Paragraph,
+{
+    /// Whether there is an active animation.
+    fn is_animating(&self) -> bool {
+        if cfg!(feature = "animations") {
+            self.scale_in.is_animating(self.now)
+        } else {
+            false
+        }
+    }
+}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Radio<'_, Message, Theme, Renderer>
 where
@@ -275,11 +302,24 @@ where
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
+        tree::Tag::of::<State<Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+        tree::State::new(State::<Renderer::Paragraph> {
+            now: Instant::now(),
+            scale_in: Animation::new(self.is_selected)
+                .easing(Easing::EaseInOut)
+                .quick(),
+            text_state: widget::text::State::default(),
+        })
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+        if self.is_selected != state.scale_in.value() {
+            state.scale_in.go_mut(self.is_selected);
+        }
     }
 
     fn size(&self) -> Size<Length> {
@@ -300,12 +340,11 @@ where
             self.spacing,
             |_| layout::Node::new(Size::new(self.size, self.size)),
             |limits| {
-                let state = tree
-                    .state
-                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+                let state =
+                    tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
                 widget::text::layout(
-                    state,
+                    &mut state.text_state,
                     renderer,
                     limits,
                     self.width,
@@ -325,7 +364,7 @@ where
 
     fn update(
         &mut self,
-        _state: &mut Tree,
+        tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -356,12 +395,19 @@ where
             }
         };
 
-        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+        if let Event::Window(window::Event::RedrawRequested(now)) = event {
+            let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+            state.now = *now;
             self.last_status = Some(current_status);
+            if state.is_animating() {
+                shell.request_redraw();
+            }
         } else if self
             .last_status
             .is_some_and(|last_status| last_status != current_status)
         {
+            let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+            state.scale_in.go_mut(self.is_selected);
             shell.request_redraw();
         }
     }
@@ -420,7 +466,18 @@ where
                 style.background,
             );
 
-            if self.is_selected {
+            let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+            if self.is_selected || state.is_animating() {
+                let dot_size = if cfg!(feature = "animations") {
+                    state.scale_in.interpolate(0.0, dot_size, state.now)
+                } else {
+                    dot_size
+                };
+                let alpha = if cfg!(feature = "animations") {
+                    state.scale_in.interpolate(0.0, 1.0, state.now)
+                } else {
+                    1.0
+                };
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: Rectangle {
@@ -429,24 +486,23 @@ where
                             width: bounds.width - dot_size,
                             height: bounds.height - dot_size,
                         },
-                        border: border::rounded(dot_size / 2.0),
+                        border: border::rounded(size / 2.0),
                         ..renderer::Quad::default()
                     },
-                    style.dot_color,
+                    style.dot_color.scale_alpha(alpha),
                 );
             }
         }
 
         {
             let label_layout = children.next().unwrap();
-            let state: &widget::text::State<Renderer::Paragraph> =
-                tree.state.downcast_ref();
+            let state: &State<Renderer::Paragraph> = tree.state.downcast_ref();
 
             crate::text::draw(
                 renderer,
                 defaults,
                 label_layout,
-                state.0.raw(),
+                state.text_state.0.raw(),
                 crate::text::Style {
                     color: style.text_color,
                 },
