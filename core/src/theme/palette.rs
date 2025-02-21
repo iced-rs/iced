@@ -29,7 +29,7 @@ impl Palette {
     pub const LIGHT: Self = Self {
         background: Color::WHITE,
         text: Color::BLACK,
-        primary: color!(0x5e7ce2),
+        primary: color!(0x5865F2),
         success: color!(0x12664f),
         warning: color!(0xffc14e),
         danger: color!(0xc3423f),
@@ -37,9 +37,9 @@ impl Palette {
 
     /// The built-in dark variant of a [`Palette`].
     pub const DARK: Self = Self {
-        background: color!(0x202225),
+        background: color!(0x313338),
         text: Color::from_rgb(0.90, 0.90, 0.90),
-        primary: color!(0x5e7ce2),
+        primary: color!(0x5865F2),
         success: color!(0x12664f),
         warning: color!(0xffc14e),
         danger: color!(0xc3423f),
