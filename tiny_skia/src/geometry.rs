@@ -1,3 +1,4 @@
+use crate::Primitive;
 use crate::core::text::LineHeight;
 use crate::core::{self, Pixels, Point, Radians, Rectangle, Size, Svg, Vector};
 use crate::graphics::cache::{self, Cached};
@@ -5,7 +6,6 @@ use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{self, Path, Style};
 use crate::graphics::{self, Gradient, Image, Text};
-use crate::Primitive;
 
 use std::rc::Rc;
 

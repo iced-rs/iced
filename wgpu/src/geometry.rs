@@ -713,7 +713,7 @@ fn into_fill_rule(rule: fill::Rule) -> lyon::tessellation::FillRule {
 
 pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
     use lyon::algorithms::walk::{
-        walk_along_path, RepeatedPattern, WalkerEvent,
+        RepeatedPattern, WalkerEvent, walk_along_path,
     };
     use lyon::path::iterator::PathIterator;
 

@@ -1,8 +1,8 @@
 //! Build interactive programs using The Elm Architecture.
 use crate::Task;
 
-use iced_core::text;
 use iced_core::Element;
+use iced_core::text;
 
 mod state;
 

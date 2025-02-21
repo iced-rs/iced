@@ -3,7 +3,7 @@ mod download;
 use download::download;
 
 use iced::task;
-use iced::widget::{button, center, column, progress_bar, text, Column};
+use iced::widget::{Column, button, center, column, progress_bar, text};
 use iced::{Center, Element, Function, Right, Task};
 
 pub fn main() -> iced::Result {

@@ -31,7 +31,7 @@
 use std::ops::RangeInclusive;
 
 pub use crate::slider::{
-    default, Catalog, Handle, HandleShape, Status, Style, StyleFn,
+    Catalog, Handle, HandleShape, Status, Style, StyleFn, default,
 };
 
 use crate::core::border::Border;
@@ -393,9 +393,7 @@ where
                     shell.capture_event();
                 }
             }
-            Event::Keyboard(keyboard::Event::KeyPressed {
-                ref key, ..
-            }) => {
+            Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
                 if cursor.is_over(layout.bounds()) {
                     match key {
                         Key::Named(key::Named::ArrowUp) => {

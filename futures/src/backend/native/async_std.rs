@@ -1,5 +1,4 @@
 //! An `async-std` backend.
-use futures::Future;
 
 /// An `async-std` executor.
 #[derive(Debug)]

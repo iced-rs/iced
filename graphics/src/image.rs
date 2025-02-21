@@ -2,9 +2,9 @@
 #[cfg(feature = "image")]
 pub use ::image as image_rs;
 
+use crate::core::Rectangle;
 use crate::core::image;
 use crate::core::svg;
-use crate::core::Rectangle;
 
 /// A raster or vector image.
 #[derive(Debug, Clone, PartialEq)]

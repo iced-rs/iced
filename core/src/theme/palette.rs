@@ -1,5 +1,5 @@
 //! Define the colors of a theme.
-use crate::{color, Color};
+use crate::{Color, color};
 
 use palette::color_difference::Wcag21RelativeContrast;
 use palette::rgb::Rgb;

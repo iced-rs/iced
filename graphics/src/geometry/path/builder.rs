@@ -1,4 +1,4 @@
-use crate::geometry::path::{arc, Arc, Path};
+use crate::geometry::path::{Arc, Path, arc};
 
 use crate::core::border;
 use crate::core::{Point, Radians, Size};
@@ -171,8 +171,12 @@ impl Builder {
         radius: border::Radius,
     ) {
         let min_size = (size.height / 2.0).min(size.width / 2.0);
-        let [top_left_corner, top_right_corner, bottom_right_corner, bottom_left_corner] =
-            radius.into();
+        let [
+            top_left_corner,
+            top_right_corner,
+            bottom_right_corner,
+            bottom_left_corner,
+        ] = radius.into();
 
         self.move_to(Point::new(
             top_left.x + min_size.min(top_left_corner),

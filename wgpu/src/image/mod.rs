@@ -9,8 +9,8 @@ mod raster;
 #[cfg(feature = "svg")]
 mod vector;
 
-use crate::core::{Rectangle, Size, Transformation};
 use crate::Buffer;
+use crate::core::{Rectangle, Size, Transformation};
 
 use bytemuck::{Pod, Zeroable};
 

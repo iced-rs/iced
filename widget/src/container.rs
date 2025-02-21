@@ -30,9 +30,9 @@ use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, color, Background, Clipboard, Color, Element, Event, Layout, Length,
+    self, Background, Clipboard, Color, Element, Event, Layout, Length,
     Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
-    Widget,
+    Widget, color,
 };
 use crate::runtime::task::{self, Task};
 

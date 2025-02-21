@@ -64,8 +64,8 @@ use crate::core::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
     Vector,
 };
-use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::Viewport;
+use crate::graphics::text::{Editor, Paragraph};
 
 /// A [`wgpu`] graphics renderer for [`iced`].
 ///
@@ -403,9 +403,9 @@ impl Renderer {
         overlay: &[impl AsRef<str>],
         viewport: &Viewport,
     ) {
+        use crate::core::Renderer as _;
         use crate::core::alignment;
         use crate::core::text::Renderer as _;
-        use crate::core::Renderer as _;
 
         self.with_layer(
             Rectangle::with_size(viewport.logical_size()),

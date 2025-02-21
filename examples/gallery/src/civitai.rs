@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use serde::Deserialize;
-use sipper::{sipper, Straw};
+use sipper::{Straw, sipper};
 use tokio::task;
 
 use std::fmt;
@@ -62,7 +62,7 @@ impl Image {
     }
 
     pub fn download(self, size: Size) -> impl Straw<Rgba, Blurhash, Error> {
-        sipper(move |mut sender| async move {
+        sipper(async move |mut sender| {
             let client = reqwest::Client::new();
 
             if let Size::Thumbnail { width, height } = size {

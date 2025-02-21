@@ -1,5 +1,5 @@
 use iced::mouse;
-use iced::time::{self, milliseconds, Instant};
+use iced::time::{self, Instant, milliseconds};
 use iced::widget::canvas;
 use iced::{
     Color, Element, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme,
@@ -55,8 +55,8 @@ impl<Message> canvas::Program<Message> for TheMatrix {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
-        use rand::distributions::Distribution;
         use rand::Rng;
+        use rand::distributions::Distribution;
 
         const CELL_SIZE: f32 = 10.0;
 

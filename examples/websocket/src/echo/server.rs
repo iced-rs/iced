@@ -2,8 +2,8 @@ use iced::futures;
 
 use futures::channel::mpsc;
 use futures::{SinkExt, StreamExt};
-use warp::ws::WebSocket;
 use warp::Filter;
+use warp::ws::WebSocket;
 
 // Basic WebSocket echo server adapted from:
 // https://github.com/seanmonstar/warp/blob/3ff2eaf41eb5ac9321620e5a6434d5b5ec6f313f/examples/websockets_chat.rs

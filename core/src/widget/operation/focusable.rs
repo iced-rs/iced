@@ -1,7 +1,7 @@
 //! Operate on widgets that can be focused.
-use crate::widget::operation::{self, Operation, Outcome};
-use crate::widget::Id;
 use crate::Rectangle;
+use crate::widget::Id;
+use crate::widget::operation::{self, Operation, Outcome};
 
 /// The internal state of a widget that can be focused.
 pub trait Focusable {

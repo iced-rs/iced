@@ -20,9 +20,9 @@ use crate::futures::futures::{Future, StreamExt};
 use crate::futures::subscription::{self, Subscription};
 use crate::futures::{Executor, Runtime};
 use crate::graphics;
-use crate::graphics::{compositor, Compositor};
-use crate::runtime::user_interface::{self, UserInterface};
+use crate::graphics::{Compositor, compositor};
 use crate::runtime::Debug;
+use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{self, Action, Task};
 use crate::{Clipboard, Error, Proxy, Settings};
 
@@ -406,7 +406,9 @@ where
                                         .with_canvas(self.canvas.take())
                                 };
 
-                                log::info!("Window attributes for id `{id:#?}`: {window_attributes:#?}");
+                                log::info!(
+                                    "Window attributes for id `{id:#?}`: {window_attributes:#?}"
+                                );
 
                                 // On macOS, the `position` in `WindowAttributes` represents the "inner"
                                 // position of the window; while on other platforms it's the "outer" position.

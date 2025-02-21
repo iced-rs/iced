@@ -3,7 +3,7 @@ use crate::core::{Rectangle, Size, Transformation};
 use crate::graphics::cache;
 use crate::graphics::color;
 use crate::graphics::text::cache::{self as text_cache, Cache as BufferCache};
-use crate::graphics::text::{font_system, to_color, Editor, Paragraph};
+use crate::graphics::text::{Editor, Paragraph, font_system, to_color};
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;

@@ -1,7 +1,7 @@
 pub mod server;
 
 use iced::futures;
-use iced::task::{sipper, Never, Sipper};
+use iced::task::{Never, Sipper, sipper};
 use iced::widget::text;
 
 use futures::channel::mpsc;
@@ -12,7 +12,7 @@ use async_tungstenite::tungstenite;
 use std::fmt;
 
 pub fn connect() -> impl Sipper<Never, Event> {
-    sipper(|mut output| async move {
+    sipper(async |mut output| {
         loop {
             const ECHO_SERVER: &str = "ws://127.0.0.1:3030";
 

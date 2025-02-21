@@ -122,13 +122,13 @@ members = [
 [workspace.package]
 version = "0.14.0-dev"
 authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
-edition = "2021"
+edition = "2024"
 license = "MIT"
 repository = "https://github.com/iced-rs/iced"
 homepage = "https://iced.rs"
 categories = ["gui"]
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-rust-version = "1.82"
+rust-version = "1.85"
 
 [workspace.dependencies]
 iced = { version = "0.14.0-dev", path = "." }

@@ -3,8 +3,8 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
+use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Alignment, Clipboard, Element, Event, Layout, Length, Padding, Pixels,
     Rectangle, Shell, Size, Vector, Widget,

@@ -196,7 +196,6 @@ mod grid {
         Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
-    use std::future::Future;
     use std::ops::RangeInclusive;
 
     pub struct Grid {
@@ -261,7 +260,7 @@ mod grid {
         pub fn tick(
             &mut self,
             amount: usize,
-        ) -> Option<impl Future<Output = Message>> {
+        ) -> Option<impl Future<Output = Message> + use<>> {
             let tick = self.state.tick(amount)?;
 
             self.last_queued_ticks = amount;
@@ -722,7 +721,8 @@ mod grid {
         fn tick(
             &mut self,
             amount: usize,
-        ) -> Option<impl Future<Output = Result<Life, TickError>>> {
+        ) -> Option<impl Future<Output = Result<Life, TickError>> + use<>>
+        {
             if self.is_ticking {
                 return None;
             }

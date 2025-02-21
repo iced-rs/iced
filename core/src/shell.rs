@@ -1,6 +1,6 @@
+use crate::InputMethod;
 use crate::event;
 use crate::window;
-use crate::InputMethod;
 
 /// A connection to the state of a shell.
 ///

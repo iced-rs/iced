@@ -1,9 +1,9 @@
 //! A syntax highlighter for iced.
 use iced_core as core;
 
+use crate::core::Color;
 use crate::core::font::{self, Font};
 use crate::core::text::highlighter::{self, Format};
-use crate::core::Color;
 
 use std::ops::Range;
 use std::sync::LazyLock;

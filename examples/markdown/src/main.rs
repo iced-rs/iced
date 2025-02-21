@@ -3,7 +3,7 @@ mod icon;
 use iced::animation;
 use iced::clipboard;
 use iced::highlighter;
-use iced::time::{self, milliseconds, Instant};
+use iced::time::{self, Instant, milliseconds};
 use iced::widget::{
     self, button, center_x, container, horizontal_space, hover, image,
     markdown, pop, right, row, scrollable, text_editor, toggler,

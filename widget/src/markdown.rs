@@ -48,7 +48,7 @@ use crate::core::font::{self, Font};
 use crate::core::padding;
 use crate::core::theme;
 use crate::core::{
-    self, color, Color, Element, Length, Padding, Pixels, Theme,
+    self, Color, Element, Length, Padding, Pixels, Theme, color,
 };
 use crate::{column, container, rich_text, row, scrollable, span, text};
 

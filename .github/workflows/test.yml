@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        rust: [stable, beta, "1.82"]
+        rust: [stable, beta, "1.85"]
     steps:
     - uses: hecrj/setup-rust-action@v2
       with:

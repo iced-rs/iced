@@ -7,15 +7,15 @@ mod civitai;
 use crate::civitai::{Error, Id, Image, Rgba, Size};
 
 use iced::animation;
-use iced::time::{milliseconds, Instant};
+use iced::time::{Instant, milliseconds};
 use iced::widget::{
     button, center_x, container, horizontal_space, image, mouse_area, opaque,
     pop, row, scrollable, stack,
 };
 use iced::window;
 use iced::{
-    color, Animation, ContentFit, Element, Fill, Function, Subscription, Task,
-    Theme,
+    Animation, ContentFit, Element, Fill, Function, Subscription, Task, Theme,
+    color,
 };
 
 use std::collections::HashMap;
