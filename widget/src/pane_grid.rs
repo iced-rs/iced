@@ -688,10 +688,10 @@ where
                         .iter()
                         .zip(&self.contents)
                         .zip(layout.children())
-                        .filter(|((&pane, _content), _layout)| {
+                        .filter(|((pane, _content), _layout)| {
                             self.internal
                                 .maximized()
-                                .map_or(true, |maximized| pane == maximized)
+                                .map_or(true, |maximized| **pane == maximized)
                         })
                         .find_map(|((_pane, content), layout)| {
                             content.grid_interaction(
