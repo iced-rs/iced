@@ -3,7 +3,7 @@ use iced::theme;
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text,
 };
-use iced::{color, Center, Color, Element, Fill, Radians, Theme};
+use iced::{Center, Color, Element, Fill, Radians, Theme, color};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();

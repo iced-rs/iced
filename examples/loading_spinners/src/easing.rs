@@ -1,7 +1,7 @@
 use iced::Point;
 
 use lyon_algorithms::measure::PathMeasurements;
-use lyon_algorithms::path::{builder::NoAttributes, path::BuilderImpl, Path};
+use lyon_algorithms::path::{Path, builder::NoAttributes, path::BuilderImpl};
 
 use std::sync::LazyLock;
 

@@ -1,7 +1,7 @@
 pub mod server;
 
 use iced::futures;
-use iced::task::{sipper, Never, Sipper};
+use iced::task::{Never, Sipper, sipper};
 use iced::widget::text;
 
 use futures::channel::mpsc;

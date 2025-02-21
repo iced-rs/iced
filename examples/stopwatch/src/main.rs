@@ -1,5 +1,5 @@
 use iced::keyboard;
-use iced::time::{self, milliseconds, Duration, Instant};
+use iced::time::{self, Duration, Instant, milliseconds};
 use iced::widget::{button, center, column, row, text};
 use iced::{Center, Element, Subscription, Theme};
 

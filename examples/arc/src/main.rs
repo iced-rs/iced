@@ -2,7 +2,7 @@ use std::{f32::consts::PI, time::Instant};
 
 use iced::mouse;
 use iced::widget::canvas::{
-    self, stroke, Cache, Canvas, Geometry, Path, Stroke,
+    self, Cache, Canvas, Geometry, Path, Stroke, stroke,
 };
 use iced::window;
 use iced::{Element, Fill, Point, Rectangle, Renderer, Subscription, Theme};

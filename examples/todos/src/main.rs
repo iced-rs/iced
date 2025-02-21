@@ -1,7 +1,7 @@
 use iced::keyboard;
 use iced::widget::{
-    self, button, center, center_x, checkbox, column, keyed_column, row,
-    scrollable, text, text_input, Text,
+    self, Text, button, center, center_x, checkbox, column, keyed_column, row,
+    scrollable, text, text_input,
 };
 use iced::window;
 use iced::{

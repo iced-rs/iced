@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use serde::Deserialize;
-use sipper::{sipper, Straw};
+use sipper::{Straw, sipper};
 use tokio::task;
 
 use std::fmt;

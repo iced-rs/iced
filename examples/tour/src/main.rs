@@ -1,8 +1,8 @@
+use iced::widget::{Button, Column, Container, Slider};
 use iced::widget::{
     button, center_x, center_y, checkbox, column, horizontal_space, image,
     radio, row, scrollable, slider, text, text_input, toggler, vertical_space,
 };
-use iced::widget::{Button, Column, Container, Slider};
 use iced::{Center, Color, Element, Fill, Font, Pixels};
 
 pub fn main() -> iced::Result {

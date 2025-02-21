@@ -1,5 +1,5 @@
 use iced::widget::{center, center_x, checkbox, column, svg};
-use iced::{color, Element, Fill};
+use iced::{Element, Fill, color};
 
 pub fn main() -> iced::Result {
     iced::run("SVG - Iced", Tiger::update, Tiger::view)

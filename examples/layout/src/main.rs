@@ -7,8 +7,8 @@ use iced::widget::{
     text, vertical_rule,
 };
 use iced::{
-    color, Center, Element, Fill, Font, Length, Point, Rectangle, Renderer,
-    Shrink, Subscription, Theme,
+    Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink,
+    Subscription, Theme, color,
 };
 
 pub fn main() -> iced::Result {

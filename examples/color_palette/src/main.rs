@@ -1,12 +1,12 @@
 use iced::alignment;
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
-use iced::widget::{column, row, text, Slider};
+use iced::widget::{Slider, column, row, text};
 use iced::{
     Center, Color, Element, Fill, Font, Pixels, Point, Rectangle, Renderer,
     Size, Vector,
 };
-use palette::{convert::FromColor, rgb::Rgb, Darken, Hsl, Lighten, ShiftHue};
+use palette::{Darken, Hsl, Lighten, ShiftHue, convert::FromColor, rgb::Rgb};
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
