@@ -7,6 +7,8 @@ use crate::graphics::{self, Viewport};
 use crate::settings::{self, Settings};
 use crate::{Engine, Renderer};
 
+use std::process::Command;
+
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
 pub struct Compositor {
@@ -82,14 +84,65 @@ impl Compositor {
 
         let adapter_options = wgpu::RequestAdapterOptions {
             power_preference: wgpu::util::power_preference_from_env()
-                .unwrap_or(if settings.antialiasing.is_none() {
-                    wgpu::PowerPreference::LowPower
-                } else {
-                    wgpu::PowerPreference::HighPerformance
+                .unwrap_or_else(|| {
+                    #[cfg(target_os = "linux")]
+                    {
+                        let output = Command::new("cat")
+                            .arg("/sys/class/dmi/id/chassis_type")
+                            .output();
+
+                        let Ok(output) = output else {
+                            return wgpu::PowerPreference::HighPerformance;
+                        };
+
+                        let chassis_type = String::from_utf8_lossy(&output.stdout);
+                        let chassis_type = chassis_type.trim();
+
+                        // List of chassis type is defined in System Managmenet
+                        // BIOS (SIMBIOS) Reference Specification in section 
+                        // 7.4.1 System Enclosure or Chassis types.
+                        // https://www.dmtf.org/sites/default/files/standards/documents/DSP0134_3.4.0.pdf
+                        match &chassis_type[..] {
+                            "8" | "9" | "10" => return wgpu::PowerPreference::LowPower,
+                            _ => return wgpu::PowerPreference::HighPerformance,
+                        };
+                    }
+
+                    #[cfg(target_os = "windows")]
+                    {
+                        let output = Command::new("wmic")
+                            .arg("computersystem")
+                            .arg("get")
+                            .arg("pcsystemtype")
+                            .output();
+                            
+
+                        let Ok(output) = output else {
+                            return wgpu::PowerPreference::HighPerformance;
+                        };
+
+                        let pcsystemtype = String::from_utf8_lossy(&output.stdout);
+                        
+                        // You can see what pcsysemtype numbers correspond to
+                        // by navigating to:
+                        // https://learn.microsoft.com/en-us/dotnet/api/microsoft.powershell.commands.pcsystemtype?view=powershellsdk-1.1.0
+                         if pcsystemtype.contains("2") { // Mobile(Laptop)
+                            return wgpu::PowerPreference::LowPower
+                        } else {
+                            return wgpu::PowerPreference::HighPerformance
+                        }
+                    }
+                    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+                    {
+                        // Shoulden't really matter for macs for the most part,
+                        // as they typicly only have a single GPU.
+                        wgpu::PowerPreference::LowPower
+                    }
                 }),
             compatible_surface: compatible_surface.as_ref(),
             force_fallback_adapter: false,
         };
+        println!("{:#?}", adapter_options);
 
         let adapter = instance
             .request_adapter(&adapter_options)
@@ -332,19 +385,16 @@ impl graphics::Compositor for Compositor {
         width: u32,
         height: u32,
     ) {
-        surface.configure(
-            &self.device,
-            &wgpu::SurfaceConfiguration {
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                format: self.format,
-                present_mode: self.settings.present_mode,
-                width,
-                height,
-                alpha_mode: self.alpha_mode,
-                view_formats: vec![],
-                desired_maximum_frame_latency: 1,
-            },
-        );
+        surface.configure(&self.device, &wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: self.format,
+            present_mode: self.settings.present_mode,
+            width,
+            height,
+            alpha_mode: self.alpha_mode,
+            view_formats: vec![],
+            desired_maximum_frame_latency: 1,
+        });
     }
 
     fn fetch_information(&self) -> compositor::Information {
