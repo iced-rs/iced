@@ -205,8 +205,8 @@ impl Palette {
     ///
     /// [Kanagawa]: https://github.com/rebelot/kanagawa.nvim
     pub const KANAGAWA_WAVE: Self = Self {
-        background: color!(0x363646), // Sumi Ink 3
-        text: color!(0xCD7BA),        // Fuji White
+        background: color!(0x1f1f28), // Sumi Ink 3
+        text: color!(0xDCD7BA),       // Fuji White
         primary: color!(0x7FB4CA),    // Wave Blue
         success: color!(0x76946A),    // Autumn Green
         warning: color!(0xff9e3b),    // Ronin Yellow
@@ -657,16 +657,25 @@ fn mix(a: Color, b: Color, factor: f32) -> Color {
 
 fn readable(background: Color, text: Color) -> Color {
     if is_readable(background, text) {
-        text
-    } else {
-        let white_contrast = relative_contrast(background, Color::WHITE);
-        let black_contrast = relative_contrast(background, Color::BLACK);
+        return text;
+    }
 
-        if white_contrast >= black_contrast {
-            Color::WHITE
-        } else {
-            Color::BLACK
-        }
+    let improve = if is_dark(background) { lighten } else { darken };
+
+    // TODO: Compute factor from relative contrast value
+    let candidate = improve(text, 0.1);
+
+    if is_readable(background, candidate) {
+        return candidate;
+    }
+
+    let white_contrast = relative_contrast(background, Color::WHITE);
+    let black_contrast = relative_contrast(background, Color::BLACK);
+
+    if white_contrast >= black_contrast {
+        mix(Color::WHITE, background, 0.05)
+    } else {
+        mix(Color::BLACK, background, 0.05)
     }
 }
 
