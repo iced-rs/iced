@@ -555,18 +555,21 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
     match status {
         Status::Active { is_checked } => styled(
             palette.primary.strong.text,
+            palette.background.strongest.color,
             palette.background.base,
-            palette.primary.strong,
+            palette.primary.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
             palette.primary.strong.text,
+            palette.background.strongest.color,
             palette.background.weak,
-            palette.primary.base,
+            palette.primary.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
             palette.primary.strong.text,
+            palette.background.weak.color,
             palette.background.weak,
             palette.background.strong,
             is_checked,
@@ -581,18 +584,21 @@ pub fn secondary(theme: &Theme, status: Status) -> Style {
     match status {
         Status::Active { is_checked } => styled(
             palette.background.base.text,
+            palette.background.strongest.color,
             palette.background.base,
             palette.background.strong,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
             palette.background.base.text,
+            palette.background.strongest.color,
             palette.background.weak,
             palette.background.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
             palette.background.strong.color,
+            palette.background.weak.color,
             palette.background.weak,
             palette.background.weak,
             is_checked,
@@ -607,18 +613,21 @@ pub fn success(theme: &Theme, status: Status) -> Style {
     match status {
         Status::Active { is_checked } => styled(
             palette.success.base.text,
+            palette.background.weak.color,
             palette.background.base,
             palette.success.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
             palette.success.base.text,
+            palette.background.strongest.color,
             palette.background.weak,
-            palette.success.base,
+            palette.success.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
             palette.success.base.text,
+            palette.background.weak.color,
             palette.background.weak,
             palette.success.weak,
             is_checked,
@@ -633,18 +642,21 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
     match status {
         Status::Active { is_checked } => styled(
             palette.danger.base.text,
+            palette.background.strongest.color,
             palette.background.base,
             palette.danger.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
             palette.danger.base.text,
+            palette.background.strongest.color,
             palette.background.weak,
-            palette.danger.base,
+            palette.danger.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
             palette.danger.base.text,
+            palette.background.weak.color,
             palette.background.weak,
             palette.danger.weak,
             is_checked,
@@ -654,6 +666,7 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
 
 fn styled(
     icon_color: Color,
+    border_color: Color,
     base: palette::Pair,
     accent: palette::Pair,
     is_checked: bool,
@@ -668,7 +681,11 @@ fn styled(
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
-            color: accent.color,
+            color: if is_checked {
+                accent.color
+            } else {
+                border_color
+            },
         },
         text_color: None,
     }

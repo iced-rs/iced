@@ -703,10 +703,10 @@ pub fn bordered_box(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
     Style {
-        background: Some(palette.background.weak.color.into()),
+        background: Some(palette.background.weakest.color.into()),
         border: Border {
             width: 1.0,
-            radius: 0.0.into(),
+            radius: 5.0.into(),
             color: palette.background.strong.color,
         },
         ..Style::default()
