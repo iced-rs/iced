@@ -1469,6 +1469,12 @@ impl From<Id> for widget::Id {
     }
 }
 
+impl From<widget::Id> for Id {
+    fn from(id: widget::Id) -> Self {
+        Id(id)
+    }
+}
+
 impl From<&'static str> for Id {
     fn from(id: &'static str) -> Self {
         Self::new(id)
@@ -1484,6 +1490,11 @@ impl From<String> for Id {
 /// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
 pub fn focus<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus(id.into().0)))
+}
+
+/// Produces a [`Task`] that searches for a focused [`TextInput`] and returns the [`Id`] on success
+pub fn find_focused() -> Task<impl Into<Id>> {
+    task::widget(operation::focusable::find_focused())
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
