@@ -527,8 +527,8 @@ impl BufferStack {
                 Buffer::Solid(buffer) if !buffer.indices.is_empty() => {
                     Some(Mesh::Solid {
                         buffers: mesh::Indexed {
-                            vertices: buffer.vertices,
-                            indices: buffer.indices,
+                            vertices: Arc::from(buffer.vertices),
+                            indices: Arc::from(buffer.indices),
                         },
                         clip_bounds,
                         transformation: Transformation::IDENTITY,
@@ -537,8 +537,8 @@ impl BufferStack {
                 Buffer::Gradient(buffer) if !buffer.indices.is_empty() => {
                     Some(Mesh::Gradient {
                         buffers: mesh::Indexed {
-                            vertices: buffer.vertices,
-                            indices: buffer.indices,
+                            vertices: Arc::from(buffer.vertices),
+                            indices: Arc::from(buffer.indices),
                         },
                         clip_bounds,
                         transformation: Transformation::IDENTITY,
