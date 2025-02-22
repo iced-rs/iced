@@ -285,15 +285,15 @@ pub fn is_focused(target: Id) -> impl Operation<bool> {
             _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<bool>),
         ) {
+            if self.is_focused.is_some() {
+                return;
+            }
+
             operate_on_children(self);
         }
 
         fn finish(&self) -> Outcome<bool> {
-            if let Some(is_focused) = &self.is_focused {
-                Outcome::Some(*is_focused)
-            } else {
-                Outcome::None
-            }
+            self.is_focused.map_or(Outcome::None, Outcome::Some)
         }
     }
 
