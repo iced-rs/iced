@@ -142,7 +142,6 @@ impl Compositor {
             compatible_surface: compatible_surface.as_ref(),
             force_fallback_adapter: false,
         };
-        println!("{:#?}", adapter_options);
 
         let adapter = instance
             .request_adapter(&adapter_options)
