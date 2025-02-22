@@ -1481,6 +1481,11 @@ impl From<String> for Id {
     }
 }
 
+/// Produces a [`Task`] that returns whether the [`TextInput`] with the given [`Id`] is focused or not.
+pub fn is_focused(id: impl Into<Id>) -> Task<bool> {
+    task::widget(operation::focusable::is_focused(id.into().into()))
+}
+
 /// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
 pub fn focus<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus(id.into().0)))
