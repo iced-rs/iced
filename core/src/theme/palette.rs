@@ -37,7 +37,7 @@ impl Palette {
 
     /// The built-in dark variant of a [`Palette`].
     pub const DARK: Self = Self {
-        background: color!(0x313338),
+        background: color!(0x2B2D31),
         text: Color::from_rgb(0.90, 0.90, 0.90),
         primary: color!(0x5865F2),
         success: color!(0x12664f),
