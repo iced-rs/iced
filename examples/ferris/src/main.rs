@@ -95,9 +95,9 @@ impl Image {
         let i_am_ferris = column![
             "Hello!",
             Element::from(
-                image(format!(
-                    "{}/../tour/images/ferris.png",
-                    env!("CARGO_MANIFEST_DIR")
+                image(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/../tour/images/ferris.png",
                 ))
                 .width(self.width)
                 .content_fit(self.content_fit)
