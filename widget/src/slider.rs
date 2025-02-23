@@ -670,14 +670,14 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     let color = match status {
-        Status::Active => palette.primary.strong.color,
-        Status::Hovered => palette.primary.base.color,
-        Status::Dragged => palette.primary.strong.color,
+        Status::Active => palette.primary.base.color,
+        Status::Hovered => palette.primary.strong.color,
+        Status::Dragged => palette.primary.weak.color,
     };
 
     Style {
         rail: Rail {
-            backgrounds: (color.into(), palette.secondary.base.color.into()),
+            backgrounds: (color.into(), palette.background.strong.color.into()),
             width: 4.0,
             border: Border {
                 radius: 2.0.into(),

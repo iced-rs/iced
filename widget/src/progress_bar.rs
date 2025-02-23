@@ -288,10 +288,7 @@ impl Catalog for Theme {
 pub fn primary(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
-    styled(
-        palette.background.strong.color,
-        palette.primary.strong.color,
-    )
+    styled(palette.background.strong.color, palette.primary.base.color)
 }
 
 /// The secondary style of a [`ProgressBar`].
