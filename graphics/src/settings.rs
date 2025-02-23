@@ -1,5 +1,5 @@
-use crate::core::{Font, Pixels};
 use crate::Antialiasing;
+use crate::core::{Font, Pixels};
 
 /// The settings of a renderer.
 #[derive(Debug, Clone, Copy, PartialEq)]

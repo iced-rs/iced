@@ -74,10 +74,10 @@ impl<A, B> core::text::Renderer for Renderer<A, B>
 where
     A: core::text::Renderer,
     B: core::text::Renderer<
-        Font = A::Font,
-        Paragraph = A::Paragraph,
-        Editor = A::Editor,
-    >,
+            Font = A::Font,
+            Paragraph = A::Paragraph,
+            Editor = A::Editor,
+        >,
 {
     type Font = A::Font;
     type Paragraph = A::Paragraph;

@@ -20,6 +20,7 @@
 //!     qr_code(&state.data).into()
 //! }
 //! ```
+use crate::Renderer;
 use crate::canvas;
 use crate::core::layout;
 use crate::core::mouse;
@@ -29,7 +30,6 @@ use crate::core::{
     Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme,
     Vector, Widget,
 };
-use crate::Renderer;
 
 use std::cell::RefCell;
 use thiserror::Error;

@@ -114,7 +114,7 @@ where
     fn update(
         &mut self,
         _state: &mut Tree,
-        _event: Event,
+        _event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,

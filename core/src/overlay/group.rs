@@ -74,7 +74,7 @@ where
 
     fn update(
         &mut self,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -82,14 +82,7 @@ where
         shell: &mut Shell<'_, Message>,
     ) {
         for (child, layout) in self.children.iter_mut().zip(layout.children()) {
-            child.update(
-                event.clone(),
-                layout,
-                cursor,
-                renderer,
-                clipboard,
-                shell,
-            );
+            child.update(event, layout, cursor, renderer, clipboard, shell);
         }
     }
 

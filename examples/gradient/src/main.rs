@@ -3,7 +3,7 @@ use iced::theme;
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text,
 };
-use iced::{Center, Color, Element, Fill, Radians, Theme};
+use iced::{Center, Color, Element, Fill, Radians, Theme, color};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -34,7 +34,7 @@ impl Gradient {
     fn new() -> Self {
         Self {
             start: Color::WHITE,
-            end: Color::new(0.0, 0.0, 1.0, 1.0),
+            end: color!(0x0000ff),
             angle: Radians(0.0),
             transparent: false,
         }

@@ -42,22 +42,18 @@ impl Color {
     ///
     /// In debug mode, it will panic if the values are not in the correct
     /// range: 0.0 - 1.0
-    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
+    const fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         debug_assert!(
-            (0.0..=1.0).contains(&r),
-            "Red component must be on [0, 1]"
+            r >= 0.0 && r <= 1.0,
+            "Red component must be in [0, 1] range."
         );
         debug_assert!(
-            (0.0..=1.0).contains(&g),
-            "Green component must be on [0, 1]"
+            g >= 0.0 && g <= 1.0,
+            "Green component must be in [0, 1] range."
         );
         debug_assert!(
-            (0.0..=1.0).contains(&b),
-            "Blue component must be on [0, 1]"
-        );
-        debug_assert!(
-            (0.0..=1.0).contains(&a),
-            "Alpha component must be on [0, 1]"
+            b >= 0.0 && b <= 1.0,
+            "Blue component must be in [0, 1] range."
         );
 
         Color { r, g, b, a }
@@ -70,22 +66,17 @@ impl Color {
 
     /// Creates a [`Color`] from its RGBA components.
     pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Color {
-        Color { r, g, b, a }
+        Color::new(r, g, b, a)
     }
 
     /// Creates a [`Color`] from its RGB8 components.
-    pub fn from_rgb8(r: u8, g: u8, b: u8) -> Color {
+    pub const fn from_rgb8(r: u8, g: u8, b: u8) -> Color {
         Color::from_rgba8(r, g, b, 1.0)
     }
 
     /// Creates a [`Color`] from its RGB8 components and an alpha value.
-    pub fn from_rgba8(r: u8, g: u8, b: u8, a: f32) -> Color {
-        Color {
-            r: f32::from(r) / 255.0,
-            g: f32::from(g) / 255.0,
-            b: f32::from(b) / 255.0,
-            a,
-        }
+    pub const fn from_rgba8(r: u8, g: u8, b: u8, a: f32) -> Color {
+        Color::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, a)
     }
 
     /// Creates a [`Color`] from its linear RGBA components.
@@ -234,34 +225,10 @@ impl From<[f32; 4]> for Color {
 #[macro_export]
 macro_rules! color {
     ($r:expr, $g:expr, $b:expr) => {
-        $crate::color!($r, $g, $b, 1.0)
+        $crate::Color::from_rgb8($r, $g, $b)
     };
-    ($r:expr, $g:expr, $b:expr, $a:expr) => {{
-        let r = $r as f32 / 255.0;
-        let g = $g as f32 / 255.0;
-        let b = $b as f32 / 255.0;
-
-        #[allow(clippy::manual_range_contains)]
-        {
-            debug_assert!(
-                r >= 0.0 && r <= 1.0,
-                "R channel must be in [0, 255] range."
-            );
-            debug_assert!(
-                g >= 0.0 && g <= 1.0,
-                "G channel must be in [0, 255] range."
-            );
-            debug_assert!(
-                b >= 0.0 && b <= 1.0,
-                "B channel must be in [0, 255] range."
-            );
-        }
-
-        $crate::Color { r, g, b, a: $a }
-    }};
-    ($hex:expr) => {{
-        $crate::color!($hex, 1.0)
-    }};
+    ($r:expr, $g:expr, $b:expr, $a:expr) => {{ $crate::Color::from_rgba8($r, $g, $b, $a) }};
+    ($hex:expr) => {{ $crate::color!($hex, 1.0) }};
     ($hex:expr, $a:expr) => {{
         let hex = $hex as u32;
 
@@ -271,7 +238,7 @@ macro_rules! color {
         let g = (hex & 0xff00) >> 8;
         let b = (hex & 0xff);
 
-        $crate::color!(r, g, b, $a)
+        $crate::color!(r as u8, g as u8, b as u8, $a)
     }};
 }
 

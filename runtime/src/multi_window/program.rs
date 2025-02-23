@@ -1,8 +1,8 @@
 //! Build interactive programs using The Elm Architecture.
+use crate::Task;
 use crate::core::text;
 use crate::core::window;
 use crate::core::{Element, Renderer};
-use crate::Task;
 
 /// The core of a user interface for a multi-window application following The Elm Architecture.
 pub trait Program: Sized {

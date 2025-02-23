@@ -1,5 +1,4 @@
 //! A `ThreadPool` backend.
-use futures::Future;
 
 /// A thread pool executor for futures.
 pub type Executor = futures::executor::ThreadPool;

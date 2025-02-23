@@ -33,6 +33,7 @@ iced_renderer.workspace = true
 iced_runtime.workspace = true
 
 num-traits.workspace = true
+log.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
 unicode-segmentation.workspace = true

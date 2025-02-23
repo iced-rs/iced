@@ -1,7 +1,7 @@
 //! Operate on widgets that can be focused.
-use crate::widget::operation::{self, Operation, Outcome};
-use crate::widget::Id;
 use crate::Rectangle;
+use crate::widget::Id;
+use crate::widget::operation::{self, Operation, Outcome};
 
 /// The internal state of a widget that can be focused.
 pub trait Focusable {
@@ -59,6 +59,33 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
     }
 
     Focus { target }
+}
+
+/// Produces an [`Operation`] that unfocuses the focused widget.
+pub fn unfocus<T>() -> impl Operation<T> {
+    struct Unfocus;
+
+    impl<T> Operation<T> for Unfocus {
+        fn focusable(
+            &mut self,
+            _id: Option<&Id>,
+            _bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
+            state.unfocus();
+        }
+
+        fn container(
+            &mut self,
+            _id: Option<&Id>,
+            _bounds: Rectangle,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
+        ) {
+            operate_on_children(self);
+        }
+    }
+
+    Unfocus
 }
 
 /// Produces an [`Operation`] that generates a [`Count`] and chains it with the
@@ -229,4 +256,49 @@ pub fn find_focused() -> impl Operation<Id> {
     }
 
     FindFocused { focused: None }
+}
+
+/// Produces an [`Operation`] that searches for the focusable widget
+/// and stores whether it is focused or not. This ignores widgets that
+/// do not have an ID.
+pub fn is_focused(target: Id) -> impl Operation<bool> {
+    struct IsFocused {
+        target: Id,
+        is_focused: Option<bool>,
+    }
+
+    impl Operation<bool> for IsFocused {
+        fn focusable(
+            &mut self,
+            id: Option<&Id>,
+            _bounds: Rectangle,
+            state: &mut dyn Focusable,
+        ) {
+            if id.is_some_and(|id| *id == self.target) {
+                self.is_focused = Some(state.is_focused());
+            }
+        }
+
+        fn container(
+            &mut self,
+            _id: Option<&Id>,
+            _bounds: Rectangle,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<bool>),
+        ) {
+            if self.is_focused.is_some() {
+                return;
+            }
+
+            operate_on_children(self);
+        }
+
+        fn finish(&self) -> Outcome<bool> {
+            self.is_focused.map_or(Outcome::None, Outcome::Some)
+        }
+    }
+
+    IsFocused {
+        target,
+        is_focused: None,
+    }
 }

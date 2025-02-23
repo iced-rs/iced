@@ -64,8 +64,8 @@ use crate::core::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
     Vector,
 };
-use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::Viewport;
+use crate::graphics::text::{Editor, Paragraph};
 
 /// A [`wgpu`] graphics renderer for [`iced`].
 ///
@@ -145,7 +145,19 @@ impl Renderer {
 
         self.text_viewport.update(queue, viewport.physical_size());
 
+        let physical_bounds = Rectangle::<f32>::from(Rectangle::with_size(
+            viewport.physical_size(),
+        ));
+
         for layer in self.layers.iter_mut() {
+            if physical_bounds
+                .intersection(&(layer.bounds * scale_factor))
+                .and_then(Rectangle::snap)
+                .is_none()
+            {
+                continue;
+            }
+
             if !layer.quads.is_empty() {
                 engine.quad_pipeline.prepare(
                     device,
@@ -269,7 +281,7 @@ impl Renderer {
 
         for layer in self.layers.iter() {
             let Some(physical_bounds) =
-                physical_bounds.intersection(&(layer.bounds * scale))
+                physical_bounds.intersection(&(layer.bounds * scale_factor))
             else {
                 continue;
             };
@@ -391,9 +403,9 @@ impl Renderer {
         overlay: &[impl AsRef<str>],
         viewport: &Viewport,
     ) {
+        use crate::core::Renderer as _;
         use crate::core::alignment;
         use crate::core::text::Renderer as _;
-        use crate::core::Renderer as _;
 
         self.with_layer(
             Rectangle::with_size(viewport.logical_size()),
@@ -414,7 +426,7 @@ impl Renderer {
                     renderer.fill_text(
                         text.clone(),
                         Point::new(11.0, 11.0 + 25.0 * i as f32),
-                        Color::new(0.9, 0.9, 0.9, 1.0),
+                        Color::from_rgba(0.9, 0.9, 0.9, 1.0),
                         Rectangle::with_size(Size::INFINITY),
                     );
 
@@ -548,6 +560,16 @@ impl core::svg::Renderer for Renderer {
 
 impl graphics::mesh::Renderer for Renderer {
     fn draw_mesh(&mut self, mesh: graphics::Mesh) {
+        debug_assert!(
+            !mesh.indices().is_empty(),
+            "Mesh must not have empty indices"
+        );
+
+        debug_assert!(
+            mesh.indices().len() % 3 == 0,
+            "Mesh indices length must be a multiple of 3"
+        );
+
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_mesh(mesh, transformation);
     }

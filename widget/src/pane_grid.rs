@@ -463,7 +463,7 @@ where
                 .filter(|(((pane, _), _), _)| {
                     self.internal
                         .maximized()
-                        .map_or(true, |maximized| *pane == maximized)
+                        .is_none_or(|maximized| *pane == maximized)
                 })
                 .for_each(|(((_, content), state), layout)| {
                     content.operate(state, layout, renderer, operation);
@@ -474,7 +474,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -503,21 +503,14 @@ where
             .filter(|(((pane, _), _), _)| {
                 self.internal
                     .maximized()
-                    .map_or(true, |maximized| *pane == maximized)
+                    .is_none_or(|maximized| *pane == maximized)
             })
         {
             let is_picked = picked_pane == Some(pane);
 
             content.update(
-                tree,
-                event.clone(),
-                layout,
-                cursor,
-                renderer,
-                clipboard,
-                shell,
-                viewport,
-                is_picked,
+                tree, event, layout, cursor, renderer, clipboard, shell,
+                viewport, is_picked,
             );
         }
 
@@ -687,7 +680,7 @@ where
             _ => {}
         }
 
-        if shell.redraw_request() != Some(window::RedrawRequest::NextFrame) {
+        if shell.redraw_request() != window::RedrawRequest::NextFrame {
             let interaction = self
                 .grid_interaction(action, layout, cursor)
                 .or_else(|| {
@@ -695,10 +688,10 @@ where
                         .iter()
                         .zip(&self.contents)
                         .zip(layout.children())
-                        .filter(|((&pane, _content), _layout)| {
+                        .filter(|((pane, _content), _layout)| {
                             self.internal
                                 .maximized()
-                                .map_or(true, |maximized| pane == maximized)
+                                .is_none_or(|maximized| **pane == maximized)
                         })
                         .find_map(|((_pane, content), layout)| {
                             content.grid_interaction(
@@ -745,7 +738,7 @@ where
             .filter(|(((pane, _), _), _)| {
                 self.internal
                     .maximized()
-                    .map_or(true, |maximized| *pane == maximized)
+                    .is_none_or(|maximized| *pane == maximized)
             })
             .map(|(((_, content), tree), layout)| {
                 content.mouse_interaction(
@@ -853,7 +846,7 @@ where
             .filter(|(((pane, _), _), _)| {
                 self.internal
                     .maximized()
-                    .map_or(true, |maximized| maximized == *pane)
+                    .is_none_or(|maximized| maximized == *pane)
             })
         {
             match picked_pane {

@@ -12,7 +12,6 @@ mod action;
 mod column;
 mod mouse_area;
 mod pin;
-mod row;
 mod space;
 mod stack;
 mod themer;
@@ -25,8 +24,10 @@ pub mod keyed;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
+pub mod pop;
 pub mod progress_bar;
 pub mod radio;
+pub mod row;
 pub mod rule;
 pub mod scrollable;
 pub mod slider;
@@ -65,6 +66,8 @@ pub use pane_grid::PaneGrid;
 pub use pick_list::PickList;
 #[doc(no_inline)]
 pub use pin::Pin;
+#[doc(no_inline)]
+pub use pop::Pop;
 #[doc(no_inline)]
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]

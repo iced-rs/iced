@@ -1,5 +1,5 @@
 //! Define the colors of a theme.
-use crate::{color, Color};
+use crate::{Color, color};
 
 use palette::color_difference::Wcag21RelativeContrast;
 use palette::rgb::Rgb;
@@ -29,56 +29,20 @@ impl Palette {
     pub const LIGHT: Self = Self {
         background: Color::WHITE,
         text: Color::BLACK,
-        primary: Color::from_rgb(
-            0x5E as f32 / 255.0,
-            0x7C as f32 / 255.0,
-            0xE2 as f32 / 255.0,
-        ),
-        success: Color::from_rgb(
-            0x12 as f32 / 255.0,
-            0x66 as f32 / 255.0,
-            0x4F as f32 / 255.0,
-        ),
-        warning: Color::from_rgb(
-            0xFF as f32 / 255.0,
-            0xC1 as f32 / 255.0,
-            0x4E as f32 / 255.0,
-        ),
-        danger: Color::from_rgb(
-            0xC3 as f32 / 255.0,
-            0x42 as f32 / 255.0,
-            0x3F as f32 / 255.0,
-        ),
+        primary: color!(0x5865F2),
+        success: color!(0x12664f),
+        warning: color!(0xffc14e),
+        danger: color!(0xc3423f),
     };
 
     /// The built-in dark variant of a [`Palette`].
     pub const DARK: Self = Self {
-        background: Color::from_rgb(
-            0x20 as f32 / 255.0,
-            0x22 as f32 / 255.0,
-            0x25 as f32 / 255.0,
-        ),
+        background: color!(0x2B2D31),
         text: Color::from_rgb(0.90, 0.90, 0.90),
-        primary: Color::from_rgb(
-            0x5E as f32 / 255.0,
-            0x7C as f32 / 255.0,
-            0xE2 as f32 / 255.0,
-        ),
-        success: Color::from_rgb(
-            0x12 as f32 / 255.0,
-            0x66 as f32 / 255.0,
-            0x4F as f32 / 255.0,
-        ),
-        warning: Color::from_rgb(
-            0xFF as f32 / 255.0,
-            0xC1 as f32 / 255.0,
-            0x4E as f32 / 255.0,
-        ),
-        danger: Color::from_rgb(
-            0xC3 as f32 / 255.0,
-            0x42 as f32 / 255.0,
-            0x3F as f32 / 255.0,
-        ),
+        primary: color!(0x5865F2),
+        success: color!(0x12664f),
+        warning: color!(0xffc14e),
+        danger: color!(0xc3423f),
     };
 
     /// The built-in [Dracula] variant of a [`Palette`].
@@ -241,9 +205,9 @@ impl Palette {
     ///
     /// [Kanagawa]: https://github.com/rebelot/kanagawa.nvim
     pub const KANAGAWA_WAVE: Self = Self {
-        background: color!(0x363646), // Sumi Ink 3
-        text: color!(0xCD7BA),        // Fuji White
-        primary: color!(0x2D4F67),    // Wave Blue 2
+        background: color!(0x1f1f28), // Sumi Ink 3
+        text: color!(0xDCD7BA),       // Fuji White
+        primary: color!(0x7FB4CA),    // Wave Blue
         success: color!(0x76946A),    // Autumn Green
         warning: color!(0xff9e3b),    // Ronin Yellow
         danger: color!(0xC34043),     // Autumn Red
@@ -267,7 +231,7 @@ impl Palette {
     pub const KANAGAWA_LOTUS: Self = Self {
         background: color!(0xf2ecbc), // Lotus White 3
         text: color!(0x545464),       // Lotus Ink 1
-        primary: color!(0xc9cbd1),    // Lotus Violet 3
+        primary: color!(0x4d699b),    // Lotus Blue
         success: color!(0x6f894e),    // Lotus Green
         warning: color!(0xe98a00),    // Lotus Orange 2
         danger: color!(0xc84053),     // Lotus Red
@@ -489,22 +453,30 @@ impl Pair {
 pub struct Background {
     /// The base background color.
     pub base: Pair,
+    /// The weakest version of the base background color.
+    pub weakest: Pair,
     /// A weaker version of the base background color.
     pub weak: Pair,
     /// A stronger version of the base background color.
     pub strong: Pair,
+    /// The strongest version of the base background color.
+    pub strongest: Pair,
 }
 
 impl Background {
     /// Generates a set of [`Background`] colors from the base and text colors.
     pub fn new(base: Color, text: Color) -> Self {
-        let weak = mix(base, text, 0.15);
-        let strong = mix(base, text, 0.40);
+        let weakest = deviate(base, 0.03);
+        let weak = muted(deviate(base, 0.1));
+        let strong = muted(deviate(base, 0.2));
+        let strongest = muted(deviate(base, 0.3));
 
         Self {
             base: Pair::new(base, text),
+            weakest: Pair::new(weakest, text),
             weak: Pair::new(weak, text),
             strong: Pair::new(strong, text),
+            strongest: Pair::new(strongest, text),
         }
     }
 }
@@ -663,8 +635,16 @@ fn deviate(color: Color, amount: f32) -> Color {
     if is_dark(color) {
         lighten(color, amount)
     } else {
-        darken(color, amount)
+        darken(color, amount * 0.7)
     }
+}
+
+fn muted(color: Color) -> Color {
+    let mut hsl = to_hsl(color);
+
+    hsl.saturation = hsl.saturation.min(0.5);
+
+    from_hsl(hsl)
 }
 
 fn mix(a: Color, b: Color, factor: f32) -> Color {
@@ -677,16 +657,25 @@ fn mix(a: Color, b: Color, factor: f32) -> Color {
 
 fn readable(background: Color, text: Color) -> Color {
     if is_readable(background, text) {
-        text
-    } else {
-        let white_contrast = relative_contrast(background, Color::WHITE);
-        let black_contrast = relative_contrast(background, Color::BLACK);
+        return text;
+    }
 
-        if white_contrast >= black_contrast {
-            Color::WHITE
-        } else {
-            Color::BLACK
-        }
+    let improve = if is_dark(background) { lighten } else { darken };
+
+    // TODO: Compute factor from relative contrast value
+    let candidate = improve(text, 0.1);
+
+    if is_readable(background, candidate) {
+        return candidate;
+    }
+
+    let white_contrast = relative_contrast(background, Color::WHITE);
+    let black_contrast = relative_contrast(background, Color::BLACK);
+
+    if white_contrast >= black_contrast {
+        mix(Color::WHITE, background, 0.05)
+    } else {
+        mix(Color::BLACK, background, 0.05)
     }
 }
 

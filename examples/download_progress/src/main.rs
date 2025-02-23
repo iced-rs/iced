@@ -3,8 +3,8 @@ mod download;
 use download::download;
 
 use iced::task;
-use iced::widget::{button, center, column, progress_bar, text, Column};
-use iced::{Center, Element, Right, Task};
+use iced::widget::{Column, button, center, column, progress_bar, text};
+use iced::{Center, Element, Function, Right, Task};
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -25,7 +25,7 @@ struct Example {
 pub enum Message {
     Add,
     Download(usize),
-    DownloadProgressed(usize, Result<download::Progress, download::Error>),
+    DownloadUpdated(usize, Update),
 }
 
 impl Example {
@@ -52,15 +52,13 @@ impl Example {
 
                 let task = download.start();
 
-                task.map(move |progress| {
-                    Message::DownloadProgressed(index, progress)
-                })
+                task.map(Message::DownloadUpdated.with(index))
             }
-            Message::DownloadProgressed(id, progress) => {
+            Message::DownloadUpdated(id, update) => {
                 if let Some(download) =
                     self.downloads.iter_mut().find(|download| download.id == id)
                 {
-                    download.progress(progress);
+                    download.update(update);
                 }
 
                 Task::none()
@@ -95,6 +93,12 @@ struct Download {
     state: State,
 }
 
+#[derive(Debug, Clone)]
+pub enum Update {
+    Downloading(download::Progress),
+    Finished(Result<(), download::Error>),
+}
+
 #[derive(Debug)]
 enum State {
     Idle,
@@ -111,18 +115,20 @@ impl Download {
         }
     }
 
-    pub fn start(
-        &mut self,
-    ) -> Task<Result<download::Progress, download::Error>> {
+    pub fn start(&mut self) -> Task<Update> {
         match self.state {
             State::Idle { .. }
             | State::Finished { .. }
             | State::Errored { .. } => {
-                let (task, handle) = Task::stream(download(
-                    "https://huggingface.co/\
+                let (task, handle) = Task::sip(
+                    download(
+                        "https://huggingface.co/\
                         mattshumer/Reflection-Llama-3.1-70B/\
                         resolve/main/model-00001-of-00162.safetensors",
-                ))
+                    ),
+                    Update::Downloading,
+                    Update::Finished,
+                )
                 .abortable();
 
                 self.state = State::Downloading {
@@ -136,20 +142,18 @@ impl Download {
         }
     }
 
-    pub fn progress(
-        &mut self,
-        new_progress: Result<download::Progress, download::Error>,
-    ) {
+    pub fn update(&mut self, update: Update) {
         if let State::Downloading { progress, .. } = &mut self.state {
-            match new_progress {
-                Ok(download::Progress::Downloading { percent }) => {
-                    *progress = percent;
+            match update {
+                Update::Downloading(new_progress) => {
+                    *progress = new_progress.percent;
                 }
-                Ok(download::Progress::Finished) => {
-                    self.state = State::Finished;
-                }
-                Err(_error) => {
-                    self.state = State::Errored;
+                Update::Finished(result) => {
+                    self.state = if result.is_ok() {
+                        State::Finished
+                    } else {
+                        State::Errored
+                    };
                 }
             }
         }

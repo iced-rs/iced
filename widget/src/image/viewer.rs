@@ -162,7 +162,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -178,7 +178,7 @@ where
                     return;
                 };
 
-                match delta {
+                match *delta {
                     mouse::ScrollDelta::Lines { y, .. }
                     | mouse::ScrollDelta::Pixels { y, .. } => {
                         let state = tree.state.downcast_mut::<State>();
@@ -227,6 +227,7 @@ where
                     }
                 }
 
+                shell.request_redraw();
                 shell.capture_event();
             }
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -238,6 +239,8 @@ where
 
                 state.cursor_grabbed_at = Some(cursor_position);
                 state.starting_offset = state.current_offset;
+
+                shell.request_redraw();
                 shell.capture_event();
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
@@ -245,6 +248,7 @@ where
 
                 if state.cursor_grabbed_at.is_some() {
                     state.cursor_grabbed_at = None;
+                    shell.request_redraw();
                     shell.capture_event();
                 }
             }
@@ -269,7 +273,7 @@ where
                         .max(0.0)
                         .round();
 
-                    let delta = position - origin;
+                    let delta = *position - origin;
 
                     let x = if bounds.width < scaled_size.width {
                         (state.starting_offset.x - delta.x)
@@ -286,6 +290,7 @@ where
                     };
 
                     state.current_offset = Vector::new(x, y);
+                    shell.request_redraw();
                     shell.capture_event();
                 }
             }

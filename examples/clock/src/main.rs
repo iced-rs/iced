@@ -1,10 +1,10 @@
+use iced::alignment;
 use iced::mouse;
-use iced::time;
-use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
+use iced::time::{self, milliseconds};
+use iced::widget::canvas::{Cache, Geometry, LineCap, Path, Stroke, stroke};
 use iced::widget::{canvas, container};
-use iced::{alignment, Radians};
 use iced::{
-    Degrees, Element, Fill, Font, Point, Rectangle, Renderer, Size,
+    Degrees, Element, Fill, Font, Point, Radians, Rectangle, Renderer, Size,
     Subscription, Theme, Vector,
 };
 
@@ -49,7 +49,7 @@ impl Clock {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(time::Duration::from_millis(500))
+        time::every(milliseconds(500))
             .map(|_| Message::Tick(chrono::offset::Local::now()))
     }
 

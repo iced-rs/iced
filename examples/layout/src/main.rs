@@ -2,13 +2,13 @@ use iced::border;
 use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
-    button, canvas, center, checkbox, column, container, horizontal_rule,
-    horizontal_space, pick_list, pin, row, scrollable, stack, text,
-    vertical_rule,
+    button, canvas, center, center_y, checkbox, column, container,
+    horizontal_rule, horizontal_space, pick_list, pin, row, scrollable, stack,
+    text, vertical_rule,
 };
 use iced::{
-    color, Center, Element, Fill, Font, Length, Point, Rectangle, Renderer,
-    Shrink, Subscription, Theme,
+    Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink,
+    Subscription, Theme, color,
 };
 
 pub fn main() -> iced::Result {
@@ -253,15 +253,14 @@ fn application<'a>() -> Element<'a, Message> {
             .border(border::color(palette.background.strong.color).width(1))
     });
 
-    let sidebar = container(
+    let sidebar = center_y(
         column!["Sidebar!", square(50), square(50)]
             .spacing(40)
             .padding(10)
             .width(200)
             .align_x(Center),
     )
-    .style(container::rounded_box)
-    .center_y(Fill);
+    .style(container::rounded_box);
 
     let content = container(
         scrollable(

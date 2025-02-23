@@ -52,13 +52,13 @@ mod program;
 
 pub use program::Program;
 
+pub use crate::Action;
 pub use crate::core::event::Event;
 pub use crate::graphics::cache::Group;
 pub use crate::graphics::geometry::{
-    fill, gradient, path, stroke, Fill, Gradient, Image, LineCap, LineDash,
-    LineJoin, Path, Stroke, Style, Text,
+    Fill, Gradient, Image, LineCap, LineDash, LineJoin, Path, Stroke, Style,
+    Text, fill, gradient, path, stroke,
 };
-pub use crate::Action;
 
 use crate::core::event;
 use crate::core::layout::{self, Layout};
@@ -218,7 +218,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -238,19 +238,10 @@ where
         {
             let (message, redraw_request, event_status) = action.into_inner();
 
+            shell.request_redraw_at(redraw_request);
+
             if let Some(message) = message {
                 shell.publish(message);
-            }
-
-            if let Some(redraw_request) = redraw_request {
-                match redraw_request {
-                    window::RedrawRequest::NextFrame => {
-                        shell.request_redraw();
-                    }
-                    window::RedrawRequest::At(at) => {
-                        shell.request_redraw_at(at);
-                    }
-                }
             }
 
             if event_status == event::Status::Captured {
@@ -258,7 +249,7 @@ where
             }
         }
 
-        if shell.redraw_request() != Some(window::RedrawRequest::NextFrame) {
+        if shell.redraw_request() != window::RedrawRequest::NextFrame {
             let mouse_interaction = self
                 .mouse_interaction(tree, layout, cursor, viewport, renderer);
 

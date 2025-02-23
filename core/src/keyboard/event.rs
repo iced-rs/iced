@@ -1,6 +1,6 @@
+use crate::SmolStr;
 use crate::keyboard::key;
 use crate::keyboard::{Key, Location, Modifiers};
-use crate::SmolStr;
 
 /// A keyboard event.
 ///

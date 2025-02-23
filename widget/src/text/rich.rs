@@ -14,8 +14,13 @@ use crate::core::{
 
 /// A bunch of [`Rich`] text.
 #[allow(missing_debug_implementations)]
-pub struct Rich<'a, Link, Theme = crate::Theme, Renderer = crate::Renderer>
-where
+pub struct Rich<
+    'a,
+    Link,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
     Link: Clone + 'static,
     Theme: Catalog,
     Renderer: core::text::Renderer,
@@ -30,9 +35,12 @@ where
     align_y: alignment::Vertical,
     wrapping: Wrapping,
     class: Theme::Class<'a>,
+    hovered_link: Option<usize>,
+    on_link_click: Option<Box<dyn Fn(Link) -> Message + 'a>>,
 }
 
-impl<'a, Link, Theme, Renderer> Rich<'a, Link, Theme, Renderer>
+impl<'a, Link, Message, Theme, Renderer>
+    Rich<'a, Link, Message, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: Catalog,
@@ -52,6 +60,8 @@ where
             align_y: alignment::Vertical::Top,
             wrapping: Wrapping::default(),
             class: Theme::default(),
+            hovered_link: None,
+            on_link_click: None,
         }
     }
 
@@ -125,6 +135,16 @@ where
         self
     }
 
+    /// Sets the message that will be produced when a link of the [`Rich`] text
+    /// is clicked.
+    pub fn on_link_click(
+        mut self,
+        on_link_clicked: impl Fn(Link) -> Message + 'a,
+    ) -> Self {
+        self.on_link_click = Some(Box::new(on_link_clicked));
+        self
+    }
+
     /// Sets the default style of the [`Rich`] text.
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
@@ -162,7 +182,8 @@ where
     }
 }
 
-impl<'a, Link, Theme, Renderer> Default for Rich<'a, Link, Theme, Renderer>
+impl<'a, Link, Message, Theme, Renderer> Default
+    for Rich<'a, Link, Message, Theme, Renderer>
 where
     Link: Clone + 'a,
     Theme: Catalog,
@@ -180,8 +201,8 @@ struct State<Link, P: Paragraph> {
     paragraph: P,
 }
 
-impl<Link, Theme, Renderer> Widget<Link, Theme, Renderer>
-    for Rich<'_, Link, Theme, Renderer>
+impl<Link, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Rich<'_, Link, Message, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: Catalog,
@@ -236,22 +257,22 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
+        if !layout.bounds().intersects(viewport) {
+            return;
+        }
+
         let state = tree
             .state
             .downcast_ref::<State<Link, Renderer::Paragraph>>();
 
         let style = theme.style(&self.class);
 
-        let hovered_span = cursor
-            .position_in(layout.bounds())
-            .and_then(|position| state.paragraph.hit_span(position));
-
         for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
-            let is_hovered_link =
-                span.link.is_some() && Some(index) == hovered_span;
+            let is_hovered_link = self.on_link_click.is_some()
+                && Some(index) == self.hovered_link;
 
             if span.highlight.is_some()
                 || span.underline
@@ -357,33 +378,50 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Link>,
+        shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
+        let Some(on_link_clicked) = &self.on_link_click else {
+            return;
+        };
+
+        let was_hovered = self.hovered_link.is_some();
+
+        if let Some(position) = cursor.position_in(layout.bounds()) {
+            let state = tree
+                .state
+                .downcast_ref::<State<Link, Renderer::Paragraph>>();
+
+            self.hovered_link =
+                state.paragraph.hit_span(position).and_then(|span| {
+                    if self.spans.as_ref().as_ref().get(span)?.link.is_some() {
+                        Some(span)
+                    } else {
+                        None
+                    }
+                });
+        } else {
+            self.hovered_link = None;
+        }
+
+        if was_hovered != self.hovered_link.is_some() {
+            shell.request_redraw();
+        }
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if let Some(position) = cursor.position_in(layout.bounds()) {
-                    let state = tree
-                        .state
-                        .downcast_mut::<State<Link, Renderer::Paragraph>>();
+                let state = tree
+                    .state
+                    .downcast_mut::<State<Link, Renderer::Paragraph>>();
 
-                    if let Some(span) = state.paragraph.hit_span(position) {
-                        if self
-                            .spans
-                            .as_ref()
-                            .as_ref()
-                            .get(span)
-                            .is_some_and(|span| span.link.is_some())
-                        {
-                            state.span_pressed = Some(span);
-                            shell.capture_event();
-                        }
-                    }
+                if self.hovered_link.is_some() {
+                    state.span_pressed = self.hovered_link;
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
@@ -391,27 +429,22 @@ where
                     .state
                     .downcast_mut::<State<Link, Renderer::Paragraph>>();
 
-                if let Some(span_pressed) = state.span_pressed {
-                    state.span_pressed = None;
-
-                    if let Some(position) = cursor.position_in(layout.bounds())
-                    {
-                        match state.paragraph.hit_span(position) {
-                            Some(span) if span == span_pressed => {
-                                if let Some(link) = self
-                                    .spans
-                                    .as_ref()
-                                    .as_ref()
-                                    .get(span)
-                                    .and_then(|span| span.link.clone())
-                                {
-                                    shell.publish(link);
-                                }
-                            }
-                            _ => {}
+                match state.span_pressed {
+                    Some(span) if Some(span) == self.hovered_link => {
+                        if let Some(link) = self
+                            .spans
+                            .as_ref()
+                            .as_ref()
+                            .get(span)
+                            .and_then(|span| span.link.clone())
+                        {
+                            shell.publish(on_link_clicked(link));
                         }
                     }
+                    _ => {}
                 }
+
+                state.span_pressed = None;
             }
             _ => {}
         }
@@ -419,29 +452,17 @@ where
 
     fn mouse_interaction(
         &self,
-        tree: &Tree,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _tree: &Tree,
+        _layout: Layout<'_>,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if let Some(position) = cursor.position_in(layout.bounds()) {
-            let state = tree
-                .state
-                .downcast_ref::<State<Link, Renderer::Paragraph>>();
-
-            if let Some(span) = state
-                .paragraph
-                .hit_span(position)
-                .and_then(|span| self.spans.as_ref().as_ref().get(span))
-            {
-                if span.link.is_some() {
-                    return mouse::Interaction::Pointer;
-                }
-            }
+        if self.hovered_link.is_some() {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::None
         }
-
-        mouse::Interaction::None
     }
 }
 
@@ -512,8 +533,9 @@ where
     })
 }
 
-impl<'a, Link, Theme, Renderer> FromIterator<Span<'a, Link, Renderer::Font>>
-    for Rich<'a, Link, Theme, Renderer>
+impl<'a, Link, Message, Theme, Renderer>
+    FromIterator<Span<'a, Link, Renderer::Font>>
+    for Rich<'a, Link, Message, Theme, Renderer>
 where
     Link: Clone + 'a,
     Theme: Catalog,
@@ -527,16 +549,18 @@ where
     }
 }
 
-impl<'a, Link, Theme, Renderer> From<Rich<'a, Link, Theme, Renderer>>
-    for Element<'a, Link, Theme, Renderer>
+impl<'a, Link, Message, Theme, Renderer>
+    From<Rich<'a, Link, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
+    Message: 'a,
     Link: Clone + 'a,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer + 'a,
 {
     fn from(
-        text: Rich<'a, Link, Theme, Renderer>,
-    ) -> Element<'a, Link, Theme, Renderer> {
+        text: Rich<'a, Link, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text)
     }
 }

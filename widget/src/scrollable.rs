@@ -33,11 +33,12 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Event, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    self, Background, Clipboard, Color, Element, Event, InputMethod, Layout,
+    Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
+    Widget,
 };
-use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
+use crate::runtime::task::{self, Task};
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
@@ -137,6 +138,11 @@ where
         self
     }
 
+    /// Makes the [`Scrollable`] scroll horizontally, with default [`Scrollbar`] settings.
+    pub fn horizontal(self) -> Self {
+        self.direction(Direction::Horizontal(Scrollbar::default()))
+    }
+
     /// Sets the [`Direction`] of the [`Scrollable`].
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
@@ -144,8 +150,8 @@ where
     }
 
     /// Sets the [`Id`] of the [`Scrollable`].
-    pub fn id(mut self, id: Id) -> Self {
-        self.id = Some(id);
+    pub fn id(mut self, id: impl Into<Id>) -> Self {
+        self.id = Some(id.into());
         self
     }
 
@@ -511,7 +517,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -558,7 +564,8 @@ where
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
                         if let Some(scrollbar) = scrollbars.y {
-                            let Some(cursor_position) = cursor.position()
+                            let Some(cursor_position) =
+                                cursor.land().position()
                             else {
                                 return;
                             };
@@ -630,7 +637,8 @@ where
                 match event {
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        let Some(cursor_position) = cursor.position() else {
+                        let Some(cursor_position) = cursor.land().position()
+                        else {
                             return;
                         };
 
@@ -721,12 +729,14 @@ where
                     _ => mouse::Cursor::Unavailable,
                 };
 
+                let had_input_method = shell.input_method().is_enabled();
+
                 let translation =
                     state.translation(self.direction, bounds, content_bounds);
 
                 self.content.as_widget_mut().update(
                     &mut tree.children[0],
-                    event.clone(),
+                    event,
                     content,
                     cursor,
                     renderer,
@@ -738,6 +748,14 @@ where
                         ..bounds
                     },
                 );
+
+                if !had_input_method {
+                    if let InputMethod::Enabled { position, .. } =
+                        shell.input_method_mut()
+                    {
+                        *position = *position - translation;
+                    }
+                }
             };
 
             if matches!(
@@ -763,7 +781,7 @@ where
                 modifiers,
             )) = event
             {
-                state.keyboard_modifiers = modifiers;
+                state.keyboard_modifiers = *modifiers;
 
                 return;
             }
@@ -774,7 +792,7 @@ where
                         return;
                     }
 
-                    let delta = match delta {
+                    let delta = match *delta {
                         mouse::ScrollDelta::Lines { x, y } => {
                             let is_shift_pressed =
                                 state.keyboard_modifiers.shift();
@@ -788,13 +806,7 @@ where
                                 (x, y)
                             };
 
-                            let is_vertical = match self.direction {
-                                Direction::Vertical(_) => true,
-                                Direction::Horizontal(_) => false,
-                                Direction::Both { .. } => !is_shift_pressed,
-                            };
-
-                            let movement = if is_vertical {
+                            let movement = if !is_shift_pressed {
                                 Vector::new(x, y)
                             } else {
                                 Vector::new(y, x)
@@ -999,9 +1011,9 @@ where
                             content_layout,
                             cursor,
                             &Rectangle {
-                                y: bounds.y + translation.y,
-                                x: bounds.x + translation.x,
-                                ..bounds
+                                y: visible_bounds.y + translation.y,
+                                x: visible_bounds.x + translation.x,
+                                ..visible_bounds
                             },
                         );
                     },
@@ -1103,9 +1115,9 @@ where
                 content_layout,
                 cursor,
                 &Rectangle {
-                    x: bounds.x + translation.x,
-                    y: bounds.y + translation.y,
-                    ..bounds
+                    x: visible_bounds.x + translation.x,
+                    y: visible_bounds.y + translation.y,
+                    ..visible_bounds
                 },
             );
         }
@@ -1228,25 +1240,36 @@ impl From<Id> for widget::Id {
     }
 }
 
+impl From<&'static str> for Id {
+    fn from(id: &'static str) -> Self {
+        Self::new(id)
+    }
+}
+
 /// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`Id`]
 /// to the provided [`RelativeOffset`].
-pub fn snap_to<T>(id: Id, offset: RelativeOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::snap_to(id.0, offset)))
+pub fn snap_to<T>(id: impl Into<Id>, offset: RelativeOffset) -> Task<T> {
+    task::effect(Action::widget(operation::scrollable::snap_to(
+        id.into().0,
+        offset,
+    )))
 }
 
 /// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
 /// to the provided [`AbsoluteOffset`].
-pub fn scroll_to<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
+pub fn scroll_to<T>(id: impl Into<Id>, offset: AbsoluteOffset) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::scroll_to(
-        id.0, offset,
+        id.into().0,
+        offset,
     )))
 }
 
 /// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
 /// by the provided [`AbsoluteOffset`].
-pub fn scroll_by<T>(id: Id, offset: AbsoluteOffset) -> Task<T> {
+pub fn scroll_by<T>(id: impl Into<Id>, offset: AbsoluteOffset) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::scroll_by(
-        id.0, offset,
+        id.into().0,
+        offset,
     )))
 }
 

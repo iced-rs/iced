@@ -161,7 +161,7 @@ impl<T> Subscription<T> {
     /// }
     ///
     /// fn some_worker() -> impl Stream<Item = Event> {
-    ///     stream::channel(100, |mut output| async move {
+    ///     stream::channel(100, async |mut output| {
     ///         // Create channel
     ///         let (sender, mut receiver) = mpsc::channel(100);
     ///
@@ -202,24 +202,25 @@ impl<T> Subscription<T> {
         T: 'static,
     {
         from_recipe(Runner {
-            id: builder,
-            spawn: move |_| builder(),
+            data: builder,
+            spawn: |builder, _| builder(),
         })
     }
 
     /// Returns a [`Subscription`] that will create and asynchronously run the
     /// given [`Stream`].
     ///
-    /// The `id` will be used to uniquely identify the [`Subscription`].
-    pub fn run_with_id<I, S>(id: I, stream: S) -> Subscription<T>
+    /// Both the `data` and the function pointer will be used to uniquely identify
+    /// the [`Subscription`].
+    pub fn run_with<D, S>(data: D, builder: fn(&D) -> S) -> Self
     where
-        I: Hash + 'static,
+        D: Hash + 'static,
         S: Stream<Item = T> + MaybeSend + 'static,
         T: 'static,
     {
         from_recipe(Runner {
-            id,
-            spawn: move |_| stream,
+            data: (data, builder),
+            spawn: |(data, builder), _| builder(data),
         })
     }
 
@@ -423,8 +424,8 @@ where
     T: 'static + MaybeSend,
 {
     from_recipe(Runner {
-        id,
-        spawn: |events| {
+        data: id,
+        spawn: |_, events| {
             use futures::future;
             use futures::stream::StreamExt;
 
@@ -435,27 +436,27 @@ where
 
 struct Runner<I, F, S, T>
 where
-    F: FnOnce(EventStream) -> S,
+    F: FnOnce(&I, EventStream) -> S,
     S: Stream<Item = T>,
 {
-    id: I,
+    data: I,
     spawn: F,
 }
 
 impl<I, F, S, T> Recipe for Runner<I, F, S, T>
 where
     I: Hash + 'static,
-    F: FnOnce(EventStream) -> S,
+    F: FnOnce(&I, EventStream) -> S,
     S: Stream<Item = T> + MaybeSend + 'static,
 {
     type Output = T;
 
     fn hash(&self, state: &mut Hasher) {
         std::any::TypeId::of::<I>().hash(state);
-        self.id.hash(state);
+        self.data.hash(state);
     }
 
     fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
-        crate::boxed_stream((self.spawn)(input))
+        crate::boxed_stream((self.spawn)(&self.data, input))
     }
 }
