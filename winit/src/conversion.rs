@@ -487,12 +487,21 @@ pub fn mouse_interaction(
         Interaction::None | Interaction::Idle => {
             winit::window::CursorIcon::Default
         }
+        Interaction::ContextMenu => winit::window::CursorIcon::ContextMenu,
+        Interaction::Help => winit::window::CursorIcon::Help,
         Interaction::Pointer => winit::window::CursorIcon::Pointer,
-        Interaction::Working => winit::window::CursorIcon::Progress,
-        Interaction::Grab => winit::window::CursorIcon::Grab,
-        Interaction::Grabbing => winit::window::CursorIcon::Grabbing,
+        Interaction::Progress => winit::window::CursorIcon::Progress,
+        Interaction::Wait => winit::window::CursorIcon::Wait,
+        Interaction::Cell => winit::window::CursorIcon::Cell,
         Interaction::Crosshair => winit::window::CursorIcon::Crosshair,
         Interaction::Text => winit::window::CursorIcon::Text,
+        Interaction::Alias => winit::window::CursorIcon::Alias,
+        Interaction::Copy => winit::window::CursorIcon::Copy,
+        Interaction::Move => winit::window::CursorIcon::Move,
+        Interaction::NoDrop => winit::window::CursorIcon::NoDrop,
+        Interaction::NotAllowed => winit::window::CursorIcon::NotAllowed,
+        Interaction::Grab => winit::window::CursorIcon::Grab,
+        Interaction::Grabbing => winit::window::CursorIcon::Grabbing,
         Interaction::ResizingHorizontally => {
             winit::window::CursorIcon::EwResize
         }
@@ -503,13 +512,11 @@ pub fn mouse_interaction(
         Interaction::ResizingDiagonallyDown => {
             winit::window::CursorIcon::NwseResize
         }
-        Interaction::NotAllowed => winit::window::CursorIcon::NotAllowed,
+        Interaction::ResizingColumn => winit::window::CursorIcon::ColResize,
+        Interaction::ResizingRow => winit::window::CursorIcon::RowResize,
+        Interaction::AllScroll => winit::window::CursorIcon::AllScroll,
         Interaction::ZoomIn => winit::window::CursorIcon::ZoomIn,
         Interaction::ZoomOut => winit::window::CursorIcon::ZoomOut,
-        Interaction::Cell => winit::window::CursorIcon::Cell,
-        Interaction::Move => winit::window::CursorIcon::Move,
-        Interaction::Copy => winit::window::CursorIcon::Copy,
-        Interaction::Help => winit::window::CursorIcon::Help,
     };
 
     Some(icon)
