@@ -170,7 +170,7 @@ impl<'a, Highlighter, Message, Theme, Renderer>
     TextEditor<'a, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
-    Theme: Catalog,
+    Theme: Catalog + 'static + PartialEq,
     Renderer: text::Renderer,
 {
     /// Sets the placeholder of the [`TextEditor`].
@@ -335,7 +335,7 @@ where
 
     fn input_method<'b>(
         &self,
-        state: &'b State<Highlighter>,
+        state: &'b State<Highlighter, Theme>,
         renderer: &Renderer,
         layout: Layout<'_>,
     ) -> InputMethod<&'b str> {
@@ -508,12 +508,13 @@ where
 
 /// The state of a [`TextEditor`].
 #[derive(Debug)]
-pub struct State<Highlighter: text::Highlighter> {
+pub struct State<Highlighter: text::Highlighter, Theme: PartialEq> {
     focus: Option<Focus>,
     preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
     partial_scroll: f32,
+    last_theme: RefCell<Option<Theme>>,
     highlighter: RefCell<Highlighter>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format_address: usize,
@@ -547,15 +548,17 @@ impl Focus {
     }
 }
 
-impl<Highlighter: text::Highlighter> State<Highlighter> {
+impl<Highlighter: text::Highlighter, Theme: PartialEq + 'static>
+    State<Highlighter, Theme>
+{
     /// Returns whether the [`TextEditor`] is currently focused or not.
     pub fn is_focused(&self) -> bool {
         self.focus.is_some()
     }
 }
 
-impl<Highlighter: text::Highlighter> operation::Focusable
-    for State<Highlighter>
+impl<Highlighter: text::Highlighter, Theme: PartialEq + 'static>
+    operation::Focusable for State<Highlighter, Theme>
 {
     fn is_focused(&self) -> bool {
         self.focus.is_some()
@@ -574,11 +577,11 @@ impl<Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for TextEditor<'_, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
-    Theme: Catalog,
+    Theme: Catalog + 'static + PartialEq + Clone,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> widget::tree::Tag {
-        widget::tree::Tag::of::<State<Highlighter>>()
+        widget::tree::Tag::of::<State<Highlighter, Theme>>()
     }
 
     fn state(&self) -> widget::tree::State {
@@ -588,6 +591,7 @@ where
             last_click: None,
             drag_click: None,
             partial_scroll: 0.0,
+            last_theme: RefCell::<Option<Theme>>::default(),
             highlighter: RefCell::new(Highlighter::new(
                 &self.highlighter_settings,
             )),
@@ -610,7 +614,7 @@ where
         limits: &layout::Limits,
     ) -> iced_renderer::core::layout::Node {
         let mut internal = self.content.0.borrow_mut();
-        let state = tree.state.downcast_mut::<State<Highlighter>>();
+        let state = tree.state.downcast_mut::<State<Highlighter, Theme>>();
 
         if state.highlighter_format_address != self.highlighter_format as usize
         {
@@ -675,7 +679,7 @@ where
             return;
         };
 
-        let state = tree.state.downcast_mut::<State<Highlighter>>();
+        let state = tree.state.downcast_mut::<State<Highlighter, Theme>>();
         let is_redraw = matches!(
             event,
             Event::Window(window::Event::RedrawRequested(_now)),
@@ -785,13 +789,14 @@ where
                 },
                 Update::Binding(binding) => {
                     fn apply_binding<
+                        T: PartialEq + 'static,
                         H: text::Highlighter,
                         R: text::Renderer,
                         Message,
                     >(
                         binding: Binding<Message>,
                         content: &Content<R>,
-                        state: &mut State<H>,
+                        state: &mut State<H, T>,
                         on_edit: &dyn Fn(Action) -> Message,
                         clipboard: &mut dyn Clipboard,
                         shell: &mut Shell<'_, Message>,
@@ -934,9 +939,19 @@ where
         let bounds = layout.bounds();
 
         let mut internal = self.content.0.borrow_mut();
-        let state = tree.state.downcast_ref::<State<Highlighter>>();
+        let state = tree.state.downcast_ref::<State<Highlighter, Theme>>();
 
         let font = self.font.unwrap_or_else(|| renderer.default_font());
+
+        if state
+            .last_theme
+            .borrow()
+            .as_ref()
+            .is_none_or(|last_theme| last_theme != theme)
+        {
+            state.highlighter.borrow_mut().change_line(0);
+            let _ = state.last_theme.borrow_mut().replace(theme.clone());
+        }
 
         internal.editor.highlight(
             font,
@@ -1064,7 +1079,7 @@ where
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let state = tree.state.downcast_mut::<State<Highlighter>>();
+        let state = tree.state.downcast_mut::<State<Highlighter, Theme>>();
 
         operation.focusable(self.id.as_ref(), layout.bounds(), state);
     }
@@ -1076,7 +1091,7 @@ impl<'a, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
     Message: 'a,
-    Theme: Catalog + 'a,
+    Theme: Catalog + 'static + PartialEq + Clone,
     Renderer: text::Renderer,
 {
     fn from(
@@ -1232,9 +1247,9 @@ enum Ime {
 }
 
 impl<Message> Update<Message> {
-    fn from_event<H: Highlighter>(
+    fn from_event<H: Highlighter, T: PartialEq + 'static>(
         event: &Event,
-        state: &State<H>,
+        state: &State<H, T>,
         bounds: Rectangle,
         padding: Padding,
         cursor: mouse::Cursor,
