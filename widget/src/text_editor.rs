@@ -125,6 +125,7 @@ pub struct TextEditor<
         &Theme,
     ) -> highlighter::Format<Renderer::Font>,
     last_status: Option<Status>,
+    rehighlight_on_redraw: bool,
 }
 
 impl<'a, Message, Theme, Renderer>
@@ -155,6 +156,7 @@ where
                 highlighter::Format::default()
             },
             last_status: None,
+            rehighlight_on_redraw: false,
         }
     }
 }
@@ -246,6 +248,18 @@ where
         self
     }
 
+    /// Sets whether the [`TextEditor`] should be rehighlighted on every redraw.
+    ///
+    /// This is useful when your custom [`Highlighter`]'s `to_format` function actually uses the
+    /// theme passed to it.
+    pub fn rehighlight_on_redraw(
+        mut self,
+        rehighlight_on_redraw: bool,
+    ) -> Self {
+        self.rehighlight_on_redraw = rehighlight_on_redraw;
+        self
+    }
+
     /// Highlights the [`TextEditor`] using the given syntax and theme.
     #[cfg(feature = "highlighter")]
     pub fn highlight(
@@ -293,6 +307,7 @@ where
             highlighter_settings: settings,
             highlighter_format: to_format,
             last_status: self.last_status,
+            rehighlight_on_redraw: self.rehighlight_on_redraw,
         }
     }
 
@@ -923,6 +938,10 @@ where
         let state = tree.state.downcast_ref::<State<Highlighter>>();
 
         let font = self.font.unwrap_or_else(|| renderer.default_font());
+
+        if self.rehighlight_on_redraw {
+            state.highlighter.borrow_mut().change_line(0);
+        }
 
         internal.editor.highlight(
             font,
