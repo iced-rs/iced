@@ -59,9 +59,12 @@ impl Layer {
         clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
+        use crate::core::text::editor::Editor as _;
+
         let editor = Text::Editor {
             editor: editor.downgrade(),
             position,
+            bounds: editor.bounds(),
             color,
             clip_bounds,
             transformation,

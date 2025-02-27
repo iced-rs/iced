@@ -47,7 +47,6 @@ impl Editor {
 
         Weak {
             raw: Arc::downgrade(editor),
-            bounds: editor.bounds,
         }
     }
 
@@ -682,8 +681,6 @@ impl fmt::Debug for Internal {
 #[derive(Debug, Clone)]
 pub struct Weak {
     raw: sync::Weak<Internal>,
-    /// The bounds of the [`Editor`].
-    pub bounds: Size,
 }
 
 impl Weak {

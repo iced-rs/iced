@@ -35,6 +35,7 @@ pub enum Text {
     Editor {
         editor: editor::Weak,
         position: Point,
+        bounds: Size,
         color: Color,
         clip_bounds: Rectangle,
         transformation: Transformation,
@@ -88,13 +89,13 @@ impl Text {
                 Some(paragraph.align_y),
             ),
             Text::Editor {
-                editor,
                 position,
+                bounds,
                 clip_bounds,
                 transformation,
                 ..
             } => (
-                Rectangle::new(*position, editor.bounds)
+                Rectangle::new(*position, *bounds)
                     .intersection(clip_bounds)
                     .map(|bounds| bounds * *transformation),
                 Alignment::Default,

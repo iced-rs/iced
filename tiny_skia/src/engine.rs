@@ -367,6 +367,7 @@ impl Engine {
             Text::Editor {
                 editor,
                 position,
+                bounds,
                 color,
                 clip_bounds: _, // TODO
                 transformation: local_transformation,
@@ -374,7 +375,7 @@ impl Engine {
                 let transformation = transformation * *local_transformation;
 
                 let physical_bounds =
-                    Rectangle::new(*position, editor.bounds) * transformation;
+                    Rectangle::new(*position, *bounds) * transformation;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
