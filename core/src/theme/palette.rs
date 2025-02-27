@@ -635,7 +635,7 @@ fn deviate(color: Color, amount: f32) -> Color {
     if is_dark(color) {
         lighten(color, amount)
     } else {
-        darken(color, amount * 0.7)
+        darken(color, amount * 0.8)
     }
 }
 

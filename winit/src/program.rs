@@ -989,6 +989,11 @@ async fn run_instance<P, C>(
                         }
                     }
                     event::Event::AboutToWait => {
+                        if actions > 0 {
+                            proxy.free_slots(actions);
+                            actions = 0;
+                        }
+
                         if events.is_empty()
                             && messages.is_empty()
                             && window_manager.is_idle()
@@ -1105,11 +1110,6 @@ async fn run_instance<P, C>(
                                     &mut window_manager,
                                     cached_interfaces,
                                 ));
-
-                            if actions > 0 {
-                                proxy.free_slots(actions);
-                                actions = 0;
-                            }
                         }
 
                         if let Some(redraw_at) = window_manager.redraw_at() {
