@@ -12,7 +12,30 @@ use crate::task::{self, Task};
 
 pub use raw_window_handle;
 
-use raw_window_handle::WindowHandle;
+use raw_window_handle::{
+    DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, WindowHandle,
+};
+
+/// The handle to a window and it's corresponding display.
+#[derive(Debug)]
+pub struct Handle<'a> {
+    /// A handle for the window.
+    pub window: WindowHandle<'a>,
+    /// A handle for the window display.
+    pub display: DisplayHandle<'a>,
+}
+
+impl HasWindowHandle for Handle<'_> {
+    fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
+        Ok(self.window)
+    }
+}
+
+impl HasDisplayHandle for Handle<'_> {
+    fn display_handle(&self) -> Result<DisplayHandle<'_>, HandleError> {
+        Ok(self.display)
+    }
+}
 
 /// An operation to be performed on some window.
 #[allow(missing_debug_implementations)]
@@ -147,7 +170,7 @@ pub enum Action {
     SetIcon(Id, Icon),
 
     /// Runs the closure with the native window handle of the window with the given [`Id`].
-    RunWithHandle(Id, Box<dyn FnOnce(WindowHandle<'_>) + Send>),
+    RunWithHandle(Id, Box<dyn FnOnce(Handle<'_>) + Send>),
 
     /// Screenshot the viewport of the window.
     Screenshot(Id, oneshot::Sender<Screenshot>),
@@ -442,7 +465,7 @@ pub fn set_icon<T>(id: Id, icon: Icon) -> Task<T> {
 /// Note that if the window closes before this call is processed the callback will not be run.
 pub fn run_with_handle<T>(
     id: Id,
-    f: impl FnOnce(WindowHandle<'_>) -> T + Send + 'static,
+    f: impl FnOnce(Handle<'_>) -> T + Send + 'static,
 ) -> Task<T>
 where
     T: Send + 'static,
