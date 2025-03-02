@@ -8,14 +8,15 @@ use crate::core::text::highlighter::{self, Format};
 use std::ops::Range;
 use std::sync::LazyLock;
 
-use syntect::highlighting;
-use syntect::parsing;
+use two_face::re_exports::syntect::highlighting;
+use two_face::re_exports::syntect::parsing;
+use two_face::theme::EmbeddedThemeName;
 
 static SYNTAXES: LazyLock<parsing::SyntaxSet> =
-    LazyLock::new(parsing::SyntaxSet::load_defaults_nonewlines);
+    LazyLock::new(two_face::syntax::extra_no_newlines);
 
-static THEMES: LazyLock<highlighting::ThemeSet> =
-    LazyLock::new(highlighting::ThemeSet::load_defaults);
+static THEMES: LazyLock<two_face::theme::EmbeddedLazyThemeSet> =
+    LazyLock::new(two_face::theme::extra);
 
 const LINES_PER_SNAPSHOT: usize = 50;
 
@@ -41,7 +42,7 @@ impl highlighter::Highlighter for Highlighter {
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
         let highlighter = highlighting::Highlighter::new(
-            &THEMES.themes[settings.theme.key()],
+            THEMES.get(settings.theme.to_embedded_theme()),
         );
 
         let parser = parsing::ParseState::new(syntax);
@@ -61,7 +62,7 @@ impl highlighter::Highlighter for Highlighter {
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
         self.highlighter = highlighting::Highlighter::new(
-            &THEMES.themes[new_settings.theme.key()],
+            THEMES.get(new_settings.theme.to_embedded_theme()),
         );
 
         // Restart the highlighter
@@ -159,7 +160,7 @@ impl Stream {
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
         let highlighter = highlighting::Highlighter::new(
-            &THEMES.themes[settings.theme.key()],
+            THEMES.get(settings.theme.to_embedded_theme()),
         );
 
         let state = parsing::ParseState::new(syntax);
@@ -273,41 +274,129 @@ impl Highlight {
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Theme {
+    Base16EightiesDark,
+    Base16MochaDark,
+    Base16OceanDark,
+    Base16OceanLight,
+    ColdarkCold,
+    ColdarkDark,
+    DarkNeon,
+    Dracula,
+    Github,
+    GruvboxDark,
+    GruvboxLight,
+    InspiredGithub,
+    Leet,
+    MonokaiExtended,
+    MonokaiExtendedBright,
+    MonokaiExtendedLight,
+    MonokaiExtendedOrigin,
+    Nord,
+    OneHalfDark,
+    OneHalfLight,
     SolarizedDark,
-    Base16Mocha,
-    Base16Ocean,
-    Base16Eighties,
-    InspiredGitHub,
+    SolarizedLight,
+    SublimeSnazzy,
+    TwoDark,
+    VisualStudioDarkPlus,
+    Zenburn,
 }
 
 impl Theme {
     /// A static slice containing all the available themes.
     pub const ALL: &'static [Self] = &[
+        Self::ColdarkCold,
+        Self::ColdarkDark,
+        Self::DarkNeon,
+        Self::Dracula,
+        Self::Github,
+        Self::GruvboxDark,
+        Self::GruvboxLight,
+        Self::InspiredGithub,
+        Self::Leet,
+        Self::MonokaiExtended,
+        Self::MonokaiExtendedBright,
+        Self::MonokaiExtendedLight,
+        Self::MonokaiExtendedOrigin,
+        Self::Nord,
+        Self::OneHalfDark,
+        Self::OneHalfLight,
         Self::SolarizedDark,
-        Self::Base16Mocha,
-        Self::Base16Ocean,
-        Self::Base16Eighties,
-        Self::InspiredGitHub,
+        Self::SolarizedLight,
+        Self::SublimeSnazzy,
+        Self::TwoDark,
+        Self::VisualStudioDarkPlus,
+        Self::Zenburn,
     ];
+
+    fn to_embedded_theme(self) -> EmbeddedThemeName {
+        match self {
+            Self::Base16EightiesDark => EmbeddedThemeName::Base16EightiesDark,
+            Self::Base16MochaDark => EmbeddedThemeName::Base16MochaDark,
+            Self::Base16OceanDark => EmbeddedThemeName::Base16OceanDark,
+            Self::Base16OceanLight => EmbeddedThemeName::Base16OceanLight,
+            Self::ColdarkCold => EmbeddedThemeName::ColdarkCold,
+            Self::ColdarkDark => EmbeddedThemeName::ColdarkDark,
+            Self::DarkNeon => EmbeddedThemeName::DarkNeon,
+            Self::Dracula => EmbeddedThemeName::Dracula,
+            Self::Github => EmbeddedThemeName::Github,
+            Self::GruvboxDark => EmbeddedThemeName::GruvboxDark,
+            Self::GruvboxLight => EmbeddedThemeName::GruvboxLight,
+            Self::InspiredGithub => EmbeddedThemeName::InspiredGithub,
+            Self::Leet => EmbeddedThemeName::Leet,
+            Self::MonokaiExtended => EmbeddedThemeName::MonokaiExtended,
+            Self::MonokaiExtendedBright => {
+                EmbeddedThemeName::MonokaiExtendedBright
+            }
+            Self::MonokaiExtendedLight => {
+                EmbeddedThemeName::MonokaiExtendedLight
+            }
+            Self::MonokaiExtendedOrigin => {
+                EmbeddedThemeName::MonokaiExtendedOrigin
+            }
+            Self::Nord => EmbeddedThemeName::Nord,
+            Self::OneHalfDark => EmbeddedThemeName::OneHalfDark,
+            Self::OneHalfLight => EmbeddedThemeName::OneHalfLight,
+            Self::SolarizedDark => EmbeddedThemeName::SolarizedDark,
+            Self::SolarizedLight => EmbeddedThemeName::SolarizedLight,
+            Self::SublimeSnazzy => EmbeddedThemeName::SublimeSnazzy,
+            Self::TwoDark => EmbeddedThemeName::TwoDark,
+            Self::VisualStudioDarkPlus => {
+                EmbeddedThemeName::VisualStudioDarkPlus
+            }
+            Self::Zenburn => EmbeddedThemeName::Zenburn,
+        }
+    }
 
     /// Returns `true` if the [`Theme`] is dark, and false otherwise.
     pub fn is_dark(self) -> bool {
         match self {
-            Self::SolarizedDark
-            | Self::Base16Mocha
-            | Self::Base16Ocean
-            | Self::Base16Eighties => true,
-            Self::InspiredGitHub => false,
-        }
-    }
-
-    fn key(self) -> &'static str {
-        match self {
-            Theme::SolarizedDark => "Solarized (dark)",
-            Theme::Base16Mocha => "base16-mocha.dark",
-            Theme::Base16Ocean => "base16-ocean.dark",
-            Theme::Base16Eighties => "base16-eighties.dark",
-            Theme::InspiredGitHub => "InspiredGitHub",
+            Theme::Base16EightiesDark
+            | Theme::Base16MochaDark
+            | Theme::Base16OceanDark
+            | Theme::ColdarkDark
+            | Theme::DarkNeon
+            | Theme::Dracula
+            | Theme::GruvboxDark
+            | Theme::Leet
+            | Theme::MonokaiExtended
+            | Theme::MonokaiExtendedBright
+            | Theme::MonokaiExtendedOrigin
+            | Theme::Nord
+            | Theme::OneHalfDark
+            | Theme::SolarizedDark
+            | Theme::SublimeSnazzy
+            | Theme::TwoDark
+            | Theme::VisualStudioDarkPlus
+            | Theme::Zenburn => true,
+            Theme::Base16OceanLight
+            | Theme::ColdarkCold
+            | Theme::Github
+            | Theme::GruvboxLight
+            | Theme::InspiredGithub
+            | Theme::MonokaiExtendedLight
+            | Theme::OneHalfLight
+            | Theme::SolarizedLight => false,
         }
     }
 }
@@ -315,11 +404,36 @@ impl Theme {
 impl std::fmt::Display for Theme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Theme::Base16EightiesDark => write!(f, "Eighties"),
+            Theme::Base16MochaDark => write!(f, "Mocha"),
+            Theme::Base16OceanDark => write!(f, "Ocean Dark"),
+            Theme::Base16OceanLight => write!(f, "Ocean Light"),
+            Theme::ColdarkCold => write!(f, "Coldark Cold"),
+            Theme::ColdarkDark => write!(f, "Coldark Dark"),
+            Theme::DarkNeon => write!(f, "DarkNeon"),
+            Theme::Dracula => write!(f, "Dracula"),
+            Theme::Github => write!(f, "Github"),
+            Theme::GruvboxDark => write!(f, "Gruvbox Dark"),
+            Theme::GruvboxLight => write!(f, "Gruvbox Light"),
+            Theme::InspiredGithub => write!(f, "InspiredGithub"),
+            Theme::Leet => write!(f, "1337"),
+            Theme::MonokaiExtended => write!(f, "Monokai Extended"),
+            Theme::MonokaiExtendedBright => {
+                write!(f, "Monokai Extended Bright")
+            }
+            Theme::MonokaiExtendedLight => write!(f, "Monokai Extended Light"),
+            Theme::MonokaiExtendedOrigin => {
+                write!(f, "Monokai Extended Origin")
+            }
+            Theme::Nord => write!(f, "Nord"),
+            Theme::OneHalfDark => write!(f, "OneHalfDark"),
+            Theme::OneHalfLight => write!(f, "OneHalfLight"),
             Theme::SolarizedDark => write!(f, "Solarized Dark"),
-            Theme::Base16Mocha => write!(f, "Mocha"),
-            Theme::Base16Ocean => write!(f, "Ocean"),
-            Theme::Base16Eighties => write!(f, "Eighties"),
-            Theme::InspiredGitHub => write!(f, "Inspired GitHub"),
+            Theme::SolarizedLight => write!(f, "Solarized Light"),
+            Theme::SublimeSnazzy => write!(f, "Sublime Snazzy"),
+            Theme::TwoDark => write!(f, "TwoDark"),
+            Theme::VisualStudioDarkPlus => write!(f, "Visual Studio Dark+"),
+            Theme::Zenburn => write!(f, "Zenburn"),
         }
     }
 }

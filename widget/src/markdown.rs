@@ -384,7 +384,7 @@ impl Highlighter {
             lines: Vec::new(),
             parser: iced_highlighter::Stream::new(
                 &iced_highlighter::Settings {
-                    theme: iced_highlighter::Theme::Base16Ocean,
+                    theme: iced_highlighter::Theme::Base16OceanDark,
                     token: language.to_owned(),
                 },
             ),
