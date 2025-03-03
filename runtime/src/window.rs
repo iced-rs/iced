@@ -164,6 +164,12 @@ pub enum Action {
     /// from being passed to whatever is underneath.
     DisableMousePassthrough(Id),
 
+    /// Show the cursor for the given window.
+    ShowCursor(Id),
+
+    /// Hide the cursor for the given window.
+    HideCursor(Id),
+
     /// Set the minimum inner window size.
     SetMinSize(Id, Option<Size>),
 
@@ -478,4 +484,14 @@ pub fn enable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
 /// from being passed to whatever is underneath.
 pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
     task::effect(crate::Action::Window(Action::DisableMousePassthrough(id)))
+}
+
+/// Show the cursor for the given window.
+pub fn show_cursor<Message>(id: Id) -> Task<Message> {
+    task::effect(crate::Action::Window(Action::ShowCursor(id)))
+}
+
+/// Hide the cursor for the given window.
+pub fn hide_cursor<Message>(id: Id) -> Task<Message> {
+    task::effect(crate::Action::Window(Action::HideCursor(id)))
 }

@@ -1486,6 +1486,16 @@ fn run_action<P, C>(
                     }
                 }
             }
+            window::Action::ShowCursor(id) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_cursor_visible(true);
+                }
+            }
+            window::Action::HideCursor(id) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_cursor_visible(false);
+                }
+            }
             window::Action::EnableMousePassthrough(id) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = window.raw.set_cursor_hittest(false);
