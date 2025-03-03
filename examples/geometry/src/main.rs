@@ -8,7 +8,7 @@ mod rainbow {
     use iced::mouse;
     use iced::{
         Element, Length, Rectangle, Renderer, Size, Theme, Transformation,
-        Vector,
+        Vector, 
     };
 
     #[derive(Debug, Clone, Copy, Default)]
@@ -152,12 +152,14 @@ mod rainbow {
     }
 }
 
-use iced::Element;
+use iced::{Element, Subscription, window};
 use iced::widget::{center_x, center_y, column, scrollable};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
-    iced::run("Custom 2D Geometry - Iced", |_: &mut _, _| {}, view)
+    iced::application("Custom 2D Geometry - Iced", |_: &mut _, _| {}, view)
+    .subscription(subscription)
+    .run()
 }
 
 fn view(_state: &()) -> Element<'_, ()> {
@@ -179,4 +181,9 @@ fn view(_state: &()) -> Element<'_, ()> {
     let scrollable = scrollable(center_x(content));
 
     center_y(scrollable).into()
+}
+
+fn subscription(_: &()) -> Subscription<()> {
+    // It's a stub, but it does force the screen to update when you move the mouse.
+    window::frames().map(|_| ())
 }
