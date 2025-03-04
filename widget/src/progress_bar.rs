@@ -1,10 +1,31 @@
-//! Provide progress feedback to your users.
+//! Progress bars visualize the progression of an extended computer operation, such as a download, file transfer, or installation.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::progress_bar;
+//!
+//! struct State {
+//!    progress: f32,
+//! }
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     progress_bar(0.0..=100.0, state.progress).into()
+//! }
+//! ```
+use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    self, Background, Border, Element, Layout, Length, Rectangle, Size, Theme,
+    self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme,
     Widget,
 };
 
@@ -14,14 +35,23 @@ use std::ops::RangeInclusive;
 ///
 /// # Example
 /// ```no_run
-/// # type ProgressBar<'a> = iced_widget::ProgressBar<'a>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// let value = 50.0;
+/// use iced::widget::progress_bar;
 ///
-/// ProgressBar::new(0.0..=100.0, value);
+/// struct State {
+///    progress: f32,
+/// }
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     progress_bar(0.0..=100.0, state.progress).into()
+/// }
 /// ```
-///
-/// ![Progress bar drawn with `iced_wgpu`](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
 pub struct ProgressBar<'a, Theme = crate::Theme>
 where
@@ -29,8 +59,9 @@ where
 {
     range: RangeInclusive<f32>,
     value: f32,
-    width: Length,
-    height: Option<Length>,
+    length: Length,
+    girth: Length,
+    is_vertical: bool,
     class: Theme::Class<'a>,
 }
 
@@ -38,8 +69,8 @@ impl<'a, Theme> ProgressBar<'a, Theme>
 where
     Theme: Catalog,
 {
-    /// The default height of a [`ProgressBar`].
-    pub const DEFAULT_HEIGHT: f32 = 30.0;
+    /// The default girth of a [`ProgressBar`].
+    pub const DEFAULT_GIRTH: f32 = 30.0;
 
     /// Creates a new [`ProgressBar`].
     ///
@@ -50,21 +81,30 @@ where
         ProgressBar {
             value: value.clamp(*range.start(), *range.end()),
             range,
-            width: Length::Fill,
-            height: None,
+            length: Length::Fill,
+            girth: Length::from(Self::DEFAULT_GIRTH),
+            is_vertical: false,
             class: Theme::default(),
         }
     }
 
     /// Sets the width of the [`ProgressBar`].
-    pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+    pub fn length(mut self, length: impl Into<Length>) -> Self {
+        self.length = length.into();
         self
     }
 
     /// Sets the height of the [`ProgressBar`].
-    pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = Some(height.into());
+    pub fn girth(mut self, girth: impl Into<Length>) -> Self {
+        self.girth = girth.into();
+        self
+    }
+
+    /// Turns the [`ProgressBar`] into a vertical [`ProgressBar`].
+    ///
+    /// By default, a [`ProgressBar`] is horizontal.
+    pub fn vertical(mut self) -> Self {
+        self.is_vertical = true;
         self
     }
 
@@ -85,18 +125,34 @@ where
         self.class = class.into();
         self
     }
+
+    fn width(&self) -> Length {
+        if self.is_vertical {
+            self.girth
+        } else {
+            self.length
+        }
+    }
+
+    fn height(&self) -> Length {
+        if self.is_vertical {
+            self.length
+        } else {
+            self.girth
+        }
+    }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for ProgressBar<'a, Theme>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for ProgressBar<'_, Theme>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
 {
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width,
-            height: self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT)),
+            width: self.width(),
+            height: self.height(),
         }
     }
 
@@ -106,11 +162,7 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout::atomic(
-            limits,
-            self.width,
-            self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT)),
-        )
+        layout::atomic(limits, self.width(), self.height())
     }
 
     fn draw(
@@ -126,11 +178,16 @@ where
         let bounds = layout.bounds();
         let (range_start, range_end) = self.range.clone().into_inner();
 
-        let active_progress_width = if range_start >= range_end {
+        let length = if self.is_vertical {
+            bounds.height
+        } else {
+            bounds.width
+        };
+
+        let active_progress_length = if range_start >= range_end {
             0.0
         } else {
-            bounds.width * (self.value - range_start)
-                / (range_end - range_start)
+            length * (self.value - range_start) / (range_end - range_start)
         };
 
         let style = theme.style(&self.class);
@@ -144,14 +201,27 @@ where
             style.background,
         );
 
-        if active_progress_width > 0.0 {
+        if active_progress_length > 0.0 {
+            let bounds = if self.is_vertical {
+                Rectangle {
+                    y: bounds.y + bounds.height - active_progress_length,
+                    height: active_progress_length,
+                    ..bounds
+                }
+            } else {
+                Rectangle {
+                    width: active_progress_length,
+                    ..bounds
+                }
+            };
+
             renderer.fill_quad(
                 renderer::Quad {
-                    bounds: Rectangle {
-                        width: active_progress_width,
-                        ..bounds
+                    bounds,
+                    border: Border {
+                        color: Color::TRANSPARENT,
+                        ..style.border
                     },
-                    border: Border::rounded(style.border.radius),
                     ..renderer::Quad::default()
                 },
                 style.bar,
@@ -175,7 +245,7 @@ where
 }
 
 /// The appearance of a progress bar.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`Background`] of the progress bar.
     pub background: Background,
@@ -218,10 +288,7 @@ impl Catalog for Theme {
 pub fn primary(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
-    styled(
-        palette.background.strong.color,
-        palette.primary.strong.color,
-    )
+    styled(palette.background.strong.color, palette.primary.base.color)
 }
 
 /// The secondary style of a [`ProgressBar`].
@@ -241,6 +308,13 @@ pub fn success(theme: &Theme) -> Style {
     styled(palette.background.strong.color, palette.success.base.color)
 }
 
+/// The warning style of a [`ProgressBar`].
+pub fn warning(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    styled(palette.background.strong.color, palette.warning.base.color)
+}
+
 /// The danger style of a [`ProgressBar`].
 pub fn danger(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
@@ -255,6 +329,6 @@ fn styled(
     Style {
         background: background.into(),
         bar: bar.into(),
-        border: Border::rounded(2),
+        border: border::rounded(2),
     }
 }

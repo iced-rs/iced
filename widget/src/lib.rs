@@ -8,9 +8,10 @@ pub use iced_renderer::graphics;
 pub use iced_runtime as runtime;
 pub use iced_runtime::core;
 
+mod action;
 mod column;
 mod mouse_area;
-mod row;
+mod pin;
 mod space;
 mod stack;
 mod themer;
@@ -23,8 +24,10 @@ pub mod keyed;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
+pub mod pop;
 pub mod progress_bar;
 pub mod radio;
+pub mod row;
 pub mod rule;
 pub mod scrollable;
 pub mod slider;
@@ -41,9 +44,6 @@ pub use helpers::*;
 
 #[cfg(feature = "lazy")]
 mod lazy;
-
-#[cfg(feature = "lazy")]
-pub use crate::lazy::{Component, Lazy, Responsive};
 
 #[cfg(feature = "lazy")]
 pub use crate::lazy::helpers::*;
@@ -64,6 +64,10 @@ pub use mouse_area::MouseArea;
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]
 pub use pick_list::PickList;
+#[doc(no_inline)]
+pub use pin::Pin;
+#[doc(no_inline)]
+pub use pop::Pop;
 #[doc(no_inline)]
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
@@ -130,5 +134,9 @@ pub mod qr_code;
 #[doc(no_inline)]
 pub use qr_code::QRCode;
 
+#[cfg(feature = "markdown")]
+pub mod markdown;
+
 pub use crate::core::theme::{self, Theme};
+pub use action::Action;
 pub use renderer::Renderer;

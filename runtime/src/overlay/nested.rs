@@ -131,13 +131,13 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation,
     ) {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn widget::Operation<Message>,
+            operation: &mut dyn widget::Operation,
         ) where
             Renderer: renderer::Renderer,
         {
@@ -158,48 +158,47 @@ where
     }
 
     /// Processes a runtime [`Event`].
-    pub fn on_event(
+    pub fn update(
         &mut self,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
+    ) {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
-            event: Event,
+            event: &Event,
             cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
-        ) -> (event::Status, bool)
+        ) -> bool
         where
             Renderer: renderer::Renderer,
         {
             let mut layouts = layout.children();
 
             if let Some(layout) = layouts.next() {
-                let (nested_status, nested_is_over) =
-                    if let Some((mut nested, nested_layout)) =
-                        element.overlay(layout, renderer).zip(layouts.next())
-                    {
-                        recurse(
-                            &mut nested,
-                            nested_layout,
-                            event.clone(),
-                            cursor,
-                            renderer,
-                            clipboard,
-                            shell,
-                        )
-                    } else {
-                        (event::Status::Ignored, false)
-                    };
+                let nested_is_over = if let Some((mut nested, nested_layout)) =
+                    element.overlay(layout, renderer).zip(layouts.next())
+                {
+                    recurse(
+                        &mut nested,
+                        nested_layout,
+                        event,
+                        cursor,
+                        renderer,
+                        clipboard,
+                        shell,
+                    )
+                } else {
+                    false
+                };
 
-                if matches!(nested_status, event::Status::Ignored) {
+                if shell.event_status() == event::Status::Ignored {
                     let is_over = nested_is_over
                         || cursor
                             .position()
@@ -212,30 +211,29 @@ where
                             })
                             .unwrap_or_default();
 
-                    (
-                        element.on_event(
-                            event,
-                            layout,
-                            if nested_is_over {
-                                mouse::Cursor::Unavailable
-                            } else {
-                                cursor
-                            },
-                            renderer,
-                            clipboard,
-                            shell,
-                        ),
-                        is_over,
-                    )
+                    element.update(
+                        event,
+                        layout,
+                        if nested_is_over {
+                            mouse::Cursor::Unavailable
+                        } else {
+                            cursor
+                        },
+                        renderer,
+                        clipboard,
+                        shell,
+                    );
+
+                    is_over
                 } else {
-                    (nested_status, nested_is_over)
+                    nested_is_over
                 }
             } else {
-                (event::Status::Ignored, false)
+                false
             }
         }
 
-        let (status, _) = recurse(
+        let _ = recurse(
             &mut self.overlay,
             layout,
             event,
@@ -244,8 +242,6 @@ where
             clipboard,
             shell,
         );
-
-        status
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Nested`] overlay.

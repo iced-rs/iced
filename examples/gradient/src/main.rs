@@ -1,14 +1,14 @@
 use iced::gradient;
-use iced::program;
+use iced::theme;
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text,
 };
-use iced::{Alignment, Color, Element, Length, Radians, Theme};
+use iced::{Center, Color, Element, Fill, Radians, Theme, color};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("Gradient - Iced", Gradient::update, Gradient::view)
+    iced::application("Gradient - Iced", Gradient::update, Gradient::view)
         .style(Gradient::style)
         .transparent(true)
         .run()
@@ -34,7 +34,7 @@ impl Gradient {
     fn new() -> Self {
         Self {
             start: Color::WHITE,
-            end: Color::new(0.0, 0.0, 1.0, 1.0),
+            end: color!(0x0000ff),
             angle: Radians(0.0),
             transparent: false,
         }
@@ -67,8 +67,8 @@ impl Gradient {
 
                 gradient.into()
             })
-            .width(Length::Fill)
-            .height(Length::Fill);
+            .width(Fill)
+            .height(Fill);
 
         let angle_picker = row![
             text("Angle").width(64),
@@ -77,7 +77,7 @@ impl Gradient {
         ]
         .spacing(8)
         .padding(8)
-        .align_items(Alignment::Center);
+        .align_y(Center);
 
         let transparency_toggle = iced::widget::Container::new(
             checkbox("Transparent window", transparent)
@@ -95,16 +95,14 @@ impl Gradient {
         .into()
     }
 
-    fn style(&self, theme: &Theme) -> program::Appearance {
-        use program::DefaultStyle;
-
+    fn style(&self, theme: &Theme) -> theme::Style {
         if self.transparent {
-            program::Appearance {
+            theme::Style {
                 background_color: Color::TRANSPARENT,
                 text_color: theme.palette().text,
             }
         } else {
-            Theme::default_style(theme)
+            theme::default(theme)
         }
     }
 }
@@ -129,6 +127,6 @@ fn color_picker(label: &str, color: Color) -> Element<'_, Color> {
     ]
     .spacing(8)
     .padding(8)
-    .align_items(Alignment::Center)
+    .align_y(Center)
     .into()
 }

@@ -1,4 +1,3 @@
-use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
@@ -6,11 +5,10 @@ use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Border, Clipboard, Color, Layout, Length, Rectangle, Shell, Size, Vector,
-    Widget,
+    Border, Clipboard, Color, Event, Layout, Length, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
-use std::any::Any;
 use std::borrow::Borrow;
 
 /// A generic [`Widget`].
@@ -95,6 +93,7 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     ///
     /// ```no_run
     /// # mod iced {
+    /// #     pub use iced_core::Function;
     /// #     pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
     /// #
     /// #     pub mod widget {
@@ -121,7 +120,7 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     /// use counter::Counter;
     ///
     /// use iced::widget::row;
-    /// use iced::Element;
+    /// use iced::{Element, Function};
     ///
     /// struct ManyCounters {
     ///     counters: Vec<Counter>,
@@ -144,7 +143,7 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     ///                     // Here we turn our `Element<counter::Message>` into
     ///                     // an `Element<Message>` by combining the `index` and the
     ///                     // message of the `element`.
-    ///                     counter.map(move |message| Message::Counter(index, message))
+    ///                     counter.map(Message::Counter.with(index))
     ///                 }),
     ///         )
     ///         .into()
@@ -305,80 +304,26 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<B>,
+        operation: &mut dyn widget::Operation,
     ) {
-        struct MapOperation<'a, B> {
-            operation: &'a mut dyn widget::Operation<B>,
-        }
-
-        impl<'a, T, B> widget::Operation<T> for MapOperation<'a, B> {
-            fn container(
-                &mut self,
-                id: Option<&widget::Id>,
-                bounds: Rectangle,
-                operate_on_children: &mut dyn FnMut(
-                    &mut dyn widget::Operation<T>,
-                ),
-            ) {
-                self.operation.container(id, bounds, &mut |operation| {
-                    operate_on_children(&mut MapOperation { operation });
-                });
-            }
-
-            fn focusable(
-                &mut self,
-                state: &mut dyn widget::operation::Focusable,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.focusable(state, id);
-            }
-
-            fn scrollable(
-                &mut self,
-                state: &mut dyn widget::operation::Scrollable,
-                id: Option<&widget::Id>,
-                bounds: Rectangle,
-                translation: Vector,
-            ) {
-                self.operation.scrollable(state, id, bounds, translation);
-            }
-
-            fn text_input(
-                &mut self,
-                state: &mut dyn widget::operation::TextInput,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.text_input(state, id);
-            }
-
-            fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
-                self.operation.custom(state, id);
-            }
-        }
-
-        self.widget.operate(
-            tree,
-            layout,
-            renderer,
-            &mut MapOperation { operation },
-        );
+        self.widget.operate(tree, layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let status = self.widget.on_event(
+        self.widget.update(
             tree,
             event,
             layout,
@@ -390,8 +335,6 @@ where
         );
 
         shell.merge(local_shell, &self.mapper);
-
-        status
     }
 
     fn draw(
@@ -452,8 +395,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Explain<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Explain<'_, Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -495,27 +438,27 @@ where
         state: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation,
     ) {
         self.element
             .widget
             .operate(state, layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         state: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        self.element.widget.on_event(
+    ) {
+        self.element.widget.update(
             state, event, layout, cursor, renderer, clipboard, shell, viewport,
-        )
+        );
     }
 
     fn draw(

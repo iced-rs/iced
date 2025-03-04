@@ -1,27 +1,68 @@
-//! Write some text for your users to read.
+//! Text widgets display information through writing.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme, ()> { unimplemented!() } }
+//! #            pub use iced_core::color; }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
+//! use iced::widget::text;
+//! use iced::color;
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     text("Hello, this is iced!")
+//!         .size(20)
+//!         .color(color!(0x0000ff))
+//!         .into()
+//! }
+//! ```
 use crate::alignment;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::text::{self, Paragraph};
+use crate::text;
+use crate::text::paragraph::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
 use crate::{
     Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme,
     Widget,
 };
 
-use std::borrow::Cow;
+pub use text::{LineHeight, Shaping, Wrapping};
 
-pub use text::{LineHeight, Shaping};
-
-/// A paragraph of text.
+/// A bunch of text.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme, ()> { unimplemented!() } }
+/// #            pub use iced_core::color; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
+/// use iced::widget::text;
+/// use iced::color;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     text("Hello, this is iced!")
+///         .size(20)
+///         .color(color!(0x0000ff))
+///         .into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Text<'a, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    fragment: Fragment<'a>,
+    fragment: text::Fragment<'a>,
     size: Option<Pixels>,
     line_height: LineHeight,
     width: Length,
@@ -30,6 +71,7 @@ where
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
     shaping: Shaping,
+    wrapping: Wrapping,
     class: Theme::Class<'a>,
 }
 
@@ -39,7 +81,7 @@ where
     Renderer: text::Renderer,
 {
     /// Create a new fragment of [`Text`] with the given contents.
-    pub fn new(fragment: impl IntoFragment<'a>) -> Self {
+    pub fn new(fragment: impl text::IntoFragment<'a>) -> Self {
         Text {
             fragment: fragment.into_fragment(),
             size: None,
@@ -49,7 +91,8 @@ where
             height: Length::Shrink,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            shaping: Shaping::Basic,
+            shaping: Shaping::default(),
+            wrapping: Wrapping::default(),
             class: Theme::default(),
         }
     }
@@ -86,27 +129,39 @@ where
         self
     }
 
+    /// Centers the [`Text`], both horizontally and vertically.
+    pub fn center(self) -> Self {
+        self.align_x(alignment::Horizontal::Center)
+            .align_y(alignment::Vertical::Center)
+    }
+
     /// Sets the [`alignment::Horizontal`] of the [`Text`].
-    pub fn horizontal_alignment(
+    pub fn align_x(
         mut self,
-        alignment: alignment::Horizontal,
+        alignment: impl Into<alignment::Horizontal>,
     ) -> Self {
-        self.horizontal_alignment = alignment;
+        self.horizontal_alignment = alignment.into();
         self
     }
 
     /// Sets the [`alignment::Vertical`] of the [`Text`].
-    pub fn vertical_alignment(
+    pub fn align_y(
         mut self,
-        alignment: alignment::Vertical,
+        alignment: impl Into<alignment::Vertical>,
     ) -> Self {
-        self.vertical_alignment = alignment;
+        self.vertical_alignment = alignment.into();
         self
     }
 
     /// Sets the [`Shaping`] strategy of the [`Text`].
     pub fn shaping(mut self, shaping: Shaping) -> Self {
         self.shaping = shaping;
+        self
+    }
+
+    /// Sets the [`Wrapping`] strategy of the [`Text`].
+    pub fn wrapping(mut self, wrapping: Wrapping) -> Self {
+        self.wrapping = wrapping;
         self
     }
 
@@ -149,10 +204,10 @@ where
 
 /// The internal state of a [`Text`] widget.
 #[derive(Debug, Default)]
-pub struct State<P: Paragraph>(P);
+pub struct State<P: Paragraph>(pub paragraph::Plain<P>);
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Text<'a, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Text<'_, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
@@ -162,7 +217,9 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State(Renderer::Paragraph::default()))
+        tree::State::new(State::<Renderer::Paragraph>(
+            paragraph::Plain::default(),
+        ))
     }
 
     fn size(&self) -> Size<Length> {
@@ -191,6 +248,7 @@ where
             self.horizontal_alignment,
             self.vertical_alignment,
             self.shaping,
+            self.wrapping,
         )
     }
 
@@ -207,7 +265,17 @@ where
         let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
         let style = theme.style(&self.class);
 
-        draw(renderer, defaults, layout, state, style, viewport);
+        draw(renderer, defaults, layout, state.0.raw(), style, viewport);
+    }
+
+    fn operate(
+        &self,
+        _state: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn super::Operation,
+    ) {
+        operation.text(None, layout.bounds(), &self.fragment);
     }
 }
 
@@ -225,6 +293,7 @@ pub fn layout<Renderer>(
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     shaping: Shaping,
+    wrapping: Wrapping,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
@@ -235,7 +304,7 @@ where
         let size = size.unwrap_or_else(|| renderer.default_size());
         let font = font.unwrap_or_else(|| renderer.default_font());
 
-        let State(ref mut paragraph) = state;
+        let State(paragraph) = state;
 
         paragraph.update(text::Text {
             content,
@@ -246,6 +315,7 @@ where
             horizontal_alignment,
             vertical_alignment,
             shaping,
+            wrapping,
         });
 
         paragraph.min_bounds()
@@ -266,13 +336,12 @@ pub fn draw<Renderer>(
     renderer: &mut Renderer,
     style: &renderer::Style,
     layout: Layout<'_>,
-    state: &State<Renderer::Paragraph>,
+    paragraph: &Renderer::Paragraph,
     appearance: Style,
     viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
 {
-    let State(ref paragraph) = state;
     let bounds = layout.bounds();
 
     let x = match paragraph.horizontal_alignment() {
@@ -330,7 +399,7 @@ where
 }
 
 /// The appearance of some text.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Style {
     /// The [`Color`] of the text.
     ///
@@ -367,80 +436,42 @@ impl Catalog for Theme {
     }
 }
 
-/// A fragment of [`Text`].
-///
-/// This is just an alias to a string that may be either
-/// borrowed or owned.
-pub type Fragment<'a> = Cow<'a, str>;
-
-/// A trait for converting a value to some text [`Fragment`].
-pub trait IntoFragment<'a> {
-    /// Converts the value to some text [`Fragment`].
-    fn into_fragment(self) -> Fragment<'a>;
+/// The default text styling; color is inherited.
+pub fn default(_theme: &Theme) -> Style {
+    Style { color: None }
 }
 
-impl<'a> IntoFragment<'a> for Fragment<'a> {
-    fn into_fragment(self) -> Fragment<'a> {
-        self
+/// Text with the default base color.
+pub fn base(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.palette().text),
     }
 }
 
-impl<'a, 'b> IntoFragment<'a> for &'a Fragment<'b> {
-    fn into_fragment(self) -> Fragment<'a> {
-        Fragment::Borrowed(self)
+/// Text conveying some important information, like an action.
+pub fn primary(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.palette().primary),
     }
 }
 
-impl<'a> IntoFragment<'a> for &'a str {
-    fn into_fragment(self) -> Fragment<'a> {
-        Fragment::Borrowed(self)
+/// Text conveying some secondary information, like a footnote.
+pub fn secondary(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.extended_palette().secondary.strong.color),
     }
 }
 
-impl<'a> IntoFragment<'a> for &'a String {
-    fn into_fragment(self) -> Fragment<'a> {
-        Fragment::Borrowed(self.as_str())
+/// Text conveying some positive information, like a successful event.
+pub fn success(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.palette().success),
     }
 }
 
-impl<'a> IntoFragment<'a> for String {
-    fn into_fragment(self) -> Fragment<'a> {
-        Fragment::Owned(self)
+/// Text conveying some negative information, like an error.
+pub fn danger(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.palette().danger),
     }
 }
-
-macro_rules! into_fragment {
-    ($type:ty) => {
-        impl<'a> IntoFragment<'a> for $type {
-            fn into_fragment(self) -> Fragment<'a> {
-                Fragment::Owned(self.to_string())
-            }
-        }
-
-        impl<'a> IntoFragment<'a> for &$type {
-            fn into_fragment(self) -> Fragment<'a> {
-                Fragment::Owned(self.to_string())
-            }
-        }
-    };
-}
-
-into_fragment!(char);
-into_fragment!(bool);
-
-into_fragment!(u8);
-into_fragment!(u16);
-into_fragment!(u32);
-into_fragment!(u64);
-into_fragment!(u128);
-into_fragment!(usize);
-
-into_fragment!(i8);
-into_fragment!(i16);
-into_fragment!(i32);
-into_fragment!(i64);
-into_fragment!(i128);
-into_fragment!(isize);
-
-into_fragment!(f32);
-into_fragment!(f64);

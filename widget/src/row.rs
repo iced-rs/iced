@@ -1,23 +1,44 @@
 //! Distribute content horizontally.
-use crate::core::event::{self, Event};
+use crate::core::alignment::{self, Alignment};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Alignment, Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell,
-    Size, Vector, Widget,
+    Clipboard, Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 /// A container that distributes its contents horizontally.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{button, row};
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     row![
+///         "I am to the left!",
+///         button("I am in the middle!"),
+///         "I am to the right!",
+///     ].into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Row<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,
     padding: Padding,
     width: Length,
     height: Length,
-    align_items: Alignment,
+    align: Alignment,
     clip: bool,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
 }
@@ -60,7 +81,7 @@ where
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
-            align_items: Alignment::Start,
+            align: Alignment::Start,
             clip: false,
             children,
         }
@@ -95,8 +116,8 @@ where
     }
 
     /// Sets the vertical alignment of the contents of the [`Row`] .
-    pub fn align_items(mut self, align: Alignment) -> Self {
-        self.align_items = align;
+    pub fn align_y(mut self, align: impl Into<alignment::Vertical>) -> Self {
+        self.align = Alignment::from(align.into());
         self
     }
 
@@ -141,9 +162,16 @@ where
     ) -> Self {
         children.into_iter().fold(self, Self::push)
     }
+
+    /// Turns the [`Row`] into a [`Wrapping`] row.
+    ///
+    /// The original alignment of the [`Row`] is preserved per row wrapped.
+    pub fn wrap(self) -> Wrapping<'a, Message, Theme, Renderer> {
+        Wrapping { row: self }
+    }
 }
 
-impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer>
+impl<Message, Renderer> Default for Row<'_, Message, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -152,8 +180,21 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer: crate::core::Renderer>
+    FromIterator<Element<'a, Message, Theme, Renderer>>
     for Row<'a, Message, Theme, Renderer>
+{
+    fn from_iter<
+        T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+    >(
+        iter: T,
+    ) -> Self {
+        Self::with_children(iter)
+    }
+}
+
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Row<'_, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -186,7 +227,7 @@ where
             self.height,
             self.padding,
             self.spacing,
-            self.align_items,
+            self.align,
             &self.children,
             &mut tree.children,
         )
@@ -197,7 +238,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
             self.children
@@ -212,34 +253,28 @@ where
         });
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        self.children
+    ) {
+        for ((child, state), layout) in self
+            .children
             .iter_mut()
             .zip(&mut tree.children)
             .zip(layout.children())
-            .map(|((child, state), layout)| {
-                child.as_widget_mut().on_event(
-                    state,
-                    event.clone(),
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                    viewport,
-                )
-            })
-            .fold(event::Status::Ignored, event::Status::merge)
+        {
+            child.as_widget_mut().update(
+                state, event, layout, cursor, renderer, clipboard, shell,
+                viewport,
+            );
+        }
     }
 
     fn mouse_interaction(
@@ -274,24 +309,21 @@ where
         viewport: &Rectangle,
     ) {
         if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
+            let viewport = if self.clip {
+                &clipped_viewport
+            } else {
+                viewport
+            };
+
             for ((child, state), layout) in self
                 .children
                 .iter()
                 .zip(&tree.children)
                 .zip(layout.children())
+                .filter(|(_, layout)| layout.bounds().intersects(viewport))
             {
                 child.as_widget().draw(
-                    state,
-                    renderer,
-                    theme,
-                    style,
-                    layout,
-                    cursor,
-                    if self.clip {
-                        &clipped_viewport
-                    } else {
-                        viewport
-                    },
+                    state, renderer, theme, style, layout, cursor, viewport,
                 );
             }
         }
@@ -322,6 +354,199 @@ where
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(row: Row<'a, Message, Theme, Renderer>) -> Self {
+        Self::new(row)
+    }
+}
+
+/// A [`Row`] that wraps its contents.
+///
+/// Create a [`Row`] first, and then call [`Row::wrap`] to
+/// obtain a [`Row`] that wraps its contents.
+///
+/// The original alignment of the [`Row`] is preserved per row wrapped.
+#[allow(missing_debug_implementations)]
+pub struct Wrapping<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> {
+    row: Row<'a, Message, Theme, Renderer>,
+}
+
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Wrapping<'_, Message, Theme, Renderer>
+where
+    Renderer: crate::core::Renderer,
+{
+    fn children(&self) -> Vec<Tree> {
+        self.row.children()
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        self.row.diff(tree);
+    }
+
+    fn size(&self) -> Size<Length> {
+        self.row.size()
+    }
+
+    fn layout(
+        &self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits = limits
+            .width(self.row.width)
+            .height(self.row.height)
+            .shrink(self.row.padding);
+
+        let spacing = self.row.spacing;
+        let max_width = limits.max().width;
+
+        let mut children: Vec<layout::Node> = Vec::new();
+        let mut intrinsic_size = Size::ZERO;
+        let mut row_start = 0;
+        let mut row_height = 0.0;
+        let mut x = 0.0;
+        let mut y = 0.0;
+
+        let align_factor = match self.row.align {
+            Alignment::Start => 0.0,
+            Alignment::Center => 2.0,
+            Alignment::End => 1.0,
+        };
+
+        let align = |row_start: std::ops::Range<usize>,
+                     row_height: f32,
+                     children: &mut Vec<layout::Node>| {
+            if align_factor != 0.0 {
+                for node in &mut children[row_start] {
+                    let height = node.size().height;
+
+                    node.translate_mut(Vector::new(
+                        0.0,
+                        (row_height - height) / align_factor,
+                    ));
+                }
+            }
+        };
+
+        for (i, child) in self.row.children.iter().enumerate() {
+            let node = child.as_widget().layout(
+                &mut tree.children[i],
+                renderer,
+                &limits,
+            );
+
+            let child_size = node.size();
+
+            if x != 0.0 && x + child_size.width > max_width {
+                intrinsic_size.width = intrinsic_size.width.max(x - spacing);
+
+                align(row_start..i, row_height, &mut children);
+
+                y += row_height + spacing;
+                x = 0.0;
+                row_start = i;
+                row_height = 0.0;
+            }
+
+            row_height = row_height.max(child_size.height);
+
+            children.push(node.move_to((
+                x + self.row.padding.left,
+                y + self.row.padding.top,
+            )));
+
+            x += child_size.width + spacing;
+        }
+
+        if x != 0.0 {
+            intrinsic_size.width = intrinsic_size.width.max(x - spacing);
+        }
+
+        intrinsic_size.height = y + row_height;
+        align(row_start..children.len(), row_height, &mut children);
+
+        let size =
+            limits.resolve(self.row.width, self.row.height, intrinsic_size);
+
+        layout::Node::with_children(size.expand(self.row.padding), children)
+    }
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn Operation,
+    ) {
+        self.row.operate(tree, layout, renderer, operation);
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut Tree,
+        event: &Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
+        self.row.update(
+            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
+        );
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.row
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        self.row
+            .draw(tree, renderer, theme, style, layout, cursor, viewport);
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        translation: Vector,
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        self.row.overlay(tree, layout, renderer, translation)
+    }
+}
+
+impl<'a, Message, Theme, Renderer> From<Wrapping<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: 'a,
+    Renderer: crate::core::Renderer + 'a,
+{
+    fn from(row: Wrapping<'a, Message, Theme, Renderer>) -> Self {
         Self::new(row)
     }
 }

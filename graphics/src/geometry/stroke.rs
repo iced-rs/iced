@@ -6,7 +6,7 @@ pub use crate::geometry::Style;
 use iced_core::Color;
 
 /// The style of a stroke.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Stroke<'a> {
     /// The color or gradient of the stroke.
     ///
@@ -23,7 +23,7 @@ pub struct Stroke<'a> {
     pub line_dash: LineDash<'a>,
 }
 
-impl<'a> Stroke<'a> {
+impl Stroke<'_> {
     /// Sets the color of the [`Stroke`].
     pub fn with_color(self, color: Color) -> Self {
         Stroke {
@@ -48,7 +48,7 @@ impl<'a> Stroke<'a> {
     }
 }
 
-impl<'a> Default for Stroke<'a> {
+impl Default for Stroke<'_> {
     fn default() -> Self {
         Stroke {
             style: Style::Solid(Color::BLACK),

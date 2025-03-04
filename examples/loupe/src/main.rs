@@ -1,5 +1,5 @@
 use iced::widget::{button, center, column, text};
-use iced::{Alignment, Element};
+use iced::{Center, Element};
 
 use loupe::loupe;
 
@@ -39,17 +39,17 @@ impl Loupe {
                 button("Decrement").on_press(Message::Decrement)
             ]
             .padding(20)
-            .align_items(Alignment::Center),
+            .align_x(Center),
         ))
         .into()
     }
 }
 
 mod loupe {
+    use iced::advanced::Renderer as _;
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::advanced::Renderer as _;
     use iced::mouse;
     use iced::{
         Color, Element, Length, Rectangle, Renderer, Size, Theme,
@@ -74,7 +74,7 @@ mod loupe {
         content: Element<'a, Message>,
     }
 
-    impl<'a, Message> Widget<Message, Theme, Renderer> for Loupe<'a, Message> {
+    impl<Message> Widget<Message, Theme, Renderer> for Loupe<'_, Message> {
         fn tag(&self) -> widget::tree::Tag {
             self.content.as_widget().tag()
         }

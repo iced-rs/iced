@@ -1,17 +1,21 @@
 //! Track mouse clicks.
+use crate::mouse::Button;
 use crate::time::Instant;
-use crate::Point;
+use crate::{Point, Transformation};
+
+use std::ops::Mul;
 
 /// A mouse click.
 #[derive(Debug, Clone, Copy)]
 pub struct Click {
     kind: Kind,
+    button: Button,
     position: Point,
     time: Instant,
 }
 
 /// The kind of mouse click.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
     /// A single click
     Single,
@@ -36,11 +40,17 @@ impl Kind {
 impl Click {
     /// Creates a new [`Click`] with the given position and previous last
     /// [`Click`].
-    pub fn new(position: Point, previous: Option<Click>) -> Click {
+    pub fn new(
+        position: Point,
+        button: Button,
+        previous: Option<Click>,
+    ) -> Click {
         let time = Instant::now();
 
         let kind = if let Some(previous) = previous {
-            if previous.is_consecutive(position, time) {
+            if previous.is_consecutive(position, time)
+                && button == previous.button
+            {
                 previous.kind.next()
             } else {
                 Kind::Single
@@ -51,6 +61,7 @@ impl Click {
 
         Click {
             kind,
+            button,
             position,
             time,
         }
@@ -73,9 +84,22 @@ impl Click {
             None
         };
 
-        self.position == new_position
+        self.position.distance(new_position) < 6.0
             && duration
                 .map(|duration| duration.as_millis() <= 300)
                 .unwrap_or(false)
+    }
+}
+
+impl Mul<Transformation> for Click {
+    type Output = Click;
+
+    fn mul(self, transformation: Transformation) -> Click {
+        Click {
+            kind: self.kind,
+            button: self.button,
+            position: self.position * transformation,
+            time: self.time,
+        }
     }
 }

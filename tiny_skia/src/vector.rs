@@ -1,14 +1,14 @@
 use crate::core::svg::{Data, Handle};
 use crate::core::{Color, Rectangle, Size};
-use crate::graphics::text;
 
-use resvg::usvg::{self, TreeTextToPath};
+use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use tiny_skia::Transform;
 
 use std::cell::RefCell;
 use std::collections::hash_map;
 use std::fs;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -69,6 +69,7 @@ struct Cache {
     tree_hits: FxHashSet<u64>,
     rasters: FxHashMap<RasterKey, tiny_skia::Pixmap>,
     raster_hits: FxHashSet<RasterKey>,
+    fontdb: Option<Arc<usvg::fontdb::Database>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -80,34 +81,36 @@ struct RasterKey {
 
 impl Cache {
     fn load(&mut self, handle: &Handle) -> Option<&usvg::Tree> {
-        use usvg::TreeParsing;
-
         let id = handle.id();
 
+        // TODO: Reuse `cosmic-text` font database
+        if self.fontdb.is_none() {
+            let mut fontdb = usvg::fontdb::Database::new();
+            fontdb.load_system_fonts();
+
+            self.fontdb = Some(Arc::new(fontdb));
+        }
+
+        let options = usvg::Options {
+            fontdb: self
+                .fontdb
+                .as_ref()
+                .expect("fontdb must be initialized")
+                .clone(),
+            ..usvg::Options::default()
+        };
+
         if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
-            let mut svg = match handle.data() {
+            let svg = match handle.data() {
                 Data::Path(path) => {
                     fs::read_to_string(path).ok().and_then(|contents| {
-                        usvg::Tree::from_str(
-                            &contents,
-                            &usvg::Options::default(),
-                        )
-                        .ok()
+                        usvg::Tree::from_str(&contents, &options).ok()
                     })
                 }
                 Data::Bytes(bytes) => {
-                    usvg::Tree::from_data(bytes, &usvg::Options::default()).ok()
+                    usvg::Tree::from_data(bytes, &options).ok()
                 }
             };
-
-            if let Some(svg) = &mut svg {
-                if svg.has_text_nodes() {
-                    let mut font_system =
-                        text::font_system().write().expect("Write font system");
-
-                    svg.convert_text(font_system.raw().db_mut());
-                }
-            }
 
             let _ = entry.insert(svg);
         }
@@ -118,11 +121,9 @@ impl Cache {
 
     fn viewport_dimensions(&mut self, handle: &Handle) -> Option<Size<u32>> {
         let tree = self.load(handle)?;
+        let size = tree.size();
 
-        Some(Size::new(
-            tree.size.width() as u32,
-            tree.size.height() as u32,
-        ))
+        Some(Size::new(size.width() as u32, size.height() as u32))
     }
 
     fn draw(
@@ -147,7 +148,7 @@ impl Cache {
 
             let mut image = tiny_skia::Pixmap::new(size.width, size.height)?;
 
-            let tree_size = tree.size.to_int_size();
+            let tree_size = tree.size().to_int_size();
 
             let target_size = if size.width > size.height {
                 tree_size.scale_to_width(size.width)
@@ -167,7 +168,7 @@ impl Cache {
                 tiny_skia::Transform::default()
             };
 
-            resvg::Tree::from_usvg(tree).render(transform, &mut image.as_mut());
+            resvg::render(tree, transform, &mut image.as_mut());
 
             if let Some([r, g, b, _]) = key.color {
                 // Apply color filter

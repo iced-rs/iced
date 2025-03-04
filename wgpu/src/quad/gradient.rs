@@ -1,6 +1,6 @@
+use crate::Buffer;
 use crate::graphics::gradient;
 use crate::quad::{self, Quad};
-use crate::Buffer;
 
 use bytemuck::{Pod, Zeroable};
 use std::ops::Range;
@@ -124,7 +124,7 @@ impl Pipeline {
                     layout: Some(&layout),
                     vertex: wgpu::VertexState {
                         module: &shader,
-                        entry_point: "gradient_vs_main",
+                        entry_point: Some("gradient_vs_main"),
                         buffers: &[wgpu::VertexBufferLayout {
                             array_stride: std::mem::size_of::<Gradient>()
                                 as u64,
@@ -152,11 +152,15 @@ impl Pipeline {
                                 9 => Float32
                             ),
                         }],
+                        compilation_options:
+                            wgpu::PipelineCompilationOptions::default(),
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
-                        entry_point: "gradient_fs_main",
+                        entry_point: Some("gradient_fs_main"),
                         targets: &quad::color_target_state(format),
+                        compilation_options:
+                            wgpu::PipelineCompilationOptions::default(),
                     }),
                     primitive: wgpu::PrimitiveState {
                         topology: wgpu::PrimitiveTopology::TriangleList,
@@ -170,6 +174,7 @@ impl Pipeline {
                         alpha_to_coverage_enabled: false,
                     },
                     multiview: None,
+                    cache: None,
                 },
             );
 
@@ -188,9 +193,6 @@ impl Pipeline {
         layer: &'a Layer,
         range: Range<usize>,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = tracing::info_span!("Wgpu::Quad::Gradient", "DRAW").entered();
-
         #[cfg(not(target_arch = "wasm32"))]
         {
             render_pass.set_pipeline(&self.pipeline);

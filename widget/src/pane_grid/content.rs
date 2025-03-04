@@ -1,12 +1,12 @@
 use crate::container;
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
+    self, Clipboard, Element, Event, Layout, Point, Rectangle, Shell, Size,
+    Vector,
 };
 use crate::pane_grid::{Draggable, TitleBar};
 
@@ -73,7 +73,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Content<'_, Message, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
@@ -214,7 +214,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation,
     ) {
         let body_layout = if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();
@@ -239,10 +239,10 @@ where
         );
     }
 
-    pub(crate) fn on_event(
+    pub(crate) fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -250,15 +250,13 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
         is_picked: bool,
-    ) -> event::Status {
-        let mut event_status = event::Status::Ignored;
-
+    ) {
         let body_layout = if let Some(title_bar) = &mut self.title_bar {
             let mut children = layout.children();
 
-            event_status = title_bar.on_event(
+            title_bar.update(
                 &mut tree.children[1],
-                event.clone(),
+                event,
                 children.next().unwrap(),
                 cursor,
                 renderer,
@@ -272,10 +270,8 @@ where
             layout
         };
 
-        let body_status = if is_picked {
-            event::Status::Ignored
-        } else {
-            self.body.as_widget_mut().on_event(
+        if !is_picked {
+            self.body.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
                 body_layout,
@@ -284,10 +280,33 @@ where
                 clipboard,
                 shell,
                 viewport,
-            )
-        };
+            );
+        }
+    }
 
-        event_status.merge(body_status)
+    pub(crate) fn grid_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        drag_enabled: bool,
+    ) -> Option<mouse::Interaction> {
+        let title_bar = self.title_bar.as_ref()?;
+
+        let mut children = layout.children();
+        let title_bar_layout = children.next().unwrap();
+
+        let is_over_pick_area = cursor
+            .position()
+            .map(|cursor_position| {
+                title_bar.is_over_pick_area(title_bar_layout, cursor_position)
+            })
+            .unwrap_or_default();
+
+        if is_over_pick_area && drag_enabled {
+            return Some(mouse::Interaction::Grab);
+        }
+
+        None
     }
 
     pub(crate) fn mouse_interaction(
@@ -382,8 +401,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Draggable
-    for &Content<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Draggable
+    for &Content<'_, Message, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,

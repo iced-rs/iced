@@ -3,11 +3,10 @@ use iced::advanced::layout;
 use iced::advanced::renderer;
 use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{self, Clipboard, Layout, Shell, Widget};
-use iced::event;
 use iced::mouse;
 use iced::time::Instant;
 use iced::widget::canvas;
-use iced::window::{self, RedrawRequest};
+use iced::window;
 use iced::{
     Background, Color, Element, Event, Length, Radians, Rectangle, Renderer,
     Size, Vector,
@@ -89,7 +88,7 @@ where
     }
 }
 
-impl<'a, Theme> Default for Circular<'a, Theme>
+impl<Theme> Default for Circular<'_, Theme>
 where
     Theme: StyleSheet,
 {
@@ -139,8 +138,8 @@ impl Animation {
                 progress: 0.0,
                 rotation: rotation.wrapping_add(
                     BASE_ROTATION_SPEED.wrapping_add(
-                        (f64::from(WRAP_ANGLE / (2.0 * Radians::PI)) * f64::MAX)
-                            as u32,
+                        (f64::from(WRAP_ANGLE / (2.0 * Radians::PI))
+                            * u32::MAX as f64) as u32,
                     ),
                 ),
                 last: now,
@@ -262,31 +261,29 @@ where
         layout::atomic(limits, self.size, self.size)
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
 
-        if let Event::Window(_, window::Event::RedrawRequested(now)) = event {
+        if let Event::Window(window::Event::RedrawRequested(now)) = event {
             state.animation = state.animation.timed_transition(
                 self.cycle_duration,
                 self.rotation_duration,
-                now,
+                *now,
             );
 
             state.cache.clear();
-            shell.request_redraw(RedrawRequest::NextFrame);
+            shell.request_redraw();
         }
-
-        event::Status::Ignored
     }
 
     fn draw(

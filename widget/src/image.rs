@@ -1,4 +1,21 @@
-//! Display images in your user interface.
+//! Images display raster graphics in different formats (PNG, JPG, etc.).
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::image;
+//!
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     image("ferris.png").into()
+//! }
+//! ```
+//! <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 pub mod viewer;
 pub use viewer::Viewer;
 
@@ -22,16 +39,23 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 /// A frame that displays an image while keeping aspect ratio.
 ///
 /// # Example
-///
 /// ```no_run
-/// # use iced_widget::image::{self, Image};
-/// #
-/// let image = Image::<image::Handle>::new("resources/ferris.png");
-/// ```
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::image;
 ///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     image("ferris.png").into()
+/// }
+/// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[derive(Debug)]
-pub struct Image<Handle> {
+pub struct Image<Handle = image::Handle> {
     handle: Handle,
     width: Length,
     height: Length,
@@ -39,11 +63,12 @@ pub struct Image<Handle> {
     filter_method: FilterMethod,
     rotation: Rotation,
     opacity: f32,
+    scale: f32,
 }
 
 impl<Handle> Image<Handle> {
     /// Creates a new [`Image`] with the given path.
-    pub fn new<T: Into<Handle>>(handle: T) -> Self {
+    pub fn new(handle: impl Into<Handle>) -> Self {
         Image {
             handle: handle.into(),
             width: Length::Shrink,
@@ -52,6 +77,7 @@ impl<Handle> Image<Handle> {
             filter_method: FilterMethod::default(),
             rotation: Rotation::default(),
             opacity: 1.0,
+            scale: 1.0,
         }
     }
 
@@ -93,6 +119,15 @@ impl<Handle> Image<Handle> {
     /// and `1.0` meaning completely opaque.
     pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
         self.opacity = opacity.into();
+        self
+    }
+
+    /// Sets the scale of the [`Image`].
+    ///
+    /// The region of the [`Image`] drawn will be scaled from the center by the given scale factor.
+    /// This can be useful to create certain effects and animations, like smooth zoom in / out.
+    pub fn scale(mut self, scale: impl Into<f32>) -> Self {
+        self.scale = scale.into();
         self
     }
 }
@@ -143,11 +178,13 @@ where
 pub fn draw<Renderer, Handle>(
     renderer: &mut Renderer,
     layout: Layout<'_>,
+    viewport: &Rectangle,
     handle: &Handle,
     content_fit: ContentFit,
     filter_method: FilterMethod,
     rotation: Rotation,
     opacity: f32,
+    scale: f32,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -159,12 +196,12 @@ pub fn draw<Renderer, Handle>(
     let bounds = layout.bounds();
     let adjusted_fit = content_fit.fit(rotated_size, bounds.size());
 
-    let scale = Vector::new(
+    let fit_scale = Vector::new(
         adjusted_fit.width / rotated_size.width,
         adjusted_fit.height / rotated_size.height,
     );
 
-    let final_size = image_size * scale;
+    let final_size = image_size * fit_scale * scale;
 
     let position = match content_fit {
         ContentFit::None => Point::new(
@@ -181,17 +218,22 @@ pub fn draw<Renderer, Handle>(
 
     let render = |renderer: &mut Renderer| {
         renderer.draw_image(
-            handle.clone(),
-            filter_method,
+            image::Image {
+                handle: handle.clone(),
+                filter_method,
+                rotation: rotation.radians(),
+                opacity,
+                snap: true,
+            },
             drawing_bounds,
-            rotation.radians(),
-            opacity,
         );
     };
 
     if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
     {
-        renderer.with_layer(bounds, render);
+        if let Some(bounds) = bounds.intersection(viewport) {
+            renderer.with_layer(bounds, render);
+        }
     } else {
         render(renderer);
     }
@@ -235,16 +277,18 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         draw(
             renderer,
             layout,
+            viewport,
             &self.handle,
             self.content_fit,
             self.filter_method,
             self.rotation,
             self.opacity,
+            self.scale,
         );
     }
 }

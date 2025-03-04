@@ -1,11 +1,12 @@
 //! Listen to keyboard events.
+use crate::MaybeSend;
 use crate::core;
+use crate::core::event;
 use crate::core::keyboard::{Event, Key, Modifiers};
 use crate::subscription::{self, Subscription};
-use crate::MaybeSend;
 
 /// Listens to keyboard key presses and calls the given function
-/// map them into actual messages.
+/// to map them into actual messages.
 ///
 /// If the function returns `None`, the key press will be simply
 /// ignored.
@@ -18,21 +19,19 @@ where
     #[derive(Hash)]
     struct OnKeyPress;
 
-    subscription::filter_map((OnKeyPress, f), move |event, status| {
-        match (event, status) {
-            (
-                core::Event::Keyboard(Event::KeyPressed {
-                    key, modifiers, ..
-                }),
-                core::event::Status::Ignored,
-            ) => f(key, modifiers),
-            _ => None,
-        }
+    subscription::filter_map((OnKeyPress, f), move |event| match event {
+        subscription::Event::Interaction {
+            event:
+                core::Event::Keyboard(Event::KeyPressed { key, modifiers, .. }),
+            status: event::Status::Ignored,
+            ..
+        } => f(key, modifiers),
+        _ => None,
     })
 }
 
 /// Listens to keyboard key releases and calls the given function
-/// map them into actual messages.
+/// to map them into actual messages.
 ///
 /// If the function returns `None`, the key release will be simply
 /// ignored.
@@ -45,17 +44,13 @@ where
     #[derive(Hash)]
     struct OnKeyRelease;
 
-    subscription::filter_map((OnKeyRelease, f), move |event, status| {
-        match (event, status) {
-            (
-                core::Event::Keyboard(Event::KeyReleased {
-                    key,
-                    modifiers,
-                    ..
-                }),
-                core::event::Status::Ignored,
-            ) => f(key, modifiers),
-            _ => None,
-        }
+    subscription::filter_map((OnKeyRelease, f), move |event| match event {
+        subscription::Event::Interaction {
+            event:
+                core::Event::Keyboard(Event::KeyReleased { key, modifiers, .. }),
+            status: event::Status::Ignored,
+            ..
+        } => f(key, modifiers),
+        _ => None,
     })
 }

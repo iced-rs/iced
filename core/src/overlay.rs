@@ -5,13 +5,12 @@ mod group;
 pub use element::Element;
 pub use group::Group;
 
-use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;
-use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
+use crate::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size, Vector};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Theme, Renderer>
@@ -41,7 +40,7 @@ where
         &mut self,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        _operation: &mut dyn widget::Operation<Message>,
+        _operation: &mut dyn widget::Operation,
     ) {
     }
 
@@ -52,21 +51,20 @@ where
     ///   * the computed [`Layout`] of the [`Overlay`]
     ///   * the current cursor position
     ///   * a mutable `Message` list, allowing the [`Overlay`] to produce
-    ///   new messages based on user interaction.
+    ///     new messages based on user interaction.
     ///   * the `Renderer`
     ///   * a [`Clipboard`], if available
     ///
     /// By default, it does nothing.
-    fn on_event(
+    fn update(
         &mut self,
-        _event: Event,
+        _event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        event::Status::Ignored
+    ) {
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Overlay`].

@@ -1,30 +1,72 @@
-//! Encode and display information in a QR code.
+//! QR codes display information in a type of two-dimensional matrix barcode.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::widget::qr_code;
+//!
+//! struct State {
+//!    data: qr_code::Data,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     // ...
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     qr_code(&state.data).into()
+//! }
+//! ```
+use crate::Renderer;
 use crate::canvas;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Color, Element, Layout, Length, Point, Rectangle, Size, Theme, Vector,
-    Widget,
+    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme,
+    Vector, Widget,
 };
-use crate::Renderer;
 
 use std::cell::RefCell;
 use thiserror::Error;
 
-const DEFAULT_CELL_SIZE: u16 = 4;
+const DEFAULT_CELL_SIZE: f32 = 4.0;
 const QUIET_ZONE: usize = 2;
 
 /// A type of matrix barcode consisting of squares arranged in a grid which
 /// can be read by an imaging device, such as a camera.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// #
+/// use iced::widget::qr_code;
+///
+/// struct State {
+///    data: qr_code::Data,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     qr_code(&state.data).into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct QRCode<'a, Theme = crate::Theme>
 where
     Theme: Catalog,
 {
     data: &'a Data,
-    cell_size: u16,
+    cell_size: f32,
     class: Theme::Class<'a>,
 }
 
@@ -42,8 +84,16 @@ where
     }
 
     /// Sets the size of the squares of the grid cell of the [`QRCode`].
-    pub fn cell_size(mut self, cell_size: u16) -> Self {
-        self.cell_size = cell_size;
+    pub fn cell_size(mut self, cell_size: impl Into<Pixels>) -> Self {
+        self.cell_size = cell_size.into().0;
+        self
+    }
+
+    /// Sets the size of the entire [`QRCode`].
+    pub fn total_size(mut self, total_size: impl Into<Pixels>) -> Self {
+        self.cell_size =
+            total_size.into().0 / (self.data.width + 2 * QUIET_ZONE) as f32;
+
         self
     }
 
@@ -66,7 +116,7 @@ where
     }
 }
 
-impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a, Theme>
+impl<Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'_, Theme>
 where
     Theme: Catalog,
 {
@@ -91,8 +141,8 @@ where
         _renderer: &Renderer,
         _limits: &layout::Limits,
     ) -> layout::Node {
-        let side_length = (self.data.width + 2 * QUIET_ZONE) as f32
-            * f32::from(self.cell_size);
+        let side_length =
+            (self.data.width + 2 * QUIET_ZONE) as f32 * self.cell_size;
 
         layout::Node::new(Size::new(side_length, side_length))
     }

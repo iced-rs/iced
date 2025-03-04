@@ -120,11 +120,10 @@ impl crate::graphics::Compositor for Compositor {
     fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
-        surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
     ) -> Vec<u8> {
-        screenshot(renderer, surface, viewport, background_color)
+        screenshot(renderer, viewport, background_color)
     }
 }
 
@@ -208,7 +207,6 @@ pub fn present(
 
 pub fn screenshot(
     renderer: &mut Renderer,
-    surface: &mut Surface,
     viewport: &Viewport,
     background_color: Color,
 ) -> Vec<u8> {
@@ -217,6 +215,9 @@ pub fn screenshot(
     let mut offscreen_buffer: Vec<u32> =
         vec![0; size.width as usize * size.height as usize];
 
+    let mut clip_mask = tiny_skia::Mask::new(size.width, size.height)
+        .expect("Create clip mask");
+
     renderer.draw(
         &mut tiny_skia::PixmapMut::from_bytes(
             bytemuck::cast_slice_mut(&mut offscreen_buffer),
@@ -224,7 +225,7 @@ pub fn screenshot(
             size.height,
         )
         .expect("Create offscreen pixel map"),
-        &mut surface.clip_mask,
+        &mut clip_mask,
         viewport,
         &[Rectangle::with_size(Size::new(
             size.width as f32,

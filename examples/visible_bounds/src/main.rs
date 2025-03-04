@@ -5,12 +5,12 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Alignment, Color, Command, Element, Font, Length, Point, Rectangle,
-    Subscription, Theme,
+    Center, Color, Element, Fill, Font, Point, Rectangle, Subscription, Task,
+    Theme,
 };
 
 pub fn main() -> iced::Result {
-    iced::program("Visible Bounds - Iced", Example::update, Example::view)
+    iced::application("Visible Bounds - Iced", Example::update, Example::view)
         .subscription(Example::subscription)
         .theme(|_| Theme::Dark)
         .run()
@@ -33,14 +33,14 @@ enum Message {
 }
 
 impl Example {
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::MouseMoved(position) => {
                 self.mouse_position = Some(position);
 
-                Command::none()
+                Task::none()
             }
-            Message::Scrolled | Message::WindowResized => Command::batch(vec![
+            Message::Scrolled | Message::WindowResized => Task::batch(vec![
                 container::visible_bounds(OUTER_CONTAINER.clone())
                     .map(Message::OuterBoundsFetched),
                 container::visible_bounds(INNER_CONTAINER.clone())
@@ -49,12 +49,12 @@ impl Example {
             Message::OuterBoundsFetched(outer_bounds) => {
                 self.outer_bounds = outer_bounds;
 
-                Command::none()
+                Task::none()
             }
             Message::InnerBoundsFetched(inner_bounds) => {
                 self.inner_bounds = inner_bounds;
 
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -70,7 +70,7 @@ impl Example {
                     .color_maybe(color),
             ]
             .height(40)
-            .align_items(Alignment::Center)
+            .align_y(Center)
         };
 
         let view_bounds = |label, bounds: Option<Rectangle>| {
@@ -130,13 +130,13 @@ impl Example {
                         .padding(20)
                     )
                     .on_scroll(|_| Message::Scrolled)
-                    .width(Length::Fill)
+                    .width(Fill)
                     .height(300),
                 ]
                 .padding(20)
             )
             .on_scroll(|_| Message::Scrolled)
-            .width(Length::Fill)
+            .width(Fill)
             .height(300),
         ]
         .spacing(10)
@@ -145,11 +145,11 @@ impl Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        event::listen_with(|event, _| match event {
+        event::listen_with(|event, _status, _window| match event {
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 Some(Message::MouseMoved(position))
             }
-            Event::Window(_, window::Event::Resized { .. }) => {
+            Event::Window(window::Event::Resized { .. }) => {
                 Some(Message::WindowResized)
             }
             _ => None,
@@ -157,9 +157,9 @@ impl Example {
     }
 }
 
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
-static OUTER_CONTAINER: Lazy<container::Id> =
-    Lazy::new(|| container::Id::new("outer"));
-static INNER_CONTAINER: Lazy<container::Id> =
-    Lazy::new(|| container::Id::new("inner"));
+static OUTER_CONTAINER: LazyLock<container::Id> =
+    LazyLock::new(|| container::Id::new("outer"));
+static INNER_CONTAINER: LazyLock<container::Id> =
+    LazyLock::new(|| container::Id::new("inner"));

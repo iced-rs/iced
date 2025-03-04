@@ -20,6 +20,7 @@ all-features = true
 [features]
 geometry = ["lyon_path"]
 image = ["dep:image", "kamadak-exif"]
+svg = []
 web-colors = []
 fira-sans = []
 
@@ -32,7 +33,6 @@ bytemuck.workspace = true
 cosmic-text.workspace = true
 half.workspace = true
 log.workspace = true
-once_cell.workspace = true
 raw-window-handle.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true

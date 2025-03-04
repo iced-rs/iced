@@ -1,13 +1,10 @@
-use iced::alignment;
 use iced::keyboard;
-use iced::time;
+use iced::time::{self, Duration, Instant, milliseconds};
 use iced::widget::{button, center, column, row, text};
-use iced::{Alignment, Element, Subscription, Theme};
-
-use std::time::{Duration, Instant};
+use iced::{Center, Element, Subscription, Theme};
 
 pub fn main() -> iced::Result {
-    iced::program("Stopwatch - Iced", Stopwatch::update, Stopwatch::view)
+    iced::application("Stopwatch - Iced", Stopwatch::update, Stopwatch::view)
         .subscription(Stopwatch::subscription)
         .theme(Stopwatch::theme)
         .run()
@@ -64,7 +61,7 @@ impl Stopwatch {
         let tick = match self.state {
             State::Idle => Subscription::none(),
             State::Ticking { .. } => {
-                time::every(Duration::from_millis(10)).map(Message::Tick)
+                time::every(milliseconds(10)).map(Message::Tick)
             }
         };
 
@@ -92,22 +89,17 @@ impl Stopwatch {
 
         let seconds = self.duration.as_secs();
 
-        let duration = text(format!(
+        let duration = text!(
             "{:0>2}:{:0>2}:{:0>2}.{:0>2}",
             seconds / HOUR,
             (seconds % HOUR) / MINUTE,
             seconds % MINUTE,
             self.duration.subsec_millis() / 10,
-        ))
+        )
         .size(40);
 
-        let button = |label| {
-            button(
-                text(label).horizontal_alignment(alignment::Horizontal::Center),
-            )
-            .padding(10)
-            .width(80)
-        };
+        let button =
+            |label| button(text(label).align_x(Center)).padding(10).width(80);
 
         let toggle_button = {
             let label = match self.state {
@@ -124,9 +116,7 @@ impl Stopwatch {
 
         let controls = row![toggle_button, reset_button].spacing(20);
 
-        let content = column![duration, controls]
-            .align_items(Alignment::Center)
-            .spacing(20);
+        let content = column![duration, controls].align_x(Center).spacing(20);
 
         center(content).into()
     }

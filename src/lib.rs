@@ -1,170 +1,473 @@
-//! Iced is a cross-platform GUI library focused on simplicity and type-safety.
+//! iced is a cross-platform GUI library focused on simplicity and type-safety.
 //! Inspired by [Elm].
 //!
-//! # Features
-//! * Simple, easy-to-use, batteries-included API
-//! * Type-safe, reactive programming model
-//! * [Cross-platform support] (Windows, macOS, Linux, and the Web)
-//! * Responsive layout
-//! * Built-in widgets (including [text inputs], [scrollables], and more!)
-//! * Custom widget support (create your own!)
-//! * [Debug overlay with performance metrics]
-//! * First-class support for async actions (use futures!)
-//! * [Modular ecosystem] split into reusable parts:
-//!   * A [renderer-agnostic native runtime] enabling integration with existing
-//!     systems
-//!   * A [built-in renderer] supporting Vulkan, Metal, DX11, and DX12
-//!   * A [windowing shell]
-//!   * A [web runtime] leveraging the DOM
+//! [Elm]: https://elm-lang.org/
 //!
-//! Check out the [repository] and the [examples] for more details!
+//! # Disclaimer
+//! iced is __experimental__ software. If you expect the documentation to hold your hand
+//! as you learn the ropes, you are in for a frustrating experience.
 //!
-//! [Cross-platform support]: https://github.com/iced-rs/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
-//! [text inputs]: https://iced.rs/examples/text_input.mp4
-//! [scrollables]: https://iced.rs/examples/scrollable.mp4
-//! [Debug overlay with performance metrics]: https://iced.rs/examples/debug.mp4
-//! [Modular ecosystem]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md
-//! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/tree/0.12/runtime
-//! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-//! [built-in renderer]: https://github.com/iced-rs/iced/tree/0.12/wgpu
-//! [windowing shell]: https://github.com/iced-rs/iced/tree/0.12/winit
-//! [`dodrio`]: https://github.com/fitzgen/dodrio
-//! [web runtime]: https://github.com/iced-rs/iced_web
-//! [examples]: https://github.com/iced-rs/iced/tree/0.12/examples
-//! [repository]: https://github.com/iced-rs/iced
+//! The library leverages Rust to its full extent: ownership, borrowing, lifetimes, futures,
+//! streams, first-class functions, trait bounds, closures, and more. This documentation
+//! is not meant to teach you any of these. Far from it, it will assume you have __mastered__
+//! all of them.
 //!
-//! # Overview
-//! Inspired by [The Elm Architecture], Iced expects you to split user
-//! interfaces into four different concepts:
+//! Furthermore—just like Rust—iced is very unforgiving. It will not let you easily cut corners.
+//! The type signatures alone can be used to learn how to use most of the library.
+//! Everything is connected.
 //!
-//!   * __State__ — the state of your application
-//!   * __Messages__ — user interactions or meaningful events that you care
-//!   about
-//!   * __View logic__ — a way to display your __state__ as widgets that
-//!   may produce __messages__ on user interaction
-//!   * __Update logic__ — a way to react to __messages__ and update your
-//!   __state__
+//! Therefore, iced is easy to learn for __advanced__ Rust programmers; but plenty of patient
+//! beginners have learned it and had a good time with it. Since it leverages a lot of what
+//! Rust has to offer in a type-safe way, it can be a great way to discover Rust itself.
 //!
-//! We can build something to see how this works! Let's say we want a simple
-//! counter that can be incremented and decremented using two buttons.
+//! If you don't like the sound of that, you expect to be spoonfed, or you feel frustrated
+//! and struggle to use the library; then I recommend you to wait patiently until [the book]
+//! is finished.
 //!
-//! We start by modelling the __state__ of our application:
+//! [the book]: https://book.iced.rs
 //!
-//! ```
-//! #[derive(Default)]
-//! struct Counter {
-//!     // The counter value
-//!     value: i32,
+//! # The Pocket Guide
+//! Start by calling [`run`]:
+//!
+//! ```rust,no_run
+//! pub fn main() -> iced::Result {
+//!     iced::run("A cool counter", update, view)
 //! }
+//! # fn update(state: &mut (), message: ()) {}
+//! # fn view(state: &()) -> iced::Element<()> { iced::widget::text("").into() }
 //! ```
 //!
-//! Next, we need to define the possible user interactions of our counter:
-//! the button presses. These interactions are our __messages__:
+//! Define an `update` function to __change__ your state:
 //!
-//! ```
-//! #[derive(Debug, Clone, Copy)]
-//! pub enum Message {
-//!     Increment,
-//!     Decrement,
-//! }
-//! ```
-//!
-//! Now, let's show the actual counter by putting it all together in our
-//! __view logic__:
-//!
-//! ```
-//! # struct Counter {
-//! #     // The counter value
-//! #     value: i32,
-//! # }
-//! #
-//! # #[derive(Debug, Clone, Copy)]
-//! # pub enum Message {
-//! #     Increment,
-//! #     Decrement,
-//! # }
-//! #
-//! use iced::widget::{button, column, text, Column};
-//!
-//! impl Counter {
-//!     pub fn view(&self) -> Column<Message> {
-//!         // We use a column: a simple vertical layout
-//!         column![
-//!             // The increment button. We tell it to produce an
-//!             // `Increment` message when pressed
-//!             button("+").on_press(Message::Increment),
-//!
-//!             // We show the value of the counter here
-//!             text(self.value).size(50),
-//!
-//!             // The decrement button. We tell it to produce a
-//!             // `Decrement` message when pressed
-//!             button("-").on_press(Message::Decrement),
-//!         ]
+//! ```rust
+//! fn update(counter: &mut u64, message: Message) {
+//!     match message {
+//!         Message::Increment => *counter += 1,
 //!     }
 //! }
+//! # #[derive(Clone)]
+//! # enum Message { Increment }
 //! ```
 //!
-//! Finally, we need to be able to react to any produced __messages__ and change
-//! our __state__ accordingly in our __update logic__:
+//! Define a `view` function to __display__ your state:
 //!
+//! ```rust
+//! use iced::widget::{button, text};
+//! use iced::Element;
+//!
+//! fn view(counter: &u64) -> Element<Message> {
+//!     button(text(counter)).on_press(Message::Increment).into()
+//! }
+//! # #[derive(Clone)]
+//! # enum Message { Increment }
 //! ```
-//! # struct Counter {
-//! #     // The counter value
-//! #     value: i32,
-//! # }
-//! #
-//! # #[derive(Debug, Clone, Copy)]
-//! # pub enum Message {
-//! #     Increment,
-//! #     Decrement,
-//! # }
-//! impl Counter {
-//!     // ...
 //!
-//!     pub fn update(&mut self, message: Message) {
-//!         match message {
-//!             Message::Increment => {
-//!                 self.value += 1;
+//! And create a `Message` enum to __connect__ `view` and `update` together:
+//!
+//! ```rust
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     Increment,
+//! }
+//! ```
+//!
+//! ## Custom State
+//! You can define your own struct for your state:
+//!
+//! ```rust
+//! #[derive(Default)]
+//! struct Counter {
+//!     value: u64,
+//! }
+//! ```
+//!
+//! But you have to change `update` and `view` accordingly:
+//!
+//! ```rust
+//! # struct Counter { value: u64 }
+//! # #[derive(Clone)]
+//! # enum Message { Increment }
+//! # use iced::widget::{button, text};
+//! # use iced::Element;
+//! fn update(counter: &mut Counter, message: Message) {
+//!     match message {
+//!         Message::Increment => counter.value += 1,
+//!     }
+//! }
+//!
+//! fn view(counter: &Counter) -> Element<Message> {
+//!     button(text(counter.value)).on_press(Message::Increment).into()
+//! }
+//! ```
+//!
+//! ## Widgets and Elements
+//! The `view` function must return an [`Element`]. An [`Element`] is just a generic [`widget`].
+//!
+//! The [`widget`] module contains a bunch of functions to help you build
+//! and use widgets.
+//!
+//! Widgets are configured using the builder pattern:
+//!
+//! ```rust
+//! # struct Counter { value: u64 }
+//! # #[derive(Clone)]
+//! # enum Message { Increment }
+//! use iced::widget::{button, column, text};
+//! use iced::Element;
+//!
+//! fn view(counter: &Counter) -> Element<Message> {
+//!     column![
+//!         text(counter.value).size(20),
+//!         button("Increment").on_press(Message::Increment),
+//!     ]
+//!     .spacing(10)
+//!     .into()
+//! }
+//! ```
+//!
+//! A widget can be turned into an [`Element`] by calling `into`.
+//!
+//! Widgets and elements are generic over the message type they produce. The
+//! [`Element`] returned by `view` must have the same `Message` type as
+//! your `update`.
+//!
+//! ## Layout
+//! There is no unified layout system in iced. Instead, each widget implements
+//! its own layout strategy.
+//!
+//! Building your layout will often consist in using a combination of
+//! [rows], [columns], and [containers]:
+//!
+//! ```rust
+//! # struct State;
+//! # enum Message {}
+//! use iced::widget::{column, container, row};
+//! use iced::{Fill, Element};
+//!
+//! fn view(state: &State) -> Element<Message> {
+//!     container(
+//!         column![
+//!             "Top",
+//!             row!["Left", "Right"].spacing(10),
+//!             "Bottom"
+//!         ]
+//!         .spacing(10)
+//!     )
+//!     .padding(10)
+//!     .center_x(Fill)
+//!     .center_y(Fill)
+//!     .into()
+//! }
+//! ```
+//!
+//! Rows and columns lay out their children horizontally and vertically,
+//! respectively. [Spacing] can be easily added between elements.
+//!
+//! Containers position or align a single widget inside their bounds.
+//!
+//! [rows]: widget::Row
+//! [columns]: widget::Column
+//! [containers]: widget::Container
+//! [Spacing]: widget::Column::spacing
+//!
+//! ## Sizing
+//! The width and height of widgets can generally be defined using a [`Length`].
+//!
+//! - [`Fill`] will make the widget take all the available space in a given axis.
+//! - [`Shrink`] will make the widget use its intrinsic size.
+//!
+//! Most widgets use a [`Shrink`] sizing strategy by default, but will inherit
+//! a [`Fill`] strategy from their children.
+//!
+//! A fixed numeric [`Length`] in [`Pixels`] can also be used:
+//!
+//! ```rust
+//! # struct State;
+//! # enum Message {}
+//! use iced::widget::container;
+//! use iced::Element;
+//!
+//! fn view(state: &State) -> Element<Message> {
+//!     container("I am 300px tall!").height(300).into()
+//! }
+//! ```
+//!
+//! ## Theming
+//! The default [`Theme`] of an application can be changed by defining a `theme`
+//! function and leveraging the [`Application`] builder, instead of directly
+//! calling [`run`]:
+//!
+//! ```rust,no_run
+//! # #[derive(Default)]
+//! # struct State;
+//! use iced::Theme;
+//!
+//! pub fn main() -> iced::Result {
+//!     iced::application("A cool application", update, view)
+//!         .theme(theme)
+//!         .run()
+//! }
+//!
+//! fn theme(state: &State) -> Theme {
+//!     Theme::TokyoNight
+//! }
+//! # fn update(state: &mut State, message: ()) {}
+//! # fn view(state: &State) -> iced::Element<()> { iced::widget::text("").into() }
+//! ```
+//!
+//! The `theme` function takes the current state of the application, allowing the
+//! returned [`Theme`] to be completely dynamic—just like `view`.
+//!
+//! There are a bunch of built-in [`Theme`] variants at your disposal, but you can
+//! also [create your own](Theme::custom).
+//!
+//! ## Styling
+//! As with layout, iced does not have a unified styling system. However, all
+//! of the built-in widgets follow the same styling approach.
+//!
+//! The appearance of a widget can be changed by calling its `style` method:
+//!
+//! ```rust
+//! # struct State;
+//! # enum Message {}
+//! use iced::widget::container;
+//! use iced::Element;
+//!
+//! fn view(state: &State) -> Element<Message> {
+//!     container("I am a rounded box!").style(container::rounded_box).into()
+//! }
+//! ```
+//!
+//! The `style` method of a widget takes a closure that, given the current active
+//! [`Theme`], returns the widget style:
+//!
+//! ```rust
+//! # struct State;
+//! # #[derive(Clone)]
+//! # enum Message {}
+//! use iced::widget::button;
+//! use iced::{Element, Theme};
+//!
+//! fn view(state: &State) -> Element<Message> {
+//!     button("I am a styled button!").style(|theme: &Theme, status| {
+//!         let palette = theme.extended_palette();
+//!
+//!         match status {
+//!             button::Status::Active => {
+//!                 button::Style::default()
+//!                    .with_background(palette.success.strong.color)
 //!             }
-//!             Message::Decrement => {
-//!                 self.value -= 1;
+//!             _ => button::primary(theme, status),
+//!         }
+//!     })
+//!     .into()
+//! }
+//! ```
+//!
+//! Widgets that can be in multiple different states will also provide the closure
+//! with some [`Status`], allowing you to use a different style for each state.
+//!
+//! You can extract the [`Palette`] colors of a [`Theme`] with the [`palette`] or
+//! [`extended_palette`] methods.
+//!
+//! Most widgets provide styling functions for your convenience in their respective modules;
+//! like [`container::rounded_box`], [`button::primary`], or [`text::danger`].
+//!
+//! [`Status`]: widget::button::Status
+//! [`palette`]: Theme::palette
+//! [`extended_palette`]: Theme::extended_palette
+//! [`container::rounded_box`]: widget::container::rounded_box
+//! [`button::primary`]: widget::button::primary
+//! [`text::danger`]: widget::text::danger
+//!
+//! ## Concurrent Tasks
+//! The `update` function can _optionally_ return a [`Task`].
+//!
+//! A [`Task`] can be leveraged to perform asynchronous work, like running a
+//! future or a stream:
+//!
+//! ```rust
+//! # #[derive(Clone)]
+//! # struct Weather;
+//! use iced::Task;
+//!
+//! struct State {
+//!     weather: Option<Weather>,
+//! }
+//!
+//! enum Message {
+//!    FetchWeather,
+//!    WeatherFetched(Weather),
+//! }
+//!
+//! fn update(state: &mut State, message: Message) -> Task<Message> {
+//!     match message {
+//!         Message::FetchWeather => Task::perform(
+//!             fetch_weather(),
+//!             Message::WeatherFetched,
+//!         ),
+//!         Message::WeatherFetched(weather) => {
+//!             state.weather = Some(weather);
+//!
+//!             Task::none()
+//!        }
+//!     }
+//! }
+//!
+//! async fn fetch_weather() -> Weather {
+//!     // ...
+//!     # unimplemented!()
+//! }
+//! ```
+//!
+//! Tasks can also be used to interact with the iced runtime. Some modules
+//! expose functions that create tasks for different purposes—like [changing
+//! window settings](window#functions), [focusing a widget](widget::focus_next), or
+//! [querying its visible bounds](widget::container::visible_bounds).
+//!
+//! Like futures and streams, tasks expose [a monadic interface](Task::then)—but they can also be
+//! [mapped](Task::map), [chained](Task::chain), [batched](Task::batch), [canceled](Task::abortable),
+//! and more.
+//!
+//! ## Passive Subscriptions
+//! Applications can subscribe to passive sources of data—like time ticks or runtime events.
+//!
+//! You will need to define a `subscription` function and use the [`Application`] builder:
+//!
+//! ```rust,no_run
+//! # #[derive(Default)]
+//! # struct State;
+//! use iced::window;
+//! use iced::{Size, Subscription};
+//!
+//! #[derive(Debug)]
+//! enum Message {
+//!     WindowResized(Size),
+//! }
+//!
+//! pub fn main() -> iced::Result {
+//!     iced::application("A cool application", update, view)
+//!         .subscription(subscription)
+//!         .run()
+//! }
+//!
+//! fn subscription(state: &State) -> Subscription<Message> {
+//!     window::resize_events().map(|(_id, size)| Message::WindowResized(size))
+//! }
+//! # fn update(state: &mut State, message: Message) {}
+//! # fn view(state: &State) -> iced::Element<Message> { iced::widget::text("").into() }
+//! ```
+//!
+//! A [`Subscription`] is [a _declarative_ builder of streams](Subscription#the-lifetime-of-a-subscription)
+//! that are not allowed to end on their own. Only the `subscription` function
+//! dictates the active subscriptions—just like `view` fully dictates the
+//! visible widgets of your user interface, at every moment.
+//!
+//! As with tasks, some modules expose convenient functions that build a [`Subscription`] for you—like
+//! [`time::every`] which can be used to listen to time, or [`keyboard::on_key_press`] which will notify you
+//! of any key presses. But you can also create your own with [`Subscription::run`] and [`run_with`].
+//!
+//! [`run_with`]: Subscription::run_with
+//!
+//! ## Scaling Applications
+//! The `update`, `view`, and `Message` triplet composes very nicely.
+//!
+//! A common pattern is to leverage this composability to split an
+//! application into different screens:
+//!
+//! ```rust
+//! # mod contacts {
+//! #     use iced::{Element, Task};
+//! #     pub struct Contacts;
+//! #     impl Contacts {
+//! #         pub fn update(&mut self, message: Message) -> Action { unimplemented!() }
+//! #         pub fn view(&self) -> Element<Message> { unimplemented!() }
+//! #     }
+//! #     #[derive(Debug)]
+//! #     pub enum Message {}
+//! #     pub enum Action { None, Run(Task<Message>), Chat(()) }
+//! # }
+//! # mod conversation {
+//! #     use iced::{Element, Task};
+//! #     pub struct Conversation;
+//! #     impl Conversation {
+//! #         pub fn new(contact: ()) -> (Self, Task<Message>) { unimplemented!() }
+//! #         pub fn update(&mut self, message: Message) -> Task<Message> { unimplemented!() }
+//! #         pub fn view(&self) -> Element<Message> { unimplemented!() }
+//! #     }
+//! #     #[derive(Debug)]
+//! #     pub enum Message {}
+//! # }
+//! use contacts::Contacts;
+//! use conversation::Conversation;
+//!
+//! use iced::{Element, Task};
+//!
+//! struct State {
+//!     screen: Screen,
+//! }
+//!
+//! enum Screen {
+//!     Contacts(Contacts),
+//!     Conversation(Conversation),
+//! }
+//!
+//! enum Message {
+//!    Contacts(contacts::Message),
+//!    Conversation(conversation::Message)
+//! }
+//!
+//! fn update(state: &mut State, message: Message) -> Task<Message> {
+//!     match message {
+//!         Message::Contacts(message) => {
+//!             if let Screen::Contacts(contacts) = &mut state.screen {
+//!                 let action = contacts.update(message);
+//!
+//!                 match action {
+//!                     contacts::Action::None => Task::none(),
+//!                     contacts::Action::Run(task) => task.map(Message::Contacts),
+//!                     contacts::Action::Chat(contact) => {
+//!                         let (conversation, task) = Conversation::new(contact);
+//!
+//!                         state.screen = Screen::Conversation(conversation);
+//!
+//!                         task.map(Message::Conversation)
+//!                     }
+//!                  }
+//!             } else {
+//!                 Task::none()    
+//!             }
+//!         }
+//!         Message::Conversation(message) => {
+//!             if let Screen::Conversation(conversation) = &mut state.screen {
+//!                 conversation.update(message).map(Message::Conversation)
+//!             } else {
+//!                 Task::none()    
 //!             }
 //!         }
 //!     }
 //! }
-//! ```
 //!
-//! And that's everything! We just wrote a whole user interface. Let's run it:
-//!
-//! ```no_run
-//! # #[derive(Default)]
-//! # struct Counter;
-//! # impl Counter {
-//! #     fn update(&mut self, _message: ()) {}
-//! #     fn view(&self) -> iced::Element<()> { unimplemented!() }
-//! # }
-//! #
-//! fn main() -> iced::Result {
-//!     iced::run("A cool counter", Counter::update, Counter::view)
+//! fn view(state: &State) -> Element<Message> {
+//!     match &state.screen {
+//!         Screen::Contacts(contacts) => contacts.view().map(Message::Contacts),
+//!         Screen::Conversation(conversation) => conversation.view().map(Message::Conversation),
+//!     }
 //! }
 //! ```
 //!
-//! Iced will automatically:
+//! The `update` method of a screen can return an `Action` enum that can be leveraged by the parent to
+//! execute a task or transition to a completely different screen altogether. The variants of `Action` can
+//! have associated data. For instance, in the example above, the `Conversation` screen is created when
+//! `Contacts::update` returns an `Action::Chat` with the selected contact.
 //!
-//!   1. Take the result of our __view logic__ and layout its widgets.
-//!   1. Process events from our system and produce __messages__ for our
-//!      __update logic__.
-//!   1. Draw the resulting user interface.
+//! Effectively, this approach lets you "tell a story" to connect different screens together in a type safe
+//! way.
 //!
-//! # Usage
-//! Use [`run`] or the [`program`] builder.
-//!
-//! [Elm]: https://elm-lang.org/
-//! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
-//! [`program`]: program()
+//! Furthermore, functor methods like [`Task::map`], [`Element::map`], and [`Subscription::map`] make composition
+//! seamless.
 #![doc(
-    html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
+    html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/bdf0430880f5c29443f5f0a0ae4895866dfef4c6/docs/logo.svg"
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -175,34 +478,51 @@ use iced_winit::core;
 use iced_winit::runtime;
 
 pub use iced_futures::futures;
+pub use iced_futures::stream;
 
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
-mod application;
-mod error;
+#[cfg(feature = "wgpu")]
+pub use iced_renderer::wgpu::wgpu;
 
-pub mod program;
-pub mod settings;
+mod error;
+mod program;
+
+pub mod application;
+pub mod daemon;
 pub mod time;
 pub mod window;
 
 #[cfg(feature = "advanced")]
 pub mod advanced;
 
-#[cfg(feature = "multi-window")]
-pub mod multi_window;
-
 pub use crate::core::alignment;
+pub use crate::core::animation;
 pub use crate::core::border;
 pub use crate::core::color;
 pub use crate::core::gradient;
+pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
-    Alignment, Background, Border, Color, ContentFit, Degrees, Gradient,
-    Length, Padding, Pixels, Point, Radians, Rectangle, Rotation, Shadow, Size,
-    Theme, Transformation, Vector,
+    Alignment, Animation, Background, Border, Color, ContentFit, Degrees,
+    Function, Gradient, Length, Padding, Pixels, Point, Radians, Rectangle,
+    Rotation, Settings, Shadow, Size, Theme, Transformation, Vector, never,
 };
+pub use crate::runtime::exit;
+pub use iced_futures::Subscription;
+
+pub use Alignment::Center;
+pub use Length::{Fill, FillPortion, Shrink};
+pub use alignment::Horizontal::{Left, Right};
+pub use alignment::Vertical::{Bottom, Top};
+
+pub mod task {
+    //! Create runtime tasks.
+    pub use crate::runtime::task::{
+        Handle, Never, Sipper, Straw, Task, sipper, stream,
+    };
+}
 
 pub mod clipboard {
     //! Access the clipboard.
@@ -236,8 +556,10 @@ pub mod font {
 
 pub mod event {
     //! Handle events of a user interface.
-    pub use crate::core::event::{Event, MacOS, PlatformSpecific, Status};
-    pub use iced_futures::event::{listen, listen_raw, listen_with};
+    pub use crate::core::event::{Event, Status};
+    pub use iced_futures::event::{
+        listen, listen_raw, listen_url, listen_with,
+    };
 }
 
 pub mod keyboard {
@@ -251,18 +573,6 @@ pub mod mouse {
     //! Listen and react to mouse events.
     pub use crate::core::mouse::{
         Button, Cursor, Event, Interaction, ScrollDelta,
-    };
-}
-
-pub mod command {
-    //! Run asynchronous actions.
-    pub use crate::runtime::command::{channel, Command};
-}
-
-pub mod subscription {
-    //! Listen to external events in your application.
-    pub use iced_futures::subscription::{
-        channel, run, run_with_id, unfold, Subscription,
     };
 }
 
@@ -310,15 +620,20 @@ pub mod widget {
     mod runtime {}
 }
 
-pub use command::Command;
+pub use application::Application;
+pub use daemon::Daemon;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
 pub use font::Font;
 pub use program::Program;
 pub use renderer::Renderer;
-pub use settings::Settings;
-pub use subscription::Subscription;
+pub use task::Task;
+
+#[doc(inline)]
+pub use application::application;
+#[doc(inline)]
+pub use daemon::daemon;
 
 /// A generic widget.
 ///
@@ -330,15 +645,13 @@ pub type Element<
     Renderer = crate::Renderer,
 > = crate::core::Element<'a, Message, Theme, Renderer>;
 
-/// The result of running a [`Program`].
+/// The result of running an iced program.
 pub type Result = std::result::Result<(), Error>;
 
 /// Runs a basic iced application with default [`Settings`] given its title,
 /// update, and view logic.
 ///
-/// This is equivalent to chaining [`program`] with [`Program::run`].
-///
-/// [`program`]: program()
+/// This is equivalent to chaining [`application()`] with [`Application::run`].
 ///
 /// # Example
 /// ```no_run
@@ -367,18 +680,16 @@ pub type Result = std::result::Result<(), Error>;
 /// }
 /// ```
 pub fn run<State, Message, Theme, Renderer>(
-    title: impl program::Title<State> + 'static,
-    update: impl program::Update<State, Message> + 'static,
-    view: impl for<'a> program::View<'a, State, Message, Theme, Renderer> + 'static,
+    title: impl application::Title<State> + 'static,
+    update: impl application::Update<State, Message> + 'static,
+    view: impl for<'a> application::View<'a, State, Message, Theme, Renderer>
+    + 'static,
 ) -> Result
 where
     State: Default + 'static,
     Message: std::fmt::Debug + Send + 'static,
-    Theme: Default + program::DefaultStyle + 'static,
+    Theme: Default + theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
-    program(title, update, view).run()
+    application(title, update, view).run()
 }
-
-#[doc(inline)]
-pub use program::program;

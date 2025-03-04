@@ -1,7 +1,7 @@
 pub mod server;
 
 use iced::futures;
-use iced::subscription::{self, Subscription};
+use iced::task::{Never, Sipper, sipper};
 use iced::widget::text;
 
 use futures::channel::mpsc;
@@ -11,89 +11,55 @@ use futures::stream::StreamExt;
 use async_tungstenite::tungstenite;
 use std::fmt;
 
-pub fn connect() -> Subscription<Event> {
-    struct Connect;
+pub fn connect() -> impl Sipper<Never, Event> {
+    sipper(async |mut output| {
+        loop {
+            const ECHO_SERVER: &str = "ws://127.0.0.1:3030";
 
-    subscription::channel(
-        std::any::TypeId::of::<Connect>(),
-        100,
-        |mut output| async move {
-            let mut state = State::Disconnected;
+            let (mut websocket, mut input) =
+                match async_tungstenite::tokio::connect_async(ECHO_SERVER).await
+                {
+                    Ok((websocket, _)) => {
+                        let (sender, receiver) = mpsc::channel(100);
+
+                        output.send(Event::Connected(Connection(sender))).await;
+
+                        (websocket.fuse(), receiver)
+                    }
+                    Err(_) => {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(1))
+                            .await;
+
+                        output.send(Event::Disconnected).await;
+                        continue;
+                    }
+                };
 
             loop {
-                match &mut state {
-                    State::Disconnected => {
-                        const ECHO_SERVER: &str = "ws://127.0.0.1:3030";
-
-                        match async_tungstenite::tokio::connect_async(
-                            ECHO_SERVER,
-                        )
-                        .await
-                        {
-                            Ok((websocket, _)) => {
-                                let (sender, receiver) = mpsc::channel(100);
-
-                                let _ = output
-                                    .send(Event::Connected(Connection(sender)))
-                                    .await;
-
-                                state = State::Connected(websocket, receiver);
+                futures::select! {
+                    received = websocket.select_next_some() => {
+                        match received {
+                            Ok(tungstenite::Message::Text(message)) => {
+                                output.send(Event::MessageReceived(Message::User(message))).await;
                             }
                             Err(_) => {
-                                tokio::time::sleep(
-                                    tokio::time::Duration::from_secs(1),
-                                )
-                                .await;
-
-                                let _ = output.send(Event::Disconnected).await;
+                                output.send(Event::Disconnected).await;
+                                break;
                             }
+                            Ok(_) => {},
                         }
                     }
-                    State::Connected(websocket, input) => {
-                        let mut fused_websocket = websocket.by_ref().fuse();
+                    message = input.select_next_some() => {
+                        let result = websocket.send(tungstenite::Message::Text(message.to_string())).await;
 
-                        futures::select! {
-                            received = fused_websocket.select_next_some() => {
-                                match received {
-                                    Ok(tungstenite::Message::Text(message)) => {
-                                       let _ = output.send(Event::MessageReceived(Message::User(message))).await;
-                                    }
-                                    Err(_) => {
-                                        let _ = output.send(Event::Disconnected).await;
-
-                                        state = State::Disconnected;
-                                    }
-                                    Ok(_) => continue,
-                                }
-                            }
-
-                            message = input.select_next_some() => {
-                                let result = websocket.send(tungstenite::Message::Text(message.to_string())).await;
-
-                                if result.is_err() {
-                                    let _ = output.send(Event::Disconnected).await;
-
-                                    state = State::Disconnected;
-                                }
-                            }
+                        if result.is_err() {
+                            output.send(Event::Disconnected).await;
                         }
                     }
                 }
             }
-        },
-    )
-}
-
-#[derive(Debug)]
-#[allow(clippy::large_enum_variant)]
-enum State {
-    Disconnected,
-    Connected(
-        async_tungstenite::WebSocketStream<
-            async_tungstenite::tokio::ConnectStream,
-        >,
-        mpsc::Receiver<Message>,
-    ),
+        }
+    })
 }
 
 #[derive(Debug, Clone)]

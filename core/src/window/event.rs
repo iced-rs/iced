@@ -9,8 +9,8 @@ pub enum Event {
     /// A window was opened.
     Opened {
         /// The position of the opened window. This is relative to the top-left corner of the desktop
-        /// the window is on, including virtual desktops. Refers to window's "inner" position,
-        /// or the client area, in logical pixels.
+        /// the window is on, including virtual desktops. Refers to window's "outer" position,
+        /// or the window area, in logical pixels.
         ///
         /// **Note**: Not available in Wayland.
         position: Option<Point>,
@@ -23,20 +23,10 @@ pub enum Event {
     Closed,
 
     /// A window was moved.
-    Moved {
-        /// The new logical x location of the window
-        x: i32,
-        /// The new logical y location of the window
-        y: i32,
-    },
+    Moved(Point),
 
     /// A window was resized.
-    Resized {
-        /// The new logical width of the window
-        width: u32,
-        /// The new logical height of the window
-        height: u32,
-    },
+    Resized(Size),
 
     /// A window redraw was requested.
     ///
@@ -56,17 +46,29 @@ pub enum Event {
     ///
     /// When the user hovers multiple files at once, this event will be emitted
     /// for each file separately.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Wayland:** Not implemented.
     FileHovered(PathBuf),
 
     /// A file has been dropped into the window.
     ///
     /// When the user drops multiple files at once, this event will be emitted
     /// for each file separately.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Wayland:** Not implemented.
     FileDropped(PathBuf),
 
     /// A file was hovered, but has exited the window.
     ///
     /// There will be a single `FilesHoveredLeft` event triggered even if
     /// multiple files were hovered.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Wayland:** Not implemented.
     FilesHoveredLeft,
 }

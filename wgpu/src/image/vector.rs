@@ -1,12 +1,12 @@
 use crate::core::svg;
 use crate::core::{Color, Size};
-use crate::graphics::text;
 use crate::image::atlas::{self, Atlas};
 
 use resvg::tiny_skia;
-use resvg::usvg::{self, TreeTextToPath};
+use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
+use std::sync::Arc;
 
 /// Entry in cache corresponding to an svg handle
 pub enum Svg {
@@ -21,7 +21,7 @@ impl Svg {
     pub fn viewport_dimensions(&self) -> Size<u32> {
         match self {
             Svg::Loaded(tree) => {
-                let size = tree.size;
+                let size = tree.size();
 
                 Size::new(size.width() as u32, size.height() as u32)
             }
@@ -38,6 +38,7 @@ pub struct Cache {
     svg_hits: FxHashSet<u64>,
     rasterized_hits: FxHashSet<(u64, u32, u32, ColorFilter)>,
     should_trim: bool,
+    fontdb: Option<Arc<usvg::fontdb::Database>>,
 }
 
 type ColorFilter = Option<[u8; 4]>;
@@ -45,37 +46,42 @@ type ColorFilter = Option<[u8; 4]>;
 impl Cache {
     /// Load svg
     pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
-        use usvg::TreeParsing;
-
         if self.svgs.contains_key(&handle.id()) {
             return self.svgs.get(&handle.id()).unwrap();
         }
 
-        let mut svg = match handle.data() {
+        // TODO: Reuse `cosmic-text` font database
+        if self.fontdb.is_none() {
+            let mut fontdb = usvg::fontdb::Database::new();
+            fontdb.load_system_fonts();
+
+            self.fontdb = Some(Arc::new(fontdb));
+        }
+
+        let options = usvg::Options {
+            fontdb: self
+                .fontdb
+                .as_ref()
+                .expect("fontdb must be initialized")
+                .clone(),
+            ..usvg::Options::default()
+        };
+
+        let svg = match handle.data() {
             svg::Data::Path(path) => fs::read_to_string(path)
                 .ok()
                 .and_then(|contents| {
-                    usvg::Tree::from_str(&contents, &usvg::Options::default())
-                        .ok()
+                    usvg::Tree::from_str(&contents, &options).ok()
                 })
                 .map(Svg::Loaded)
                 .unwrap_or(Svg::NotFound),
             svg::Data::Bytes(bytes) => {
-                match usvg::Tree::from_data(bytes, &usvg::Options::default()) {
+                match usvg::Tree::from_data(bytes, &options) {
                     Ok(tree) => Svg::Loaded(tree),
                     Err(_) => Svg::NotFound,
                 }
             }
         };
-
-        if let Svg::Loaded(svg) = &mut svg {
-            if svg.has_text_nodes() {
-                let mut font_system =
-                    text::font_system().write().expect("Write font system");
-
-                svg.convert_text(font_system.raw().db_mut());
-            }
-        }
 
         self.should_trim = true;
 
@@ -127,7 +133,7 @@ impl Cache {
                 // It would be cool to be able to smooth resize the `svg` example.
                 let mut img = tiny_skia::Pixmap::new(width, height)?;
 
-                let tree_size = tree.size.to_int_size();
+                let tree_size = tree.size().to_int_size();
 
                 let target_size = if width > height {
                     tree_size.scale_to_width(width)
@@ -147,8 +153,7 @@ impl Cache {
                     tiny_skia::Transform::default()
                 };
 
-                resvg::Tree::from_usvg(tree)
-                    .render(transform, &mut img.as_mut());
+                resvg::render(tree, transform, &mut img.as_mut());
 
                 let mut rgba = img.take();
 

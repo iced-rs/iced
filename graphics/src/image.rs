@@ -2,57 +2,26 @@
 #[cfg(feature = "image")]
 pub use ::image as image_rs;
 
-use crate::core::{image, svg, Color, Radians, Rectangle};
+use crate::core::Rectangle;
+use crate::core::image;
+use crate::core::svg;
 
 /// A raster or vector image.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Image {
     /// A raster image.
-    Raster {
-        /// The handle of a raster image.
-        handle: image::Handle,
+    Raster(image::Image, Rectangle),
 
-        /// The filter method of a raster image.
-        filter_method: image::FilterMethod,
-
-        /// The bounds of the image.
-        bounds: Rectangle,
-
-        /// The rotation of the image.
-        rotation: Radians,
-
-        /// The opacity of the image.
-        opacity: f32,
-    },
     /// A vector image.
-    Vector {
-        /// The handle of a vector image.
-        handle: svg::Handle,
-
-        /// The [`Color`] filter
-        color: Option<Color>,
-
-        /// The bounds of the image.
-        bounds: Rectangle,
-
-        /// The rotation of the image.
-        rotation: Radians,
-
-        /// The opacity of the image.
-        opacity: f32,
-    },
+    Vector(svg::Svg, Rectangle),
 }
 
 impl Image {
     /// Returns the bounds of the [`Image`].
     pub fn bounds(&self) -> Rectangle {
         match self {
-            Image::Raster {
-                bounds, rotation, ..
-            }
-            | Image::Vector {
-                bounds, rotation, ..
-            } => bounds.rotate(*rotation),
+            Image::Raster(image, bounds) => bounds.rotate(image.rotation),
+            Image::Vector(svg, bounds) => bounds.rotate(svg.rotation),
         }
     }
 }

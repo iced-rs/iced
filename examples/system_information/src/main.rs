@@ -1,9 +1,13 @@
 use iced::widget::{button, center, column, text};
-use iced::{system, Command, Element};
+use iced::{Element, Task, system};
 
 pub fn main() -> iced::Result {
-    iced::program("System Information - Iced", Example::update, Example::view)
-        .run()
+    iced::application(
+        "System Information - Iced",
+        Example::update,
+        Example::view,
+    )
+    .run_with(Example::new)
 }
 
 #[derive(Default)]
@@ -24,19 +28,28 @@ enum Message {
 }
 
 impl Example {
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn new() -> (Self, Task<Message>) {
+        (
+            Self::Loading,
+            system::fetch_information().map(Message::InformationReceived),
+        )
+    }
+
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Refresh => {
-                *self = Self::Loading;
+                let (state, refresh) = Self::new();
 
-                return system::fetch_information(Message::InformationReceived);
+                *self = state;
+
+                refresh
             }
             Message::InformationReceived(information) => {
                 *self = Self::Loaded { information };
+
+                Task::none()
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
@@ -45,78 +58,74 @@ impl Example {
         let content: Element<_> = match self {
             Example::Loading => text("Loading...").size(40).into(),
             Example::Loaded { information } => {
-                let system_name = text(format!(
+                let system_name = text!(
                     "System name: {}",
                     information
                         .system_name
                         .as_ref()
                         .unwrap_or(&"unknown".to_string())
-                ));
+                );
 
-                let system_kernel = text(format!(
+                let system_kernel = text!(
                     "System kernel: {}",
                     information
                         .system_kernel
                         .as_ref()
                         .unwrap_or(&"unknown".to_string())
-                ));
+                );
 
-                let system_version = text(format!(
+                let system_version = text!(
                     "System version: {}",
                     information
                         .system_version
                         .as_ref()
                         .unwrap_or(&"unknown".to_string())
-                ));
+                );
 
-                let system_short_version = text(format!(
+                let system_short_version = text!(
                     "System short version: {}",
                     information
                         .system_short_version
                         .as_ref()
                         .unwrap_or(&"unknown".to_string())
-                ));
+                );
 
                 let cpu_brand =
-                    text(format!("Processor brand: {}", information.cpu_brand));
+                    text!("Processor brand: {}", information.cpu_brand);
 
-                let cpu_cores = text(format!(
+                let cpu_cores = text!(
                     "Processor cores: {}",
                     information
                         .cpu_cores
                         .map_or("unknown".to_string(), |cores| cores
                             .to_string())
-                ));
+                );
 
                 let memory_readable =
-                    ByteSize::b(information.memory_total).to_string();
+                    ByteSize::b(information.memory_total).to_string_as(true);
 
-                let memory_total = text(format!(
+                let memory_total = text!(
                     "Memory (total): {} bytes ({memory_readable})",
                     information.memory_total,
-                ));
+                );
 
-                let memory_text = if let Some(memory_used) =
-                    information.memory_used
-                {
-                    let memory_readable = ByteSize::b(memory_used).to_string();
+                let memory_text =
+                    if let Some(memory_used) = information.memory_used {
+                        let memory_readable =
+                            ByteSize::b(memory_used).to_string_as(true);
 
-                    format!("{memory_used} bytes ({memory_readable})")
-                } else {
-                    String::from("None")
-                };
+                        format!("{memory_used} bytes ({memory_readable})")
+                    } else {
+                        String::from("None")
+                    };
 
-                let memory_used = text(format!("Memory (used): {memory_text}"));
+                let memory_used = text!("Memory (used): {memory_text}");
 
-                let graphics_adapter = text(format!(
-                    "Graphics adapter: {}",
-                    information.graphics_adapter
-                ));
+                let graphics_adapter =
+                    text!("Graphics adapter: {}", information.graphics_adapter);
 
-                let graphics_backend = text(format!(
-                    "Graphics backend: {}",
-                    information.graphics_backend
-                ));
+                let graphics_backend =
+                    text!("Graphics backend: {}", information.graphics_backend);
 
                 column![
                     system_name.size(30),

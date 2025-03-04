@@ -2,7 +2,7 @@
 name = "download_progress"
 version = "0.1.0"
 authors = ["Songtronix <contact@songtronix.com>", "Folyd <lyshuhow@gmail.com>"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]
@@ -10,6 +10,5 @@ iced.workspace = true
 iced.features = ["tokio"]
 
 [dependencies.reqwest]
-version = "0.11"
-default-features = false
-features = ["rustls-tls"]
+version = "0.12"
+features = ["stream"]

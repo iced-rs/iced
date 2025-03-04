@@ -1,0 +1,26 @@
+[package]
+name = "gallery"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2024"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["tokio", "image", "web-colors", "debug"]
+
+reqwest.version = "0.12"
+reqwest.features = ["json"]
+
+serde.version = "1.0"
+serde.features = ["derive"]
+
+bytes.workspace = true
+image.workspace = true
+sipper.workspace = true
+tokio.workspace = true
+
+blurhash = "0.2.3"
+
+[lints]
+workspace = true

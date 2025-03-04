@@ -24,15 +24,22 @@ mod platform;
 #[path = "settings/other.rs"]
 mod platform;
 
-use crate::window::{Icon, Level, Position};
 use crate::Size;
+use crate::window::{Icon, Level, Position};
 
 pub use platform::PlatformSpecific;
+
 /// The window settings of an application.
 #[derive(Debug, Clone)]
 pub struct Settings {
     /// The initial logical dimensions of the window.
     pub size: Size,
+
+    /// Whether the window should start maximized.
+    pub maximized: bool,
+
+    /// Whether the window should start fullscreen.
+    pub fullscreen: bool,
 
     /// The initial position of the window.
     pub position: Position,
@@ -79,6 +86,8 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             size: Size::new(1024.0, 768.0),
+            maximized: false,
+            fullscreen: false,
             position: Position::default(),
             min_size: None,
             max_size: None,

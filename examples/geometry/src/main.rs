@@ -47,10 +47,10 @@ mod rainbow {
             cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {
+            use iced::advanced::Renderer as _;
             use iced::advanced::graphics::mesh::{
                 self, Mesh, Renderer as _, SolidVertex2D,
             };
-            use iced::advanced::Renderer as _;
 
             let bounds = layout.bounds();
 
@@ -145,15 +145,15 @@ mod rainbow {
         }
     }
 
-    impl<'a, Message> From<Rainbow> for Element<'a, Message> {
+    impl<Message> From<Rainbow> for Element<'_, Message> {
         fn from(rainbow: Rainbow) -> Self {
             Self::new(rainbow)
         }
     }
 }
 
-use iced::widget::{column, container, scrollable};
-use iced::{Element, Length};
+use iced::Element;
+use iced::widget::{center_x, center_y, column, scrollable};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
@@ -176,7 +176,7 @@ fn view(_state: &()) -> Element<'_, ()> {
     .spacing(20)
     .max_width(500);
 
-    let scrollable = scrollable(container(content).center_x(Length::Fill));
+    let scrollable = scrollable(center_x(content));
 
-    container(scrollable).center_y(Length::Fill).into()
+    center_y(scrollable).into()
 }

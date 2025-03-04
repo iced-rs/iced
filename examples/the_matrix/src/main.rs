@@ -1,9 +1,8 @@
 use iced::mouse;
-use iced::time::{self, Instant};
+use iced::time::{self, Instant, milliseconds};
 use iced::widget::canvas;
 use iced::{
-    Color, Element, Font, Length, Point, Rectangle, Renderer, Subscription,
-    Theme,
+    Color, Element, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme,
 };
 
 use std::cell::RefCell;
@@ -11,7 +10,7 @@ use std::cell::RefCell;
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program("The Matrix - Iced", TheMatrix::update, TheMatrix::view)
+    iced::application("The Matrix - Iced", TheMatrix::update, TheMatrix::view)
         .subscription(TheMatrix::subscription)
         .antialiasing(true)
         .run()
@@ -37,14 +36,11 @@ impl TheMatrix {
     }
 
     fn view(&self) -> Element<Message> {
-        canvas(self as &Self)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        canvas(self).width(Fill).height(Fill).into()
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(std::time::Duration::from_millis(50)).map(Message::Tick)
+        time::every(milliseconds(50)).map(Message::Tick)
     }
 }
 
@@ -59,8 +55,8 @@ impl<Message> canvas::Program<Message> for TheMatrix {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
-        use rand::distributions::Distribution;
         use rand::Rng;
+        use rand::distributions::Distribution;
 
         const CELL_SIZE: f32 = 10.0;
 

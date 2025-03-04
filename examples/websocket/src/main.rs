@@ -1,20 +1,17 @@
 mod echo;
 
-use iced::alignment::{self, Alignment};
 use iced::widget::{
     self, button, center, column, row, scrollable, text, text_input,
 };
-use iced::{color, Command, Element, Length, Subscription};
-use once_cell::sync::Lazy;
+use iced::{Center, Element, Fill, Subscription, Task, color};
+use std::sync::LazyLock;
 
 pub fn main() -> iced::Result {
-    iced::program("WebSocket - Iced", WebSocket::update, WebSocket::view)
-        .load(WebSocket::load)
+    iced::application("WebSocket - Iced", WebSocket::update, WebSocket::view)
         .subscription(WebSocket::subscription)
-        .run()
+        .run_with(WebSocket::new)
 }
 
-#[derive(Default)]
 struct WebSocket {
     messages: Vec<echo::Message>,
     new_message: String,
@@ -30,19 +27,26 @@ enum Message {
 }
 
 impl WebSocket {
-    fn load() -> Command<Message> {
-        Command::batch([
-            Command::perform(echo::server::run(), |_| Message::Server),
-            widget::focus_next(),
-        ])
+    fn new() -> (Self, Task<Message>) {
+        (
+            Self {
+                messages: Vec::new(),
+                new_message: String::new(),
+                state: State::Disconnected,
+            },
+            Task::batch([
+                Task::perform(echo::server::run(), |_| Message::Server),
+                widget::focus_next(),
+            ]),
+        )
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::NewMessageChanged(new_message) => {
                 self.new_message = new_message;
 
-                Command::none()
+                Task::none()
             }
             Message::Send(message) => match &mut self.state {
                 State::Connected(connection) => {
@@ -50,9 +54,9 @@ impl WebSocket {
 
                     connection.send(message);
 
-                    Command::none()
+                    Task::none()
                 }
-                State::Disconnected => Command::none(),
+                State::Disconnected => Task::none(),
             },
             Message::Echo(event) => match event {
                 echo::Event::Connected(connection) => {
@@ -60,14 +64,14 @@ impl WebSocket {
 
                     self.messages.push(echo::Message::connected());
 
-                    Command::none()
+                    Task::none()
                 }
                 echo::Event::Disconnected => {
                     self.state = State::Disconnected;
 
                     self.messages.push(echo::Message::disconnected());
 
-                    Command::none()
+                    Task::none()
                 }
                 echo::Event::MessageReceived(message) => {
                     self.messages.push(message);
@@ -78,12 +82,12 @@ impl WebSocket {
                     )
                 }
             },
-            Message::Server => Command::none(),
+            Message::Server => Task::none(),
         }
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        echo::connect().map(Message::Echo)
+        Subscription::run(echo::connect).map(Message::Echo)
     }
 
     fn view(&self) -> Element<Message> {
@@ -99,7 +103,7 @@ impl WebSocket {
                     .spacing(10),
             )
             .id(MESSAGE_LOG.clone())
-            .height(Length::Fill)
+            .height(Fill)
             .into()
         };
 
@@ -108,12 +112,8 @@ impl WebSocket {
                 .on_input(Message::NewMessageChanged)
                 .padding(10);
 
-            let mut button = button(
-                text("Send")
-                    .height(40)
-                    .vertical_alignment(alignment::Vertical::Center),
-            )
-            .padding([0, 20]);
+            let mut button = button(text("Send").height(40).align_y(Center))
+                .padding([0, 20]);
 
             if matches!(self.state, State::Connected(_)) {
                 if let Some(message) = echo::Message::new(&self.new_message) {
@@ -122,13 +122,11 @@ impl WebSocket {
                 }
             }
 
-            row![input, button]
-                .spacing(10)
-                .align_items(Alignment::Center)
+            row![input, button].spacing(10).align_y(Center)
         };
 
         column![message_log, new_message_input]
-            .height(Length::Fill)
+            .height(Fill)
             .padding(20)
             .spacing(10)
             .into()
@@ -140,10 +138,5 @@ enum State {
     Connected(echo::Connection),
 }
 
-impl Default for State {
-    fn default() -> Self {
-        Self::Disconnected
-    }
-}
-
-static MESSAGE_LOG: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
+static MESSAGE_LOG: LazyLock<scrollable::Id> =
+    LazyLock::new(scrollable::Id::unique);

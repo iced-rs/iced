@@ -3,7 +3,7 @@ use crate::core::image;
 use crate::core::renderer;
 use crate::core::svg;
 use crate::core::{
-    self, Background, Color, Point, Radians, Rectangle, Size, Transformation,
+    self, Background, Color, Image, Point, Rectangle, Size, Svg, Transformation,
 };
 use crate::graphics;
 use crate::graphics::compositor;
@@ -74,10 +74,10 @@ impl<A, B> core::text::Renderer for Renderer<A, B>
 where
     A: core::text::Renderer,
     B: core::text::Renderer<
-        Font = A::Font,
-        Paragraph = A::Paragraph,
-        Editor = A::Editor,
-    >,
+            Font = A::Font,
+            Paragraph = A::Paragraph,
+            Editor = A::Editor,
+        >,
 {
     type Font = A::Font;
     type Paragraph = A::Paragraph;
@@ -149,25 +149,8 @@ where
         delegate!(self, renderer, renderer.measure_image(handle))
     }
 
-    fn draw_image(
-        &mut self,
-        handle: Self::Handle,
-        filter_method: image::FilterMethod,
-        bounds: Rectangle,
-        rotation: Radians,
-        opacity: f32,
-    ) {
-        delegate!(
-            self,
-            renderer,
-            renderer.draw_image(
-                handle,
-                filter_method,
-                bounds,
-                rotation,
-                opacity
-            )
-        );
+    fn draw_image(&mut self, image: Image<A::Handle>, bounds: Rectangle) {
+        delegate!(self, renderer, renderer.draw_image(image, bounds));
     }
 }
 
@@ -180,19 +163,8 @@ where
         delegate!(self, renderer, renderer.measure_svg(handle))
     }
 
-    fn draw_svg(
-        &mut self,
-        handle: svg::Handle,
-        color: Option<Color>,
-        bounds: Rectangle,
-        rotation: Radians,
-        opacity: f32,
-    ) {
-        delegate!(
-            self,
-            renderer,
-            renderer.draw_svg(handle, color, bounds, rotation, opacity)
-        );
+    fn draw_svg(&mut self, svg: Svg, bounds: Rectangle) {
+        delegate!(self, renderer, renderer.draw_svg(svg, bounds));
     }
 }
 
@@ -378,31 +350,16 @@ where
     fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
-        surface: &mut Self::Surface,
         viewport: &graphics::Viewport,
         background_color: Color,
     ) -> Vec<u8> {
-        match (self, renderer, surface) {
-            (
-                Self::Primary(compositor),
-                Renderer::Primary(renderer),
-                Surface::Primary(surface),
-            ) => compositor.screenshot(
-                renderer,
-                surface,
-                viewport,
-                background_color,
-            ),
-            (
-                Self::Secondary(compositor),
-                Renderer::Secondary(renderer),
-                Surface::Secondary(surface),
-            ) => compositor.screenshot(
-                renderer,
-                surface,
-                viewport,
-                background_color,
-            ),
+        match (self, renderer) {
+            (Self::Primary(compositor), Renderer::Primary(renderer)) => {
+                compositor.screenshot(renderer, viewport, background_color)
+            }
+            (Self::Secondary(compositor), Renderer::Secondary(renderer)) => {
+                compositor.screenshot(renderer, viewport, background_color)
+            }
             _ => unreachable!(),
         }
     }
@@ -435,9 +392,9 @@ where
 #[cfg(feature = "geometry")]
 mod geometry {
     use super::Renderer;
-    use crate::core::{Point, Radians, Rectangle, Size, Vector};
+    use crate::core::{Point, Radians, Rectangle, Size, Svg, Vector};
     use crate::graphics::cache::{self, Cached};
-    use crate::graphics::geometry::{self, Fill, Path, Stroke, Text};
+    use crate::graphics::geometry::{self, Fill, Image, Path, Stroke, Text};
 
     impl<A, B> geometry::Renderer for Renderer<A, B>
     where
@@ -562,8 +519,29 @@ mod geometry {
             delegate!(self, frame, frame.stroke(path, stroke));
         }
 
+        fn stroke_rectangle<'a>(
+            &mut self,
+            top_left: Point,
+            size: Size,
+            stroke: impl Into<Stroke<'a>>,
+        ) {
+            delegate!(
+                self,
+                frame,
+                frame.stroke_rectangle(top_left, size, stroke)
+            );
+        }
+
         fn fill_text(&mut self, text: impl Into<Text>) {
             delegate!(self, frame, frame.fill_text(text));
+        }
+
+        fn draw_image(&mut self, bounds: Rectangle, image: impl Into<Image>) {
+            delegate!(self, frame, frame.draw_image(bounds, image));
+        }
+
+        fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>) {
+            delegate!(self, frame, frame.draw_svg(bounds, svg));
         }
 
         fn push_transform(&mut self) {
@@ -581,13 +559,13 @@ mod geometry {
             }
         }
 
-        fn paste(&mut self, frame: Self, at: Point) {
+        fn paste(&mut self, frame: Self) {
             match (self, frame) {
                 (Self::Primary(target), Self::Primary(source)) => {
-                    target.paste(source, at);
+                    target.paste(source);
                 }
                 (Self::Secondary(target), Self::Secondary(source)) => {
-                    target.paste(source, at);
+                    target.paste(source);
                 }
                 _ => unreachable!(),
             }

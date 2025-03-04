@@ -1,13 +1,12 @@
-use iced::alignment::{self, Alignment};
 use iced::keyboard;
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{
-    button, column, container, responsive, row, scrollable, text,
+    button, center_y, column, container, responsive, row, scrollable, text,
 };
-use iced::{Color, Element, Length, Size, Subscription};
+use iced::{Center, Color, Element, Fill, Size, Subscription};
 
 pub fn main() -> iced::Result {
-    iced::program("Pane Grid - Iced", Example::update, Example::view)
+    iced::application("Pane Grid - Iced", Example::update, Example::view)
         .subscription(Example::subscription)
         .run()
 }
@@ -155,11 +154,23 @@ impl Example {
             .spacing(5);
 
             let title_bar = pane_grid::TitleBar::new(title)
-                .controls(view_controls(
-                    id,
-                    total_panes,
-                    pane.is_pinned,
-                    is_maximized,
+                .controls(pane_grid::Controls::dynamic(
+                    view_controls(
+                        id,
+                        total_panes,
+                        pane.is_pinned,
+                        is_maximized,
+                    ),
+                    button(text("X").size(14))
+                        .style(button::danger)
+                        .padding(3)
+                        .on_press_maybe(
+                            if total_panes > 1 && !pane.is_pinned {
+                                Some(Message::Close(id))
+                            } else {
+                                None
+                            },
+                        ),
                 ))
                 .padding(10)
                 .style(if is_focused {
@@ -178,18 +189,14 @@ impl Example {
                 style::pane_active
             })
         })
-        .width(Length::Fill)
-        .height(Length::Fill)
+        .width(Fill)
+        .height(Fill)
         .spacing(10)
         .on_click(Message::Clicked)
         .on_drag(Message::Dragged)
         .on_resize(10, Message::Resized);
 
-        container(pane_grid)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(10)
-            .into()
+        container(pane_grid).padding(10).into()
     }
 }
 
@@ -255,15 +262,10 @@ fn view_content<'a>(
     size: Size,
 ) -> Element<'a, Message> {
     let button = |label, message| {
-        button(
-            text(label)
-                .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center)
-                .size(16),
-        )
-        .width(Length::Fill)
-        .padding(8)
-        .on_press(message)
+        button(text(label).width(Fill).align_x(Center).size(16))
+            .width(Fill)
+            .padding(8)
+            .on_press(message)
     };
 
     let controls = column![
@@ -284,17 +286,12 @@ fn view_content<'a>(
     .spacing(5)
     .max_width(160);
 
-    let content = column![
-        text(format!("{}x{}", size.width, size.height)).size(24),
-        controls,
-    ]
-    .spacing(10)
-    .align_items(Alignment::Center);
+    let content =
+        column![text!("{}x{}", size.width, size.height).size(24), controls,]
+            .spacing(10)
+            .align_x(Center);
 
-    container(scrollable(content))
-        .center_y(Length::Fill)
-        .padding(5)
-        .into()
+    center_y(scrollable(content)).padding(5).into()
 }
 
 fn view_controls<'a>(

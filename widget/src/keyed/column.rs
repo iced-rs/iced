@@ -1,17 +1,34 @@
-//! Distribute content vertically.
-use crate::core::event::{self, Event};
+//! Keyed columns distribute content vertically while keeping continuity.
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
+use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Alignment, Clipboard, Element, Layout, Length, Padding, Pixels, Rectangle,
-    Shell, Size, Vector, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Padding, Pixels,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
-/// A container that distributes its contents vertically.
+/// A container that distributes its contents vertically while keeping continuity.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{keyed_column, text};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     keyed_column((0..=100).map(|i| {
+///         (i, text!("Item {i}").into())
+///     })).into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Column<
     'a,
@@ -168,7 +185,7 @@ where
     }
 }
 
-impl<'a, Key, Message, Renderer> Default for Column<'a, Key, Message, Renderer>
+impl<Key, Message, Renderer> Default for Column<'_, Key, Message, Renderer>
 where
     Key: Copy + PartialEq,
     Renderer: crate::core::Renderer,
@@ -185,8 +202,8 @@ where
     keys: Vec<Key>,
 }
 
-impl<'a, Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Column<'a, Key, Message, Theme, Renderer>
+impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Column<'_, Key, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
     Key: Copy + PartialEq + 'static,
@@ -265,7 +282,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
             self.children
@@ -280,34 +297,28 @@ where
         });
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        self.children
+    ) {
+        for ((child, state), layout) in self
+            .children
             .iter_mut()
             .zip(&mut tree.children)
             .zip(layout.children())
-            .map(|((child, state), layout)| {
-                child.as_widget_mut().on_event(
-                    state,
-                    event.clone(),
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                    viewport,
-                )
-            })
-            .fold(event::Status::Ignored, event::Status::merge)
+        {
+            child.as_widget_mut().update(
+                state, event, layout, cursor, renderer, clipboard, shell,
+                viewport,
+            );
+        }
     }
 
     fn mouse_interaction(

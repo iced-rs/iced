@@ -1,19 +1,21 @@
 //! A syntax highlighter for iced.
 use iced_core as core;
 
+use crate::core::Color;
+use crate::core::font::{self, Font};
 use crate::core::text::highlighter::{self, Format};
-use crate::core::{Color, Font};
 
-use once_cell::sync::Lazy;
 use std::ops::Range;
+use std::sync::LazyLock;
+
 use syntect::highlighting;
 use syntect::parsing;
 
-static SYNTAXES: Lazy<parsing::SyntaxSet> =
-    Lazy::new(parsing::SyntaxSet::load_defaults_nonewlines);
+static SYNTAXES: LazyLock<parsing::SyntaxSet> =
+    LazyLock::new(parsing::SyntaxSet::load_defaults_nonewlines);
 
-static THEMES: Lazy<highlighting::ThemeSet> =
-    Lazy::new(highlighting::ThemeSet::load_defaults);
+static THEMES: LazyLock<highlighting::ThemeSet> =
+    LazyLock::new(highlighting::ThemeSet::load_defaults);
 
 const LINES_PER_SNAPSHOT: usize = 50;
 
@@ -35,7 +37,7 @@ impl highlighter::Highlighter for Highlighter {
 
     fn new(settings: &Self::Settings) -> Self {
         let syntax = SYNTAXES
-            .find_syntax_by_token(&settings.extension)
+            .find_syntax_by_token(&settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
         let highlighter = highlighting::Highlighter::new(
@@ -55,7 +57,7 @@ impl highlighter::Highlighter for Highlighter {
 
     fn update(&mut self, new_settings: &Self::Settings) {
         self.syntax = SYNTAXES
-            .find_syntax_by_token(&new_settings.extension)
+            .find_syntax_by_token(&new_settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
         self.highlighter = highlighting::Highlighter::new(
@@ -103,34 +105,97 @@ impl highlighter::Highlighter for Highlighter {
 
         let ops = parser.parse_line(line, &SYNTAXES).unwrap_or_default();
 
-        let highlighter = &self.highlighter;
-
-        Box::new(
-            ScopeRangeIterator {
-                ops,
-                line_length: line.len(),
-                index: 0,
-                last_str_index: 0,
-            }
-            .filter_map(move |(range, scope)| {
-                let _ = stack.apply(&scope);
-
-                if range.is_empty() {
-                    None
-                } else {
-                    Some((
-                        range,
-                        Highlight(
-                            highlighter.style_mod_for_stack(&stack.scopes),
-                        ),
-                    ))
-                }
-            }),
-        )
+        Box::new(scope_iterator(ops, line, stack, &self.highlighter))
     }
 
     fn current_line(&self) -> usize {
         self.current_line
+    }
+}
+
+fn scope_iterator<'a>(
+    ops: Vec<(usize, parsing::ScopeStackOp)>,
+    line: &str,
+    stack: &'a mut parsing::ScopeStack,
+    highlighter: &'a highlighting::Highlighter<'static>,
+) -> impl Iterator<Item = (Range<usize>, Highlight)> + 'a {
+    ScopeRangeIterator {
+        ops,
+        line_length: line.len(),
+        index: 0,
+        last_str_index: 0,
+    }
+    .filter_map(move |(range, scope)| {
+        let _ = stack.apply(&scope);
+
+        if range.is_empty() {
+            None
+        } else {
+            Some((
+                range,
+                Highlight(highlighter.style_mod_for_stack(&stack.scopes)),
+            ))
+        }
+    })
+}
+
+/// A streaming syntax highlighter.
+///
+/// It can efficiently highlight an immutable stream of tokens.
+#[derive(Debug)]
+pub struct Stream {
+    syntax: &'static parsing::SyntaxReference,
+    highlighter: highlighting::Highlighter<'static>,
+    commit: (parsing::ParseState, parsing::ScopeStack),
+    state: parsing::ParseState,
+    stack: parsing::ScopeStack,
+}
+
+impl Stream {
+    /// Creates a new [`Stream`] highlighter.
+    pub fn new(settings: &Settings) -> Self {
+        let syntax = SYNTAXES
+            .find_syntax_by_token(&settings.token)
+            .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
+
+        let highlighter = highlighting::Highlighter::new(
+            &THEMES.themes[settings.theme.key()],
+        );
+
+        let state = parsing::ParseState::new(syntax);
+        let stack = parsing::ScopeStack::new();
+
+        Self {
+            syntax,
+            highlighter,
+            commit: (state.clone(), stack.clone()),
+            state,
+            stack,
+        }
+    }
+
+    /// Highlights the given line from the last commit.
+    pub fn highlight_line(
+        &mut self,
+        line: &str,
+    ) -> impl Iterator<Item = (Range<usize>, Highlight)> + '_ {
+        self.state = self.commit.0.clone();
+        self.stack = self.commit.1.clone();
+
+        let ops = self.state.parse_line(line, &SYNTAXES).unwrap_or_default();
+        scope_iterator(ops, line, &mut self.stack, &self.highlighter)
+    }
+
+    /// Commits the last highlighted line.
+    pub fn commit(&mut self) {
+        self.commit = (self.state.clone(), self.stack.clone());
+    }
+
+    /// Resets the [`Stream`] highlighter.
+    pub fn reset(&mut self) {
+        self.state = parsing::ParseState::new(self.syntax);
+        self.stack = parsing::ScopeStack::new();
+        self.commit = (self.state.clone(), self.stack.clone());
     }
 }
 
@@ -141,11 +206,11 @@ pub struct Settings {
     ///
     /// It dictates the color scheme that will be used for highlighting.
     pub theme: Theme,
-    /// The extension of the file to highlight.
+    /// The extension of the file or the name of the language to highlight.
     ///
-    /// The [`Highlighter`] will use the extension to automatically determine
+    /// The [`Highlighter`] will use the token to automatically determine
     /// the grammar to use for highlighting.
-    pub extension: String,
+    pub token: String,
 }
 
 /// A highlight produced by a [`Highlighter`].
@@ -166,7 +231,28 @@ impl Highlight {
     ///
     /// If `None`, the original font should be unchanged.
     pub fn font(&self) -> Option<Font> {
-        None
+        self.0.font_style.and_then(|style| {
+            let bold = style.contains(highlighting::FontStyle::BOLD);
+            let italic = style.contains(highlighting::FontStyle::ITALIC);
+
+            if bold || italic {
+                Some(Font {
+                    weight: if bold {
+                        font::Weight::Bold
+                    } else {
+                        font::Weight::Normal
+                    },
+                    style: if italic {
+                        font::Style::Italic
+                    } else {
+                        font::Style::Normal
+                    },
+                    ..Font::MONOSPACE
+                })
+            } else {
+                None
+            }
+        })
     }
 
     /// Returns the [`Format`] of the [`Highlight`].

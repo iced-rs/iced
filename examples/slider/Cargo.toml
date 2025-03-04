@@ -2,8 +2,9 @@
 name = "slider"
 version = "0.1.0"
 authors = ["Casper Rogild Storm<casper@rogildstorm.com>"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]
 iced.workspace = true
+iced.features = ["svg"]

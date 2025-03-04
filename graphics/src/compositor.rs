@@ -8,7 +8,6 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
 
 use std::borrow::Cow;
-use std::future::Future;
 
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {
@@ -89,7 +88,6 @@ pub trait Compositor: Sized {
     fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
-        surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
     ) -> Vec<u8>;
@@ -119,9 +117,7 @@ pub trait Default {
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum SurfaceError {
     /// A timeout was encountered while trying to acquire the next frame.
-    #[error(
-        "A timeout was encountered while trying to acquire the next frame"
-    )]
+    #[error("A timeout was encountered while trying to acquire the next frame")]
     Timeout,
     /// The underlying surface has changed, and therefore the surface must be updated.
     #[error(
@@ -153,7 +149,7 @@ impl Compositor for () {
     async fn with_backend<W: Window + Clone>(
         _settings: Settings,
         _compatible_window: W,
-        _preffered_backend: Option<&str>,
+        _preferred_backend: Option<&str>,
     ) -> Result<Self, Error> {
         Ok(())
     }
@@ -198,7 +194,6 @@ impl Compositor for () {
     fn screenshot(
         &mut self,
         _renderer: &mut Self::Renderer,
-        _surface: &mut Self::Surface,
         _viewport: &Viewport,
         _background_color: Color,
     ) -> Vec<u8> {

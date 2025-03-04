@@ -20,9 +20,10 @@ all-features = true
 [features]
 geometry = ["iced_graphics/geometry", "lyon"]
 image = ["iced_graphics/image"]
-svg = ["resvg/text"]
+svg = ["iced_graphics/svg", "resvg/text"]
 web-colors = ["iced_graphics/web-colors"]
 webgl = ["wgpu/webgl"]
+strict-assertions = []
 
 [dependencies]
 iced_graphics.workspace = true
@@ -34,7 +35,6 @@ glam.workspace = true
 glyphon.workspace = true
 guillotiere.workspace = true
 log.workspace = true
-once_cell.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
 wgpu.workspace = true

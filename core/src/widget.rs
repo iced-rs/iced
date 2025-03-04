@@ -10,12 +10,11 @@ pub use operation::Operation;
 pub use text::Text;
 pub use tree::Tree;
 
-use crate::event::{self, Event};
 use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Clipboard, Length, Rectangle, Shell, Size, Vector};
+use crate::{Clipboard, Event, Length, Rectangle, Shell, Size, Vector};
 
 /// A component that displays information and allows interaction.
 ///
@@ -27,18 +26,18 @@ use crate::{Clipboard, Length, Rectangle, Shell, Size, Vector};
 /// widget:
 ///
 /// - [`bezier_tool`], a Paint-like tool for drawing Bézier curves using
-/// [`lyon`].
+///   [`lyon`].
 /// - [`custom_widget`], a demonstration of how to build a custom widget that
-/// draws a circle.
+///   draws a circle.
 /// - [`geometry`], a custom widget showcasing how to draw geometry with the
-/// `Mesh2D` primitive in [`iced_wgpu`].
+///   `Mesh2D` primitive in [`iced_wgpu`].
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.12/examples
-/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.12/examples/bezier_tool
-/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.12/examples/custom_widget
-/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.12/examples/geometry
+/// [examples]: https://github.com/iced-rs/iced/tree/0.13/examples
+/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.13/examples/bezier_tool
+/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.13/examples/custom_widget
+/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.13/examples/geometry
 /// [`lyon`]: https://github.com/nical/lyon
-/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.12/wgpu
+/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.13/wgpu
 pub trait Widget<Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
@@ -96,7 +95,7 @@ where
         Vec::new()
     }
 
-    /// Reconciliates the [`Widget`] with the provided [`Tree`].
+    /// Reconciles the [`Widget`] with the provided [`Tree`].
     fn diff(&self, _tree: &mut Tree) {}
 
     /// Applies an [`Operation`] to the [`Widget`].
@@ -105,25 +104,24 @@ where
         _state: &mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        _operation: &mut dyn Operation<Message>,
+        _operation: &mut dyn Operation,
     ) {
     }
 
     /// Processes a runtime [`Event`].
     ///
     /// By default, it does nothing.
-    fn on_event(
+    fn update(
         &mut self,
         _state: &mut Tree,
-        _event: Event,
+        _event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
-        event::Status::Ignored
+    ) {
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Widget`].

@@ -1,0 +1,4 @@
+module = "icon"
+
+[glyphs]
+copy = "fontawesome-docs"

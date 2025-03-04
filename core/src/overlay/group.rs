@@ -1,4 +1,3 @@
-use crate::event;
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
@@ -58,8 +57,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Overlay<Message, Theme, Renderer>
-    for Group<'a, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Overlay<Message, Theme, Renderer>
+    for Group<'_, Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -73,29 +72,18 @@ where
         )
     }
 
-    fn on_event(
+    fn update(
         &mut self,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        self.children
-            .iter_mut()
-            .zip(layout.children())
-            .map(|(child, layout)| {
-                child.on_event(
-                    event.clone(),
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                )
-            })
-            .fold(event::Status::Ignored, event::Status::merge)
+    ) {
+        for (child, layout) in self.children.iter_mut().zip(layout.children()) {
+            child.update(event, layout, cursor, renderer, clipboard, shell);
+        }
     }
 
     fn draw(
@@ -132,7 +120,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
             self.children.iter_mut().zip(layout.children()).for_each(
@@ -157,11 +145,11 @@ where
             })
     }
 
-    fn overlay<'b>(
-        &'b mut self,
+    fn overlay<'a>(
+        &'a mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         let children = self
             .children
             .iter_mut()

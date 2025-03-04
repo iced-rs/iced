@@ -56,6 +56,11 @@ impl Compositor {
     ) -> Result<Self, Error> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: settings.backends,
+            flags: if cfg!(feature = "strict-assertions") {
+                wgpu::InstanceFlags::debugging()
+            } else {
+                wgpu::InstanceFlags::empty()
+            },
             ..Default::default()
         });
 
@@ -162,6 +167,7 @@ impl Compositor {
                         ),
                         required_features: wgpu::Features::empty(),
                         required_limits: required_limits.clone(),
+                        memory_hints: wgpu::MemoryHints::MemoryUsage,
                     },
                     None,
                 )
@@ -361,7 +367,6 @@ impl graphics::Compositor for Compositor {
     fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
-        _surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
     ) -> Vec<u8> {

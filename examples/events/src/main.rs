@@ -1,11 +1,10 @@
-use iced::alignment;
 use iced::event::{self, Event};
-use iced::widget::{button, center, checkbox, text, Column};
+use iced::widget::{Column, button, center, checkbox, text};
 use iced::window;
-use iced::{Alignment, Command, Element, Length, Subscription};
+use iced::{Center, Element, Fill, Subscription, Task};
 
 pub fn main() -> iced::Result {
-    iced::program("Events - Iced", Events::update, Events::view)
+    iced::application("Events - Iced", Events::update, Events::view)
         .subscription(Events::subscription)
         .exit_on_close_request(false)
         .run()
@@ -25,7 +24,7 @@ enum Message {
 }
 
 impl Events {
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::EventOccurred(event) if self.enabled => {
                 self.last.push(event);
@@ -34,22 +33,21 @@ impl Events {
                     let _ = self.last.remove(0);
                 }
 
-                Command::none()
+                Task::none()
             }
             Message::EventOccurred(event) => {
-                if let Event::Window(id, window::Event::CloseRequested) = event
-                {
-                    window::close(id)
+                if let Event::Window(window::Event::CloseRequested) = event {
+                    window::get_latest().and_then(window::close)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::Toggled(enabled) => {
                 self.enabled = enabled;
 
-                Command::none()
+                Task::none()
             }
-            Message::Exit => window::close(window::Id::MAIN),
+            Message::Exit => window::get_latest().and_then(window::close),
         }
     }
 
@@ -61,24 +59,20 @@ impl Events {
         let events = Column::with_children(
             self.last
                 .iter()
-                .map(|event| text(format!("{event:?}")).size(40))
+                .map(|event| text!("{event:?}").size(40))
                 .map(Element::from),
         );
 
         let toggle = checkbox("Listen to runtime events", self.enabled)
             .on_toggle(Message::Toggled);
 
-        let exit = button(
-            text("Exit")
-                .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center),
-        )
-        .width(100)
-        .padding(10)
-        .on_press(Message::Exit);
+        let exit = button(text("Exit").width(Fill).align_x(Center))
+            .width(100)
+            .padding(10)
+            .on_press(Message::Exit);
 
         let content = Column::new()
-            .align_items(Alignment::Center)
+            .align_x(Center)
             .spacing(20)
             .push(events)
             .push(toggle)

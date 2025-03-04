@@ -33,7 +33,7 @@ impl Modifiers {
     /// This is normally the main modifier to be used for hotkeys.
     ///
     /// On macOS, this is equivalent to `Self::LOGO`.
-    /// Ohterwise, this is equivalent to `Self::CTRL`.
+    /// Otherwise, this is equivalent to `Self::CTRL`.
     pub const COMMAND: Self = if cfg!(target_os = "macos") {
         Self::LOGO
     } else {
@@ -83,5 +83,29 @@ impl Modifiers {
         let is_pressed = self.control();
 
         is_pressed
+    }
+
+    /// Returns true if the "jump key" is pressed in the [`Modifiers`].
+    ///
+    /// The "jump key" is the modifier key used to widen text motions. It is the `Alt`
+    /// key in macOS and the `Ctrl` key in other platforms.
+    pub fn jump(self) -> bool {
+        if cfg!(target_os = "macos") {
+            self.alt()
+        } else {
+            self.control()
+        }
+    }
+
+    /// Returns true if the "command key" is pressed on a macOS device.
+    ///
+    /// This is relevant for macOS-specific actions (e.g. `⌘ + ArrowLeft` moves the cursor
+    /// to the beginning of the line).
+    pub fn macos_command(self) -> bool {
+        if cfg!(target_os = "macos") {
+            self.logo()
+        } else {
+            false
+        }
     }
 }

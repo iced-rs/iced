@@ -1,5 +1,4 @@
 //! An `async-std` backend.
-use futures::Future;
 
 /// An `async-std` executor.
 #[derive(Debug)]
@@ -27,7 +26,7 @@ pub mod time {
     pub fn every(
         duration: std::time::Duration,
     ) -> Subscription<std::time::Instant> {
-        Subscription::from_recipe(Every(duration))
+        subscription::from_recipe(Every(duration))
     }
 
     #[derive(Debug)]

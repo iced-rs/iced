@@ -1,0 +1,23 @@
+[package]
+name = "markdown"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2024"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["markdown", "highlighter", "image", "tokio", "debug"]
+
+reqwest.version = "0.12"
+reqwest.features = ["json"]
+
+image.workspace = true
+tokio.workspace = true
+
+open = "5.3"
+
+# Disabled to keep amount of build dependencies low
+# This can be re-enabled on demand
+# [build-dependencies]
+# iced_fontello = "0.13"

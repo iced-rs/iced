@@ -1,14 +1,13 @@
 use iced::mouse;
-use iced::widget::canvas::event::{self, Event};
-use iced::widget::canvas::{self, Canvas, Geometry};
+use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::widget::{column, row, slider, text};
-use iced::{Color, Length, Point, Rectangle, Renderer, Size, Theme};
+use iced::{Center, Color, Fill, Point, Rectangle, Renderer, Size, Theme};
 
 use rand::Rng;
 use std::fmt::Debug;
 
 fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "Sierpinski Triangle - Iced",
         SierpinskiEmulator::update,
         SierpinskiEmulator::view,
@@ -50,17 +49,15 @@ impl SierpinskiEmulator {
 
     fn view(&self) -> iced::Element<'_, Message> {
         column![
-            Canvas::new(&self.graph)
-                .width(Length::Fill)
-                .height(Length::Fill),
+            Canvas::new(&self.graph).width(Fill).height(Fill),
             row![
-                text(format!("Iteration: {:?}", self.graph.iteration)),
+                text!("Iteration: {:?}", self.graph.iteration),
                 slider(0..=10000, self.graph.iteration, Message::IterationSet)
             ]
             .padding(10)
             .spacing(20),
         ]
-        .align_items(iced::Alignment::Center)
+        .align_x(Center)
         .into()
     }
 }
@@ -79,29 +76,25 @@ impl canvas::Program<Message> for SierpinskiGraph {
     fn update(
         &self,
         _state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-    ) -> (event::Status, Option<Message>) {
-        let Some(cursor_position) = cursor.position_in(bounds) else {
-            return (event::Status::Ignored, None);
-        };
+    ) -> Option<canvas::Action<Message>> {
+        let cursor_position = cursor.position_in(bounds)?;
 
         match event {
-            Event::Mouse(mouse_event) => {
-                let message = match mouse_event {
-                    iced::mouse::Event::ButtonPressed(
-                        iced::mouse::Button::Left,
-                    ) => Some(Message::PointAdded(cursor_position)),
-                    iced::mouse::Event::ButtonPressed(
-                        iced::mouse::Button::Right,
-                    ) => Some(Message::PointRemoved),
-                    _ => None,
-                };
-                (event::Status::Captured, message)
-            }
-            _ => (event::Status::Ignored, None),
+            Event::Mouse(mouse::Event::ButtonPressed(button)) => match button {
+                mouse::Button::Left => Some(canvas::Action::publish(
+                    Message::PointAdded(cursor_position),
+                )),
+                mouse::Button::Right => {
+                    Some(canvas::Action::publish(Message::PointRemoved))
+                }
+                _ => None,
+            },
+            _ => None,
         }
+        .map(canvas::Action::and_capture)
     }
 
     fn draw(

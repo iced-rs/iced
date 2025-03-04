@@ -1,4 +1,5 @@
-use crate::Size;
+//! Space stuff around the perimeter.
+use crate::{Pixels, Size};
 
 /// An amount of space to pad for each side of a box
 ///
@@ -9,7 +10,6 @@ use crate::Size;
 /// #
 /// let padding = Padding::from(20);              // 20px on all sides
 /// let padding = Padding::from([10, 20]);        // top/bottom, left/right
-/// let padding = Padding::from([5, 10, 15, 20]); // top, right, bottom, left
 /// ```
 ///
 /// Normally, the `padding` method of a widget will ask for an `Into<Padding>`,
@@ -31,9 +31,8 @@ use crate::Size;
 ///
 /// let widget = Widget::new().padding(20);              // 20px on all sides
 /// let widget = Widget::new().padding([10, 20]);        // top/bottom, left/right
-/// let widget = Widget::new().padding([5, 10, 15, 20]); // top, right, bottom, left
 /// ```
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub struct Padding {
     /// Top padding
     pub top: f32,
@@ -45,6 +44,31 @@ pub struct Padding {
     pub left: f32,
 }
 
+/// Create a [`Padding`] that is equal on all sides.
+pub fn all(padding: impl Into<Pixels>) -> Padding {
+    Padding::new(padding.into().0)
+}
+
+/// Create some top [`Padding`].
+pub fn top(padding: impl Into<Pixels>) -> Padding {
+    Padding::default().top(padding)
+}
+
+/// Create some bottom [`Padding`].
+pub fn bottom(padding: impl Into<Pixels>) -> Padding {
+    Padding::default().bottom(padding)
+}
+
+/// Create some left [`Padding`].
+pub fn left(padding: impl Into<Pixels>) -> Padding {
+    Padding::default().left(padding)
+}
+
+/// Create some right [`Padding`].
+pub fn right(padding: impl Into<Pixels>) -> Padding {
+    Padding::default().right(padding)
+}
+
 impl Padding {
     /// Padding of zero
     pub const ZERO: Padding = Padding {
@@ -54,13 +78,53 @@ impl Padding {
         left: 0.0,
     };
 
-    /// Create a Padding that is equal on all sides
+    /// Create a [`Padding`] that is equal on all sides.
     pub const fn new(padding: f32) -> Padding {
         Padding {
             top: padding,
             right: padding,
             bottom: padding,
             left: padding,
+        }
+    }
+
+    /// Sets the [`top`] of the [`Padding`].
+    ///
+    /// [`top`]: Self::top
+    pub fn top(self, top: impl Into<Pixels>) -> Self {
+        Self {
+            top: top.into().0,
+            ..self
+        }
+    }
+
+    /// Sets the [`bottom`] of the [`Padding`].
+    ///
+    /// [`bottom`]: Self::bottom
+    pub fn bottom(self, bottom: impl Into<Pixels>) -> Self {
+        Self {
+            bottom: bottom.into().0,
+            ..self
+        }
+    }
+
+    /// Sets the [`left`] of the [`Padding`].
+    ///
+    /// [`left`]: Self::left
+    pub fn left(self, left: impl Into<Pixels>) -> Self {
+        Self {
+            left: left.into().0,
+            ..self
+        }
+    }
+
+    /// Sets the [`right`] of the [`Padding`].
+    ///
+    /// [`right`]: Self::right
+    pub fn right(self, right: impl Into<Pixels>) -> Self {
+        Self {
+            right: right.into().0,
+            ..self
         }
     }
 
@@ -111,17 +175,6 @@ impl From<[u16; 2]> for Padding {
     }
 }
 
-impl From<[u16; 4]> for Padding {
-    fn from(p: [u16; 4]) -> Self {
-        Padding {
-            top: f32::from(p[0]),
-            right: f32::from(p[1]),
-            bottom: f32::from(p[2]),
-            left: f32::from(p[3]),
-        }
-    }
-}
-
 impl From<f32> for Padding {
     fn from(p: f32) -> Self {
         Padding {
@@ -144,19 +197,14 @@ impl From<[f32; 2]> for Padding {
     }
 }
 
-impl From<[f32; 4]> for Padding {
-    fn from(p: [f32; 4]) -> Self {
-        Padding {
-            top: p[0],
-            right: p[1],
-            bottom: p[2],
-            left: p[3],
-        }
-    }
-}
-
 impl From<Padding> for Size {
     fn from(padding: Padding) -> Self {
         Self::new(padding.horizontal(), padding.vertical())
+    }
+}
+
+impl From<Pixels> for Padding {
+    fn from(pixels: Pixels) -> Self {
+        Self::from(pixels.0)
     }
 }

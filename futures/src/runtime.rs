@@ -1,9 +1,8 @@
 //! Run commands and keep track of subscriptions.
-use crate::core::event::{self, Event};
 use crate::subscription;
 use crate::{BoxFuture, BoxStream, Executor, MaybeSend};
 
-use futures::{channel::mpsc, Sink};
+use futures::{Sink, channel::mpsc};
 use std::marker::PhantomData;
 
 /// A batteries-included runtime of commands and subscriptions.
@@ -127,7 +126,7 @@ where
     /// See [`Tracker::broadcast`] to learn more.
     ///
     /// [`Tracker::broadcast`]: subscription::Tracker::broadcast
-    pub fn broadcast(&mut self, event: Event, status: event::Status) {
-        self.subscriptions.broadcast(event, status);
+    pub fn broadcast(&mut self, event: subscription::Event) {
+        self.subscriptions.broadcast(event);
     }
 }

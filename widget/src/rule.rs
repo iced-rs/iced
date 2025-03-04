@@ -1,6 +1,23 @@
-//! Display a horizontal or vertical rule for dividing content.
+//! Rules divide space horizontally or vertically.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::horizontal_rule;
+//!
+//! #[derive(Clone)]
+//! enum Message {
+//!     // ...,
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     horizontal_rule(2).into()
+//! }
+//! ```
 use crate::core;
-use crate::core::border::{self, Border};
+use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -10,6 +27,23 @@ use crate::core::{
 };
 
 /// Display a horizontal or vertical rule for dividing content.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::horizontal_rule;
+///
+/// #[derive(Clone)]
+/// enum Message {
+///     // ...,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     horizontal_rule(2).into()
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Rule<'a, Theme = crate::Theme>
 where
@@ -64,8 +98,8 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Rule<'a, Theme>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Rule<'_, Theme>
 where
     Renderer: core::Renderer,
     Theme: Catalog,
@@ -132,7 +166,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border: Border::rounded(style.radius),
+                border: border::rounded(style.radius),
                 ..renderer::Quad::default()
             },
             style.color,
@@ -153,7 +187,7 @@ where
 }
 
 /// The appearance of a rule.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The color of the rule.
     pub color: Color,
@@ -166,7 +200,7 @@ pub struct Style {
 }
 
 /// The fill mode of a rule.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FillMode {
     /// Fill the whole length of the container.
     Full,

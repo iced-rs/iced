@@ -1,15 +1,15 @@
 //! Draw meshes of triangles.
 mod msaa;
 
-use crate::core::{Rectangle, Size, Transformation};
-use crate::graphics::mesh::{self, Mesh};
-use crate::graphics::Antialiasing;
 use crate::Buffer;
+use crate::core::{Rectangle, Size, Transformation};
+use crate::graphics::Antialiasing;
+use crate::graphics::mesh::{self, Mesh};
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
-use std::rc::{self, Rc};
 use std::sync::atomic::{self, AtomicU64};
+use std::sync::{self, Arc};
 
 const INITIAL_INDEX_COUNT: usize = 1_000;
 const INITIAL_VERTEX_COUNT: usize = 1_000;
@@ -31,7 +31,7 @@ pub enum Item {
 #[derive(Debug, Clone)]
 pub struct Cache {
     id: Id,
-    batch: Rc<[Mesh]>,
+    batch: Arc<[Mesh]>,
     version: usize,
 }
 
@@ -48,13 +48,13 @@ impl Cache {
 
         Some(Self {
             id: Id(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed)),
-            batch: Rc::from(meshes),
+            batch: Arc::from(meshes),
             version: 0,
         })
     }
 
     pub fn update(&mut self, meshes: Vec<Mesh>) {
-        self.batch = Rc::from(meshes);
+        self.batch = Arc::from(meshes);
         self.version += 1;
     }
 }
@@ -64,7 +64,7 @@ struct Upload {
     layer: Layer,
     transformation: Transformation,
     version: usize,
-    batch: rc::Weak<[Mesh]>,
+    batch: sync::Weak<[Mesh]>,
 }
 
 #[derive(Debug, Default)]
@@ -113,7 +113,7 @@ impl Storage {
                         new_transformation,
                     );
 
-                    upload.batch = Rc::downgrade(&cache.batch);
+                    upload.batch = Arc::downgrade(&cache.batch);
                     upload.version = cache.version;
                     upload.transformation = new_transformation;
                 }
@@ -135,7 +135,7 @@ impl Storage {
                     layer,
                     transformation: new_transformation,
                     version: 0,
-                    batch: Rc::downgrade(&cache.batch),
+                    batch: Arc::downgrade(&cache.batch),
                 });
 
                 log::debug!(
@@ -505,6 +505,14 @@ impl Layer {
                 .intersection(&(mesh.clip_bounds() * transformation))
                 .and_then(Rectangle::snap)
             else {
+                match mesh {
+                    Mesh::Solid { .. } => {
+                        num_solids += 1;
+                    }
+                    Mesh::Gradient { .. } => {
+                        num_gradients += 1;
+                    }
+                }
                 continue;
             };
 
@@ -636,10 +644,10 @@ impl Uniforms {
 }
 
 mod solid {
-    use crate::graphics::mesh;
-    use crate::graphics::Antialiasing;
-    use crate::triangle;
     use crate::Buffer;
+    use crate::graphics::Antialiasing;
+    use crate::graphics::mesh;
+    use crate::triangle;
 
     #[derive(Debug)]
     pub struct Pipeline {
@@ -745,7 +753,7 @@ mod solid {
                         layout: Some(&layout),
                         vertex: wgpu::VertexState {
                             module: &shader,
-                            entry_point: "solid_vs_main",
+                            entry_point: Some("solid_vs_main"),
                             buffers: &[wgpu::VertexBufferLayout {
                                 array_stride: std::mem::size_of::<
                                     mesh::SolidVertex2D,
@@ -760,16 +768,21 @@ mod solid {
                                     1 => Float32x4,
                                 ),
                             }],
+                            compilation_options:
+                                wgpu::PipelineCompilationOptions::default(),
                         },
                         fragment: Some(wgpu::FragmentState {
                             module: &shader,
-                            entry_point: "solid_fs_main",
+                            entry_point: Some("solid_fs_main"),
                             targets: &[Some(triangle::fragment_target(format))],
+                            compilation_options:
+                                wgpu::PipelineCompilationOptions::default(),
                         }),
                         primitive: triangle::primitive_state(),
                         depth_stencil: None,
                         multisample: triangle::multisample_state(antialiasing),
                         multiview: None,
+                        cache: None,
                     },
                 );
 
@@ -782,11 +795,11 @@ mod solid {
 }
 
 mod gradient {
+    use crate::Buffer;
+    use crate::graphics::Antialiasing;
     use crate::graphics::color;
     use crate::graphics::mesh;
-    use crate::graphics::Antialiasing;
     use crate::triangle;
-    use crate::Buffer;
 
     #[derive(Debug)]
     pub struct Pipeline {
@@ -913,7 +926,7 @@ mod gradient {
                     layout: Some(&layout),
                     vertex: wgpu::VertexState {
                         module: &shader,
-                        entry_point: "gradient_vs_main",
+                        entry_point: Some("gradient_vs_main"),
                         buffers: &[wgpu::VertexBufferLayout {
                             array_stride: std::mem::size_of::<
                                 mesh::GradientVertex2D,
@@ -937,16 +950,21 @@ mod gradient {
                                 6 => Float32x4
                             ),
                         }],
+                        compilation_options:
+                            wgpu::PipelineCompilationOptions::default(),
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
-                        entry_point: "gradient_fs_main",
+                        entry_point: Some("gradient_fs_main"),
                         targets: &[Some(triangle::fragment_target(format))],
+                        compilation_options:
+                            wgpu::PipelineCompilationOptions::default(),
                     }),
                     primitive: triangle::primitive_state(),
                     depth_stencil: None,
                     multisample: triangle::multisample_state(antialiasing),
                     multiview: None,
+                    cache: None,
                 },
             );
 

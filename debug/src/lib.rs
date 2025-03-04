@@ -72,10 +72,9 @@ mod internal {
     use beacon::client::{self, Client};
     use beacon::span;
 
-    use once_cell::sync::Lazy;
     use std::process;
     use std::sync::atomic::{self, AtomicBool};
-    use std::sync::RwLock;
+    use std::sync::{LazyLock, RwLock};
 
     pub fn init(name: &str) {
         let name = name.split("::").next().unwrap_or(name);
@@ -196,7 +195,7 @@ mod internal {
         }
     }
 
-    static BEACON: Lazy<Client> = Lazy::new(|| {
+    static BEACON: LazyLock<Client> = LazyLock::new(|| {
         client::connect(NAME.read().expect("Read application name").to_owned())
     });
 

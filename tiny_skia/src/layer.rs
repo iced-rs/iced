@@ -1,12 +1,12 @@
+use crate::Primitive;
+use crate::core::renderer::Quad;
 use crate::core::{
-    image, renderer::Quad, svg, Background, Color, Point, Radians, Rectangle,
-    Transformation,
+    self, Background, Color, Point, Rectangle, Svg, Transformation,
 };
 use crate::graphics::damage;
 use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph, Text};
 use crate::graphics::{self, Image};
-use crate::Primitive;
 
 use std::rc::Rc;
 
@@ -72,7 +72,7 @@ impl Layer {
 
     pub fn draw_text(
         &mut self,
-        text: crate::core::Text,
+        text: core::Text,
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
@@ -115,42 +115,35 @@ impl Layer {
             .push(Item::Cached(text, clip_bounds, transformation));
     }
 
-    pub fn draw_image(
+    pub fn draw_image(&mut self, image: Image, transformation: Transformation) {
+        match image {
+            Image::Raster(raster, bounds) => {
+                self.draw_raster(raster, bounds, transformation);
+            }
+            Image::Vector(svg, bounds) => {
+                self.draw_svg(svg, bounds, transformation);
+            }
+        }
+    }
+
+    pub fn draw_raster(
         &mut self,
-        handle: image::Handle,
-        filter_method: image::FilterMethod,
+        image: core::Image,
         bounds: Rectangle,
         transformation: Transformation,
-        rotation: Radians,
-        opacity: f32,
     ) {
-        let image = Image::Raster {
-            handle,
-            filter_method,
-            bounds: bounds * transformation,
-            rotation,
-            opacity,
-        };
+        let image = Image::Raster(image, bounds * transformation);
 
         self.images.push(image);
     }
 
     pub fn draw_svg(
         &mut self,
-        handle: svg::Handle,
-        color: Option<Color>,
+        svg: Svg,
         bounds: Rectangle,
         transformation: Transformation,
-        rotation: Radians,
-        opacity: f32,
     ) {
-        let svg = Image::Vector {
-            handle,
-            color,
-            bounds: bounds * transformation,
-            rotation,
-            opacity,
-        };
+        let svg = Image::Vector(svg, bounds * transformation);
 
         self.images.push(svg);
     }
@@ -293,7 +286,7 @@ impl graphics::Layer for Layer {
 
     fn flush(&mut self) {}
 
-    fn resize(&mut self, bounds: graphics::core::Rectangle) {
+    fn resize(&mut self, bounds: Rectangle) {
         self.bounds = bounds;
     }
 

@@ -8,12 +8,13 @@ jobs:
     steps:
     - uses: hecrj/setup-rust-action@v2
       with:
-        rust-version: nightly-2023-12-11
+        rust-version: nightly
     - uses: actions/checkout@v2
     - name: Generate documentation
       run: |
         RUSTDOCFLAGS="--cfg docsrs" \
           cargo doc --no-deps --all-features \
+          -p futures-core \
           -p iced_core \
           -p iced_highlighter \
           -p iced_futures \

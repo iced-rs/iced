@@ -1,22 +1,71 @@
-//! Draw 2D graphics for your users.
-pub mod event;
-
+//! Canvases can be leveraged to draw interactive 2D graphics.
+//!
+//! # Example: Drawing a Simple Circle
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! #
+//! use iced::mouse;
+//! use iced::widget::canvas;
+//! use iced::{Color, Rectangle, Renderer, Theme};
+//!
+//! // First, we define the data we need for drawing
+//! #[derive(Debug)]
+//! struct Circle {
+//!     radius: f32,
+//! }
+//!
+//! // Then, we implement the `Program` trait
+//! impl<Message> canvas::Program<Message> for Circle {
+//!     // No internal state
+//!     type State = ();
+//!
+//!     fn draw(
+//!         &self,
+//!         _state: &(),
+//!         renderer: &Renderer,
+//!         _theme: &Theme,
+//!         bounds: Rectangle,
+//!         _cursor: mouse::Cursor
+//!     ) -> Vec<canvas::Geometry> {
+//!         // We prepare a new `Frame`
+//!         let mut frame = canvas::Frame::new(renderer, bounds.size());
+//!
+//!         // We create a `Path` representing a simple circle
+//!         let circle = canvas::Path::circle(frame.center(), self.radius);
+//!
+//!         // And fill it with some color
+//!         frame.fill(&circle, Color::BLACK);
+//!
+//!         // Then, we produce the geometry
+//!         vec![frame.into_geometry()]
+//!     }
+//! }
+//!
+//! // Finally, we simply use our `Circle` to create the `Canvas`!
+//! fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
+//!     canvas(Circle { radius: 50.0 }).into()
+//! }
+//! ```
 mod program;
 
-pub use event::Event;
 pub use program::Program;
 
+pub use crate::Action;
+pub use crate::core::event::Event;
 pub use crate::graphics::cache::Group;
 pub use crate::graphics::geometry::{
-    fill, gradient, path, stroke, Fill, Gradient, LineCap, LineDash, LineJoin,
-    Path, Stroke, Style, Text,
+    Fill, Gradient, Image, LineCap, LineDash, LineJoin, Path, Stroke, Style,
+    Text, fill, gradient, path, stroke,
 };
 
-use crate::core;
+use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Clipboard, Element, Length, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -39,15 +88,16 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 
 /// A widget capable of drawing 2D graphics.
 ///
-/// ## Drawing a simple circle
-/// If you want to get a quick overview, here's how we can draw a simple circle:
-///
+/// # Example: Drawing a Simple Circle
 /// ```no_run
-/// # use iced_widget::canvas::{self, Canvas, Fill, Frame, Geometry, Path, Program};
-/// # use iced_widget::core::{Color, Rectangle};
-/// # use iced_widget::core::mouse;
-/// # use iced_widget::{Renderer, Theme};
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
+/// use iced::mouse;
+/// use iced::widget::canvas;
+/// use iced::{Color, Rectangle, Renderer, Theme};
+///
 /// // First, we define the data we need for drawing
 /// #[derive(Debug)]
 /// struct Circle {
@@ -55,26 +105,36 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 /// }
 ///
 /// // Then, we implement the `Program` trait
-/// impl Program<()> for Circle {
+/// impl<Message> canvas::Program<Message> for Circle {
+///     // No internal state
 ///     type State = ();
 ///
-///     fn draw(&self, _state: &(), renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) -> Vec<Geometry> {
+///     fn draw(
+///         &self,
+///         _state: &(),
+///         renderer: &Renderer,
+///         _theme: &Theme,
+///         bounds: Rectangle,
+///         _cursor: mouse::Cursor
+///     ) -> Vec<canvas::Geometry> {
 ///         // We prepare a new `Frame`
-///         let mut frame = Frame::new(renderer, bounds.size());
+///         let mut frame = canvas::Frame::new(renderer, bounds.size());
 ///
 ///         // We create a `Path` representing a simple circle
-///         let circle = Path::circle(frame.center(), self.radius);
+///         let circle = canvas::Path::circle(frame.center(), self.radius);
 ///
 ///         // And fill it with some color
 ///         frame.fill(&circle, Color::BLACK);
 ///
-///         // Finally, we produce the geometry
+///         // Then, we produce the geometry
 ///         vec![frame.into_geometry()]
 ///     }
 /// }
 ///
 /// // Finally, we simply use our `Circle` to create the `Canvas`!
-/// let canvas = Canvas::new(Circle { radius: 50.0 });
+/// fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
+///     canvas(Circle { radius: 50.0 }).into()
+/// }
 /// ```
 #[derive(Debug)]
 pub struct Canvas<P, Message, Theme = crate::Theme, Renderer = crate::Renderer>
@@ -88,6 +148,7 @@ where
     message_: PhantomData<Message>,
     theme_: PhantomData<Theme>,
     renderer_: PhantomData<Renderer>,
+    last_mouse_interaction: Option<mouse::Interaction>,
 }
 
 impl<P, Message, Theme, Renderer> Canvas<P, Message, Theme, Renderer>
@@ -106,6 +167,7 @@ where
             message_: PhantomData,
             theme_: PhantomData,
             renderer_: PhantomData,
+            last_mouse_interaction: None,
         }
     }
 
@@ -153,42 +215,54 @@ where
         layout::atomic(limits, self.width, self.height)
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: core::Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _renderer: &Renderer,
+        renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-        _viewport: &Rectangle,
-    ) -> event::Status {
+        viewport: &Rectangle,
+    ) {
         let bounds = layout.bounds();
 
-        let canvas_event = match event {
-            core::Event::Mouse(mouse_event) => Some(Event::Mouse(mouse_event)),
-            core::Event::Touch(touch_event) => Some(Event::Touch(touch_event)),
-            core::Event::Keyboard(keyboard_event) => {
-                Some(Event::Keyboard(keyboard_event))
-            }
-            _ => None,
-        };
+        let state = tree.state.downcast_mut::<P::State>();
+        let is_redraw_request = matches!(
+            event,
+            Event::Window(window::Event::RedrawRequested(_now)),
+        );
 
-        if let Some(canvas_event) = canvas_event {
-            let state = tree.state.downcast_mut::<P::State>();
+        if let Some(action) = self.program.update(state, event, bounds, cursor)
+        {
+            let (message, redraw_request, event_status) = action.into_inner();
 
-            let (event_status, message) =
-                self.program.update(state, canvas_event, bounds, cursor);
+            shell.request_redraw_at(redraw_request);
 
             if let Some(message) = message {
                 shell.publish(message);
             }
 
-            return event_status;
+            if event_status == event::Status::Captured {
+                shell.capture_event();
+            }
         }
 
-        event::Status::Ignored
+        if shell.redraw_request() != window::RedrawRequest::NextFrame {
+            let mouse_interaction = self
+                .mouse_interaction(tree, layout, cursor, viewport, renderer);
+
+            if is_redraw_request {
+                self.last_mouse_interaction = Some(mouse_interaction);
+            } else if self.last_mouse_interaction.is_some_and(
+                |last_mouse_interaction| {
+                    last_mouse_interaction != mouse_interaction
+                },
+            ) {
+                shell.request_redraw();
+            }
+        }
     }
 
     fn mouse_interaction(

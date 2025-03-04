@@ -1,16 +1,16 @@
-use iced::widget::scrollable::Properties;
 use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
-    scrollable, slider, text, vertical_space, Scrollable,
+    scrollable, slider, text, vertical_space,
 };
-use iced::{Alignment, Border, Color, Command, Element, Length, Theme};
+use iced::{Border, Center, Color, Element, Fill, Task, Theme};
 
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
-static SCROLLABLE_ID: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
+static SCROLLABLE_ID: LazyLock<scrollable::Id> =
+    LazyLock::new(scrollable::Id::unique);
 
 pub fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "Scrollable - Iced",
         ScrollableDemo::update,
         ScrollableDemo::view,
@@ -21,11 +21,11 @@ pub fn main() -> iced::Result {
 
 struct ScrollableDemo {
     scrollable_direction: Direction,
-    scrollbar_width: u16,
-    scrollbar_margin: u16,
-    scroller_width: u16,
+    scrollbar_width: u32,
+    scrollbar_margin: u32,
+    scroller_width: u32,
     current_scroll_offset: scrollable::RelativeOffset,
-    alignment: scrollable::Alignment,
+    anchor: scrollable::Anchor,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Copy)]
@@ -38,10 +38,10 @@ enum Direction {
 #[derive(Debug, Clone)]
 enum Message {
     SwitchDirection(Direction),
-    AlignmentChanged(scrollable::Alignment),
-    ScrollbarWidthChanged(u16),
-    ScrollbarMarginChanged(u16),
-    ScrollerWidthChanged(u16),
+    AlignmentChanged(scrollable::Anchor),
+    ScrollbarWidthChanged(u32),
+    ScrollbarMarginChanged(u32),
+    ScrollerWidthChanged(u32),
     ScrollToBeginning,
     ScrollToEnd,
     Scrolled(scrollable::Viewport),
@@ -55,11 +55,11 @@ impl ScrollableDemo {
             scrollbar_margin: 0,
             scroller_width: 10,
             current_scroll_offset: scrollable::RelativeOffset::START,
-            alignment: scrollable::Alignment::Start,
+            anchor: scrollable::Anchor::Start,
         }
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SwitchDirection(direction) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
@@ -72,7 +72,7 @@ impl ScrollableDemo {
             }
             Message::AlignmentChanged(alignment) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
-                self.alignment = alignment;
+                self.anchor = alignment;
 
                 scrollable::snap_to(
                     SCROLLABLE_ID.clone(),
@@ -82,17 +82,17 @@ impl ScrollableDemo {
             Message::ScrollbarWidthChanged(width) => {
                 self.scrollbar_width = width;
 
-                Command::none()
+                Task::none()
             }
             Message::ScrollbarMarginChanged(margin) => {
                 self.scrollbar_margin = margin;
 
-                Command::none()
+                Task::none()
             }
             Message::ScrollerWidthChanged(width) => {
                 self.scroller_width = width;
 
-                Command::none()
+                Task::none()
             }
             Message::ScrollToBeginning => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
@@ -113,7 +113,7 @@ impl ScrollableDemo {
             Message::Scrolled(viewport) => {
                 self.current_scroll_offset = viewport.relative_offset();
 
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -169,14 +169,14 @@ impl ScrollableDemo {
             text("Scrollable alignment:"),
             radio(
                 "Start",
-                scrollable::Alignment::Start,
-                Some(self.alignment),
+                scrollable::Anchor::Start,
+                Some(self.anchor),
                 Message::AlignmentChanged,
             ),
             radio(
                 "End",
-                scrollable::Alignment::End,
-                Some(self.alignment),
+                scrollable::Anchor::End,
+                Some(self.anchor),
                 Message::AlignmentChanged,
             )
         ]
@@ -203,7 +203,7 @@ impl ScrollableDemo {
 
         let scrollable_content: Element<Message> =
             Element::from(match self.scrollable_direction {
-                Direction::Vertical => Scrollable::with_direction(
+                Direction::Vertical => scrollable(
                     column![
                         scroll_to_end_button(),
                         text("Beginning!"),
@@ -213,22 +213,22 @@ impl ScrollableDemo {
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
-                    .align_items(Alignment::Center)
-                    .padding([40, 0, 40, 0])
+                    .align_x(Center)
+                    .padding([40, 0])
                     .spacing(40),
-                    scrollable::Direction::Vertical(
-                        Properties::new()
-                            .width(self.scrollbar_width)
-                            .margin(self.scrollbar_margin)
-                            .scroller_width(self.scroller_width)
-                            .alignment(self.alignment),
-                    ),
                 )
-                .width(Length::Fill)
-                .height(Length::Fill)
+                .direction(scrollable::Direction::Vertical(
+                    scrollable::Scrollbar::new()
+                        .width(self.scrollbar_width)
+                        .margin(self.scrollbar_margin)
+                        .scroller_width(self.scroller_width)
+                        .anchor(self.anchor),
+                ))
+                .width(Fill)
+                .height(Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
-                Direction::Horizontal => Scrollable::with_direction(
+                Direction::Horizontal => scrollable(
                     row![
                         scroll_to_end_button(),
                         text("Beginning!"),
@@ -239,22 +239,22 @@ impl ScrollableDemo {
                         scroll_to_beginning_button(),
                     ]
                     .height(450)
-                    .align_items(Alignment::Center)
-                    .padding([0, 40, 0, 40])
+                    .align_y(Center)
+                    .padding([0, 40])
                     .spacing(40),
-                    scrollable::Direction::Horizontal(
-                        Properties::new()
-                            .width(self.scrollbar_width)
-                            .margin(self.scrollbar_margin)
-                            .scroller_width(self.scroller_width)
-                            .alignment(self.alignment),
-                    ),
                 )
-                .width(Length::Fill)
-                .height(Length::Fill)
+                .direction(scrollable::Direction::Horizontal(
+                    scrollable::Scrollbar::new()
+                        .width(self.scrollbar_width)
+                        .margin(self.scrollbar_margin)
+                        .scroller_width(self.scroller_width)
+                        .anchor(self.anchor),
+                ))
+                .width(Fill)
+                .height(Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
-                Direction::Multi => Scrollable::with_direction(
+                Direction::Multi => scrollable(
                     //horizontal content
                     row![
                         column![
@@ -281,24 +281,24 @@ impl ScrollableDemo {
                         text("Horizontal - End!"),
                         scroll_to_beginning_button(),
                     ]
-                    .align_items(Alignment::Center)
-                    .padding([0, 40, 0, 40])
+                    .align_y(Center)
+                    .padding([0, 40])
                     .spacing(40),
-                    {
-                        let properties = Properties::new()
-                            .width(self.scrollbar_width)
-                            .margin(self.scrollbar_margin)
-                            .scroller_width(self.scroller_width)
-                            .alignment(self.alignment);
-
-                        scrollable::Direction::Both {
-                            horizontal: properties,
-                            vertical: properties,
-                        }
-                    },
                 )
-                .width(Length::Fill)
-                .height(Length::Fill)
+                .direction({
+                    let scrollbar = scrollable::Scrollbar::new()
+                        .width(self.scrollbar_width)
+                        .margin(self.scrollbar_margin)
+                        .scroller_width(self.scroller_width)
+                        .anchor(self.anchor);
+
+                    scrollable::Direction::Both {
+                        horizontal: scrollbar,
+                        vertical: scrollbar,
+                    }
+                })
+                .width(Fill)
+                .height(Fill)
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
             });
@@ -323,7 +323,7 @@ impl ScrollableDemo {
 
         let content: Element<Message> =
             column![scroll_controls, scrollable_content, progress_bars]
-                .align_items(Alignment::Center)
+                .align_x(Center)
                 .spacing(10)
                 .into();
 

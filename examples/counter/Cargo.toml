@@ -2,7 +2,7 @@
 name = "counter"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]
@@ -10,4 +10,7 @@ iced.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced.workspace = true
-iced.features = ["webgl"]
+iced.features = ["webgl", "fira-sans"]
+
+[dev-dependencies]
+iced_test.workspace = true

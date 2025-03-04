@@ -63,8 +63,8 @@ pub use geometry::Geometry;
 use crate::core::{
     Background, Color, Font, Pixels, Point, Rectangle, Transformation,
 };
-use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::Viewport;
+use crate::graphics::text::{Editor, Paragraph};
 
 /// A [`wgpu`] graphics renderer for [`iced`].
 ///
@@ -142,7 +142,19 @@ impl Renderer {
 
         self.text_viewport.update(queue, viewport.physical_size());
 
+        let physical_bounds = Rectangle::<f32>::from(Rectangle::with_size(
+            viewport.physical_size(),
+        ));
+
         for layer in self.layers.iter_mut() {
+            if physical_bounds
+                .intersection(&(layer.bounds * scale_factor))
+                .and_then(Rectangle::snap)
+                .is_none()
+            {
+                continue;
+            }
+
             if !layer.quads.is_empty() {
                 engine.quad_pipeline.prepare(
                     device,
@@ -179,19 +191,6 @@ impl Renderer {
                 }
             }
 
-            if !layer.text.is_empty() {
-                engine.text_pipeline.prepare(
-                    device,
-                    queue,
-                    &self.text_viewport,
-                    encoder,
-                    &mut self.text_storage,
-                    &layer.text,
-                    layer.bounds,
-                    Transformation::scale(scale_factor),
-                );
-            }
-
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
                 engine.image_pipeline.prepare(
@@ -202,6 +201,19 @@ impl Renderer {
                     &layer.images,
                     viewport.projection(),
                     scale_factor,
+                );
+            }
+
+            if !layer.text.is_empty() {
+                engine.text_pipeline.prepare(
+                    device,
+                    queue,
+                    &self.text_viewport,
+                    encoder,
+                    &mut self.text_storage,
+                    &layer.text,
+                    layer.bounds,
+                    Transformation::scale(scale_factor),
                 );
             }
         }
@@ -266,7 +278,7 @@ impl Renderer {
 
         for layer in self.layers.iter() {
             let Some(physical_bounds) =
-                physical_bounds.intersection(&(layer.bounds * scale))
+                physical_bounds.intersection(&(layer.bounds * scale_factor))
             else {
                 continue;
             };
@@ -356,17 +368,6 @@ impl Renderer {
                 ));
             }
 
-            if !layer.text.is_empty() {
-                text_layer += engine.text_pipeline.render(
-                    &self.text_viewport,
-                    &self.text_storage,
-                    text_layer,
-                    &layer.text,
-                    scissor_rect,
-                    &mut render_pass,
-                );
-            }
-
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
                 engine.image_pipeline.render(
@@ -377,6 +378,17 @@ impl Renderer {
                 );
 
                 image_layer += 1;
+            }
+
+            if !layer.text.is_empty() {
+                text_layer += engine.text_pipeline.render(
+                    &self.text_viewport,
+                    &self.text_storage,
+                    text_layer,
+                    &layer.text,
+                    scissor_rect,
+                    &mut render_pass,
+                );
             }
         }
 
@@ -481,23 +493,9 @@ impl core::image::Renderer for Renderer {
         self.image_cache.borrow_mut().measure_image(handle)
     }
 
-    fn draw_image(
-        &mut self,
-        handle: Self::Handle,
-        filter_method: core::image::FilterMethod,
-        bounds: Rectangle,
-        rotation: core::Radians,
-        opacity: f32,
-    ) {
+    fn draw_image(&mut self, image: core::Image, bounds: Rectangle) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_image(
-            handle,
-            filter_method,
-            bounds,
-            transformation,
-            rotation,
-            opacity,
-        );
+        layer.draw_raster(image, bounds, transformation);
     }
 }
 
@@ -507,28 +505,24 @@ impl core::svg::Renderer for Renderer {
         self.image_cache.borrow_mut().measure_svg(handle)
     }
 
-    fn draw_svg(
-        &mut self,
-        handle: core::svg::Handle,
-        color_filter: Option<Color>,
-        bounds: Rectangle,
-        rotation: core::Radians,
-        opacity: f32,
-    ) {
+    fn draw_svg(&mut self, svg: core::Svg, bounds: Rectangle) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_svg(
-            handle,
-            color_filter,
-            bounds,
-            transformation,
-            rotation,
-            opacity,
-        );
+        layer.draw_svg(svg, bounds, transformation);
     }
 }
 
 impl graphics::mesh::Renderer for Renderer {
     fn draw_mesh(&mut self, mesh: graphics::Mesh) {
+        debug_assert!(
+            !mesh.indices().is_empty(),
+            "Mesh must not have empty indices"
+        );
+
+        debug_assert!(
+            mesh.indices().len() % 3 == 0,
+            "Mesh indices length must be a multiple of 3"
+        );
+
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_mesh(mesh, transformation);
     }
@@ -547,13 +541,28 @@ impl graphics::geometry::Renderer for Renderer {
         let (layer, transformation) = self.layers.current_mut();
 
         match geometry {
-            Geometry::Live { meshes, text } => {
+            Geometry::Live {
+                meshes,
+                images,
+                text,
+            } => {
                 layer.draw_mesh_group(meshes, transformation);
+
+                for image in images {
+                    layer.draw_image(image, transformation);
+                }
+
                 layer.draw_text_group(text, transformation);
             }
             Geometry::Cached(cache) => {
                 if let Some(meshes) = cache.meshes {
                     layer.draw_mesh_cache(meshes, transformation);
+                }
+
+                if let Some(images) = cache.images {
+                    for image in images.iter().cloned() {
+                        layer.draw_image(image, transformation);
+                    }
                 }
 
                 if let Some(text) = cache.text {

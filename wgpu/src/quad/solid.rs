@@ -1,6 +1,6 @@
+use crate::Buffer;
 use crate::graphics::color;
 use crate::quad::{self, Quad};
-use crate::Buffer;
 
 use bytemuck::{Pod, Zeroable};
 use std::ops::Range;
@@ -89,7 +89,7 @@ impl Pipeline {
                 layout: Some(&layout),
                 vertex: wgpu::VertexState {
                     module: &shader,
-                    entry_point: "solid_vs_main",
+                    entry_point: Some("solid_vs_main"),
                     buffers: &[wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<Solid>() as u64,
                         step_mode: wgpu::VertexStepMode::Instance,
@@ -114,11 +114,15 @@ impl Pipeline {
                             8 => Float32,
                         ),
                     }],
+                    compilation_options:
+                        wgpu::PipelineCompilationOptions::default(),
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
-                    entry_point: "solid_fs_main",
+                    entry_point: Some("solid_fs_main"),
                     targets: &quad::color_target_state(format),
+                    compilation_options:
+                        wgpu::PipelineCompilationOptions::default(),
                 }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,
@@ -132,6 +136,7 @@ impl Pipeline {
                     alpha_to_coverage_enabled: false,
                 },
                 multiview: None,
+                cache: None,
             });
 
         Self { pipeline }
@@ -144,9 +149,6 @@ impl Pipeline {
         layer: &'a Layer,
         range: Range<usize>,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = tracing::info_span!("Wgpu::Quad::Solid", "DRAW").entered();
-
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, constants, &[]);
         render_pass.set_vertex_buffer(0, layer.instances.slice(..));

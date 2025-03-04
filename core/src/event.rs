@@ -1,4 +1,5 @@
 //! Handle events of a user interface.
+use crate::input_method;
 use crate::keyboard;
 use crate::mouse;
 use crate::touch;
@@ -19,31 +20,13 @@ pub enum Event {
     Mouse(mouse::Event),
 
     /// A window event
-    Window(window::Id, window::Event),
+    Window(window::Event),
 
     /// A touch event
     Touch(touch::Event),
 
-    /// A platform specific event
-    PlatformSpecific(PlatformSpecific),
-}
-
-/// A platform specific event
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PlatformSpecific {
-    /// A MacOS specific event
-    MacOS(MacOS),
-}
-
-/// Describes an event specific to MacOS
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MacOS {
-    /// Triggered when the app receives an URL from the system
-    ///
-    /// _**Note:** For this event to be triggered, the executable needs to be properly [bundled]!_
-    ///
-    /// [bundled]: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW19
-    ReceivedUrl(String),
+    /// An input method event
+    InputMethod(input_method::Event),
 }
 
 /// The status of an [`Event`] after being processed.

@@ -1,6 +1,6 @@
 //! Draw and generate geometry.
 use crate::core::{Point, Radians, Rectangle, Size, Vector};
-use crate::geometry::{self, Fill, Path, Stroke, Text};
+use crate::geometry::{self, Fill, Image, Path, Stroke, Svg, Text};
 
 /// The region of a surface that can be used to draw geometry.
 #[allow(missing_debug_implementations)]
@@ -65,6 +65,17 @@ where
         self.raw.stroke(path, stroke);
     }
 
+    /// Draws the stroke of an axis-aligned rectangle with the provided style
+    /// given its top-left corner coordinate and its `Size` on the [`Frame`] .
+    pub fn stroke_rectangle<'a>(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        stroke: impl Into<Stroke<'a>>,
+    ) {
+        self.raw.stroke_rectangle(top_left, size, stroke);
+    }
+
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
     /// them with the given color.
     ///
@@ -73,6 +84,18 @@ where
     /// overlays, which is the most common use case.
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         self.raw.fill_text(text);
+    }
+
+    /// Draws the given [`Image`] on the [`Frame`] inside the given bounds.
+    #[cfg(feature = "image")]
+    pub fn draw_image(&mut self, bounds: Rectangle, image: impl Into<Image>) {
+        self.raw.draw_image(bounds, image);
+    }
+
+    /// Draws the given [`Svg`] on the [`Frame`] inside the given bounds.
+    #[cfg(feature = "svg")]
+    pub fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>) {
+        self.raw.draw_svg(bounds, svg);
     }
 
     /// Stores the current transform of the [`Frame`] and executes the given
@@ -116,8 +139,7 @@ where
         let mut frame = self.draft(region);
 
         let result = f(&mut frame);
-
-        self.paste(frame, Point::new(region.x, region.y));
+        self.paste(frame);
 
         result
     }
@@ -134,8 +156,8 @@ where
     }
 
     /// Draws the contents of the given [`Frame`] with origin at the given [`Point`].
-    fn paste(&mut self, frame: Self, at: Point) {
-        self.raw.paste(frame.raw, at);
+    fn paste(&mut self, frame: Self) {
+        self.raw.paste(frame.raw);
     }
 
     /// Applies a translation to the current transform of the [`Frame`].
@@ -186,9 +208,15 @@ pub trait Backend: Sized {
     fn scale_nonuniform(&mut self, scale: impl Into<Vector>);
 
     fn draft(&mut self, clip_bounds: Rectangle) -> Self;
-    fn paste(&mut self, frame: Self, at: Point);
+    fn paste(&mut self, frame: Self);
 
     fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>);
+    fn stroke_rectangle<'a>(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        stroke: impl Into<Stroke<'a>>,
+    );
 
     fn fill(&mut self, path: &Path, fill: impl Into<Fill>);
     fn fill_text(&mut self, text: impl Into<Text>);
@@ -198,6 +226,9 @@ pub trait Backend: Sized {
         size: Size,
         fill: impl Into<Fill>,
     );
+
+    fn draw_image(&mut self, bounds: Rectangle, image: impl Into<Image>);
+    fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>);
 
     fn into_geometry(self) -> Self::Geometry;
 }
@@ -231,9 +262,16 @@ impl Backend for () {
     fn scale_nonuniform(&mut self, _scale: impl Into<Vector>) {}
 
     fn draft(&mut self, _clip_bounds: Rectangle) -> Self {}
-    fn paste(&mut self, _frame: Self, _at: Point) {}
+    fn paste(&mut self, _frame: Self) {}
 
     fn stroke<'a>(&mut self, _path: &Path, _stroke: impl Into<Stroke<'a>>) {}
+    fn stroke_rectangle<'a>(
+        &mut self,
+        _top_left: Point,
+        _size: Size,
+        _stroke: impl Into<Stroke<'a>>,
+    ) {
+    }
 
     fn fill(&mut self, _path: &Path, _fill: impl Into<Fill>) {}
     fn fill_text(&mut self, _text: impl Into<Text>) {}
@@ -244,6 +282,9 @@ impl Backend for () {
         _fill: impl Into<Fill>,
     ) {
     }
+
+    fn draw_image(&mut self, _bounds: Rectangle, _image: impl Into<Image>) {}
+    fn draw_svg(&mut self, _bounds: Rectangle, _svg: impl Into<Svg>) {}
 
     fn into_geometry(self) -> Self::Geometry {}
 }

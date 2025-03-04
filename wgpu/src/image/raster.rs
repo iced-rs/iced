@@ -1,5 +1,5 @@
-use crate::core::image;
 use crate::core::Size;
+use crate::core::image;
 use crate::graphics;
 use crate::graphics::image::image_rs;
 use crate::image::atlas::{self, Atlas};

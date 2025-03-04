@@ -1,12 +1,12 @@
 //! Display content on top of other content.
-use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A container that displays children on top of each other.
@@ -116,7 +116,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Default for Stack<'a, Message, Renderer>
+impl<Message, Renderer> Default for Stack<'_, Message, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -189,7 +189,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
             self.children
@@ -204,36 +204,47 @@ where
         });
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mut cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        self.children
+    ) {
+        let is_over = cursor.is_over(layout.bounds());
+        let end = self.children.len() - 1;
+
+        for (i, ((child, state), layout)) in self
+            .children
             .iter_mut()
             .rev()
             .zip(tree.children.iter_mut().rev())
             .zip(layout.children().rev())
-            .map(|((child, state), layout)| {
-                child.as_widget_mut().on_event(
-                    state,
-                    event.clone(),
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                    viewport,
-                )
-            })
-            .find(|&status| status == event::Status::Captured)
-            .unwrap_or(event::Status::Ignored)
+            .enumerate()
+        {
+            child.as_widget_mut().update(
+                state, event, layout, cursor, renderer, clipboard, shell,
+                viewport,
+            );
+
+            if shell.is_event_captured() {
+                return;
+            }
+
+            if i < end && is_over && !cursor.is_levitating() {
+                let interaction = child.as_widget().mouse_interaction(
+                    state, layout, cursor, viewport, renderer,
+                );
+
+                if interaction != mouse::Interaction::None {
+                    cursor = cursor.levitate();
+                }
+            }
+        }
     }
 
     fn mouse_interaction(
@@ -269,15 +280,53 @@ where
         viewport: &Rectangle,
     ) {
         if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
-            for (i, ((layer, state), layout)) in self
+            let layers_below = if cursor.is_over(layout.bounds()) {
+                self.children
+                    .iter()
+                    .rev()
+                    .zip(tree.children.iter().rev())
+                    .zip(layout.children().rev())
+                    .position(|((layer, state), layout)| {
+                        let interaction = layer.as_widget().mouse_interaction(
+                            state, layout, cursor, viewport, renderer,
+                        );
+
+                        interaction != mouse::Interaction::None
+                    })
+                    .map(|i| self.children.len() - i - 1)
+                    .unwrap_or_default()
+            } else {
+                0
+            };
+
+            let mut layers = self
                 .children
                 .iter()
                 .zip(&tree.children)
                 .zip(layout.children())
-                .enumerate()
-            {
-                if i > 0 {
-                    renderer.with_layer(clipped_viewport, |renderer| {
+                .enumerate();
+
+            let layers = layers.by_ref();
+
+            let mut draw_layer =
+                |i,
+                 layer: &Element<'a, Message, Theme, Renderer>,
+                 state,
+                 layout,
+                 cursor| {
+                    if i > 0 {
+                        renderer.with_layer(clipped_viewport, |renderer| {
+                            layer.as_widget().draw(
+                                state,
+                                renderer,
+                                theme,
+                                style,
+                                layout,
+                                cursor,
+                                &clipped_viewport,
+                            );
+                        });
+                    } else {
                         layer.as_widget().draw(
                             state,
                             renderer,
@@ -287,18 +336,15 @@ where
                             cursor,
                             &clipped_viewport,
                         );
-                    });
-                } else {
-                    layer.as_widget().draw(
-                        state,
-                        renderer,
-                        theme,
-                        style,
-                        layout,
-                        cursor,
-                        &clipped_viewport,
-                    );
-                }
+                    }
+                };
+
+            for (i, ((layer, state), layout)) in layers.take(layers_below) {
+                draw_layer(i, layer, state, layout, mouse::Cursor::Unavailable);
+            }
+
+            for (i, ((layer, state), layout)) in layers {
+                draw_layer(i, layer, state, layout, cursor);
             }
         }
     }

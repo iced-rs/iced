@@ -3,7 +3,8 @@
 mod null;
 
 use crate::{
-    Background, Border, Color, Rectangle, Shadow, Size, Transformation, Vector,
+    Background, Border, Color, Font, Pixels, Rectangle, Shadow, Size,
+    Transformation, Vector,
 };
 
 /// A component that can be used by widgets to draw themselves on a screen.
@@ -69,7 +70,7 @@ pub struct Quad {
     /// The bounds of the [`Quad`].
     pub bounds: Rectangle,
 
-    /// The [`Border`] of the [`Quad`].
+    /// The [`Border`] of the [`Quad`]. The border is drawn on the inside of the [`Quad`].
     pub border: Border,
 
     /// The [`Shadow`] of the [`Quad`].
@@ -99,4 +100,20 @@ impl Default for Style {
             text_color: Color::BLACK,
         }
     }
+}
+
+/// A headless renderer is a renderer that can render offscreen without
+/// a window nor a compositor.
+pub trait Headless {
+    /// Creates a new [`Headless`] renderer;
+    fn new(default_font: Font, default_text_size: Pixels) -> Self;
+
+    /// Draws offscreen into a screenshot, returning a collection of
+    /// bytes representing the rendered pixels in RGBA order.
+    fn screenshot(
+        &mut self,
+        size: Size<u32>,
+        scale_factor: f32,
+        background_color: Color,
+    ) -> Vec<u8>;
 }

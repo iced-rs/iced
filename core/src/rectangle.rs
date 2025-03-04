@@ -1,4 +1,4 @@
-use crate::{Point, Radians, Size, Vector};
+use crate::{Padding, Point, Radians, Size, Vector};
 
 /// An axis-aligned rectangle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -47,6 +47,62 @@ impl Rectangle<f32> {
         }
     }
 
+    /// Creates a new square [`Rectangle`] with the center at the origin and
+    /// with the given radius.
+    pub fn with_radius(radius: f32) -> Self {
+        Self {
+            x: -radius,
+            y: -radius,
+            width: radius * 2.0,
+            height: radius * 2.0,
+        }
+    }
+
+    /// Creates a new axis-aligned [`Rectangle`] from the given vertices; returning the
+    /// rotation in [`Radians`] that must be applied to the axis-aligned [`Rectangle`]
+    /// to obtain the desired result.
+    pub fn with_vertices(
+        top_left: Point,
+        top_right: Point,
+        bottom_left: Point,
+    ) -> (Rectangle, Radians) {
+        let width = (top_right.x - top_left.x).hypot(top_right.y - top_left.y);
+
+        let height =
+            (bottom_left.x - top_left.x).hypot(bottom_left.y - top_left.y);
+
+        let rotation =
+            (top_right.y - top_left.y).atan2(top_right.x - top_left.x);
+
+        let rotation = if rotation < 0.0 {
+            2.0 * std::f32::consts::PI + rotation
+        } else {
+            rotation
+        };
+
+        let position = {
+            let center = Point::new(
+                (top_right.x + bottom_left.x) / 2.0,
+                (top_right.y + bottom_left.y) / 2.0,
+            );
+
+            let rotation = -rotation - std::f32::consts::PI * 2.0;
+
+            Point::new(
+                center.x + (top_left.x - center.x) * rotation.cos()
+                    - (top_left.y - center.y) * rotation.sin(),
+                center.y
+                    + (top_left.x - center.x) * rotation.sin()
+                    + (top_left.y - center.y) * rotation.cos(),
+            )
+        };
+
+        (
+            Rectangle::new(position, Size::new(width, height)),
+            Radians(rotation),
+        )
+    }
+
     /// Returns the [`Point`] at the center of the [`Rectangle`].
     pub fn center(&self) -> Point {
         Point::new(self.center_x(), self.center_y())
@@ -85,6 +141,20 @@ impl Rectangle<f32> {
             && point.x < self.x + self.width
             && self.y <= point.y
             && point.y < self.y + self.height
+    }
+
+    /// Returns the minimum distance from the given [`Point`] to any of the edges
+    /// of the [`Rectangle`].
+    pub fn distance(&self, point: Point) -> f32 {
+        let center = self.center();
+
+        let distance_x =
+            ((point.x - center.x).abs() - self.width / 2.0).max(0.0);
+
+        let distance_y =
+            ((point.y - center.y).abs() - self.height / 2.0).max(0.0);
+
+        distance_x.hypot(distance_y)
     }
 
     /// Returns true if the current [`Rectangle`] is completely within the given
@@ -164,12 +234,26 @@ impl Rectangle<f32> {
     }
 
     /// Expands the [`Rectangle`] a given amount.
-    pub fn expand(self, amount: f32) -> Self {
+    pub fn expand(self, padding: impl Into<Padding>) -> Self {
+        let padding = padding.into();
+
         Self {
-            x: self.x - amount,
-            y: self.y - amount,
-            width: self.width + amount * 2.0,
-            height: self.height + amount * 2.0,
+            x: self.x - padding.left,
+            y: self.y - padding.top,
+            width: self.width + padding.horizontal(),
+            height: self.height + padding.vertical(),
+        }
+    }
+
+    /// Shrinks the [`Rectangle`] a given amount.
+    pub fn shrink(self, padding: impl Into<Padding>) -> Self {
+        let padding = padding.into();
+
+        Self {
+            x: self.x + padding.left,
+            y: self.y + padding.top,
+            width: self.width - padding.horizontal(),
+            height: self.height - padding.vertical(),
         }
     }
 

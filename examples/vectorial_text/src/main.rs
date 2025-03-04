@@ -1,12 +1,12 @@
-use iced::alignment::{self, Alignment};
+use iced::alignment;
 use iced::mouse;
 use iced::widget::{
     canvas, checkbox, column, horizontal_space, row, slider, text,
 };
-use iced::{Element, Length, Point, Rectangle, Renderer, Theme, Vector};
+use iced::{Center, Element, Fill, Point, Rectangle, Renderer, Theme, Vector};
 
 pub fn main() -> iced::Result {
-    iced::program(
+    iced::application(
         "Vectorial Text - Iced",
         VectorialText::update,
         VectorialText::view,
@@ -52,18 +52,14 @@ impl VectorialText {
     fn view(&self) -> Element<Message> {
         let slider_with_label = |label, range, value, message: fn(f32) -> _| {
             column![
-                row![
-                    text(label),
-                    horizontal_space(),
-                    text(format!("{:.2}", value))
-                ],
+                row![text(label), horizontal_space(), text!("{:.2}", value)],
                 slider(range, value, message).step(0.01)
             ]
             .spacing(2)
         };
 
         column![
-            canvas(&self.state).width(Length::Fill).height(Length::Fill),
+            canvas(&self.state).width(Fill).height(Fill),
             column![
                 checkbox("Use Japanese", self.state.use_japanese,)
                     .on_toggle(Message::ToggleJapanese),
@@ -89,7 +85,7 @@ impl VectorialText {
                 ]
                 .spacing(20),
             ]
-            .align_items(Alignment::Center)
+            .align_x(Center)
             .spacing(10)
         ]
         .spacing(10)

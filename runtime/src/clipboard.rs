@@ -1,80 +1,62 @@
 //! Access the clipboard.
-use crate::command::{self, Command};
 use crate::core::clipboard::Kind;
-use crate::futures::MaybeSend;
+use crate::futures::futures::channel::oneshot;
+use crate::task::{self, Task};
 
-use std::fmt;
-
-/// A clipboard action to be performed by some [`Command`].
+/// A clipboard action to be performed by some [`Task`].
 ///
-/// [`Command`]: crate::Command
-pub enum Action<T> {
+/// [`Task`]: crate::Task
+#[derive(Debug)]
+pub enum Action {
     /// Read the clipboard and produce `T` with the result.
-    Read(Box<dyn Fn(Option<String>) -> T>, Kind),
+    Read {
+        /// The clipboard target.
+        target: Kind,
+        /// The channel to send the read contents.
+        channel: oneshot::Sender<Option<String>>,
+    },
 
     /// Write the given contents to the clipboard.
-    Write(String, Kind),
-}
-
-impl<T> Action<T> {
-    /// Maps the output of a clipboard [`Action`] using the provided closure.
-    pub fn map<A>(
-        self,
-        f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
-    ) -> Action<A>
-    where
-        T: 'static,
-    {
-        match self {
-            Self::Read(o, target) => {
-                Action::Read(Box::new(move |s| f(o(s))), target)
-            }
-            Self::Write(content, target) => Action::Write(content, target),
-        }
-    }
-}
-
-impl<T> fmt::Debug for Action<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Read(_, target) => write!(f, "Action::Read{target:?}"),
-            Self::Write(_, target) => write!(f, "Action::Write({target:?})"),
-        }
-    }
+    Write {
+        /// The clipboard target.
+        target: Kind,
+        /// The contents to be written.
+        contents: String,
+    },
 }
 
 /// Read the current contents of the clipboard.
-pub fn read<Message>(
-    f: impl Fn(Option<String>) -> Message + 'static,
-) -> Command<Message> {
-    Command::single(command::Action::Clipboard(Action::Read(
-        Box::new(f),
-        Kind::Standard,
-    )))
+pub fn read() -> Task<Option<String>> {
+    task::oneshot(|channel| {
+        crate::Action::Clipboard(Action::Read {
+            target: Kind::Standard,
+            channel,
+        })
+    })
 }
 
 /// Read the current contents of the primary clipboard.
-pub fn read_primary<Message>(
-    f: impl Fn(Option<String>) -> Message + 'static,
-) -> Command<Message> {
-    Command::single(command::Action::Clipboard(Action::Read(
-        Box::new(f),
-        Kind::Primary,
-    )))
+pub fn read_primary() -> Task<Option<String>> {
+    task::oneshot(|channel| {
+        crate::Action::Clipboard(Action::Read {
+            target: Kind::Primary,
+            channel,
+        })
+    })
 }
 
 /// Write the given contents to the clipboard.
-pub fn write<Message>(contents: String) -> Command<Message> {
-    Command::single(command::Action::Clipboard(Action::Write(
+pub fn write<T>(contents: String) -> Task<T> {
+    task::effect(crate::Action::Clipboard(Action::Write {
+        target: Kind::Standard,
         contents,
-        Kind::Standard,
-    )))
+    }))
 }
 
 /// Write the given contents to the primary clipboard.
-pub fn write_primary<Message>(contents: String) -> Command<Message> {
-    Command::single(command::Action::Clipboard(Action::Write(
+pub fn write_primary<Message>(contents: String) -> Task<Message> {
+    task::effect(crate::Action::Clipboard(Action::Write {
+        target: Kind::Primary,
         contents,
-        Kind::Primary,
-    )))
+    }))
 }

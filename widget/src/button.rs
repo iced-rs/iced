@@ -1,48 +1,71 @@
-//! Allow your users to perform actions by pressing a button.
-use crate::core::event::{self, Event};
+//! Buttons allow your users to perform actions by pressing them.
+//!
+//! # Example
+//! ```no_run
+//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # pub type State = ();
+//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! use iced::widget::button;
+//!
+//! #[derive(Clone)]
+//! enum Message {
+//!     ButtonPressed,
+//! }
+//!
+//! fn view(state: &State) -> Element<'_, Message> {
+//!     button("Press me!").on_press(Message::ButtonPressed).into()
+//! }
+//! ```
+use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme::palette;
 use crate::core::touch;
-use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
+use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Padding,
     Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 /// A generic widget that produces a message when pressed.
 ///
+/// # Example
 /// ```no_run
-/// # type Button<'a, Message> = iced_widget::Button<'a, Message>;
-/// #
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::button;
+///
 /// #[derive(Clone)]
 /// enum Message {
 ///     ButtonPressed,
 /// }
 ///
-/// let button = Button::new("Press me!").on_press(Message::ButtonPressed);
+/// fn view(state: &State) -> Element<'_, Message> {
+///     button("Press me!").on_press(Message::ButtonPressed).into()
+/// }
 /// ```
 ///
 /// If a [`Button::on_press`] handler is not set, the resulting [`Button`] will
 /// be disabled:
 ///
-/// ```
-/// # type Button<'a, Message> = iced_widget::Button<'a, Message>;
-/// #
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::button;
+///
 /// #[derive(Clone)]
 /// enum Message {
 ///     ButtonPressed,
 /// }
 ///
-/// fn disabled_button<'a>() -> Button<'a, Message> {
-///     Button::new("I'm disabled!")
-/// }
-///
-/// fn enabled_button<'a>() -> Button<'a, Message> {
-///     disabled_button().on_press(Message::ButtonPressed)
+/// fn view(state: &State) -> Element<'_, Message> {
+///     button("I am disabled!").into()
 /// }
 /// ```
 #[allow(missing_debug_implementations)]
@@ -52,12 +75,27 @@ where
     Theme: Catalog,
 {
     content: Element<'a, Message, Theme, Renderer>,
-    on_press: Option<Message>,
+    on_press: Option<OnPress<'a, Message>>,
     width: Length,
     height: Length,
     padding: Padding,
     clip: bool,
     class: Theme::Class<'a>,
+    status: Option<Status>,
+}
+
+enum OnPress<'a, Message> {
+    Direct(Message),
+    Closure(Box<dyn Fn() -> Message + 'a>),
+}
+
+impl<Message: Clone> OnPress<'_, Message> {
+    fn get(&self) -> Message {
+        match self {
+            OnPress::Direct(message) => message.clone(),
+            OnPress::Closure(f) => f(),
+        }
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
@@ -80,6 +118,7 @@ where
             padding: DEFAULT_PADDING,
             clip: false,
             class: Theme::default(),
+            status: None,
         }
     }
 
@@ -105,7 +144,23 @@ where
     ///
     /// Unless `on_press` is called, the [`Button`] will be disabled.
     pub fn on_press(mut self, on_press: Message) -> Self {
-        self.on_press = Some(on_press);
+        self.on_press = Some(OnPress::Direct(on_press));
+        self
+    }
+
+    /// Sets the message that will be produced when the [`Button`] is pressed.
+    ///
+    /// This is analogous to [`Button::on_press`], but using a closure to produce
+    /// the message.
+    ///
+    /// This closure will only be called when the [`Button`] is actually pressed and,
+    /// therefore, this method is useful to reduce overhead if creating the resulting
+    /// message is slow.
+    pub fn on_press_with(
+        mut self,
+        on_press: impl Fn() -> Message + 'a,
+    ) -> Self {
+        self.on_press = Some(OnPress::Closure(Box::new(on_press)));
         self
     }
 
@@ -114,7 +169,7 @@ where
     ///
     /// If `None`, the [`Button`] will be disabled.
     pub fn on_press_maybe(mut self, on_press: Option<Message>) -> Self {
-        self.on_press = on_press;
+        self.on_press = on_press.map(OnPress::Direct);
         self
     }
 
@@ -205,7 +260,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
@@ -217,28 +272,30 @@ where
         });
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
-        if let event::Status::Captured = self.content.as_widget_mut().on_event(
+    ) {
+        self.content.as_widget_mut().update(
             &mut tree.children[0],
-            event.clone(),
+            event,
             layout.children().next().unwrap(),
             cursor,
             renderer,
             clipboard,
             shell,
             viewport,
-        ) {
-            return event::Status::Captured;
+        );
+
+        if shell.is_event_captured() {
+            return;
         }
 
         match event {
@@ -252,13 +309,13 @@ where
 
                         state.is_pressed = true;
 
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. }) => {
-                if let Some(on_press) = self.on_press.clone() {
+                if let Some(on_press) = &self.on_press {
                     let state = tree.state.downcast_mut::<State>();
 
                     if state.is_pressed {
@@ -267,10 +324,10 @@ where
                         let bounds = layout.bounds();
 
                         if cursor.is_over(bounds) {
-                            shell.publish(on_press);
+                            shell.publish(on_press.get());
                         }
 
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
             }
@@ -282,7 +339,25 @@ where
             _ => {}
         }
 
-        event::Status::Ignored
+        let current_status = if self.on_press.is_none() {
+            Status::Disabled
+        } else if cursor.is_over(layout.bounds()) {
+            let state = tree.state.downcast_ref::<State>();
+
+            if state.is_pressed {
+                Status::Pressed
+            } else {
+                Status::Hovered
+            }
+        } else {
+            Status::Active
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.status = Some(current_status);
+        } else if self.status.is_some_and(|status| status != current_status) {
+            shell.request_redraw();
+        }
     }
 
     fn draw(
@@ -297,23 +372,8 @@ where
     ) {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
-        let is_mouse_over = cursor.is_over(bounds);
-
-        let status = if self.on_press.is_none() {
-            Status::Disabled
-        } else if is_mouse_over {
-            let state = tree.state.downcast_ref::<State>();
-
-            if state.is_pressed {
-                Status::Pressed
-            } else {
-                Status::Hovered
-            }
-        } else {
-            Status::Active
-        };
-
-        let style = theme.style(&self.class, status);
+        let style =
+            theme.style(&self.class, self.status.unwrap_or(Status::Disabled));
 
         if style.background.is_some()
             || style.border.width > 0.0
@@ -417,15 +477,18 @@ pub enum Status {
 }
 
 /// The style of a button.
+///
+/// If not specified with [`Button::style`]
+/// the theme will provide the style.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`Background`] of the button.
     pub background: Option<Background>,
     /// The text [`Color`] of the button.
     pub text_color: Color,
-    /// The [`Border`] of the buton.
+    /// The [`Border`] of the button.
     pub border: Border,
-    /// The [`Shadow`] of the butoon.
+    /// The [`Shadow`] of the button.
     pub shadow: Shadow,
 }
 
@@ -451,6 +514,54 @@ impl Default for Style {
 }
 
 /// The theme catalog of a [`Button`].
+///
+/// All themes that can be used with [`Button`]
+/// must implement this trait.
+///
+/// # Example
+/// ```no_run
+/// # use iced_widget::core::{Color, Background};
+/// # use iced_widget::button::{Catalog, Status, Style};
+/// # struct MyTheme;
+/// #[derive(Debug, Default)]
+/// pub enum ButtonClass {
+///     #[default]
+///     Primary,
+///     Secondary,
+///     Danger
+/// }
+///
+/// impl Catalog for MyTheme {
+///     type Class<'a> = ButtonClass;
+///     
+///     fn default<'a>() -> Self::Class<'a> {
+///         ButtonClass::default()
+///     }
+///     
+///
+///     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+///         let mut style = Style::default();
+///
+///         match class {
+///             ButtonClass::Primary => {
+///                 style.background = Some(Background::Color(Color::from_rgb(0.529, 0.808, 0.921)));
+///             },
+///             ButtonClass::Secondary => {
+///                 style.background = Some(Background::Color(Color::WHITE));
+///             },
+///             ButtonClass::Danger => {
+///                 style.background = Some(Background::Color(Color::from_rgb(0.941, 0.502, 0.502)));
+///             },
+///         }
+///
+///         style
+///     }
+/// }
+/// ```
+///
+/// Although, in order to use [`Button::style`]
+/// with `MyTheme`, [`Catalog::Class`] must implement
+/// `From<StyleFn<'_, MyTheme>>`.
 pub trait Catalog {
     /// The item class of the [`Catalog`].
     type Class<'a>;
@@ -480,12 +591,12 @@ impl Catalog for Theme {
 /// A primary button; denoting a main action.
 pub fn primary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
-    let base = styled(palette.primary.strong);
+    let base = styled(palette.primary.base);
 
     match status {
         Status::Active | Status::Pressed => base,
         Status::Hovered => Style {
-            background: Some(Background::Color(palette.primary.base.color)),
+            background: Some(Background::Color(palette.primary.strong.color)),
             ..base
         },
         Status::Disabled => disabled(base),
@@ -516,6 +627,21 @@ pub fn success(theme: &Theme, status: Status) -> Style {
         Status::Active | Status::Pressed => base,
         Status::Hovered => Style {
             background: Some(Background::Color(palette.success.strong.color)),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
+/// A warning button; denoting a risky action.
+pub fn warning(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
+    let base = styled(palette.warning.base);
+
+    match status {
+        Status::Active | Status::Pressed => base,
+        Status::Hovered => Style {
+            background: Some(Background::Color(palette.warning.strong.color)),
             ..base
         },
         Status::Disabled => disabled(base),
@@ -560,7 +686,7 @@ fn styled(pair: palette::Pair) -> Style {
     Style {
         background: Some(Background::Color(pair.color)),
         text_color: pair.text,
-        border: Border::rounded(2),
+        border: border::rounded(2),
         ..Style::default()
     }
 }

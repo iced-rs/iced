@@ -2,7 +2,7 @@
 name = "pokedex"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]
@@ -16,9 +16,8 @@ version = "1.0"
 features = ["derive"]
 
 [dependencies.reqwest]
-version = "0.11"
-default-features = false
-features = ["json", "rustls-tls"]
+version = "0.12"
+features = ["json"]
 
 [dependencies.rand]
 version = "0.8"

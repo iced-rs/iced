@@ -1,11 +1,11 @@
 use crate::core::{
-    renderer, Background, Color, Point, Radians, Rectangle, Transformation,
+    self, Background, Color, Point, Rectangle, Svg, Transformation, renderer,
 };
 use crate::graphics;
+use crate::graphics::Mesh;
 use crate::graphics::color;
 use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph};
-use crate::graphics::Mesh;
 use crate::image::{self, Image};
 use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};
@@ -20,8 +20,8 @@ pub struct Layer {
     pub quads: quad::Batch,
     pub triangles: triangle::Batch,
     pub primitives: primitive::Batch,
-    pub text: text::Batch,
     pub images: image::Batch,
+    pub text: text::Batch,
     pending_meshes: Vec<Mesh>,
     pending_text: Vec<Text>,
 }
@@ -112,42 +112,35 @@ impl Layer {
         self.pending_text.push(text);
     }
 
-    pub fn draw_image(
+    pub fn draw_image(&mut self, image: Image, transformation: Transformation) {
+        match image {
+            Image::Raster(image, bounds) => {
+                self.draw_raster(image, bounds, transformation);
+            }
+            Image::Vector(svg, bounds) => {
+                self.draw_svg(svg, bounds, transformation);
+            }
+        }
+    }
+
+    pub fn draw_raster(
         &mut self,
-        handle: crate::core::image::Handle,
-        filter_method: crate::core::image::FilterMethod,
+        image: core::Image,
         bounds: Rectangle,
         transformation: Transformation,
-        rotation: Radians,
-        opacity: f32,
     ) {
-        let image = Image::Raster {
-            handle,
-            filter_method,
-            bounds: bounds * transformation,
-            rotation,
-            opacity,
-        };
+        let image = Image::Raster(image, bounds * transformation);
 
         self.images.push(image);
     }
 
     pub fn draw_svg(
         &mut self,
-        handle: crate::core::svg::Handle,
-        color: Option<Color>,
+        svg: Svg,
         bounds: Rectangle,
         transformation: Transformation,
-        rotation: Radians,
-        opacity: f32,
     ) {
-        let svg = Image::Vector {
-            handle,
-            color,
-            bounds: bounds * transformation,
-            rotation,
-            opacity,
-        };
+        let svg = Image::Vector(svg, bounds * transformation);
 
         self.images.push(svg);
     }

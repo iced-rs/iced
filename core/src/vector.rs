@@ -18,9 +18,17 @@ impl<T> Vector<T> {
 impl Vector {
     /// The zero [`Vector`].
     pub const ZERO: Self = Self::new(0.0, 0.0);
+}
 
-    /// The unit [`Vector`].
-    pub const UNIT: Self = Self::new(0.0, 0.0);
+impl<T> std::ops::Neg for Vector<T>
+where
+    T: std::ops::Neg<Output = T>,
+{
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self::new(-self.x, -self.y)
+    }
 }
 
 impl<T> std::ops::Add for Vector<T>

@@ -2,7 +2,7 @@
 name = "loading_spinners"
 version = "0.1.0"
 authors = ["Nick Senger <dev@nsenger.com>"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]
@@ -10,4 +10,3 @@ iced.workspace = true
 iced.features = ["advanced", "canvas"]
 
 lyon_algorithms = "1.0"
-once_cell.workspace = true
