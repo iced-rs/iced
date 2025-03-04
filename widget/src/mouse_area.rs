@@ -237,10 +237,6 @@ where
             viewport,
         );
 
-        if shell.is_event_captured() {
-            return;
-        }
-
         update(self, tree, event, layout, cursor, shell);
     }
 
@@ -260,12 +256,8 @@ where
             renderer,
         );
 
-        match (self.interaction, content_interaction) {
-            (Some(interaction), mouse::Interaction::None)
-                if cursor.is_over(layout.bounds()) =>
-            {
-                interaction
-            }
+        match self.interaction {
+            Some(interaction) if cursor.is_over(layout.bounds()) => interaction,
             _ => content_interaction,
         }
     }
