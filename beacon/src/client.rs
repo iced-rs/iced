@@ -9,8 +9,8 @@ use tokio::net;
 use tokio::sync::mpsc;
 use tokio::time;
 
-use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
+use std::sync::atomic::{self, AtomicBool};
 use std::thread;
 
 pub const SERVER_ADDRESS: &str = "127.0.0.1:9167";

@@ -1,6 +1,6 @@
+use futures::Future;
 use futures::channel::mpsc;
 use futures::stream::{self, Stream, StreamExt};
-use futures::Future;
 
 pub fn channel<T, F>(f: impl Fn(mpsc::Sender<T>) -> F) -> impl Stream<Item = T>
 where
