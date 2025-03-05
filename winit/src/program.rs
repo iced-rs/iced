@@ -6,6 +6,7 @@ pub use state::State;
 
 use crate::conversion;
 use crate::core;
+use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::theme;
@@ -68,6 +69,9 @@ where
 
     /// The data needed to initialize your [`Program`].
     type Flags;
+
+    /// Returns the unique name of the [`Program`].
+    fn name() -> &'static str;
 
     /// Initializes the [`Program`] with the flags provided to
     /// [`run`] as part of the [`Settings`].
@@ -153,6 +157,8 @@ where
     P::Theme: theme::Base,
 {
     use winit::event_loop::EventLoop;
+
+    debug::init(P::name());
 
     let boot_span = debug::boot();
 
@@ -973,6 +979,20 @@ async fn run_instance<P, C>(
                                 window.state.scale_factor(),
                                 window.state.modifiers(),
                             ) {
+                                if matches!(
+                                    event,
+                                    core::Event::Keyboard(
+                                        keyboard::Event::KeyPressed {
+                                            modified_key: keyboard::Key::Named(
+                                                keyboard::key::Named::F12
+                                            ),
+                                            ..
+                                        }
+                                    )
+                                ) {
+                                    debug::toggle_comet();
+                                }
+
                                 events.push((id, event));
                             }
                         }

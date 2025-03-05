@@ -110,6 +110,10 @@ pub trait Program: Sized {
             type Flags = (P, I);
             type Executor = P::Executor;
 
+            fn name() -> &'static str {
+                std::any::type_name::<P::State>()
+            }
+
             fn new(
                 (program, initialize): Self::Flags,
             ) -> (Self, Task<Self::Message>) {
