@@ -179,7 +179,7 @@ impl Markdown {
             .height(Fill)
             .padding(10)
             .font(Font::MONOSPACE)
-            .highlight("markdown", highlighter::Theme::Base16Ocean);
+            .highlight("markdown", highlighter::Theme::Base16OceanDark);
 
         let preview = markdown::view_with(
             self.content.items(),
