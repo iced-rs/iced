@@ -288,6 +288,10 @@ impl graphics::Compositor for Compositor {
                     settings.present_mode = present_mode;
                 }
 
+                if !wgpu::util::is_browser_webgpu_supported().await {
+                    settings.backends = wgpu::Backends::GL;
+                }
+
                 Ok(new(settings, compatible_window).await?)
             }
             Some(backend) => Err(graphics::Error::GraphicsAdapterNotFound {
