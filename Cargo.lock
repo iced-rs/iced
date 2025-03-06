@@ -2510,6 +2510,7 @@ dependencies = [
  "iced_winit",
  "image",
  "thiserror 1.0.69",
+ "wgpu",
 ]
 
 [[package]]
