@@ -56,6 +56,8 @@
 //!     column![a, b, c, all].into()
 //! }
 //! ```
+use std::time::Duration;
+
 use crate::core::alignment;
 use crate::core::animation::{Animation, Easing};
 use crate::core::border::{self, Border};
@@ -286,11 +288,7 @@ where
 {
     /// Whether there is an active animation.
     fn is_animating(&self) -> bool {
-        if cfg!(feature = "animations") {
-            self.scale_in.is_animating(self.now)
-        } else {
-            false
-        }
+        self.scale_in.is_animating(self.now)
     }
 }
 
@@ -310,7 +308,11 @@ where
             now: Instant::now(),
             scale_in: Animation::new(self.is_selected)
                 .easing(Easing::EaseInOut)
-                .quick(),
+                .duration(if cfg!(feature = "animations") {
+                    Duration::from_millis(200)
+                } else {
+                    Duration::ZERO
+                }),
             text_state: widget::text::State::default(),
         })
     }
@@ -468,16 +470,9 @@ where
 
             let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
             if self.is_selected || state.is_animating() {
-                let dot_size = if cfg!(feature = "animations") {
-                    state.scale_in.interpolate(0.0, dot_size, state.now)
-                } else {
-                    dot_size
-                };
-                let alpha = if cfg!(feature = "animations") {
-                    state.scale_in.interpolate(0.0, 1.0, state.now)
-                } else {
-                    1.0
-                };
+                let dot_size =
+                    state.scale_in.interpolate(0.0, dot_size, state.now);
+                let alpha = state.scale_in.interpolate(0.0, 1.0, state.now);
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: Rectangle {
