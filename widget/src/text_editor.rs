@@ -33,6 +33,7 @@
 //! ```
 use crate::core::alignment;
 use crate::core::clipboard::{self, Clipboard};
+use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
@@ -46,16 +47,18 @@ use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Size, SmolStr, Theme, Vector,
+    Background, Border, Color, Element, Event, InputMethod, Length, Padding,
+    Pixels, Point, Rectangle, Shell, Size, SmolStr, Theme, Vector,
 };
 
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::fmt;
 use std::ops::DerefMut;
+use std::ops::Range;
 use std::sync::Arc;
 
-pub use text::editor::{Action, Edit, Motion};
+pub use text::editor::{Action, Edit, Line, LineEnding, Motion};
 
 /// A multi-line text input.
 ///
@@ -109,6 +112,8 @@ pub struct TextEditor<
     line_height: LineHeight,
     width: Length,
     height: Length,
+    min_height: f32,
+    max_height: f32,
     padding: Padding,
     wrapping: Wrapping,
     class: Theme::Class<'a>,
@@ -138,6 +143,8 @@ where
             line_height: LineHeight::default(),
             width: Length::Fill,
             height: Length::Shrink,
+            min_height: 0.0,
+            max_height: f32::INFINITY,
             padding: Padding::new(5.0),
             wrapping: Wrapping::default(),
             class: Theme::default(),
@@ -168,15 +175,27 @@ where
         self
     }
 
+    /// Sets the width of the [`TextEditor`].
+    pub fn width(mut self, width: impl Into<Pixels>) -> Self {
+        self.width = Length::from(width.into());
+        self
+    }
+
     /// Sets the height of the [`TextEditor`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
         self.height = height.into();
         self
     }
 
-    /// Sets the width of the [`TextEditor`].
-    pub fn width(mut self, width: impl Into<Pixels>) -> Self {
-        self.width = Length::from(width.into());
+    /// Sets the minimum height of the [`TextEditor`].
+    pub fn min_height(mut self, min_height: impl Into<Pixels>) -> Self {
+        self.min_height = min_height.into().0;
+        self
+    }
+
+    /// Sets the maximum height of the [`TextEditor`].
+    pub fn max_height(mut self, max_height: impl Into<Pixels>) -> Self {
+        self.max_height = max_height.into().0;
         self
     }
 
@@ -264,6 +283,8 @@ where
             line_height: self.line_height,
             width: self.width,
             height: self.height,
+            min_height: self.min_height,
+            max_height: self.max_height,
             padding: self.padding,
             wrapping: self.wrapping,
             class: self.class,
@@ -302,6 +323,47 @@ where
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
         self.class = class.into();
         self
+    }
+
+    fn input_method<'b>(
+        &self,
+        state: &'b State<Highlighter>,
+        renderer: &Renderer,
+        layout: Layout<'_>,
+    ) -> InputMethod<&'b str> {
+        let Some(Focus {
+            is_window_focused: true,
+            ..
+        }) = &state.focus
+        else {
+            return InputMethod::Disabled;
+        };
+
+        let bounds = layout.bounds();
+        let internal = self.content.0.borrow_mut();
+
+        let text_bounds = bounds.shrink(self.padding);
+        let translation = text_bounds.position() - Point::ORIGIN;
+
+        let cursor = match internal.editor.cursor() {
+            Cursor::Caret(position) => position,
+            Cursor::Selection(ranges) => {
+                ranges.first().cloned().unwrap_or_default().position()
+            }
+        };
+
+        let line_height = self.line_height.to_absolute(
+            self.text_size.unwrap_or_else(|| renderer.default_size()),
+        );
+
+        let position =
+            cursor + translation + Vector::new(0.0, f32::from(line_height));
+
+        InputMethod::Enabled {
+            position,
+            purpose: input_method::Purpose::Normal,
+            preedit: state.preedit.as_ref().map(input_method::Preedit::as_ref),
+        }
     }
 }
 
@@ -349,69 +411,47 @@ where
     }
 
     /// Returns the text of the line at the given index, if it exists.
-    pub fn line(
-        &self,
-        index: usize,
-    ) -> Option<impl std::ops::Deref<Target = str> + '_> {
-        std::cell::Ref::filter_map(self.0.borrow(), |internal| {
-            internal.editor.line(index)
+    pub fn line(&self, index: usize) -> Option<Line<'_>> {
+        let internal = self.0.borrow();
+        let line = internal.editor.line(index)?;
+
+        Some(Line {
+            text: Cow::Owned(line.text.into_owned()),
+            ending: line.ending,
         })
-        .ok()
     }
 
     /// Returns an iterator of the text of the lines in the [`Content`].
-    pub fn lines(
-        &self,
-    ) -> impl Iterator<Item = impl std::ops::Deref<Target = str> + '_> {
-        struct Lines<'a, Renderer: text::Renderer> {
-            internal: std::cell::Ref<'a, Internal<Renderer>>,
-            current: usize,
-        }
-
-        impl<'a, Renderer: text::Renderer> Iterator for Lines<'a, Renderer> {
-            type Item = std::cell::Ref<'a, str>;
-
-            fn next(&mut self) -> Option<Self::Item> {
-                let line = std::cell::Ref::filter_map(
-                    std::cell::Ref::clone(&self.internal),
-                    |internal| internal.editor.line(self.current),
-                )
-                .ok()?;
-
-                self.current += 1;
-
-                Some(line)
-            }
-        }
-
-        Lines {
-            internal: self.0.borrow(),
-            current: 0,
-        }
+    pub fn lines(&self) -> impl Iterator<Item = Line<'_>> {
+        (0..)
+            .map(|i| self.line(i))
+            .take_while(Option::is_some)
+            .flatten()
     }
 
     /// Returns the text of the [`Content`].
-    ///
-    /// Lines are joined with `'\n'`.
     pub fn text(&self) -> String {
-        let mut text = self.lines().enumerate().fold(
-            String::new(),
-            |mut contents, (i, line)| {
-                if i > 0 {
-                    contents.push('\n');
-                }
+        let mut contents = String::new();
+        let mut lines = self.lines().peekable();
 
-                contents.push_str(&line);
+        while let Some(line) = lines.next() {
+            contents.push_str(&line.text);
 
-                contents
-            },
-        );
-
-        if !text.ends_with('\n') {
-            text.push('\n');
+            if lines.peek().is_some() {
+                contents.push_str(if line.ending == LineEnding::None {
+                    LineEnding::default().as_str()
+                } else {
+                    line.ending.as_str()
+                });
+            }
         }
 
-        text
+        contents
+    }
+
+    /// Returns the kind of [`LineEnding`] used for separating lines in the [`Content`].
+    pub fn line_ending(&self) -> Option<LineEnding> {
+        Some(self.line(0)?.ending)
     }
 
     /// Returns the selected text of the [`Content`].
@@ -453,6 +493,7 @@ where
 #[derive(Debug)]
 pub struct State<Highlighter: text::Highlighter> {
     focus: Option<Focus>,
+    preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
     partial_scroll: f32,
@@ -461,7 +502,7 @@ pub struct State<Highlighter: text::Highlighter> {
     highlighter_format_address: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct Focus {
     updated_at: Instant,
     now: Instant,
@@ -527,6 +568,7 @@ where
     fn state(&self) -> widget::tree::State {
         widget::tree::State::new(State {
             focus: None,
+            preedit: None,
             last_click: None,
             drag_click: None,
             partial_scroll: 0.0,
@@ -570,7 +612,11 @@ where
             state.highlighter_settings = self.highlighter_settings.clone();
         }
 
-        let limits = limits.width(self.width).height(self.height);
+        let limits = limits
+            .width(self.width)
+            .height(self.height)
+            .min_height(self.min_height)
+            .max_height(self.max_height);
 
         internal.editor.update(
             limits.shrink(self.padding).max(),
@@ -601,10 +647,10 @@ where
     fn update(
         &mut self,
         tree: &mut widget::Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _renderer: &Renderer,
+        renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
@@ -636,17 +682,18 @@ where
             Event::Window(window::Event::RedrawRequested(now)) => {
                 if let Some(focus) = &mut state.focus {
                     if focus.is_window_focused {
-                        focus.now = now;
+                        focus.now = *now;
 
                         let millis_until_redraw =
                             Focus::CURSOR_BLINK_INTERVAL_MILLIS
-                                - (now - focus.updated_at).as_millis()
+                                - (focus.now - focus.updated_at).as_millis()
                                     % Focus::CURSOR_BLINK_INTERVAL_MILLIS;
 
                         shell.request_redraw_at(
-                            now + Duration::from_millis(
-                                millis_until_redraw as u64,
-                            ),
+                            focus.now
+                                + Duration::from_millis(
+                                    millis_until_redraw as u64,
+                                ),
                         );
                     }
                 }
@@ -700,6 +747,28 @@ where
                     }));
                     shell.capture_event();
                 }
+                Update::InputMethod(update) => match update {
+                    Ime::Toggle(is_open) => {
+                        state.preedit =
+                            is_open.then(input_method::Preedit::new);
+
+                        shell.request_redraw();
+                    }
+                    Ime::Preedit { content, selection } => {
+                        state.preedit = Some(input_method::Preedit {
+                            content,
+                            selection,
+                            text_size: self.text_size,
+                        });
+
+                        shell.request_redraw();
+                    }
+                    Ime::Commit(text) => {
+                        shell.publish(on_edit(Action::Edit(Edit::Paste(
+                            Arc::new(text),
+                        ))));
+                    }
+                },
                 Update::Binding(binding) => {
                     fn apply_binding<
                         H: text::Highlighter,
@@ -789,6 +858,10 @@ where
                         }
                     }
 
+                    if !matches!(binding, Binding::Unfocus) {
+                        shell.capture_event();
+                    }
+
                     apply_binding(
                         binding,
                         self.content,
@@ -801,8 +874,6 @@ where
                     if let Some(focus) = &mut state.focus {
                         focus.updated_at = Instant::now();
                     }
-
-                    shell.capture_event();
                 }
             }
         }
@@ -824,6 +895,10 @@ where
 
         if is_redraw {
             self.last_status = Some(status);
+
+            shell.request_input_method(
+                &self.input_method(state, renderer, layout),
+            );
         } else if self
             .last_status
             .is_some_and(|last_status| status != last_status)
@@ -1126,12 +1201,22 @@ enum Update<Message> {
     Drag(Point),
     Release,
     Scroll(f32),
+    InputMethod(Ime),
     Binding(Binding<Message>),
+}
+
+enum Ime {
+    Toggle(bool),
+    Preedit {
+        content: String,
+        selection: Option<Range<usize>>,
+    },
+    Commit(String),
 }
 
 impl<Message> Update<Message> {
     fn from_event<H: Highlighter>(
-        event: Event,
+        event: &Event,
         state: &State<H>,
         bounds: Rectangle,
         padding: Padding,
@@ -1188,6 +1273,28 @@ impl<Message> Update<Message> {
                 }
                 _ => None,
             },
+            Event::InputMethod(event) => match event {
+                input_method::Event::Opened | input_method::Event::Closed => {
+                    Some(Update::InputMethod(Ime::Toggle(matches!(
+                        event,
+                        input_method::Event::Opened
+                    ))))
+                }
+                input_method::Event::Preedit(content, selection)
+                    if state.focus.is_some() =>
+                {
+                    Some(Update::InputMethod(Ime::Preedit {
+                        content: content.clone(),
+                        selection: selection.clone(),
+                    }))
+                }
+                input_method::Event::Commit(content)
+                    if state.focus.is_some() =>
+                {
+                    Some(Update::InputMethod(Ime::Commit(content.clone())))
+                }
+                _ => None,
+            },
             Event::Keyboard(keyboard::Event::KeyPressed {
                 key,
                 modifiers,
@@ -1203,9 +1310,9 @@ impl<Message> Update<Message> {
                 };
 
                 let key_press = KeyPress {
-                    key,
-                    modifiers,
-                    text,
+                    key: key.clone(),
+                    modifiers: *modifiers,
+                    text: text.clone(),
                     status,
                 };
 

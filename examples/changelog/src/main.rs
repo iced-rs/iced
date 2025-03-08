@@ -267,25 +267,21 @@ impl Generator {
                     } => {
                         let details = {
                             let title = rich_text![
-                                span(&pull_request.title).size(24).link(
-                                    Message::OpenPullRequest(pull_request.id)
-                                ),
+                                span(&pull_request.title)
+                                    .size(24)
+                                    .link(pull_request.id),
                                 span(format!(" by {}", pull_request.author))
                                     .font(Font {
                                         style: font::Style::Italic,
                                         ..Font::default()
                                     }),
                             ]
+                            .on_link_click(Message::OpenPullRequest)
                             .font(Font::MONOSPACE);
 
-                            let description = markdown::view(
-                                description,
-                                markdown::Settings::default(),
-                                markdown::Style::from_palette(
-                                    self.theme().palette(),
-                                ),
-                            )
-                            .map(Message::UrlClicked);
+                            let description =
+                                markdown(description, self.theme())
+                                    .map(Message::UrlClicked);
 
                             let labels =
                                 row(pull_request.labels.iter().map(|label| {
@@ -348,11 +344,11 @@ impl Generator {
                 } else {
                     container(
                         scrollable(
-                            markdown::view(
+                            markdown(
                                 preview,
-                                markdown::Settings::with_text_size(12),
-                                markdown::Style::from_palette(
-                                    self.theme().palette(),
+                                markdown::Settings::with_text_size(
+                                    12,
+                                    self.theme(),
                                 ),
                             )
                             .map(Message::UrlClicked),

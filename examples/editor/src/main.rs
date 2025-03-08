@@ -1,8 +1,8 @@
 use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
-    self, button, column, container, horizontal_space, pick_list, row, text,
-    text_editor, toggler, tooltip,
+    self, button, center_x, column, container, horizontal_space, pick_list,
+    row, text, text_editor, toggler, tooltip,
 };
 use iced::{Center, Element, Fill, Font, Task, Theme};
 
@@ -117,8 +117,16 @@ impl Editor {
                 } else {
                     self.is_loading = true;
 
+                    let mut text = self.content.text();
+
+                    if let Some(ending) = self.content.line_ending() {
+                        if !text.ends_with(ending.as_str()) {
+                            text.push_str(ending.as_str());
+                        }
+                    }
+
                     Task::perform(
-                        save_file(self.file.clone(), self.content.text()),
+                        save_file(self.file.clone(), text),
                         Message::FileSaved,
                     )
                 }
@@ -288,7 +296,7 @@ fn action<'a, Message: Clone + 'a>(
     label: &'a str,
     on_press: Option<Message>,
 ) -> Element<'a, Message> {
-    let action = button(container(content).center_x(30));
+    let action = button(center_x(content).width(30));
 
     if let Some(on_press) = on_press {
         tooltip(

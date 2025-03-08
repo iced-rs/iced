@@ -1,5 +1,7 @@
 use iced::keyboard;
-use iced::widget::{button, column, container, image, row, text, text_input};
+use iced::widget::{
+    button, center_y, column, container, image, row, text, text_input,
+};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
 use iced::{
@@ -131,8 +133,8 @@ impl Example {
                 text("Press the button to take a screenshot!").into()
             };
 
-        let image = container(image)
-            .center_y(FillPortion(2))
+        let image = center_y(image)
+            .height(FillPortion(2))
             .padding(10)
             .style(container::rounded_box);
 
@@ -211,7 +213,7 @@ impl Example {
             .spacing(40)
         };
 
-        let side_content = container(controls).center_y(Fill);
+        let side_content = center_y(controls);
 
         let content = row![side_content, image]
             .spacing(10)

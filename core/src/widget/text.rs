@@ -304,7 +304,7 @@ where
         let size = size.unwrap_or_else(|| renderer.default_size());
         let font = font.unwrap_or_else(|| renderer.default_font());
 
-        let State(ref mut paragraph) = state;
+        let State(paragraph) = state;
 
         paragraph.update(text::Text {
             content,

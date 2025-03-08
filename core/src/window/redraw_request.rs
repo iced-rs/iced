@@ -8,6 +8,15 @@ pub enum RedrawRequest {
 
     /// Redraw at the given time.
     At(Instant),
+
+    /// No redraw is needed.
+    Wait,
+}
+
+impl From<Instant> for RedrawRequest {
+    fn from(time: Instant) -> Self {
+        Self::At(time)
+    }
 }
 
 #[cfg(test)]
@@ -34,5 +43,8 @@ mod tests {
         assert!(RedrawRequest::At(now) <= RedrawRequest::At(now));
         assert!(RedrawRequest::At(now) <= RedrawRequest::At(later));
         assert!(RedrawRequest::At(later) >= RedrawRequest::At(now));
+
+        assert!(RedrawRequest::Wait > RedrawRequest::NextFrame);
+        assert!(RedrawRequest::Wait > RedrawRequest::At(later));
     }
 }

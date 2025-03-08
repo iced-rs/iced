@@ -1,15 +1,16 @@
 //! Create runtime tasks.
+use crate::Action;
 use crate::core::widget;
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::future::{self, FutureExt};
-use crate::futures::futures::never::Never;
 use crate::futures::futures::stream::{self, Stream, StreamExt};
-use crate::futures::{boxed_stream, BoxStream, MaybeSend};
-use crate::Action;
+use crate::futures::{BoxStream, MaybeSend, boxed_stream};
 
-use std::future::Future;
 use std::sync::Arc;
+
+#[doc(no_inline)]
+pub use sipper::{Never, Sender, Sipper, Straw, sipper, stream};
 
 /// A set of concurrent actions to be performed by the iced runtime.
 ///
@@ -36,7 +37,7 @@ impl<T> Task<T> {
     /// output with the given closure.
     pub fn perform<A>(
         future: impl Future<Output = A> + MaybeSend + 'static,
-        f: impl Fn(A) -> T + MaybeSend + 'static,
+        f: impl FnOnce(A) -> T + MaybeSend + 'static,
     ) -> Self
     where
         T: MaybeSend + 'static,
@@ -55,6 +56,22 @@ impl<T> Task<T> {
         T: 'static,
     {
         Self::stream(stream.map(f))
+    }
+
+    /// Creates a [`Task`] that runs the given [`Sipper`] to completion, mapping
+    /// progress with the first closure and the output with the second one.
+    pub fn sip<S>(
+        sipper: S,
+        on_progress: impl FnMut(S::Progress) -> T + MaybeSend + 'static,
+        on_output: impl FnOnce(<S as Future>::Output) -> T + MaybeSend + 'static,
+    ) -> Self
+    where
+        S: sipper::Core + MaybeSend + 'static,
+        T: MaybeSend + 'static,
+    {
+        Self::stream(stream(sipper::sipper(move |sender| async move {
+            on_output(sipper.with(on_progress).run(sender).await)
+        })))
     }
 
     /// Combines the given tasks and produces a single [`Task`] that will run all of them

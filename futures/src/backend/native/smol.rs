@@ -1,5 +1,4 @@
 //! A `smol` backend.
-use futures::Future;
 
 /// A `smol` executor.
 #[derive(Debug)]

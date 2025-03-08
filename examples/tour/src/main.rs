@@ -1,8 +1,8 @@
-use iced::widget::{
-    button, checkbox, column, container, horizontal_space, image, radio, row,
-    scrollable, slider, text, text_input, toggler, vertical_space,
-};
 use iced::widget::{Button, Column, Container, Slider};
+use iced::widget::{
+    button, center_x, center_y, checkbox, column, horizontal_space, image,
+    radio, row, scrollable, slider, text, text_input, toggler, vertical_space,
+};
 use iced::{Center, Color, Element, Fill, Font, Pixels};
 
 pub fn main() -> iced::Result {
@@ -24,12 +24,12 @@ pub struct Tour {
     screen: Screen,
     slider: u8,
     layout: Layout,
-    spacing: u16,
-    text_size: u16,
+    spacing: u32,
+    text_size: u32,
     text_color: Color,
     language: Option<Language>,
     toggler: bool,
-    image_width: u16,
+    image_width: u32,
     image_filter_method: image::FilterMethod,
     input_value: String,
     input_is_secure: bool,
@@ -43,11 +43,11 @@ pub enum Message {
     NextPressed,
     SliderChanged(u8),
     LayoutChanged(Layout),
-    SpacingChanged(u16),
-    TextSizeChanged(u16),
+    SpacingChanged(u32),
+    TextSizeChanged(u32),
     TextColorChanged(Color),
     LanguageSelected(Language),
-    ImageWidthChanged(u16),
+    ImageWidthChanged(u32),
     ImageUseNearestToggled(bool),
     InputChanged(String),
     ToggleSecureInput(bool),
@@ -166,16 +166,13 @@ impl Tour {
             .padding(20)
             .into();
 
-        let scrollable = scrollable(
-            container(if self.debug {
-                content.explain(Color::BLACK)
-            } else {
-                content
-            })
-            .center_x(Fill),
-        );
+        let scrollable = scrollable(center_x(if self.debug {
+            content.explain(Color::BLACK)
+        } else {
+            content
+        }));
 
-        container(scrollable).center_y(Fill).into()
+        center_y(scrollable).into()
     }
 
     fn can_continue(&self) -> bool {
@@ -540,10 +537,10 @@ impl Screen {
 }
 
 fn ferris<'a>(
-    width: u16,
+    width: u32,
     filter_method: image::FilterMethod,
 ) -> Container<'a, Message> {
-    container(
+    center_x(
         // This should go away once we unify resource loading on native
         // platforms
         if cfg!(target_arch = "wasm32") {
@@ -554,7 +551,6 @@ fn ferris<'a>(
         .filter_method(filter_method)
         .width(width),
     )
-    .center_x(Fill)
 }
 
 fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {

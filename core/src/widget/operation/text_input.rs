@@ -1,7 +1,7 @@
 //! Operate on widgets that have text input.
-use crate::widget::operation::Operation;
-use crate::widget::Id;
 use crate::Rectangle;
+use crate::widget::Id;
+use crate::widget::operation::Operation;
 
 /// The internal state of a widget that has text input.
 pub trait TextInput {

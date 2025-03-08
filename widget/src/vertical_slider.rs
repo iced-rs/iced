@@ -31,7 +31,7 @@
 use std::ops::RangeInclusive;
 
 pub use crate::slider::{
-    default, Catalog, Handle, HandleShape, Status, Style, StyleFn,
+    Catalog, Handle, HandleShape, Status, Style, StyleFn, default,
 };
 
 use crate::core::border::Border;
@@ -42,6 +42,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Clipboard, Element, Event, Length, Pixels, Point, Rectangle, Shell,
     Size, Widget,
@@ -98,6 +99,7 @@ where
     width: f32,
     height: Length,
     class: Theme::Class<'a>,
+    status: Option<Status>,
 }
 
 impl<'a, T, Message, Theme> VerticalSlider<'a, T, Message, Theme>
@@ -144,6 +146,7 @@ where
             width: Self::DEFAULT_WIDTH,
             height: Length::Fill,
             class: Theme::default(),
+            status: None,
         }
     }
 
@@ -246,7 +249,7 @@ where
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
@@ -376,7 +379,7 @@ where
                 if state.keyboard_modifiers.control() =>
             {
                 if cursor.is_over(layout.bounds()) {
-                    let delta = match delta {
+                    let delta = match *delta {
                         mouse::ScrollDelta::Lines { x: _, y } => y,
                         mouse::ScrollDelta::Pixels { x: _, y } => y,
                     };
@@ -406,36 +409,40 @@ where
                 }
             }
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                state.keyboard_modifiers = modifiers;
+                state.keyboard_modifiers = *modifiers;
             }
             _ => {}
+        }
+
+        let current_status = if state.is_dragging {
+            Status::Dragged
+        } else if cursor.is_over(layout.bounds()) {
+            Status::Hovered
+        } else {
+            Status::Active
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.status = Some(current_status);
+        } else if self.status.is_some_and(|status| status != current_status) {
+            shell.request_redraw();
         }
     }
 
     fn draw(
         &self,
-        tree: &Tree,
+        _tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
-        let is_mouse_over = cursor.is_over(bounds);
 
-        let style = theme.style(
-            &self.class,
-            if state.is_dragging {
-                Status::Dragged
-            } else if is_mouse_over {
-                Status::Hovered
-            } else {
-                Status::Active
-            },
-        );
+        let style =
+            theme.style(&self.class, self.status.unwrap_or(Status::Active));
 
         let (handle_width, handle_height, handle_border_radius) =
             match style.handle.shape {

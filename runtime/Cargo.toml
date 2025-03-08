@@ -23,5 +23,6 @@ iced_core.workspace = true
 iced_futures.workspace = true
 iced_futures.features = ["thread-pool"]
 
-thiserror.workspace = true
 raw-window-handle.workspace = true
+sipper.workspace = true
+thiserror.workspace = true

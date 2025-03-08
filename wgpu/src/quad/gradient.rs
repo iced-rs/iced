@@ -1,6 +1,6 @@
+use crate::Buffer;
 use crate::graphics::gradient;
 use crate::quad::{self, Quad};
-use crate::Buffer;
 
 use bytemuck::{Pod, Zeroable};
 use std::ops::Range;

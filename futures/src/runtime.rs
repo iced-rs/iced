@@ -2,7 +2,7 @@
 use crate::subscription;
 use crate::{BoxFuture, BoxStream, Executor, MaybeSend};
 
-use futures::{channel::mpsc, Sink};
+use futures::{Sink, channel::mpsc};
 use std::marker::PhantomData;
 
 /// A batteries-included runtime of commands and subscriptions.

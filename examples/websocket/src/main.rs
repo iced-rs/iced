@@ -3,7 +3,7 @@ mod echo;
 use iced::widget::{
     self, button, center, column, row, scrollable, text, text_input,
 };
-use iced::{color, Center, Element, Fill, Subscription, Task};
+use iced::{Center, Element, Fill, Subscription, Task, color};
 use std::sync::LazyLock;
 
 pub fn main() -> iced::Result {

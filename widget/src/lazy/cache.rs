@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-use crate::core::overlay;
 use crate::core::Element;
+use crate::core::overlay;
 
 use ouroboros::self_referencing;
 

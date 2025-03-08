@@ -39,9 +39,6 @@ winit.workspace = true
 sysinfo.workspace = true
 sysinfo.optional = true
 
-[target.'cfg(target_os = "windows")'.dependencies]
-winapi.workspace = true
-
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys.workspace = true
 web-sys.features = ["Document", "Window", "HtmlCanvasElement"]

@@ -1,6 +1,6 @@
 //! Load and use fonts.
-use crate::task::{self, Task};
 use crate::Action;
+use crate::task::{self, Task};
 use std::borrow::Cow;
 
 /// An error while loading a font.

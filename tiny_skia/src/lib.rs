@@ -32,9 +32,9 @@ use crate::core::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
 use crate::engine::Engine;
+use crate::graphics::Viewport;
 use crate::graphics::compositor;
 use crate::graphics::text::{Editor, Paragraph};
-use crate::graphics::Viewport;
 
 /// A [`tiny-skia`] graphics renderer for [`iced`].
 ///

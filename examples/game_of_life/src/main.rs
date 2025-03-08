@@ -5,12 +5,11 @@ mod preset;
 use grid::Grid;
 use preset::Preset;
 
-use iced::time;
+use iced::time::{self, milliseconds};
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, slider, text,
 };
-use iced::{Center, Element, Fill, Subscription, Task, Theme};
-use std::time::Duration;
+use iced::{Center, Element, Fill, Function, Subscription, Task, Theme};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -38,7 +37,7 @@ struct GameOfLife {
 
 #[derive(Debug, Clone)]
 enum Message {
-    Grid(grid::Message, usize),
+    Grid(usize, grid::Message),
     Tick,
     TogglePlayback,
     ToggleGrid(bool),
@@ -62,7 +61,7 @@ impl GameOfLife {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Grid(message, version) => {
+            Message::Grid(version, message) => {
                 if version == self.version {
                     self.grid.update(message);
                 }
@@ -79,9 +78,7 @@ impl GameOfLife {
 
                     let version = self.version;
 
-                    return Task::perform(task, move |message| {
-                        Message::Grid(message, version)
-                    });
+                    return Task::perform(task, Message::Grid.with(version));
                 }
             }
             Message::TogglePlayback => {
@@ -112,7 +109,7 @@ impl GameOfLife {
 
     fn subscription(&self) -> Subscription<Message> {
         if self.is_playing {
-            time::every(Duration::from_millis(1000 / self.speed as u64))
+            time::every(milliseconds(1000 / self.speed as u64))
                 .map(|_| Message::Tick)
         } else {
             Subscription::none()
@@ -130,9 +127,7 @@ impl GameOfLife {
         );
 
         let content = column![
-            self.grid
-                .view()
-                .map(move |message| Message::Grid(message, version)),
+            self.grid.view().map(Message::Grid.with(version)),
             controls,
         ]
         .height(Fill);
@@ -191,6 +186,7 @@ mod grid {
     use crate::Preset;
     use iced::alignment;
     use iced::mouse;
+    use iced::time::{Duration, Instant};
     use iced::touch;
     use iced::widget::canvas;
     use iced::widget::canvas::{
@@ -200,9 +196,7 @@ mod grid {
         Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
-    use std::future::Future;
     use std::ops::RangeInclusive;
-    use std::time::{Duration, Instant};
 
     pub struct Grid {
         state: State,
@@ -266,7 +260,7 @@ mod grid {
         pub fn tick(
             &mut self,
             amount: usize,
-        ) -> Option<impl Future<Output = Message>> {
+        ) -> Option<impl Future<Output = Message> + use<>> {
             let tick = self.state.tick(amount)?;
 
             self.last_queued_ticks = amount;
@@ -381,7 +375,7 @@ mod grid {
         fn update(
             &self,
             interaction: &mut Interaction,
-            event: Event,
+            event: &Event,
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> Option<canvas::Action<Message>> {
@@ -472,7 +466,7 @@ mod grid {
                             _ => action.and_capture(),
                         })
                     }
-                    mouse::Event::WheelScrolled { delta } => match delta {
+                    mouse::Event::WheelScrolled { delta } => match *delta {
                         mouse::ScrollDelta::Lines { y, .. }
                         | mouse::ScrollDelta::Pixels { y, .. } => {
                             if y < 0.0 && self.scaling > Self::MIN_SCALING
@@ -727,7 +721,8 @@ mod grid {
         fn tick(
             &mut self,
             amount: usize,
-        ) -> Option<impl Future<Output = Result<Life, TickError>>> {
+        ) -> Option<impl Future<Output = Result<Life, TickError>> + use<>>
+        {
             if self.is_ticking {
                 return None;
             }

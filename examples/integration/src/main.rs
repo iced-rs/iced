@@ -5,16 +5,16 @@ use controls::Controls;
 use scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
-use iced_wgpu::{wgpu, Engine, Renderer};
+use iced_wgpu::{Engine, Renderer, wgpu};
+use iced_winit::Clipboard;
 use iced_winit::conversion;
 use iced_winit::core::mouse;
 use iced_winit::core::renderer;
 use iced_winit::core::{Color, Font, Pixels, Size, Theme};
 use iced_winit::futures;
-use iced_winit::runtime::program;
 use iced_winit::runtime::Debug;
+use iced_winit::runtime::program;
 use iced_winit::winit;
-use iced_winit::Clipboard;
 
 use winit::{
     event::WindowEvent,

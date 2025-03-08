@@ -46,10 +46,10 @@ impl Loupe {
 }
 
 mod loupe {
+    use iced::advanced::Renderer as _;
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::advanced::Renderer as _;
     use iced::mouse;
     use iced::{
         Color, Element, Length, Rectangle, Renderer, Size, Theme,

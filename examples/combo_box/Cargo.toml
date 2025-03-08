@@ -2,7 +2,7 @@
 name = "combo_box"
 version = "0.1.0"
 authors = ["Joao Freitas <jhff.15@gmail.com>"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]

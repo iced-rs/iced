@@ -1,10 +1,10 @@
+use crate::Primitive;
 use crate::core::renderer::Quad;
 use crate::core::{
     Background, Color, Gradient, Rectangle, Size, Transformation, Vector,
 };
 use crate::graphics::{Image, Text};
 use crate::text;
-use crate::Primitive;
 
 #[derive(Debug)]
 pub struct Engine {

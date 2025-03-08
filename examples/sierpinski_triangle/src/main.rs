@@ -76,7 +76,7 @@ impl canvas::Program<Message> for SierpinskiGraph {
     fn update(
         &self,
         _state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Option<canvas::Action<Message>> {

@@ -192,7 +192,7 @@ where
     fn update(
         &mut self,
         tree: &mut widget::Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
@@ -470,8 +470,10 @@ where
 
         layout::Node::with_children(
             tooltip_bounds.size(),
-            vec![tooltip_layout
-                .translate(Vector::new(self.padding, self.padding))],
+            vec![
+                tooltip_layout
+                    .translate(Vector::new(self.padding, self.padding)),
+            ],
         )
         .translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
     }

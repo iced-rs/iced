@@ -1,5 +1,5 @@
 use iced::event::{self, Event};
-use iced::widget::{button, center, checkbox, text, Column};
+use iced::widget::{Column, button, center, checkbox, text};
 use iced::window;
 use iced::{Center, Element, Fill, Subscription, Task};
 

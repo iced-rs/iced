@@ -105,8 +105,8 @@ use crate::core::window;
 use crate::core::{
     Element, Event, Font, Point, Rectangle, Settings, Size, SmolStr,
 };
-use crate::runtime::user_interface;
 use crate::runtime::UserInterface;
+use crate::runtime::user_interface;
 
 use std::borrow::Cow;
 use std::fs;
@@ -459,7 +459,9 @@ where
     }
 
     /// Turns the [`Simulator`] into the sequence of messages produced by any interactions.
-    pub fn into_messages(self) -> impl Iterator<Item = Message> {
+    pub fn into_messages(
+        self,
+    ) -> impl Iterator<Item = Message> + use<Message, Theme, Renderer> {
         self.messages.into_iter()
     }
 }

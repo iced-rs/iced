@@ -16,41 +16,30 @@ impl crate::Executor for Executor {
 
 pub mod time {
     //! Listen and react to time.
-    use crate::subscription::{self, Hasher, Subscription};
-    use crate::BoxStream;
+    use crate::subscription::Subscription;
+
+    use wasmtimer::std::Instant;
 
     /// Returns a [`Subscription`] that produces messages at a set interval.
     ///
     /// The first message is produced after a `duration`, and then continues to
     /// produce more messages every `duration` after that.
-    pub fn every(
-        duration: std::time::Duration,
-    ) -> Subscription<wasm_timer::Instant> {
-        subscription::from_recipe(Every(duration))
-    }
-
-    #[derive(Debug)]
-    struct Every(std::time::Duration);
-
-    impl subscription::Recipe for Every {
-        type Output = wasm_timer::Instant;
-
-        fn hash(&self, state: &mut Hasher) {
-            use std::hash::Hash;
-
-            std::any::TypeId::of::<Self>().hash(state);
-            self.0.hash(state);
-        }
-
-        fn stream(
-            self: Box<Self>,
-            _input: subscription::EventStream,
-        ) -> BoxStream<Self::Output> {
+    pub fn every(duration: std::time::Duration) -> Subscription<Instant> {
+        Subscription::run_with(duration, |duration| {
             use futures::stream::StreamExt;
 
-            wasm_timer::Interval::new(self.0)
-                .map(|_| wasm_timer::Instant::now())
-                .boxed_local()
-        }
+            let mut interval = wasmtimer::tokio::interval(*duration);
+            interval.set_missed_tick_behavior(
+                wasmtimer::tokio::MissedTickBehavior::Skip,
+            );
+
+            let stream = {
+                futures::stream::unfold(interval, |mut interval| async move {
+                    Some((interval.tick().await, interval))
+                })
+            };
+
+            stream.boxed()
+        })
     }
 }

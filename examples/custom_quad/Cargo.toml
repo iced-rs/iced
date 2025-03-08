@@ -2,7 +2,7 @@
 name = "custom_quad"
 version = "0.1.0"
 authors = ["Robert Krahn"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]

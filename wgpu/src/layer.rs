@@ -1,11 +1,11 @@
 use crate::core::{
-    self, renderer, Background, Color, Point, Rectangle, Svg, Transformation,
+    self, Background, Color, Point, Rectangle, Svg, Transformation, renderer,
 };
 use crate::graphics;
+use crate::graphics::Mesh;
 use crate::graphics::color;
 use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph};
-use crate::graphics::Mesh;
 use crate::image::{self, Image};
 use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};

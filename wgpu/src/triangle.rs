@@ -1,10 +1,10 @@
 //! Draw meshes of triangles.
 mod msaa;
 
-use crate::core::{Rectangle, Size, Transformation};
-use crate::graphics::mesh::{self, Mesh};
-use crate::graphics::Antialiasing;
 use crate::Buffer;
+use crate::core::{Rectangle, Size, Transformation};
+use crate::graphics::Antialiasing;
+use crate::graphics::mesh::{self, Mesh};
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
@@ -644,10 +644,10 @@ impl Uniforms {
 }
 
 mod solid {
-    use crate::graphics::mesh;
-    use crate::graphics::Antialiasing;
-    use crate::triangle;
     use crate::Buffer;
+    use crate::graphics::Antialiasing;
+    use crate::graphics::mesh;
+    use crate::triangle;
 
     #[derive(Debug)]
     pub struct Pipeline {
@@ -795,11 +795,11 @@ mod solid {
 }
 
 mod gradient {
+    use crate::Buffer;
+    use crate::graphics::Antialiasing;
     use crate::graphics::color;
     use crate::graphics::mesh;
-    use crate::graphics::Antialiasing;
     use crate::triangle;
-    use crate::Buffer;
 
     #[derive(Debug)]
     pub struct Pipeline {

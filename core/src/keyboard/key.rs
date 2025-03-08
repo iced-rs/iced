@@ -1252,7 +1252,7 @@ impl PartialEq<Code> for Physical {
     #[inline]
     fn eq(&self, rhs: &Code) -> bool {
         match self {
-            Physical::Code(ref code) => code == rhs,
+            Physical::Code(code) => code == rhs,
             Physical::Unidentified(_) => false,
         }
     }
@@ -1269,7 +1269,7 @@ impl PartialEq<NativeCode> for Physical {
     #[inline]
     fn eq(&self, rhs: &NativeCode) -> bool {
         match self {
-            Physical::Unidentified(ref code) => code == rhs,
+            Physical::Unidentified(code) => code == rhs,
             Physical::Code(_) => false,
         }
     }

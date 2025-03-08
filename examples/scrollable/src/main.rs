@@ -21,9 +21,9 @@ pub fn main() -> iced::Result {
 
 struct ScrollableDemo {
     scrollable_direction: Direction,
-    scrollbar_width: u16,
-    scrollbar_margin: u16,
-    scroller_width: u16,
+    scrollbar_width: u32,
+    scrollbar_margin: u32,
+    scroller_width: u32,
     current_scroll_offset: scrollable::RelativeOffset,
     anchor: scrollable::Anchor,
 }
@@ -39,9 +39,9 @@ enum Direction {
 enum Message {
     SwitchDirection(Direction),
     AlignmentChanged(scrollable::Anchor),
-    ScrollbarWidthChanged(u16),
-    ScrollbarMarginChanged(u16),
-    ScrollerWidthChanged(u16),
+    ScrollbarWidthChanged(u32),
+    ScrollbarMarginChanged(u32),
+    ScrollerWidthChanged(u32),
     ScrollToBeginning,
     ScrollToEnd,
     Scrolled(scrollable::Viewport),

@@ -202,3 +202,9 @@ impl From<Padding> for Size {
         Self::new(padding.horizontal(), padding.vertical())
     }
 }
+
+impl From<Pixels> for Padding {
+    fn from(pixels: Pixels) -> Self {
+        Self::from(pixels.0)
+    }
+}

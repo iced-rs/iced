@@ -1,8 +1,8 @@
 //! Listen to runtime events.
+use crate::MaybeSend;
 use crate::core::event::{self, Event};
 use crate::core::window;
 use crate::subscription::{self, Subscription};
-use crate::MaybeSend;
 
 /// Returns a [`Subscription`] to all the ignored runtime events.
 ///

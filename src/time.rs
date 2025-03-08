@@ -1,5 +1,5 @@
 //! Listen and react to time.
-pub use crate::core::time::{Duration, Instant};
+pub use crate::core::time::*;
 
 #[allow(unused_imports)]
 #[cfg_attr(
