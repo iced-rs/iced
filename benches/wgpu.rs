@@ -18,7 +18,7 @@ pub fn wgpu_benchmark(c: &mut Criterion) {
     use iced_futures::futures::executor;
     use iced_wgpu::wgpu;
 
-    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
         backends: wgpu::Backends::all(),
         ..Default::default()
     });

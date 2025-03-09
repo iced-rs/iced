@@ -70,10 +70,9 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 );
                 let clipboard = Clipboard::connect(window.clone());
 
-                let backend =
-                    wgpu::util::backend_bits_from_env().unwrap_or_default();
+                let backend = wgpu::Backends::from_env().unwrap_or_default();
 
-                let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+                let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
                     backends: backend,
                     ..Default::default()
                 });
