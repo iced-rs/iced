@@ -156,6 +156,7 @@ impl core::text::Paragraph for Paragraph {
             }),
             text::to_attributes(text.font),
             text::to_shaping(text.shaping),
+            None,
         );
 
         let min_bounds = text::measure(&buffer);
