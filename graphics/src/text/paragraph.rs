@@ -381,6 +381,7 @@ fn align(
         }
     }
 
+    // TODO: Avoid relayout with some changes to `cosmic-text` (?)
     if needs_relayout {
         log::trace!("Relayouting paragraph...");
 
