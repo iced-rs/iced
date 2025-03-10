@@ -24,7 +24,7 @@ pub trait Paragraph: Sized + Default {
     fn compare(&self, text: Text<(), Self::Font>) -> Difference;
 
     /// Returns the horizontal alignment of the [`Paragraph`].
-    fn horizontal_alignment(&self) -> alignment::Horizontal;
+    fn horizontal_alignment(&self) -> Option<alignment::Horizontal>;
 
     /// Returns the vertical alignment of the [`Paragraph`].
     fn vertical_alignment(&self) -> alignment::Vertical;
@@ -108,7 +108,7 @@ impl<P: Paragraph> Plain<P> {
     }
 
     /// Returns the horizontal alignment of the [`Paragraph`].
-    pub fn horizontal_alignment(&self) -> alignment::Horizontal {
+    pub fn horizontal_alignment(&self) -> Option<alignment::Horizontal> {
         self.raw.horizontal_alignment()
     }
 

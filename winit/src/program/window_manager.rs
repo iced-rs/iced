@@ -338,7 +338,7 @@ where
                     .unwrap_or_else(|| renderer.default_size()),
                 line_height: text::LineHeight::default(),
                 font: renderer.default_font(),
-                horizontal_alignment: alignment::Horizontal::Left,
+                horizontal_alignment: None,
                 vertical_alignment: alignment::Vertical::Top,
                 shaping: text::Shaping::Advanced,
                 wrapping: text::Wrapping::None,

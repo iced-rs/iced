@@ -87,8 +87,8 @@ impl text::Paragraph for () {
         text::Difference::None
     }
 
-    fn horizontal_alignment(&self) -> alignment::Horizontal {
-        alignment::Horizontal::Left
+    fn horizontal_alignment(&self) -> Option<alignment::Horizontal> {
+        None
     }
 
     fn vertical_alignment(&self) -> alignment::Vertical {

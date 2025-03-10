@@ -54,7 +54,7 @@ pub enum Text {
         /// The font of the text.
         font: Font,
         /// The horizontal alignment of the text.
-        horizontal_alignment: alignment::Horizontal,
+        horizontal_alignment: Option<alignment::Horizontal>,
         /// The vertical alignment of the text.
         vertical_alignment: alignment::Vertical,
         /// The shaping strategy of the text.
@@ -84,7 +84,7 @@ impl Text {
                 Rectangle::new(*position, paragraph.min_bounds)
                     .intersection(clip_bounds)
                     .map(|bounds| bounds * *transformation),
-                Some(paragraph.horizontal_alignment),
+                paragraph.horizontal_alignment,
                 Some(paragraph.vertical_alignment),
             ),
             Text::Editor {
@@ -108,7 +108,7 @@ impl Text {
                 ..
             } => (
                 bounds.intersection(clip_bounds),
-                Some(*horizontal_alignment),
+                *horizontal_alignment,
                 Some(*vertical_alignment),
             ),
             Text::Raw { raw, .. } => (Some(raw.clip_bounds), None, None),
@@ -242,15 +242,19 @@ impl PartialEq for Raw {
 }
 
 /// Measures the dimensions of the given [`cosmic_text::Buffer`].
-pub fn measure(buffer: &cosmic_text::Buffer) -> Size {
-    let (width, height) =
-        buffer
-            .layout_runs()
-            .fold((0.0, 0.0), |(width, height), run| {
-                (run.line_w.max(width), height + run.line_height)
-            });
+pub fn measure(buffer: &cosmic_text::Buffer) -> (Size, bool) {
+    let (width, height, has_rtl) = buffer.layout_runs().fold(
+        (0.0, 0.0, false),
+        |(width, height, has_rtl), run| {
+            (
+                run.line_w.max(width),
+                height + run.line_height,
+                has_rtl || run.rtl,
+            )
+        },
+    );
 
-    Size::new(width, height)
+    (Size::new(width, height), has_rtl)
 }
 
 /// Returns the attributes of the given [`Font`].
@@ -306,6 +310,14 @@ fn to_style(style: font::Style) -> cosmic_text::Style {
         font::Style::Normal => cosmic_text::Style::Normal,
         font::Style::Italic => cosmic_text::Style::Italic,
         font::Style::Oblique => cosmic_text::Style::Oblique,
+    }
+}
+
+fn to_align(alignment: alignment::Horizontal) -> cosmic_text::Align {
+    match alignment {
+        alignment::Horizontal::Left => cosmic_text::Align::Left,
+        alignment::Horizontal::Center => cosmic_text::Align::Center,
+        alignment::Horizontal::Right => cosmic_text::Align::Right,
     }
 }
 

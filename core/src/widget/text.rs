@@ -67,7 +67,7 @@ where
     line_height: LineHeight,
     width: Length,
     height: Length,
-    horizontal_alignment: alignment::Horizontal,
+    horizontal_alignment: Option<alignment::Horizontal>,
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
     shaping: Shaping,
@@ -89,7 +89,7 @@ where
             font: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            horizontal_alignment: alignment::Horizontal::Left,
+            horizontal_alignment: None,
             vertical_alignment: alignment::Vertical::Top,
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
@@ -140,7 +140,7 @@ where
         mut self,
         alignment: impl Into<alignment::Horizontal>,
     ) -> Self {
-        self.horizontal_alignment = alignment.into();
+        self.horizontal_alignment = Some(alignment.into());
         self
     }
 
@@ -290,7 +290,7 @@ pub fn layout<Renderer>(
     line_height: LineHeight,
     size: Option<Pixels>,
     font: Option<Renderer::Font>,
-    horizontal_alignment: alignment::Horizontal,
+    horizontal_alignment: Option<alignment::Horizontal>,
     vertical_alignment: alignment::Vertical,
     shaping: Shaping,
     wrapping: Wrapping,
@@ -345,9 +345,9 @@ pub fn draw<Renderer>(
     let bounds = layout.bounds();
 
     let x = match paragraph.horizontal_alignment() {
-        alignment::Horizontal::Left => bounds.x,
-        alignment::Horizontal::Center => bounds.center_x(),
-        alignment::Horizontal::Right => bounds.x + bounds.width,
+        None | Some(alignment::Horizontal::Left) => bounds.x,
+        Some(alignment::Horizontal::Center) => bounds.center_x(),
+        Some(alignment::Horizontal::Right) => bounds.x + bounds.width,
     };
 
     let y = match paragraph.vertical_alignment() {

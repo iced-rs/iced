@@ -34,7 +34,7 @@ pub struct Text<Content = String, Font = crate::Font> {
     pub font: Font,
 
     /// The horizontal alignment of the [`Text`].
-    pub horizontal_alignment: alignment::Horizontal,
+    pub horizontal_alignment: Option<alignment::Horizontal>,
 
     /// The vertical alignment of the [`Text`].
     pub vertical_alignment: alignment::Vertical,

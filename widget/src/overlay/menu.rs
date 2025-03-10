@@ -552,7 +552,7 @@ where
                     size: text_size,
                     line_height: self.text_line_height,
                     font: self.font.unwrap_or_else(|| renderer.default_font()),
-                    horizontal_alignment: alignment::Horizontal::Left,
+                    horizontal_alignment: None,
                     vertical_alignment: alignment::Vertical::Center,
                     shaping: self.text_shaping,
                     wrapping: text::Wrapping::default(),
