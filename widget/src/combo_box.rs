@@ -68,7 +68,7 @@ use crate::core::{
     Vector,
 };
 use crate::overlay::menu;
-use crate::text::LineHeight;
+use crate::text::{LineHeight, Shaping};
 use crate::text_input::{self, TextInput};
 
 use std::cell::RefCell;
@@ -153,6 +153,7 @@ pub struct ComboBox<
     menu_class: <Theme as menu::Catalog>::Class<'a>,
     padding: Padding,
     size: Option<f32>,
+    text_shaping: Shaping,
 }
 
 impl<'a, T, Message, Theme, Renderer> ComboBox<'a, T, Message, Theme, Renderer>
@@ -189,6 +190,7 @@ where
             menu_class: <Theme as Catalog>::default_menu(),
             padding: text_input::DEFAULT_PADDING,
             size: None,
+            text_shaping: Shaping::default(),
         }
     }
 
@@ -269,6 +271,12 @@ where
             text_input: self.text_input.width(width),
             ..self
         }
+    }
+
+    /// Sets the [`Shaping`] strategy of the [`ComboBox`].
+    pub fn text_shaping(mut self, shaping: Shaping) -> Self {
+        self.text_shaping = shaping;
+        self
     }
 
     /// Sets the style of the input of the [`ComboBox`].
@@ -874,7 +882,8 @@ where
                     &self.menu_class,
                 )
                 .width(bounds.width)
-                .padding(self.padding);
+                .padding(self.padding)
+                .text_shaping(self.text_shaping);
 
                 if let Some(font) = self.font {
                     menu = menu.font(font);
