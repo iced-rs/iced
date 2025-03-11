@@ -1,4 +1,5 @@
 use crate::core::alignment;
+use crate::core::text::Alignment;
 use crate::core::{Rectangle, Size, Transformation};
 use crate::graphics::cache;
 use crate::graphics::color;
@@ -517,8 +518,8 @@ fn prepare(
                     (
                         paragraph.buffer(),
                         Rectangle::new(*position, paragraph.min_bounds()),
-                        paragraph.horizontal_alignment(),
-                        paragraph.vertical_alignment(),
+                        paragraph.align_x(),
+                        paragraph.align_y(),
                         *color,
                         *clip_bounds,
                         *transformation,
@@ -540,7 +541,7 @@ fn prepare(
                     (
                         editor.buffer(),
                         Rectangle::new(*position, editor.bounds()),
-                        None,
+                        Alignment::Default,
                         alignment::Vertical::Top,
                         *color,
                         *clip_bounds,
@@ -549,8 +550,8 @@ fn prepare(
                 }
                 Text::Cached {
                     bounds,
-                    horizontal_alignment,
-                    vertical_alignment,
+                    align_x: horizontal_alignment,
+                    align_y: vertical_alignment,
                     color,
                     clip_bounds,
                     ..
@@ -591,7 +592,7 @@ fn prepare(
                                 height.unwrap_or(layer_bounds.height),
                             ),
                         ),
-                        None,
+                        Alignment::Default,
                         alignment::Vertical::Top,
                         raw.color,
                         raw.clip_bounds,
@@ -603,11 +604,11 @@ fn prepare(
             let bounds = bounds * transformation * layer_transformation;
 
             let left = match horizontal_alignment {
-                None | Some(alignment::Horizontal::Left) => bounds.x,
-                Some(alignment::Horizontal::Center) => {
-                    bounds.x - bounds.width / 2.0
+                Alignment::Default | Alignment::Left | Alignment::Justified => {
+                    bounds.x
                 }
-                Some(alignment::Horizontal::Right) => bounds.x - bounds.width,
+                Alignment::Center => bounds.x - bounds.width / 2.0,
+                Alignment::Right => bounds.x - bounds.width,
             };
 
             let top = match vertical_alignment {

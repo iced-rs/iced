@@ -194,8 +194,8 @@ impl Tour {
     fn welcome(&self) -> Column<Message> {
         Self::container("Welcome!")
             .push(
-                "This is a simple tour meant to showcase a bunch of widgets \
-                 that can be easily implemented on top of Iced.",
+                "This is a simple tour meant to showcase a bunch of \
+                widgets that can be easily implemented on top of Iced.",
             )
             .push(
                 "Iced is a cross-platform GUI library for Rust focused on \
@@ -211,12 +211,12 @@ impl Tour {
                  Metal, DX11, and DX12.",
             )
             .push(
-                "Additionally, this tour can also run on WebAssembly thanks \
-                 to dodrio, an experimental VDOM library for Rust.",
+                "Additionally, this tour can also run on WebAssembly \
+                 thanks to dodrio, an experimental VDOM library for Rust.",
             )
             .push(
-                "You will need to interact with the UI in order to reach the \
-                 end!",
+                "You will need to interact with the UI in order to reach \
+                 the end!",
             )
     }
 
