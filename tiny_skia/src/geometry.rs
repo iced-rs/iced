@@ -231,7 +231,7 @@ impl geometry::frame::Backend for Frame {
                 size,
                 line_height: line_height.to_absolute(size),
                 font: text.font,
-                horizontal_alignment: text.horizontal_alignment,
+                horizontal_alignment: Some(text.horizontal_alignment),
                 vertical_alignment: text.vertical_alignment,
                 shaping: text.shaping,
                 clip_bounds: Rectangle::with_size(Size::INFINITY),

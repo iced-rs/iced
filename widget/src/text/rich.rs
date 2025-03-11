@@ -31,7 +31,7 @@ pub struct Rich<
     width: Length,
     height: Length,
     font: Option<Renderer::Font>,
-    align_x: alignment::Horizontal,
+    align_x: Option<alignment::Horizontal>,
     align_y: alignment::Vertical,
     wrapping: Wrapping,
     class: Theme::Class<'a>,
@@ -56,7 +56,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             font: None,
-            align_x: alignment::Horizontal::Left,
+            align_x: None,
             align_y: alignment::Vertical::Top,
             wrapping: Wrapping::default(),
             class: Theme::default(),
@@ -116,7 +116,7 @@ where
         mut self,
         alignment: impl Into<alignment::Horizontal>,
     ) -> Self {
-        self.align_x = alignment.into();
+        self.align_x = Some(alignment.into());
         self
     }
 
@@ -476,7 +476,7 @@ fn layout<Link, Renderer>(
     line_height: LineHeight,
     size: Option<Pixels>,
     font: Option<Renderer::Font>,
-    horizontal_alignment: alignment::Horizontal,
+    horizontal_alignment: Option<alignment::Horizontal>,
     vertical_alignment: alignment::Vertical,
     wrapping: Wrapping,
 ) -> layout::Node

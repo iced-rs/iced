@@ -540,7 +540,7 @@ fn prepare(
                     (
                         editor.buffer(),
                         Rectangle::new(*position, editor.bounds()),
-                        alignment::Horizontal::Left,
+                        None,
                         alignment::Vertical::Top,
                         *color,
                         *clip_bounds,
@@ -591,7 +591,7 @@ fn prepare(
                                 height.unwrap_or(layer_bounds.height),
                             ),
                         ),
-                        alignment::Horizontal::Left,
+                        None,
                         alignment::Vertical::Top,
                         raw.color,
                         raw.clip_bounds,
@@ -603,9 +603,11 @@ fn prepare(
             let bounds = bounds * transformation * layer_transformation;
 
             let left = match horizontal_alignment {
-                alignment::Horizontal::Left => bounds.x,
-                alignment::Horizontal::Center => bounds.x - bounds.width / 2.0,
-                alignment::Horizontal::Right => bounds.x - bounds.width,
+                None | Some(alignment::Horizontal::Left) => bounds.x,
+                Some(alignment::Horizontal::Center) => {
+                    bounds.x - bounds.width / 2.0
+                }
+                Some(alignment::Horizontal::Right) => bounds.x - bounds.width,
             };
 
             let top = match vertical_alignment {

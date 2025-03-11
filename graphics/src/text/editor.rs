@@ -450,7 +450,10 @@ impl editor::Editor for Editor {
     fn min_bounds(&self) -> Size {
         let internal = self.internal();
 
-        text::measure(buffer_from_editor(&internal.editor))
+        let (bounds, _has_rtl) =
+            text::measure(buffer_from_editor(&internal.editor));
+
+        bounds
     }
 
     fn update(

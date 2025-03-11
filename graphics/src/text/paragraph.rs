@@ -18,7 +18,7 @@ struct Internal {
     font: Font,
     shaping: Shaping,
     wrapping: Wrapping,
-    horizontal_alignment: alignment::Horizontal,
+    horizontal_alignment: Option<alignment::Horizontal>,
     vertical_alignment: alignment::Vertical,
     bounds: Size,
     min_bounds: Size,
@@ -89,7 +89,8 @@ impl core::text::Paragraph for Paragraph {
             text::to_shaping(text.shaping),
         );
 
-        let min_bounds = text::measure(&buffer);
+        let min_bounds =
+            align(&mut buffer, &mut font_system, text.horizontal_alignment);
 
         Self(Arc::new(Internal {
             buffer,
@@ -159,7 +160,8 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
-        let min_bounds = text::measure(&buffer);
+        let min_bounds =
+            align(&mut buffer, &mut font_system, text.horizontal_alignment);
 
         Self(Arc::new(Internal {
             buffer,
@@ -186,8 +188,10 @@ impl core::text::Paragraph for Paragraph {
             Some(new_bounds.height),
         );
 
+        let (min_bounds, _has_rtl) = text::measure(&paragraph.buffer);
+
         paragraph.bounds = new_bounds;
-        paragraph.min_bounds = text::measure(&paragraph.buffer);
+        paragraph.min_bounds = min_bounds;
     }
 
     fn compare(&self, text: Text<()>) -> core::text::Difference {
@@ -212,7 +216,7 @@ impl core::text::Paragraph for Paragraph {
         }
     }
 
-    fn horizontal_alignment(&self) -> alignment::Horizontal {
+    fn horizontal_alignment(&self) -> Option<alignment::Horizontal> {
         self.internal().horizontal_alignment
     }
 
@@ -354,6 +358,43 @@ impl core::text::Paragraph for Paragraph {
     }
 }
 
+fn align(
+    buffer: &mut cosmic_text::Buffer,
+    font_system: &mut text::FontSystem,
+    align_x: Option<alignment::Horizontal>,
+) -> Size {
+    let (min_bounds, has_rtl) = text::measure(buffer);
+    let mut needs_relayout = has_rtl;
+
+    if let Some(align_x) = align_x {
+        let has_multiple_lines = buffer.lines.len() > 1
+            || buffer.lines.first().is_some_and(|line| {
+                line.layout_opt().is_some_and(|layout| layout.len() > 1)
+            });
+
+        if has_multiple_lines {
+            for line in &mut buffer.lines {
+                let _ = line.set_align(Some(text::to_align(align_x)));
+            }
+
+            needs_relayout = true;
+        }
+    }
+
+    // TODO: Avoid relayout with some changes to `cosmic-text` (?)
+    if needs_relayout {
+        log::trace!("Relayouting paragraph...");
+
+        buffer.set_size(
+            font_system.raw(),
+            Some(min_bounds.width),
+            Some(min_bounds.height),
+        );
+    }
+
+    min_bounds
+}
+
 impl Default for Paragraph {
     fn default() -> Self {
         Self(Arc::new(Internal::default()))
@@ -397,7 +438,7 @@ impl Default for Internal {
             font: Font::default(),
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
-            horizontal_alignment: alignment::Horizontal::Left,
+            horizontal_alignment: None,
             vertical_alignment: alignment::Vertical::Top,
             bounds: Size::ZERO,
             min_bounds: Size::ZERO,
@@ -413,7 +454,7 @@ pub struct Weak {
     /// The minimum bounds of the [`Paragraph`].
     pub min_bounds: Size,
     /// The horizontal alignment of the [`Paragraph`].
-    pub horizontal_alignment: alignment::Horizontal,
+    pub horizontal_alignment: Option<alignment::Horizontal>,
     /// The vertical alignment of the [`Paragraph`].
     pub vertical_alignment: alignment::Vertical,
 }

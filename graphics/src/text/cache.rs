@@ -58,7 +58,16 @@ impl Cache {
                 text::to_shaping(key.shaping),
             );
 
-            let bounds = text::measure(&buffer);
+            let (bounds, has_rtl) = text::measure(&buffer);
+
+            if has_rtl {
+                buffer.set_size(
+                    font_system,
+                    Some(bounds.width),
+                    Some(bounds.height),
+                );
+            }
+
             let _ = entry.insert(Entry {
                 buffer,
                 min_bounds: bounds,

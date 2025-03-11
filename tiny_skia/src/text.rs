@@ -92,7 +92,7 @@ impl Pipeline {
             editor.buffer(),
             Rectangle::new(position, editor.bounds()),
             color,
-            alignment::Horizontal::Left,
+            None,
             alignment::Vertical::Top,
             pixels,
             clip_mask,
@@ -108,7 +108,7 @@ impl Pipeline {
         size: Pixels,
         line_height: Pixels,
         font: Font,
-        horizontal_alignment: alignment::Horizontal,
+        horizontal_alignment: Option<alignment::Horizontal>,
         vertical_alignment: alignment::Vertical,
         shaping: Shaping,
         pixels: &mut tiny_skia::PixmapMut<'_>,
@@ -177,7 +177,7 @@ impl Pipeline {
                 ),
             ),
             color,
-            alignment::Horizontal::Left,
+            None,
             alignment::Vertical::Top,
             pixels,
             clip_mask,
@@ -197,7 +197,7 @@ fn draw(
     buffer: &cosmic_text::Buffer,
     bounds: Rectangle,
     color: Color,
-    horizontal_alignment: alignment::Horizontal,
+    horizontal_alignment: Option<alignment::Horizontal>,
     vertical_alignment: alignment::Vertical,
     pixels: &mut tiny_skia::PixmapMut<'_>,
     clip_mask: Option<&tiny_skia::Mask>,
@@ -206,9 +206,9 @@ fn draw(
     let bounds = bounds * transformation;
 
     let x = match horizontal_alignment {
-        alignment::Horizontal::Left => bounds.x,
-        alignment::Horizontal::Center => bounds.x - bounds.width / 2.0,
-        alignment::Horizontal::Right => bounds.x - bounds.width,
+        None | Some(alignment::Horizontal::Left) => bounds.x,
+        Some(alignment::Horizontal::Center) => bounds.x - bounds.width / 2.0,
+        Some(alignment::Horizontal::Right) => bounds.x - bounds.width,
     };
 
     let y = match vertical_alignment {
