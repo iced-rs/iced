@@ -1,7 +1,7 @@
 //! Draw paragraphs.
 use crate::core;
 use crate::core::alignment;
-use crate::core::text::{Hit, Shaping, Span, Text, Wrapping};
+use crate::core::text::{Alignment, Hit, Shaping, Span, Text, Wrapping};
 use crate::core::{Font, Point, Rectangle, Size};
 use crate::text;
 
@@ -18,8 +18,8 @@ struct Internal {
     font: Font,
     shaping: Shaping,
     wrapping: Wrapping,
-    horizontal_alignment: Option<alignment::Horizontal>,
-    vertical_alignment: alignment::Vertical,
+    align_x: Alignment,
+    align_y: alignment::Vertical,
     bounds: Size,
     min_bounds: Size,
     version: text::Version,
@@ -47,8 +47,8 @@ impl Paragraph {
         Weak {
             raw: Arc::downgrade(paragraph),
             min_bounds: paragraph.min_bounds,
-            horizontal_alignment: paragraph.horizontal_alignment,
-            vertical_alignment: paragraph.vertical_alignment,
+            align_x: paragraph.align_x,
+            align_y: paragraph.align_y,
         }
     }
 
@@ -89,14 +89,13 @@ impl core::text::Paragraph for Paragraph {
             text::to_shaping(text.shaping),
         );
 
-        let min_bounds =
-            align(&mut buffer, &mut font_system, text.horizontal_alignment);
+        let min_bounds = align(&mut buffer, &mut font_system, text.align_x);
 
         Self(Arc::new(Internal {
             buffer,
             font: text.font,
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
+            align_x: text.align_x,
+            align_y: text.align_y,
             shaping: text.shaping,
             wrapping: text.wrapping,
             bounds: text.bounds,
@@ -160,14 +159,13 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
-        let min_bounds =
-            align(&mut buffer, &mut font_system, text.horizontal_alignment);
+        let min_bounds = align(&mut buffer, &mut font_system, text.align_x);
 
         Self(Arc::new(Internal {
             buffer,
             font: text.font,
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
+            align_x: text.align_x,
+            align_y: text.align_y,
             shaping: text.shaping,
             wrapping: text.wrapping,
             bounds: text.bounds,
@@ -205,8 +203,8 @@ impl core::text::Paragraph for Paragraph {
             || paragraph.font != text.font
             || paragraph.shaping != text.shaping
             || paragraph.wrapping != text.wrapping
-            || paragraph.horizontal_alignment != text.horizontal_alignment
-            || paragraph.vertical_alignment != text.vertical_alignment
+            || paragraph.align_x != text.align_x
+            || paragraph.align_y != text.align_y
         {
             core::text::Difference::Shape
         } else if paragraph.bounds != text.bounds {
@@ -216,12 +214,12 @@ impl core::text::Paragraph for Paragraph {
         }
     }
 
-    fn horizontal_alignment(&self) -> Option<alignment::Horizontal> {
-        self.internal().horizontal_alignment
+    fn align_x(&self) -> Alignment {
+        self.internal().align_x
     }
 
-    fn vertical_alignment(&self) -> alignment::Vertical {
-        self.internal().vertical_alignment
+    fn align_y(&self) -> alignment::Vertical {
+        self.internal().align_y
     }
 
     fn min_bounds(&self) -> Size {
@@ -361,12 +359,12 @@ impl core::text::Paragraph for Paragraph {
 fn align(
     buffer: &mut cosmic_text::Buffer,
     font_system: &mut text::FontSystem,
-    align_x: Option<alignment::Horizontal>,
+    alignment: Alignment,
 ) -> Size {
     let (min_bounds, has_rtl) = text::measure(buffer);
     let mut needs_relayout = has_rtl;
 
-    if let Some(align_x) = align_x {
+    if let Some(align) = text::to_align(alignment) {
         let has_multiple_lines = buffer.lines.len() > 1
             || buffer.lines.first().is_some_and(|line| {
                 line.layout_opt().is_some_and(|layout| layout.len() > 1)
@@ -374,7 +372,7 @@ fn align(
 
         if has_multiple_lines {
             for line in &mut buffer.lines {
-                let _ = line.set_align(Some(text::to_align(align_x)));
+                let _ = line.set_align(Some(align));
             }
 
             needs_relayout = true;
@@ -408,8 +406,8 @@ impl fmt::Debug for Paragraph {
         f.debug_struct("Paragraph")
             .field("font", &paragraph.font)
             .field("shaping", &paragraph.shaping)
-            .field("horizontal_alignment", &paragraph.horizontal_alignment)
-            .field("vertical_alignment", &paragraph.vertical_alignment)
+            .field("horizontal_alignment", &paragraph.align_x)
+            .field("vertical_alignment", &paragraph.align_y)
             .field("bounds", &paragraph.bounds)
             .field("min_bounds", &paragraph.min_bounds)
             .finish()
@@ -420,8 +418,8 @@ impl PartialEq for Internal {
     fn eq(&self, other: &Self) -> bool {
         self.font == other.font
             && self.shaping == other.shaping
-            && self.horizontal_alignment == other.horizontal_alignment
-            && self.vertical_alignment == other.vertical_alignment
+            && self.align_x == other.align_x
+            && self.align_y == other.align_y
             && self.bounds == other.bounds
             && self.min_bounds == other.min_bounds
             && self.buffer.metrics() == other.buffer.metrics()
@@ -438,8 +436,8 @@ impl Default for Internal {
             font: Font::default(),
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
-            horizontal_alignment: None,
-            vertical_alignment: alignment::Vertical::Top,
+            align_x: Alignment::Default,
+            align_y: alignment::Vertical::Top,
             bounds: Size::ZERO,
             min_bounds: Size::ZERO,
             version: text::Version::default(),
@@ -454,9 +452,9 @@ pub struct Weak {
     /// The minimum bounds of the [`Paragraph`].
     pub min_bounds: Size,
     /// The horizontal alignment of the [`Paragraph`].
-    pub horizontal_alignment: Option<alignment::Horizontal>,
+    pub align_x: Alignment,
     /// The vertical alignment of the [`Paragraph`].
-    pub vertical_alignment: alignment::Vertical,
+    pub align_y: alignment::Vertical,
 }
 
 impl Weak {

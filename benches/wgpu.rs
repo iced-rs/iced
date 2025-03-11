@@ -191,8 +191,8 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
                         size: Pixels::from(16),
                         line_height: text::LineHeight::default(),
                         font: Font::DEFAULT,
-                        horizontal_alignment: alignment::Horizontal::Left,
-                        vertical_alignment: alignment::Vertical::Top,
+                        align_x: alignment::Horizontal::Left,
+                        align_y: alignment::Vertical::Top,
                         shaping: text::Shaping::Basic,
                     });
                 }
