@@ -1,9 +1,11 @@
+use iced::border;
 use iced::widget::{Button, Column, Container, Slider};
 use iced::widget::{
     button, center_x, center_y, checkbox, column, horizontal_space, image,
-    radio, row, scrollable, slider, text, text_input, toggler, vertical_space,
+    radio, rich_text, row, scrollable, slider, span, text, text_input, toggler,
+    vertical_space,
 };
-use iced::{Center, Color, Element, Fill, Font, Pixels};
+use iced::{Center, Color, Element, Fill, Font, Pixels, Theme};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -54,6 +56,7 @@ pub enum Message {
     ToggleTextInputIcon(bool),
     DebugToggled(bool),
     TogglerChanged(bool),
+    OpenTrunk,
 }
 
 impl Tour {
@@ -129,6 +132,9 @@ impl Tour {
             }
             Message::TogglerChanged(toggler) => {
                 self.toggler = toggler;
+            }
+            Message::OpenTrunk => {
+                let _ = open::that_in_background("https://trunkrs.dev");
             }
         }
     }
@@ -210,10 +216,28 @@ impl Tour {
                  built on top of wgpu, a graphics library supporting Vulkan, \
                  Metal, DX11, and DX12.",
             )
-            .push(
-                "Additionally, this tour can also run on WebAssembly \
-                 thanks to dodrio, an experimental VDOM library for Rust.",
-            )
+            .push({
+                let theme = Theme::default();
+                let palette = theme.extended_palette();
+
+                rich_text![
+                    "Additionally, this tour can also run on WebAssembly ",
+                    "by leveraging ",
+                    span("trunk")
+                        .color(palette.primary.base.color)
+                        .background(palette.background.weakest.color)
+                        .border(
+                            border::rounded(2)
+                                .width(1)
+                                .color(palette.background.weak.color)
+                        )
+                        .padding([0, 2])
+                        .font(Font::MONOSPACE)
+                        .link(Message::OpenTrunk),
+                    "."
+                ]
+                .on_link_click(std::convert::identity)
+            })
             .push(
                 "You will need to interact with the UI in order to reach \
                  the end!",
