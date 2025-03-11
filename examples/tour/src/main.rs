@@ -134,6 +134,7 @@ impl Tour {
                 self.toggler = toggler;
             }
             Message::OpenTrunk => {
+                #[cfg(not(target_arch = "wasm32"))]
                 let _ = open::that_in_background("https://trunkrs.dev");
             }
         }
