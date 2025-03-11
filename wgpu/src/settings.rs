@@ -44,6 +44,11 @@ impl Default for Settings {
 impl From<graphics::Settings> for Settings {
     fn from(settings: graphics::Settings) -> Self {
         Self {
+            present_mode: if settings.vsync {
+                wgpu::PresentMode::AutoVsync
+            } else {
+                wgpu::PresentMode::AutoNoVsync
+            },
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
             antialiasing: settings.antialiasing,
