@@ -150,12 +150,12 @@ impl<Message> canvas::Program<Message> for Clock {
                         -width * 2.0,
                     ),
                     color: palette.secondary.strong.text,
-                    horizontal_alignment: if rotate_factor > 0.0 {
+                    align_x: if rotate_factor > 0.0 {
                         alignment::Horizontal::Right
                     } else {
                         alignment::Horizontal::Left
                     },
-                    vertical_alignment: alignment::Vertical::Bottom,
+                    align_y: alignment::Vertical::Bottom,
                     font: Font::MONOSPACE,
                     ..canvas::Text::default()
                 });
@@ -173,8 +173,8 @@ impl<Message> canvas::Program<Message> for Clock {
                     size: (radius / 5.0).into(),
                     position: Point::new(x * 0.82, y * 0.82),
                     color: palette.secondary.strong.text,
-                    horizontal_alignment: alignment::Horizontal::Center,
-                    vertical_alignment: alignment::Vertical::Center,
+                    align_x: alignment::Horizontal::Center,
+                    align_y: alignment::Vertical::Center,
                     font: Font::MONOSPACE,
                     ..canvas::Text::default()
                 });

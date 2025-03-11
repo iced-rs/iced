@@ -1,5 +1,5 @@
 use crate::core::alignment;
-use crate::core::text::Shaping;
+use crate::core::text::{Alignment, Shaping};
 use crate::core::{
     Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
@@ -61,8 +61,8 @@ impl Pipeline {
             paragraph.buffer(),
             Rectangle::new(position, paragraph.min_bounds()),
             color,
-            paragraph.horizontal_alignment(),
-            paragraph.vertical_alignment(),
+            paragraph.align_x(),
+            paragraph.align_y(),
             pixels,
             clip_mask,
             transformation,
@@ -92,7 +92,7 @@ impl Pipeline {
             editor.buffer(),
             Rectangle::new(position, editor.bounds()),
             color,
-            alignment::Horizontal::Left,
+            Alignment::Default,
             alignment::Vertical::Top,
             pixels,
             clip_mask,
@@ -108,7 +108,7 @@ impl Pipeline {
         size: Pixels,
         line_height: Pixels,
         font: Font,
-        horizontal_alignment: alignment::Horizontal,
+        horizontal_alignment: Alignment,
         vertical_alignment: alignment::Vertical,
         shaping: Shaping,
         pixels: &mut tiny_skia::PixmapMut<'_>,
@@ -177,7 +177,7 @@ impl Pipeline {
                 ),
             ),
             color,
-            alignment::Horizontal::Left,
+            Alignment::Default,
             alignment::Vertical::Top,
             pixels,
             clip_mask,
@@ -197,21 +197,21 @@ fn draw(
     buffer: &cosmic_text::Buffer,
     bounds: Rectangle,
     color: Color,
-    horizontal_alignment: alignment::Horizontal,
-    vertical_alignment: alignment::Vertical,
+    align_x: Alignment,
+    align_y: alignment::Vertical,
     pixels: &mut tiny_skia::PixmapMut<'_>,
     clip_mask: Option<&tiny_skia::Mask>,
     transformation: Transformation,
 ) {
     let bounds = bounds * transformation;
 
-    let x = match horizontal_alignment {
-        alignment::Horizontal::Left => bounds.x,
-        alignment::Horizontal::Center => bounds.x - bounds.width / 2.0,
-        alignment::Horizontal::Right => bounds.x - bounds.width,
+    let x = match align_x {
+        Alignment::Default | Alignment::Left | Alignment::Justified => bounds.x,
+        Alignment::Center => bounds.x - bounds.width / 2.0,
+        Alignment::Right => bounds.x - bounds.width,
     };
 
-    let y = match vertical_alignment {
+    let y = match align_y {
         alignment::Vertical::Top => bounds.y,
         alignment::Vertical::Center => bounds.y - bounds.height / 2.0,
         alignment::Vertical::Bottom => bounds.y - bounds.height,

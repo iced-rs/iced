@@ -178,10 +178,8 @@ impl editor::Editor for Editor {
                     .get(cursor.line)
                     .expect("Cursor line should be present");
 
-                let layout = line
-                    .layout_opt()
-                    .as_ref()
-                    .expect("Line layout should be cached");
+                let layout =
+                    line.layout_opt().expect("Line layout should be cached");
 
                 let mut lines = layout.iter().enumerate();
 
@@ -452,7 +450,10 @@ impl editor::Editor for Editor {
     fn min_bounds(&self) -> Size {
         let internal = self.internal();
 
-        text::measure(buffer_from_editor(&internal.editor))
+        let (bounds, _has_rtl) =
+            text::measure(buffer_from_editor(&internal.editor));
+
+        bounds
     }
 
     fn update(
@@ -706,11 +707,7 @@ fn highlight_line(
     from: usize,
     to: usize,
 ) -> impl Iterator<Item = (f32, f32)> + '_ {
-    let layout = line
-        .layout_opt()
-        .as_ref()
-        .map(Vec::as_slice)
-        .unwrap_or_default();
+    let layout = line.layout_opt().map(Vec::as_slice).unwrap_or_default();
 
     layout.iter().map(move |visual_line| {
         let start = visual_line
@@ -761,9 +758,7 @@ fn visual_lines_offset(line: usize, buffer: &cosmic_text::Buffer) -> i32 {
     let visual_lines_offset: usize = buffer.lines[start..]
         .iter()
         .take(end - start)
-        .map(|line| {
-            line.layout_opt().as_ref().map(Vec::len).unwrap_or_default()
-        })
+        .map(|line| line.layout_opt().map(Vec::len).unwrap_or_default())
         .sum();
 
     visual_lines_offset as i32 * if scroll.line < line { 1 } else { -1 }

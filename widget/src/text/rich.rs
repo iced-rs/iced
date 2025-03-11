@@ -4,7 +4,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::{Paragraph, Span};
 use crate::core::widget::text::{
-    self, Catalog, LineHeight, Shaping, Style, StyleFn, Wrapping,
+    self, Alignment, Catalog, LineHeight, Shaping, Style, StyleFn, Wrapping,
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
@@ -31,7 +31,7 @@ pub struct Rich<
     width: Length,
     height: Length,
     font: Option<Renderer::Font>,
-    align_x: alignment::Horizontal,
+    align_x: Alignment,
     align_y: alignment::Vertical,
     wrapping: Wrapping,
     class: Theme::Class<'a>,
@@ -56,7 +56,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             font: None,
-            align_x: alignment::Horizontal::Left,
+            align_x: Alignment::Default,
             align_y: alignment::Vertical::Top,
             wrapping: Wrapping::default(),
             class: Theme::default(),
@@ -112,10 +112,7 @@ where
     }
 
     /// Sets the [`alignment::Horizontal`] of the [`Rich`] text.
-    pub fn align_x(
-        mut self,
-        alignment: impl Into<alignment::Horizontal>,
-    ) -> Self {
+    pub fn align_x(mut self, alignment: impl Into<Alignment>) -> Self {
         self.align_x = alignment.into();
         self
     }
@@ -476,8 +473,8 @@ fn layout<Link, Renderer>(
     line_height: LineHeight,
     size: Option<Pixels>,
     font: Option<Renderer::Font>,
-    horizontal_alignment: alignment::Horizontal,
-    vertical_alignment: alignment::Vertical,
+    align_x: Alignment,
+    align_y: alignment::Vertical,
     wrapping: Wrapping,
 ) -> layout::Node
 where
@@ -496,8 +493,8 @@ where
             size,
             line_height,
             font,
-            horizontal_alignment,
-            vertical_alignment,
+            align_x,
+            align_y,
             shaping: Shaping::Advanced,
             wrapping,
         };
@@ -513,8 +510,8 @@ where
                 size,
                 line_height,
                 font,
-                horizontal_alignment,
-                vertical_alignment,
+                align_x,
+                align_y,
                 shaping: Shaping::Advanced,
                 wrapping,
             }) {

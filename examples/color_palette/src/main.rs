@@ -170,8 +170,8 @@ impl Theme {
         });
 
         let mut text = canvas::Text {
-            horizontal_alignment: alignment::Horizontal::Center,
-            vertical_alignment: alignment::Vertical::Top,
+            align_x: alignment::Horizontal::Center,
+            align_y: alignment::Vertical::Top,
             size: Pixels(15.0),
             color: text_color,
             ..canvas::Text::default()
@@ -214,7 +214,7 @@ impl Theme {
             });
         }
 
-        text.vertical_alignment = alignment::Vertical::Bottom;
+        text.align_y = alignment::Vertical::Bottom;
 
         let hsl = Hsl::from_color(Rgb::from(self.base));
         for i in 0..self.len() {

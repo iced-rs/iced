@@ -399,8 +399,8 @@ impl Engine {
                 size,
                 line_height,
                 font,
-                horizontal_alignment,
-                vertical_alignment,
+                align_x,
+                align_y,
                 shaping,
                 clip_bounds: text_bounds, // TODO
             } => {
@@ -420,8 +420,8 @@ impl Engine {
                     *size,
                     *line_height,
                     *font,
-                    *horizontal_alignment,
-                    *vertical_alignment,
+                    *align_x,
+                    *align_y,
                     *shaping,
                     pixels,
                     clip_mask,

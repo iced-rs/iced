@@ -37,7 +37,7 @@ impl<T> Task<T> {
     /// output with the given closure.
     pub fn perform<A>(
         future: impl Future<Output = A> + MaybeSend + 'static,
-        f: impl Fn(A) -> T + MaybeSend + 'static,
+        f: impl FnOnce(A) -> T + MaybeSend + 'static,
     ) -> Self
     where
         T: MaybeSend + 'static,

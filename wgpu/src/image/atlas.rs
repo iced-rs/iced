@@ -344,15 +344,15 @@ impl Atlas {
             });
 
         encoder.copy_buffer_to_texture(
-            wgpu::ImageCopyBuffer {
+            wgpu::TexelCopyBufferInfo {
                 buffer: &buffer,
-                layout: wgpu::ImageDataLayout {
+                layout: wgpu::TexelCopyBufferLayout {
                     offset: offset as u64,
                     bytes_per_row: Some(4 * image_width + padding),
                     rows_per_image: Some(image_height),
                 },
             },
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &self.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d {
@@ -407,7 +407,7 @@ impl Atlas {
             }
 
             encoder.copy_texture_to_texture(
-                wgpu::ImageCopyTexture {
+                wgpu::TexelCopyTextureInfo {
                     texture: &self.texture,
                     mip_level: 0,
                     origin: wgpu::Origin3d {
@@ -417,7 +417,7 @@ impl Atlas {
                     },
                     aspect: wgpu::TextureAspect::default(),
                 },
-                wgpu::ImageCopyTexture {
+                wgpu::TexelCopyTextureInfo {
                     texture: &new_texture,
                     mip_level: 0,
                     origin: wgpu::Origin3d {
