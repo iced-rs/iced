@@ -495,8 +495,8 @@ fn prepare(
             let (
                 buffer,
                 bounds,
-                horizontal_alignment,
-                vertical_alignment,
+                align_x,
+                align_y,
                 color,
                 clip_bounds,
                 transformation,
@@ -550,8 +550,8 @@ fn prepare(
                 }
                 Text::Cached {
                     bounds,
-                    align_x: horizontal_alignment,
-                    align_y: vertical_alignment,
+                    align_x,
+                    align_y,
                     color,
                     clip_bounds,
                     ..
@@ -566,8 +566,8 @@ fn prepare(
                     (
                         &entry.buffer,
                         Rectangle::new(bounds.position(), entry.min_bounds),
-                        *horizontal_alignment,
-                        *vertical_alignment,
+                        *align_x,
+                        *align_y,
                         *color,
                         *clip_bounds,
                         Transformation::IDENTITY,
@@ -603,7 +603,7 @@ fn prepare(
 
             let bounds = bounds * transformation * layer_transformation;
 
-            let left = match horizontal_alignment {
+            let left = match align_x {
                 Alignment::Default | Alignment::Left | Alignment::Justified => {
                     bounds.x
                 }
@@ -611,7 +611,7 @@ fn prepare(
                 Alignment::Right => bounds.x - bounds.width,
             };
 
-            let top = match vertical_alignment {
+            let top = match align_y {
                 alignment::Vertical::Top => bounds.y,
                 alignment::Vertical::Center => bounds.y - bounds.height / 2.0,
                 alignment::Vertical::Bottom => bounds.y - bounds.height,
