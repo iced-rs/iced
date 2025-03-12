@@ -597,6 +597,14 @@ async fn run_instance<P>(
                     continue;
                 }
 
+                debug::theme_changed(|| {
+                    if window_manager.is_empty() {
+                        theme::Base::palette(&program.theme(id))
+                    } else {
+                        None
+                    }
+                });
+
                 let window = window_manager.insert(
                     id,
                     window,
@@ -1025,6 +1033,12 @@ async fn run_instance<P>(
 
                                 window.raw.request_redraw();
                             }
+
+                            debug::theme_changed(|| {
+                                window_manager.first().and_then(|window| {
+                                    theme::Base::palette(window.state.theme())
+                                })
+                            });
 
                             user_interfaces =
                                 ManuallyDrop::new(build_user_interfaces(
