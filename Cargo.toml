@@ -112,6 +112,7 @@ members = [
     "futures",
     "graphics",
     "highlighter",
+    "program",
     "renderer",
     "runtime",
     "test",
@@ -141,6 +142,7 @@ iced_debug = { version = "0.14.0-dev", path = "debug" }
 iced_futures = { version = "0.14.0-dev", path = "futures" }
 iced_graphics = { version = "0.14.0-dev", path = "graphics" }
 iced_highlighter = { version = "0.14.0-dev", path = "highlighter" }
+iced_program = { version = "0.14.0-dev", path = "program" }
 iced_renderer = { version = "0.14.0-dev", path = "renderer" }
 iced_runtime = { version = "0.14.0-dev", path = "runtime" }
 iced_test = { version = "0.14.0-dev", path = "test" }

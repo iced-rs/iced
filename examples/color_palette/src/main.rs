@@ -12,7 +12,7 @@ use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
     iced::application(
-        "Color Palette - Iced",
+        ColorPalette::default,
         ColorPalette::update,
         ColorPalette::view,
     )

@@ -2603,6 +2603,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "iced_program"
+version = "0.14.0-dev"
+dependencies = [
+ "iced_graphics",
+ "iced_runtime",
+]
+
+[[package]]
 name = "iced_renderer"
 version = "0.14.0-dev"
 dependencies = [
@@ -2694,9 +2702,7 @@ name = "iced_winit"
 version = "0.14.0-dev"
 dependencies = [
  "iced_debug",
- "iced_futures",
- "iced_graphics",
- "iced_runtime",
+ "iced_program",
  "log",
  "rustc-hash 2.1.1",
  "sysinfo",

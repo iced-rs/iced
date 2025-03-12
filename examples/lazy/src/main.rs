@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::hash::Hash;
 
 pub fn main() -> iced::Result {
-    iced::run("Lazy - Iced", App::update, App::view)
+    iced::run(App::update, App::view)
 }
 
 struct App {

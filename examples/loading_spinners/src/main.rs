@@ -12,7 +12,7 @@ use linear::Linear;
 
 pub fn main() -> iced::Result {
     iced::application(
-        "Loading Spinners - Iced",
+        LoadingSpinners::default,
         LoadingSpinners::update,
         LoadingSpinners::view,
     )

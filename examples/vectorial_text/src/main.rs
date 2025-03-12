@@ -7,7 +7,7 @@ use iced::{Center, Element, Fill, Point, Rectangle, Renderer, Theme, Vector};
 
 pub fn main() -> iced::Result {
     iced::application(
-        "Vectorial Text - Iced",
+        VectorialText::default,
         VectorialText::update,
         VectorialText::view,
     )

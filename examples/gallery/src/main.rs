@@ -21,10 +21,10 @@ use iced::{
 use std::collections::HashMap;
 
 fn main() -> iced::Result {
-    iced::application("Gallery - Iced", Gallery::update, Gallery::view)
+    iced::application(Gallery::new, Gallery::update, Gallery::view)
         .subscription(Gallery::subscription)
         .theme(Gallery::theme)
-        .run_with(Gallery::new)
+        .run()
 }
 
 struct Gallery {

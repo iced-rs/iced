@@ -26,9 +26,7 @@ unconditional-rendering = []
 
 [dependencies]
 iced_debug.workspace = true
-iced_futures.workspace = true
-iced_graphics.workspace = true
-iced_runtime.workspace = true
+iced_program.workspace = true
 
 log.workspace = true
 rustc-hash.workspace = true

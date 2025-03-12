@@ -8,7 +8,7 @@ use std::fmt::Debug;
 
 fn main() -> iced::Result {
     iced::application(
-        "Sierpinski Triangle - Iced",
+        SierpinskiEmulator::default,
         SierpinskiEmulator::update,
         SierpinskiEmulator::view,
     )
