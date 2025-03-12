@@ -1094,7 +1094,10 @@ fn update<P: Program, E: Executor>(
     }
 
     let subscription = runtime.enter(|| program.subscription());
-    runtime.track(subscription::into_recipes(subscription.map(Action::Output)));
+    let recipes = subscription::into_recipes(subscription.map(Action::Output));
+
+    debug::subscriptions_tracked(recipes.len());
+    runtime.track(recipes);
 }
 
 fn run_action<P, C>(
