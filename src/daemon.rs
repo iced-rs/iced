@@ -8,7 +8,7 @@ use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
 
 use std::borrow::Cow;
 
-/// Creates an iced [`Daemon`] given its title, update, and view logic.
+/// Creates an iced [`Daemon`] given its boot, update, and view logic.
 ///
 /// A [`Daemon`] will not open a window by default, but will run silently
 /// instead until a [`Task`] from [`window::open`] is returned by its update logic.
@@ -19,7 +19,7 @@ use std::borrow::Cow;
 ///
 /// [`exit`]: crate::exit
 pub fn daemon<State, Message, Theme, Renderer>(
-    boot: impl application::New<State, Message>,
+    boot: impl application::Boot<State, Message>,
     update: impl application::Update<State, Message>,
     view: impl for<'a> self::View<'a, State, Message, Theme, Renderer>,
 ) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme>>
@@ -47,7 +47,7 @@ where
         Message: Send + std::fmt::Debug + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
-        Boot: application::New<State, Message>,
+        Boot: application::Boot<State, Message>,
         Update: application::Update<State, Message>,
         View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
     {
@@ -64,7 +64,7 @@ where
         }
 
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
-            self.boot.new()
+            self.boot.boot()
         }
 
         fn update(
@@ -113,12 +113,6 @@ pub struct Daemon<P: Program> {
 
 impl<P: Program> Daemon<P> {
     /// Runs the [`Daemon`].
-    ///
-    /// The state of the [`Daemon`] must implement [`Default`].
-    /// If your state does not implement [`Default`], use [`run_with`]
-    /// instead.
-    ///
-    /// [`run_with`]: Self::run_with
     pub fn run(self) -> Result
     where
         Self: 'static,

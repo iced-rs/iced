@@ -40,7 +40,7 @@ use crate::{
 
 use std::borrow::Cow;
 
-/// Creates an iced [`Application`] given its update and view logic.
+/// Creates an iced [`Application`] given its boot, update, and view logic.
 ///
 /// # Example
 /// ```no_run
@@ -69,7 +69,7 @@ use std::borrow::Cow;
 /// }
 /// ```
 pub fn application<State, Message, Theme, Renderer>(
-    new: impl New<State, Message>,
+    boot: impl Boot<State, Message>,
     update: impl Update<State, Message>,
     view: impl for<'a> self::View<'a, State, Message, Theme, Renderer>,
 ) -> Application<impl Program<State = State, Message = Message, Theme = Theme>>
@@ -81,8 +81,8 @@ where
 {
     use std::marker::PhantomData;
 
-    struct Instance<State, Message, Theme, Renderer, New, Update, View> {
-        new: New,
+    struct Instance<State, Message, Theme, Renderer, Boot, Update, View> {
+        boot: Boot,
         update: Update,
         view: View,
         _state: PhantomData<State>,
@@ -91,13 +91,13 @@ where
         _renderer: PhantomData<Renderer>,
     }
 
-    impl<State, Message, Theme, Renderer, New, Update, View> Program
-        for Instance<State, Message, Theme, Renderer, New, Update, View>
+    impl<State, Message, Theme, Renderer, Boot, Update, View> Program
+        for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
         Message: Send + std::fmt::Debug + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
-        New: self::New<State, Message>,
+        Boot: self::Boot<State, Message>,
         Update: self::Update<State, Message>,
         View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
     {
@@ -114,7 +114,7 @@ where
         }
 
         fn boot(&self) -> (State, Task<Message>) {
-            self.new.new()
+            self.boot.boot()
         }
 
         fn update(
@@ -136,7 +136,7 @@ where
 
     Application {
         raw: Instance {
-            new,
+            boot,
             update,
             view,
             _state: PhantomData,
@@ -165,12 +165,6 @@ pub struct Application<P: Program> {
 
 impl<P: Program> Application<P> {
     /// Runs the [`Application`].
-    ///
-    /// The state of the [`Application`] must implement [`Default`].
-    /// If your state does not implement [`Default`], use [`run_with`]
-    /// instead.
-    ///
-    /// [`run_with`]: Self::run_with
     pub fn run(self) -> Result
     where
         Self: 'static,
@@ -398,37 +392,42 @@ impl<P: Program> Application<P> {
 }
 
 /// The logic to initialize the `State` of some [`Application`].
-pub trait New<State, Message> {
+///
+/// This trait is implemented for both `Fn() -> State` and
+/// `Fn() -> (State, Task<Message>)`.
+///
+/// In practice, this means that [`application`] can both take
+/// simple functions like `State::default` and more advanced ones
+/// that return a [`Task`].
+pub trait Boot<State, Message> {
     /// Initializes the [`Application`] state.
-    #[allow(clippy::new_ret_no_self)]
-    #[allow(clippy::wrong_self_convention)]
-    fn new(&self) -> (State, Task<Message>);
+    fn boot(&self) -> (State, Task<Message>);
 }
 
-impl<T, C, State, Message> New<State, Message> for T
+impl<T, C, State, Message> Boot<State, Message> for T
 where
     T: Fn() -> C,
-    C: IntoState<State, Message>,
+    C: IntoBoot<State, Message>,
 {
-    fn new(&self) -> (State, Task<Message>) {
-        self().into_state()
+    fn boot(&self) -> (State, Task<Message>) {
+        self().into_boot()
     }
 }
 
-/// TODO
-pub trait IntoState<State, Message> {
-    /// TODO
-    fn into_state(self) -> (State, Task<Message>);
+/// The initial state of some [`Application`].
+pub trait IntoBoot<State, Message> {
+    /// Turns some type into the initial state of some [`Application`].
+    fn into_boot(self) -> (State, Task<Message>);
 }
 
-impl<State, Message> IntoState<State, Message> for State {
-    fn into_state(self) -> (State, Task<Message>) {
+impl<State, Message> IntoBoot<State, Message> for State {
+    fn into_boot(self) -> (State, Task<Message>) {
         (self, Task::none())
     }
 }
 
-impl<State, Message> IntoState<State, Message> for (State, Task<Message>) {
-    fn into_state(self) -> (State, Task<Message>) {
+impl<State, Message> IntoBoot<State, Message> for (State, Task<Message>) {
+    fn into_boot(self) -> (State, Task<Message>) {
         self
     }
 }
