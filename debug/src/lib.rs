@@ -61,7 +61,7 @@ pub fn skip_next_timing() {
     internal::skip_next_timing();
 }
 
-#[cfg(feature = "enable")]
+#[cfg(all(feature = "enable", not(target_arch = "wasm32")))]
 mod internal {
     use crate::core::theme;
     use crate::core::time::Instant;
@@ -204,7 +204,7 @@ mod internal {
     static SKIP_NEXT_SPAN: AtomicBool = AtomicBool::new(false);
 }
 
-#[cfg(not(feature = "enable"))]
+#[cfg(any(not(feature = "enable"), target_arch = "wasm32"))]
 mod internal {
     use crate::core::theme;
     use crate::core::window;
