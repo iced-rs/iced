@@ -12,8 +12,11 @@ use crate::{
     Background, Border, Color, Padding, Pixels, Point, Rectangle, Size,
 };
 
+use cosmic_text::Buffer;
+
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
+use std::sync::Weak;
 
 /// A paragraph.
 #[derive(Debug, Clone, Copy)]
@@ -278,6 +281,14 @@ pub trait Renderer: crate::Renderer {
         text: Text<String, Self::Font>,
         position: Point,
         color: Color,
+        clip_bounds: Rectangle,
+    );
+
+    /// Draws the given ['Buffer'] at the given position.
+    fn fill_buffer(
+        &mut self,
+        buffer: Weak<Buffer>,
+        position: Point,
         clip_bounds: Rectangle,
     );
 }

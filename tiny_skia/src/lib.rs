@@ -17,6 +17,8 @@ mod vector;
 #[cfg(feature = "geometry")]
 pub mod geometry;
 
+use std::sync::Weak;
+
 pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 
@@ -312,6 +314,16 @@ impl core::text::Renderer for Renderer {
     ) {
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_text(text, position, color, clip_bounds, transformation);
+    }
+
+    fn fill_buffer(
+        &mut self,
+        buffer: Weak<cosmic_text::Buffer>,
+        position: Point,
+        clip_bounds: Rectangle,
+    ) {
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_buffer(buffer, position, clip_bounds, transformation);
     }
 }
 

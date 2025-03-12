@@ -2522,6 +2522,7 @@ dependencies = [
  "approx",
  "bitflags 2.9.0",
  "bytes",
+ "cosmic-text",
  "dark-light",
  "glam",
  "lilt",

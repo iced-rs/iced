@@ -1,3 +1,5 @@
+use std::sync::Weak;
+
 use crate::alignment;
 use crate::image::{self, Image};
 use crate::renderer::{self, Renderer};
@@ -66,6 +68,14 @@ impl text::Renderer for () {
         _paragraph: Text,
         _position: Point,
         _color: Color,
+        _clip_bounds: Rectangle,
+    ) {
+    }
+
+    fn fill_buffer(
+        &mut self,
+        _buffer: Weak<cosmic_text::Buffer>,
+        _position: Point,
         _clip_bounds: Rectangle,
     ) {
     }

@@ -1,3 +1,5 @@
+use std::sync::Weak;
+
 use crate::core::{
     self, Background, Color, Point, Rectangle, Svg, Transformation, renderer,
 };
@@ -5,7 +7,7 @@ use crate::graphics;
 use crate::graphics::Mesh;
 use crate::graphics::color;
 use crate::graphics::layer;
-use crate::graphics::text::{Editor, Paragraph};
+use crate::graphics::text::{Editor, Paragraph, Raw};
 use crate::image::{self, Image};
 use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};
@@ -112,6 +114,25 @@ impl Layer {
             clip_bounds: clip_bounds * transformation,
         };
 
+        self.pending_text.push(text);
+    }
+
+    pub fn draw_buffer(
+        &mut self,
+        buffer: Weak<glyphon::Buffer>,
+        position: Point,
+        clip_bounds: Rectangle,
+        transformation: Transformation,
+    ) {
+        let text = Text::Raw {
+            raw: Raw {
+                buffer: buffer.clone(),
+                position,
+                color: Color::WHITE,
+                clip_bounds,
+            },
+            transformation,
+        };
         self.pending_text.push(text);
     }
 

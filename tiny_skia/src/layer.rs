@@ -5,10 +5,11 @@ use crate::core::{
 };
 use crate::graphics::damage;
 use crate::graphics::layer;
-use crate::graphics::text::{Editor, Paragraph, Text};
+use crate::graphics::text::{Editor, Paragraph, Raw, Text};
 use crate::graphics::{self, Image};
 
 use std::rc::Rc;
+use std::sync::Weak;
 
 pub type Stack = layer::Stack<Layer>;
 
@@ -116,6 +117,24 @@ impl Layer {
     ) {
         self.text
             .push(Item::Cached(text, clip_bounds, transformation));
+    }
+
+    pub fn draw_buffer(
+        &mut self,
+        buffer: Weak<cosmic_text::Buffer>,
+        position: Point,
+        clip_bounds: Rectangle,
+        transformation: Transformation,
+    ) {
+        self.text.push(Item::Live(Text::Raw {
+            raw: Raw {
+                buffer: buffer.clone(),
+                position,
+                color: Color::WHITE,
+                clip_bounds,
+            },
+            transformation,
+        }));
     }
 
     pub fn draw_image(&mut self, image: Image, transformation: Transformation) {

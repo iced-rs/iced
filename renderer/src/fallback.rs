@@ -136,6 +136,19 @@ where
             renderer.fill_text(text, position, color, clip_bounds)
         );
     }
+
+    fn fill_buffer(
+        &mut self,
+        buffer: std::sync::Weak<iced_graphics::text::cosmic_text::Buffer>,
+        position: Point,
+        clip_bounds: Rectangle,
+    ) {
+        delegate!(
+            self,
+            renderer,
+            renderer.fill_buffer(buffer, position, clip_bounds)
+        );
+    }
 }
 
 impl<A, B> image::Renderer for Renderer<A, B>
