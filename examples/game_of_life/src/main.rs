@@ -17,7 +17,6 @@ pub fn main() -> iced::Result {
     iced::application(GameOfLife::default, GameOfLife::update, GameOfLife::view)
         .subscription(GameOfLife::subscription)
         .theme(|_| Theme::Dark)
-        .antialiasing(true)
         .centered()
         .run()
 }

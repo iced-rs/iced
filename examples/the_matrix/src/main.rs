@@ -12,7 +12,6 @@ pub fn main() -> iced::Result {
 
     iced::application(TheMatrix::default, TheMatrix::update, TheMatrix::view)
         .subscription(TheMatrix::subscription)
-        .antialiasing(true)
         .run()
 }
 

@@ -18,7 +18,6 @@ pub fn main() -> iced::Result {
     )
     .theme(ColorPalette::theme)
     .default_font(Font::MONOSPACE)
-    .antialiasing(true)
     .run()
 }
 

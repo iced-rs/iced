@@ -11,7 +11,6 @@ pub fn main() -> iced::Result {
     iced::application(Arc::default, Arc::update, Arc::view)
         .subscription(Arc::subscription)
         .theme(|_| Theme::Dark)
-        .antialiasing(true)
         .run()
 }
 

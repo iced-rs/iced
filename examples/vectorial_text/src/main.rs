@@ -12,7 +12,6 @@ pub fn main() -> iced::Result {
         VectorialText::view,
     )
     .theme(|_| Theme::Dark)
-    .antialiasing(true)
     .run()
 }
 

@@ -14,7 +14,6 @@ pub fn main() -> iced::Result {
     iced::application(Clock::default, Clock::update, Clock::view)
         .subscription(Clock::subscription)
         .theme(Clock::theme)
-        .antialiasing(true)
         .run()
 }
 

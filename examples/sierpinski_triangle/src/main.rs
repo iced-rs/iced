@@ -12,7 +12,6 @@ fn main() -> iced::Result {
         SierpinskiEmulator::update,
         SierpinskiEmulator::view,
     )
-    .antialiasing(true)
     .run()
 }
 
