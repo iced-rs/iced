@@ -12,6 +12,10 @@ impl crate::Executor for Executor {
     fn spawn(&self, future: impl futures::Future<Output = ()> + 'static) {
         wasm_bindgen_futures::spawn_local(future);
     }
+
+    fn block_on(future: impl futures::Future<Output = ()> + 'static) {
+        wasm_bindgen_futures::spawn_local(future);
+    }
 }
 
 pub mod time {

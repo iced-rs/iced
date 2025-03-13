@@ -12,6 +12,10 @@ impl crate::Executor for Executor {
     fn spawn(&self, future: impl Future<Output = ()> + Send + 'static) {
         smol::spawn(future).detach();
     }
+
+    fn block_on(future: impl Future<Output = ()> + 'static) {
+        smol::block_on(future);
+    }
 }
 
 pub mod time {

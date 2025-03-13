@@ -662,15 +662,7 @@ async fn run_instance<P, C>(
                         }
                     };
 
-                    #[cfg(not(target_arch = "wasm32"))]
-                    crate::futures::futures::executor::block_on(
-                        create_compositor,
-                    );
-
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        wasm_bindgen_futures::spawn_local(create_compositor);
-                    }
+                    P::Executor::block_on(create_compositor);
 
                     continue;
                 }

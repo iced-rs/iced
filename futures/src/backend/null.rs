@@ -14,6 +14,12 @@ impl crate::Executor for Executor {
 
     #[cfg(target_arch = "wasm32")]
     fn spawn(&self, _future: impl Future<Output = ()> + 'static) {}
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn block_on(_future: impl Future<Output = ()> + 'static) {}
+
+    #[cfg(target_arch = "wasm32")]
+    fn block_on(_future: impl Future<Output = ()> + 'static) {}
 }
 
 pub mod time {
