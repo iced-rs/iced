@@ -17,8 +17,8 @@ pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
     internal::theme_changed(f);
 }
 
-pub fn commands_spawned(amount: usize) {
-    internal::commands_spawned(amount)
+pub fn tasks_spawned(amount: usize) {
+    internal::tasks_spawned(amount)
 }
 
 pub fn subscriptions_tracked(amount: usize) {
@@ -114,7 +114,7 @@ mod internal {
         }
     }
 
-    pub fn commands_spawned(amount: usize) {
+    pub fn tasks_spawned(amount: usize) {
         BEACON.log(client::Event::CommandsSpawned(amount));
     }
 
@@ -215,7 +215,7 @@ mod internal {
 
     pub fn theme_changed(_f: impl FnOnce() -> Option<theme::Palette>) {}
 
-    pub fn commands_spawned(_amount: usize) {}
+    pub fn tasks_spawned(_amount: usize) {}
 
     pub fn subscriptions_tracked(_amount: usize) {}
 

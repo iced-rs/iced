@@ -1100,6 +1100,7 @@ fn update<P: Program, E: Executor>(
     for message in messages.drain(..) {
         let update_span = debug::update(&message);
         let task = runtime.enter(|| program.update(message));
+        debug::tasks_spawned(task.units());
         update_span.finish();
 
         if let Some(stream) = runtime::task::into_stream(task) {
