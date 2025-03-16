@@ -87,11 +87,11 @@ impl text::Paragraph for () {
         text::Difference::None
     }
 
-    fn horizontal_alignment(&self) -> alignment::Horizontal {
-        alignment::Horizontal::Left
+    fn align_x(&self) -> text::Alignment {
+        text::Alignment::Default
     }
 
-    fn vertical_alignment(&self) -> alignment::Vertical {
+    fn align_y(&self) -> alignment::Vertical {
         alignment::Vertical::Top
     }
 

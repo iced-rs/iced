@@ -10,11 +10,14 @@ pub struct Text {
     /// The contents of the text
     pub content: String,
     /// The position of the text relative to the alignment properties.
+    ///
     /// By default, this position will be relative to the top-left corner coordinate meaning that
     /// if the horizontal and vertical alignments are unchanged, this property will tell where the
     /// top-left corner of the text should be placed.
+    ///
     /// By changing the horizontal_alignment and vertical_alignment properties, you are are able to
     /// change what part of text is placed at this positions.
+    ///
     /// For example, when the horizontal_alignment and vertical_alignment are set to Center, the
     /// center of the text will be placed at the given position NOT the top-left coordinate.
     pub position: Point,
@@ -27,9 +30,9 @@ pub struct Text {
     /// The font of the text
     pub font: Font,
     /// The horizontal alignment of the text
-    pub horizontal_alignment: alignment::Horizontal,
+    pub align_x: alignment::Horizontal,
     /// The vertical alignment of the text
-    pub vertical_alignment: alignment::Vertical,
+    pub align_y: alignment::Vertical,
     /// The shaping strategy of the text.
     pub shaping: Shaping,
 }
@@ -57,7 +60,7 @@ impl Text {
             4,
         );
 
-        let translation_x = match self.horizontal_alignment {
+        let translation_x = match self.align_x {
             alignment::Horizontal::Left => self.position.x,
             alignment::Horizontal::Center | alignment::Horizontal::Right => {
                 let mut line_width = 0.0f32;
@@ -66,7 +69,7 @@ impl Text {
                     line_width = line_width.max(line.w);
                 }
 
-                if self.horizontal_alignment == alignment::Horizontal::Center {
+                if self.align_x == alignment::Horizontal::Center {
                     self.position.x - line_width / 2.0
                 } else {
                     self.position.x - line_width
@@ -77,7 +80,7 @@ impl Text {
         let translation_y = {
             let line_height = self.line_height.to_absolute(self.size);
 
-            match self.vertical_alignment {
+            match self.align_y {
                 alignment::Vertical::Top => self.position.y,
                 alignment::Vertical::Center => {
                     self.position.y - line_height.0 / 2.0
@@ -177,8 +180,8 @@ impl Default for Text {
             size: Pixels(16.0),
             line_height: LineHeight::Relative(1.2),
             font: Font::default(),
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Top,
+            align_x: alignment::Horizontal::Left,
+            align_y: alignment::Vertical::Top,
             shaping: Shaping::Basic,
         }
     }
