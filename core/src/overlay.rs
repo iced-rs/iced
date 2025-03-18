@@ -10,7 +10,9 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;
-use crate::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size, Vector};
+use crate::{
+    Clipboard, Event, Layout, Mouse, Point, Rectangle, Shell, Size, Vector,
+};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Theme, Renderer>
@@ -32,7 +34,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     );
 
     /// Applies a [`widget::Operation`] to the [`Overlay`].
@@ -60,7 +62,7 @@ where
         &mut self,
         _event: &Event,
         _layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
@@ -73,7 +75,7 @@ where
     fn mouse_interaction(
         &self,
         _layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -83,14 +85,14 @@ where
     /// Returns true if the cursor is over the [`Overlay`].
     ///
     /// By default, it returns true if the bounds of the `layout` contain
-    /// the `cursor_position`.
+    /// the `mouse_position`.
     fn is_over(
         &self,
         layout: Layout<'_>,
         _renderer: &Renderer,
-        cursor_position: Point,
+        mouse_position: Point,
     ) -> bool {
-        layout.bounds().contains(cursor_position)
+        layout.bounds().contains(mouse_position)
     }
 
     /// Returns the nested overlay of the [`Overlay`], if there is any.

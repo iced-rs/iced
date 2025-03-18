@@ -5,8 +5,8 @@ use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Border, Clipboard, Color, Event, Layout, Length, Rectangle, Shell, Size,
-    Vector, Widget,
+    Border, Clipboard, Color, Event, Layout, Length, Mouse, Rectangle, Shell,
+    Size, Vector, Widget,
 };
 
 use std::borrow::Borrow;
@@ -314,7 +314,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
@@ -327,7 +327,7 @@ where
             tree,
             event,
             layout,
-            cursor,
+            mouse,
             renderer,
             clipboard,
             &mut local_shell,
@@ -344,23 +344,23 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         self.widget
-            .draw(tree, renderer, theme, style, layout, cursor, viewport);
+            .draw(tree, renderer, theme, style, layout, mouse, viewport);
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.widget
-            .mouse_interaction(tree, layout, cursor, viewport, renderer)
+            .mouse_interaction(tree, layout, mouse, viewport, renderer)
     }
 
     fn overlay<'b>(
@@ -450,14 +450,14 @@ where
         state: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
         self.element.widget.update(
-            state, event, layout, cursor, renderer, clipboard, shell, viewport,
+            state, event, layout, mouse, renderer, clipboard, shell, viewport,
         );
     }
 
@@ -468,7 +468,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         fn explain_layout<Renderer: crate::Renderer>(
@@ -496,7 +496,7 @@ where
 
         self.element
             .widget
-            .draw(state, renderer, theme, style, layout, cursor, viewport);
+            .draw(state, renderer, theme, style, layout, mouse, viewport);
 
         explain_layout(renderer, self.color, layout);
     }
@@ -505,13 +505,13 @@ where
         &self,
         state: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.element
             .widget
-            .mouse_interaction(state, layout, cursor, viewport, renderer)
+            .mouse_interaction(state, layout, mouse, viewport, renderer)
     }
 
     fn overlay<'b>(

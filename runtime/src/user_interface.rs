@@ -6,7 +6,8 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{
-    Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector,
+    Clipboard, Element, InputMethod, Layout, Mouse, Rectangle, Shell, Size,
+    Vector,
 };
 use crate::overlay;
 
@@ -134,8 +135,7 @@ where
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
     /// use iced_runtime::core::clipboard;
-    /// use iced_runtime::core::mouse;
-    /// use iced_runtime::core::Size;
+    /// use iced_runtime::core::{Mouse, Size};
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
@@ -143,7 +143,7 @@ where
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
-    /// let mut cursor = mouse::Cursor::default();
+    /// let mut mouse = Mouse::default();
     /// let mut clipboard = clipboard::Null;
     ///
     /// // Initialize our event storage
@@ -163,7 +163,7 @@ where
     ///     // Update the user interface
     ///     let (state, event_statuses) = user_interface.update(
     ///         &events,
-    ///         cursor,
+    ///         mouse,
     ///         &mut renderer,
     ///         &mut clipboard,
     ///         &mut messages
@@ -180,7 +180,7 @@ where
     pub fn update(
         &mut self,
         events: &[Event],
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &mut Renderer,
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
@@ -203,7 +203,7 @@ where
                 .map(overlay::Nested::new),
         );
 
-        let (base_cursor, overlay_statuses) = if manual_overlay.is_some() {
+        let (base_mouse, overlay_statuses) = if manual_overlay.is_some() {
             let bounds = self.bounds;
 
             let mut overlay = manual_overlay.as_mut().unwrap();
@@ -216,7 +216,7 @@ where
                 overlay.update(
                     event,
                     Layout::new(&layout),
-                    cursor,
+                    mouse,
                     renderer,
                     clipboard,
                     &mut shell,
@@ -263,29 +263,29 @@ where
                 }
             }
 
-            let base_cursor = if manual_overlay
+            let base_mouse = if manual_overlay
                 .as_mut()
                 .and_then(|overlay| {
-                    cursor.position().map(|cursor_position| {
+                    mouse.position().map(|mouse_position| {
                         overlay.is_over(
                             Layout::new(&layout),
                             renderer,
-                            cursor_position,
+                            mouse_position,
                         )
                     })
                 })
                 .unwrap_or_default()
             {
-                mouse::Cursor::Unavailable
+                Mouse::Unavailable
             } else {
-                cursor
+                mouse
             };
 
             self.overlay = Some(layout);
 
-            (base_cursor, event_statuses)
+            (base_mouse, event_statuses)
         } else {
-            (cursor, vec![event::Status::Ignored; events.len()])
+            (mouse, vec![event::Status::Ignored; events.len()])
         };
 
         let viewport = Rectangle::with_size(self.bounds);
@@ -306,7 +306,7 @@ where
                     &mut self.state,
                     event,
                     Layout::new(&self.base),
-                    base_cursor,
+                    base_mouse,
                     renderer,
                     clipboard,
                     &mut shell,
@@ -378,7 +378,7 @@ where
     /// use iced_runtime::core::clipboard;
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::renderer;
-    /// use iced_runtime::core::{Element, Size};
+    /// use iced_runtime::core::{Element, Mouse, Size};
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::{Renderer, Theme};
     ///
@@ -386,7 +386,7 @@ where
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
-    /// let mut cursor = mouse::Cursor::default();
+    /// let mut mouse = Mouse::default();
     /// let mut clipboard = clipboard::Null;
     /// let mut events = Vec::new();
     /// let mut messages = Vec::new();
@@ -405,14 +405,14 @@ where
     ///     // Update the user interface
     ///     let event_statuses = user_interface.update(
     ///         &events,
-    ///         cursor,
+    ///         mouse,
     ///         &mut renderer,
     ///         &mut clipboard,
     ///         &mut messages
     ///     );
     ///
     ///     // Draw the user interface
-    ///     let mouse_interaction = user_interface.draw(&mut renderer, &theme, &renderer::Style::default(), cursor);
+    ///     let mouse_interaction = user_interface.draw(&mut renderer, &theme, &renderer::Style::default(), mouse);
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -429,14 +429,14 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) -> mouse::Interaction {
         // TODO: Move to shell level (?)
         renderer.clear();
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        let base_cursor = if let Some(mut overlay) = self
+        let base_mouse = if let Some(mut overlay) = self
             .root
             .as_widget_mut()
             .overlay(
@@ -452,27 +452,27 @@ where
                 .take()
                 .unwrap_or_else(|| overlay.layout(renderer, self.bounds));
 
-            let cursor = if cursor
+            let mouse = if mouse
                 .position()
-                .map(|cursor_position| {
+                .map(|mouse_position| {
                     overlay.is_over(
                         Layout::new(&overlay_layout),
                         renderer,
-                        cursor_position,
+                        mouse_position,
                     )
                 })
                 .unwrap_or_default()
             {
-                mouse::Cursor::Unavailable
+                Mouse::Unavailable
             } else {
-                cursor
+                mouse
             };
 
             self.overlay = Some(overlay_layout);
 
-            cursor
+            mouse
         } else {
-            cursor
+            mouse
         };
 
         self.root.as_widget().draw(
@@ -481,14 +481,14 @@ where
             theme,
             style,
             Layout::new(&self.base),
-            base_cursor,
+            base_mouse,
             &viewport,
         );
 
         let base_interaction = self.root.as_widget().mouse_interaction(
             &self.state,
             Layout::new(&self.base),
-            base_cursor,
+            base_mouse,
             &viewport,
             renderer,
         );
@@ -519,7 +519,7 @@ where
                     .map(|mut overlay| {
                         let overlay_interaction = overlay.mouse_interaction(
                             Layout::new(layout),
-                            cursor,
+                            mouse,
                             &viewport,
                             renderer,
                         );
@@ -529,16 +529,16 @@ where
                             theme,
                             style,
                             Layout::new(layout),
-                            cursor,
+                            mouse,
                         );
 
-                        if cursor
+                        if mouse
                             .position()
-                            .map(|cursor_position| {
+                            .map(|mouse_position| {
                                 overlay.is_over(
                                     Layout::new(layout),
                                     renderer,
-                                    cursor_position,
+                                    mouse_position,
                                 )
                             })
                             .unwrap_or_default()

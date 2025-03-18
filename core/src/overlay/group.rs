@@ -3,7 +3,9 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Event, Layout, Overlay, Point, Rectangle, Shell, Size};
+use crate::{
+    Clipboard, Event, Layout, Mouse, Overlay, Point, Rectangle, Shell, Size,
+};
 
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.
@@ -76,13 +78,13 @@ where
         &mut self,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         for (child, layout) in self.children.iter_mut().zip(layout.children()) {
-            child.update(event, layout, cursor, renderer, clipboard, shell);
+            child.update(event, layout, mouse, renderer, clipboard, shell);
         }
     }
 
@@ -92,17 +94,17 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) {
         for (child, layout) in self.children.iter().zip(layout.children()) {
-            child.draw(renderer, theme, style, layout, cursor);
+            child.draw(renderer, theme, style, layout, mouse);
         }
     }
 
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -110,7 +112,7 @@ where
             .iter()
             .zip(layout.children())
             .map(|(child, layout)| {
-                child.mouse_interaction(layout, cursor, viewport, renderer)
+                child.mouse_interaction(layout, mouse, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -135,13 +137,13 @@ where
         &self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        cursor_position: Point,
+        mouse_position: Point,
     ) -> bool {
         self.children
             .iter()
             .zip(layout.children())
             .any(|(child, layout)| {
-                child.is_over(layout, renderer, cursor_position)
+                child.is_over(layout, renderer, mouse_position)
             })
     }
 

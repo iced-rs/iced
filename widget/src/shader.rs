@@ -9,7 +9,9 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{Clipboard, Element, Event, Length, Rectangle, Shell, Size};
+use crate::core::{
+    Clipboard, Element, Event, Length, Mouse, Rectangle, Shell, Size,
+};
 use crate::renderer::wgpu::primitive;
 
 use std::marker::PhantomData;
@@ -90,7 +92,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -100,8 +102,7 @@ where
 
         let state = tree.state.downcast_mut::<P::State>();
 
-        if let Some(action) = self.program.update(state, event, bounds, cursor)
-        {
+        if let Some(action) = self.program.update(state, event, bounds, mouse) {
             let (message, redraw_request, event_status) = action.into_inner();
 
             shell.request_redraw_at(redraw_request);
@@ -120,14 +121,14 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let state = tree.state.downcast_ref::<P::State>();
 
-        self.program.mouse_interaction(state, bounds, cursor)
+        self.program.mouse_interaction(state, bounds, mouse)
     }
 
     fn draw(
@@ -137,7 +138,7 @@ where
         _theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
+        mouse_position: Mouse,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -145,7 +146,7 @@ where
 
         renderer.draw_primitive(
             bounds,
-            self.program.draw(state, cursor_position, bounds),
+            self.program.draw(state, mouse_position, bounds),
         );
     }
 }
@@ -176,26 +177,26 @@ where
         state: &mut Self::State,
         event: &Event,
         bounds: Rectangle,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) -> Option<Action<Message>> {
-        T::update(self, state, event, bounds, cursor)
+        T::update(self, state, event, bounds, mouse)
     }
 
     fn draw(
         &self,
         state: &Self::State,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         bounds: Rectangle,
     ) -> Self::Primitive {
-        T::draw(self, state, cursor, bounds)
+        T::draw(self, state, mouse, bounds)
     }
 
     fn mouse_interaction(
         &self,
         state: &Self::State,
         bounds: Rectangle,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) -> mouse::Interaction {
-        T::mouse_interaction(self, state, bounds, cursor)
+        T::mouse_interaction(self, state, bounds, mouse)
     }
 }

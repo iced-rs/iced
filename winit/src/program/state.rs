@@ -1,6 +1,7 @@
 use crate::conversion;
-use crate::core::{Color, Size};
-use crate::core::{mouse, theme, window};
+use crate::core::theme;
+use crate::core::window;
+use crate::core::{Color, Mouse, Size};
 use crate::graphics::Viewport;
 use crate::program::Program;
 
@@ -18,7 +19,7 @@ where
     scale_factor: f64,
     viewport: Viewport,
     viewport_version: u64,
-    cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
+    mouse_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
     theme: P::Theme,
     style: theme::Style,
@@ -34,7 +35,7 @@ where
             .field("scale_factor", &self.scale_factor)
             .field("viewport", &self.viewport)
             .field("viewport_version", &self.viewport_version)
-            .field("cursor_position", &self.cursor_position)
+            .field("mouse_position", &self.mouse_position)
             .field("style", &self.style)
             .finish()
     }
@@ -69,7 +70,7 @@ where
             scale_factor,
             viewport,
             viewport_version: 0,
-            cursor_position: None,
+            mouse_position: None,
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
             style,
@@ -103,17 +104,17 @@ where
         self.viewport.scale_factor()
     }
 
-    /// Returns the current cursor position of the [`State`].
-    pub fn cursor(&self) -> mouse::Cursor {
-        self.cursor_position
-            .map(|cursor_position| {
-                conversion::cursor_position(
-                    cursor_position,
+    /// Returns the current [`Mouse`] state.
+    pub fn mouse(&self) -> Mouse {
+        self.mouse_position
+            .map(|mouse_position| {
+                conversion::mouse_position(
+                    mouse_position,
                     self.viewport.scale_factor(),
                 )
             })
-            .map(mouse::Cursor::Available)
-            .unwrap_or(mouse::Cursor::Unavailable)
+            .map(Mouse::Available)
+            .unwrap_or(Mouse::Unavailable)
     }
 
     /// Returns the current keyboard modifiers of the [`State`].
@@ -171,10 +172,10 @@ where
             | WindowEvent::Touch(Touch {
                 location: position, ..
             }) => {
-                self.cursor_position = Some(*position);
+                self.mouse_position = Some(*position);
             }
             WindowEvent::CursorLeft { .. } => {
-                self.cursor_position = None;
+                self.mouse_position = None;
             }
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = new_modifiers.state();

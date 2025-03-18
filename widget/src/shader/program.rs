@@ -1,5 +1,5 @@
-use crate::core::Rectangle;
 use crate::core::mouse;
+use crate::core::{Mouse, Rectangle};
 use crate::renderer::wgpu::Primitive;
 use crate::shader::{self, Action};
 
@@ -28,7 +28,7 @@ pub trait Program<Message> {
         _state: &mut Self::State,
         _event: &shader::Event,
         _bounds: Rectangle,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
     ) -> Option<Action<Message>> {
         None
     }
@@ -39,7 +39,7 @@ pub trait Program<Message> {
     fn draw(
         &self,
         state: &Self::State,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         bounds: Rectangle,
     ) -> Self::Primitive;
 
@@ -53,7 +53,7 @@ pub trait Program<Message> {
         &self,
         _state: &Self::State,
         _bounds: Rectangle,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
     ) -> mouse::Interaction {
         mouse::Interaction::default()
     }

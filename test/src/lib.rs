@@ -103,7 +103,7 @@ use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{
-    Element, Event, Font, Point, Rectangle, Settings, Size, SmolStr,
+    Element, Event, Font, Mouse, Point, Rectangle, Settings, Size, SmolStr,
 };
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
@@ -138,7 +138,7 @@ pub struct Simulator<
     raw: UserInterface<'a, Message, Theme, Renderer>,
     renderer: Renderer,
     size: Size,
-    cursor: mouse::Cursor,
+    mouse: Mouse,
     messages: Vec<Message>,
 }
 
@@ -200,7 +200,7 @@ where
             raw,
             renderer,
             size,
-            cursor: mouse::Cursor::Unavailable,
+            mouse: Mouse::Unavailable,
             messages: Vec::new(),
         }
     }
@@ -354,11 +354,11 @@ where
         }
     }
 
-    /// Points the mouse cursor at the given position in the [`Simulator`].
+    /// Points the mouse at the given position in the [`Simulator`].
     ///
     /// This does _not_ produce mouse movement events!
     pub fn point_at(&mut self, position: impl Into<Point>) {
-        self.cursor = mouse::Cursor::Available(position.into());
+        self.mouse = Mouse::Available(position.into());
     }
 
     /// Clicks the [`Target`] found by the given [`Selector`], if any.
@@ -404,7 +404,7 @@ where
 
         let (_state, statuses) = self.raw.update(
             &events,
-            self.cursor,
+            self.mouse,
             &mut self.renderer,
             &mut clipboard::Null,
             &mut self.messages,
@@ -421,7 +421,7 @@ where
             &[Event::Window(window::Event::RedrawRequested(
                 time::Instant::now(),
             ))],
-            self.cursor,
+            self.mouse,
             &mut self.renderer,
             &mut clipboard::Null,
             &mut self.messages,
@@ -433,7 +433,7 @@ where
             &core::renderer::Style {
                 text_color: base.text_color,
             },
-            self.cursor,
+            self.mouse,
         );
 
         let scale_factor = 2.0;

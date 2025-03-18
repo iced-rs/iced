@@ -58,7 +58,8 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     Background, Border, Color, Element, Event, InputMethod, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Mouse, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
+    Widget,
 };
 use crate::runtime::Action;
 use crate::runtime::task::{self, Task};
@@ -450,7 +451,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         value: Option<&Value>,
         viewport: &Rectangle,
     ) {
@@ -696,7 +697,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -720,7 +721,7 @@ where
                 let state = state::<Renderer>(tree);
                 let cursor_before = state.cursor;
 
-                let click_position = cursor.position_over(layout.bounds());
+                let click_position = mouse.position_over(layout.bounds());
 
                 state.is_focused = if click_position.is_some() {
                     let now = Instant::now();
@@ -734,7 +735,7 @@ where
                     None
                 };
 
-                if let Some(cursor_position) = click_position {
+                if let Some(mouse_position) = click_position {
                     let text_layout = layout.children().next().unwrap();
 
                     let target = {
@@ -746,11 +747,11 @@ where
                             self.alignment,
                         );
 
-                        cursor_position.x - text_bounds.x - alignment_offset
+                        mouse_position.x - text_bounds.x - alignment_offset
                     };
 
                     let click = mouse::Click::new(
-                        cursor_position,
+                        mouse_position,
                         mouse::Button::Left,
                         state.last_click,
                     );
@@ -764,7 +765,7 @@ where
                                     self.value.clone()
                                 };
 
-                                find_cursor_position(
+                                find_mouse_position(
                                     text_layout.bounds(),
                                     &value,
                                     state,
@@ -789,7 +790,7 @@ where
                             if self.is_secure {
                                 state.cursor.select_all(&self.value);
                             } else {
-                                let position = find_cursor_position(
+                                let position = find_mouse_position(
                                     text_layout.bounds(),
                                     &self.value,
                                     state,
@@ -850,7 +851,7 @@ where
                         self.value.clone()
                     };
 
-                    let position = find_cursor_position(
+                    let position = find_mouse_position(
                         text_layout.bounds(),
                         &value,
                         state,
@@ -1356,9 +1357,9 @@ where
             Status::Disabled
         } else if state.is_focused() {
             Status::Focused {
-                is_hovered: cursor.is_over(layout.bounds()),
+                is_hovered: mouse.is_over(layout.bounds()),
             }
-        } else if cursor.is_over(layout.bounds()) {
+        } else if mouse.is_over(layout.bounds()) {
             Status::Hovered
         } else {
             Status::Active
@@ -1381,21 +1382,21 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
-        self.draw(tree, renderer, theme, layout, cursor, None, viewport);
+        self.draw(tree, renderer, theme, layout, mouse, None, viewport);
     }
 
     fn mouse_interaction(
         &self,
         _state: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if cursor.is_over(layout.bounds()) {
+        if mouse.is_over(layout.bounds()) {
             if self.on_input.is_none() {
                 mouse::Interaction::Idle
             } else {
@@ -1680,7 +1681,7 @@ fn measure_cursor_and_scroll_offset(
 
 /// Computes the position of the text cursor at the given X coordinate of
 /// a [`TextInput`].
-fn find_cursor_position<P: text::Paragraph>(
+fn find_mouse_position<P: text::Paragraph>(
     text_bounds: Rectangle,
     value: &Value,
     state: &State<P>,

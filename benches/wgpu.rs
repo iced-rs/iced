@@ -2,10 +2,9 @@
 use criterion::{Bencher, Criterion, criterion_group, criterion_main};
 
 use iced::alignment;
-use iced::mouse;
 use iced::widget::{canvas, scrollable, stack, text};
 use iced::{
-    Color, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme,
+    Color, Element, Font, Length, Mouse, Pixels, Point, Rectangle, Size, Theme,
 };
 use iced_wgpu::Renderer;
 use iced_wgpu::wgpu;
@@ -129,7 +128,7 @@ fn benchmark<'a>(
             &core::renderer::Style {
                 text_color: Color::WHITE,
             },
-            mouse::Cursor::Unavailable,
+            Mouse::Unavailable,
         );
 
         cache = Some(user_interface.into_cache());
@@ -172,7 +171,7 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
             renderer: &Renderer,
             _theme: &Theme,
             bounds: Rectangle,
-            _cursor: mouse::Cursor,
+            _mouse: Mouse,
         ) -> Vec<canvas::Geometry<Renderer>> {
             vec![cache.draw(renderer, bounds.size(), |frame| {
                 for i in 0..self.n {

@@ -193,7 +193,8 @@ mod grid {
         Cache, Canvas, Event, Frame, Geometry, Path, Text,
     };
     use iced::{
-        Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
+        Color, Element, Fill, Mouse, Point, Rectangle, Renderer, Size, Theme,
+        Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::ops::RangeInclusive;
@@ -377,15 +378,15 @@ mod grid {
             interaction: &mut Interaction,
             event: &Event,
             bounds: Rectangle,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
         ) -> Option<canvas::Action<Message>> {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
                 *interaction = Interaction::None;
             }
 
-            let cursor_position = cursor.position_in(bounds)?;
+            let mouse_position = mouse.position_in(bounds)?;
 
-            let cell = Cell::at(self.project(cursor_position, bounds.size()));
+            let cell = Cell::at(self.project(mouse_position, bounds.size()));
             let is_populated = self.state.contains(&cell);
 
             let (populate, unpopulate) = if is_populated {
@@ -428,7 +429,7 @@ mod grid {
                             mouse::Button::Right => {
                                 *interaction = Interaction::Panning {
                                     translation: self.translation,
-                                    start: cursor_position,
+                                    start: mouse_position,
                                 };
 
                                 None
@@ -450,7 +451,7 @@ mod grid {
                             Interaction::Panning { translation, start } => {
                                 Some(Message::Translated(
                                     translation
-                                        + (cursor_position - start)
+                                        + (mouse_position - start)
                                             * (1.0 / self.scaling),
                                 ))
                             }
@@ -482,7 +483,7 @@ mod grid {
 
                                 let translation =
                                     if let Some(cursor_to_center) =
-                                        cursor.position_from(bounds.center())
+                                        mouse.position_from(bounds.center())
                                     {
                                         let factor = scaling - old_scaling;
 
@@ -525,7 +526,7 @@ mod grid {
             renderer: &Renderer,
             _theme: &Theme,
             bounds: Rectangle,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
         ) -> Vec<Geometry> {
             let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
 
@@ -554,7 +555,7 @@ mod grid {
             let overlay = {
                 let mut frame = Frame::new(renderer, bounds.size());
 
-                let hovered_cell = cursor.position_in(bounds).map(|position| {
+                let hovered_cell = mouse.position_in(bounds).map(|position| {
                     Cell::at(self.project(position, frame.size()))
                 });
 
@@ -654,13 +655,13 @@ mod grid {
             &self,
             interaction: &Interaction,
             bounds: Rectangle,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
         ) -> mouse::Interaction {
             match interaction {
                 Interaction::Drawing => mouse::Interaction::Crosshair,
                 Interaction::Erasing => mouse::Interaction::Crosshair,
                 Interaction::Panning { .. } => mouse::Interaction::Grabbing,
-                Interaction::None if cursor.is_over(bounds) => {
+                Interaction::None if mouse.is_over(bounds) => {
                     mouse::Interaction::Crosshair
                 }
                 Interaction::None => mouse::Interaction::default(),

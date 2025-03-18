@@ -176,8 +176,8 @@ mod toast {
     };
     use iced::window;
     use iced::{
-        Alignment, Center, Element, Event, Fill, Length, Point, Rectangle,
-        Renderer, Size, Theme, Vector,
+        Alignment, Center, Element, Event, Fill, Length, Mouse, Point,
+        Rectangle, Renderer, Size, Theme, Vector,
     };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
@@ -363,7 +363,7 @@ mod toast {
             state: &mut Tree,
             event: &Event,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -373,7 +373,7 @@ mod toast {
                 &mut state.children[0],
                 event,
                 layout,
-                cursor,
+                mouse,
                 renderer,
                 clipboard,
                 shell,
@@ -388,7 +388,7 @@ mod toast {
             theme: &Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             viewport: &Rectangle,
         ) {
             self.content.as_widget().draw(
@@ -397,7 +397,7 @@ mod toast {
                 theme,
                 style,
                 layout,
-                cursor,
+                mouse,
                 viewport,
             );
         }
@@ -406,14 +406,14 @@ mod toast {
             &self,
             state: &Tree,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
             self.content.as_widget().mouse_interaction(
                 &state.children[0],
                 layout,
-                cursor,
+                mouse,
                 viewport,
                 renderer,
             )
@@ -493,7 +493,7 @@ mod toast {
             &mut self,
             event: &Event,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -532,7 +532,7 @@ mod toast {
                     state,
                     event,
                     layout,
-                    cursor,
+                    mouse,
                     renderer,
                     clipboard,
                     &mut local_shell,
@@ -553,7 +553,7 @@ mod toast {
             theme: &Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
         ) {
             let viewport = layout.bounds();
 
@@ -564,7 +564,7 @@ mod toast {
                 .zip(layout.children())
             {
                 child.as_widget().draw(
-                    state, renderer, theme, style, layout, cursor, &viewport,
+                    state, renderer, theme, style, layout, mouse, &viewport,
                 );
             }
         }
@@ -591,7 +591,7 @@ mod toast {
         fn mouse_interaction(
             &self,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
@@ -601,7 +601,7 @@ mod toast {
                 .zip(layout.children())
                 .map(|((child, state), layout)| {
                     child.as_widget().mouse_interaction(
-                        state, layout, cursor, viewport, renderer,
+                        state, layout, mouse, viewport, renderer,
                     )
                 })
                 .max()
@@ -612,11 +612,11 @@ mod toast {
             &self,
             layout: Layout<'_>,
             _renderer: &Renderer,
-            cursor_position: Point,
+            mouse_position: Point,
         ) -> bool {
             layout
                 .children()
-                .any(|layout| layout.bounds().contains(cursor_position))
+                .any(|layout| layout.bounds().contains(mouse_position))
         }
     }
 

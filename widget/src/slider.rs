@@ -38,8 +38,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Event, Layout, Length, Pixels,
-    Point, Rectangle, Shell, Size, Theme, Widget,
+    self, Background, Clipboard, Color, Element, Event, Layout, Length, Mouse,
+    Pixels, Point, Rectangle, Shell, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -247,7 +247,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -258,12 +258,12 @@ where
         let mut update = || {
             let current_value = self.value;
 
-            let locate = |cursor_position: Point| -> Option<T> {
+            let locate = |mouse_position: Point| -> Option<T> {
                 let bounds = layout.bounds();
 
-                let new_value = if cursor_position.x <= bounds.x {
+                let new_value = if mouse_position.x <= bounds.x {
                     Some(*self.range.start())
-                } else if cursor_position.x >= bounds.x + bounds.width {
+                } else if mouse_position.x >= bounds.x + bounds.width {
                     Some(*self.range.end())
                 } else {
                     let step = if state.keyboard_modifiers.shift() {
@@ -276,7 +276,7 @@ where
                     let start = (*self.range.start()).into();
                     let end = (*self.range.end()).into();
 
-                    let percent = f64::from(cursor_position.x - bounds.x)
+                    let percent = f64::from(mouse_position.x - bounds.x)
                         / f64::from(bounds.width);
 
                     let steps = (percent * (end - start) / step).round();
@@ -337,14 +337,14 @@ where
                     mouse::Button::Left,
                 ))
                 | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                    if let Some(cursor_position) =
-                        cursor.position_over(layout.bounds())
+                    if let Some(mouse_position) =
+                        mouse.position_over(layout.bounds())
                     {
                         if state.keyboard_modifiers.command() {
                             let _ = self.default.map(change);
                             state.is_dragging = false;
                         } else {
-                            let _ = locate(cursor_position).map(change);
+                            let _ = locate(mouse_position).map(change);
                             state.is_dragging = true;
                         }
 
@@ -368,7 +368,7 @@ where
                 Event::Mouse(mouse::Event::CursorMoved { .. })
                 | Event::Touch(touch::Event::FingerMoved { .. }) => {
                     if state.is_dragging {
-                        let _ = cursor.position().and_then(locate).map(change);
+                        let _ = mouse.position().and_then(locate).map(change);
 
                         shell.capture_event();
                     }
@@ -376,7 +376,7 @@ where
                 Event::Mouse(mouse::Event::WheelScrolled { delta })
                     if state.keyboard_modifiers.control() =>
                 {
-                    if cursor.is_over(layout.bounds()) {
+                    if mouse.is_over(layout.bounds()) {
                         let delta = match delta {
                             mouse::ScrollDelta::Lines { x: _, y } => y,
                             mouse::ScrollDelta::Pixels { x: _, y } => y,
@@ -394,7 +394,7 @@ where
                 Event::Keyboard(keyboard::Event::KeyPressed {
                     key, ..
                 }) => {
-                    if cursor.is_over(layout.bounds()) {
+                    if mouse.is_over(layout.bounds()) {
                         match key {
                             Key::Named(key::Named::ArrowUp) => {
                                 let _ = increment(current_value).map(change);
@@ -421,7 +421,7 @@ where
 
         let current_status = if state.is_dragging {
             Status::Dragged
-        } else if cursor.is_over(layout.bounds()) {
+        } else if mouse.is_over(layout.bounds()) {
             Status::Hovered
         } else {
             Status::Active
@@ -441,7 +441,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -527,13 +527,13 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
-        let is_mouse_over = cursor.is_over(bounds);
+        let is_mouse_over = mouse.is_over(bounds);
 
         if state.is_dragging {
             mouse::Interaction::Grabbing

@@ -6,7 +6,7 @@ use crate::core::renderer;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Clipboard, Color, Element, Event, Layout, Length, Point,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Mouse, Point,
     Rectangle, Shell, Size, Vector, Widget,
 };
 
@@ -115,14 +115,14 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
         self.content.as_widget_mut().update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
+            tree, event, layout, mouse, renderer, clipboard, shell, viewport,
         );
     }
 
@@ -130,13 +130,13 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content
             .as_widget()
-            .mouse_interaction(tree, layout, cursor, viewport, renderer)
+            .mouse_interaction(tree, layout, mouse, viewport, renderer)
     }
 
     fn draw(
@@ -146,7 +146,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let theme = (self.to_theme)(theme);
@@ -172,7 +172,7 @@ where
 
         self.content
             .as_widget()
-            .draw(tree, renderer, &theme, &style, layout, cursor, viewport);
+            .draw(tree, renderer, &theme, &style, layout, mouse, viewport);
     }
 
     fn overlay<'b>(
@@ -207,14 +207,14 @@ where
                 theme: &Theme,
                 style: &renderer::Style,
                 layout: Layout<'_>,
-                cursor: mouse::Cursor,
+                mouse: Mouse,
             ) {
                 self.content.draw(
                     renderer,
                     &(self.to_theme)(theme),
                     style,
                     layout,
-                    cursor,
+                    mouse,
                 );
             }
 
@@ -222,13 +222,13 @@ where
                 &mut self,
                 event: &Event,
                 layout: Layout<'_>,
-                cursor: mouse::Cursor,
+                mouse: Mouse,
                 renderer: &Renderer,
                 clipboard: &mut dyn Clipboard,
                 shell: &mut Shell<'_, Message>,
             ) {
                 self.content
-                    .update(event, layout, cursor, renderer, clipboard, shell);
+                    .update(event, layout, mouse, renderer, clipboard, shell);
             }
 
             fn operate(
@@ -243,21 +243,21 @@ where
             fn mouse_interaction(
                 &self,
                 layout: Layout<'_>,
-                cursor: mouse::Cursor,
+                mouse: Mouse,
                 viewport: &Rectangle,
                 renderer: &Renderer,
             ) -> mouse::Interaction {
                 self.content
-                    .mouse_interaction(layout, cursor, viewport, renderer)
+                    .mouse_interaction(layout, mouse, viewport, renderer)
             }
 
             fn is_over(
                 &self,
                 layout: Layout<'_>,
                 renderer: &Renderer,
-                cursor_position: Point,
+                mouse_position: Point,
             ) -> bool {
-                self.content.is_over(layout, renderer, cursor_position)
+                self.content.is_over(layout, renderer, mouse_position)
             }
 
             fn overlay<'b>(

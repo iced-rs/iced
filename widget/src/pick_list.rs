@@ -73,7 +73,8 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Event, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Mouse, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
+    Widget,
 };
 use crate::overlay::menu::{self, Menu};
 
@@ -432,7 +433,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -453,7 +454,7 @@ where
                     }
 
                     shell.capture_event();
-                } else if cursor.is_over(layout.bounds()) {
+                } else if mouse.is_over(layout.bounds()) {
                     let selected = self.selected.as_ref().map(Borrow::borrow);
 
                     state.is_open = true;
@@ -474,7 +475,7 @@ where
                 delta: mouse::ScrollDelta::Lines { y, .. },
             }) => {
                 if state.keyboard_modifiers.command()
-                    && cursor.is_over(layout.bounds())
+                    && mouse.is_over(layout.bounds())
                     && !state.is_open
                 {
                     fn find_next<'a, T: PartialEq>(
@@ -519,7 +520,7 @@ where
         };
 
         let status = {
-            let is_hovered = cursor.is_over(layout.bounds());
+            let is_hovered = mouse.is_over(layout.bounds());
 
             if state.is_open {
                 Status::Opened { is_hovered }
@@ -544,12 +545,12 @@ where
         &self,
         _tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
-        let is_mouse_over = cursor.is_over(bounds);
+        let is_mouse_over = mouse.is_over(bounds);
 
         if is_mouse_over {
             mouse::Interaction::Pointer
@@ -565,7 +566,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let font = self.font.unwrap_or_else(|| renderer.default_font());

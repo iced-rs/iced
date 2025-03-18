@@ -5,8 +5,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Event, Layout, Padding, Point, Rectangle, Shell,
-    Size, Vector,
+    self, Clipboard, Element, Event, Layout, Mouse, Padding, Point, Rectangle,
+    Shell, Size, Vector,
 };
 use crate::pane_grid::controls::Controls;
 
@@ -154,7 +154,7 @@ where
         theme: &Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         show_controls: bool,
     ) {
@@ -189,7 +189,7 @@ where
                             theme,
                             &inherited_style,
                             compact_layout,
-                            cursor,
+                            mouse,
                             viewport,
                         );
                     } else {
@@ -201,7 +201,7 @@ where
                             theme,
                             &inherited_style,
                             controls_layout,
-                            cursor,
+                            mouse,
                             viewport,
                         );
                     }
@@ -212,7 +212,7 @@ where
                         theme,
                         &inherited_style,
                         controls_layout,
-                        cursor,
+                        mouse,
                         viewport,
                     );
                 }
@@ -226,7 +226,7 @@ where
                 theme,
                 &inherited_style,
                 title_layout,
-                cursor,
+                mouse,
                 viewport,
             );
         }
@@ -239,9 +239,9 @@ where
     pub fn is_over_pick_area(
         &self,
         layout: Layout<'_>,
-        cursor_position: Point,
+        mouse_position: Point,
     ) -> bool {
-        if layout.bounds().contains(cursor_position) {
+        if layout.bounds().contains(mouse_position) {
             let mut children = layout.children();
             let padded = children.next().unwrap();
             let mut children = padded.children();
@@ -256,17 +256,17 @@ where
                     if controls.compact.is_some() {
                         let compact_layout = children.next().unwrap();
 
-                        !compact_layout.bounds().contains(cursor_position)
-                            && !title_layout.bounds().contains(cursor_position)
+                        !compact_layout.bounds().contains(mouse_position)
+                            && !title_layout.bounds().contains(mouse_position)
                     } else {
-                        !controls_layout.bounds().contains(cursor_position)
+                        !controls_layout.bounds().contains(mouse_position)
                     }
                 } else {
-                    !controls_layout.bounds().contains(cursor_position)
-                        && !title_layout.bounds().contains(cursor_position)
+                    !controls_layout.bounds().contains(mouse_position)
+                        && !title_layout.bounds().contains(mouse_position)
                 }
             } else {
-                !title_layout.bounds().contains(cursor_position)
+                !title_layout.bounds().contains(mouse_position)
             }
         } else {
             false
@@ -432,7 +432,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -458,7 +458,7 @@ where
                         &mut tree.children[2],
                         event,
                         compact_layout,
-                        cursor,
+                        mouse,
                         renderer,
                         clipboard,
                         shell,
@@ -471,7 +471,7 @@ where
                         &mut tree.children[1],
                         event,
                         controls_layout,
-                        cursor,
+                        mouse,
                         renderer,
                         clipboard,
                         shell,
@@ -483,7 +483,7 @@ where
                     &mut tree.children[1],
                     event,
                     controls_layout,
-                    cursor,
+                    mouse,
                     renderer,
                     clipboard,
                     shell,
@@ -497,7 +497,7 @@ where
                 &mut tree.children[0],
                 event,
                 title_layout,
-                cursor,
+                mouse,
                 renderer,
                 clipboard,
                 shell,
@@ -510,7 +510,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -523,7 +523,7 @@ where
         let title_interaction = self.content.as_widget().mouse_interaction(
             &tree.children[0],
             title_layout,
-            cursor,
+            mouse,
             viewport,
             renderer,
         );
@@ -534,7 +534,7 @@ where
                 controls.full.as_widget().mouse_interaction(
                     &tree.children[1],
                     controls_layout,
-                    cursor,
+                    mouse,
                     viewport,
                     renderer,
                 );
@@ -548,7 +548,7 @@ where
                         compact.as_widget().mouse_interaction(
                             &tree.children[2],
                             compact_layout,
-                            cursor,
+                            mouse,
                             viewport,
                             renderer,
                         );

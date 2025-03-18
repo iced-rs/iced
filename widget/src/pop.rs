@@ -9,8 +9,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
-    Size, Vector, Widget,
+    self, Clipboard, Element, Event, Layout, Length, Mouse, Pixels, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 /// A widget that can generate messages when its content pops in and out of view.
@@ -139,7 +139,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -210,7 +210,7 @@ where
             &mut tree.children[0],
             event,
             layout,
-            cursor,
+            mouse,
             renderer,
             clipboard,
             shell,
@@ -244,7 +244,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: layout::Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         self.content.as_widget().draw(
@@ -253,7 +253,7 @@ where
             theme,
             style,
             layout,
-            cursor,
+            mouse,
             viewport,
         );
     }
@@ -277,14 +277,14 @@ where
         &self,
         tree: &Tree,
         layout: core::Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
             &tree.children[0],
             layout,
-            cursor,
+            mouse,
             viewport,
             renderer,
         )

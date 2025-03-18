@@ -21,12 +21,11 @@
 //! ```
 use crate::core::border::{self, Border};
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme,
-    Widget,
+    self, Background, Color, Element, Layout, Length, Mouse, Rectangle, Size,
+    Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -172,7 +171,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();

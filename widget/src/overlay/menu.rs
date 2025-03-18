@@ -10,7 +10,7 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Clipboard, Color, Event, Length, Padding, Pixels, Point,
+    Background, Clipboard, Color, Event, Length, Mouse, Padding, Pixels, Point,
     Rectangle, Size, Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
@@ -265,7 +265,7 @@ where
         &mut self,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -273,7 +273,7 @@ where
         let bounds = layout.bounds();
 
         self.list.update(
-            self.state, event, layout, cursor, renderer, clipboard, shell,
+            self.state, event, layout, mouse, renderer, clipboard, shell,
             &bounds,
         );
     }
@@ -281,12 +281,12 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.list
-            .mouse_interaction(self.state, layout, cursor, viewport, renderer)
+            .mouse_interaction(self.state, layout, mouse, viewport, renderer)
     }
 
     fn draw(
@@ -295,7 +295,7 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) {
         let bounds = layout.bounds();
 
@@ -311,7 +311,7 @@ where
         );
 
         self.list.draw(
-            self.state, renderer, theme, defaults, layout, cursor, &bounds,
+            self.state, renderer, theme, defaults, layout, mouse, &bounds,
         );
     }
 }
@@ -390,7 +390,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -398,7 +398,7 @@ where
     ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if cursor.is_over(layout.bounds()) {
+                if mouse.is_over(layout.bounds()) {
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
                             shell.publish((self.on_selected)(option.clone()));
@@ -408,8 +408,7 @@ where
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                if let Some(cursor_position) =
-                    cursor.position_in(layout.bounds())
+                if let Some(mouse_position) = mouse.position_in(layout.bounds())
                 {
                     let text_size = self
                         .text_size
@@ -420,7 +419,7 @@ where
                             + self.padding.vertical();
 
                     let new_hovered_option =
-                        (cursor_position.y / option_height) as usize;
+                        (mouse_position.y / option_height) as usize;
 
                     if *self.hovered_option != Some(new_hovered_option) {
                         if let Some(option) =
@@ -441,8 +440,7 @@ where
                 }
             }
             Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if let Some(cursor_position) =
-                    cursor.position_in(layout.bounds())
+                if let Some(mouse_position) = mouse.position_in(layout.bounds())
                 {
                     let text_size = self
                         .text_size
@@ -453,7 +451,7 @@ where
                             + self.padding.vertical();
 
                     *self.hovered_option =
-                        Some((cursor_position.y / option_height) as usize);
+                        Some((mouse_position.y / option_height) as usize);
 
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
@@ -469,9 +467,9 @@ where
         let state = tree.state.downcast_mut::<ListState>();
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
-            state.is_hovered = Some(cursor.is_over(layout.bounds()));
+            state.is_hovered = Some(mouse.is_over(layout.bounds()));
         } else if state.is_hovered.is_some_and(|is_hovered| {
-            is_hovered != cursor.is_over(layout.bounds())
+            is_hovered != mouse.is_over(layout.bounds())
         }) {
             shell.request_redraw();
         }
@@ -481,11 +479,11 @@ where
         &self,
         _state: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        let is_mouse_over = cursor.is_over(layout.bounds());
+        let is_mouse_over = mouse.is_over(layout.bounds());
 
         if is_mouse_over {
             mouse::Interaction::Pointer
@@ -501,7 +499,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let style = Catalog::style(theme, self.class);

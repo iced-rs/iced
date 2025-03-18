@@ -5,10 +5,9 @@ mod rainbow {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::mouse;
     use iced::{
-        Element, Length, Rectangle, Renderer, Size, Theme, Transformation,
-        Vector,
+        Element, Length, Mouse, Rectangle, Renderer, Size, Theme,
+        Transformation, Vector,
     };
 
     #[derive(Debug, Clone, Copy, Default)]
@@ -44,7 +43,7 @@ mod rainbow {
             _theme: &Theme,
             _style: &renderer::Style,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             _viewport: &Rectangle,
         ) {
             use iced::advanced::Renderer as _;
@@ -65,8 +64,8 @@ mod rainbow {
             let color_v = [0.75, 0.0, 0.5, 1.0];
 
             let posn_center = {
-                if let Some(cursor_position) = cursor.position_in(bounds) {
-                    [cursor_position.x, cursor_position.y]
+                if let Some(mouse_position) = mouse.position_in(bounds) {
+                    [mouse_position.x, mouse_position.y]
                 } else {
                     [bounds.width / 2.0, bounds.height / 2.0]
                 }

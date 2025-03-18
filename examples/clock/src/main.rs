@@ -1,11 +1,10 @@
 use iced::alignment;
-use iced::mouse;
 use iced::time::{self, milliseconds};
 use iced::widget::canvas::{Cache, Geometry, LineCap, Path, Stroke, stroke};
 use iced::widget::{canvas, container};
 use iced::{
-    Degrees, Element, Fill, Font, Point, Radians, Rectangle, Renderer, Size,
-    Subscription, Theme, Vector,
+    Degrees, Element, Fill, Font, Mouse, Point, Radians, Rectangle, Renderer,
+    Size, Subscription, Theme, Vector,
 };
 
 pub fn main() -> iced::Result {
@@ -77,7 +76,7 @@ impl<Message> canvas::Program<Message> for Clock {
         renderer: &Renderer,
         theme: &Theme,
         bounds: Rectangle,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
     ) -> Vec<Geometry> {
         use chrono::Timelike;
 

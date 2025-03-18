@@ -6,8 +6,8 @@ use crate::core::renderer;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Alignment, Clipboard, Element, Event, Layout, Length, Padding, Pixels,
-    Rectangle, Shell, Size, Vector, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Mouse, Padding,
+    Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A container that distributes its contents vertically while keeping continuity.
@@ -302,7 +302,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -315,7 +315,7 @@ where
             .zip(layout.children())
         {
             child.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
+                state, event, layout, mouse, renderer, clipboard, shell,
                 viewport,
             );
         }
@@ -325,7 +325,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -334,9 +334,9 @@ where
             .zip(&tree.children)
             .zip(layout.children())
             .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                )
+                child
+                    .as_widget()
+                    .mouse_interaction(state, layout, mouse, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -349,7 +349,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         for ((child, state), layout) in self
@@ -360,7 +360,7 @@ where
         {
             child
                 .as_widget()
-                .draw(state, renderer, theme, style, layout, cursor, viewport);
+                .draw(state, renderer, theme, style, layout, mouse, viewport);
         }
     }
 

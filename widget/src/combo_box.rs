@@ -64,8 +64,8 @@ use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Element, Event, Length, Padding, Rectangle, Shell, Size, Theme,
-    Vector,
+    Clipboard, Element, Event, Length, Mouse, Padding, Rectangle, Shell, Size,
+    Theme, Vector,
 };
 use crate::overlay::menu;
 use crate::text::LineHeight;
@@ -514,7 +514,7 @@ where
         tree: &mut widget::Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -542,7 +542,7 @@ where
             &mut tree.children[0],
             event,
             layout,
-            cursor,
+            mouse,
             renderer,
             clipboard,
             &mut local_shell,
@@ -741,7 +741,7 @@ where
                         mouse::Button::Left,
                     )),
                     layout,
-                    mouse::Cursor::Unavailable,
+                    Mouse::Unavailable,
                     renderer,
                     clipboard,
                     &mut local_shell,
@@ -779,14 +779,14 @@ where
         &self,
         tree: &widget::Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.text_input.mouse_interaction(
             &tree.children[0],
             layout,
-            cursor,
+            mouse,
             viewport,
             renderer,
         )
@@ -799,7 +799,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let is_focused = {
@@ -821,7 +821,7 @@ where
             renderer,
             theme,
             layout,
-            cursor,
+            mouse,
             selection,
             viewport,
         );

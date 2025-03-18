@@ -3,10 +3,9 @@ use iced::advanced::layout;
 use iced::advanced::renderer::{self, Quad};
 use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{self, Clipboard, Layout, Shell, Widget};
-use iced::mouse;
 use iced::time::Instant;
 use iced::window;
-use iced::{Background, Color, Element, Event, Length, Rectangle, Size};
+use iced::{Background, Color, Element, Event, Length, Mouse, Rectangle, Size};
 
 use super::easing::{self, Easing};
 
@@ -180,7 +179,7 @@ where
         tree: &mut Tree,
         event: &Event,
         _layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -202,7 +201,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();

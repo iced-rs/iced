@@ -8,9 +8,8 @@ use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{Engine, Renderer, wgpu};
 use iced_winit::Clipboard;
 use iced_winit::conversion;
-use iced_winit::core::mouse;
 use iced_winit::core::renderer;
-use iced_winit::core::{Color, Font, Pixels, Size, Theme};
+use iced_winit::core::{Color, Font, Mouse, Pixels, Size, Theme};
 use iced_winit::futures;
 use iced_winit::runtime::Debug;
 use iced_winit::runtime::program;
@@ -43,7 +42,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             renderer: Renderer,
             scene: Scene,
             state: program::State<Controls>,
-            cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
+            mouse_position: Option<winit::dpi::PhysicalPosition<f64>>,
             clipboard: Clipboard,
             viewport: Viewport,
             modifiers: ModifiersState,
@@ -174,7 +173,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     renderer,
                     scene,
                     state,
-                    cursor_position: None,
+                    mouse_position: None,
                     modifiers: ModifiersState::default(),
                     clipboard,
                     viewport,
@@ -201,7 +200,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 scene,
                 state,
                 viewport,
-                cursor_position,
+                mouse_position,
                 modifiers,
                 clipboard,
                 resized,
@@ -301,7 +300,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     }
                 }
                 WindowEvent::CursorMoved { position, .. } => {
-                    *cursor_position = Some(position);
+                    *mouse_position = Some(position);
                 }
                 WindowEvent::ModifiersChanged(new_modifiers) => {
                     *modifiers = new_modifiers.state();
@@ -329,15 +328,15 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 // We update iced
                 let _ = state.update(
                     viewport.logical_size(),
-                    cursor_position
+                    mouse_position
                         .map(|p| {
-                            conversion::cursor_position(
+                            conversion::mouse_position(
                                 p,
                                 viewport.scale_factor(),
                             )
                         })
-                        .map(mouse::Cursor::Available)
-                        .unwrap_or(mouse::Cursor::Unavailable),
+                        .map(Mouse::Available)
+                        .unwrap_or(Mouse::Unavailable),
                     renderer,
                     &Theme::Dark,
                     &renderer::Style {

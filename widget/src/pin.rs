@@ -25,8 +25,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
-    self, Clipboard, Element, Event, Layout, Length, Pixels, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    self, Clipboard, Element, Event, Layout, Length, Mouse, Pixels, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that positions its contents at some fixed coordinates inside of its boundaries.
@@ -179,7 +179,7 @@ where
         tree: &mut widget::Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -189,7 +189,7 @@ where
             tree,
             event,
             layout.children().next().unwrap(),
-            cursor,
+            mouse,
             renderer,
             clipboard,
             shell,
@@ -201,14 +201,14 @@ where
         &self,
         tree: &widget::Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
             tree,
             layout.children().next().unwrap(),
-            cursor,
+            mouse,
             viewport,
             renderer,
         )
@@ -221,7 +221,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -233,7 +233,7 @@ where
                 theme,
                 style,
                 layout.children().next().unwrap(),
-                cursor,
+                mouse,
                 &clipped_viewport,
             );
         }

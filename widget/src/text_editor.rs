@@ -47,8 +47,8 @@ use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, InputMethod, Length, Padding,
-    Pixels, Point, Rectangle, Shell, Size, SmolStr, Theme, Vector,
+    Background, Border, Color, Element, Event, InputMethod, Length, Mouse,
+    Padding, Pixels, Point, Rectangle, Shell, Size, SmolStr, Theme, Vector,
 };
 
 use std::borrow::Cow;
@@ -460,7 +460,7 @@ where
     }
 
     /// Returns the current cursor position of the [`Content`].
-    pub fn cursor_position(&self) -> (usize, usize) {
+    pub fn mouse_position(&self) -> (usize, usize) {
         self.0.borrow().editor.cursor_position()
     }
 }
@@ -649,7 +649,7 @@ where
         tree: &mut widget::Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -706,7 +706,7 @@ where
             state,
             layout.bounds(),
             self.padding,
-            cursor,
+            mouse,
             self.key_binding.as_deref(),
         ) {
             match update {
@@ -880,7 +880,7 @@ where
 
         let status = {
             let is_disabled = self.on_edit.is_none();
-            let is_hovered = cursor.is_over(layout.bounds());
+            let is_hovered = mouse.is_over(layout.bounds());
 
             if is_disabled {
                 Status::Disabled
@@ -914,7 +914,7 @@ where
         theme: &Theme,
         _defaults: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -1026,13 +1026,13 @@ where
         &self,
         _state: &widget::Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let is_disabled = self.on_edit.is_none();
 
-        if cursor.is_over(layout.bounds()) {
+        if mouse.is_over(layout.bounds()) {
             if is_disabled {
                 mouse::Interaction::NotAllowed
             } else {
@@ -1220,7 +1220,7 @@ impl<Message> Update<Message> {
         state: &State<H>,
         bounds: Rectangle,
         padding: Padding,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         key_binding: Option<&dyn Fn(KeyPress) -> Option<Binding<Message>>>,
     ) -> Option<Self> {
         let binding = |binding| Some(Update::Binding(binding));
@@ -1228,12 +1228,12 @@ impl<Message> Update<Message> {
         match event {
             Event::Mouse(event) => match event {
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
-                    if let Some(cursor_position) = cursor.position_in(bounds) {
-                        let cursor_position = cursor_position
+                    if let Some(mouse_position) = mouse.position_in(bounds) {
+                        let mouse_position = mouse_position
                             - Vector::new(padding.top, padding.left);
 
                         let click = mouse::Click::new(
-                            cursor_position,
+                            mouse_position,
                             mouse::Button::Left,
                             state.last_click,
                         );
@@ -1250,15 +1250,15 @@ impl<Message> Update<Message> {
                 }
                 mouse::Event::CursorMoved { .. } => match state.drag_click {
                     Some(mouse::click::Kind::Single) => {
-                        let cursor_position = cursor.position_in(bounds)?
+                        let mouse_position = mouse.position_in(bounds)?
                             - Vector::new(padding.top, padding.left);
 
-                        Some(Update::Drag(cursor_position))
+                        Some(Update::Drag(mouse_position))
                     }
                     _ => None,
                 },
                 mouse::Event::WheelScrolled { delta }
-                    if cursor.is_over(bounds) =>
+                    if mouse.is_over(bounds) =>
                 {
                     Some(Update::Scroll(match delta {
                         mouse::ScrollDelta::Lines { y, .. } => {
@@ -1303,7 +1303,7 @@ impl<Message> Update<Message> {
             }) => {
                 let status = if state.focus.is_some() {
                     Status::Focused {
-                        is_hovered: cursor.is_over(bounds),
+                        is_hovered: mouse.is_over(bounds),
                     }
                 } else {
                     Status::Active

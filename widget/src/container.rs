@@ -30,7 +30,7 @@ use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Event, Layout, Length,
+    self, Background, Clipboard, Color, Element, Event, Layout, Length, Mouse,
     Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
     Widget, color,
 };
@@ -303,7 +303,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -313,7 +313,7 @@ where
             tree,
             event,
             layout.children().next().unwrap(),
-            cursor,
+            mouse,
             renderer,
             clipboard,
             shell,
@@ -325,14 +325,14 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
             tree,
             layout.children().next().unwrap(),
-            cursor,
+            mouse,
             viewport,
             renderer,
         )
@@ -345,7 +345,7 @@ where
         theme: &Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -364,7 +364,7 @@ where
                         .unwrap_or(renderer_style.text_color),
                 },
                 layout.children().next().unwrap(),
-                cursor,
+                mouse,
                 if self.clip {
                     &clipped_viewport
                 } else {

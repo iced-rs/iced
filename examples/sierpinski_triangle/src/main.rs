@@ -1,7 +1,9 @@
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::widget::{column, row, slider, text};
-use iced::{Center, Color, Fill, Point, Rectangle, Renderer, Size, Theme};
+use iced::{
+    Center, Color, Fill, Mouse, Point, Rectangle, Renderer, Size, Theme,
+};
 
 use rand::Rng;
 use std::fmt::Debug;
@@ -78,14 +80,14 @@ impl canvas::Program<Message> for SierpinskiGraph {
         _state: &mut Self::State,
         event: &Event,
         bounds: Rectangle,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) -> Option<canvas::Action<Message>> {
-        let cursor_position = cursor.position_in(bounds)?;
+        let mouse_position = mouse.position_in(bounds)?;
 
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(button)) => match button {
                 mouse::Button::Left => Some(canvas::Action::publish(
-                    Message::PointAdded(cursor_position),
+                    Message::PointAdded(mouse_position),
                 )),
                 mouse::Button::Right => {
                     Some(canvas::Action::publish(Message::PointRemoved))
@@ -103,7 +105,7 @@ impl canvas::Program<Message> for SierpinskiGraph {
         renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
     ) -> Vec<Geometry> {
         let geom = self.cache.draw(renderer, bounds.size(), |frame| {
             frame.stroke(

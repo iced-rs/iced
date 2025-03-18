@@ -5,8 +5,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector,
-    Widget,
+    Clipboard, Element, Event, Layout, Length, Mouse, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 /// A container that displays children on top of each other.
@@ -209,13 +209,13 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        mut cursor: mouse::Cursor,
+        mut mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let is_over = cursor.is_over(layout.bounds());
+        let is_over = mouse.is_over(layout.bounds());
         let end = self.children.len() - 1;
 
         for (i, ((child, state), layout)) in self
@@ -227,7 +227,7 @@ where
             .enumerate()
         {
             child.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
+                state, event, layout, mouse, renderer, clipboard, shell,
                 viewport,
             );
 
@@ -235,13 +235,13 @@ where
                 return;
             }
 
-            if i < end && is_over && !cursor.is_levitating() {
+            if i < end && is_over && !mouse.is_levitating() {
                 let interaction = child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
+                    state, layout, mouse, viewport, renderer,
                 );
 
                 if interaction != mouse::Interaction::None {
-                    cursor = cursor.levitate();
+                    mouse = mouse.levitate();
                 }
             }
         }
@@ -251,7 +251,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -261,9 +261,9 @@ where
             .zip(tree.children.iter().rev())
             .zip(layout.children().rev())
             .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                )
+                child
+                    .as_widget()
+                    .mouse_interaction(state, layout, mouse, viewport, renderer)
             })
             .find(|&interaction| interaction != mouse::Interaction::None)
             .unwrap_or_default()
@@ -276,11 +276,11 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
-            let layers_below = if cursor.is_over(layout.bounds()) {
+            let layers_below = if mouse.is_over(layout.bounds()) {
                 self.children
                     .iter()
                     .rev()
@@ -288,7 +288,7 @@ where
                     .zip(layout.children().rev())
                     .position(|((layer, state), layout)| {
                         let interaction = layer.as_widget().mouse_interaction(
-                            state, layout, cursor, viewport, renderer,
+                            state, layout, mouse, viewport, renderer,
                         );
 
                         interaction != mouse::Interaction::None
@@ -313,7 +313,7 @@ where
                  layer: &Element<'a, Message, Theme, Renderer>,
                  state,
                  layout,
-                 cursor| {
+                 mouse| {
                     if i > 0 {
                         renderer.with_layer(clipped_viewport, |renderer| {
                             layer.as_widget().draw(
@@ -322,7 +322,7 @@ where
                                 theme,
                                 style,
                                 layout,
-                                cursor,
+                                mouse,
                                 &clipped_viewport,
                             );
                         });
@@ -333,18 +333,18 @@ where
                             theme,
                             style,
                             layout,
-                            cursor,
+                            mouse,
                             &clipped_viewport,
                         );
                     }
                 };
 
             for (i, ((layer, state), layout)) in layers.take(layers_below) {
-                draw_layer(i, layer, state, layout, mouse::Cursor::Unavailable);
+                draw_layer(i, layer, state, layout, Mouse::Unavailable);
             }
 
             for (i, ((layer, state), layout)) in layers {
-                draw_layer(i, layer, state, layout, cursor);
+                draw_layer(i, layer, state, layout, mouse);
             }
         }
     }

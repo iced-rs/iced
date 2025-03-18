@@ -40,7 +40,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
+    Border, Clipboard, Color, Element, Event, Layout, Length, Mouse, Pixels,
     Rectangle, Shell, Size, Theme, Widget,
 };
 
@@ -314,7 +314,7 @@ where
         _state: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -327,7 +327,7 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                let mouse_over = cursor.is_over(layout.bounds());
+                let mouse_over = mouse.is_over(layout.bounds());
 
                 if mouse_over {
                     shell.publish(on_toggle(!self.is_toggled));
@@ -339,7 +339,7 @@ where
 
         let current_status = if self.on_toggle.is_none() {
             Status::Disabled
-        } else if cursor.is_over(layout.bounds()) {
+        } else if mouse.is_over(layout.bounds()) {
             Status::Hovered {
                 is_toggled: self.is_toggled,
             }
@@ -363,11 +363,11 @@ where
         &self,
         _state: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if cursor.is_over(layout.bounds()) {
+        if mouse.is_over(layout.bounds()) {
             if self.on_toggle.is_some() {
                 mouse::Interaction::Pointer
             } else {
@@ -385,7 +385,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         viewport: &Rectangle,
     ) {
         /// Makes sure that the border radius of the toggler looks good at every size.

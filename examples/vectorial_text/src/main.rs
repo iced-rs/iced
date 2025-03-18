@@ -1,9 +1,10 @@
 use iced::alignment;
-use iced::mouse;
 use iced::widget::{
     canvas, checkbox, column, horizontal_space, row, slider, text,
 };
-use iced::{Center, Element, Fill, Point, Rectangle, Renderer, Theme, Vector};
+use iced::{
+    Center, Element, Fill, Mouse, Point, Rectangle, Renderer, Theme, Vector,
+};
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -123,7 +124,7 @@ impl<Message> canvas::Program<Message> for State {
         renderer: &Renderer,
         theme: &Theme,
         bounds: Rectangle,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
     ) -> Vec<canvas::Geometry> {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
             let palette = theme.palette();

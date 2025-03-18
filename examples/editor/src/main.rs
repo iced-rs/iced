@@ -186,7 +186,7 @@ impl Editor {
             }),
             horizontal_space(),
             text({
-                let (line, column) = self.content.cursor_position();
+                let (line, column) = self.content.mouse_position();
 
                 format!("{}:{}", line + 1, column + 1)
             })

@@ -21,12 +21,11 @@ pub use viewer::Viewer;
 
 use crate::core::image;
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size,
-    Vector, Widget,
+    ContentFit, Element, Layout, Length, Mouse, Point, Rectangle, Rotation,
+    Size, Vector, Widget,
 };
 
 pub use image::{FilterMethod, Handle};
@@ -276,7 +275,7 @@ where
         _theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         viewport: &Rectangle,
     ) {
         draw(

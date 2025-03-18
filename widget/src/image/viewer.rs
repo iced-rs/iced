@@ -5,8 +5,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, ContentFit, Element, Event, Image, Layout, Length, Pixels,
-    Point, Radians, Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, ContentFit, Element, Event, Image, Layout, Length, Mouse,
+    Pixels, Point, Radians, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -153,7 +153,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -163,7 +163,7 @@ where
 
         match event {
             Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                let Some(cursor_position) = cursor.position_over(bounds) else {
+                let Some(mouse_position) = mouse.position_over(bounds) else {
                     return;
                 };
 
@@ -194,7 +194,7 @@ where
                             let factor = state.scale / previous_scale - 1.0;
 
                             let cursor_to_center =
-                                cursor_position - bounds.center();
+                                mouse_position - bounds.center();
 
                             let adjustment = cursor_to_center * factor
                                 + state.current_offset * factor;
@@ -219,13 +219,13 @@ where
                 shell.capture_event();
             }
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let Some(cursor_position) = cursor.position_over(bounds) else {
+                let Some(position) = mouse.position_over(bounds) else {
                     return;
                 };
 
                 let state = tree.state.downcast_mut::<State>();
 
-                state.cursor_grabbed_at = Some(cursor_position);
+                state.grabbed_at = Some(position);
                 state.starting_offset = state.current_offset;
 
                 shell.request_redraw();
@@ -234,8 +234,8 @@ where
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 let state = tree.state.downcast_mut::<State>();
 
-                if state.cursor_grabbed_at.is_some() {
-                    state.cursor_grabbed_at = None;
+                if state.grabbed_at.is_some() {
+                    state.grabbed_at = None;
                     shell.request_redraw();
                     shell.capture_event();
                 }
@@ -243,7 +243,7 @@ where
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 let state = tree.state.downcast_mut::<State>();
 
-                if let Some(origin) = state.cursor_grabbed_at {
+                if let Some(origin) = state.grabbed_at {
                     let scaled_size = scaled_image_size(
                         renderer,
                         &self.handle,
@@ -289,15 +289,15 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
-        let is_mouse_over = cursor.is_over(bounds);
+        let is_mouse_over = mouse.is_over(bounds);
 
-        if state.is_cursor_grabbed() {
+        if state.is_grabbed() {
             mouse::Interaction::Grabbing
         } else if is_mouse_over {
             mouse::Interaction::Grab
@@ -313,7 +313,7 @@ where
         _theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         _viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();
@@ -368,7 +368,7 @@ pub struct State {
     scale: f32,
     starting_offset: Vector,
     current_offset: Vector,
-    cursor_grabbed_at: Option<Point>,
+    grabbed_at: Option<Point>,
 }
 
 impl Default for State {
@@ -377,7 +377,7 @@ impl Default for State {
             scale: 1.0,
             starting_offset: Vector::default(),
             current_offset: Vector::default(),
-            cursor_grabbed_at: None,
+            grabbed_at: None,
         }
     }
 }
@@ -404,8 +404,8 @@ impl State {
     }
 
     /// Returns if the cursor is currently grabbed by the [`Viewer`].
-    pub fn is_cursor_grabbed(&self) -> bool {
-        self.cursor_grabbed_at.is_some()
+    pub fn is_grabbed(&self) -> bool {
+        self.grabbed_at.is_some()
     }
 }
 

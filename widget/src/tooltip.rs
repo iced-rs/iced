@@ -29,8 +29,8 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Element, Event, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Size, Vector,
+    Clipboard, Element, Event, Length, Mouse, Padding, Pixels, Point,
+    Rectangle, Shell, Size, Vector,
 };
 
 /// An element to display a widget over another.
@@ -194,7 +194,7 @@ where
         tree: &mut widget::Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -204,9 +204,9 @@ where
 
         let was_idle = *state == State::Idle;
 
-        *state = cursor
+        *state = mouse
             .position_over(layout.bounds())
-            .map(|cursor_position| State::Hovered { cursor_position })
+            .map(|mouse_position| State::Hovered { mouse_position })
             .unwrap_or_default();
 
         let is_idle = *state == State::Idle;
@@ -222,7 +222,7 @@ where
             &mut tree.children[0],
             event,
             layout,
-            cursor,
+            mouse,
             renderer,
             clipboard,
             shell,
@@ -234,14 +234,14 @@ where
         &self,
         tree: &widget::Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
             &tree.children[0],
             layout,
-            cursor,
+            mouse,
             viewport,
             renderer,
         )
@@ -254,7 +254,7 @@ where
         theme: &Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         self.content.as_widget().draw(
@@ -263,7 +263,7 @@ where
             theme,
             inherited_style,
             layout,
-            cursor,
+            mouse,
             viewport,
         );
     }
@@ -286,12 +286,12 @@ where
             translation,
         );
 
-        let tooltip = if let State::Hovered { cursor_position } = *state {
+        let tooltip = if let State::Hovered { mouse_position } = *state {
             Some(overlay::Element::new(Box::new(Overlay {
                 position: layout.position() + translation,
                 tooltip: &self.tooltip,
                 state: children.next().unwrap(),
-                cursor_position,
+                mouse_position,
                 content_bounds: layout.bounds(),
                 snap_within_viewport: self.snap_within_viewport,
                 positioning: self.position,
@@ -330,7 +330,7 @@ where
     }
 }
 
-/// The position of the tooltip. Defaults to following the cursor.
+/// The position of the tooltip. Defaults to following the mouse cursor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Position {
     /// The tooltip will appear on the top of the widget.
@@ -342,7 +342,7 @@ pub enum Position {
     Left,
     /// The tooltip will appear on the right of the widget.
     Right,
-    /// The tooltip will follow the cursor.
+    /// The tooltip will follow the mouse cursor.
     FollowCursor,
 }
 
@@ -351,7 +351,7 @@ enum State {
     #[default]
     Idle,
     Hovered {
-        cursor_position: Point,
+        mouse_position: Point,
     },
 }
 
@@ -363,7 +363,7 @@ where
     position: Point,
     tooltip: &'b Element<'a, Message, Theme, Renderer>,
     state: &'b mut widget::Tree,
-    cursor_position: Point,
+    mouse_position: Point,
     content_bounds: Rectangle,
     snap_within_viewport: bool,
     positioning: Position,
@@ -434,8 +434,8 @@ where
                         self.position - self.content_bounds.position();
 
                     Vector::new(
-                        self.cursor_position.x,
-                        self.cursor_position.y - text_bounds.height,
+                        self.mouse_position.x,
+                        self.mouse_position.y - text_bounds.height,
                     ) + translation
                 }
             };
@@ -484,7 +484,7 @@ where
         theme: &Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
+        mouse: Mouse,
     ) {
         let style = theme.style(self.class);
 
@@ -500,7 +500,7 @@ where
             theme,
             &defaults,
             layout.children().next().unwrap(),
-            cursor_position,
+            mouse,
             &Rectangle::with_size(Size::INFINITY),
         );
     }
@@ -509,7 +509,7 @@ where
         &self,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        _cursor_position: Point,
+        _mouse_position: Point,
     ) -> bool {
         false
     }

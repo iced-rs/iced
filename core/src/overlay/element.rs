@@ -4,7 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size};
+use crate::{Clipboard, Event, Layout, Mouse, Point, Rectangle, Shell, Size};
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
@@ -53,25 +53,25 @@ where
         &mut self,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         self.overlay
-            .update(event, layout, cursor, renderer, clipboard, shell);
+            .update(event, layout, mouse, renderer, clipboard, shell);
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Element`].
     pub fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.overlay
-            .mouse_interaction(layout, cursor, viewport, renderer)
+            .mouse_interaction(layout, mouse, viewport, renderer)
     }
 
     /// Draws the [`Element`] and its children using the given [`Layout`].
@@ -81,9 +81,9 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) {
-        self.overlay.draw(renderer, theme, style, layout, cursor);
+        self.overlay.draw(renderer, theme, style, layout, mouse);
     }
 
     /// Applies a [`widget::Operation`] to the [`Element`].
@@ -101,9 +101,9 @@ where
         &self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        cursor_position: Point,
+        mouse_position: Point,
     ) -> bool {
-        self.overlay.is_over(layout, renderer, cursor_position)
+        self.overlay.is_over(layout, renderer, mouse_position)
     }
 
     /// Returns the nested overlay of the [`Element`], if there is any.
@@ -152,7 +152,7 @@ where
         &mut self,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
@@ -163,7 +163,7 @@ where
         self.content.update(
             event,
             layout,
-            cursor,
+            mouse,
             renderer,
             clipboard,
             &mut local_shell,
@@ -175,12 +175,12 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content
-            .mouse_interaction(layout, cursor, viewport, renderer)
+            .mouse_interaction(layout, mouse, viewport, renderer)
     }
 
     fn draw(
@@ -189,18 +189,18 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) {
-        self.content.draw(renderer, theme, style, layout, cursor);
+        self.content.draw(renderer, theme, style, layout, mouse);
     }
 
     fn is_over(
         &self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        cursor_position: Point,
+        mouse_position: Point,
     ) -> bool {
-        self.content.is_over(layout, renderer, cursor_position)
+        self.content.is_over(layout, renderer, mouse_position)
     }
 
     fn overlay<'a>(

@@ -23,12 +23,11 @@
 use crate::Renderer;
 use crate::canvas;
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme,
-    Vector, Widget,
+    Color, Element, Layout, Length, Mouse, Pixels, Point, Rectangle, Size,
+    Theme, Vector, Widget,
 };
 
 use std::cell::RefCell;
@@ -154,7 +153,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         _viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();

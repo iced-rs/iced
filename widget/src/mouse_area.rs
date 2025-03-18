@@ -6,8 +6,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{Operation, Tree, tree};
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    Clipboard, Element, Event, Layout, Length, Mouse, Point, Rectangle, Shell,
+    Size, Vector, Widget,
 };
 
 /// Emit messages on mouse events.
@@ -136,7 +136,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 struct State {
     is_hovered: bool,
     bounds: Rectangle,
-    cursor_position: Option<Point>,
+    mouse_position: Option<Point>,
     previous_click: Option<mouse::Click>,
 }
 
@@ -220,7 +220,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -230,7 +230,7 @@ where
             &mut tree.children[0],
             event,
             layout,
-            cursor,
+            mouse,
             renderer,
             clipboard,
             shell,
@@ -241,28 +241,28 @@ where
             return;
         }
 
-        update(self, tree, event, layout, cursor, shell);
+        update(self, tree, event, layout, mouse, shell);
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         let content_interaction = self.content.as_widget().mouse_interaction(
             &tree.children[0],
             layout,
-            cursor,
+            mouse,
             viewport,
             renderer,
         );
 
         match (self.interaction, content_interaction) {
             (Some(interaction), mouse::Interaction::None)
-                if cursor.is_over(layout.bounds()) =>
+                if mouse.is_over(layout.bounds()) =>
             {
                 interaction
             }
@@ -277,7 +277,7 @@ where
         theme: &Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         self.content.as_widget().draw(
@@ -286,7 +286,7 @@ where
             theme,
             renderer_style,
             layout,
-            cursor,
+            mouse,
             viewport,
         );
     }
@@ -328,19 +328,19 @@ fn update<Message: Clone, Theme, Renderer>(
     tree: &mut Tree,
     event: &Event,
     layout: Layout<'_>,
-    cursor: mouse::Cursor,
+    mouse: Mouse,
     shell: &mut Shell<'_, Message>,
 ) {
     let state: &mut State = tree.state.downcast_mut();
 
-    let cursor_position = cursor.position();
+    let mouse_position = mouse.position();
     let bounds = layout.bounds();
 
-    if state.cursor_position != cursor_position || state.bounds != bounds {
+    if state.mouse_position != mouse_position || state.bounds != bounds {
         let was_hovered = state.is_hovered;
 
-        state.is_hovered = cursor.is_over(layout.bounds());
-        state.cursor_position = cursor_position;
+        state.is_hovered = mouse.is_over(layout.bounds());
+        state.mouse_position = mouse_position;
         state.bounds = bounds;
 
         if widget.interaction.is_some() && state.is_hovered != was_hovered {
@@ -356,7 +356,7 @@ fn update<Message: Clone, Theme, Renderer>(
                 shell.publish(on_enter.clone());
             }
             (_, Some(on_move), _) if state.is_hovered => {
-                if let Some(position) = cursor.position_in(layout.bounds()) {
+                if let Some(position) = mouse.position_in(layout.bounds()) {
                     shell.publish(on_move(position));
                 }
             }
@@ -367,7 +367,7 @@ fn update<Message: Clone, Theme, Renderer>(
         }
     }
 
-    if !cursor.is_over(layout.bounds()) {
+    if !mouse.is_over(layout.bounds()) {
         return;
     }
 
@@ -379,7 +379,7 @@ fn update<Message: Clone, Theme, Renderer>(
                 shell.capture_event();
             }
 
-            if let Some(position) = cursor_position {
+            if let Some(position) = mouse_position {
                 if let Some(message) = widget.on_double_click.as_ref() {
                     let new_click = mouse::Click::new(
                         position,

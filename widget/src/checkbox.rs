@@ -42,7 +42,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Event, Layout, Length,
-    Pixels, Rectangle, Shell, Size, Theme, Widget,
+    Mouse, Pixels, Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A box that can be checked.
@@ -307,7 +307,7 @@ where
         _tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -316,7 +316,7 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                let mouse_over = cursor.is_over(layout.bounds());
+                let mouse_over = mouse.is_over(layout.bounds());
 
                 if mouse_over {
                     if let Some(on_toggle) = &self.on_toggle {
@@ -329,7 +329,7 @@ where
         }
 
         let current_status = {
-            let is_mouse_over = cursor.is_over(layout.bounds());
+            let is_mouse_over = mouse.is_over(layout.bounds());
             let is_disabled = self.on_toggle.is_none();
             let is_checked = self.is_checked;
 
@@ -356,11 +356,11 @@ where
         &self,
         _tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if cursor.is_over(layout.bounds()) && self.on_toggle.is_some() {
+        if mouse.is_over(layout.bounds()) && self.on_toggle.is_some() {
             mouse::Interaction::Pointer
         } else {
             mouse::Interaction::default()
@@ -374,7 +374,7 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let mut children = layout.children();

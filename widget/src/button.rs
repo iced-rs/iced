@@ -27,8 +27,8 @@ use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Clipboard, Color, Element, Event, Layout, Length, Padding,
-    Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Mouse,
+    Padding, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 /// A generic widget that produces a message when pressed.
@@ -277,7 +277,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -287,7 +287,7 @@ where
             &mut tree.children[0],
             event,
             layout.children().next().unwrap(),
-            cursor,
+            mouse,
             renderer,
             clipboard,
             shell,
@@ -304,7 +304,7 @@ where
                 if self.on_press.is_some() {
                     let bounds = layout.bounds();
 
-                    if cursor.is_over(bounds) {
+                    if mouse.is_over(bounds) {
                         let state = tree.state.downcast_mut::<State>();
 
                         state.is_pressed = true;
@@ -323,7 +323,7 @@ where
 
                         let bounds = layout.bounds();
 
-                        if cursor.is_over(bounds) {
+                        if mouse.is_over(bounds) {
                             shell.publish(on_press.get());
                         }
 
@@ -341,7 +341,7 @@ where
 
         let current_status = if self.on_press.is_none() {
             Status::Disabled
-        } else if cursor.is_over(layout.bounds()) {
+        } else if mouse.is_over(layout.bounds()) {
             let state = tree.state.downcast_ref::<State>();
 
             if state.is_pressed {
@@ -367,7 +367,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -405,7 +405,7 @@ where
                 text_color: style.text_color,
             },
             content_layout,
-            cursor,
+            mouse,
             &viewport,
         );
     }
@@ -414,11 +414,11 @@ where
         &self,
         _tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        let is_mouse_over = cursor.is_over(layout.bounds());
+        let is_mouse_over = mouse.is_over(layout.bounds());
 
         if is_mouse_over && self.on_press.is_some() {
             mouse::Interaction::Pointer

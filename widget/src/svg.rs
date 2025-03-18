@@ -16,13 +16,12 @@
 //! }
 //! ```
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::svg;
 use crate::core::widget::Tree;
 use crate::core::{
-    Color, ContentFit, Element, Layout, Length, Point, Rectangle, Rotation,
-    Size, Theme, Vector, Widget,
+    Color, ContentFit, Element, Layout, Length, Mouse, Point, Rectangle,
+    Rotation, Size, Theme, Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -202,7 +201,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
     ) {
         let Size { width, height } = renderer.measure_svg(&self.handle);
@@ -231,7 +230,7 @@ where
 
         let drawing_bounds = Rectangle::new(position, final_size);
 
-        let is_mouse_over = cursor.is_over(bounds);
+        let is_mouse_over = mouse.is_over(bounds);
 
         let status = if is_mouse_over {
             Status::Hovered

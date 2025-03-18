@@ -22,14 +22,13 @@
 //! ```
 use crate::alignment;
 use crate::layout;
-use crate::mouse;
 use crate::renderer;
 use crate::text;
 use crate::text::paragraph::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme,
-    Widget,
+    Color, Element, Layout, Length, Mouse, Pixels, Point, Rectangle, Size,
+    Theme, Widget,
 };
 
 pub use text::{Alignment, LineHeight, Shaping, Wrapping};
@@ -256,7 +255,7 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        _cursor_position: mouse::Cursor,
+        _mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();

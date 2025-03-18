@@ -1,10 +1,9 @@
 use iced::alignment;
-use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
 use iced::widget::{Slider, column, row, text};
 use iced::{
-    Center, Color, Element, Fill, Font, Pixels, Point, Rectangle, Renderer,
-    Size, Vector,
+    Center, Color, Element, Fill, Font, Mouse, Pixels, Point, Rectangle,
+    Renderer, Size, Vector,
 };
 use palette::{Darken, Hsl, Lighten, ShiftHue, convert::FromColor, rgb::Rgb};
 use std::marker::PhantomData;
@@ -253,7 +252,7 @@ impl<Message> canvas::Program<Message> for Theme {
         renderer: &Renderer,
         theme: &iced::Theme,
         bounds: Rectangle,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
     ) -> Vec<Geometry> {
         let theme = self.canvas_cache.draw(renderer, bounds.size(), |frame| {
             let palette = theme.extended_palette();

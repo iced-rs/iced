@@ -59,7 +59,7 @@ mod bezier {
     use iced::widget::canvas::{
         self, Canvas, Event, Frame, Geometry, Path, Stroke,
     };
-    use iced::{Element, Fill, Point, Rectangle, Renderer, Theme};
+    use iced::{Element, Fill, Mouse, Point, Rectangle, Renderer, Theme};
 
     #[derive(Default)]
     pub struct State {
@@ -95,9 +95,9 @@ mod bezier {
             state: &mut Self::State,
             event: &Event,
             bounds: Rectangle,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
         ) -> Option<canvas::Action<Curve>> {
-            let cursor_position = cursor.position_in(bounds)?;
+            let mouse_position = mouse.position_in(bounds)?;
 
             match event {
                 Event::Mouse(mouse::Event::ButtonPressed(
@@ -106,7 +106,7 @@ mod bezier {
                     match *state {
                         None => {
                             *state = Some(Pending::One {
-                                from: cursor_position,
+                                from: mouse_position,
                             });
 
                             canvas::Action::request_redraw()
@@ -114,7 +114,7 @@ mod bezier {
                         Some(Pending::One { from }) => {
                             *state = Some(Pending::Two {
                                 from,
-                                to: cursor_position,
+                                to: mouse_position,
                             });
 
                             canvas::Action::request_redraw()
@@ -125,7 +125,7 @@ mod bezier {
                             canvas::Action::publish(Curve {
                                 from,
                                 to,
-                                control: cursor_position,
+                                control: mouse_position,
                             })
                         }
                     }
@@ -146,7 +146,7 @@ mod bezier {
             renderer: &Renderer,
             theme: &Theme,
             bounds: Rectangle,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
         ) -> Vec<Geometry> {
             let content =
                 self.state.cache.draw(renderer, bounds.size(), |frame| {
@@ -161,7 +161,7 @@ mod bezier {
                 });
 
             if let Some(pending) = state {
-                vec![content, pending.draw(renderer, theme, bounds, cursor)]
+                vec![content, pending.draw(renderer, theme, bounds, mouse)]
             } else {
                 vec![content]
             }
@@ -171,9 +171,9 @@ mod bezier {
             &self,
             _state: &Self::State,
             bounds: Rectangle,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
         ) -> mouse::Interaction {
-            if cursor.is_over(bounds) {
+            if mouse.is_over(bounds) {
                 mouse::Interaction::Crosshair
             } else {
                 mouse::Interaction::default()
@@ -218,14 +218,14 @@ mod bezier {
             renderer: &Renderer,
             theme: &Theme,
             bounds: Rectangle,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
         ) -> Geometry {
             let mut frame = Frame::new(renderer, bounds.size());
 
-            if let Some(cursor_position) = cursor.position_in(bounds) {
+            if let Some(mouse_position) = mouse.position_in(bounds) {
                 match *self {
                     Pending::One { from } => {
-                        let line = Path::line(from, cursor_position);
+                        let line = Path::line(from, mouse_position);
                         frame.stroke(
                             &line,
                             Stroke::default()
@@ -237,7 +237,7 @@ mod bezier {
                         let curve = Curve {
                             from,
                             to,
-                            control: cursor_position,
+                            control: mouse_position,
                         };
 
                         Curve::draw_all(&[curve], &mut frame, theme);

@@ -67,8 +67,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Clipboard, Color, Element, Event, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Theme, Widget,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Mouse,
+    Pixels, Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A circular button representing a choice.
@@ -328,7 +328,7 @@ where
         _state: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -337,7 +337,7 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if cursor.is_over(layout.bounds()) {
+                if mouse.is_over(layout.bounds()) {
                     shell.publish(self.on_click.clone());
                     shell.capture_event();
                 }
@@ -346,7 +346,7 @@ where
         }
 
         let current_status = {
-            let is_mouse_over = cursor.is_over(layout.bounds());
+            let is_mouse_over = mouse.is_over(layout.bounds());
             let is_selected = self.is_selected;
 
             if is_mouse_over {
@@ -370,11 +370,11 @@ where
         &self,
         _state: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if cursor.is_over(layout.bounds()) {
+        if mouse.is_over(layout.bounds()) {
             mouse::Interaction::Pointer
         } else {
             mouse::Interaction::default()
@@ -388,7 +388,7 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let mut children = layout.children();

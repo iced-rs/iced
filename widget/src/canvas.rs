@@ -6,9 +6,8 @@
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
-//! use iced::mouse;
 //! use iced::widget::canvas;
-//! use iced::{Color, Rectangle, Renderer, Theme};
+//! use iced::{Color, Mouse, Rectangle, Renderer, Theme};
 //!
 //! // First, we define the data we need for drawing
 //! #[derive(Debug)]
@@ -27,7 +26,7 @@
 //!         renderer: &Renderer,
 //!         _theme: &Theme,
 //!         bounds: Rectangle,
-//!         _cursor: mouse::Cursor
+//!         _mouse: Mouse,
 //!     ) -> Vec<canvas::Geometry> {
 //!         // We prepare a new `Frame`
 //!         let mut frame = canvas::Frame::new(renderer, bounds.size());
@@ -67,7 +66,7 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Clipboard, Element, Length, Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Element, Length, Mouse, Rectangle, Shell, Size, Vector, Widget,
 };
 use crate::graphics::geometry;
 
@@ -94,9 +93,8 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// use iced::mouse;
 /// use iced::widget::canvas;
-/// use iced::{Color, Rectangle, Renderer, Theme};
+/// use iced::{Color, Mouse, Rectangle, Renderer, Theme};
 ///
 /// // First, we define the data we need for drawing
 /// #[derive(Debug)]
@@ -115,7 +113,7 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 ///         renderer: &Renderer,
 ///         _theme: &Theme,
 ///         bounds: Rectangle,
-///         _cursor: mouse::Cursor
+///         _mouse: Mouse,
 ///     ) -> Vec<canvas::Geometry> {
 ///         // We prepare a new `Frame`
 ///         let mut frame = canvas::Frame::new(renderer, bounds.size());
@@ -220,7 +218,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -234,8 +232,7 @@ where
             Event::Window(window::Event::RedrawRequested(_now)),
         );
 
-        if let Some(action) = self.program.update(state, event, bounds, cursor)
-        {
+        if let Some(action) = self.program.update(state, event, bounds, mouse) {
             let (message, redraw_request, event_status) = action.into_inner();
 
             shell.request_redraw_at(redraw_request);
@@ -250,8 +247,8 @@ where
         }
 
         if shell.redraw_request() != window::RedrawRequest::NextFrame {
-            let mouse_interaction = self
-                .mouse_interaction(tree, layout, cursor, viewport, renderer);
+            let mouse_interaction =
+                self.mouse_interaction(tree, layout, mouse, viewport, renderer);
 
             if is_redraw_request {
                 self.last_mouse_interaction = Some(mouse_interaction);
@@ -269,14 +266,14 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let state = tree.state.downcast_ref::<P::State>();
 
-        self.program.mouse_interaction(state, bounds, cursor)
+        self.program.mouse_interaction(state, bounds, mouse)
     }
 
     fn draw(
@@ -286,7 +283,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -301,7 +298,7 @@ where
             Vector::new(bounds.x, bounds.y),
             |renderer| {
                 let layers =
-                    self.program.draw(state, renderer, theme, bounds, cursor);
+                    self.program.draw(state, renderer, theme, bounds, mouse);
 
                 for layer in layers {
                     renderer.draw_geometry(layer);

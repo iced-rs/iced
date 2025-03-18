@@ -18,7 +18,8 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    self, Clipboard, Event, Length, Point, Rectangle, Shell, Size, Vector,
+    self, Clipboard, Event, Length, Mouse, Point, Rectangle, Shell, Size,
+    Vector,
 };
 use crate::runtime::overlay::Nested;
 
@@ -200,7 +201,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -211,7 +212,7 @@ where
                 &mut tree.children[0],
                 event,
                 layout,
-                cursor,
+                mouse,
                 renderer,
                 clipboard,
                 shell,
@@ -224,7 +225,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -232,7 +233,7 @@ where
             element.as_widget().mouse_interaction(
                 &tree.children[0],
                 layout,
-                cursor,
+                mouse,
                 viewport,
                 renderer,
             )
@@ -246,7 +247,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         self.with_element(|element| {
@@ -256,7 +257,7 @@ where
                 theme,
                 style,
                 layout,
-                cursor,
+                mouse,
                 viewport,
             );
         });
@@ -364,22 +365,22 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) {
         let _ = self.with_overlay_maybe(|overlay| {
-            overlay.draw(renderer, theme, style, layout, cursor);
+            overlay.draw(renderer, theme, style, layout, mouse);
         });
     }
 
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(layout, cursor, viewport, renderer)
+            overlay.mouse_interaction(layout, mouse, viewport, renderer)
         })
         .unwrap_or_default()
     }
@@ -388,13 +389,13 @@ where
         &mut self,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         let _ = self.with_overlay_mut_maybe(|overlay| {
-            overlay.update(event, layout, cursor, renderer, clipboard, shell);
+            overlay.update(event, layout, mouse, renderer, clipboard, shell);
         });
     }
 
@@ -402,10 +403,10 @@ where
         &self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        cursor_position: Point,
+        mouse_position: Point,
     ) -> bool {
         self.with_overlay_maybe(|overlay| {
-            overlay.is_over(layout, renderer, cursor_position)
+            overlay.is_over(layout, renderer, mouse_position)
         })
         .unwrap_or_default()
     }

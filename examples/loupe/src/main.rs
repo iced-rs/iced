@@ -52,7 +52,7 @@ mod loupe {
     use iced::advanced::widget::{self, Widget};
     use iced::mouse;
     use iced::{
-        Color, Element, Length, Rectangle, Renderer, Size, Theme,
+        Color, Element, Length, Mouse, Rectangle, Renderer, Size, Theme,
         Transformation,
     };
 
@@ -111,12 +111,12 @@ mod loupe {
             theme: &Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             viewport: &Rectangle,
         ) {
             let bounds = layout.bounds();
 
-            if let Some(position) = cursor.position_in(bounds) {
+            if let Some(position) = mouse.position_in(bounds) {
                 renderer.with_layer(bounds, |renderer| {
                     renderer.with_transformation(
                         Transformation::translate(
@@ -131,7 +131,7 @@ mod loupe {
                                 theme,
                                 style,
                                 layout,
-                                mouse::Cursor::Unavailable,
+                                Mouse::Unavailable,
                                 viewport,
                             );
                         },
@@ -139,7 +139,7 @@ mod loupe {
                 });
             } else {
                 self.content.as_widget().draw(
-                    tree, renderer, theme, style, layout, cursor, viewport,
+                    tree, renderer, theme, style, layout, mouse, viewport,
                 );
             }
         }
@@ -148,11 +148,11 @@ mod loupe {
             &self,
             _state: &widget::Tree,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             _viewport: &Rectangle,
             _renderer: &Renderer,
         ) -> mouse::Interaction {
-            if cursor.is_over(layout.bounds()) {
+            if mouse.is_over(layout.bounds()) {
                 mouse::Interaction::ZoomIn
             } else {
                 mouse::Interaction::None

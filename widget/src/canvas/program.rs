@@ -1,7 +1,7 @@
 use crate::Action;
 use crate::canvas::mouse;
 use crate::canvas::{Event, Geometry};
-use crate::core::Rectangle;
+use crate::core::{Mouse, Rectangle};
 use crate::graphics::geometry;
 
 /// The state and logic of a [`Canvas`].
@@ -34,7 +34,7 @@ where
         _state: &mut Self::State,
         _event: &Event,
         _bounds: Rectangle,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
     ) -> Option<Action<Message>> {
         None
     }
@@ -53,7 +53,7 @@ where
         renderer: &Renderer,
         theme: &Theme,
         bounds: Rectangle,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) -> Vec<Geometry<Renderer>>;
 
     /// Returns the current mouse interaction of the [`Program`].
@@ -66,7 +66,7 @@ where
         &self,
         _state: &Self::State,
         _bounds: Rectangle,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
     ) -> mouse::Interaction {
         mouse::Interaction::default()
     }
@@ -84,9 +84,9 @@ where
         state: &mut Self::State,
         event: &Event,
         bounds: Rectangle,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) -> Option<Action<Message>> {
-        T::update(self, state, event, bounds, cursor)
+        T::update(self, state, event, bounds, mouse)
     }
 
     fn draw(
@@ -95,17 +95,17 @@ where
         renderer: &Renderer,
         theme: &Theme,
         bounds: Rectangle,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) -> Vec<Geometry<Renderer>> {
-        T::draw(self, state, renderer, theme, bounds, cursor)
+        T::draw(self, state, renderer, theme, bounds, mouse)
     }
 
     fn mouse_interaction(
         &self,
         state: &Self::State,
         bounds: Rectangle,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) -> mouse::Interaction {
-        T::mouse_interaction(self, state, bounds, cursor)
+        T::mouse_interaction(self, state, bounds, mouse)
     }
 }

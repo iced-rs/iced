@@ -5,8 +5,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Event, Layout, Point, Rectangle, Shell, Size,
-    Vector,
+    self, Clipboard, Element, Event, Layout, Mouse, Point, Rectangle, Shell,
+    Size, Vector,
 };
 use crate::pane_grid::{Draggable, TitleBar};
 
@@ -113,7 +113,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -129,7 +129,7 @@ where
             let title_bar_layout = children.next().unwrap();
             let body_layout = children.next().unwrap();
 
-            let show_controls = cursor.is_over(bounds);
+            let show_controls = mouse.is_over(bounds);
 
             self.body.as_widget().draw(
                 &tree.children[0],
@@ -137,7 +137,7 @@ where
                 theme,
                 style,
                 body_layout,
-                cursor,
+                mouse,
                 viewport,
             );
 
@@ -147,7 +147,7 @@ where
                 theme,
                 style,
                 title_bar_layout,
-                cursor,
+                mouse,
                 viewport,
                 show_controls,
             );
@@ -158,7 +158,7 @@ where
                 theme,
                 style,
                 layout,
-                cursor,
+                mouse,
                 viewport,
             );
         }
@@ -244,7 +244,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -258,7 +258,7 @@ where
                 &mut tree.children[1],
                 event,
                 children.next().unwrap(),
-                cursor,
+                mouse,
                 renderer,
                 clipboard,
                 shell,
@@ -275,7 +275,7 @@ where
                 &mut tree.children[0],
                 event,
                 body_layout,
-                cursor,
+                mouse,
                 renderer,
                 clipboard,
                 shell,
@@ -287,7 +287,7 @@ where
     pub(crate) fn grid_interaction(
         &self,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         drag_enabled: bool,
     ) -> Option<mouse::Interaction> {
         let title_bar = self.title_bar.as_ref()?;
@@ -295,10 +295,10 @@ where
         let mut children = layout.children();
         let title_bar_layout = children.next().unwrap();
 
-        let is_over_pick_area = cursor
+        let is_over_pick_area = mouse
             .position()
-            .map(|cursor_position| {
-                title_bar.is_over_pick_area(title_bar_layout, cursor_position)
+            .map(|mouse_position| {
+                title_bar.is_over_pick_area(title_bar_layout, mouse_position)
             })
             .unwrap_or_default();
 
@@ -313,48 +313,47 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
         drag_enabled: bool,
     ) -> mouse::Interaction {
-        let (body_layout, title_bar_interaction) = if let Some(title_bar) =
-            &self.title_bar
-        {
-            let mut children = layout.children();
-            let title_bar_layout = children.next().unwrap();
+        let (body_layout, title_bar_interaction) =
+            if let Some(title_bar) = &self.title_bar {
+                let mut children = layout.children();
+                let title_bar_layout = children.next().unwrap();
 
-            let is_over_pick_area = cursor
-                .position()
-                .map(|cursor_position| {
-                    title_bar
-                        .is_over_pick_area(title_bar_layout, cursor_position)
-                })
-                .unwrap_or_default();
+                let is_over_pick_area = mouse
+                    .position()
+                    .map(|mouse_position| {
+                        title_bar
+                            .is_over_pick_area(title_bar_layout, mouse_position)
+                    })
+                    .unwrap_or_default();
 
-            if is_over_pick_area && drag_enabled {
-                return mouse::Interaction::Grab;
-            }
+                if is_over_pick_area && drag_enabled {
+                    return mouse::Interaction::Grab;
+                }
 
-            let mouse_interaction = title_bar.mouse_interaction(
-                &tree.children[1],
-                title_bar_layout,
-                cursor,
-                viewport,
-                renderer,
-            );
+                let mouse_interaction = title_bar.mouse_interaction(
+                    &tree.children[1],
+                    title_bar_layout,
+                    mouse,
+                    viewport,
+                    renderer,
+                );
 
-            (children.next().unwrap(), mouse_interaction)
-        } else {
-            (layout, mouse::Interaction::default())
-        };
+                (children.next().unwrap(), mouse_interaction)
+            } else {
+                (layout, mouse::Interaction::default())
+            };
 
         self.body
             .as_widget()
             .mouse_interaction(
                 &tree.children[0],
                 body_layout,
-                cursor,
+                mouse,
                 viewport,
                 renderer,
             )
@@ -410,13 +409,13 @@ where
     fn can_be_dragged_at(
         &self,
         layout: Layout<'_>,
-        cursor_position: Point,
+        mouse_position: Point,
     ) -> bool {
         if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();
             let title_bar_layout = children.next().unwrap();
 
-            title_bar.is_over_pick_area(title_bar_layout, cursor_position)
+            title_bar.is_over_pick_area(title_bar_layout, mouse_position)
         } else {
             false
         }

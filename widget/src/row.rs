@@ -6,8 +6,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size,
-    Vector, Widget,
+    Clipboard, Element, Event, Length, Mouse, Padding, Pixels, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 /// A container that distributes its contents horizontally.
@@ -258,7 +258,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -271,7 +271,7 @@ where
             .zip(layout.children())
         {
             child.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
+                state, event, layout, mouse, renderer, clipboard, shell,
                 viewport,
             );
         }
@@ -281,7 +281,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -290,9 +290,9 @@ where
             .zip(&tree.children)
             .zip(layout.children())
             .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                )
+                child
+                    .as_widget()
+                    .mouse_interaction(state, layout, mouse, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -305,7 +305,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
@@ -323,7 +323,7 @@ where
                 .filter(|(_, layout)| layout.bounds().intersects(viewport))
             {
                 child.as_widget().draw(
-                    state, renderer, theme, style, layout, cursor, viewport,
+                    state, renderer, theme, style, layout, mouse, viewport,
                 );
             }
         }
@@ -491,14 +491,14 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
         self.row.update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
+            tree, event, layout, mouse, renderer, clipboard, shell, viewport,
         );
     }
 
@@ -506,12 +506,12 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.row
-            .mouse_interaction(tree, layout, cursor, viewport, renderer)
+            .mouse_interaction(tree, layout, mouse, viewport, renderer)
     }
 
     fn draw(
@@ -521,11 +521,11 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
     ) {
         self.row
-            .draw(tree, renderer, theme, style, layout, cursor, viewport);
+            .draw(tree, renderer, theme, style, layout, mouse, viewport);
     }
 
     fn overlay<'b>(

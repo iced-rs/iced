@@ -6,7 +6,7 @@ use crate::container::{self, Container};
 use crate::core;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
-use crate::core::{Element, Length, Pixels, Widget};
+use crate::core::{Element, Length, Mouse, Pixels, Widget};
 use crate::keyed;
 use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
@@ -611,12 +611,12 @@ where
             theme: &Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             viewport: &Rectangle,
         ) {
             self.content
                 .as_widget()
-                .draw(tree, renderer, theme, style, layout, cursor, viewport);
+                .draw(tree, renderer, theme, style, layout, mouse, viewport);
         }
 
         fn operate(
@@ -636,7 +636,7 @@ where
             state: &mut Tree,
             event: &Event,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             renderer: &Renderer,
             clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -648,11 +648,11 @@ where
             );
 
             self.content.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
+                state, event, layout, mouse, renderer, clipboard, shell,
                 viewport,
             );
 
-            if is_mouse_press && cursor.is_over(layout.bounds()) {
+            if is_mouse_press && mouse.is_over(layout.bounds()) {
                 shell.capture_event();
             }
         }
@@ -661,17 +661,17 @@ where
             &self,
             state: &core::widget::Tree,
             layout: core::Layout<'_>,
-            cursor: core::mouse::Cursor,
+            mouse: Mouse,
             viewport: &core::Rectangle,
             renderer: &Renderer,
         ) -> core::mouse::Interaction {
             let interaction = self
                 .content
                 .as_widget()
-                .mouse_interaction(state, layout, cursor, viewport, renderer);
+                .mouse_interaction(state, layout, mouse, viewport, renderer);
 
             if interaction == mouse::Interaction::None
-                && cursor.is_over(layout.bounds())
+                && mouse.is_over(layout.bounds())
             {
                 mouse::Interaction::Idle
             } else {
@@ -704,7 +704,7 @@ where
 /// Displays a widget on top of another one, only when the base widget is hovered.
 ///
 /// This works analogously to a [`stack`], but it will only display the layer on top
-/// when the cursor is over the base. It can be useful for removing visual clutter.
+/// when the mouse cursor is over the base. It can be useful for removing visual clutter.
 ///
 /// [`stack`]: stack()
 pub fn hover<'a, Message, Theme, Renderer>(
@@ -784,7 +784,7 @@ where
             theme: &Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             viewport: &Rectangle,
         ) {
             if let Some(bounds) = layout.bounds().intersection(viewport) {
@@ -798,11 +798,11 @@ where
                     theme,
                     style,
                     base_layout,
-                    cursor,
+                    mouse,
                     viewport,
                 );
 
-                if cursor.is_over(layout.bounds())
+                if mouse.is_over(layout.bounds())
                     || self.is_top_focused
                     || self.is_top_overlay_active
                 {
@@ -811,7 +811,7 @@ where
                     renderer.with_layer(bounds, |renderer| {
                         self.top.as_widget().draw(
                             top_tree, renderer, theme, style, top_layout,
-                            cursor, viewport,
+                            mouse, viewport,
                         );
                     });
                 }
@@ -839,7 +839,7 @@ where
             tree: &mut Tree,
             event: &Event,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             renderer: &Renderer,
             clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -849,7 +849,7 @@ where
             let (base_layout, base_tree) = children.next().unwrap();
             let (top_layout, top_tree) = children.next().unwrap();
 
-            let is_hovered = cursor.is_over(layout.bounds());
+            let is_hovered = mouse.is_over(layout.bounds());
 
             if matches!(event, Event::Window(window::Event::RedrawRequested(_)))
             {
@@ -886,7 +886,7 @@ where
                 let redraw_request = shell.redraw_request();
 
                 self.top.as_widget_mut().update(
-                    top_tree, event, top_layout, cursor, renderer, clipboard,
+                    top_tree, event, top_layout, mouse, renderer, clipboard,
                     shell, viewport,
                 );
 
@@ -904,7 +904,7 @@ where
                 base_tree,
                 event,
                 base_layout,
-                cursor,
+                mouse,
                 renderer,
                 clipboard,
                 shell,
@@ -916,7 +916,7 @@ where
             &self,
             tree: &Tree,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
@@ -926,7 +926,7 @@ where
                 .zip(layout.children().rev().zip(tree.children.iter().rev()))
                 .map(|(child, (layout, tree))| {
                     child.as_widget().mouse_interaction(
-                        tree, layout, cursor, viewport, renderer,
+                        tree, layout, mouse, viewport, renderer,
                     )
                 })
                 .find(|&interaction| interaction != mouse::Interaction::None)
@@ -1917,9 +1917,8 @@ where
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// use iced::mouse;
 /// use iced::widget::canvas;
-/// use iced::{Color, Rectangle, Renderer, Theme};
+/// use iced::{Color, Mouse, Rectangle, Renderer, Theme};
 ///
 /// // First, we define the data we need for drawing
 /// #[derive(Debug)]
@@ -1938,7 +1937,7 @@ where
 ///         renderer: &Renderer,
 ///         _theme: &Theme,
 ///         bounds: Rectangle,
-///         _cursor: mouse::Cursor
+///         _mouse: Mouse,
 ///     ) -> Vec<canvas::Geometry> {
 ///         // We prepare a new `Frame`
 ///         let mut frame = canvas::Frame::new(renderer, bounds.size());

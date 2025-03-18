@@ -8,8 +8,8 @@ use crate::core::widget::text::{
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    self, Clipboard, Color, Element, Event, Layout, Length, Mouse, Pixels,
+    Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A bunch of [`Rich`] text.
@@ -254,7 +254,7 @@ where
         theme: &Theme,
         defaults: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         viewport: &Rectangle,
     ) {
         if !layout.bounds().intersects(viewport) {
@@ -377,7 +377,7 @@ where
         tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -389,7 +389,7 @@ where
 
         let was_hovered = self.hovered_link.is_some();
 
-        if let Some(position) = cursor.position_in(layout.bounds()) {
+        if let Some(position) = mouse.position_in(layout.bounds()) {
             let state = tree
                 .state
                 .downcast_ref::<State<Link, Renderer::Paragraph>>();
@@ -451,7 +451,7 @@ where
         &self,
         _tree: &Tree,
         _layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {

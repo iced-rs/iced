@@ -4,7 +4,9 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
-use crate::core::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size};
+use crate::core::{
+    Clipboard, Event, Layout, Mouse, Point, Rectangle, Shell, Size,
+};
 
 /// An overlay container that displays nested overlays
 #[allow(missing_debug_implementations)]
@@ -63,7 +65,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
     ) {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
@@ -71,7 +73,7 @@ where
             renderer: &mut Renderer,
             theme: &Theme,
             style: &renderer::Style,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
         ) where
             Renderer: renderer::Renderer,
         {
@@ -80,15 +82,15 @@ where
             if let Some(layout) = layouts.next() {
                 let nested_layout = layouts.next();
 
-                let is_over = cursor
+                let is_over = mouse
                     .position()
                     .zip(nested_layout)
-                    .and_then(|(cursor_position, nested_layout)| {
+                    .and_then(|(mouse_position, nested_layout)| {
                         element.overlay(layout, renderer).map(|nested| {
                             nested.is_over(
                                 nested_layout.children().next().unwrap(),
                                 renderer,
-                                cursor_position,
+                                mouse_position,
                             )
                         })
                     })
@@ -100,11 +102,7 @@ where
                         theme,
                         style,
                         layout,
-                        if is_over {
-                            mouse::Cursor::Unavailable
-                        } else {
-                            cursor
-                        },
+                        if is_over { Mouse::Unavailable } else { mouse },
                     );
                 });
 
@@ -117,13 +115,13 @@ where
                         renderer,
                         theme,
                         style,
-                        cursor,
+                        mouse,
                     );
                 }
             }
         }
 
-        recurse(&mut self.overlay, layout, renderer, theme, style, cursor);
+        recurse(&mut self.overlay, layout, renderer, theme, style, mouse);
     }
 
     /// Applies a [`widget::Operation`] to the [`Nested`] overlay.
@@ -162,7 +160,7 @@ where
         &mut self,
         event: &Event,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -171,7 +169,7 @@ where
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             event: &Event,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -189,7 +187,7 @@ where
                         &mut nested,
                         nested_layout,
                         event,
-                        cursor,
+                        mouse,
                         renderer,
                         clipboard,
                         shell,
@@ -200,13 +198,13 @@ where
 
                 if shell.event_status() == event::Status::Ignored {
                     let is_over = nested_is_over
-                        || cursor
+                        || mouse
                             .position()
-                            .map(|cursor_position| {
+                            .map(|mouse_position| {
                                 element.is_over(
                                     layout,
                                     renderer,
-                                    cursor_position,
+                                    mouse_position,
                                 )
                             })
                             .unwrap_or_default();
@@ -215,9 +213,9 @@ where
                         event,
                         layout,
                         if nested_is_over {
-                            mouse::Cursor::Unavailable
+                            Mouse::Unavailable
                         } else {
-                            cursor
+                            mouse
                         },
                         renderer,
                         clipboard,
@@ -237,7 +235,7 @@ where
             &mut self.overlay,
             layout,
             event,
-            cursor,
+            mouse,
             renderer,
             clipboard,
             shell,
@@ -248,14 +246,14 @@ where
     pub fn mouse_interaction(
         &mut self,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
-            cursor: mouse::Cursor,
+            mouse: Mouse,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> Option<mouse::Interaction>
@@ -265,9 +263,9 @@ where
             let mut layouts = layout.children();
 
             let layout = layouts.next()?;
-            let cursor_position = cursor.position()?;
+            let mouse_position = mouse.position()?;
 
-            if !element.is_over(layout, renderer, cursor_position) {
+            if !element.is_over(layout, renderer, mouse_position) {
                 return None;
             }
 
@@ -276,23 +274,17 @@ where
                     .overlay(layout, renderer)
                     .zip(layouts.next())
                     .and_then(|(mut overlay, layout)| {
-                        recurse(
-                            &mut overlay,
-                            layout,
-                            cursor,
-                            viewport,
-                            renderer,
-                        )
+                        recurse(&mut overlay, layout, mouse, viewport, renderer)
                     })
                     .unwrap_or_else(|| {
                         element.mouse_interaction(
-                            layout, cursor, viewport, renderer,
+                            layout, mouse, viewport, renderer,
                         )
                     }),
             )
         }
 
-        recurse(&mut self.overlay, layout, cursor, viewport, renderer)
+        recurse(&mut self.overlay, layout, mouse, viewport, renderer)
             .unwrap_or_default()
     }
 
@@ -301,13 +293,13 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        cursor_position: Point,
+        mouse_position: Point,
     ) -> bool {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             renderer: &Renderer,
-            cursor_position: Point,
+            mouse_position: Point,
         ) -> bool
         where
             Renderer: renderer::Renderer,
@@ -315,7 +307,7 @@ where
             let mut layouts = layout.children();
 
             if let Some(layout) = layouts.next() {
-                if element.is_over(layout, renderer, cursor_position) {
+                if element.is_over(layout, renderer, mouse_position) {
                     return true;
                 }
 
@@ -326,7 +318,7 @@ where
                         &mut nested,
                         nested_layout,
                         renderer,
-                        cursor_position,
+                        mouse_position,
                     )
                 } else {
                     false
@@ -336,6 +328,6 @@ where
             }
         }
 
-        recurse(&mut self.overlay, layout, renderer, cursor_position)
+        recurse(&mut self.overlay, layout, renderer, mouse_position)
     }
 }

@@ -1,14 +1,13 @@
 use iced::border;
 use iced::keyboard;
-use iced::mouse;
 use iced::widget::{
     button, canvas, center, center_y, checkbox, column, container,
     horizontal_rule, horizontal_space, pick_list, pin, row, scrollable, stack,
     text, vertical_rule,
 };
 use iced::{
-    Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink,
-    Subscription, Theme, color,
+    Center, Element, Fill, Font, Length, Mouse, Point, Rectangle, Renderer,
+    Shrink, Subscription, Theme, color,
 };
 
 pub fn main() -> iced::Result {
@@ -342,7 +341,7 @@ fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
             renderer: &Renderer,
             theme: &Theme,
             bounds: Rectangle,
-            _cursor: mouse::Cursor,
+            _mouse: Mouse,
         ) -> Vec<canvas::Geometry> {
             let mut frame = canvas::Frame::new(renderer, bounds.size());
 

@@ -7,10 +7,9 @@ use pipeline::Pipeline;
 use crate::wgpu;
 use pipeline::cube::{self, Cube};
 
-use iced::mouse;
 use iced::time::Duration;
 use iced::widget::shader::{self, Viewport};
-use iced::{Color, Rectangle};
+use iced::{Color, Mouse, Rectangle};
 
 use glam::Vec3;
 use rand::Rng;
@@ -85,7 +84,7 @@ impl<Message> shader::Program<Message> for Scene {
     fn draw(
         &self,
         _state: &Self::State,
-        _cursor: mouse::Cursor,
+        _mouse: Mouse,
         bounds: Rectangle,
     ) -> Self::Primitive {
         Primitive::new(

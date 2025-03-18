@@ -6,13 +6,12 @@ pub use state::State;
 
 use crate::conversion;
 use crate::core;
-use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
-use crate::core::{Element, Point, Size};
+use crate::core::{Element, Mouse, Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -833,7 +832,7 @@ async fn run_instance<P, C>(
                             window::Event::RedrawRequested(Instant::now()),
                         );
 
-                        let cursor = window.state.cursor();
+                        let mouse = window.state.mouse();
 
                         let ui = user_interfaces
                             .get_mut(&id)
@@ -841,7 +840,7 @@ async fn run_instance<P, C>(
 
                         let (ui_state, _) = ui.update(
                             &[redraw_event.clone()],
-                            cursor,
+                            mouse,
                             &mut window.renderer,
                             &mut clipboard,
                             &mut messages,
@@ -854,7 +853,7 @@ async fn run_instance<P, C>(
                             &renderer::Style {
                                 text_color: window.state.text_color(),
                             },
-                            cursor,
+                            mouse,
                         );
                         debug.draw_finished();
 
@@ -1025,7 +1024,7 @@ async fn run_instance<P, C>(
                                 .expect("Get user interface")
                                 .update(
                                     &window_events,
-                                    window.state.cursor(),
+                                    window.state.mouse(),
                                     &mut window.renderer,
                                     &mut clipboard,
                                     &mut messages,
@@ -1443,9 +1442,7 @@ fn run_action<P, C>(
             }
             window::Action::ShowSystemMenu(id) => {
                 if let Some(window) = window_manager.get_mut(id) {
-                    if let mouse::Cursor::Available(point) =
-                        window.state.cursor()
-                    {
+                    if let Mouse::Available(point) = window.state.mouse() {
                         window.raw.show_window_menu(
                             winit::dpi::LogicalPosition {
                                 x: point.x,

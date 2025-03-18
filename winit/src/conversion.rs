@@ -510,8 +510,8 @@ pub fn modifiers(
     result
 }
 
-/// Converts a physical cursor position to a logical `Point`.
-pub fn cursor_position(
+/// Converts a physical mouse position to a logical `Point`.
+pub fn mouse_position(
     position: winit::dpi::PhysicalPosition<f64>,
     scale_factor: f64,
 ) -> Point {
