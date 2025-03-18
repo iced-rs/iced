@@ -322,6 +322,7 @@ where
         viewport: &graphics::Viewport,
         background_color: Color,
         overlay: &[T],
+        on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
         match (self, renderer, surface) {
             (
@@ -334,6 +335,7 @@ where
                 viewport,
                 background_color,
                 overlay,
+                on_pre_present,
             ),
             (
                 Self::Secondary(compositor),
@@ -345,6 +347,7 @@ where
                 viewport,
                 background_color,
                 overlay,
+                on_pre_present,
             ),
             _ => unreachable!(),
         }

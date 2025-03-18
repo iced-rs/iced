@@ -892,6 +892,7 @@ async fn run_instance<P, C>(
                             window.state.viewport(),
                             window.state.background_color(),
                             &debug.overlay(),
+                            || window.raw.pre_present_notify(),
                         ) {
                             Ok(()) => {
                                 debug.render_finished();
