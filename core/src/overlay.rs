@@ -69,17 +69,17 @@ where
     ) {
     }
 
-    /// Returns the current [`mouse::Interaction`] of the [`Overlay`].
+    /// Returns the current [`mouse::Cursor`] of the [`Overlay`].
     ///
-    /// By default, it returns [`mouse::Interaction::Idle`].
-    fn mouse_interaction(
+    /// By default, it returns [`mouse::Cursor::Undefined`].
+    fn mouse_cursor(
         &self,
         _layout: Layout<'_>,
         _mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse::Interaction::None
+    ) -> mouse::Cursor {
+        mouse::Cursor::Undefined
     }
 
     /// Returns true if the cursor is over the [`Overlay`].

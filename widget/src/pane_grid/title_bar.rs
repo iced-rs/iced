@@ -506,21 +506,21 @@ where
         }
     }
 
-    pub(crate) fn mouse_interaction(
+    pub(crate) fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let mut children = layout.children();
         let padded = children.next().unwrap();
 
         let mut children = padded.children();
         let title_layout = children.next().unwrap();
 
-        let title_interaction = self.content.as_widget().mouse_interaction(
+        let title_cursor = self.content.as_widget().mouse_cursor(
             &tree.children[0],
             title_layout,
             mouse,
@@ -530,38 +530,36 @@ where
 
         if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
-            let controls_interaction =
-                controls.full.as_widget().mouse_interaction(
-                    &tree.children[1],
-                    controls_layout,
-                    mouse,
-                    viewport,
-                    renderer,
-                );
+            let controls_cursor = controls.full.as_widget().mouse_cursor(
+                &tree.children[1],
+                controls_layout,
+                mouse,
+                viewport,
+                renderer,
+            );
 
             if title_layout.bounds().width + controls_layout.bounds().width
                 > padded.bounds().width
             {
                 if let Some(compact) = controls.compact.as_ref() {
                     let compact_layout = children.next().unwrap();
-                    let compact_interaction =
-                        compact.as_widget().mouse_interaction(
-                            &tree.children[2],
-                            compact_layout,
-                            mouse,
-                            viewport,
-                            renderer,
-                        );
+                    let compact_cursor = compact.as_widget().mouse_cursor(
+                        &tree.children[2],
+                        compact_layout,
+                        mouse,
+                        viewport,
+                        renderer,
+                    );
 
-                    compact_interaction.max(title_interaction)
+                    compact_cursor.max(title_cursor)
                 } else {
-                    controls_interaction
+                    controls_cursor
                 }
             } else {
-                controls_interaction.max(title_interaction)
+                controls_cursor.max(title_cursor)
             }
         } else {
-            title_interaction
+            title_cursor
         }
     }
 

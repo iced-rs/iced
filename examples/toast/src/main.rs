@@ -402,15 +402,15 @@ mod toast {
             );
         }
 
-        fn mouse_interaction(
+        fn mouse_cursor(
             &self,
             state: &Tree,
             layout: Layout<'_>,
             mouse: Mouse,
             viewport: &Rectangle,
             renderer: &Renderer,
-        ) -> mouse::Interaction {
-            self.content.as_widget().mouse_interaction(
+        ) -> mouse::Cursor {
+            self.content.as_widget().mouse_cursor(
                 &state.children[0],
                 layout,
                 mouse,
@@ -588,21 +588,21 @@ mod toast {
             });
         }
 
-        fn mouse_interaction(
+        fn mouse_cursor(
             &self,
             layout: Layout<'_>,
             mouse: Mouse,
             viewport: &Rectangle,
             renderer: &Renderer,
-        ) -> mouse::Interaction {
+        ) -> mouse::Cursor {
             self.toasts
                 .iter()
                 .zip(self.state.iter())
                 .zip(layout.children())
                 .map(|((child, state), layout)| {
-                    child.as_widget().mouse_interaction(
-                        state, layout, mouse, viewport, renderer,
-                    )
+                    child
+                        .as_widget()
+                        .mouse_cursor(state, layout, mouse, viewport, renderer)
                 })
                 .max()
                 .unwrap_or_default()

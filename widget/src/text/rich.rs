@@ -447,18 +447,18 @@ where
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         _tree: &Tree,
         _layout: Layout<'_>,
         _mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         if self.hovered_link.is_some() {
-            mouse::Interaction::Pointer
+            mouse::Cursor::Pointer
         } else {
-            mouse::Interaction::None
+            mouse::Cursor::Undefined
         }
     }
 }

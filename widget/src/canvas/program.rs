@@ -56,19 +56,19 @@ where
         mouse: Mouse,
     ) -> Vec<Geometry<Renderer>>;
 
-    /// Returns the current mouse interaction of the [`Program`].
+    /// Returns the current [`mouse::Cursor`] of the [`Program`].
     ///
-    /// The interaction returned will be in effect even if the cursor position
-    /// is out of bounds of the program's [`Canvas`].
+    /// The cursor returned will be in effect even if the mouse position
+    /// is out of bounds of the [`Canvas`].
     ///
     /// [`Canvas`]: crate::Canvas
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         _state: &Self::State,
         _bounds: Rectangle,
         _mouse: Mouse,
-    ) -> mouse::Interaction {
-        mouse::Interaction::default()
+    ) -> mouse::Cursor {
+        mouse::Cursor::default()
     }
 }
 
@@ -100,12 +100,12 @@ where
         T::draw(self, state, renderer, theme, bounds, mouse)
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         state: &Self::State,
         bounds: Rectangle,
         mouse: Mouse,
-    ) -> mouse::Interaction {
-        T::mouse_interaction(self, state, bounds, mouse)
+    ) -> mouse::Cursor {
+        T::mouse_cursor(self, state, bounds, mouse)
     }
 }

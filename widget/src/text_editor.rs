@@ -1022,24 +1022,24 @@ where
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         _state: &widget::Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let is_disabled = self.on_edit.is_none();
 
         if mouse.is_over(layout.bounds()) {
             if is_disabled {
-                mouse::Interaction::NotAllowed
+                mouse::Cursor::NotAllowed
             } else {
-                mouse::Interaction::Text
+                mouse::Cursor::Text
             }
         } else {
-            mouse::Interaction::default()
+            mouse::Cursor::default()
         }
     }
 

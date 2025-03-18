@@ -167,16 +167,16 @@ mod bezier {
             }
         }
 
-        fn mouse_interaction(
+        fn mouse_cursor(
             &self,
             _state: &Self::State,
             bounds: Rectangle,
             mouse: Mouse,
-        ) -> mouse::Interaction {
+        ) -> mouse::Cursor {
             if mouse.is_over(bounds) {
-                mouse::Interaction::Crosshair
+                mouse::Cursor::Crosshair
             } else {
-                mouse::Interaction::default()
+                mouse::Cursor::default()
             }
         }
     }

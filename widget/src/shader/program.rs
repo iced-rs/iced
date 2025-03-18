@@ -49,12 +49,12 @@ pub trait Program<Message> {
     /// bounds of the [`Shader`]'s program.
     ///
     /// [`Shader`]: crate::Shader
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         _state: &Self::State,
         _bounds: Rectangle,
         _mouse: Mouse,
-    ) -> mouse::Interaction {
-        mouse::Interaction::default()
+    ) -> mouse::Cursor {
+        mouse::Cursor::default()
     }
 }

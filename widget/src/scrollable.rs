@@ -1120,14 +1120,14 @@ where
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         _viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let mouse_over_scrollable = mouse.position_over(bounds);
@@ -1144,7 +1144,7 @@ where
         if (mouse_over_x_scrollbar || mouse_over_y_scrollbar)
             || state.scrollers_grabbed()
         {
-            mouse::Interaction::None
+            mouse::Cursor::Undefined
         } else {
             let translation =
                 state.translation(self.direction, bounds, content_bounds);
@@ -1158,7 +1158,7 @@ where
                 _ => Mouse::Unavailable,
             };
 
-            self.content.as_widget().mouse_interaction(
+            self.content.as_widget().mouse_cursor(
                 &tree.children[0],
                 content_layout,
                 mouse,

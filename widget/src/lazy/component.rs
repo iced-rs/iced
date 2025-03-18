@@ -422,17 +422,17 @@ where
         });
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
         self.with_element(|element| {
-            element.as_widget().mouse_interaction(
+            element.as_widget().mouse_cursor(
                 &tree.borrow().as_ref().unwrap().children[0],
                 layout,
                 mouse,
@@ -584,15 +584,15 @@ where
         });
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(layout, mouse, viewport, renderer)
+            overlay.mouse_cursor(layout, mouse, viewport, renderer)
         })
         .unwrap_or_default()
     }

@@ -352,18 +352,18 @@ where
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         _tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         if mouse.is_over(layout.bounds()) && self.on_toggle.is_some() {
-            mouse::Interaction::Pointer
+            mouse::Cursor::Pointer
         } else {
-            mouse::Interaction::default()
+            mouse::Cursor::default()
         }
     }
 

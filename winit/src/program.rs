@@ -847,7 +847,7 @@ async fn run_instance<P, C>(
                         );
 
                         debug.draw_started();
-                        let new_mouse_interaction = ui.draw(
+                        let new_mouse_cursor = ui.draw(
                             &mut window.renderer,
                             window.state.theme(),
                             &renderer::Style {
@@ -857,14 +857,12 @@ async fn run_instance<P, C>(
                         );
                         debug.draw_finished();
 
-                        if new_mouse_interaction != window.mouse_interaction {
-                            window.raw.set_cursor(
-                                conversion::mouse_interaction(
-                                    new_mouse_interaction,
-                                ),
-                            );
+                        if new_mouse_cursor != window.mouse_cursor {
+                            window.raw.set_cursor(conversion::mouse_cursor(
+                                new_mouse_cursor,
+                            ));
 
-                            window.mouse_interaction = new_mouse_interaction;
+                            window.mouse_cursor = new_mouse_cursor;
                         }
 
                         runtime.broadcast(subscription::Event::Interaction {

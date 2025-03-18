@@ -280,8 +280,8 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                             // Update the mouse cursor
                             window.set_cursor(
-                                iced_winit::conversion::mouse_interaction(
-                                    state.mouse_interaction(),
+                                iced_winit::conversion::mouse_cursor(
+                                    state.mouse_cursor(),
                                 ),
                             );
                         }

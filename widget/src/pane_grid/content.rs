@@ -284,12 +284,12 @@ where
         }
     }
 
-    pub(crate) fn grid_interaction(
+    pub(crate) fn grid_cursor(
         &self,
         layout: Layout<'_>,
         mouse: Mouse,
         drag_enabled: bool,
-    ) -> Option<mouse::Interaction> {
+    ) -> Option<mouse::Cursor> {
         let title_bar = self.title_bar.as_ref()?;
 
         let mut children = layout.children();
@@ -303,13 +303,13 @@ where
             .unwrap_or_default();
 
         if is_over_pick_area && drag_enabled {
-            return Some(mouse::Interaction::Grab);
+            return Some(mouse::Cursor::Grab);
         }
 
         None
     }
 
-    pub(crate) fn mouse_interaction(
+    pub(crate) fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
@@ -317,8 +317,8 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
         drag_enabled: bool,
-    ) -> mouse::Interaction {
-        let (body_layout, title_bar_interaction) =
+    ) -> mouse::Cursor {
+        let (body_layout, title_bar_cursor) =
             if let Some(title_bar) = &self.title_bar {
                 let mut children = layout.children();
                 let title_bar_layout = children.next().unwrap();
@@ -332,10 +332,10 @@ where
                     .unwrap_or_default();
 
                 if is_over_pick_area && drag_enabled {
-                    return mouse::Interaction::Grab;
+                    return mouse::Cursor::Grab;
                 }
 
-                let mouse_interaction = title_bar.mouse_interaction(
+                let mouse_cursor = title_bar.mouse_cursor(
                     &tree.children[1],
                     title_bar_layout,
                     mouse,
@@ -343,21 +343,21 @@ where
                     renderer,
                 );
 
-                (children.next().unwrap(), mouse_interaction)
+                (children.next().unwrap(), mouse_cursor)
             } else {
-                (layout, mouse::Interaction::default())
+                (layout, mouse::Cursor::default())
             };
 
         self.body
             .as_widget()
-            .mouse_interaction(
+            .mouse_cursor(
                 &tree.children[0],
                 body_layout,
                 mouse,
                 viewport,
                 renderer,
             )
-            .max(title_bar_interaction)
+            .max(title_bar_cursor)
     }
 
     pub(crate) fn overlay<'b>(

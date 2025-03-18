@@ -254,14 +254,14 @@ where
         );
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let state = tree.state.downcast_ref::<State>();
         let mut content = self.content.borrow_mut();
 
@@ -273,7 +273,7 @@ where
             |tree, renderer, layout, element| {
                 element
                     .as_widget()
-                    .mouse_interaction(tree, layout, mouse, viewport, renderer)
+                    .mouse_cursor(tree, layout, mouse, viewport, renderer)
             },
         )
     }
@@ -401,15 +401,15 @@ where
         });
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(layout, mouse, viewport, renderer)
+            overlay.mouse_cursor(layout, mouse, viewport, renderer)
         })
         .unwrap_or_default()
     }

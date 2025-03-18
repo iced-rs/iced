@@ -144,18 +144,18 @@ mod loupe {
             }
         }
 
-        fn mouse_interaction(
+        fn mouse_cursor(
             &self,
             _state: &widget::Tree,
             layout: Layout<'_>,
             mouse: Mouse,
             _viewport: &Rectangle,
             _renderer: &Renderer,
-        ) -> mouse::Interaction {
+        ) -> mouse::Cursor {
             if mouse.is_over(layout.bounds()) {
-                mouse::Interaction::ZoomIn
+                mouse::Cursor::ZoomIn
             } else {
-                mouse::Interaction::None
+                mouse::Cursor::Undefined
             }
         }
     }

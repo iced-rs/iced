@@ -651,20 +651,20 @@ mod grid {
             }
         }
 
-        fn mouse_interaction(
+        fn mouse_cursor(
             &self,
             interaction: &Interaction,
             bounds: Rectangle,
             mouse: Mouse,
-        ) -> mouse::Interaction {
+        ) -> mouse::Cursor {
             match interaction {
-                Interaction::Drawing => mouse::Interaction::Crosshair,
-                Interaction::Erasing => mouse::Interaction::Crosshair,
-                Interaction::Panning { .. } => mouse::Interaction::Grabbing,
+                Interaction::Drawing => mouse::Cursor::Crosshair,
+                Interaction::Erasing => mouse::Cursor::Crosshair,
+                Interaction::Panning { .. } => mouse::Cursor::Grabbing,
                 Interaction::None if mouse.is_over(bounds) => {
-                    mouse::Interaction::Crosshair
+                    mouse::Cursor::Crosshair
                 }
-                Interaction::None => mouse::Interaction::default(),
+                Interaction::None => mouse::Cursor::default(),
             }
         }
     }

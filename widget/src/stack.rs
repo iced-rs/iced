@@ -236,25 +236,25 @@ where
             }
 
             if i < end && is_over && !mouse.is_levitating() {
-                let interaction = child.as_widget().mouse_interaction(
-                    state, layout, mouse, viewport, renderer,
-                );
+                let cursor = child
+                    .as_widget()
+                    .mouse_cursor(state, layout, mouse, viewport, renderer);
 
-                if interaction != mouse::Interaction::None {
+                if cursor != mouse::Cursor::Undefined {
                     mouse = mouse.levitate();
                 }
             }
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         self.children
             .iter()
             .rev()
@@ -263,9 +263,9 @@ where
             .map(|((child, state), layout)| {
                 child
                     .as_widget()
-                    .mouse_interaction(state, layout, mouse, viewport, renderer)
+                    .mouse_cursor(state, layout, mouse, viewport, renderer)
             })
-            .find(|&interaction| interaction != mouse::Interaction::None)
+            .find(|&cursor| cursor != mouse::Cursor::Undefined)
             .unwrap_or_default()
     }
 
@@ -287,11 +287,11 @@ where
                     .zip(tree.children.iter().rev())
                     .zip(layout.children().rev())
                     .position(|((layer, state), layout)| {
-                        let interaction = layer.as_widget().mouse_interaction(
+                        let cursor = layer.as_widget().mouse_cursor(
                             state, layout, mouse, viewport, renderer,
                         );
 
-                        interaction != mouse::Interaction::None
+                        cursor != mouse::Cursor::Undefined
                     })
                     .map(|i| self.children.len() - i - 1)
                     .unwrap_or_default()

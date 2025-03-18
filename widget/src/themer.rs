@@ -126,17 +126,17 @@ where
         );
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         self.content
             .as_widget()
-            .mouse_interaction(tree, layout, mouse, viewport, renderer)
+            .mouse_cursor(tree, layout, mouse, viewport, renderer)
     }
 
     fn draw(
@@ -240,15 +240,14 @@ where
                 self.content.operate(layout, renderer, operation);
             }
 
-            fn mouse_interaction(
+            fn mouse_cursor(
                 &self,
                 layout: Layout<'_>,
                 mouse: Mouse,
                 viewport: &Rectangle,
                 renderer: &Renderer,
-            ) -> mouse::Interaction {
-                self.content
-                    .mouse_interaction(layout, mouse, viewport, renderer)
+            ) -> mouse::Cursor {
+                self.content.mouse_cursor(layout, mouse, viewport, renderer)
             }
 
             fn is_over(

@@ -775,15 +775,15 @@ where
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &widget::Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.text_input.mouse_interaction(
+    ) -> mouse::Cursor {
+        self.text_input.mouse_cursor(
             &tree.children[0],
             layout,
             mouse,

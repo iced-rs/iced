@@ -62,16 +62,15 @@ where
             .update(event, layout, mouse, renderer, clipboard, shell);
     }
 
-    /// Returns the current [`mouse::Interaction`] of the [`Element`].
-    pub fn mouse_interaction(
+    /// Returns the current [`mouse::Cursor`] of the [`Element`].
+    pub fn mouse_cursor(
         &self,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.overlay
-            .mouse_interaction(layout, mouse, viewport, renderer)
+    ) -> mouse::Cursor {
+        self.overlay.mouse_cursor(layout, mouse, viewport, renderer)
     }
 
     /// Draws the [`Element`] and its children using the given [`Layout`].
@@ -172,15 +171,14 @@ where
         shell.merge(local_shell, self.mapper);
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.content
-            .mouse_interaction(layout, mouse, viewport, renderer)
+    ) -> mouse::Cursor {
+        self.content.mouse_cursor(layout, mouse, viewport, renderer)
     }
 
     fn draw(

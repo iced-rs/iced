@@ -1,9 +1,9 @@
-/// The interaction of a mouse cursor.
+/// The cursor state of the [`Mouse`](crate::Mouse).
 #[derive(Debug, Eq, PartialEq, Clone, Copy, PartialOrd, Ord, Default)]
 #[allow(missing_docs)]
-pub enum Interaction {
+pub enum Cursor {
     #[default]
-    None,
+    Undefined,
     Idle,
     Pointer,
     Grab,

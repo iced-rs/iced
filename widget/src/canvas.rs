@@ -146,7 +146,7 @@ where
     message_: PhantomData<Message>,
     theme_: PhantomData<Theme>,
     renderer_: PhantomData<Renderer>,
-    last_mouse_interaction: Option<mouse::Interaction>,
+    last_mouse_cursor: Option<mouse::Cursor>,
 }
 
 impl<P, Message, Theme, Renderer> Canvas<P, Message, Theme, Renderer>
@@ -165,7 +165,7 @@ where
             message_: PhantomData,
             theme_: PhantomData,
             renderer_: PhantomData,
-            last_mouse_interaction: None,
+            last_mouse_cursor: None,
         }
     }
 
@@ -247,33 +247,31 @@ where
         }
 
         if shell.redraw_request() != window::RedrawRequest::NextFrame {
-            let mouse_interaction =
-                self.mouse_interaction(tree, layout, mouse, viewport, renderer);
+            let mouse_cursor =
+                self.mouse_cursor(tree, layout, mouse, viewport, renderer);
 
             if is_redraw_request {
-                self.last_mouse_interaction = Some(mouse_interaction);
-            } else if self.last_mouse_interaction.is_some_and(
-                |last_mouse_interaction| {
-                    last_mouse_interaction != mouse_interaction
-                },
-            ) {
+                self.last_mouse_cursor = Some(mouse_cursor);
+            } else if self.last_mouse_cursor.is_some_and(|last_mouse_cursor| {
+                last_mouse_cursor != mouse_cursor
+            }) {
                 shell.request_redraw();
             }
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let bounds = layout.bounds();
         let state = tree.state.downcast_ref::<P::State>();
 
-        self.program.mouse_interaction(state, bounds, mouse)
+        self.program.mouse_cursor(state, bounds, mouse)
     }
 
     fn draw(

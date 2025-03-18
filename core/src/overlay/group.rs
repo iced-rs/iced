@@ -101,18 +101,18 @@ where
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         self.children
             .iter()
             .zip(layout.children())
             .map(|(child, layout)| {
-                child.mouse_interaction(layout, mouse, viewport, renderer)
+                child.mouse_cursor(layout, mouse, viewport, renderer)
             })
             .max()
             .unwrap_or_default()

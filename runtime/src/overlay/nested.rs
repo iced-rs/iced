@@ -242,21 +242,21 @@ where
         );
     }
 
-    /// Returns the current [`mouse::Interaction`] of the [`Nested`] overlay.
-    pub fn mouse_interaction(
+    /// Returns the current [`mouse::Cursor`] of the [`Nested`] overlay.
+    pub fn mouse_cursor(
         &mut self,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             mouse: Mouse,
             viewport: &Rectangle,
             renderer: &Renderer,
-        ) -> Option<mouse::Interaction>
+        ) -> Option<mouse::Cursor>
         where
             Renderer: renderer::Renderer,
         {
@@ -277,9 +277,7 @@ where
                         recurse(&mut overlay, layout, mouse, viewport, renderer)
                     })
                     .unwrap_or_else(|| {
-                        element.mouse_interaction(
-                            layout, mouse, viewport, renderer,
-                        )
+                        element.mouse_cursor(layout, mouse, viewport, renderer)
                     }),
             )
         }

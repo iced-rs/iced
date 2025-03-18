@@ -353,7 +353,7 @@ where
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
     ///
-    /// It returns the current [`mouse::Interaction`]. You should update the
+    /// It returns the current [`mouse::Cursor`]. You should update the
     /// icon of the mouse cursor accordingly in your system.
     ///
     /// [`Renderer`]: crate::core::Renderer
@@ -412,7 +412,7 @@ where
     ///     );
     ///
     ///     // Draw the user interface
-    ///     let mouse_interaction = user_interface.draw(&mut renderer, &theme, &renderer::Style::default(), mouse);
+    ///     let mouse_cursor = user_interface.draw(&mut renderer, &theme, &renderer::Style::default(), mouse);
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -430,7 +430,7 @@ where
         theme: &Theme,
         style: &renderer::Style,
         mouse: Mouse,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         // TODO: Move to shell level (?)
         renderer.clear();
 
@@ -485,7 +485,7 @@ where
             &viewport,
         );
 
-        let base_interaction = self.root.as_widget().mouse_interaction(
+        let base_cursor = self.root.as_widget().mouse_cursor(
             &self.state,
             Layout::new(&self.base),
             base_mouse,
@@ -517,7 +517,7 @@ where
                     )
                     .map(overlay::Nested::new)
                     .map(|mut overlay| {
-                        let overlay_interaction = overlay.mouse_interaction(
+                        let overlay_cursor = overlay.mouse_cursor(
                             Layout::new(layout),
                             mouse,
                             &viewport,
@@ -543,13 +543,13 @@ where
                             })
                             .unwrap_or_default()
                         {
-                            overlay_interaction
+                            overlay_cursor
                         } else {
-                            base_interaction
+                            base_cursor
                         }
                     })
             })
-            .unwrap_or(base_interaction)
+            .unwrap_or(base_cursor)
     }
 
     /// Applies a [`widget::Operation`] to the [`UserInterface`].

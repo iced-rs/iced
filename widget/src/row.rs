@@ -277,14 +277,14 @@ where
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         self.children
             .iter()
             .zip(&tree.children)
@@ -292,7 +292,7 @@ where
             .map(|((child, state), layout)| {
                 child
                     .as_widget()
-                    .mouse_interaction(state, layout, mouse, viewport, renderer)
+                    .mouse_cursor(state, layout, mouse, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -502,16 +502,16 @@ where
         );
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         self.row
-            .mouse_interaction(tree, layout, mouse, viewport, renderer)
+            .mouse_cursor(tree, layout, mouse, viewport, renderer)
     }
 
     fn draw(

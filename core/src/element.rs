@@ -351,16 +351,16 @@ where
             .draw(tree, renderer, theme, style, layout, mouse, viewport);
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         self.widget
-            .mouse_interaction(tree, layout, mouse, viewport, renderer)
+            .mouse_cursor(tree, layout, mouse, viewport, renderer)
     }
 
     fn overlay<'b>(
@@ -501,17 +501,17 @@ where
         explain_layout(renderer, self.color, layout);
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         state: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         self.element
             .widget
-            .mouse_interaction(state, layout, mouse, viewport, renderer)
+            .mouse_cursor(state, layout, mouse, viewport, renderer)
     }
 
     fn overlay<'b>(

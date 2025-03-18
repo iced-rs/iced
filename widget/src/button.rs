@@ -410,20 +410,20 @@ where
         );
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         _tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let is_mouse_over = mouse.is_over(layout.bounds());
 
         if is_mouse_over && self.on_press.is_some() {
-            mouse::Interaction::Pointer
+            mouse::Cursor::Pointer
         } else {
-            mouse::Interaction::default()
+            mouse::Cursor::default()
         }
     }
 

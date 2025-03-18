@@ -17,7 +17,7 @@ where
     cache: Option<user_interface::Cache>,
     queued_events: Vec<Event>,
     queued_messages: Vec<P::Message>,
-    mouse_interaction: mouse::Interaction,
+    mouse_cursor: mouse::Cursor,
 }
 
 impl<P> State<P>
@@ -47,7 +47,7 @@ where
             cache,
             queued_events: Vec::new(),
             queued_messages: Vec::new(),
-            mouse_interaction: mouse::Interaction::None,
+            mouse_cursor: mouse::Cursor::Undefined,
         }
     }
 
@@ -75,9 +75,9 @@ where
         self.queued_events.is_empty() && self.queued_messages.is_empty()
     }
 
-    /// Returns the current [`mouse::Interaction`] of the [`State`].
-    pub fn mouse_interaction(&self) -> mouse::Interaction {
-        self.mouse_interaction
+    /// Returns the current [`mouse::Cursor`] of the [`State`].
+    pub fn mouse_cursor(&self) -> mouse::Cursor {
+        self.mouse_cursor
     }
 
     /// Processes all the queued events and messages, rebuilding and redrawing
@@ -131,7 +131,7 @@ where
 
         let task = if messages.is_empty() {
             debug.draw_started();
-            self.mouse_interaction =
+            self.mouse_cursor =
                 user_interface.draw(renderer, theme, style, mouse);
             debug.draw_finished();
 
@@ -162,7 +162,7 @@ where
             );
 
             debug.draw_started();
-            self.mouse_interaction =
+            self.mouse_cursor =
                 user_interface.draw(renderer, theme, style, mouse);
             debug.draw_finished();
 

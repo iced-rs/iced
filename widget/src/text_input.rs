@@ -1388,22 +1388,22 @@ where
         self.draw(tree, renderer, theme, layout, mouse, None, viewport);
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         _state: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         if mouse.is_over(layout.bounds()) {
             if self.on_input.is_none() {
-                mouse::Interaction::Idle
+                mouse::Cursor::Idle
             } else {
-                mouse::Interaction::Text
+                mouse::Cursor::Text
             }
         } else {
-            mouse::Interaction::default()
+            mouse::Cursor::default()
         }
     }
 }

@@ -117,18 +117,18 @@ where
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let bounds = layout.bounds();
         let state = tree.state.downcast_ref::<P::State>();
 
-        self.program.mouse_interaction(state, bounds, mouse)
+        self.program.mouse_cursor(state, bounds, mouse)
     }
 
     fn draw(
@@ -191,12 +191,12 @@ where
         T::draw(self, state, mouse, bounds)
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         state: &Self::State,
         bounds: Rectangle,
         mouse: Mouse,
-    ) -> mouse::Interaction {
-        T::mouse_interaction(self, state, bounds, mouse)
+    ) -> mouse::Cursor {
+        T::mouse_cursor(self, state, bounds, mouse)
     }
 }

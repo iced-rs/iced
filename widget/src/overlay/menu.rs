@@ -278,15 +278,15 @@ where
         );
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         self.list
-            .mouse_interaction(self.state, layout, mouse, viewport, renderer)
+            .mouse_cursor(self.state, layout, mouse, viewport, renderer)
     }
 
     fn draw(
@@ -475,20 +475,20 @@ where
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         _state: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let is_mouse_over = mouse.is_over(layout.bounds());
 
         if is_mouse_over {
-            mouse::Interaction::Pointer
+            mouse::Cursor::Pointer
         } else {
-            mouse::Interaction::default()
+            mouse::Cursor::default()
         }
     }
 

@@ -197,15 +197,15 @@ where
         );
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &widget::Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
+    ) -> mouse::Cursor {
+        self.content.as_widget().mouse_cursor(
             tree,
             layout.children().next().unwrap(),
             mouse,

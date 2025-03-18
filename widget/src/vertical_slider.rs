@@ -516,24 +516,24 @@ where
         );
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let is_mouse_over = mouse.is_over(bounds);
 
         if state.is_dragging {
-            mouse::Interaction::Grabbing
+            mouse::Cursor::Grabbing
         } else if is_mouse_over {
-            mouse::Interaction::Grab
+            mouse::Cursor::Grab
         } else {
-            mouse::Interaction::default()
+            mouse::Cursor::default()
         }
     }
 }

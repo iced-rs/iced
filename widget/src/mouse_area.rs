@@ -30,7 +30,7 @@ pub struct MouseArea<
     on_enter: Option<Message>,
     on_move: Option<Box<dyn Fn(Point) -> Message + 'a>>,
     on_exit: Option<Message>,
-    interaction: Option<mouse::Interaction>,
+    cursor: Option<mouse::Cursor>,
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
@@ -123,10 +123,10 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
         self
     }
 
-    /// The [`mouse::Interaction`] to use when hovering the area.
+    /// The [`mouse::Cursor`] to use when hovering the area.
     #[must_use]
-    pub fn interaction(mut self, interaction: mouse::Interaction) -> Self {
-        self.interaction = Some(interaction);
+    pub fn cursor(mut self, cursor: mouse::Cursor) -> Self {
+        self.cursor = Some(cursor);
         self
     }
 }
@@ -158,7 +158,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
             on_enter: None,
             on_move: None,
             on_exit: None,
-            interaction: None,
+            cursor: None,
         }
     }
 }
@@ -244,15 +244,15 @@ where
         update(self, tree, event, layout, mouse, shell);
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
-        let content_interaction = self.content.as_widget().mouse_interaction(
+    ) -> mouse::Cursor {
+        let content_cursor = self.content.as_widget().mouse_cursor(
             &tree.children[0],
             layout,
             mouse,
@@ -260,13 +260,13 @@ where
             renderer,
         );
 
-        match (self.interaction, content_interaction) {
-            (Some(interaction), mouse::Interaction::None)
+        match (self.cursor, content_cursor) {
+            (Some(cursor), mouse::Cursor::Undefined)
                 if mouse.is_over(layout.bounds()) =>
             {
-                interaction
+                cursor
             }
-            _ => content_interaction,
+            _ => content_cursor,
         }
     }
 
@@ -343,7 +343,7 @@ fn update<Message: Clone, Theme, Renderer>(
         state.mouse_position = mouse_position;
         state.bounds = bounds;
 
-        if widget.interaction.is_some() && state.is_hovered != was_hovered {
+        if widget.cursor.is_some() && state.is_hovered != was_hovered {
             shell.request_redraw();
         }
 

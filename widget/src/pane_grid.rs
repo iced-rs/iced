@@ -167,7 +167,7 @@ pub struct PaneGrid<
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
     class: <Theme as Catalog>::Class<'a>,
-    last_mouse_interaction: Option<mouse::Interaction>,
+    last_mouse_cursor: Option<mouse::Cursor>,
 }
 
 impl<'a, Message, Theme, Renderer> PaneGrid<'a, Message, Theme, Renderer>
@@ -204,7 +204,7 @@ where
             on_drag: None,
             on_resize: None,
             class: <Theme as Catalog>::default(),
-            last_mouse_interaction: None,
+            last_mouse_cursor: None,
         }
     }
 
@@ -296,14 +296,14 @@ where
             .unwrap_or_default()
     }
 
-    fn grid_interaction(
+    fn grid_cursor(
         &self,
         action: &state::Action,
         layout: Layout<'_>,
         mouse: Mouse,
-    ) -> Option<mouse::Interaction> {
+    ) -> Option<mouse::Cursor> {
         if action.picked_pane().is_some() {
-            return Some(mouse::Interaction::Grabbing);
+            return Some(mouse::Cursor::Grabbing);
         }
 
         let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
@@ -334,8 +334,8 @@ where
 
         if let Some(resize_axis) = resize_axis {
             return Some(match resize_axis {
-                Axis::Horizontal => mouse::Interaction::ResizingVertically,
-                Axis::Vertical => mouse::Interaction::ResizingHorizontally,
+                Axis::Horizontal => mouse::Cursor::ResizingVertically,
+                Axis::Vertical => mouse::Cursor::ResizingHorizontally,
             });
         }
 
@@ -681,8 +681,8 @@ where
         }
 
         if shell.redraw_request() != window::RedrawRequest::NextFrame {
-            let interaction = self
-                .grid_interaction(action, layout, mouse)
+            let cursor = self
+                .grid_cursor(action, layout, mouse)
                 .or_else(|| {
                     self.panes
                         .iter()
@@ -694,39 +694,38 @@ where
                                 .is_none_or(|maximized| **pane == maximized)
                         })
                         .find_map(|((_pane, content), layout)| {
-                            content.grid_interaction(
+                            content.grid_cursor(
                                 layout,
                                 mouse,
                                 on_drag.is_some(),
                             )
                         })
                 })
-                .unwrap_or(mouse::Interaction::None);
+                .unwrap_or(mouse::Cursor::Undefined);
 
             if let Event::Window(window::Event::RedrawRequested(_now)) = event {
-                self.last_mouse_interaction = Some(interaction);
-            } else if self.last_mouse_interaction.is_some_and(
-                |last_mouse_interaction| last_mouse_interaction != interaction,
-            ) {
+                self.last_mouse_cursor = Some(cursor);
+            } else if self
+                .last_mouse_cursor
+                .is_some_and(|last_mouse_cursor| last_mouse_cursor != cursor)
+            {
                 shell.request_redraw();
             }
         }
     }
 
-    fn mouse_interaction(
+    fn mouse_cursor(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
         mouse: Mouse,
         viewport: &Rectangle,
         renderer: &Renderer,
-    ) -> mouse::Interaction {
+    ) -> mouse::Cursor {
         let Memory { action, .. } = tree.state.downcast_ref();
 
-        if let Some(grid_interaction) =
-            self.grid_interaction(action, layout, mouse)
-        {
-            return grid_interaction;
+        if let Some(grid_cursor) = self.grid_cursor(action, layout, mouse) {
+            return grid_cursor;
         }
 
         self.panes
@@ -741,7 +740,7 @@ where
                     .is_none_or(|maximized| *pane == maximized)
             })
             .map(|(((_, content), tree), layout)| {
-                content.mouse_interaction(
+                content.mouse_cursor(
                     tree,
                     layout,
                     mouse,

@@ -124,18 +124,18 @@ where
     ) {
     }
 
-    /// Returns the current [`mouse::Interaction`] of the [`Widget`].
+    /// Returns the current [`mouse::Cursor`] of the [`Widget`].
     ///
-    /// By default, it returns [`mouse::Interaction::Idle`].
-    fn mouse_interaction(
+    /// By default, it returns [`mouse::Cursor::Undefined`].
+    fn mouse_cursor(
         &self,
         _state: &Tree,
         _layout: Layout<'_>,
         _mouse: Mouse,
         _viewport: &Rectangle,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse::Interaction::None
+    ) -> mouse::Cursor {
+        mouse::Cursor::Undefined
     }
 
     /// Returns the overlay of the [`Widget`], if there is any.

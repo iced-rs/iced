@@ -657,32 +657,32 @@ where
             }
         }
 
-        fn mouse_interaction(
+        fn mouse_cursor(
             &self,
-            state: &core::widget::Tree,
-            layout: core::Layout<'_>,
+            state: &Tree,
+            layout: Layout<'_>,
             mouse: Mouse,
             viewport: &core::Rectangle,
             renderer: &Renderer,
-        ) -> core::mouse::Interaction {
-            let interaction = self
+        ) -> core::mouse::Cursor {
+            let cursor = self
                 .content
                 .as_widget()
-                .mouse_interaction(state, layout, mouse, viewport, renderer);
+                .mouse_cursor(state, layout, mouse, viewport, renderer);
 
-            if interaction == mouse::Interaction::None
+            if cursor == mouse::Cursor::Undefined
                 && mouse.is_over(layout.bounds())
             {
-                mouse::Interaction::Idle
+                mouse::Cursor::Idle
             } else {
-                interaction
+                cursor
             }
         }
 
         fn overlay<'b>(
             &'b mut self,
-            state: &'b mut core::widget::Tree,
-            layout: core::Layout<'_>,
+            state: &'b mut Tree,
+            layout: Layout<'_>,
             renderer: &Renderer,
             translation: core::Vector,
         ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>>
@@ -912,24 +912,24 @@ where
             );
         }
 
-        fn mouse_interaction(
+        fn mouse_cursor(
             &self,
             tree: &Tree,
             layout: Layout<'_>,
             mouse: Mouse,
             viewport: &Rectangle,
             renderer: &Renderer,
-        ) -> mouse::Interaction {
+        ) -> mouse::Cursor {
             [&self.base, &self.top]
                 .into_iter()
                 .rev()
                 .zip(layout.children().rev().zip(tree.children.iter().rev()))
                 .map(|(child, (layout, tree))| {
-                    child.as_widget().mouse_interaction(
-                        tree, layout, mouse, viewport, renderer,
-                    )
+                    child
+                        .as_widget()
+                        .mouse_cursor(tree, layout, mouse, viewport, renderer)
                 })
-                .find(|&interaction| interaction != mouse::Interaction::None)
+                .find(|&cursor| cursor != mouse::Cursor::Undefined)
                 .unwrap_or_default()
         }
 
