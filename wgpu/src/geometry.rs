@@ -336,8 +336,8 @@ impl geometry::frame::Backend for Frame {
                 size,
                 line_height: line_height.to_absolute(size),
                 font: text.font,
-                horizontal_alignment: text.horizontal_alignment,
-                vertical_alignment: text.vertical_alignment,
+                align_x: text.align_x.into(),
+                align_y: text.align_y,
                 shaping: text.shaping,
                 clip_bounds: self.clip_bounds,
             });

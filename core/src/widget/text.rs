@@ -32,7 +32,7 @@ use crate::{
     Widget,
 };
 
-pub use text::{LineHeight, Shaping, Wrapping};
+pub use text::{Alignment, LineHeight, Shaping, Wrapping};
 
 /// A bunch of text.
 ///
@@ -67,8 +67,8 @@ where
     line_height: LineHeight,
     width: Length,
     height: Length,
-    horizontal_alignment: alignment::Horizontal,
-    vertical_alignment: alignment::Vertical,
+    align_x: text::Alignment,
+    align_y: alignment::Vertical,
     font: Option<Renderer::Font>,
     shaping: Shaping,
     wrapping: Wrapping,
@@ -89,8 +89,8 @@ where
             font: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Top,
+            align_x: text::Alignment::Default,
+            align_y: alignment::Vertical::Top,
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
             class: Theme::default(),
@@ -136,11 +136,8 @@ where
     }
 
     /// Sets the [`alignment::Horizontal`] of the [`Text`].
-    pub fn align_x(
-        mut self,
-        alignment: impl Into<alignment::Horizontal>,
-    ) -> Self {
-        self.horizontal_alignment = alignment.into();
+    pub fn align_x(mut self, alignment: impl Into<text::Alignment>) -> Self {
+        self.align_x = alignment.into();
         self
     }
 
@@ -149,7 +146,7 @@ where
         mut self,
         alignment: impl Into<alignment::Vertical>,
     ) -> Self {
-        self.vertical_alignment = alignment.into();
+        self.align_y = alignment.into();
         self
     }
 
@@ -245,8 +242,8 @@ where
             self.line_height,
             self.size,
             self.font,
-            self.horizontal_alignment,
-            self.vertical_alignment,
+            self.align_x,
+            self.align_y,
             self.shaping,
             self.wrapping,
         )
@@ -290,8 +287,8 @@ pub fn layout<Renderer>(
     line_height: LineHeight,
     size: Option<Pixels>,
     font: Option<Renderer::Font>,
-    horizontal_alignment: alignment::Horizontal,
-    vertical_alignment: alignment::Vertical,
+    align_x: text::Alignment,
+    align_y: alignment::Vertical,
     shaping: Shaping,
     wrapping: Wrapping,
 ) -> layout::Node
@@ -312,8 +309,8 @@ where
             size,
             line_height,
             font,
-            horizontal_alignment,
-            vertical_alignment,
+            align_x,
+            align_y,
             shaping,
             wrapping,
         });
@@ -344,13 +341,13 @@ pub fn draw<Renderer>(
 {
     let bounds = layout.bounds();
 
-    let x = match paragraph.horizontal_alignment() {
-        alignment::Horizontal::Left => bounds.x,
-        alignment::Horizontal::Center => bounds.center_x(),
-        alignment::Horizontal::Right => bounds.x + bounds.width,
+    let x = match paragraph.align_x() {
+        Alignment::Default | Alignment::Left | Alignment::Justified => bounds.x,
+        Alignment::Center => bounds.center_x(),
+        Alignment::Right => bounds.x + bounds.width,
     };
 
-    let y = match paragraph.vertical_alignment() {
+    let y = match paragraph.align_y() {
         alignment::Vertical::Top => bounds.y,
         alignment::Vertical::Center => bounds.center_y(),
         alignment::Vertical::Bottom => bounds.y + bounds.height,

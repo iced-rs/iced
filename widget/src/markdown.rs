@@ -474,6 +474,7 @@ fn parse_with<'a>(
     let mut strikethrough = false;
     let mut metadata = false;
     let mut table = false;
+    let mut code_block = false;
     let mut link = None;
     let mut image = None;
     let mut stack = Vec::new();
@@ -627,6 +628,7 @@ fn parse_with<'a>(
                     });
                 }
 
+                code_block = true;
                 code_language =
                     (!language.is_empty()).then(|| language.into_string());
 
@@ -732,6 +734,8 @@ fn parse_with<'a>(
                 )
             }
             pulldown_cmark::TagEnd::CodeBlock if !metadata && !table => {
+                code_block = false;
+
                 #[cfg(feature = "highlighter")]
                 {
                     state.borrow_mut().highlighter = highlighter.take();
@@ -759,14 +763,28 @@ fn parse_with<'a>(
             _ => None,
         },
         pulldown_cmark::Event::Text(text) if !metadata && !table => {
-            #[cfg(feature = "highlighter")]
-            if let Some(highlighter) = &mut highlighter {
+            if code_block {
                 code.push_str(&text);
 
+                #[cfg(feature = "highlighter")]
+                if let Some(highlighter) = &mut highlighter {
+                    for line in text.lines() {
+                        code_lines.push(Text::new(
+                            highlighter.highlight_line(line).to_vec(),
+                        ));
+                    }
+                }
+
+                #[cfg(not(feature = "highlighter"))]
                 for line in text.lines() {
-                    code_lines.push(Text::new(
-                        highlighter.highlight_line(line).to_vec(),
-                    ));
+                    code_lines.push(Text::new(vec![Span::Standard {
+                        text: line.to_owned(),
+                        strong,
+                        emphasis,
+                        strikethrough,
+                        link: link.clone(),
+                        code: false,
+                    }]));
                 }
 
                 return None;

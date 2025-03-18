@@ -142,8 +142,8 @@ impl<Message> canvas::Program<Message> for State {
                 } else {
                     "Vectorial Text! 🎉"
                 }),
-                horizontal_alignment: alignment::Horizontal::Center,
-                vertical_alignment: alignment::Vertical::Center,
+                align_x: alignment::Horizontal::Center,
+                align_y: alignment::Vertical::Center,
                 shaping: text::Shaping::Advanced,
                 ..canvas::Text::default()
             });

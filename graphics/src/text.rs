@@ -11,7 +11,7 @@ pub use cosmic_text;
 
 use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::{Shaping, Wrapping};
+use crate::core::text::{Alignment, Shaping, Wrapping};
 use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
 use std::borrow::Cow;
@@ -54,9 +54,9 @@ pub enum Text {
         /// The font of the text.
         font: Font,
         /// The horizontal alignment of the text.
-        horizontal_alignment: alignment::Horizontal,
+        align_x: Alignment,
         /// The vertical alignment of the text.
-        vertical_alignment: alignment::Vertical,
+        align_y: alignment::Vertical,
         /// The shaping strategy of the text.
         shaping: Shaping,
         /// The clip bounds of the text.
@@ -73,7 +73,7 @@ pub enum Text {
 impl Text {
     /// Returns the visible bounds of the [`Text`].
     pub fn visible_bounds(&self) -> Option<Rectangle> {
-        let (bounds, horizontal_alignment, vertical_alignment) = match self {
+        let (bounds, align_x, align_y) = match self {
             Text::Paragraph {
                 position,
                 paragraph,
@@ -84,8 +84,8 @@ impl Text {
                 Rectangle::new(*position, paragraph.min_bounds)
                     .intersection(clip_bounds)
                     .map(|bounds| bounds * *transformation),
-                Some(paragraph.horizontal_alignment),
-                Some(paragraph.vertical_alignment),
+                paragraph.align_x,
+                Some(paragraph.align_y),
             ),
             Text::Editor {
                 editor,
@@ -97,38 +97,38 @@ impl Text {
                 Rectangle::new(*position, editor.bounds)
                     .intersection(clip_bounds)
                     .map(|bounds| bounds * *transformation),
-                None,
+                Alignment::Default,
                 None,
             ),
             Text::Cached {
                 bounds,
                 clip_bounds,
-                horizontal_alignment,
-                vertical_alignment,
+                align_x: horizontal_alignment,
+                align_y: vertical_alignment,
                 ..
             } => (
                 bounds.intersection(clip_bounds),
-                Some(*horizontal_alignment),
+                *horizontal_alignment,
                 Some(*vertical_alignment),
             ),
-            Text::Raw { raw, .. } => (Some(raw.clip_bounds), None, None),
+            Text::Raw { raw, .. } => {
+                (Some(raw.clip_bounds), Alignment::Default, None)
+            }
         };
 
         let mut bounds = bounds?;
 
-        if let Some(alignment) = horizontal_alignment {
-            match alignment {
-                alignment::Horizontal::Left => {}
-                alignment::Horizontal::Center => {
-                    bounds.x -= bounds.width / 2.0;
-                }
-                alignment::Horizontal::Right => {
-                    bounds.x -= bounds.width;
-                }
+        match align_x {
+            Alignment::Default | Alignment::Left | Alignment::Justified => {}
+            Alignment::Center => {
+                bounds.x -= bounds.width / 2.0;
+            }
+            Alignment::Right => {
+                bounds.x -= bounds.width;
             }
         }
 
-        if let Some(alignment) = vertical_alignment {
+        if let Some(alignment) = align_y {
             match alignment {
                 alignment::Vertical::Top => {}
                 alignment::Vertical::Center => {
@@ -242,15 +242,19 @@ impl PartialEq for Raw {
 }
 
 /// Measures the dimensions of the given [`cosmic_text::Buffer`].
-pub fn measure(buffer: &cosmic_text::Buffer) -> Size {
-    let (width, height) =
-        buffer
-            .layout_runs()
-            .fold((0.0, 0.0), |(width, height), run| {
-                (run.line_w.max(width), height + run.line_height)
-            });
+pub fn measure(buffer: &cosmic_text::Buffer) -> (Size, bool) {
+    let (width, height, has_rtl) = buffer.layout_runs().fold(
+        (0.0, 0.0, false),
+        |(width, height, has_rtl), run| {
+            (
+                run.line_w.max(width),
+                height + run.line_height,
+                has_rtl || run.rtl,
+            )
+        },
+    );
 
-    Size::new(width, height)
+    (Size::new(width, height), has_rtl)
 }
 
 /// Returns the attributes of the given [`Font`].
@@ -306,6 +310,16 @@ fn to_style(style: font::Style) -> cosmic_text::Style {
         font::Style::Normal => cosmic_text::Style::Normal,
         font::Style::Italic => cosmic_text::Style::Italic,
         font::Style::Oblique => cosmic_text::Style::Oblique,
+    }
+}
+
+fn to_align(alignment: Alignment) -> Option<cosmic_text::Align> {
+    match alignment {
+        Alignment::Default => None,
+        Alignment::Left => Some(cosmic_text::Align::Left),
+        Alignment::Center => Some(cosmic_text::Align::Center),
+        Alignment::Right => Some(cosmic_text::Align::Right),
+        Alignment::Justified => Some(cosmic_text::Align::Justified),
     }
 }
 

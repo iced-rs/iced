@@ -34,16 +34,55 @@ pub struct Text<Content = String, Font = crate::Font> {
     pub font: Font,
 
     /// The horizontal alignment of the [`Text`].
-    pub horizontal_alignment: alignment::Horizontal,
+    pub align_x: Alignment,
 
     /// The vertical alignment of the [`Text`].
-    pub vertical_alignment: alignment::Vertical,
+    pub align_y: alignment::Vertical,
 
     /// The [`Shaping`] strategy of the [`Text`].
     pub shaping: Shaping,
 
     /// The [`Wrapping`] strategy of the [`Text`].
     pub wrapping: Wrapping,
+}
+
+/// The alignment of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Alignment {
+    /// No specific alignment.
+    ///
+    /// Left-to-right text will be aligned to the left, while
+    /// right-to-left text will be aligned to the right.
+    #[default]
+    Default,
+    /// Align text to the left.
+    Left,
+    /// Center text.
+    Center,
+    /// Align text to the right.
+    Right,
+    /// Justify text.
+    Justified,
+}
+
+impl From<alignment::Horizontal> for Alignment {
+    fn from(alignment: alignment::Horizontal) -> Self {
+        match alignment {
+            alignment::Horizontal::Left => Self::Left,
+            alignment::Horizontal::Center => Self::Center,
+            alignment::Horizontal::Right => Self::Right,
+        }
+    }
+}
+
+impl From<crate::Alignment> for Alignment {
+    fn from(alignment: crate::Alignment) -> Self {
+        match alignment {
+            crate::Alignment::Start => Self::Left,
+            crate::Alignment::Center => Self::Center,
+            crate::Alignment::End => Self::Right,
+        }
+    }
 }
 
 /// The shaping strategy of some text.

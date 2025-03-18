@@ -314,7 +314,7 @@ where
                     self.text_line_height,
                     self.text_size,
                     self.font,
-                    alignment::Horizontal::Left,
+                    text::Alignment::Default,
                     alignment::Vertical::Top,
                     self.text_shaping,
                     self.text_wrapping,
