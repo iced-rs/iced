@@ -114,8 +114,16 @@ impl crate::graphics::Compositor for Compositor {
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
+        on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
-        present(renderer, surface, viewport, background_color, overlay)
+        present(
+            renderer,
+            surface,
+            viewport,
+            background_color,
+            overlay,
+            on_pre_present,
+        )
     }
 
     fn screenshot<T: AsRef<str>>(
@@ -146,6 +154,7 @@ pub fn present<T: AsRef<str>>(
     viewport: &Viewport,
     background_color: Color,
     overlay: &[T],
+    on_pre_present: impl FnOnce(),
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
 
@@ -206,6 +215,7 @@ pub fn present<T: AsRef<str>>(
         overlay,
     );
 
+    on_pre_present();
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
 }
 
