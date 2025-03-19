@@ -20,4 +20,7 @@ pub trait Executor: Sized {
     fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
         f()
     }
+
+    /// Runs the future on the current thread, blocking it until it is completed.
+    fn block_on(future: impl Future<Output = ()> + 'static);
 }
