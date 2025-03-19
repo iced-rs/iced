@@ -14,7 +14,7 @@ use std::fmt;
 use std::sync::{self, Arc, RwLock};
 
 /// A multi-line text editor.
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Editor(Option<Arc<Internal>>);
 
 struct Internal {

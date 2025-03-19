@@ -41,7 +41,7 @@ impl Layer {
         transformation: Transformation,
     ) {
         let paragraph = Text::Paragraph {
-            paragraph: paragraph.downgrade(),
+            paragraph: paragraph.clone(),
             position,
             color,
             clip_bounds,
@@ -60,7 +60,7 @@ impl Layer {
         transformation: Transformation,
     ) {
         let editor = Text::Editor {
-            editor: editor.downgrade(),
+            editor: editor.clone(),
             position,
             color,
             clip_bounds,
