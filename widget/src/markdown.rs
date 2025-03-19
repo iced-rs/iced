@@ -62,7 +62,9 @@ use std::sync::Arc;
 
 pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
-pub use url::Url;
+
+/// A string representing the URL inside a markdown tag
+pub type Url = String;
 
 /// A bunch of Markdown that has been parsed.
 #[derive(Debug, Default)]
@@ -561,24 +563,13 @@ fn parse_with<'a>(
             pulldown_cmark::Tag::Link { dest_url, .. }
                 if !metadata && !table =>
             {
-                match Url::parse(&dest_url) {
-                    Ok(url)
-                        if url.scheme() == "http"
-                            || url.scheme() == "https" =>
-                    {
-                        link = Some(url);
-                    }
-                    _ => {}
-                }
-
+                link = Some(dest_url.to_string());
                 None
             }
             pulldown_cmark::Tag::Image {
                 dest_url, title, ..
             } if !metadata && !table => {
-                image = Url::parse(&dest_url)
-                    .ok()
-                    .map(|url| (url, title.into_string()));
+                image = Some((dest_url.to_string(), title.into_string()));
                 None
             }
             pulldown_cmark::Tag::List(first_item) if !metadata && !table => {
