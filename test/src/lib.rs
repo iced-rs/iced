@@ -88,6 +88,7 @@
 //! [the classical counter interface]: https://book.iced.rs/architecture.html#dissecting-an-interface
 pub mod selector;
 
+use iced_runtime::keyboard::Modifiers;
 pub use selector::Selector;
 
 use iced_renderer as renderer;
@@ -546,7 +547,10 @@ impl Snapshot {
 /// Returns the sequence of events of a click.
 pub fn click() -> impl Iterator<Item = Event> {
     [
-        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
+        Event::Mouse(mouse::Event::ButtonPressed {
+            button: mouse::Button::Left,
+            modifiers: Modifiers::empty(),
+        }),
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)),
     ]
     .into_iter()
