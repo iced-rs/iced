@@ -94,7 +94,7 @@ impl Markdown {
             }
             Message::Copy(content) => clipboard::write(content),
             Message::LinkClicked(link) => {
-                let _ = open::that_in_background(link.to_string());
+                let _ = open::that_in_background(link);
 
                 Task::none()
             }
