@@ -631,7 +631,8 @@ fn lighten(color: Color, amount: f32) -> Color {
     from_hsl(hsl)
 }
 
-fn deviate(color: Color, amount: f32) -> Color {
+/// Lighten dark colors and darken light ones by the specefied amount.
+pub fn deviate(color: Color, amount: f32) -> Color {
     if is_dark(color) {
         lighten(color, amount)
     } else {
@@ -647,7 +648,8 @@ fn muted(color: Color) -> Color {
     from_hsl(hsl)
 }
 
-fn mix(a: Color, b: Color, factor: f32) -> Color {
+/// Mix with another color with the given ratio (from 0 to 1)
+pub fn mix(a: Color, b: Color, factor: f32) -> Color {
     let a_lin = Rgb::from(a).into_linear();
     let b_lin = Rgb::from(b).into_linear();
 
