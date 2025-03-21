@@ -1,5 +1,3 @@
-use palette::rgb::{Srgb, Srgba};
-
 /// A color in the `sRGB` color space.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Color {
@@ -242,70 +240,9 @@ macro_rules! color {
     }};
 }
 
-/// Converts from palette's `Rgba` type to a [`Color`].
-impl From<Srgba> for Color {
-    fn from(rgba: Srgba) -> Self {
-        Color::new(rgba.red, rgba.green, rgba.blue, rgba.alpha)
-    }
-}
-
-/// Converts from [`Color`] to palette's `Rgba` type.
-impl From<Color> for Srgba {
-    fn from(c: Color) -> Self {
-        Srgba::new(c.r, c.g, c.b, c.a)
-    }
-}
-
-/// Converts from palette's `Rgb` type to a [`Color`].
-impl From<Srgb> for Color {
-    fn from(rgb: Srgb) -> Self {
-        Color::new(rgb.red, rgb.green, rgb.blue, 1.0)
-    }
-}
-
-/// Converts from [`Color`] to palette's `Rgb` type.
-impl From<Color> for Srgb {
-    fn from(c: Color) -> Self {
-        Srgb::new(c.r, c.g, c.b)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use palette::blend::Blend;
-
-    #[test]
-    fn srgba_traits() {
-        let c = Color::from_rgb(0.5, 0.4, 0.3);
-        // Round-trip conversion to the palette::Srgba type
-        let s: Srgba = c.into();
-        let r: Color = s.into();
-        assert_eq!(c, r);
-    }
-
-    #[test]
-    fn color_manipulation() {
-        use approx::assert_relative_eq;
-
-        let c1 = Color::from_rgb(0.5, 0.4, 0.3);
-        let c2 = Color::from_rgb(0.2, 0.5, 0.3);
-
-        // Convert to linear color for manipulation
-        let l1 = Srgba::from(c1).into_linear();
-        let l2 = Srgba::from(c2).into_linear();
-
-        // Take the lighter of each of the sRGB components
-        let lighter = l1.lighten(l2);
-
-        // Convert back to our Color
-        let result: Color = Srgba::from_linear(lighter).into();
-
-        assert_relative_eq!(result.r, 0.5);
-        assert_relative_eq!(result.g, 0.5);
-        assert_relative_eq!(result.b, 0.3);
-        assert_relative_eq!(result.a, 1.0);
-    }
 
     #[test]
     fn parse() {
