@@ -80,6 +80,7 @@ pub trait Compositor: Sized {
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
+        on_pre_present: impl FnOnce(),
     ) -> Result<(), SurfaceError>;
 
     /// Screenshots the current [`Renderer`] primitives to an offscreen texture, and returns the bytes of
@@ -193,6 +194,7 @@ impl Compositor for () {
         _viewport: &Viewport,
         _background_color: Color,
         _overlay: &[T],
+        _on_pre_present: impl FnOnce(),
     ) -> Result<(), SurfaceError> {
         Ok(())
     }

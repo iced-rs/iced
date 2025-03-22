@@ -221,6 +221,7 @@ pub fn present<T: AsRef<str>>(
     viewport: &Viewport,
     background_color: Color,
     overlay: &[T],
+    on_pre_present: impl FnOnce(),
 ) -> Result<(), compositor::SurfaceError> {
     match surface.get_current_texture() {
         Ok(frame) => {
@@ -249,6 +250,7 @@ pub fn present<T: AsRef<str>>(
             let _ = compositor.engine.submit(&compositor.queue, encoder);
 
             // Present the frame
+            on_pre_present();
             frame.present();
 
             Ok(())
@@ -365,8 +367,17 @@ impl graphics::Compositor for Compositor {
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
+        on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
-        present(self, renderer, surface, viewport, background_color, overlay)
+        present(
+            self,
+            renderer,
+            surface,
+            viewport,
+            background_color,
+            overlay,
+            on_pre_present,
+        )
     }
 
     fn screenshot<T: AsRef<str>>(
