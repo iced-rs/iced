@@ -892,6 +892,7 @@ async fn run_instance<P, C>(
                             window.state.viewport(),
                             window.state.background_color(),
                             &debug.overlay(),
+                            || window.raw.pre_present_notify(),
                         ) {
                             Ok(()) => {
                                 debug.render_finished();
@@ -899,14 +900,13 @@ async fn run_instance<P, C>(
                             Err(error) => match error {
                                 // This is an unrecoverable error.
                                 compositor::SurfaceError::OutOfMemory => {
-                                    panic!("{:?}", error);
+                                    panic!("{error}");
                                 }
                                 _ => {
                                     debug.render_finished();
 
-                                    log::error!(
-                                        "Error {error:?} when \
-                                        presenting surface."
+                                    log::warn!(
+                                        "Error {error:?} when presenting surface."
                                     );
 
                                     // Try rendering all windows again next frame.
@@ -989,6 +989,11 @@ async fn run_instance<P, C>(
                         }
                     }
                     event::Event::AboutToWait => {
+                        if actions > 0 {
+                            proxy.free_slots(actions);
+                            actions = 0;
+                        }
+
                         if events.is_empty()
                             && messages.is_empty()
                             && window_manager.is_idle()
@@ -1105,11 +1110,6 @@ async fn run_instance<P, C>(
                                     &mut window_manager,
                                     cached_interfaces,
                                 ));
-
-                            if actions > 0 {
-                                proxy.free_slots(actions);
-                                actions = 0;
-                            }
                         }
 
                         if let Some(redraw_at) = window_manager.redraw_at() {

@@ -1,8 +1,8 @@
 use iced::keyboard;
 use iced::widget::{
-    button, center, checkbox, column, horizontal_rule, pick_list, progress_bar,
-    row, scrollable, slider, text, text_input, toggler, vertical_rule,
-    vertical_space,
+    button, center, checkbox, column, container, horizontal_rule, pick_list,
+    progress_bar, row, scrollable, slider, text, text_input, toggler,
+    vertical_rule, vertical_space,
 };
 use iced::{Center, Element, Fill, Subscription, Theme};
 
@@ -90,9 +90,9 @@ impl Styling {
         let danger = styled_button("Danger").style(button::danger);
 
         let slider =
-            slider(0.0..=100.0, self.slider_value, Message::SliderChanged);
+            || slider(0.0..=100.0, self.slider_value, Message::SliderChanged);
 
-        let progress_bar = progress_bar(0.0..=100.0, self.slider_value);
+        let progress_bar = || progress_bar(0.0..=100.0, self.slider_value);
 
         let scrollable = scrollable(column![
             "Scroll me!",
@@ -110,6 +110,20 @@ impl Styling {
             .on_toggle(Message::TogglerToggled)
             .spacing(10);
 
+        let card = {
+            container(
+                column![
+                    text("Card Example").size(24),
+                    slider(),
+                    progress_bar(),
+                ]
+                .spacing(20),
+            )
+            .width(Fill)
+            .padding(20)
+            .style(container::bordered_box)
+        };
+
         let content = column![
             choose_theme,
             horizontal_rule(38),
@@ -117,8 +131,8 @@ impl Styling {
             row![primary, success, warning, danger]
                 .spacing(10)
                 .align_y(Center),
-            slider,
-            progress_bar,
+            slider(),
+            progress_bar(),
             row![
                 scrollable,
                 vertical_rule(38),
@@ -127,6 +141,7 @@ impl Styling {
             .spacing(10)
             .height(100)
             .align_y(Center),
+            card
         ]
         .spacing(20)
         .padding(20)

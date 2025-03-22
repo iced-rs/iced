@@ -319,8 +319,8 @@ where
             content: self.placeholder.as_str(),
             bounds: Size::new(f32::INFINITY, text_bounds.height),
             size: text_size,
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
+            align_x: text::Alignment::Default,
+            align_y: alignment::Vertical::Center,
             shaping: text::Shaping::Advanced,
             wrapping: text::Wrapping::default(),
         };
@@ -344,8 +344,8 @@ where
                 font: icon.font,
                 size: icon.size.unwrap_or_else(|| renderer.default_size()),
                 bounds: Size::new(f32::INFINITY, text_bounds.height),
-                horizontal_alignment: alignment::Horizontal::Center,
-                vertical_alignment: alignment::Vertical::Center,
+                align_x: text::Alignment::Center,
+                align_y: alignment::Vertical::Center,
                 shaping: text::Shaping::Advanced,
                 wrapping: text::Wrapping::default(),
             };
@@ -1481,6 +1481,11 @@ impl From<String> for Id {
     }
 }
 
+/// Produces a [`Task`] that returns whether the [`TextInput`] with the given [`Id`] is focused or not.
+pub fn is_focused(id: impl Into<Id>) -> Task<bool> {
+    task::widget(operation::focusable::is_focused(id.into().into()))
+}
+
 /// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
 pub fn focus<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus(id.into().0)))
@@ -1722,8 +1727,8 @@ fn replace_paragraph<Renderer>(
         content: &value.to_string(),
         bounds: Size::new(f32::INFINITY, text_bounds.height),
         size: text_size,
-        horizontal_alignment: alignment::Horizontal::Left,
-        vertical_alignment: alignment::Vertical::Center,
+        align_x: text::Alignment::Default,
+        align_y: alignment::Vertical::Center,
         shaping: text::Shaping::Advanced,
         wrapping: text::Wrapping::default(),
     });
@@ -1802,10 +1807,10 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
-            color: palette.background.strong.color,
+            color: palette.background.strongest.color,
         },
         icon: palette.background.weak.text,
-        placeholder: palette.background.strong.color,
+        placeholder: palette.background.strongest.color,
         value: palette.background.base.text,
         selection: palette.primary.weak.color,
     };

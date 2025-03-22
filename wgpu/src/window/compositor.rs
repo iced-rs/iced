@@ -56,7 +56,7 @@ impl Compositor {
         settings: Settings,
         compatible_window: Option<W>,
     ) -> Result<Self, Error> {
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: settings.backends,
             flags: if cfg!(feature = "strict-assertions") {
                 wgpu::InstanceFlags::debugging()
@@ -272,6 +272,7 @@ pub fn present<T: AsRef<str>>(
     viewport: &Viewport,
     background_color: Color,
     overlay: &[T],
+    on_pre_present: impl FnOnce(),
 ) -> Result<(), compositor::SurfaceError> {
     match surface.get_current_texture() {
         Ok(frame) => {
@@ -300,6 +301,7 @@ pub fn present<T: AsRef<str>>(
             let _ = compositor.engine.submit(&compositor.queue, encoder);
 
             // Present the frame
+            on_pre_present();
             frame.present();
 
             Ok(())
@@ -315,6 +317,7 @@ pub fn present<T: AsRef<str>>(
             wgpu::SurfaceError::OutOfMemory => {
                 Err(compositor::SurfaceError::OutOfMemory)
             }
+            wgpu::SurfaceError::Other => Err(compositor::SurfaceError::Other),
         },
     }
 }
@@ -332,7 +335,7 @@ impl graphics::Compositor for Compositor {
             None | Some("wgpu") => {
                 let mut settings = Settings::from(settings);
 
-                if let Some(backends) = wgpu::util::backend_bits_from_env() {
+                if let Some(backends) = wgpu::Backends::from_env() {
                     settings.backends = backends;
                 }
 
@@ -412,8 +415,17 @@ impl graphics::Compositor for Compositor {
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
+        on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
-        present(self, renderer, surface, viewport, background_color, overlay)
+        present(
+            self,
+            renderer,
+            surface,
+            viewport,
+            background_color,
+            overlay,
+            on_pre_present,
+        )
     }
 
     fn screenshot<T: AsRef<str>>(
@@ -500,9 +512,9 @@ pub fn screenshot<T: AsRef<str>>(
 
     encoder.copy_texture_to_buffer(
         texture.as_image_copy(),
-        wgpu::ImageCopyBuffer {
+        wgpu::TexelCopyBufferInfo {
             buffer: &output_buffer,
-            layout: wgpu::ImageDataLayout {
+            layout: wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(dimensions.padded_bytes_per_row as u32),
                 rows_per_image: None,

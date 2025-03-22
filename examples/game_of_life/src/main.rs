@@ -580,8 +580,8 @@ mod grid {
                     color: Color::WHITE,
                     size: 14.0.into(),
                     position: Point::new(frame.width(), frame.height()),
-                    horizontal_alignment: alignment::Horizontal::Right,
-                    vertical_alignment: alignment::Vertical::Bottom,
+                    align_x: alignment::Horizontal::Right,
+                    align_y: alignment::Vertical::Bottom,
                     ..Text::default()
                 };
 

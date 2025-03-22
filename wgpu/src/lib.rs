@@ -417,8 +417,8 @@ impl Renderer {
                         size: Pixels(20.0),
                         line_height: core::text::LineHeight::default(),
                         font: Font::MONOSPACE,
-                        horizontal_alignment: alignment::Horizontal::Left,
-                        vertical_alignment: alignment::Vertical::Top,
+                        align_x: core::text::Alignment::Default,
+                        align_y: alignment::Vertical::Top,
                         shaping: core::text::Shaping::Basic,
                         wrapping: core::text::Wrapping::Word,
                     };
