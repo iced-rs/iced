@@ -1,0 +1,30 @@
+[[bin]]
+name = "particle_lenia"
+path = "src/main.rs"
+
+[lib]
+name = "iced_lenia"
+path = "src/lib.rs"
+
+[package]
+name = "particle_lenia"
+authors = ["lmmx <louismmx@gmail.com>"]
+publish = false
+version = "0.1.3"
+edition = "2024"
+description = "Particle Lenia simulation in Rust using iced"
+documentation = "https://docs.rs/iced-lenia"
+license = "MIT"
+readme = "README.md"
+keywords = ["iced", "gui", "lenia", "simulation"]
+categories = ["gui", "development-tools"]
+
+[dependencies]
+iced = {version = "0.13", features = ["async-std", "canvas"]}
+iced_futures = {version = "0.13", features = ["async-std"]}
+itertools = "0.14.0"
+ndarray = "0.16.1"
+ndarray-rand = "0.15.0"
+rand = "0.9.0"
+rand_distr = "0.5.1"
+rayon = "1.10.0"
