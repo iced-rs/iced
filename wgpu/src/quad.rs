@@ -128,7 +128,7 @@ impl State {
         }
     }
 
-    pub fn end_frame(&mut self) {
+    pub fn trim(&mut self) {
         self.prepare_layer = 0;
     }
 }

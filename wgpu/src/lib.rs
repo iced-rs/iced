@@ -148,16 +148,16 @@ impl Renderer {
         self.prepare(&mut encoder, viewport);
         self.render(&mut encoder, target, clear_color, viewport);
 
-        self.quad.end_frame();
-        self.triangle.end_frame();
-        self.text.end_frame();
+        self.quad.trim();
+        self.triangle.trim();
+        self.text.trim();
 
         // TODO: Move to runtime!
         self.engine.text_pipeline.trim();
 
         #[cfg(any(feature = "svg", feature = "image"))]
         {
-            self.image.end_frame();
+            self.image.trim();
             self.image_cache.borrow_mut().trim();
         }
 

@@ -297,7 +297,7 @@ impl State {
         layer_count
     }
 
-    pub fn end_frame(&mut self) {
+    pub fn trim(&mut self) {
         self.storage.trim();
 
         self.prepare_layer = 0;

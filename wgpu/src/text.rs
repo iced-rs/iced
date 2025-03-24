@@ -433,7 +433,7 @@ impl State {
         layer_count
     }
 
-    pub fn end_frame(&mut self) {
+    pub fn trim(&mut self) {
         self.cache.trim();
         self.storage.trim();
 
