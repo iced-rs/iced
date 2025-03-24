@@ -152,6 +152,9 @@ impl Renderer {
         self.triangle.end_frame();
         self.text.end_frame();
 
+        // TODO: Move to runtime!
+        self.engine.text_pipeline.trim();
+
         #[cfg(any(feature = "svg", feature = "image"))]
         {
             self.image.end_frame();

@@ -276,6 +276,33 @@ pub struct Pipeline {
     atlas: Arc<RwLock<cryoglyph::TextAtlas>>,
 }
 
+impl Pipeline {
+    pub fn new(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        format: wgpu::TextureFormat,
+    ) -> Self {
+        let cache = cryoglyph::Cache::new(device);
+        let atlas = cryoglyph::TextAtlas::with_color_mode(
+            device, queue, &cache, format, COLOR_MODE,
+        );
+
+        Pipeline {
+            format,
+            cache,
+            atlas: Arc::new(RwLock::new(atlas)),
+        }
+    }
+
+    pub fn create_viewport(&self, device: &wgpu::Device) -> Viewport {
+        Viewport(cryoglyph::Viewport::new(device, &self.cache))
+    }
+
+    pub fn trim(&self) {
+        self.atlas.write().expect("Write text atlas").trim();
+    }
+}
+
 #[derive(Default)]
 pub struct State {
     renderers: Vec<cryoglyph::TextRenderer>,
@@ -411,29 +438,6 @@ impl State {
         self.storage.trim();
 
         self.prepare_layer = 0;
-    }
-}
-
-impl Pipeline {
-    pub fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        format: wgpu::TextureFormat,
-    ) -> Self {
-        let cache = cryoglyph::Cache::new(device);
-        let atlas = cryoglyph::TextAtlas::with_color_mode(
-            device, queue, &cache, format, COLOR_MODE,
-        );
-
-        Pipeline {
-            format,
-            cache,
-            atlas: Arc::new(RwLock::new(atlas)),
-        }
-    }
-
-    pub fn create_viewport(&self, device: &wgpu::Device) -> Viewport {
-        Viewport(cryoglyph::Viewport::new(device, &self.cache))
     }
 }
 
