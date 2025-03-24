@@ -238,7 +238,7 @@ impl Renderer {
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self.draw(Some(background_color), &view, &viewport);
+        let mut encoder = self.draw(Some(background_color), &view, viewport);
 
         let texture = crate::color::convert(
             &self.engine.device,
