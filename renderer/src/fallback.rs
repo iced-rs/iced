@@ -615,14 +615,21 @@ where
     async fn new(
         default_font: Font,
         default_text_size: Pixels,
+        backend: Option<&str>,
     ) -> Option<Self> {
-        if let Some(renderer) = A::new(default_font, default_text_size).await {
+        if let Some(renderer) =
+            A::new(default_font, default_text_size, backend).await
+        {
             return Some(Self::Primary(renderer));
         }
 
-        B::new(default_font, default_text_size)
+        B::new(default_font, default_text_size, backend)
             .await
             .map(Self::Secondary)
+    }
+
+    fn name(&self) -> String {
+        delegate!(self, renderer, renderer.name())
     }
 
     fn screenshot(

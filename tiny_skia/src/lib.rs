@@ -410,8 +410,19 @@ impl renderer::Headless for Renderer {
     async fn new(
         default_font: Font,
         default_text_size: Pixels,
+        backend: Option<&str>,
     ) -> Option<Self> {
+        if backend.is_some_and(|backend| {
+            !["tiny-skia", "tiny_skia"].contains(&backend)
+        }) {
+            return None;
+        }
+
         Some(Self::new(default_font, default_text_size))
+    }
+
+    fn name(&self) -> String {
+        "tiny-skia".to_owned()
     }
 
     fn screenshot(

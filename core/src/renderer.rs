@@ -109,9 +109,16 @@ pub trait Headless {
     fn new(
         default_font: Font,
         default_text_size: Pixels,
+        backend: Option<&str>,
     ) -> impl Future<Output = Option<Self>>
     where
         Self: Sized;
+
+    /// Returns the unique name of the renderer.
+    ///
+    /// This name may be used by testing libraries to uniquely identify
+    /// snapshots.
+    fn name(&self) -> String;
 
     /// Draws offscreen into a screenshot, returning a collection of
     /// bytes representing the rendered pixels in RGBA order.

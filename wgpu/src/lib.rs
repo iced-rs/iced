@@ -815,7 +815,12 @@ impl renderer::Headless for Renderer {
     async fn new(
         default_font: Font,
         default_text_size: Pixels,
+        backend: Option<&str>,
     ) -> Option<Self> {
+        if backend.is_some_and(|backend| backend != "wgpu") {
+            return None;
+        }
+
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::from_env()
                 .unwrap_or(wgpu::Backends::PRIMARY),
@@ -860,6 +865,10 @@ impl renderer::Headless for Renderer {
         );
 
         Some(Self::new(engine, default_font, default_text_size))
+    }
+
+    fn name(&self) -> String {
+        "wgpu".to_owned()
     }
 
     fn screenshot(
