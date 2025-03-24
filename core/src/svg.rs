@@ -1,4 +1,3 @@
-//! Load and draw vector graphics.
 use crate::{Color, Radians, Rectangle, Size};
 
 use rustc_hash::FxHasher;
@@ -29,6 +28,9 @@ pub struct Svg<H = Handle> {
     ///
     /// 0 means transparent. 1 means opaque.
     pub opacity: f32,
+
+    /// The DPI scaling factor to be applied to the [`Svg`].
+    pub dpi_scaling: f32,
 }
 
 impl Svg<Handle> {
@@ -39,6 +41,7 @@ impl Svg<Handle> {
             color: None,
             rotation: Radians(0.0),
             opacity: 1.0,
+            dpi_scaling: 1.0,
         }
     }
 
@@ -57,6 +60,12 @@ impl Svg<Handle> {
     /// Sets the opacity of the [`Svg`].
     pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
         self.opacity = opacity.into();
+        self
+    }
+
+    /// Sets the DPI scaling factor of the [`Svg`].
+    pub fn dpi_scaling(mut self, dpi_scaling: impl Into<f32>) -> Self {
+        self.dpi_scaling = dpi_scaling.into();
         self
     }
 }

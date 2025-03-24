@@ -38,11 +38,15 @@ impl Pipeline {
         pixels: &mut tiny_skia::PixmapMut<'_>,
         transform: Transform,
         clip_mask: Option<&tiny_skia::Mask>,
+        dpi_scaling: f32,
     ) {
         if let Some(image) = self.cache.borrow_mut().draw(
             handle,
             color,
-            Size::new(bounds.width as u32, bounds.height as u32),
+            Size::new(
+                (bounds.width * dpi_scaling) as u32,
+                (bounds.height * dpi_scaling) as u32,
+            ),
         ) {
             pixels.draw_pixmap(
                 bounds.x as i32,

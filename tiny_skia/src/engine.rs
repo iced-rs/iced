@@ -787,7 +787,6 @@ fn arc_to(
                     p2.x as f32,
                     p2.y as f32,
                     p.x as f32,
-                    p.y as f32,
                 );
             });
         }

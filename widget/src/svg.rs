@@ -1,20 +1,3 @@
-//! Svg widgets display vector graphics in your application.
-//!
-//! # Example
-//! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
-//! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-//! use iced::widget::svg;
-//!
-//! enum Message {
-//!     // ...
-//! }
-//!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     svg("tiger.svg").into()
-//! }
-//! ```
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -63,6 +46,7 @@ where
     class: Theme::Class<'a>,
     rotation: Rotation,
     opacity: f32,
+    dpi_scaling: f32,
 }
 
 impl<'a, Theme> Svg<'a, Theme>
@@ -79,6 +63,7 @@ where
             class: Theme::default(),
             rotation: Rotation::default(),
             opacity: 1.0,
+            dpi_scaling: 1.0,
         }
     }
 
@@ -144,6 +129,12 @@ where
     /// and `1.0` meaning completely opaque.
     pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
         self.opacity = opacity.into();
+        self
+    }
+
+    /// Sets the DPI scaling factor of the [`Svg`].
+    pub fn dpi_scaling(mut self, dpi_scaling: impl Into<f32>) -> Self {
+        self.dpi_scaling = dpi_scaling.into();
         self
     }
 }
@@ -248,6 +239,7 @@ where
                     color: style.color,
                     rotation: self.rotation.radians(),
                     opacity: self.opacity,
+                    dpi_scaling: self.dpi_scaling,
                 },
                 drawing_bounds,
             );
