@@ -9,7 +9,7 @@ use crate::graphics::text::{Editor, Paragraph, font_system, to_color};
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
 use std::sync::atomic::{self, AtomicU64};
-use std::sync::{self, Arc};
+use std::sync::{self, Arc, RwLock};
 
 pub use crate::graphics::Text;
 
@@ -94,10 +94,6 @@ struct Group {
 }
 
 impl Storage {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     fn get(&self, cache: &Cache) -> Option<(&cryoglyph::TextAtlas, &Upload)> {
         if cache.text.is_empty() {
             return None;
@@ -272,48 +268,40 @@ impl Viewport {
     }
 }
 
+#[derive(Clone)]
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
-    state: cryoglyph::Cache,
     format: wgpu::TextureFormat,
-    atlas: cryoglyph::TextAtlas,
+    cache: cryoglyph::Cache,
+    atlas: Arc<RwLock<cryoglyph::TextAtlas>>,
+}
+
+#[derive(Default)]
+pub struct State {
     renderers: Vec<cryoglyph::TextRenderer>,
     prepare_layer: usize,
     cache: BufferCache,
+    storage: Storage,
 }
 
-impl Pipeline {
-    pub fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        format: wgpu::TextureFormat,
-    ) -> Self {
-        let state = cryoglyph::Cache::new(device);
-        let atlas = cryoglyph::TextAtlas::with_color_mode(
-            device, queue, &state, format, COLOR_MODE,
-        );
-
-        Pipeline {
-            state,
-            format,
-            renderers: Vec::new(),
-            atlas,
-            prepare_layer: 0,
-            cache: BufferCache::new(),
-        }
+impl State {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn prepare(
         &mut self,
+        pipeline: &Pipeline,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         viewport: &Viewport,
         encoder: &mut wgpu::CommandEncoder,
-        storage: &mut Storage,
         batch: &Batch,
         layer_bounds: Rectangle,
         layer_transformation: Transformation,
     ) {
+        let mut atlas = pipeline.atlas.write().expect("Write to text atlas");
+
         for item in batch {
             match item {
                 Item::Group {
@@ -322,7 +310,7 @@ impl Pipeline {
                 } => {
                     if self.renderers.len() <= self.prepare_layer {
                         self.renderers.push(cryoglyph::TextRenderer::new(
-                            &mut self.atlas,
+                            &mut atlas,
                             device,
                             wgpu::MultisampleState::default(),
                             None,
@@ -336,7 +324,7 @@ impl Pipeline {
                         &viewport.0,
                         encoder,
                         renderer,
-                        &mut self.atlas,
+                        &mut atlas,
                         &mut self.cache,
                         text,
                         layer_bounds * layer_transformation,
@@ -358,13 +346,13 @@ impl Pipeline {
                     transformation,
                     cache,
                 } => {
-                    storage.prepare(
+                    self.storage.prepare(
                         device,
                         queue,
                         &viewport.0,
                         encoder,
-                        self.format,
-                        &self.state,
+                        pipeline.format,
+                        &pipeline.cache,
                         cache,
                         layer_transformation * *transformation,
                         layer_bounds * layer_transformation,
@@ -376,13 +364,14 @@ impl Pipeline {
 
     pub fn render<'a>(
         &'a self,
+        pipeline: &'a Pipeline,
         viewport: &'a Viewport,
-        storage: &'a Storage,
         start: usize,
         batch: &'a Batch,
         bounds: Rectangle<u32>,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) -> usize {
+        let atlas = pipeline.atlas.read().expect("Read text atlas");
         let mut layer_count = 0;
 
         render_pass.set_scissor_rect(
@@ -398,13 +387,13 @@ impl Pipeline {
                     let renderer = &self.renderers[start + layer_count];
 
                     renderer
-                        .render(&self.atlas, &viewport.0, render_pass)
+                        .render(&atlas, &viewport.0, render_pass)
                         .expect("Render text");
 
                     layer_count += 1;
                 }
                 Item::Cached { cache, .. } => {
-                    if let Some((atlas, upload)) = storage.get(cache) {
+                    if let Some((atlas, upload)) = self.storage.get(cache) {
                         upload
                             .renderer
                             .render(atlas, &viewport.0, render_pass)
@@ -417,15 +406,34 @@ impl Pipeline {
         layer_count
     }
 
-    pub fn create_viewport(&self, device: &wgpu::Device) -> Viewport {
-        Viewport(cryoglyph::Viewport::new(device, &self.state))
-    }
-
     pub fn end_frame(&mut self) {
-        self.atlas.trim();
         self.cache.trim();
+        self.storage.trim();
 
         self.prepare_layer = 0;
+    }
+}
+
+impl Pipeline {
+    pub fn new(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        format: wgpu::TextureFormat,
+    ) -> Self {
+        let cache = cryoglyph::Cache::new(device);
+        let atlas = cryoglyph::TextAtlas::with_color_mode(
+            device, queue, &cache, format, COLOR_MODE,
+        );
+
+        Pipeline {
+            format,
+            cache,
+            atlas: Arc::new(RwLock::new(atlas)),
+        }
+    }
+
+    pub fn create_viewport(&self, device: &wgpu::Device) -> Viewport {
+        Viewport(cryoglyph::Viewport::new(device, &self.cache))
     }
 }
 

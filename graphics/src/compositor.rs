@@ -87,12 +87,11 @@ pub trait Compositor: Sized {
     /// the texture ordered as `RGBA` in the `sRGB` color space.
     ///
     /// [`Renderer`]: Self::Renderer
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8>;
 }
 
@@ -199,12 +198,11 @@ impl Compositor for () {
         Ok(())
     }
 
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         _renderer: &mut Self::Renderer,
         _viewport: &Viewport,
         _background_color: Color,
-        _overlay: &[T],
     ) -> Vec<u8> {
         vec![]
     }

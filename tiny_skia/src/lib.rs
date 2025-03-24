@@ -407,8 +407,11 @@ impl compositor::Default for Renderer {
 }
 
 impl renderer::Headless for Renderer {
-    fn new(default_font: Font, default_text_size: Pixels) -> Self {
-        Self::new(default_font, default_text_size)
+    async fn new(
+        default_font: Font,
+        default_text_size: Pixels,
+    ) -> Option<Self> {
+        Some(Self::new(default_font, default_text_size))
     }
 
     fn screenshot(
@@ -420,11 +423,6 @@ impl renderer::Headless for Renderer {
         let viewport =
             Viewport::with_physical_size(size, f64::from(scale_factor));
 
-        window::compositor::screenshot::<&str>(
-            self,
-            &viewport,
-            background_color,
-            &[],
-        )
+        window::compositor::screenshot(self, &viewport, background_color)
     }
 }

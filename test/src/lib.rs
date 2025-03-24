@@ -186,8 +186,10 @@ where
             load_font(font).expect("Font must be valid");
         }
 
-        let mut renderer =
-            Renderer::new(default_font, settings.default_text_size);
+        let mut renderer = iced_runtime::futures::futures::executor::block_on(
+            Renderer::new(default_font, settings.default_text_size),
+        )
+        .expect("Create new headless renderer");
 
         let raw = UserInterface::build(
             element,

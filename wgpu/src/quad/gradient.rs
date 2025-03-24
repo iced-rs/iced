@@ -57,7 +57,7 @@ impl Layer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pipeline {
     #[cfg(not(target_arch = "wasm32"))]
     pipeline: wgpu::RenderPipeline,
