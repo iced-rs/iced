@@ -1498,6 +1498,16 @@ fn run_action<P, C>(
                     let _ = window.raw.set_cursor_hittest(true);
                 }
             }
+            window::Action::GetMonitorSize(id, channel) => {
+                if let Some(window) = window_manager.get(id) {
+                    let size = window.raw.current_monitor().map(|monitor| {
+                        let factor = monitor.scale_factor();
+                        let size = monitor.size().to_logical(factor);
+                        Size::new(size.width, size.height)
+                    });
+                    let _ = channel.send(size);
+                }
+            }
         },
         Action::System(action) => match action {
             system::Action::QueryInformation(_channel) => {
