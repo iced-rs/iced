@@ -535,7 +535,7 @@ impl core::text::Renderer for Renderer {
 
     fn fill_buffer(
         &mut self,
-        buffer: Weak<glyphon::Buffer>,
+        buffer: Weak<cryoglyph::Buffer>,
         position: Point,
         clip_bounds: Rectangle,
     ) {

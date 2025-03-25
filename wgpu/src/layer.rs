@@ -119,7 +119,7 @@ impl Layer {
 
     pub fn draw_buffer(
         &mut self,
-        buffer: Weak<glyphon::Buffer>,
+        buffer: Weak<cryoglyph::Buffer>,
         position: Point,
         clip_bounds: Rectangle,
         transformation: Transformation,
