@@ -892,6 +892,7 @@ async fn run_instance<P, C>(
                             window.state.viewport(),
                             window.state.background_color(),
                             &debug.overlay(),
+                            || window.raw.pre_present_notify(),
                         ) {
                             Ok(()) => {
                                 debug.render_finished();
@@ -899,14 +900,13 @@ async fn run_instance<P, C>(
                             Err(error) => match error {
                                 // This is an unrecoverable error.
                                 compositor::SurfaceError::OutOfMemory => {
-                                    panic!("{:?}", error);
+                                    panic!("{error}");
                                 }
                                 _ => {
                                     debug.render_finished();
 
-                                    log::error!(
-                                        "Error {error:?} when \
-                                        presenting surface."
+                                    log::warn!(
+                                        "Error {error:?} when presenting surface."
                                     );
 
                                     // Try rendering all windows again next frame.
