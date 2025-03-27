@@ -169,7 +169,7 @@ impl Pipeline {
                 view: &targets.attachment,
                 resolve_target: Some(&targets.resolve),
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
+                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                     store: wgpu::StoreOp::Store,
                 },
             })],
