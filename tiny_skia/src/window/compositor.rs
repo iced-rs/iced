@@ -126,14 +126,13 @@ impl crate::graphics::Compositor for Compositor {
         )
     }
 
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8> {
-        screenshot(renderer, viewport, background_color, overlay)
+        screenshot(renderer, viewport, background_color)
     }
 }
 
@@ -219,11 +218,10 @@ pub fn present<T: AsRef<str>>(
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
 }
 
-pub fn screenshot<T: AsRef<str>>(
+pub fn screenshot(
     renderer: &mut Renderer,
     viewport: &Viewport,
     background_color: Color,
-    overlay: &[T],
 ) -> Vec<u8> {
     let size = viewport.physical_size();
 
@@ -233,7 +231,7 @@ pub fn screenshot<T: AsRef<str>>(
     let mut clip_mask = tiny_skia::Mask::new(size.width, size.height)
         .expect("Create clip mask");
 
-    renderer.draw(
+    renderer.draw::<&str>(
         &mut tiny_skia::PixmapMut::from_bytes(
             bytemuck::cast_slice_mut(&mut offscreen_buffer),
             size.width,
@@ -247,7 +245,7 @@ pub fn screenshot<T: AsRef<str>>(
             size.height as f32,
         ))],
         background_color,
-        overlay,
+        &[],
     );
 
     offscreen_buffer.iter().fold(

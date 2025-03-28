@@ -43,13 +43,94 @@ pub struct Quad {
     pub shadow_blur_radius: f32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pipeline {
     solid: solid::Pipeline,
     gradient: gradient::Pipeline,
     constant_layout: wgpu::BindGroupLayout,
+}
+
+#[derive(Default)]
+pub struct State {
     layers: Vec<Layer>,
     prepare_layer: usize,
+}
+
+impl State {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn prepare(
+        &mut self,
+        pipeline: &Pipeline,
+        device: &wgpu::Device,
+        belt: &mut wgpu::util::StagingBelt,
+        encoder: &mut wgpu::CommandEncoder,
+        quads: &Batch,
+        transformation: Transformation,
+        scale: f32,
+    ) {
+        if self.layers.len() <= self.prepare_layer {
+            self.layers
+                .push(Layer::new(device, &pipeline.constant_layout));
+        }
+
+        let layer = &mut self.layers[self.prepare_layer];
+        layer.prepare(device, encoder, belt, quads, transformation, scale);
+
+        self.prepare_layer += 1;
+    }
+
+    pub fn render<'a>(
+        &'a self,
+        pipeline: &'a Pipeline,
+        layer: usize,
+        bounds: Rectangle<u32>,
+        quads: &Batch,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
+        if let Some(layer) = self.layers.get(layer) {
+            render_pass.set_scissor_rect(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            );
+
+            let mut solid_offset = 0;
+            let mut gradient_offset = 0;
+
+            for (kind, count) in &quads.order {
+                match kind {
+                    Kind::Solid => {
+                        pipeline.solid.render(
+                            render_pass,
+                            &layer.constants,
+                            &layer.solid,
+                            solid_offset..(solid_offset + count),
+                        );
+
+                        solid_offset += count;
+                    }
+                    Kind::Gradient => {
+                        pipeline.gradient.render(
+                            render_pass,
+                            &layer.constants,
+                            &layer.gradient,
+                            gradient_offset..(gradient_offset + count),
+                        );
+
+                        gradient_offset += count;
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn trim(&mut self) {
+        self.prepare_layer = 0;
+    }
 }
 
 impl Pipeline {
@@ -74,78 +155,8 @@ impl Pipeline {
         Self {
             solid: solid::Pipeline::new(device, format, &constant_layout),
             gradient: gradient::Pipeline::new(device, format, &constant_layout),
-            layers: Vec::new(),
-            prepare_layer: 0,
             constant_layout,
         }
-    }
-
-    pub fn prepare(
-        &mut self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        belt: &mut wgpu::util::StagingBelt,
-        quads: &Batch,
-        transformation: Transformation,
-        scale: f32,
-    ) {
-        if self.layers.len() <= self.prepare_layer {
-            self.layers.push(Layer::new(device, &self.constant_layout));
-        }
-
-        let layer = &mut self.layers[self.prepare_layer];
-        layer.prepare(device, encoder, belt, quads, transformation, scale);
-
-        self.prepare_layer += 1;
-    }
-
-    pub fn render<'a>(
-        &'a self,
-        layer: usize,
-        bounds: Rectangle<u32>,
-        quads: &Batch,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
-        if let Some(layer) = self.layers.get(layer) {
-            render_pass.set_scissor_rect(
-                bounds.x,
-                bounds.y,
-                bounds.width,
-                bounds.height,
-            );
-
-            let mut solid_offset = 0;
-            let mut gradient_offset = 0;
-
-            for (kind, count) in &quads.order {
-                match kind {
-                    Kind::Solid => {
-                        self.solid.render(
-                            render_pass,
-                            &layer.constants,
-                            &layer.solid,
-                            solid_offset..(solid_offset + count),
-                        );
-
-                        solid_offset += count;
-                    }
-                    Kind::Gradient => {
-                        self.gradient.render(
-                            render_pass,
-                            &layer.constants,
-                            &layer.gradient,
-                            gradient_offset..(gradient_offset + count),
-                        );
-
-                        gradient_offset += count;
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn end_frame(&mut self) {
-        self.prepare_layer = 0;
     }
 }
 

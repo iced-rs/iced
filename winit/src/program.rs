@@ -773,7 +773,6 @@ async fn run_instance<P, C>(
                             &mut messages,
                             &mut clipboard,
                             &mut control_sender,
-                            &mut debug,
                             &mut user_interfaces,
                             &mut window_manager,
                             &mut ui_caches,
@@ -966,7 +965,6 @@ async fn run_instance<P, C>(
                                 &mut messages,
                                 &mut clipboard,
                                 &mut control_sender,
-                                &mut debug,
                                 &mut user_interfaces,
                                 &mut window_manager,
                                 &mut ui_caches,
@@ -1187,7 +1185,6 @@ fn run_action<P, C>(
     messages: &mut Vec<P::Message>,
     clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
-    debug: &mut Debug,
     interfaces: &mut FxHashMap<
         window::Id,
         UserInterface<'_, P::Message, P::Theme, P::Renderer>,
@@ -1477,7 +1474,6 @@ fn run_action<P, C>(
                             &mut window.renderer,
                             window.state.viewport(),
                             window.state.background_color(),
-                            &debug.overlay(),
                         );
 
                         let _ = channel.send(core::window::Screenshot::new(
