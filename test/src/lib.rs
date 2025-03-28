@@ -188,7 +188,7 @@ where
         }
 
         let mut renderer = {
-            let backend = env::var("ICED_BACKEND").ok();
+            let backend = env::var("ICED_TEST_BACKEND").ok();
 
             iced_runtime::futures::futures::executor::block_on(Renderer::new(
                 default_font,
