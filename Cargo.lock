@@ -206,6 +206,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "aspect_ratio"
+version = "0.1.0"
+dependencies = [
+ "iced",
+]
+
+[[package]]
 name = "async-broadcast"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
