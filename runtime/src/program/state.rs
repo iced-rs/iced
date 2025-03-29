@@ -56,6 +56,11 @@ where
         &self.program
     }
 
+    /// Returns a mutable reference to the [`Program`] of the [`State`].
+    pub fn program_mut(&mut self) -> &mut P {
+        &mut self.program
+    }
+
     /// Queues an event in the [`State`] for processing during an [`update`].
     ///
     /// [`update`]: Self::update
