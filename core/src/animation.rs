@@ -96,9 +96,22 @@ where
         self
     }
 
+    /// Transitions the [`Animation`] from its current state to the given new state, starting from
+    /// the given start time.
+    pub fn go_at(mut self, new_state: T, at: Instant) -> Self {
+        self.go_at_mut(new_state, at);
+        self
+    }
+
     /// Transitions the [`Animation`] from its current state to the given new state, by reference.
     pub fn go_mut(&mut self, new_state: T) {
-        self.raw.transition(new_state, Instant::now());
+        self.go_at_mut(new_state, Instant::now());
+    }
+
+    /// Transitions the [`Animation`] from its current state to the given new state, starting from
+    /// the given start time, by reference.
+    pub fn go_at_mut(&mut self, new_state: T, at: Instant) {
+        self.raw.transition(new_state, at);
     }
 
     /// Returns true if the [`Animation`] is currently in progress.
