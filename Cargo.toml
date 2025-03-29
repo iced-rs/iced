@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "auto-detect-theme"]
+default = ["wgpu", "tiny-skia", "auto-detect-theme", "x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer backend
@@ -67,6 +67,10 @@ auto-detect-theme = ["iced_core/auto-detect-theme"]
 strict-assertions = ["iced_renderer/strict-assertions"]
 # Redraws on every runtime event, and not only when a widget requests it
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
+x11 = ["iced_winit/x11"]
+wayland = ["iced_winit/wayland"]
+wayland-dlopen = ["iced_winit/wayland-dlopen"]
+wayland-csd-adwaita = ["iced_winit/wayland-csd-adwaita"]
 
 [dependencies]
 iced_core.workspace = true
@@ -142,7 +146,7 @@ iced_test = { version = "0.14.0-dev", path = "test" }
 iced_tiny_skia = { version = "0.14.0-dev", path = "tiny_skia" }
 iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
 iced_widget = { version = "0.14.0-dev", path = "widget" }
-iced_winit = { version = "0.14.0-dev", path = "winit" }
+iced_winit = { version = "0.14.0-dev", path = "winit", default-features = false }
 
 async-std = "1.0"
 bitflags = "2.0"
@@ -190,7 +194,9 @@ web-sys = "0.3.69"
 web-time = "1.1"
 wgpu = "24.0"
 window_clipboard = "0.4.1"
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b" }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b", default-features = false, features = [
+    "rwh_06",
+] }
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
