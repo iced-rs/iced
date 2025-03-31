@@ -101,6 +101,17 @@ where
         self.raw.transition(new_state, Instant::now());
     }
 
+    /// Instantaneously transitions the [`Animation`] from its current state to the given new state.
+    pub fn force(mut self, new_state: T) -> Self {
+        self.force_mut(new_state);
+        self
+    }
+
+    /// Instantaneously transitions the [`Animation`] from its current state to the given new state, by reference.
+    pub fn force_mut(&mut self, new_state: T) {
+        self.raw.transition_instantaneous(new_state, Instant::now());
+    }
+
     /// Returns true if the [`Animation`] is currently in progress.
     ///
     /// An [`Animation`] is in progress when it is transitioning to a different state.
