@@ -180,14 +180,14 @@ mod tests {
     fn it_showcases_every_theme() -> Result<(), Error> {
         Theme::ALL
             .par_iter()
+            .cloned()
             .map(|theme| {
                 let mut styling = Styling::default();
-                styling.update(Message::ThemeChanged(theme.clone()));
+                styling.update(Message::ThemeChanged(theme));
 
                 let theme = styling.theme();
 
                 let mut ui = simulator(styling.view());
-
                 let snapshot = ui.snapshot(&theme)?;
 
                 assert!(
