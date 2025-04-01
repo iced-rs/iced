@@ -3,7 +3,8 @@ use crate::core::image;
 use crate::core::renderer;
 use crate::core::svg;
 use crate::core::{
-    self, Background, Color, Image, Point, Rectangle, Size, Svg, Transformation,
+    self, Background, Color, Font, Image, Pixels, Point, Rectangle, Size, Svg,
+    Transformation,
 };
 use crate::graphics;
 use crate::graphics::compositor;
@@ -321,6 +322,7 @@ where
         surface: &mut Self::Surface,
         viewport: &graphics::Viewport,
         background_color: Color,
+        on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
         match (self, renderer, surface) {
             (
@@ -332,6 +334,7 @@ where
                 surface,
                 viewport,
                 background_color,
+                on_pre_present,
             ),
             (
                 Self::Secondary(compositor),
@@ -342,6 +345,7 @@ where
                 surface,
                 viewport,
                 background_color,
+                on_pre_present,
             ),
             _ => unreachable!(),
         }
@@ -595,6 +599,48 @@ mod geometry {
                 Frame::Secondary(frame) => {
                     Geometry::Secondary(frame.into_geometry())
                 }
+            }
+        }
+    }
+}
+
+impl<A, B> renderer::Headless for Renderer<A, B>
+where
+    A: renderer::Headless,
+    B: renderer::Headless,
+{
+    async fn new(
+        default_font: Font,
+        default_text_size: Pixels,
+        backend: Option<&str>,
+    ) -> Option<Self> {
+        if let Some(renderer) =
+            A::new(default_font, default_text_size, backend).await
+        {
+            return Some(Self::Primary(renderer));
+        }
+
+        B::new(default_font, default_text_size, backend)
+            .await
+            .map(Self::Secondary)
+    }
+
+    fn name(&self) -> String {
+        delegate!(self, renderer, renderer.name())
+    }
+
+    fn screenshot(
+        &mut self,
+        size: Size<u32>,
+        scale_factor: f32,
+        background_color: Color,
+    ) -> Vec<u8> {
+        match self {
+            crate::fallback::Renderer::Primary(renderer) => {
+                renderer.screenshot(size, scale_factor, background_color)
+            }
+            crate::fallback::Renderer::Secondary(renderer) => {
+                renderer.screenshot(size, scale_factor, background_color)
             }
         }
     }

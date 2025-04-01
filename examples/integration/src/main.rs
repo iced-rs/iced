@@ -36,11 +36,9 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
         Loading,
         Ready {
             window: Arc<winit::window::Window>,
-            device: wgpu::Device,
-            queue: wgpu::Queue,
             surface: wgpu::Surface<'static>,
             format: wgpu::TextureFormat,
-            engine: Engine,
+            device: wgpu::Device,
             renderer: Renderer,
             scene: Scene,
             controls: Controls,
@@ -146,25 +144,26 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 let controls = Controls::new();
 
                 // Initialize iced
-                let engine =
-                    Engine::new(&adapter, &device, &queue, format, None);
-                let renderer = Renderer::new(
-                    &device,
-                    &engine,
-                    Font::default(),
-                    Pixels::from(16),
-                );
+                let renderer = {
+                    let engine = Engine::new(
+                        &adapter,
+                        device.clone(),
+                        queue,
+                        format,
+                        None,
+                    );
+
+                    Renderer::new(engine, Font::default(), Pixels::from(16))
+                };
 
                 // You should change this if you want to render continuously
                 event_loop.set_control_flow(ControlFlow::Wait);
 
                 *self = Self::Ready {
                     window,
-                    device,
-                    queue,
                     surface,
                     format,
-                    engine,
+                    device,
                     renderer,
                     scene,
                     controls,
@@ -188,10 +187,8 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             let Self::Ready {
                 window,
                 device,
-                queue,
                 surface,
                 format,
-                engine,
                 renderer,
                 scene,
                 controls,
@@ -285,10 +282,6 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                             *cache = interface.into_cache();
 
                             renderer.present(
-                                engine,
-                                device,
-                                queue,
-                                &mut encoder,
                                 None,
                                 frame.texture.format(),
                                 &view,
@@ -296,7 +289,6 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                             );
 
                             // Then we submit the work
-                            engine.submit(queue, encoder);
                             frame.present();
 
                             // Update the mouse cursor

@@ -61,7 +61,7 @@ pub trait Renderer: core::Renderer {
 /// Stores custom, user-provided types.
 #[derive(Default, Debug)]
 pub struct Storage {
-    pipelines: FxHashMap<TypeId, Box<dyn Any + Send>>,
+    pipelines: FxHashMap<TypeId, Box<dyn Any + Send + Sync>>,
 }
 
 impl Storage {
@@ -71,7 +71,7 @@ impl Storage {
     }
 
     /// Inserts the data `T` in to [`Storage`].
-    pub fn store<T: 'static + Send>(&mut self, data: T) {
+    pub fn store<T: 'static + Send + Sync>(&mut self, data: T) {
         let _ = self.pipelines.insert(TypeId::of::<T>(), Box::new(data));
     }
 

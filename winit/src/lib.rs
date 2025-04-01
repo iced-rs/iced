@@ -819,6 +819,7 @@ async fn run_instance<P>(
                             &mut window.surface,
                             window.state.viewport(),
                             window.state.background_color(),
+                            || window.raw.pre_present_notify(),
                         ) {
                             Ok(()) => {
                                 present_span.finish();
