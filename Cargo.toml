@@ -164,7 +164,6 @@ lyon = "1.0"
 lyon_path = "1.0"
 num-traits = "0.2"
 ouroboros = "0.18"
-palette = "0.7"
 png = "0.17"
 pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
