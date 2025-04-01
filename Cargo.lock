@@ -5519,6 +5519,8 @@ name = "styling"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "iced_test",
+ "rayon",
 ]
 
 [[package]]
