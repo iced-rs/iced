@@ -480,7 +480,12 @@ use iced_winit::runtime;
 pub use iced_futures::futures;
 pub use iced_futures::stream;
 
-#[cfg(not(any(feature = "thread-pool", feature = "tokio", feature = "smol")))]
+#[cfg(not(any(
+    target_arch = "wasm32",
+    feature = "thread-pool",
+    feature = "tokio",
+    feature = "smol"
+)))]
 compile_error!(
     "No futures executor has been enabled! You must enable an
     executor feature.\n
