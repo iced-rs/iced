@@ -487,8 +487,8 @@ pub use iced_futures::stream;
     feature = "smol"
 )))]
 compile_error!(
-    "No futures executor has been enabled! You must enable an
-    executor feature.\n
+    "No futures executor has been enabled! You must enable an \
+    executor feature.\n\
     Available options: thread-pool, tokio, or smol."
 );
 
