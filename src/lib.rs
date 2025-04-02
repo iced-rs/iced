@@ -489,7 +489,7 @@ pub use iced_futures::stream;
 compile_error!(
     "No futures executor has been enabled! You must enable an
     executor feature.\n
-    Available options: thread-pool, tokio, smol, or async-std."
+    Available options: thread-pool, tokio, or smol."
 );
 
 #[cfg(feature = "highlighter")]
@@ -547,18 +547,7 @@ pub mod clipboard {
 pub mod executor {
     //! Choose your preferred executor to power your application.
     pub use iced_futures::Executor;
-
-    /// A default cross-platform executor.
-    ///
-    /// - On native platforms, it will use:
-    ///   - `iced_futures::backend::native::tokio` when the `tokio` feature is enabled.
-    ///   - `iced_futures::backend::native::async-std` when the `async-std` feature is
-    ///     enabled.
-    ///   - `iced_futures::backend::native::smol` when the `smol` feature is enabled.
-    ///   - `iced_futures::backend::native::thread_pool` otherwise.
-    ///
-    /// - On Wasm, it will use `iced_futures::backend::wasm::wasm_bindgen`.
-    pub type Default = iced_futures::backend::default::Executor;
+    pub use iced_futures::backend::default::Executor as Default;
 }
 
 pub mod font {
