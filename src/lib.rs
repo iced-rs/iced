@@ -480,6 +480,18 @@ use iced_winit::runtime;
 pub use iced_futures::futures;
 pub use iced_futures::stream;
 
+#[cfg(not(any(
+    target_arch = "wasm32",
+    feature = "thread-pool",
+    feature = "tokio",
+    feature = "smol"
+)))]
+compile_error!(
+    "No futures executor has been enabled! You must enable an
+    executor feature.\n
+    Available options: thread-pool, tokio, or smol."
+);
+
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
@@ -519,9 +531,10 @@ pub use alignment::Vertical::{Bottom, Top};
 
 pub mod task {
     //! Create runtime tasks.
-    pub use crate::runtime::task::{
-        Handle, Never, Sipper, Straw, Task, sipper, stream,
-    };
+    pub use crate::runtime::task::{Handle, Task};
+
+    #[cfg(feature = "sipper")]
+    pub use crate::runtime::task::{Never, Sipper, Straw, sipper, stream};
 }
 
 pub mod clipboard {
@@ -534,18 +547,7 @@ pub mod clipboard {
 pub mod executor {
     //! Choose your preferred executor to power your application.
     pub use iced_futures::Executor;
-
-    /// A default cross-platform executor.
-    ///
-    /// - On native platforms, it will use:
-    ///   - `iced_futures::backend::native::tokio` when the `tokio` feature is enabled.
-    ///   - `iced_futures::backend::native::async-std` when the `async-std` feature is
-    ///     enabled.
-    ///   - `iced_futures::backend::native::smol` when the `smol` feature is enabled.
-    ///   - `iced_futures::backend::native::thread_pool` otherwise.
-    ///
-    /// - On Wasm, it will use `iced_futures::backend::wasm::wasm_bindgen`.
-    pub type Default = iced_futures::backend::default::Executor;
+    pub use iced_futures::backend::default::Executor as Default;
 }
 
 pub mod font {
