@@ -10,7 +10,7 @@ use thiserror::Error;
 use std::borrow::Cow;
 
 /// A graphics compositor that can draw to windows.
-pub trait Compositor: Sized + MaybeSend {
+pub trait Compositor: Sized {
     /// The iced renderer of the backend.
     type Renderer;
 
@@ -21,7 +21,7 @@ pub trait Compositor: Sized + MaybeSend {
     fn new<W: Window + Clone>(
         settings: Settings,
         compatible_window: W,
-    ) -> impl Future<Output = Result<Self, Error>> + MaybeSend {
+    ) -> impl Future<Output = Result<Self, Error>> {
         Self::with_backend(settings, compatible_window, None)
     }
 
@@ -33,7 +33,7 @@ pub trait Compositor: Sized + MaybeSend {
         _settings: Settings,
         _compatible_window: W,
         _backend: Option<&str>,
-    ) -> impl Future<Output = Result<Self, Error>> + MaybeSend;
+    ) -> impl Future<Output = Result<Self, Error>>;
 
     /// Creates a [`Self::Renderer`] for the [`Compositor`].
     fn create_renderer(&self) -> Self::Renderer;

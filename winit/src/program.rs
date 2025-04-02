@@ -18,7 +18,7 @@ use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
 use crate::futures::futures::{Future, StreamExt};
 use crate::futures::subscription::{self, Subscription};
-use crate::futures::{Executor, MaybeSend, Runtime};
+use crate::futures::{Executor, Runtime};
 use crate::graphics;
 use crate::graphics::{Compositor, compositor};
 use crate::runtime::Debug;
@@ -149,7 +149,7 @@ pub fn run<P, C>(
 ) -> Result<(), Error>
 where
     P: Program + 'static,
-    C: Compositor<Renderer = P::Renderer> + MaybeSend + 'static,
+    C: Compositor<Renderer = P::Renderer> + 'static,
     P::Theme: theme::Base,
 {
     use winit::event_loop::EventLoop;
@@ -560,7 +560,7 @@ async fn run_instance<P, C>(
     default_fonts: Vec<Cow<'static, [u8]>>,
 ) where
     P: Program + 'static,
-    C: Compositor<Renderer = P::Renderer> + MaybeSend + 'static,
+    C: Compositor<Renderer = P::Renderer> + 'static,
     P::Theme: theme::Base,
 {
     use winit::event;
@@ -636,7 +636,11 @@ async fn run_instance<P, C>(
                         }
                     };
 
-                    runtime.spawn(create_compositor);
+                    #[cfg(target_arch = "wasm32")]
+                    wasm_bindgen_futures::spawn_local(create_compositor);
+
+                    #[cfg(not(target_arch = "wasm32"))]
+                    runtime.block_on(create_compositor);
 
                     match compositor_receiver
                         .await
@@ -648,7 +652,7 @@ async fn run_instance<P, C>(
                         Err(error) => {
                             let _ = control_sender
                                 .start_send(Control::Crash(error.into()));
-                            break;
+                            continue;
                         }
                     }
                 }

@@ -11,6 +11,10 @@ pub trait Executor: Sized {
     /// Spawns a future in the [`Executor`].
     fn spawn(&self, future: impl Future<Output = ()> + MaybeSend + 'static);
 
+    /// Runs a future to completion in the current thread within the [`Executor`].
+    #[cfg(not(target_arch = "wasm32"))]
+    fn block_on<T>(&self, future: impl Future<Output = T>) -> T;
+
     /// Runs the given closure inside the [`Executor`].
     ///
     /// Some executors, like `tokio`, require some global state to be in place

@@ -50,12 +50,10 @@ where
         self.executor.enter(f)
     }
 
-    /// Spawns a [`Future`] in the [`Runtime`].
-    pub fn spawn(
-        &mut self,
-        future: impl Future<Output = ()> + MaybeSend + 'static,
-    ) {
-        self.executor.spawn(future);
+    /// Runs a future to completion in the current thread within the [`Runtime`].
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn block_on<T>(&mut self, future: impl Future<Output = T>) -> T {
+        self.executor.block_on(future)
     }
 
     /// Runs a [`Stream`] in the [`Runtime`] until completion.
