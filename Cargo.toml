@@ -47,8 +47,6 @@ debug = ["iced_winit/debug"]
 thread-pool = ["iced_futures/thread-pool"]
 # Enables `tokio` as the `executor::Default` on native platforms
 tokio = ["iced_futures/tokio"]
-# Enables `async-std` as the `executor::Default` on native platforms
-async-std = ["iced_futures/async-std"]
 # Enables `smol` as the `executor::Default` on native platforms
 smol = ["iced_futures/smol"]
 # Enables querying system information
@@ -146,7 +144,6 @@ iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
 iced_widget = { version = "0.14.0-dev", path = "widget" }
 iced_winit = { version = "0.14.0-dev", path = "winit" }
 
-async-std = "1.0"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"

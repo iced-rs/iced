@@ -378,7 +378,6 @@ dependencies = [
  "async-global-executor",
  "async-io",
  "async-lock",
- "async-process",
  "crossbeam-utils",
  "futures-channel",
  "futures-core",
@@ -2434,7 +2433,6 @@ dependencies = [
 name = "iced_futures"
 version = "0.14.0-dev"
 dependencies = [
- "async-std",
  "futures",
  "iced_core",
  "log",
@@ -5744,12 +5742,12 @@ dependencies = [
 name = "todos"
 version = "0.1.0"
 dependencies = [
- "async-std",
  "directories",
  "iced",
  "iced_test",
  "serde",
  "serde_json",
+ "tokio",
  "tracing-subscriber",
  "uuid",
  "wasmtimer",
