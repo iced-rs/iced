@@ -531,9 +531,10 @@ pub use alignment::Vertical::{Bottom, Top};
 
 pub mod task {
     //! Create runtime tasks.
-    pub use crate::runtime::task::{
-        Handle, Never, Sipper, Straw, Task, sipper, stream,
-    };
+    pub use crate::runtime::task::{Handle, Task};
+
+    #[cfg(feature = "sipper")]
+    pub use crate::runtime::task::{Never, Sipper, Straw, sipper, stream};
 }
 
 pub mod clipboard {

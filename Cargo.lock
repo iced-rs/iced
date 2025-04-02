@@ -2405,6 +2405,7 @@ dependencies = [
  "iced_futures",
  "iced_highlighter",
  "iced_renderer",
+ "iced_runtime",
  "iced_wgpu",
  "iced_widget",
  "iced_winit",

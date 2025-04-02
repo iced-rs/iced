@@ -23,5 +23,7 @@ iced_core.workspace = true
 iced_futures.workspace = true
 
 raw-window-handle.workspace = true
-sipper.workspace = true
 thiserror.workspace = true
+
+sipper.workspace = true
+sipper.optional = true

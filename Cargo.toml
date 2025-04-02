@@ -67,11 +67,14 @@ auto-detect-theme = ["iced_core/auto-detect-theme"]
 strict-assertions = ["iced_renderer/strict-assertions"]
 # Redraws on every runtime event, and not only when a widget requests it
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
+# Enables support for the `sipper` library
+sipper = ["iced_runtime/sipper"]
 
 [dependencies]
 iced_core.workspace = true
 iced_futures.workspace = true
 iced_renderer.workspace = true
+iced_runtime.workspace = true
 iced_widget.workspace = true
 iced_winit.features = ["program"]
 iced_winit.workspace = true
