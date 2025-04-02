@@ -18,7 +18,7 @@ use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
 use crate::futures::futures::{Future, StreamExt};
 use crate::futures::subscription::{self, Subscription};
-use crate::futures::{Executor, Runtime};
+use crate::futures::{Executor, MaybeSend, Runtime};
 use crate::graphics;
 use crate::graphics::{Compositor, compositor};
 use crate::runtime::Debug;
@@ -149,7 +149,7 @@ pub fn run<P, C>(
 ) -> Result<(), Error>
 where
     P: Program + 'static,
-    C: Compositor<Renderer = P::Renderer> + 'static,
+    C: Compositor<Renderer = P::Renderer> + MaybeSend + 'static,
     P::Theme: theme::Base,
 {
     use winit::event_loop::EventLoop;
@@ -494,9 +494,7 @@ where
                                 event_loop.exit();
                             }
                         },
-                        _ => {
-                            break;
-                        }
+                        _ => break,
                     },
                     task::Poll::Ready(_) => {
                         event_loop.exit();
@@ -562,7 +560,7 @@ async fn run_instance<P, C>(
     default_fonts: Vec<Cow<'static, [u8]>>,
 ) where
     P: Program + 'static,
-    C: Compositor<Renderer = P::Renderer> + 'static,
+    C: Compositor<Renderer = P::Renderer> + MaybeSend + 'static,
     P::Theme: theme::Base,
 {
     use winit::event;
@@ -579,35 +577,11 @@ async fn run_instance<P, C>(
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
     let mut clipboard = Clipboard::unconnected();
-    let mut compositor_receiver: Option<oneshot::Receiver<_>> = None;
 
     debug.startup_finished();
 
     loop {
-        let event = if compositor_receiver.is_some() {
-            let compositor_receiver =
-                compositor_receiver.take().expect("Waiting for compositor");
-
-            match compositor_receiver.await {
-                Ok(Ok((new_compositor, event))) => {
-                    compositor = Some(new_compositor);
-
-                    Some(event)
-                }
-                Ok(Err(error)) => {
-                    control_sender
-                        .start_send(Control::Crash(
-                            Error::GraphicsCreationFailed(error),
-                        ))
-                        .expect("Send control action");
-                    break;
-                }
-                Err(error) => {
-                    panic!("Compositor initialization failed: {error}")
-                }
-            }
-        // Empty the queue if possible
-        } else if let Ok(event) = event_receiver.try_next() {
+        let event = if let Ok(event) = event_receiver.try_next() {
             event
         } else {
             event_receiver.next().await
@@ -626,17 +600,17 @@ async fn run_instance<P, C>(
                 on_open,
             } => {
                 if compositor.is_none() {
-                    let (compositor_sender, new_compositor_receiver) =
+                    let (compositor_sender, compositor_receiver) =
                         oneshot::channel();
 
-                    compositor_receiver = Some(new_compositor_receiver);
-
                     let create_compositor = {
+                        let window = window.clone();
+                        let mut proxy = proxy.clone();
                         let default_fonts = default_fonts.clone();
 
                         async move {
                             let mut compositor =
-                                C::new(graphics_settings, window.clone()).await;
+                                C::new(graphics_settings, window).await;
 
                             if let Ok(compositor) = &mut compositor {
                                 for font in default_fonts {
@@ -645,26 +619,38 @@ async fn run_instance<P, C>(
                             }
 
                             compositor_sender
-                                .send(compositor.map(|compositor| {
-                                    (
-                                        compositor,
-                                        Event::WindowCreated {
-                                            id,
-                                            window,
-                                            exit_on_close_request,
-                                            make_visible,
-                                            on_open,
-                                        },
-                                    )
-                                }))
+                                .send(compositor)
                                 .ok()
                                 .expect("Send compositor");
+
+                            // HACK! Send a proxy event on completion to trigger
+                            // a runtime re-poll
+                            // TODO: Send compositor through proxy (?)
+                            {
+                                let (sender, _receiver) = oneshot::channel();
+
+                                proxy.send_action(Action::Window(
+                                    runtime::window::Action::GetLatest(sender),
+                                ));
+                            }
                         }
                     };
 
-                    P::Executor::block_on(create_compositor);
+                    runtime.spawn(create_compositor);
 
-                    continue;
+                    match compositor_receiver
+                        .await
+                        .expect("Wait for compositor")
+                    {
+                        Ok(new_compositor) => {
+                            compositor = Some(new_compositor);
+                        }
+                        Err(error) => {
+                            let _ = control_sender
+                                .start_send(Control::Crash(error.into()));
+                            break;
+                        }
+                    }
                 }
 
                 let window = window_manager.insert(

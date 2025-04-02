@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "auto-detect-theme", "futures-executor"]
+default = ["wgpu", "tiny-skia", "auto-detect-theme", "thread-pool"]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer backend
@@ -43,8 +43,8 @@ markdown = ["iced_widget/markdown"]
 lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
-# Enables `futures-executor` as the `executor::Default` on native platforms
-futures-executor = ["iced_futures/thread-pool"]
+# Enables the `thread-pool` futures executor as the `executor::Default` on native platforms
+thread-pool = ["iced_futures/thread-pool"]
 # Enables `tokio` as the `executor::Default` on native platforms
 tokio = ["iced_futures/tokio"]
 # Enables `async-std` as the `executor::Default` on native platforms
@@ -152,7 +152,7 @@ bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cosmic-text = "0.13"
 dark-light = "2.0"
-futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
+futures = { version = "0.3", default-features = false }
 glam = "0.25"
 cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "be2defe4a13fd7c97c6f4c81e8e085463eb578dc" }
 guillotiere = "0.6"

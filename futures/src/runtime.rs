@@ -1,6 +1,6 @@
 //! Run commands and keep track of subscriptions.
 use crate::subscription;
-use crate::{BoxFuture, BoxStream, Executor, MaybeSend};
+use crate::{BoxStream, Executor, MaybeSend};
 
 use futures::{Sink, channel::mpsc};
 use std::marker::PhantomData;
@@ -51,20 +51,10 @@ where
     }
 
     /// Spawns a [`Future`] in the [`Runtime`].
-    ///
-    /// The resulting `Message` will be forwarded to the `Sender` of the
-    /// [`Runtime`].
-    ///
-    /// [`Future`]: BoxFuture
-    pub fn spawn(&mut self, future: BoxFuture<Message>) {
-        use futures::{FutureExt, SinkExt};
-
-        let mut sender = self.sender.clone();
-
-        let future = future.then(|message| async move {
-            let _ = sender.send(message).await;
-        });
-
+    pub fn spawn(
+        &mut self,
+        future: impl Future<Output = ()> + MaybeSend + 'static,
+    ) {
         self.executor.spawn(future);
     }
 

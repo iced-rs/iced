@@ -13,10 +13,6 @@ impl crate::Executor for Executor {
     fn spawn(&self, future: impl Future<Output = ()> + Send + 'static) {
         let _ = async_std::task::spawn(future);
     }
-
-    fn block_on(future: impl Future<Output = ()> + 'static) {
-        async_std::task::block_on(future);
-    }
 }
 
 pub mod time {

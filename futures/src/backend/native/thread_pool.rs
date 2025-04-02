@@ -11,10 +11,6 @@ impl crate::Executor for Executor {
     fn spawn(&self, future: impl Future<Output = ()> + Send + 'static) {
         self.spawn_ok(future);
     }
-
-    fn block_on(future: impl Future<Output = ()> + 'static) {
-        futures::executor::block_on(future);
-    }
 }
 
 pub mod time {

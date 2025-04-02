@@ -480,6 +480,13 @@ use iced_winit::runtime;
 pub use iced_futures::futures;
 pub use iced_futures::stream;
 
+#[cfg(not(any(feature = "thread-pool", feature = "tokio", feature = "smol")))]
+compile_error!(
+    "No futures executor has been enabled! You must enable an
+    executor feature.\n
+    Available options: thread-pool, tokio, smol, or async-std."
+);
+
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 

@@ -17,13 +17,6 @@ impl crate::Executor for Executor {
         let _guard = tokio::runtime::Runtime::enter(self);
         f()
     }
-
-    fn block_on(future: impl Future<Output = ()> + 'static) {
-        tokio::runtime::Builder::new_current_thread()
-            .build()
-            .unwrap()
-            .block_on(future);
-    }
 }
 
 pub mod time {

@@ -24,6 +24,8 @@ thread-pool = ["futures/thread-pool"]
 iced_core.workspace = true
 
 futures.workspace = true
+futures.features = ["std"]
+
 log.workspace = true
 rustc-hash.workspace = true
 
