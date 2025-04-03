@@ -63,7 +63,8 @@ impl Events {
                 .map(Element::from),
         );
 
-        let toggle = checkbox("Listen to runtime events", self.enabled)
+        let toggle = checkbox(self.enabled)
+            .label("Listen to runtime events")
             .on_toggle(Message::Toggled);
 
         let exit = button(text("Exit").width(Fill).align_x(Center))

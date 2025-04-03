@@ -58,7 +58,8 @@ impl VectorialText {
         column![
             canvas(&self.state).width(Fill).height(Fill),
             column![
-                checkbox("Use Japanese", self.state.use_japanese,)
+                checkbox(self.state.use_japanese,)
+                    .label("Use Japanese")
                     .on_toggle(Message::ToggleJapanese),
                 row![
                     slider_with_label(

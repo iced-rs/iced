@@ -162,7 +162,9 @@ fn view_controls<'a>(
     row![
         playback_controls,
         speed_controls,
-        checkbox("Grid", is_grid_enabled).on_toggle(Message::ToggleGrid),
+        checkbox(is_grid_enabled)
+            .label("Grid")
+            .on_toggle(Message::ToggleGrid),
         row![
             pick_list(preset::ALL, Some(preset), Message::PresetPicked),
             button("Clear")
