@@ -102,7 +102,8 @@ impl Styling {
         .width(Fill)
         .height(100);
 
-        let checkbox = checkbox("Check me!", self.checkbox_value)
+        let checkbox = checkbox(self.checkbox_value)
+            .label("Check me!")
             .on_toggle(Message::CheckboxToggled);
 
         let toggler = toggler(self.toggler_value)
