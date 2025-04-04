@@ -7,7 +7,7 @@ use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{self, Path, Style};
 use crate::graphics::{self, Gradient, Image, Text};
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub enum Geometry {
@@ -22,9 +22,9 @@ pub enum Geometry {
 
 #[derive(Debug, Clone)]
 pub struct Cache {
-    pub text: Rc<[Text]>,
-    pub images: Rc<[graphics::Image]>,
-    pub primitives: Rc<[Primitive]>,
+    pub text: Arc<[Text]>,
+    pub images: Arc<[graphics::Image]>,
+    pub primitives: Arc<[Primitive]>,
     pub clip_bounds: Rectangle,
 }
 
@@ -43,9 +43,9 @@ impl Cached for Geometry {
                 text,
                 clip_bounds,
             } => Cache {
-                primitives: Rc::from(primitives),
-                images: Rc::from(images),
-                text: Rc::from(text),
+                primitives: Arc::from(primitives),
+                images: Arc::from(images),
+                text: Arc::from(text),
                 clip_bounds,
             },
             Self::Cache(cache) => cache,
@@ -231,8 +231,8 @@ impl geometry::frame::Backend for Frame {
                 size,
                 line_height: line_height.to_absolute(size),
                 font: text.font,
-                horizontal_alignment: text.horizontal_alignment,
-                vertical_alignment: text.vertical_alignment,
+                align_x: text.align_x.into(),
+                align_y: text.align_y,
                 shaping: text.shaping,
                 clip_bounds: Rectangle::with_size(Size::INFINITY),
             });

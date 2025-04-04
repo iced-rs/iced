@@ -343,6 +343,10 @@ fn update<Message: Clone, Theme, Renderer>(
         state.cursor_position = cursor_position;
         state.bounds = bounds;
 
+        if widget.interaction.is_some() && state.is_hovered != was_hovered {
+            shell.request_redraw();
+        }
+
         match (
             widget.on_enter.as_ref(),
             widget.on_move.as_ref(),

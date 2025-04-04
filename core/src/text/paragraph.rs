@@ -1,6 +1,6 @@
 //! Draw paragraphs.
 use crate::alignment;
-use crate::text::{Difference, Hit, Span, Text};
+use crate::text::{Alignment, Difference, Hit, Span, Text};
 use crate::{Point, Rectangle, Size};
 
 /// A text paragraph.
@@ -24,10 +24,10 @@ pub trait Paragraph: Sized + Default {
     fn compare(&self, text: Text<(), Self::Font>) -> Difference;
 
     /// Returns the horizontal alignment of the [`Paragraph`].
-    fn horizontal_alignment(&self) -> alignment::Horizontal;
+    fn align_x(&self) -> Alignment;
 
     /// Returns the vertical alignment of the [`Paragraph`].
-    fn vertical_alignment(&self) -> alignment::Vertical;
+    fn align_y(&self) -> alignment::Vertical;
 
     /// Returns the minimum boundaries that can fit the contents of the
     /// [`Paragraph`].
@@ -92,8 +92,8 @@ impl<P: Paragraph> Plain<P> {
             size: text.size,
             line_height: text.line_height,
             font: text.font,
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
+            align_x: text.align_x,
+            align_y: text.align_y,
             shaping: text.shaping,
             wrapping: text.wrapping,
         }) {
@@ -108,13 +108,13 @@ impl<P: Paragraph> Plain<P> {
     }
 
     /// Returns the horizontal alignment of the [`Paragraph`].
-    pub fn horizontal_alignment(&self) -> alignment::Horizontal {
-        self.raw.horizontal_alignment()
+    pub fn align_x(&self) -> Alignment {
+        self.raw.align_x()
     }
 
     /// Returns the vertical alignment of the [`Paragraph`].
-    pub fn vertical_alignment(&self) -> alignment::Vertical {
-        self.raw.vertical_alignment()
+    pub fn align_y(&self) -> alignment::Vertical {
+        self.raw.align_y()
     }
 
     /// Returns the minimum boundaries that can fit the contents of the

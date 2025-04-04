@@ -21,16 +21,14 @@ pub use crate::graphics::Image;
 
 pub type Batch = Vec<Image>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pipeline {
-    pipeline: wgpu::RenderPipeline,
+    raw: wgpu::RenderPipeline,
     backend: wgpu::Backend,
     nearest_sampler: wgpu::Sampler,
     linear_sampler: wgpu::Sampler,
     texture_layout: Arc<wgpu::BindGroupLayout>,
     constant_layout: wgpu::BindGroupLayout,
-    layers: Vec<Layer>,
-    prepare_layer: usize,
 }
 
 impl Pipeline {
@@ -194,26 +192,37 @@ impl Pipeline {
             });
 
         Pipeline {
-            pipeline,
+            raw: pipeline,
             backend,
             nearest_sampler,
             linear_sampler,
             texture_layout: Arc::new(texture_layout),
             constant_layout,
-            layers: Vec::new(),
-            prepare_layer: 0,
         }
     }
 
     pub fn create_cache(&self, device: &wgpu::Device) -> Cache {
         Cache::new(device, self.backend, self.texture_layout.clone())
     }
+}
+
+#[derive(Default)]
+pub struct State {
+    layers: Vec<Layer>,
+    prepare_layer: usize,
+}
+
+impl State {
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn prepare(
         &mut self,
+        pipeline: &Pipeline,
         device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
+        encoder: &mut wgpu::CommandEncoder,
         cache: &mut Cache,
         images: &Batch,
         transformation: Transformation,
@@ -285,9 +294,9 @@ impl Pipeline {
         if self.layers.len() <= self.prepare_layer {
             self.layers.push(Layer::new(
                 device,
-                &self.constant_layout,
-                &self.nearest_sampler,
-                &self.linear_sampler,
+                &pipeline.constant_layout,
+                &pipeline.nearest_sampler,
+                &pipeline.linear_sampler,
             ));
         }
 
@@ -308,13 +317,14 @@ impl Pipeline {
 
     pub fn render<'a>(
         &'a self,
+        pipeline: &'a Pipeline,
         cache: &'a Cache,
         layer: usize,
         bounds: Rectangle<u32>,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
         if let Some(layer) = self.layers.get(layer) {
-            render_pass.set_pipeline(&self.pipeline);
+            render_pass.set_pipeline(&pipeline.raw);
 
             render_pass.set_scissor_rect(
                 bounds.x,
@@ -329,7 +339,7 @@ impl Pipeline {
         }
     }
 
-    pub fn end_frame(&mut self) {
+    pub fn trim(&mut self) {
         self.prepare_layer = 0;
     }
 }
