@@ -40,7 +40,6 @@ pub use clipboard::Clipboard;
 pub use error::Error;
 pub use proxy::Proxy;
 
-use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::theme;
@@ -892,20 +891,6 @@ async fn run_instance<P>(
                                 window.state.scale_factor(),
                                 window.state.modifiers(),
                             ) {
-                                if matches!(
-                                    event,
-                                    core::Event::Keyboard(
-                                        keyboard::Event::KeyPressed {
-                                            modified_key: keyboard::Key::Named(
-                                                keyboard::key::Named::F12
-                                            ),
-                                            ..
-                                        }
-                                    )
-                                ) {
-                                    debug::toggle_comet();
-                                }
-
                                 events.push((id, event));
                             }
                         }

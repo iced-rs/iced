@@ -1,15 +1,20 @@
 #![allow(missing_docs)]
-use crate::runtime::futures;
+use iced_debug as debug;
 use iced_program as program;
+use iced_widget as widget;
 use iced_widget::core;
 use iced_widget::runtime;
+use iced_widget::runtime::futures;
 
 use crate::core::Element;
-use crate::core::theme;
+use crate::core::keyboard;
+use crate::core::theme::{self, Base, Theme};
+use crate::core::time::seconds;
 use crate::core::window;
 use crate::futures::Subscription;
 use crate::program::Program;
 use crate::runtime::Task;
+use crate::widget::{bottom_right, container, stack, text, themer};
 
 use std::fmt;
 
@@ -33,9 +38,10 @@ pub fn attach(program: impl Program + 'static) -> impl Program {
         }
 
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
-            let (state, task) = self.program.boot();
+            let (state, boot) = self.program.boot();
+            let (devtools, task) = DevTools::new(state);
 
-            (DevTools { state }, task.map(Message::Program))
+            (devtools, Task::batch([boot.map(Message::Program), task]))
         }
 
         fn update(
@@ -94,12 +100,25 @@ where
     P: Program,
 {
     state: P::State,
+    show_notification: bool,
 }
 
 impl<P> DevTools<P>
 where
     P: Program + 'static,
 {
+    pub fn new(state: P::State) -> (Self, Task<Message<P>>) {
+        (
+            Self {
+                state,
+                show_notification: true,
+            },
+            Task::perform(smol::Timer::after(seconds(2)), |_| {
+                Message::HideNotification
+            }),
+        )
+    }
+
     pub fn title(&self, program: &P, window: window::Id) -> String {
         program.title(&self.state, window)
     }
@@ -110,6 +129,16 @@ where
         message: Message<P>,
     ) -> Task<Message<P>> {
         match message {
+            Message::HideNotification => {
+                self.show_notification = false;
+
+                Task::none()
+            }
+            Message::ToggleComet => {
+                debug::toggle_comet();
+
+                Task::none()
+            }
             Message::Program(message) => program
                 .update(&mut self.state, message)
                 .map(Message::Program),
@@ -121,11 +150,39 @@ where
         program: &P,
         window: window::Id,
     ) -> Element<'_, Message<P>, P::Theme, P::Renderer> {
-        program.view(&self.state, window).map(Message::Program)
+        let view = program.view(&self.state, window).map(Message::Program);
+        let theme = program.theme(&self.state, window);
+
+        let notification = themer(
+            theme
+                .palette()
+                .map(|palette| Theme::custom("DevTools".to_owned(), palette))
+                .unwrap_or_default(),
+            bottom_right(
+                container(text("Press F12 to open debug metrics"))
+                    .padding(10)
+                    .style(container::dark),
+            ),
+        );
+
+        stack![view]
+            .push_maybe(self.show_notification.then_some(notification))
+            .into()
     }
 
     pub fn subscription(&self, program: &P) -> Subscription<Message<P>> {
-        program.subscription(&self.state).map(Message::Program)
+        let subscription =
+            program.subscription(&self.state).map(Message::Program);
+
+        let hotkeys =
+            futures::keyboard::on_key_press(|key, _modifiers| match key {
+                keyboard::Key::Named(keyboard::key::Named::F12) => {
+                    Some(Message::ToggleComet)
+                }
+                _ => None,
+            });
+
+        Subscription::batch([subscription, hotkeys])
     }
 
     pub fn theme(&self, program: &P, window: window::Id) -> P::Theme {
@@ -146,6 +203,8 @@ enum Message<P>
 where
     P: Program,
 {
+    HideNotification,
+    ToggleComet,
     Program(P::Message),
 }
 
@@ -155,6 +214,10 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Message::HideNotification => {
+                f.write_str("DevTools(HideNotification)")
+            }
+            Message::ToggleComet => f.write_str("DevTools(ToggleComet)"),
             Message::Program(message) => message.fmt(f),
         }
     }
