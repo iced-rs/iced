@@ -42,7 +42,7 @@ markdown = ["iced_widget/markdown"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
-debug = ["iced_winit/debug"]
+debug = ["iced_winit/debug", "iced_devtools"]
 # Enables the `thread-pool` futures executor as the `executor::Default` on native platforms
 thread-pool = ["iced_futures/thread-pool"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -80,6 +80,9 @@ iced_widget.workspace = true
 iced_winit.features = ["program"]
 iced_winit.workspace = true
 
+iced_devtools.workspace = true
+iced_devtools.optional = true
+
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
 
@@ -112,6 +115,7 @@ members = [
     "beacon",
     "core",
     "debug",
+    "devtools",
     "futures",
     "graphics",
     "highlighter",
@@ -142,6 +146,7 @@ iced = { version = "0.14.0-dev", path = "." }
 iced_beacon = { version = "0.14.0-dev", path = "beacon" }
 iced_core = { version = "0.14.0-dev", path = "core" }
 iced_debug = { version = "0.14.0-dev", path = "debug" }
+iced_devtools = { version = "0.14.0-dev", path = "devtools" }
 iced_futures = { version = "0.14.0-dev", path = "futures" }
 iced_graphics = { version = "0.14.0-dev", path = "graphics" }
 iced_highlighter = { version = "0.14.0-dev", path = "highlighter" }
