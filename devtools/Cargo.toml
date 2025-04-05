@@ -17,6 +17,3 @@ workspace = true
 iced_program.workspace = true
 iced_widget.workspace = true
 iced_debug.workspace = true
-
-# TODO: Use program executor?
-smol.workspace = true

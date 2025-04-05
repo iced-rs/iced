@@ -12,11 +12,13 @@ use crate::core::theme::{self, Base, Theme};
 use crate::core::time::seconds;
 use crate::core::window;
 use crate::futures::Subscription;
+use crate::futures::futures::channel::oneshot;
 use crate::program::Program;
 use crate::runtime::Task;
 use crate::widget::{bottom_right, container, stack, text, themer};
 
 use std::fmt;
+use std::thread;
 
 pub fn attach(program: impl Program + 'static) -> impl Program {
     struct Attach<P> {
@@ -113,9 +115,19 @@ where
                 state,
                 show_notification: true,
             },
-            Task::perform(smol::Timer::after(seconds(2)), |_| {
-                Message::HideNotification
-            }),
+            Task::perform(
+                async move {
+                    let (sender, receiver) = oneshot::channel();
+
+                    let _ = thread::spawn(|| {
+                        thread::sleep(seconds(2));
+                        let _ = sender.send(());
+                    });
+
+                    let _ = receiver.await;
+                },
+                |_| Message::HideNotification,
+            ),
         )
     }
 
