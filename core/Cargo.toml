@@ -24,7 +24,6 @@ glam.workspace = true
 lilt.workspace = true
 log.workspace = true
 num-traits.workspace = true
-palette.workspace = true
 rustc-hash.workspace = true
 smol_str.workspace = true
 thiserror.workspace = true
@@ -36,9 +35,3 @@ dark-light.optional = true
 serde.workspace = true
 serde.optional = true
 serde.features = ["derive"]
-
-[target.'cfg(windows)'.dependencies]
-raw-window-handle.workspace = true
-
-[dev-dependencies]
-approx = "0.5"

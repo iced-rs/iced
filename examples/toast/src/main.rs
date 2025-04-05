@@ -327,9 +327,10 @@ mod toast {
                     instants.truncate(new);
                 }
                 (old, new) if old < new => {
-                    instants.extend(
-                        std::iter::repeat(Some(Instant::now())).take(new - old),
-                    );
+                    instants.extend(std::iter::repeat_n(
+                        Some(Instant::now()),
+                        new - old,
+                    ));
                 }
                 _ => {}
             }

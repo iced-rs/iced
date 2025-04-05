@@ -6,7 +6,6 @@ pub use crate::core::time::*;
     docsrs,
     doc(cfg(any(
         feature = "tokio",
-        feature = "async-std",
         feature = "smol",
         target_arch = "wasm32"
     )))

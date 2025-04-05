@@ -1,7 +1,7 @@
 //! Create and run iced applications step by step.
 //!
 //! # Example
-//! ```no_run
+//! ```no_run,standalone_crate
 //! use iced::widget::{button, column, text, Column};
 //! use iced::Theme;
 //!
@@ -43,7 +43,7 @@ use std::borrow::Cow;
 /// Creates an iced [`Application`] given its boot, update, and view logic.
 ///
 /// # Example
-/// ```no_run
+/// ```no_run,standalone_crate
 /// use iced::widget::{button, column, text, Column};
 ///
 /// pub fn main() -> iced::Result {

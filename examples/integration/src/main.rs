@@ -36,9 +36,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
         Loading,
         Ready {
             window: Arc<winit::window::Window>,
+            queue: wgpu::Queue,
+            device: wgpu::Device,
             surface: wgpu::Surface<'static>,
             format: wgpu::TextureFormat,
-            device: wgpu::Device,
             renderer: Renderer,
             scene: Scene,
             controls: Controls,
@@ -144,11 +145,12 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 let controls = Controls::new();
 
                 // Initialize iced
+
                 let renderer = {
                     let engine = Engine::new(
                         &adapter,
                         device.clone(),
-                        queue,
+                        queue.clone(),
                         format,
                         None,
                     );
@@ -161,10 +163,11 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                 *self = Self::Ready {
                     window,
+                    device,
+                    queue,
+                    renderer,
                     surface,
                     format,
-                    device,
-                    renderer,
                     scene,
                     controls,
                     events: Vec::new(),
@@ -187,6 +190,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             let Self::Ready {
                 window,
                 device,
+                queue,
                 surface,
                 format,
                 renderer,
@@ -233,16 +237,16 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                     match surface.get_current_texture() {
                         Ok(frame) => {
-                            let mut encoder = device.create_command_encoder(
-                                &wgpu::CommandEncoderDescriptor { label: None },
-                            );
-
                             let view = frame.texture.create_view(
                                 &wgpu::TextureViewDescriptor::default(),
                             );
 
+                            let mut encoder = device.create_command_encoder(
+                                &wgpu::CommandEncoderDescriptor { label: None },
+                            );
+
                             {
-                                // We clear the frame
+                                // Clear the frame
                                 let mut render_pass = Scene::clear(
                                     &view,
                                     &mut encoder,
@@ -253,7 +257,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 scene.draw(&mut render_pass);
                             }
 
-                            // And then iced on top
+                            // Submit the scene
+                            queue.submit([encoder.finish()]);
+
+                            // Draw iced on top
                             let mut interface = UserInterface::build(
                                 controls.view(),
                                 viewport.logical_size(),
@@ -288,7 +295,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 viewport,
                             );
 
-                            // Then we submit the work
+                            // Present the frame
                             frame.present();
 
                             // Update the mouse cursor
