@@ -2,6 +2,7 @@ mod controls;
 mod scene;
 
 use controls::Controls;
+use iced_wgpu::core::{event, window};
 use scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
@@ -238,6 +239,36 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                         *resized = false;
                     }
+
+                    // queue a redraw request, this is needed to update the status of some
+                    // widgets (e.g. on hover)
+                    state.queue_event(event::Event::Window(
+                        window::Event::RedrawRequested(
+                            std::time::Instant::now(),
+                        ),
+                    ));
+                    // update iced again with only the redraw request. This has to be done after
+                    // other events have been applied through an update for the state to be
+                    // reflected correctly after being redrawn.
+                    let _ = state.update(
+                        viewport.logical_size(),
+                        cursor_position
+                            .map(|p| {
+                                conversion::cursor_position(
+                                    p,
+                                    viewport.scale_factor(),
+                                )
+                            })
+                            .map(mouse::Cursor::Available)
+                            .unwrap_or(mouse::Cursor::Unavailable),
+                        renderer,
+                        &Theme::Dark,
+                        &renderer::Style {
+                            text_color: Color::WHITE,
+                        },
+                        clipboard,
+                        debug,
+                    );
 
                     match surface.get_current_texture() {
                         Ok(frame) => {
