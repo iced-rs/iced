@@ -6,18 +6,23 @@ use iced_widget::core;
 use iced_widget::runtime;
 use iced_widget::runtime::futures;
 
-use crate::core::Element;
+mod executor;
+
 use crate::core::keyboard;
 use crate::core::theme::{self, Base, Theme};
 use crate::core::time::seconds;
 use crate::core::window;
+use crate::core::{Color, Element, Length::Fill};
 use crate::futures::Subscription;
-use crate::futures::futures::channel::oneshot;
 use crate::program::Program;
 use crate::runtime::Task;
-use crate::widget::{bottom_right, container, stack, text, themer};
+use crate::widget::{
+    bottom_right, button, center, column, container, horizontal_space, row,
+    scrollable, stack, text, themer,
+};
 
 use std::fmt;
+use std::io;
 use std::thread;
 
 pub fn attach(program: impl Program + 'static) -> impl Program {
@@ -30,7 +35,7 @@ pub fn attach(program: impl Program + 'static) -> impl Program {
         P: Program + 'static,
     {
         type State = DevTools<P>;
-        type Message = Message<P>;
+        type Message = Event<P>;
         type Theme = P::Theme;
         type Renderer = P::Renderer;
         type Executor = P::Executor;
@@ -43,7 +48,13 @@ pub fn attach(program: impl Program + 'static) -> impl Program {
             let (state, boot) = self.program.boot();
             let (devtools, task) = DevTools::new(state);
 
-            (devtools, Task::batch([boot.map(Message::Program), task]))
+            (
+                devtools,
+                Task::batch([
+                    boot.map(Event::Program),
+                    task.map(Event::Message),
+                ]),
+            )
         }
 
         fn update(
@@ -102,32 +113,46 @@ where
     P: Program,
 {
     state: P::State,
+    mode: Mode,
     show_notification: bool,
+}
+
+#[derive(Debug, Clone)]
+enum Message {
+    HideNotification,
+    ToggleComet,
+    InstallComet,
+    InstallationLogged(String),
+    InstallationFinished,
+    CancelSetup,
+}
+
+enum Mode {
+    None,
+    Setup(Setup),
+}
+
+enum Setup {
+    Idle,
+    Running { logs: Vec<String> },
 }
 
 impl<P> DevTools<P>
 where
     P: Program + 'static,
 {
-    pub fn new(state: P::State) -> (Self, Task<Message<P>>) {
+    pub fn new(state: P::State) -> (Self, Task<Message>) {
         (
             Self {
                 state,
+                mode: Mode::None,
                 show_notification: true,
             },
-            Task::perform(
-                async move {
-                    let (sender, receiver) = oneshot::channel();
-
-                    let _ = thread::spawn(|| {
-                        thread::sleep(seconds(2));
-                        let _ = sender.send(());
-                    });
-
-                    let _ = receiver.await;
-                },
-                |_| Message::HideNotification,
-            ),
+            executor::spawn_blocking(|mut sender| {
+                thread::sleep(seconds(2));
+                let _ = sender.try_send(());
+            })
+            .map(|_| Message::HideNotification),
         )
     }
 
@@ -135,25 +160,96 @@ where
         program.title(&self.state, window)
     }
 
-    pub fn update(
-        &mut self,
-        program: &P,
-        message: Message<P>,
-    ) -> Task<Message<P>> {
-        match message {
-            Message::HideNotification => {
-                self.show_notification = false;
+    pub fn update(&mut self, program: &P, event: Event<P>) -> Task<Event<P>> {
+        match event {
+            Event::Message(message) => match message {
+                Message::HideNotification => {
+                    self.show_notification = false;
 
-                Task::none()
-            }
-            Message::ToggleComet => {
-                debug::toggle_comet();
+                    Task::none()
+                }
+                Message::ToggleComet => {
+                    if let Mode::Setup(setup) = &self.mode {
+                        if matches!(setup, Setup::Idle) {
+                            self.mode = Mode::None;
+                        }
+                    } else if let Err(error) = debug::toggle_comet() {
+                        if error.kind() == io::ErrorKind::NotFound {
+                            self.mode = Mode::Setup(Setup::Idle);
+                        }
+                    }
 
-                Task::none()
+                    Task::none()
+                }
+                Message::InstallComet => {
+                    self.mode =
+                        Mode::Setup(Setup::Running { logs: Vec::new() });
+
+                    executor::spawn_blocking(|mut sender| {
+                        use std::io::{BufRead, BufReader};
+                        use std::process::{Command, Stdio};
+
+                        let Ok(install) = Command::new("cargo")
+                            .args([
+                                "install",
+                                "--locked",
+                                "--git",
+                                "https://github.com/iced-rs/comet.git",
+                            ])
+                            .stdin(Stdio::null())
+                            .stdout(Stdio::null())
+                            .stderr(Stdio::piped())
+                            .spawn()
+                        else {
+                            return;
+                        };
+
+                        let mut stderr = BufReader::new(
+                            install.stderr.expect("stderr must be piped"),
+                        );
+
+                        let mut log = String::new();
+
+                        while let Ok(n) = stderr.read_line(&mut log) {
+                            if n == 0 {
+                                break;
+                            }
+
+                            let _ = sender.try_send(
+                                Message::InstallationLogged(log.clone()),
+                            );
+
+                            log.clear();
+                        }
+
+                        let _ = sender.try_send(Message::InstallationFinished);
+                    })
+                    .map(Event::Message)
+                }
+                Message::InstallationLogged(log) => {
+                    if let Mode::Setup(Setup::Running { logs }) = &mut self.mode
+                    {
+                        logs.push(log);
+                    }
+
+                    Task::none()
+                }
+                Message::InstallationFinished => {
+                    self.mode = Mode::None;
+
+                    let _ = debug::toggle_comet();
+
+                    Task::none()
+                }
+                Message::CancelSetup => {
+                    self.mode = Mode::None;
+
+                    Task::none()
+                }
+            },
+            Event::Program(message) => {
+                program.update(&mut self.state, message).map(Event::Program)
             }
-            Message::Program(message) => program
-                .update(&mut self.state, message)
-                .map(Message::Program),
         }
     }
 
@@ -161,30 +257,118 @@ where
         &self,
         program: &P,
         window: window::Id,
-    ) -> Element<'_, Message<P>, P::Theme, P::Renderer> {
-        let view = program.view(&self.state, window).map(Message::Program);
+    ) -> Element<'_, Event<P>, P::Theme, P::Renderer> {
+        let view = program.view(&self.state, window).map(Event::Program);
         let theme = program.theme(&self.state, window);
 
-        let notification = themer(
+        let derive_theme = move || {
             theme
                 .palette()
                 .map(|palette| Theme::custom("DevTools".to_owned(), palette))
-                .unwrap_or_default(),
-            bottom_right(
-                container(text("Press F12 to open debug metrics"))
-                    .padding(10)
-                    .style(container::dark),
-            ),
-        );
+                .unwrap_or_default()
+        };
+
+        let mode = match &self.mode {
+            Mode::None => None,
+            Mode::Setup(setup) => {
+                let stage: Element<'_, _, Theme, P::Renderer> = match setup {
+                    Setup::Idle => {
+                        let controls = row![
+                            button(text("Cancel").center().width(Fill))
+                                .width(100)
+                                .on_press(Message::CancelSetup)
+                                .style(button::danger),
+                            horizontal_space(),
+                            button(text("Install").center().width(Fill))
+                                .width(100)
+                                .on_press(Message::InstallComet)
+                                .style(button::success),
+                        ];
+
+                        column![
+                            text("comet is not installed!").size(20),
+                            "In order to display performance metrics, the \
+                            comet debugger must be installed in your system.",
+                            "The comet debugger is an official companion tool \
+                            that helps you debug your iced applications.",
+                            "Do you wish to install it with the following \
+                            command?",
+                            container(
+                                text(
+                                    "cargo install --locked \
+                                    --git https://github.com/iced-rs/comet.git"
+                                )
+                                .size(14)
+                            )
+                            .width(Fill)
+                            .padding(5)
+                            .style(container::dark),
+                            controls,
+                        ]
+                        .spacing(20)
+                        .into()
+                    }
+                    Setup::Running { logs } => column![
+                        text("Installing comet...").size(20),
+                        container(
+                            scrollable(
+                                column(
+                                    logs.iter()
+                                        .map(|log| text(log).size(12).into()),
+                                )
+                                .spacing(3),
+                            )
+                            .spacing(10)
+                            .width(Fill)
+                            .height(300)
+                            .anchor_bottom(),
+                        )
+                        .padding(10)
+                        .style(container::dark)
+                    ]
+                    .spacing(20)
+                    .into(),
+                };
+
+                let setup = center(
+                    container(stage)
+                        .padding(20)
+                        .width(500)
+                        .style(container::bordered_box),
+                )
+                .padding(10)
+                .style(|_theme| {
+                    container::Style::default()
+                        .background(Color::BLACK.scale_alpha(0.8))
+                });
+
+                Some(setup)
+            }
+        }
+        .map(|mode| {
+            themer(derive_theme(), Element::from(mode).map(Event::Message))
+        });
+
+        let notification = self.show_notification.then(|| {
+            themer(
+                derive_theme(),
+                bottom_right(
+                    container(text("Press F12 to open debug metrics"))
+                        .padding(10)
+                        .style(container::dark),
+                ),
+            )
+        });
 
         stack![view]
-            .push_maybe(self.show_notification.then_some(notification))
+            .push_maybe(mode)
+            .push_maybe(notification)
             .into()
     }
 
-    pub fn subscription(&self, program: &P) -> Subscription<Message<P>> {
+    pub fn subscription(&self, program: &P) -> Subscription<Event<P>> {
         let subscription =
-            program.subscription(&self.state).map(Message::Program);
+            program.subscription(&self.state).map(Event::Program);
 
         let hotkeys =
             futures::keyboard::on_key_press(|key, _modifiers| match key {
@@ -192,7 +376,8 @@ where
                     Some(Message::ToggleComet)
                 }
                 _ => None,
-            });
+            })
+            .map(Event::Message);
 
         Subscription::batch([subscription, hotkeys])
     }
@@ -210,27 +395,22 @@ where
     }
 }
 
-#[derive(Clone)]
-enum Message<P>
+enum Event<P>
 where
     P: Program,
 {
-    HideNotification,
-    ToggleComet,
+    Message(Message),
     Program(P::Message),
 }
 
-impl<P> fmt::Debug for Message<P>
+impl<P> fmt::Debug for Event<P>
 where
     P: Program,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Message::HideNotification => {
-                f.write_str("DevTools(HideNotification)")
-            }
-            Message::ToggleComet => f.write_str("DevTools(ToggleComet)"),
-            Message::Program(message) => message.fmt(f),
+            Self::Message(message) => message.fmt(f),
+            Self::Program(message) => message.fmt(f),
         }
     }
 }

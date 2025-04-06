@@ -5,12 +5,14 @@ use crate::core::window;
 
 pub use internal::Span;
 
+use std::io;
+
 pub fn init(name: &str) {
     internal::init(name);
 }
 
-pub fn toggle_comet() {
-    internal::toggle_comet();
+pub fn toggle_comet() -> Result<(), io::Error> {
+    internal::toggle_comet()
 }
 
 pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
@@ -72,6 +74,7 @@ mod internal {
     use beacon::client::{self, Client};
     use beacon::span;
 
+    use std::io;
     use std::process;
     use std::sync::atomic::{self, AtomicBool};
     use std::sync::{LazyLock, RwLock};
@@ -82,21 +85,25 @@ mod internal {
         name.clone_into(&mut NAME.write().expect("Write application name"));
     }
 
-    pub fn toggle_comet() {
+    pub fn toggle_comet() -> Result<(), io::Error> {
         if BEACON.is_connected() {
             BEACON.quit();
+
+            Ok(())
         } else {
             let _ = process::Command::new("iced_comet")
                 .stdin(process::Stdio::null())
                 .stdout(process::Stdio::null())
                 .stderr(process::Stdio::null())
-                .spawn();
+                .spawn()?;
 
             if let Some(palette) =
                 LAST_PALETTE.read().expect("Read last palette").as_ref()
             {
                 BEACON.log(client::Event::ThemeChanged(*palette));
             }
+
+            Ok(())
         }
     }
 
@@ -209,9 +216,13 @@ mod internal {
     use crate::core::theme;
     use crate::core::window;
 
+    use std::io;
+
     pub fn init(_name: &str) {}
 
-    pub fn toggle_comet() {}
+    pub fn toggle_comet() -> Result<(), io::Error> {
+        Ok(())
+    }
 
     pub fn theme_changed(_f: impl FnOnce() -> Option<theme::Palette>) {}
 
