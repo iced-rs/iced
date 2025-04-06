@@ -35,11 +35,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
         Loading,
         Ready {
             window: Arc<winit::window::Window>,
-            device: wgpu::Device,
             queue: wgpu::Queue,
+            device: wgpu::Device,
             surface: wgpu::Surface<'static>,
             format: wgpu::TextureFormat,
-            engine: Engine,
             renderer: Renderer,
             scene: Scene,
             state: program::State<Controls>,
@@ -145,14 +144,18 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                 // Initialize iced
                 let mut debug = Debug::new();
-                let engine =
-                    Engine::new(&adapter, &device, &queue, format, None);
-                let mut renderer = Renderer::new(
-                    &device,
-                    &engine,
-                    Font::default(),
-                    Pixels::from(16),
-                );
+
+                let mut renderer = {
+                    let engine = Engine::new(
+                        &adapter,
+                        device.clone(),
+                        queue.clone(),
+                        format,
+                        None,
+                    );
+
+                    Renderer::new(engine, Font::default(), Pixels::from(16))
+                };
 
                 let state = program::State::new(
                     controls,
@@ -168,10 +171,9 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     window,
                     device,
                     queue,
+                    renderer,
                     surface,
                     format,
-                    engine,
-                    renderer,
                     scene,
                     state,
                     cursor_position: None,
@@ -196,7 +198,6 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 queue,
                 surface,
                 format,
-                engine,
                 renderer,
                 scene,
                 state,
@@ -240,18 +241,18 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                     match surface.get_current_texture() {
                         Ok(frame) => {
-                            let mut encoder = device.create_command_encoder(
-                                &wgpu::CommandEncoderDescriptor { label: None },
-                            );
-
                             let program = state.program();
 
                             let view = frame.texture.create_view(
                                 &wgpu::TextureViewDescriptor::default(),
                             );
 
+                            let mut encoder = device.create_command_encoder(
+                                &wgpu::CommandEncoderDescriptor { label: None },
+                            );
+
                             {
-                                // We clear the frame
+                                // Clear the frame
                                 let mut render_pass = Scene::clear(
                                     &view,
                                     &mut encoder,
@@ -262,12 +263,11 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 scene.draw(&mut render_pass);
                             }
 
-                            // And then iced on top
+                            // Submit the scene
+                            queue.submit([encoder.finish()]);
+
+                            // Draw iced on top
                             renderer.present(
-                                engine,
-                                device,
-                                queue,
-                                &mut encoder,
                                 None,
                                 frame.texture.format(),
                                 &view,
@@ -275,8 +275,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 &debug.overlay(),
                             );
 
-                            // Then we submit the work
-                            engine.submit(queue, encoder);
+                            // Present the frame
                             frame.present();
 
                             // Update the mouse cursor

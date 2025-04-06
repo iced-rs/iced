@@ -60,6 +60,7 @@ pub use settings::Settings;
 #[cfg(feature = "geometry")]
 pub use geometry::Geometry;
 
+use crate::core::renderer;
 use crate::core::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
     Vector,
@@ -73,23 +74,30 @@ use crate::graphics::text::{Editor, Paragraph};
 /// [`iced`]: https://github.com/iced-rs/iced
 #[allow(missing_debug_implementations)]
 pub struct Renderer {
+    engine: Engine,
+
     default_font: Font,
     default_text_size: Pixels,
     layers: layer::Stack,
 
-    triangle_storage: triangle::Storage,
-    text_storage: text::Storage,
+    quad: quad::State,
+    triangle: triangle::State,
+    text: text::State,
     text_viewport: text::Viewport,
+
+    #[cfg(any(feature = "svg", feature = "image"))]
+    image: image::State,
 
     // TODO: Centralize all the image feature handling
     #[cfg(any(feature = "svg", feature = "image"))]
     image_cache: std::cell::RefCell<image::Cache>,
+
+    staging_belt: wgpu::util::StagingBelt,
 }
 
 impl Renderer {
     pub fn new(
-        device: &wgpu::Device,
-        engine: &Engine,
+        engine: Engine,
         default_font: Font,
         default_text_size: Pixels,
     ) -> Self {
@@ -98,52 +106,209 @@ impl Renderer {
             default_text_size,
             layers: layer::Stack::new(),
 
-            triangle_storage: triangle::Storage::new(),
-            text_storage: text::Storage::new(),
-            text_viewport: engine.text_pipeline.create_viewport(device),
+            quad: quad::State::new(),
+            triangle: triangle::State::new(
+                &engine.device,
+                &engine.triangle_pipeline,
+            ),
+            text: text::State::new(),
+            text_viewport: engine.text_pipeline.create_viewport(&engine.device),
+
+            #[cfg(any(feature = "svg", feature = "image"))]
+            image: image::State::new(),
 
             #[cfg(any(feature = "svg", feature = "image"))]
             image_cache: std::cell::RefCell::new(
-                engine.create_image_cache(device),
+                engine.create_image_cache(&engine.device),
             ),
+
+            // TODO: Resize belt smartly (?)
+            // It would be great if the `StagingBelt` API exposed methods
+            // for introspection to detect when a resize may be worth it.
+            staging_belt: wgpu::util::StagingBelt::new(
+                buffer::MAX_WRITE_SIZE as u64,
+            ),
+
+            engine,
         }
+    }
+
+    fn draw(
+        &mut self,
+        clear_color: Option<Color>,
+        target: &wgpu::TextureView,
+        viewport: &Viewport,
+    ) -> wgpu::CommandEncoder {
+        let mut encoder = self.engine.device.create_command_encoder(
+            &wgpu::CommandEncoderDescriptor {
+                label: Some("iced_wgpu encoder"),
+            },
+        );
+
+        self.prepare(&mut encoder, viewport);
+        self.render(&mut encoder, target, clear_color, viewport);
+
+        self.quad.trim();
+        self.triangle.trim();
+        self.text.trim();
+
+        // TODO: Move to runtime!
+        self.engine.text_pipeline.trim();
+
+        #[cfg(any(feature = "svg", feature = "image"))]
+        {
+            self.image.trim();
+            self.image_cache.borrow_mut().trim();
+        }
+
+        encoder
     }
 
     pub fn present<T: AsRef<str>>(
         &mut self,
-        engine: &mut Engine,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        encoder: &mut wgpu::CommandEncoder,
         clear_color: Option<Color>,
-        format: wgpu::TextureFormat,
+        _format: wgpu::TextureFormat,
         frame: &wgpu::TextureView,
         viewport: &Viewport,
         overlay: &[T],
-    ) {
+    ) -> wgpu::SubmissionIndex {
         self.draw_overlay(overlay, viewport);
-        self.prepare(engine, device, queue, format, encoder, viewport);
-        self.render(engine, encoder, frame, clear_color, viewport);
 
-        self.triangle_storage.trim();
-        self.text_storage.trim();
+        let encoder = self.draw(clear_color, frame, viewport);
 
-        #[cfg(any(feature = "svg", feature = "image"))]
-        self.image_cache.borrow_mut().trim();
+        self.staging_belt.finish();
+        let submission = self.engine.queue.submit([encoder.finish()]);
+        self.staging_belt.recall();
+        submission
+    }
+
+    /// Renders the current surface to an offscreen buffer.
+    ///
+    /// Returns RGBA bytes of the texture data.
+    pub fn screenshot(
+        &mut self,
+        viewport: &Viewport,
+        background_color: Color,
+    ) -> Vec<u8> {
+        #[derive(Clone, Copy, Debug)]
+        struct BufferDimensions {
+            width: u32,
+            height: u32,
+            unpadded_bytes_per_row: usize,
+            padded_bytes_per_row: usize,
+        }
+
+        impl BufferDimensions {
+            fn new(size: Size<u32>) -> Self {
+                let unpadded_bytes_per_row = size.width as usize * 4; //slice of buffer per row; always RGBA
+                let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize; //256
+                let padded_bytes_per_row_padding = (alignment
+                    - unpadded_bytes_per_row % alignment)
+                    % alignment;
+                let padded_bytes_per_row =
+                    unpadded_bytes_per_row + padded_bytes_per_row_padding;
+
+                Self {
+                    width: size.width,
+                    height: size.height,
+                    unpadded_bytes_per_row,
+                    padded_bytes_per_row,
+                }
+            }
+        }
+
+        let dimensions = BufferDimensions::new(viewport.physical_size());
+
+        let texture_extent = wgpu::Extent3d {
+            width: dimensions.width,
+            height: dimensions.height,
+            depth_or_array_layers: 1,
+        };
+
+        let texture =
+            self.engine.device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("iced_wgpu.offscreen.source_texture"),
+                size: texture_extent,
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: self.engine.format,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::COPY_SRC
+                    | wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            });
+
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self.draw(Some(background_color), &view, viewport);
+
+        let texture = crate::color::convert(
+            &self.engine.device,
+            &mut encoder,
+            texture,
+            if graphics::color::GAMMA_CORRECTION {
+                wgpu::TextureFormat::Rgba8UnormSrgb
+            } else {
+                wgpu::TextureFormat::Rgba8Unorm
+            },
+        );
+
+        let output_buffer =
+            self.engine.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("iced_wgpu.offscreen.output_texture_buffer"),
+                size: (dimensions.padded_bytes_per_row
+                    * dimensions.height as usize) as u64,
+                usage: wgpu::BufferUsages::MAP_READ
+                    | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+
+        encoder.copy_texture_to_buffer(
+            texture.as_image_copy(),
+            wgpu::TexelCopyBufferInfo {
+                buffer: &output_buffer,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(dimensions.padded_bytes_per_row as u32),
+                    rows_per_image: None,
+                },
+            },
+            texture_extent,
+        );
+
+        self.staging_belt.finish();
+        let index = self.engine.queue.submit([encoder.finish()]);
+        self.staging_belt.recall();
+
+        let slice = output_buffer.slice(..);
+        slice.map_async(wgpu::MapMode::Read, |_| {});
+
+        let _ = self
+            .engine
+            .device
+            .poll(wgpu::Maintain::WaitForSubmissionIndex(index));
+
+        let mapped_buffer = slice.get_mapped_range();
+
+        mapped_buffer.chunks(dimensions.padded_bytes_per_row).fold(
+            vec![],
+            |mut acc, row| {
+                acc.extend(&row[..dimensions.unpadded_bytes_per_row]);
+                acc
+            },
+        )
     }
 
     fn prepare(
         &mut self,
-        engine: &mut Engine,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        _format: wgpu::TextureFormat,
         encoder: &mut wgpu::CommandEncoder,
         viewport: &Viewport,
     ) {
         let scale_factor = viewport.scale_factor() as f32;
 
-        self.text_viewport.update(queue, viewport.physical_size());
+        self.text_viewport
+            .update(&self.engine.queue, viewport.physical_size());
 
         let physical_bounds = Rectangle::<f32>::from(Rectangle::with_size(
             viewport.physical_size(),
@@ -159,10 +324,11 @@ impl Renderer {
             }
 
             if !layer.quads.is_empty() {
-                engine.quad_pipeline.prepare(
-                    device,
+                self.quad.prepare(
+                    &self.engine.quad_pipeline,
+                    &self.engine.device,
+                    &mut self.staging_belt,
                     encoder,
-                    &mut engine.staging_belt,
                     &layer.quads,
                     viewport.projection(),
                     scale_factor,
@@ -170,11 +336,11 @@ impl Renderer {
             }
 
             if !layer.triangles.is_empty() {
-                engine.triangle_pipeline.prepare(
-                    device,
+                self.triangle.prepare(
+                    &self.engine.triangle_pipeline,
+                    &self.engine.device,
+                    &mut self.staging_belt,
                     encoder,
-                    &mut engine.staging_belt,
-                    &mut self.triangle_storage,
                     &layer.triangles,
                     Transformation::scale(scale_factor),
                     viewport.physical_size(),
@@ -182,12 +348,18 @@ impl Renderer {
             }
 
             if !layer.primitives.is_empty() {
+                let mut primitive_storage = self
+                    .engine
+                    .primitive_storage
+                    .write()
+                    .expect("Write primitive storage");
+
                 for instance in &layer.primitives {
                     instance.primitive.prepare(
-                        device,
-                        queue,
-                        engine.format,
-                        &mut engine.primitive_storage,
+                        &self.engine.device,
+                        &self.engine.queue,
+                        self.engine.format,
+                        &mut primitive_storage,
                         &instance.bounds,
                         viewport,
                     );
@@ -196,10 +368,11 @@ impl Renderer {
 
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
-                engine.image_pipeline.prepare(
-                    device,
+                self.image.prepare(
+                    &self.engine.image_pipeline,
+                    &self.engine.device,
+                    &mut self.staging_belt,
                     encoder,
-                    &mut engine.staging_belt,
                     &mut self.image_cache.borrow_mut(),
                     &layer.images,
                     viewport.projection(),
@@ -208,12 +381,12 @@ impl Renderer {
             }
 
             if !layer.text.is_empty() {
-                engine.text_pipeline.prepare(
-                    device,
-                    queue,
+                self.text.prepare(
+                    &self.engine.text_pipeline,
+                    &self.engine.device,
+                    &self.engine.queue,
                     &self.text_viewport,
                     encoder,
-                    &mut self.text_storage,
                     &layer.text,
                     layer.bounds,
                     Transformation::scale(scale_factor),
@@ -224,7 +397,6 @@ impl Renderer {
 
     fn render(
         &mut self,
-        engine: &mut Engine,
         encoder: &mut wgpu::CommandEncoder,
         frame: &wgpu::TextureView,
         clear_color: Option<Color>,
@@ -291,7 +463,8 @@ impl Renderer {
             };
 
             if !layer.quads.is_empty() {
-                engine.quad_pipeline.render(
+                self.quad.render(
+                    &self.engine.quad_pipeline,
                     quad_layer,
                     scissor_rect,
                     &layer.quads,
@@ -304,10 +477,10 @@ impl Renderer {
             if !layer.triangles.is_empty() {
                 let _ = ManuallyDrop::into_inner(render_pass);
 
-                mesh_layer += engine.triangle_pipeline.render(
+                mesh_layer += self.triangle.render(
+                    &self.engine.triangle_pipeline,
                     encoder,
                     frame,
-                    &self.triangle_storage,
                     mesh_layer,
                     &layer.triangles,
                     physical_bounds,
@@ -337,6 +510,12 @@ impl Renderer {
             if !layer.primitives.is_empty() {
                 let _ = ManuallyDrop::into_inner(render_pass);
 
+                let primitive_storage = self
+                    .engine
+                    .primitive_storage
+                    .read()
+                    .expect("Read primitive storage");
+
                 for instance in &layer.primitives {
                     if let Some(clip_bounds) = (instance.bounds * scale)
                         .intersection(&physical_bounds)
@@ -344,7 +523,7 @@ impl Renderer {
                     {
                         instance.primitive.render(
                             encoder,
-                            &engine.primitive_storage,
+                            &primitive_storage,
                             frame,
                             &clip_bounds,
                         );
@@ -373,7 +552,8 @@ impl Renderer {
 
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
-                engine.image_pipeline.render(
+                self.image.render(
+                    &self.engine.image_pipeline,
                     &image_cache,
                     image_layer,
                     scissor_rect,
@@ -384,9 +564,9 @@ impl Renderer {
             }
 
             if !layer.text.is_empty() {
-                text_layer += engine.text_pipeline.render(
+                text_layer += self.text.render(
+                    &self.engine.text_pipeline,
                     &self.text_viewport,
-                    &self.text_storage,
                     text_layer,
                     &layer.text,
                     scissor_rect,
@@ -629,4 +809,77 @@ impl primitive::Renderer for Renderer {
 
 impl graphics::compositor::Default for crate::Renderer {
     type Compositor = window::Compositor;
+}
+
+impl renderer::Headless for Renderer {
+    async fn new(
+        default_font: Font,
+        default_text_size: Pixels,
+        backend: Option<&str>,
+    ) -> Option<Self> {
+        if backend.is_some_and(|backend| backend != "wgpu") {
+            return None;
+        }
+
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::from_env()
+                .unwrap_or(wgpu::Backends::PRIMARY),
+            flags: wgpu::InstanceFlags::empty(),
+            ..wgpu::InstanceDescriptor::default()
+        });
+
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                force_fallback_adapter: false,
+                compatible_surface: None,
+            })
+            .await?;
+
+        let (device, queue) = adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    label: Some("iced_wgpu [headless]"),
+                    required_features: wgpu::Features::empty(),
+                    required_limits: wgpu::Limits {
+                        max_bind_groups: 2,
+                        ..wgpu::Limits::default()
+                    },
+                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+                },
+                None,
+            )
+            .await
+            .ok()?;
+
+        let engine = Engine::new(
+            &adapter,
+            device,
+            queue,
+            if graphics::color::GAMMA_CORRECTION {
+                wgpu::TextureFormat::Rgba8UnormSrgb
+            } else {
+                wgpu::TextureFormat::Rgba8Unorm
+            },
+            Some(graphics::Antialiasing::MSAAx4),
+        );
+
+        Some(Self::new(engine, default_font, default_text_size))
+    }
+
+    fn name(&self) -> String {
+        "wgpu".to_owned()
+    }
+
+    fn screenshot(
+        &mut self,
+        size: Size<u32>,
+        scale_factor: f32,
+        background_color: Color,
+    ) -> Vec<u8> {
+        self.screenshot(
+            &Viewport::with_physical_size(size, f64::from(scale_factor)),
+            background_color,
+        )
+    }
 }

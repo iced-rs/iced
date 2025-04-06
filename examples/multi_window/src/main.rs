@@ -1,6 +1,6 @@
 use iced::widget::{
-    button, center, center_x, column, horizontal_space, scrollable, text,
-    text_input,
+    button, center, center_x, column, container, horizontal_space, scrollable,
+    text, text_input,
 };
 use iced::window;
 use iced::{
@@ -188,13 +188,12 @@ impl Window {
         let new_window_button =
             button(text("New Window")).on_press(Message::OpenWindow);
 
-        let content = scrollable(
-            column![scale_input, title_input, new_window_button]
-                .spacing(50)
-                .width(Fill)
-                .align_x(Center),
-        );
+        let content = column![scale_input, title_input, new_window_button]
+            .spacing(50)
+            .width(Fill)
+            .align_x(Center)
+            .width(200);
 
-        center_x(content).width(200).into()
+        container(scrollable(center_x(content))).padding(10).into()
     }
 }

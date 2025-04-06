@@ -51,7 +51,7 @@ impl Layer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
 }

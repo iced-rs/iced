@@ -80,16 +80,15 @@ fn benchmark<'a>(
 
     let format = wgpu::TextureFormat::Bgra8UnormSrgb;
 
-    let mut engine = iced_wgpu::Engine::new(
+    let engine = iced_wgpu::Engine::new(
         adapter,
-        device,
-        queue,
+        device.clone(),
+        queue.clone(),
         format,
         Some(Antialiasing::MSAAx4),
     );
 
-    let mut renderer =
-        Renderer::new(device, &engine, Font::DEFAULT, Pixels::from(16));
+    let mut renderer = Renderer::new(engine, Font::DEFAULT, Pixels::from(16));
 
     let viewport =
         graphics::Viewport::with_physical_size(Size::new(3840, 2160), 2.0);
@@ -134,16 +133,7 @@ fn benchmark<'a>(
 
         cache = Some(user_interface.into_cache());
 
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: None,
-            });
-
-        renderer.present::<&str>(
-            &mut engine,
-            device,
-            queue,
-            &mut encoder,
+        let submission = renderer.present::<&str>(
             Some(Color::BLACK),
             format,
             &texture_view,
@@ -151,7 +141,6 @@ fn benchmark<'a>(
             &[],
         );
 
-        let submission = engine.submit(queue, encoder);
         let _ = device.poll(wgpu::Maintain::WaitForSubmissionIndex(submission));
 
         i += 1;

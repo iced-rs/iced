@@ -386,9 +386,11 @@ where
             renderer,
             &layout::Limits::new(
                 Size::ZERO,
-                self.snap_within_viewport
-                    .then(|| viewport.size())
-                    .unwrap_or(Size::INFINITY),
+                if self.snap_within_viewport {
+                    viewport.size()
+                } else {
+                    Size::INFINITY
+                },
             )
             .shrink(Padding::new(self.padding)),
         );

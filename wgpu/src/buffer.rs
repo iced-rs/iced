@@ -4,9 +4,8 @@ use std::ops::RangeBounds;
 
 pub const MAX_WRITE_SIZE: usize = 100 * 1024;
 
-#[allow(unsafe_code)]
-const MAX_WRITE_SIZE_U64: NonZeroU64 =
-    unsafe { NonZeroU64::new_unchecked(MAX_WRITE_SIZE as u64) };
+const MAX_WRITE_SIZE_U64: NonZeroU64 = NonZeroU64::new(MAX_WRITE_SIZE as u64)
+    .expect("MAX_WRITE_SIZE must be non-zero");
 
 #[derive(Debug)]
 pub struct Buffer<T> {

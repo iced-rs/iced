@@ -1,5 +1,5 @@
 //! Connect a window with a renderer.
-use crate::core::{Color, Size};
+use crate::core::Color;
 use crate::graphics::color;
 use crate::graphics::compositor;
 use crate::graphics::error;
@@ -12,8 +12,6 @@ use crate::{Engine, Renderer};
 pub struct Compositor {
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
     format: wgpu::TextureFormat,
     alpha_mode: wgpu::CompositeAlphaMode,
     engine: Engine,
@@ -178,8 +176,8 @@ impl Compositor {
                 Ok((device, queue)) => {
                     let engine = Engine::new(
                         &adapter,
-                        &device,
-                        &queue,
+                        device,
+                        queue,
                         format,
                         settings.antialiasing,
                     );
@@ -187,8 +185,6 @@ impl Compositor {
                     return Ok(Compositor {
                         instance,
                         adapter,
-                        device,
-                        queue,
                         format,
                         alpha_mode,
                         engine,
@@ -215,7 +211,6 @@ pub async fn new<W: compositor::Window>(
 
 /// Presents the given primitives with the given [`Compositor`].
 pub fn present<T: AsRef<str>>(
-    compositor: &mut Compositor,
     renderer: &mut Renderer,
     surface: &mut wgpu::Surface<'static>,
     viewport: &Viewport,
@@ -225,29 +220,17 @@ pub fn present<T: AsRef<str>>(
 ) -> Result<(), compositor::SurfaceError> {
     match surface.get_current_texture() {
         Ok(frame) => {
-            let mut encoder = compositor.device.create_command_encoder(
-                &wgpu::CommandEncoderDescriptor {
-                    label: Some("iced_wgpu encoder"),
-                },
-            );
-
             let view = &frame
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
 
-            renderer.present(
-                &mut compositor.engine,
-                &compositor.device,
-                &compositor.queue,
-                &mut encoder,
+            let _submission = renderer.present(
                 Some(background_color),
                 frame.texture.format(),
                 view,
                 viewport,
                 overlay,
             );
-
-            let _ = compositor.engine.submit(&compositor.queue, encoder);
 
             // Present the frame
             on_pre_present();
@@ -305,8 +288,7 @@ impl graphics::Compositor for Compositor {
 
     fn create_renderer(&self) -> Self::Renderer {
         Renderer::new(
-            &self.device,
-            &self.engine,
+            self.engine.clone(),
             self.settings.default_font,
             self.settings.default_text_size,
         )
@@ -337,7 +319,7 @@ impl graphics::Compositor for Compositor {
         height: u32,
     ) {
         surface.configure(
-            &self.device,
+            &self.engine.device,
             &wgpu::SurfaceConfiguration {
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
                 format: self.format,
@@ -370,7 +352,6 @@ impl graphics::Compositor for Compositor {
         on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
         present(
-            self,
             renderer,
             surface,
             viewport,
@@ -380,143 +361,12 @@ impl graphics::Compositor for Compositor {
         )
     }
 
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8> {
-        screenshot(self, renderer, viewport, background_color, overlay)
-    }
-}
-
-/// Renders the current surface to an offscreen buffer.
-///
-/// Returns RGBA bytes of the texture data.
-pub fn screenshot<T: AsRef<str>>(
-    compositor: &mut Compositor,
-    renderer: &mut Renderer,
-    viewport: &Viewport,
-    background_color: Color,
-    overlay: &[T],
-) -> Vec<u8> {
-    let dimensions = BufferDimensions::new(viewport.physical_size());
-
-    let texture_extent = wgpu::Extent3d {
-        width: dimensions.width,
-        height: dimensions.height,
-        depth_or_array_layers: 1,
-    };
-
-    let texture = compositor.device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("iced_wgpu.offscreen.source_texture"),
-        size: texture_extent,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: compositor.format,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-            | wgpu::TextureUsages::COPY_SRC
-            | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[],
-    });
-
-    let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-    let mut encoder = compositor.device.create_command_encoder(
-        &wgpu::CommandEncoderDescriptor {
-            label: Some("iced_wgpu.offscreen.encoder"),
-        },
-    );
-
-    renderer.present(
-        &mut compositor.engine,
-        &compositor.device,
-        &compositor.queue,
-        &mut encoder,
-        Some(background_color),
-        texture.format(),
-        &view,
-        viewport,
-        overlay,
-    );
-
-    let texture = crate::color::convert(
-        &compositor.device,
-        &mut encoder,
-        texture,
-        if color::GAMMA_CORRECTION {
-            wgpu::TextureFormat::Rgba8UnormSrgb
-        } else {
-            wgpu::TextureFormat::Rgba8Unorm
-        },
-    );
-
-    let output_buffer =
-        compositor.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("iced_wgpu.offscreen.output_texture_buffer"),
-            size: (dimensions.padded_bytes_per_row * dimensions.height as usize)
-                as u64,
-            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-    encoder.copy_texture_to_buffer(
-        texture.as_image_copy(),
-        wgpu::TexelCopyBufferInfo {
-            buffer: &output_buffer,
-            layout: wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(dimensions.padded_bytes_per_row as u32),
-                rows_per_image: None,
-            },
-        },
-        texture_extent,
-    );
-
-    let index = compositor.engine.submit(&compositor.queue, encoder);
-
-    let slice = output_buffer.slice(..);
-    slice.map_async(wgpu::MapMode::Read, |_| {});
-
-    let _ = compositor
-        .device
-        .poll(wgpu::Maintain::WaitForSubmissionIndex(index));
-
-    let mapped_buffer = slice.get_mapped_range();
-
-    mapped_buffer.chunks(dimensions.padded_bytes_per_row).fold(
-        vec![],
-        |mut acc, row| {
-            acc.extend(&row[..dimensions.unpadded_bytes_per_row]);
-            acc
-        },
-    )
-}
-
-#[derive(Clone, Copy, Debug)]
-struct BufferDimensions {
-    width: u32,
-    height: u32,
-    unpadded_bytes_per_row: usize,
-    padded_bytes_per_row: usize,
-}
-
-impl BufferDimensions {
-    fn new(size: Size<u32>) -> Self {
-        let unpadded_bytes_per_row = size.width as usize * 4; //slice of buffer per row; always RGBA
-        let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize; //256
-        let padded_bytes_per_row_padding =
-            (alignment - unpadded_bytes_per_row % alignment) % alignment;
-        let padded_bytes_per_row =
-            unpadded_bytes_per_row + padded_bytes_per_row_padding;
-
-        Self {
-            width: size.width,
-            height: size.height,
-            unpadded_bytes_per_row,
-            padded_bytes_per_row,
-        }
+        renderer.screenshot(viewport, background_color)
     }
 }

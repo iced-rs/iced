@@ -7,8 +7,10 @@ use crate::futures::futures::future::{self, FutureExt};
 use crate::futures::futures::stream::{self, Stream, StreamExt};
 use crate::futures::{BoxStream, MaybeSend, boxed_stream};
 
+use std::convert::Infallible;
 use std::sync::Arc;
 
+#[cfg(feature = "sipper")]
 #[doc(no_inline)]
 pub use sipper::{Never, Sender, Sipper, Straw, sipper, stream};
 
@@ -60,6 +62,7 @@ impl<T> Task<T> {
 
     /// Creates a [`Task`] that runs the given [`Sipper`] to completion, mapping
     /// progress with the first closure and the output with the second one.
+    #[cfg(feature = "sipper")]
     pub fn sip<S>(
         sipper: S,
         on_progress: impl FnMut(S::Progress) -> T + MaybeSend + 'static,
@@ -391,7 +394,7 @@ where
 }
 
 /// Creates a new [`Task`] that executes the given [`Action`] and produces no output.
-pub fn effect<T>(action: impl Into<Action<Never>>) -> Task<T> {
+pub fn effect<T>(action: impl Into<Action<Infallible>>) -> Task<T> {
     let action = action.into();
 
     Task(Some(boxed_stream(stream::once(async move {
