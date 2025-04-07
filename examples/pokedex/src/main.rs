@@ -33,7 +33,7 @@ impl Pokedex {
         let subtitle = match self {
             Pokedex::Loading => "Loading",
             Pokedex::Loaded { pokemon, .. } => &pokemon.name,
-            Pokedex::Errored { .. } => "Whoops!",
+            Pokedex::Errored => "Whoops!",
         };
 
         format!("{subtitle} - Pokédex")

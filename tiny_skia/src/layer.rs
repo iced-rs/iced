@@ -8,7 +8,7 @@ use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph, Text};
 use crate::graphics::{self, Image};
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub type Stack = layer::Stack<Layer>;
 
@@ -107,7 +107,7 @@ impl Layer {
 
     pub fn draw_text_cache(
         &mut self,
-        text: Rc<[Text]>,
+        text: Arc<[Text]>,
         clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
@@ -163,7 +163,7 @@ impl Layer {
 
     pub fn draw_primitive_cache(
         &mut self,
-        primitives: Rc<[Primitive]>,
+        primitives: Arc<[Primitive]>,
         clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
@@ -242,7 +242,7 @@ impl Layer {
                     Item::Cached(cache_a, bounds_a, transformation_a),
                     Item::Cached(cache_b, bounds_b, transformation_b),
                 ) => {
-                    Rc::ptr_eq(cache_a, cache_b)
+                    Arc::ptr_eq(cache_a, cache_b)
                         && bounds_a == bounds_b
                         && transformation_a == transformation_b
                 }
@@ -304,7 +304,7 @@ impl graphics::Layer for Layer {
 pub enum Item<T> {
     Live(T),
     Group(Vec<T>, Rectangle, Transformation),
-    Cached(Rc<[T]>, Rectangle, Transformation),
+    Cached(Arc<[T]>, Rectangle, Transformation),
 }
 
 impl<T> Item<T> {

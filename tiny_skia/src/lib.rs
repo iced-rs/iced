@@ -407,8 +407,22 @@ impl compositor::Default for Renderer {
 }
 
 impl renderer::Headless for Renderer {
-    fn new(default_font: Font, default_text_size: Pixels) -> Self {
-        Self::new(default_font, default_text_size)
+    async fn new(
+        default_font: Font,
+        default_text_size: Pixels,
+        backend: Option<&str>,
+    ) -> Option<Self> {
+        if backend.is_some_and(|backend| {
+            !["tiny-skia", "tiny_skia"].contains(&backend)
+        }) {
+            return None;
+        }
+
+        Some(Self::new(default_font, default_text_size))
+    }
+
+    fn name(&self) -> String {
+        "tiny-skia".to_owned()
     }
 
     fn screenshot(
@@ -420,11 +434,6 @@ impl renderer::Headless for Renderer {
         let viewport =
             Viewport::with_physical_size(size, f64::from(scale_factor));
 
-        window::compositor::screenshot::<&str>(
-            self,
-            &viewport,
-            background_color,
-            &[],
-        )
+        window::compositor::screenshot(self, &viewport, background_color)
     }
 }

@@ -5,6 +5,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       RUSTFLAGS: --deny warnings
+      ICED_TEST_BACKEND: tiny-skia
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
@@ -22,5 +23,5 @@ jobs:
         sudo apt-get install -y libxkbcommon-dev libgtk-3-dev
     - name: Run tests
       run: |
-        cargo test --verbose --workspace
-        cargo test --verbose --workspace --all-features
+        cargo test --verbose --workspace -- --ignored
+        cargo test --verbose --workspace --all-features -- --ignored

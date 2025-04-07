@@ -117,9 +117,7 @@ impl Download {
 
     pub fn start(&mut self) -> Task<Update> {
         match self.state {
-            State::Idle { .. }
-            | State::Finished { .. }
-            | State::Errored { .. } => {
+            State::Idle | State::Finished | State::Errored => {
                 let (task, handle) = Task::sip(
                     download(
                         "https://huggingface.co/\
@@ -161,10 +159,10 @@ impl Download {
 
     pub fn view(&self) -> Element<Message> {
         let current_progress = match &self.state {
-            State::Idle { .. } => 0.0,
+            State::Idle => 0.0,
             State::Downloading { progress, .. } => *progress,
-            State::Finished { .. } => 100.0,
-            State::Errored { .. } => 0.0,
+            State::Finished => 100.0,
+            State::Errored => 0.0,
         };
 
         let progress_bar = progress_bar(0.0..=100.0, current_progress);

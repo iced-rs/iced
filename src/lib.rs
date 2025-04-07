@@ -29,7 +29,7 @@
 //! # The Pocket Guide
 //! Start by calling [`run`]:
 //!
-//! ```rust,no_run
+//! ```no_run,standalone_crate
 //! pub fn main() -> iced::Result {
 //!     iced::run("A cool counter", update, view)
 //! }
@@ -39,7 +39,7 @@
 //!
 //! Define an `update` function to __change__ your state:
 //!
-//! ```rust
+//! ```standalone_crate
 //! fn update(counter: &mut u64, message: Message) {
 //!     match message {
 //!         Message::Increment => *counter += 1,
@@ -51,7 +51,7 @@
 //!
 //! Define a `view` function to __display__ your state:
 //!
-//! ```rust
+//! ```standalone_crate
 //! use iced::widget::{button, text};
 //! use iced::Element;
 //!
@@ -64,7 +64,7 @@
 //!
 //! And create a `Message` enum to __connect__ `view` and `update` together:
 //!
-//! ```rust
+//! ```standalone_crate
 //! #[derive(Debug, Clone)]
 //! enum Message {
 //!     Increment,
@@ -74,7 +74,7 @@
 //! ## Custom State
 //! You can define your own struct for your state:
 //!
-//! ```rust
+//! ```standalone_crate
 //! #[derive(Default)]
 //! struct Counter {
 //!     value: u64,
@@ -83,7 +83,7 @@
 //!
 //! But you have to change `update` and `view` accordingly:
 //!
-//! ```rust
+//! ```standalone_crate
 //! # struct Counter { value: u64 }
 //! # #[derive(Clone)]
 //! # enum Message { Increment }
@@ -108,7 +108,7 @@
 //!
 //! Widgets are configured using the builder pattern:
 //!
-//! ```rust
+//! ```standalone_crate
 //! # struct Counter { value: u64 }
 //! # #[derive(Clone)]
 //! # enum Message { Increment }
@@ -138,7 +138,7 @@
 //! Building your layout will often consist in using a combination of
 //! [rows], [columns], and [containers]:
 //!
-//! ```rust
+//! ```standalone_crate
 //! # struct State;
 //! # enum Message {}
 //! use iced::widget::{column, container, row};
@@ -181,7 +181,7 @@
 //!
 //! A fixed numeric [`Length`] in [`Pixels`] can also be used:
 //!
-//! ```rust
+//! ```standalone_crate
 //! # struct State;
 //! # enum Message {}
 //! use iced::widget::container;
@@ -197,7 +197,7 @@
 //! function and leveraging the [`Application`] builder, instead of directly
 //! calling [`run`]:
 //!
-//! ```rust,no_run
+//! ```no_run,standalone_crate
 //! # #[derive(Default)]
 //! # struct State;
 //! use iced::Theme;
@@ -227,7 +227,7 @@
 //!
 //! The appearance of a widget can be changed by calling its `style` method:
 //!
-//! ```rust
+//! ```standalone_crate
 //! # struct State;
 //! # enum Message {}
 //! use iced::widget::container;
@@ -241,7 +241,7 @@
 //! The `style` method of a widget takes a closure that, given the current active
 //! [`Theme`], returns the widget style:
 //!
-//! ```rust
+//! ```standalone_crate
 //! # struct State;
 //! # #[derive(Clone)]
 //! # enum Message {}
@@ -286,7 +286,7 @@
 //! A [`Task`] can be leveraged to perform asynchronous work, like running a
 //! future or a stream:
 //!
-//! ```rust
+//! ```standalone_crate
 //! # #[derive(Clone)]
 //! # struct Weather;
 //! use iced::Task;
@@ -334,7 +334,7 @@
 //!
 //! You will need to define a `subscription` function and use the [`Application`] builder:
 //!
-//! ```rust,no_run
+//! ```no_run,standalone_crate
 //! # #[derive(Default)]
 //! # struct State;
 //! use iced::window;
@@ -375,7 +375,7 @@
 //! A common pattern is to leverage this composability to split an
 //! application into different screens:
 //!
-//! ```rust
+//! ```standalone_crate
 //! # mod contacts {
 //! #     use iced::{Element, Task};
 //! #     pub struct Contacts;
@@ -480,6 +480,18 @@ use iced_winit::runtime;
 pub use iced_futures::futures;
 pub use iced_futures::stream;
 
+#[cfg(not(any(
+    target_arch = "wasm32",
+    feature = "thread-pool",
+    feature = "tokio",
+    feature = "smol"
+)))]
+compile_error!(
+    "No futures executor has been enabled! You must enable an \
+    executor feature.\n\
+    Available options: thread-pool, tokio, or smol."
+);
+
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
@@ -519,9 +531,10 @@ pub use alignment::Vertical::{Bottom, Top};
 
 pub mod task {
     //! Create runtime tasks.
-    pub use crate::runtime::task::{
-        Handle, Never, Sipper, Straw, Task, sipper, stream,
-    };
+    pub use crate::runtime::task::{Handle, Task};
+
+    #[cfg(feature = "sipper")]
+    pub use crate::runtime::task::{Never, Sipper, Straw, sipper, stream};
 }
 
 pub mod clipboard {
@@ -534,18 +547,7 @@ pub mod clipboard {
 pub mod executor {
     //! Choose your preferred executor to power your application.
     pub use iced_futures::Executor;
-
-    /// A default cross-platform executor.
-    ///
-    /// - On native platforms, it will use:
-    ///   - `iced_futures::backend::native::tokio` when the `tokio` feature is enabled.
-    ///   - `iced_futures::backend::native::async-std` when the `async-std` feature is
-    ///     enabled.
-    ///   - `iced_futures::backend::native::smol` when the `smol` feature is enabled.
-    ///   - `iced_futures::backend::native::thread_pool` otherwise.
-    ///
-    /// - On Wasm, it will use `iced_futures::backend::wasm::wasm_bindgen`.
-    pub type Default = iced_futures::backend::default::Executor;
+    pub use iced_futures::backend::default::Executor as Default;
 }
 
 pub mod font {
@@ -654,7 +656,7 @@ pub type Result = std::result::Result<(), Error>;
 /// This is equivalent to chaining [`application()`] with [`Application::run`].
 ///
 /// # Example
-/// ```no_run
+/// ```no_run,standalone_crate
 /// use iced::widget::{button, column, text, Column};
 ///
 /// pub fn main() -> iced::Result {

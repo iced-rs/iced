@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "auto-detect-theme"]
+default = ["wgpu", "tiny-skia", "web-colors", "auto-detect-theme", "thread-pool"]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer backend
@@ -43,10 +43,10 @@ markdown = ["iced_widget/markdown"]
 lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
+# Enables the `thread-pool` futures executor as the `executor::Default` on native platforms
+thread-pool = ["iced_futures/thread-pool"]
 # Enables `tokio` as the `executor::Default` on native platforms
 tokio = ["iced_futures/tokio"]
-# Enables `async-std` as the `executor::Default` on native platforms
-async-std = ["iced_futures/async-std"]
 # Enables `smol` as the `executor::Default` on native platforms
 smol = ["iced_futures/smol"]
 # Enables querying system information
@@ -67,11 +67,14 @@ auto-detect-theme = ["iced_core/auto-detect-theme"]
 strict-assertions = ["iced_renderer/strict-assertions"]
 # Redraws on every runtime event, and not only when a widget requests it
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
+# Enables support for the `sipper` library
+sipper = ["iced_runtime/sipper"]
 
 [dependencies]
 iced_core.workspace = true
 iced_futures.workspace = true
 iced_renderer.workspace = true
+iced_runtime.workspace = true
 iced_widget.workspace = true
 iced_winit.features = ["program"]
 iced_winit.workspace = true
@@ -144,13 +147,12 @@ iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
 iced_widget = { version = "0.14.0-dev", path = "widget" }
 iced_winit = { version = "0.14.0-dev", path = "winit" }
 
-async-std = "1.0"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cosmic-text = "0.13"
 dark-light = "2.0"
-futures = "0.3"
+futures = { version = "0.3", default-features = false }
 glam = "0.25"
 cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "be2defe4a13fd7c97c6f4c81e8e085463eb578dc" }
 guillotiere = "0.6"
@@ -164,7 +166,6 @@ lyon = "1.0"
 lyon_path = "1.0"
 num-traits = "0.2"
 ouroboros = "0.18"
-palette = "0.7"
 png = "0.17"
 pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
@@ -173,7 +174,7 @@ resvg = "0.42"
 rustc-hash = "2.0"
 sha2 = "0.10"
 sipper = "0.1"
-smol = "1.0"
+smol = "2"
 smol_str = "0.2"
 softbuffer = "0.4"
 syntect = "5.1"
