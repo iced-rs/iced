@@ -58,10 +58,10 @@ pub trait Renderer: core::Renderer {
     fn draw_primitive(&mut self, bounds: Rectangle, primitive: impl Primitive);
 }
 
-/// Stores custom, user-provided types.
+/// Stores custom, user-provided pipelines.
 #[derive(Default, Debug)]
 pub struct Storage {
-    pipelines: FxHashMap<TypeId, Box<dyn Any + Send + Sync>>,
+    pipelines: FxHashMap<TypeId, Box<dyn AnyPipeline>>,
 }
 
 impl Storage {
@@ -70,26 +70,62 @@ impl Storage {
         self.pipelines.contains_key(&TypeId::of::<T>())
     }
 
-    /// Inserts the data `T` in to [`Storage`].
-    pub fn store<T: 'static + Send + Sync>(&mut self, data: T) {
+    /// Inserts the pipeline `T` in to [`Storage`].
+    pub fn store<T: 'static + Pipeline + Send + Sync>(&mut self, data: T) {
         let _ = self.pipelines.insert(TypeId::of::<T>(), Box::new(data));
     }
 
-    /// Returns a reference to the data with type `T` if it exists in [`Storage`].
+    /// Returns a reference to the pipeline with type `T` if it exists in [`Storage`].
     pub fn get<T: 'static>(&self) -> Option<&T> {
         self.pipelines.get(&TypeId::of::<T>()).map(|pipeline| {
             pipeline
+                .as_any()
                 .downcast_ref::<T>()
                 .expect("Value with this type does not exist in Storage.")
         })
     }
 
-    /// Returns a mutable reference to the data with type `T` if it exists in [`Storage`].
+    /// Returns a mutable reference to the pipeline with type `T` if it exists in [`Storage`].
     pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.pipelines.get_mut(&TypeId::of::<T>()).map(|pipeline| {
             pipeline
+                .as_any_mut()
                 .downcast_mut::<T>()
                 .expect("Value with this type does not exist in Storage.")
         })
+    }
+
+    /// Triggers the `end_frame` method on all pipelines that exist within [`Storage`].
+    pub fn end_frame(&mut self) {
+        self.pipelines.values_mut().for_each(|pipeline| {
+            pipeline.end_frame();
+        });
+    }
+}
+
+/// A pipeline that manages the resources of a shader.
+pub trait Pipeline {
+    /// Called after each frame. Useful for cleaning up unused resources.
+    fn end_frame(&mut self) {}
+}
+
+trait AnyPipeline: Pipeline + Any + Send + Sync {
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+}
+
+impl<T: Pipeline + Any + Send + Sync> AnyPipeline for T {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
+impl Debug for dyn AnyPipeline {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AnyPipeline").finish_non_exhaustive()
     }
 }

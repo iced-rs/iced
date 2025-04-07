@@ -154,6 +154,11 @@ impl Renderer {
 
         // TODO: Move to runtime!
         self.engine.text_pipeline.trim();
+        self.engine
+            .primitive_storage
+            .write()
+            .expect("Write primitive storage")
+            .end_frame();
 
         #[cfg(any(feature = "svg", feature = "image"))]
         {
