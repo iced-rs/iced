@@ -170,6 +170,7 @@ pub trait Program: Sized {
             } else {
                 None
             },
+            vsync: settings.vsync,
             ..crate::graphics::Settings::default()
         };
 
@@ -183,6 +184,7 @@ pub trait Program: Sized {
                 default_font: settings.default_font,
                 default_text_size: settings.default_text_size,
                 antialiasing: settings.antialiasing,
+                vsync: settings.vsync,
             }
             .into(),
             renderer_settings,
