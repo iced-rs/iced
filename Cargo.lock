@@ -2453,6 +2453,7 @@ version = "0.14.0-dev"
 dependencies = [
  "iced_beacon",
  "iced_core",
+ "log",
 ]
 
 [[package]]

@@ -135,7 +135,16 @@ mod internal {
 
     pub fn update(message: &impl std::fmt::Debug) -> Span {
         let span = span(span::Stage::Update);
+
+        let start = Instant::now();
         let message = format!("{message:?}");
+        let elapsed = start.elapsed();
+
+        if elapsed.as_millis() >= 1 {
+            log::warn!(
+                "Slow `Debug` implementation of `Message` (took {elapsed:?})!"
+            );
+        }
 
         BEACON.log(client::Event::MessageLogged(if message.len() > 49 {
             format!("{}...", &message[..49])
