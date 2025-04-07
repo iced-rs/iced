@@ -195,6 +195,8 @@ where
                                 "--locked",
                                 "--git",
                                 "https://github.com/iced-rs/comet.git",
+                                "--rev",
+                                "5efd34550e42974a0e85af7560c60401bfc13919",
                             ])
                             .stdin(Stdio::null())
                             .stdout(Stdio::null())
