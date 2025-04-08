@@ -107,13 +107,12 @@ impl crate::graphics::Compositor for Compositor {
         }
     }
 
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
         on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
         present(
@@ -121,7 +120,6 @@ impl crate::graphics::Compositor for Compositor {
             surface,
             viewport,
             background_color,
-            overlay,
             on_pre_present,
         )
     }
@@ -147,12 +145,11 @@ pub fn new<W: compositor::Window>(
     Compositor { context, settings }
 }
 
-pub fn present<T: AsRef<str>>(
+pub fn present(
     renderer: &mut Renderer,
     surface: &mut Surface,
     viewport: &Viewport,
     background_color: Color,
-    overlay: &[T],
     on_pre_present: impl FnOnce(),
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
@@ -211,7 +208,6 @@ pub fn present<T: AsRef<str>>(
         viewport,
         &damage,
         background_color,
-        overlay,
     );
 
     on_pre_present();
@@ -231,7 +227,7 @@ pub fn screenshot(
     let mut clip_mask = tiny_skia::Mask::new(size.width, size.height)
         .expect("Create clip mask");
 
-    renderer.draw::<&str>(
+    renderer.draw(
         &mut tiny_skia::PixmapMut::from_bytes(
             bytemuck::cast_slice_mut(&mut offscreen_buffer),
             size.width,
@@ -245,7 +241,6 @@ pub fn screenshot(
             size.height as f32,
         ))],
         background_color,
-        &[],
     );
 
     offscreen_buffer.iter().fold(

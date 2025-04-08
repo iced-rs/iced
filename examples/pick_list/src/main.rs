@@ -2,7 +2,7 @@ use iced::widget::{column, pick_list, scrollable, vertical_space};
 use iced::{Center, Element, Fill};
 
 pub fn main() -> iced::Result {
-    iced::run("Pick List - Iced", Example::update, Example::view)
+    iced::run(Example::update, Example::view)
 }
 
 #[derive(Default)]

@@ -1,3 +1,9 @@
+mod state;
+
+use state::State;
+
+pub use crate::core::window::{Event, Id, RedrawRequest, Settings};
+
 use crate::conversion;
 use crate::core::alignment;
 use crate::core::input_method;
@@ -6,12 +12,11 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::theme;
 use crate::core::time::Instant;
-use crate::core::window::{Id, RedrawRequest};
 use crate::core::{
     Color, InputMethod, Padding, Point, Rectangle, Size, Text, Vector,
 };
 use crate::graphics::Compositor;
-use crate::program::{Program, State};
+use crate::program::{self, Program};
 
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::monitor::MonitorHandle;
@@ -47,11 +52,11 @@ where
         &mut self,
         id: Id,
         window: Arc<winit::window::Window>,
-        application: &P,
+        program: &program::Instance<P>,
         compositor: &mut C,
         exit_on_close_request: bool,
     ) -> &mut Window<P, C> {
-        let state = State::new(application, id, &window);
+        let state = State::new(program, id, &window);
         let viewport_version = state.viewport_version();
         let physical_size = state.physical_size();
         let surface = compositor.create_surface(

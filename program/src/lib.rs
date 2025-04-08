@@ -1,14 +1,21 @@
-use crate::core::text;
-use crate::graphics::compositor;
-use crate::shell;
-use crate::theme;
-use crate::window;
-use crate::{Element, Executor, Result, Settings, Subscription, Task};
+//! The definition of an iced program.
+pub use iced_graphics as graphics;
+pub use iced_runtime as runtime;
+pub use iced_runtime::core;
+pub use iced_runtime::futures;
 
-/// The internal definition of a [`Program`].
+use crate::core::Element;
+use crate::core::text;
+use crate::core::theme;
+use crate::core::window;
+use crate::futures::{Executor, Subscription};
+use crate::graphics::compositor;
+use crate::runtime::Task;
+
+/// An interactive, native, cross-platform, multi-windowed application.
 ///
-/// You should not need to implement this trait directly. Instead, use the
-/// methods available in the [`Program`] struct.
+/// A [`Program`] can execute asynchronous actions by returning a
+/// [`Task`] in some of its methods.
 #[allow(missing_docs)]
 pub trait Program: Sized {
     /// The state of the program.
@@ -26,6 +33,11 @@ pub trait Program: Sized {
     /// The executor of the program.
     type Executor: Executor;
 
+    /// Returns the unique name of the [`Program`].
+    fn name() -> &'static str;
+
+    fn boot(&self) -> (Self::State, Task<Self::Message>);
+
     fn update(
         &self,
         state: &mut Self::State,
@@ -39,7 +51,32 @@ pub trait Program: Sized {
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer>;
 
     fn title(&self, _state: &Self::State, _window: window::Id) -> String {
-        String::from("A cool iced application!")
+        let mut title = String::new();
+
+        for (i, part) in Self::name().split("_").enumerate() {
+            use std::borrow::Cow;
+
+            let part = match part {
+                "a" | "an" | "of" | "in" | "and" => Cow::Borrowed(part),
+                _ => {
+                    let mut part = part.to_owned();
+
+                    if let Some(first_letter) = part.get_mut(0..1) {
+                        first_letter.make_ascii_uppercase();
+                    }
+
+                    Cow::Owned(part)
+                }
+            };
+
+            if i > 0 {
+                title.push(' ');
+            }
+
+            title.push_str(&part);
+        }
+
+        format!("{title} - Iced")
     }
 
     fn subscription(
@@ -60,138 +97,9 @@ pub trait Program: Sized {
     fn scale_factor(&self, _state: &Self::State, _window: window::Id) -> f64 {
         1.0
     }
-
-    /// Runs the [`Program`].
-    ///
-    /// The state of the [`Program`] must implement [`Default`].
-    /// If your state does not implement [`Default`], use [`run_with`]
-    /// instead.
-    ///
-    /// [`run_with`]: Self::run_with
-    fn run(
-        self,
-        settings: Settings,
-        window_settings: Option<window::Settings>,
-    ) -> Result
-    where
-        Self: 'static,
-        Self::State: Default,
-    {
-        self.run_with(settings, window_settings, || {
-            (Self::State::default(), Task::none())
-        })
-    }
-
-    /// Runs the [`Program`] with the given [`Settings`] and a closure that creates the initial state.
-    fn run_with<I>(
-        self,
-        settings: Settings,
-        window_settings: Option<window::Settings>,
-        initialize: I,
-    ) -> Result
-    where
-        Self: 'static,
-        I: FnOnce() -> (Self::State, Task<Self::Message>) + 'static,
-    {
-        use std::marker::PhantomData;
-
-        struct Instance<P: Program, I> {
-            program: P,
-            state: P::State,
-            _initialize: PhantomData<I>,
-        }
-
-        impl<P: Program, I: FnOnce() -> (P::State, Task<P::Message>)>
-            shell::Program for Instance<P, I>
-        {
-            type Message = P::Message;
-            type Theme = P::Theme;
-            type Renderer = P::Renderer;
-            type Flags = (P, I);
-            type Executor = P::Executor;
-
-            fn new(
-                (program, initialize): Self::Flags,
-            ) -> (Self, Task<Self::Message>) {
-                let (state, task) = initialize();
-
-                (
-                    Self {
-                        program,
-                        state,
-                        _initialize: PhantomData,
-                    },
-                    task,
-                )
-            }
-
-            fn title(&self, window: window::Id) -> String {
-                self.program.title(&self.state, window)
-            }
-
-            fn update(
-                &mut self,
-                message: Self::Message,
-            ) -> Task<Self::Message> {
-                self.program.update(&mut self.state, message)
-            }
-
-            fn view(
-                &self,
-                window: window::Id,
-            ) -> crate::Element<'_, Self::Message, Self::Theme, Self::Renderer>
-            {
-                self.program.view(&self.state, window)
-            }
-
-            fn subscription(&self) -> Subscription<Self::Message> {
-                self.program.subscription(&self.state)
-            }
-
-            fn theme(&self, window: window::Id) -> Self::Theme {
-                self.program.theme(&self.state, window)
-            }
-
-            fn style(&self, theme: &Self::Theme) -> theme::Style {
-                self.program.style(&self.state, theme)
-            }
-
-            fn scale_factor(&self, window: window::Id) -> f64 {
-                self.program.scale_factor(&self.state, window)
-            }
-        }
-
-        #[allow(clippy::needless_update)]
-        let renderer_settings = crate::graphics::Settings {
-            default_font: settings.default_font,
-            default_text_size: settings.default_text_size,
-            antialiasing: if settings.antialiasing {
-                Some(crate::graphics::Antialiasing::MSAAx4)
-            } else {
-                None
-            },
-            ..crate::graphics::Settings::default()
-        };
-
-        Ok(shell::program::run::<
-            Instance<Self, I>,
-            <Self::Renderer as compositor::Default>::Compositor,
-        >(
-            Settings {
-                id: settings.id,
-                fonts: settings.fonts,
-                default_font: settings.default_font,
-                default_text_size: settings.default_text_size,
-                antialiasing: settings.antialiasing,
-            }
-            .into(),
-            renderer_settings,
-            window_settings,
-            (self, initialize),
-        )?)
-    }
 }
 
+/// Decorates a [`Program`] with the given title function.
 pub fn with_title<P: Program>(
     program: P,
     title: impl Fn(&P::State, window::Id) -> String,
@@ -214,6 +122,14 @@ pub fn with_title<P: Program>(
 
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             (self.title)(state, window)
+        }
+
+        fn name() -> &'static str {
+            P::name()
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.program.boot()
         }
 
         fn update(
@@ -263,6 +179,7 @@ pub fn with_title<P: Program>(
     WithTitle { program, title }
 }
 
+/// Decorates a [`Program`] with the given subscription function.
 pub fn with_subscription<P: Program>(
     program: P,
     f: impl Fn(&P::State) -> Subscription<P::Message>,
@@ -287,6 +204,14 @@ pub fn with_subscription<P: Program>(
             state: &Self::State,
         ) -> Subscription<Self::Message> {
             (self.subscription)(state)
+        }
+
+        fn name() -> &'static str {
+            P::name()
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.program.boot()
         }
 
         fn update(
@@ -336,6 +261,7 @@ pub fn with_subscription<P: Program>(
     }
 }
 
+/// Decorates a [`Program`] with the given theme function.
 pub fn with_theme<P: Program>(
     program: P,
     f: impl Fn(&P::State, window::Id) -> P::Theme,
@@ -361,6 +287,14 @@ pub fn with_theme<P: Program>(
             window: window::Id,
         ) -> Self::Theme {
             (self.theme)(state, window)
+        }
+
+        fn name() -> &'static str {
+            P::name()
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.program.boot()
         }
 
         fn title(&self, state: &Self::State, window: window::Id) -> String {
@@ -406,6 +340,7 @@ pub fn with_theme<P: Program>(
     WithTheme { program, theme: f }
 }
 
+/// Decorates a [`Program`] with the given style function.
 pub fn with_style<P: Program>(
     program: P,
     f: impl Fn(&P::State, &P::Theme) -> theme::Style,
@@ -431,6 +366,14 @@ pub fn with_style<P: Program>(
             theme: &Self::Theme,
         ) -> theme::Style {
             (self.style)(state, theme)
+        }
+
+        fn name() -> &'static str {
+            P::name()
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.program.boot()
         }
 
         fn title(&self, state: &Self::State, window: window::Id) -> String {
@@ -476,6 +419,7 @@ pub fn with_style<P: Program>(
     WithStyle { program, style: f }
 }
 
+/// Decorates a [`Program`] with the given scale factor function.
 pub fn with_scale_factor<P: Program>(
     program: P,
     f: impl Fn(&P::State, window::Id) -> f64,
@@ -497,6 +441,14 @@ pub fn with_scale_factor<P: Program>(
 
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             self.program.title(state, window)
+        }
+
+        fn name() -> &'static str {
+            P::name()
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.program.boot()
         }
 
         fn update(
@@ -549,6 +501,7 @@ pub fn with_scale_factor<P: Program>(
     }
 }
 
+/// Decorates a [`Program`] with the given executor function.
 pub fn with_executor<P: Program, E: Executor>(
     program: P,
 ) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
@@ -571,6 +524,14 @@ pub fn with_executor<P: Program, E: Executor>(
 
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             self.program.title(state, window)
+        }
+
+        fn name() -> &'static str {
+            P::name()
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.program.boot()
         }
 
         fn update(
@@ -627,3 +588,57 @@ pub fn with_executor<P: Program, E: Executor>(
 pub trait Renderer: text::Renderer + compositor::Default {}
 
 impl<T> Renderer for T where T: text::Renderer + compositor::Default {}
+
+/// A particular instance of a running [`Program`].
+#[allow(missing_debug_implementations)]
+pub struct Instance<P: Program> {
+    program: P,
+    state: P::State,
+}
+
+impl<P: Program> Instance<P> {
+    /// Creates a new [`Instance`] of the given [`Program`].
+    pub fn new(program: P) -> (Self, Task<P::Message>) {
+        let (state, task) = program.boot();
+
+        (Self { program, state }, task)
+    }
+
+    /// Returns the current title of the [`Instance`].
+    pub fn title(&self, window: window::Id) -> String {
+        self.program.title(&self.state, window)
+    }
+
+    /// Processes the given message and updates the [`Instance`].
+    pub fn update(&mut self, message: P::Message) -> Task<P::Message> {
+        self.program.update(&mut self.state, message)
+    }
+
+    /// Produces the current widget tree of the [`Instance`].
+    pub fn view(
+        &self,
+        window: window::Id,
+    ) -> Element<'_, P::Message, P::Theme, P::Renderer> {
+        self.program.view(&self.state, window)
+    }
+
+    /// Returns the current [`Subscription`] of the [`Instance`].
+    pub fn subscription(&self) -> Subscription<P::Message> {
+        self.program.subscription(&self.state)
+    }
+
+    /// Returns the current theme of the [`Instance`].
+    pub fn theme(&self, window: window::Id) -> P::Theme {
+        self.program.theme(&self.state, window)
+    }
+
+    /// Returns the current [`theme::Style`] of the [`Instance`].
+    pub fn style(&self, theme: &P::Theme) -> theme::Style {
+        self.program.style(&self.state, theme)
+    }
+
+    /// Returns the current scale factor of the [`Instance`].
+    pub fn scale_factor(&self, window: window::Id) -> f64 {
+        self.program.scale_factor(&self.state, window)
+    }
+}

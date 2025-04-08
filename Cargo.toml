@@ -42,7 +42,7 @@ markdown = ["iced_widget/markdown"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
-debug = ["iced_winit/debug"]
+debug = ["iced_winit/debug", "iced_devtools"]
 # Enables the `thread-pool` futures executor as the `executor::Default` on native platforms
 thread-pool = ["iced_futures/thread-pool"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -71,6 +71,7 @@ unconditional-rendering = ["iced_winit/unconditional-rendering"]
 sipper = ["iced_runtime/sipper"]
 
 [dependencies]
+iced_debug.workspace = true
 iced_core.workspace = true
 iced_futures.workspace = true
 iced_renderer.workspace = true
@@ -78,6 +79,9 @@ iced_runtime.workspace = true
 iced_widget.workspace = true
 iced_winit.features = ["program"]
 iced_winit.workspace = true
+
+iced_devtools.workspace = true
+iced_devtools.optional = true
 
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
@@ -108,10 +112,14 @@ strip = "debuginfo"
 
 [workspace]
 members = [
+    "beacon",
     "core",
+    "debug",
+    "devtools",
     "futures",
     "graphics",
     "highlighter",
+    "program",
     "renderer",
     "runtime",
     "test",
@@ -135,10 +143,14 @@ rust-version = "1.85"
 
 [workspace.dependencies]
 iced = { version = "0.14.0-dev", path = "." }
+iced_beacon = { version = "0.14.0-dev", path = "beacon" }
 iced_core = { version = "0.14.0-dev", path = "core" }
+iced_debug = { version = "0.14.0-dev", path = "debug" }
+iced_devtools = { version = "0.14.0-dev", path = "devtools" }
 iced_futures = { version = "0.14.0-dev", path = "futures" }
 iced_graphics = { version = "0.14.0-dev", path = "graphics" }
 iced_highlighter = { version = "0.14.0-dev", path = "highlighter" }
+iced_program = { version = "0.14.0-dev", path = "program" }
 iced_renderer = { version = "0.14.0-dev", path = "renderer" }
 iced_runtime = { version = "0.14.0-dev", path = "runtime" }
 iced_test = { version = "0.14.0-dev", path = "test" }
@@ -147,6 +159,7 @@ iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
 iced_widget = { version = "0.14.0-dev", path = "widget" }
 iced_winit = { version = "0.14.0-dev", path = "winit" }
 
+bincode = "1.3"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
@@ -172,6 +185,8 @@ qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
 resvg = "0.42"
 rustc-hash = "2.0"
+serde = "1.0"
+semver = "1.0"
 sha2 = "0.10"
 sipper = "0.1"
 smol = "2"

@@ -63,7 +63,6 @@ pub use geometry::Geometry;
 use crate::core::renderer;
 use crate::core::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
-    Vector,
 };
 use crate::graphics::Viewport;
 use crate::graphics::text::{Editor, Paragraph};
@@ -164,16 +163,13 @@ impl Renderer {
         encoder
     }
 
-    pub fn present<T: AsRef<str>>(
+    pub fn present(
         &mut self,
         clear_color: Option<Color>,
         _format: wgpu::TextureFormat,
         frame: &wgpu::TextureView,
         viewport: &Viewport,
-        overlay: &[T],
     ) -> wgpu::SubmissionIndex {
-        self.draw_overlay(overlay, viewport);
-
         let encoder = self.draw(clear_color, frame, viewport);
 
         self.staging_belt.finish();
@@ -577,50 +573,6 @@ impl Renderer {
 
         let _ = ManuallyDrop::into_inner(render_pass);
     }
-
-    fn draw_overlay(
-        &mut self,
-        overlay: &[impl AsRef<str>],
-        viewport: &Viewport,
-    ) {
-        use crate::core::Renderer as _;
-        use crate::core::alignment;
-        use crate::core::text::Renderer as _;
-
-        self.with_layer(
-            Rectangle::with_size(viewport.logical_size()),
-            |renderer| {
-                for (i, line) in overlay.iter().enumerate() {
-                    let text = crate::core::Text {
-                        content: line.as_ref().to_owned(),
-                        bounds: viewport.logical_size(),
-                        size: Pixels(20.0),
-                        line_height: core::text::LineHeight::default(),
-                        font: Font::MONOSPACE,
-                        align_x: core::text::Alignment::Default,
-                        align_y: alignment::Vertical::Top,
-                        shaping: core::text::Shaping::Basic,
-                        wrapping: core::text::Wrapping::Word,
-                    };
-
-                    renderer.fill_text(
-                        text.clone(),
-                        Point::new(11.0, 11.0 + 25.0 * i as f32),
-                        Color::from_rgba(0.9, 0.9, 0.9, 1.0),
-                        Rectangle::with_size(Size::INFINITY),
-                    );
-
-                    renderer.fill_text(
-                        text,
-                        Point::new(11.0, 11.0 + 25.0 * i as f32)
-                            + Vector::new(-1.0, -1.0),
-                        Color::BLACK,
-                        Rectangle::with_size(Size::INFINITY),
-                    );
-                }
-            },
-        );
-    }
 }
 
 impl core::Renderer for Renderer {
@@ -716,7 +668,7 @@ impl core::text::Renderer for Renderer {
 impl core::image::Renderer for Renderer {
     type Handle = core::image::Handle;
 
-    fn measure_image(&self, handle: &Self::Handle) -> Size<u32> {
+    fn measure_image(&self, handle: &Self::Handle) -> core::Size<u32> {
         self.image_cache.borrow_mut().measure_image(handle)
     }
 
@@ -728,7 +680,7 @@ impl core::image::Renderer for Renderer {
 
 #[cfg(feature = "svg")]
 impl core::svg::Renderer for Renderer {
-    fn measure_svg(&self, handle: &core::svg::Handle) -> Size<u32> {
+    fn measure_svg(&self, handle: &core::svg::Handle) -> core::Size<u32> {
         self.image_cache.borrow_mut().measure_svg(handle)
     }
 
@@ -760,7 +712,7 @@ impl graphics::geometry::Renderer for Renderer {
     type Geometry = Geometry;
     type Frame = geometry::Frame;
 
-    fn new_frame(&self, size: Size) -> Self::Frame {
+    fn new_frame(&self, size: core::Size) -> Self::Frame {
         geometry::Frame::new(size)
     }
 

@@ -63,46 +63,15 @@ impl Renderer {
         self.layers.as_slice()
     }
 
-    pub fn draw<T: AsRef<str>>(
+    pub fn draw(
         &mut self,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: &mut tiny_skia::Mask,
         viewport: &Viewport,
         damage: &[Rectangle],
         background_color: Color,
-        overlay: &[T],
     ) {
-        let physical_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor() as f32;
-
-        if !overlay.is_empty() {
-            let path = tiny_skia::PathBuilder::from_rect(
-                tiny_skia::Rect::from_xywh(
-                    0.0,
-                    0.0,
-                    physical_size.width as f32,
-                    physical_size.height as f32,
-                )
-                .expect("Create damage rectangle"),
-            );
-
-            pixels.fill_path(
-                &path,
-                &tiny_skia::Paint {
-                    shader: tiny_skia::Shader::SolidColor(engine::into_color(
-                        Color {
-                            a: 0.1,
-                            ..background_color
-                        },
-                    )),
-                    anti_alias: false,
-                    ..Default::default()
-                },
-                tiny_skia::FillRule::default(),
-                tiny_skia::Transform::identity(),
-                None,
-            );
-        }
 
         self.layers.flush();
 
@@ -200,25 +169,6 @@ impl Renderer {
                         );
                     }
                 }
-            }
-
-            if !overlay.is_empty() {
-                pixels.stroke_path(
-                    &path,
-                    &tiny_skia::Paint {
-                        shader: tiny_skia::Shader::SolidColor(
-                            engine::into_color(Color::from_rgb(1.0, 0.0, 0.0)),
-                        ),
-                        anti_alias: false,
-                        ..tiny_skia::Paint::default()
-                    },
-                    &tiny_skia::Stroke {
-                        width: 1.0,
-                        ..tiny_skia::Stroke::default()
-                    },
-                    tiny_skia::Transform::identity(),
-                    None,
-                );
             }
         }
 

@@ -18,11 +18,11 @@ use std::io;
 use std::sync::Arc;
 
 pub fn main() -> iced::Result {
-    iced::application("Markdown - Iced", Markdown::update, Markdown::view)
+    iced::application(Markdown::new, Markdown::update, Markdown::view)
         .font(icon::FONT)
         .subscription(Markdown::subscription)
         .theme(Markdown::theme)
-        .run_with(Markdown::new)
+        .run()
 }
 
 struct Markdown {

@@ -4,7 +4,7 @@ use iced::{Center, Element};
 use loupe::loupe;
 
 pub fn main() -> iced::Result {
-    iced::run("Loupe - Iced", Loupe::update, Loupe::view)
+    iced::run(Loupe::update, Loupe::view)
 }
 
 #[derive(Default)]

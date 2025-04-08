@@ -31,3 +31,7 @@ web-time.workspace = true
 
 dark-light.workspace = true
 dark-light.optional = true
+
+serde.workspace = true
+serde.optional = true
+serde.features = ["derive"]

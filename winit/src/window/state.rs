@@ -2,7 +2,7 @@ use crate::conversion;
 use crate::core::{Color, Size};
 use crate::core::{mouse, theme, window};
 use crate::graphics::Viewport;
-use crate::program::Program;
+use crate::program::{self, Program};
 
 use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
@@ -46,14 +46,14 @@ where
 {
     /// Creates a new [`State`] for the provided [`Program`]'s `window`.
     pub fn new(
-        application: &P,
+        program: &program::Instance<P>,
         window_id: window::Id,
         window: &Window,
     ) -> Self {
-        let title = application.title(window_id);
-        let scale_factor = application.scale_factor(window_id);
-        let theme = application.theme(window_id);
-        let style = application.style(&theme);
+        let title = program.title(window_id);
+        let scale_factor = program.scale_factor(window_id);
+        let theme = program.theme(window_id);
+        let style = program.style(&theme);
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -137,12 +137,7 @@ where
     }
 
     /// Processes the provided window event and updates the [`State`] accordingly.
-    pub fn update(
-        &mut self,
-        window: &Window,
-        event: &WindowEvent,
-        _debug: &mut crate::runtime::Debug,
-    ) {
+    pub fn update(&mut self, window: &Window, event: &WindowEvent) {
         match event {
             WindowEvent::Resized(new_size) => {
                 let size = Size::new(new_size.width, new_size.height);
@@ -179,22 +174,6 @@ where
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = new_modifiers.state();
             }
-            #[cfg(feature = "debug")]
-            WindowEvent::KeyboardInput {
-                event:
-                    winit::event::KeyEvent {
-                        logical_key:
-                            winit::keyboard::Key::Named(
-                                winit::keyboard::NamedKey::F12,
-                            ),
-                        state: winit::event::ElementState::Pressed,
-                        ..
-                    },
-                ..
-            } => {
-                _debug.toggle();
-                window.request_redraw();
-            }
             _ => {}
         }
     }
@@ -206,12 +185,12 @@ where
     /// and window after calling [`State::update`].
     pub fn synchronize(
         &mut self,
-        application: &P,
+        program: &program::Instance<P>,
         window_id: window::Id,
         window: &Window,
     ) {
         // Update window title
-        let new_title = application.title(window_id);
+        let new_title = program.title(window_id);
 
         if self.title != new_title {
             window.set_title(&new_title);
@@ -219,7 +198,7 @@ where
         }
 
         // Update scale factor and size
-        let new_scale_factor = application.scale_factor(window_id);
+        let new_scale_factor = program.scale_factor(window_id);
         let new_size = window.inner_size();
         let current_size = self.viewport.physical_size();
 
@@ -237,7 +216,7 @@ where
         }
 
         // Update theme and appearance
-        self.theme = application.theme(window_id);
-        self.style = application.style(&self.theme);
+        self.theme = program.theme(window_id);
+        self.style = program.style(&self.theme);
     }
 }

@@ -15,11 +15,12 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    iced::application(Todos::title, Todos::update, Todos::view)
+    iced::application(Todos::new, Todos::update, Todos::view)
         .subscription(Todos::subscription)
+        .title(Todos::title)
         .font(Todos::ICON_FONT)
         .window_size((500.0, 800.0))
-        .run_with(Todos::new)
+        .run()
 }
 
 #[derive(Debug)]

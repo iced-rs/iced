@@ -22,7 +22,7 @@ pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
     iced::application(
-        "Solar System - Iced",
+        SolarSystem::default,
         SolarSystem::update,
         SolarSystem::view,
     )

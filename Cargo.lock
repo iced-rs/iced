@@ -2402,6 +2402,8 @@ version = "0.14.0-dev"
 dependencies = [
  "criterion",
  "iced_core",
+ "iced_debug",
+ "iced_devtools",
  "iced_futures",
  "iced_highlighter",
  "iced_renderer",
@@ -2411,6 +2413,20 @@ dependencies = [
  "iced_winit",
  "image",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "iced_beacon"
+version = "0.14.0-dev"
+dependencies = [
+ "bincode",
+ "futures",
+ "iced_core",
+ "log",
+ "semver",
+ "serde",
+ "thiserror 1.0.69",
+ "tokio",
 ]
 
 [[package]]
@@ -2425,9 +2441,28 @@ dependencies = [
  "log",
  "num-traits",
  "rustc-hash 2.1.1",
+ "serde",
  "smol_str",
  "thiserror 1.0.69",
  "web-time",
+]
+
+[[package]]
+name = "iced_debug"
+version = "0.14.0-dev"
+dependencies = [
+ "iced_beacon",
+ "iced_core",
+ "log",
+]
+
+[[package]]
+name = "iced_devtools"
+version = "0.14.0-dev"
+dependencies = [
+ "iced_debug",
+ "iced_program",
+ "iced_widget",
 ]
 
 [[package]]
@@ -2473,6 +2508,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "iced_program"
+version = "0.14.0-dev"
+dependencies = [
+ "iced_graphics",
+ "iced_runtime",
+]
+
+[[package]]
 name = "iced_renderer"
 version = "0.14.0-dev"
 dependencies = [
@@ -2489,6 +2532,7 @@ version = "0.14.0-dev"
 dependencies = [
  "bytes",
  "iced_core",
+ "iced_debug",
  "iced_futures",
  "raw-window-handle 0.6.2",
  "sipper",
@@ -2562,9 +2606,8 @@ dependencies = [
 name = "iced_winit"
 version = "0.14.0-dev"
 dependencies = [
- "iced_futures",
- "iced_graphics",
- "iced_runtime",
+ "iced_debug",
+ "iced_program",
  "log",
  "rustc-hash 2.1.1",
  "sysinfo",
@@ -4986,6 +5029,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2fdfc24bc566f839a2da4c4295b82db7d25a24253867d5c64355abb5799bdbe"
 
 [[package]]
+name = "semver"
+version = "1.0.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56e6fa9c48d24d85fb3de5ad847117517440f6beceb7798af16b4a87d616b8d0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.219"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5768,7 +5820,19 @@ dependencies = [
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",
+ "tokio-macros",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e06d43f1345a3bcd39f6a56dbb7dcab2ba47e68e8ac134855e7e2bdbaf8cab8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

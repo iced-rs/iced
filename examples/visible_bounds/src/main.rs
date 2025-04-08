@@ -10,7 +10,7 @@ use iced::{
 };
 
 pub fn main() -> iced::Result {
-    iced::application("Visible Bounds - Iced", Example::update, Example::view)
+    iced::application(Example::default, Example::update, Example::view)
         .subscription(Example::subscription)
         .theme(|_| Theme::Dark)
         .run()

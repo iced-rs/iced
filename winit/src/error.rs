@@ -18,7 +18,7 @@ pub enum Error {
 }
 
 impl From<graphics::Error> for Error {
-    fn from(error: iced_graphics::Error) -> Error {
+    fn from(error: graphics::Error) -> Error {
         Error::GraphicsCreationFailed(error)
     }
 }

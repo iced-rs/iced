@@ -2,7 +2,7 @@ use iced::widget::{column, container, iced, slider, text, vertical_slider};
 use iced::{Center, Element, Fill};
 
 pub fn main() -> iced::Result {
-    iced::run("Slider - Iced", Slider::update, Slider::view)
+    iced::run(Slider::update, Slider::view)
 }
 
 #[derive(Debug, Clone)]

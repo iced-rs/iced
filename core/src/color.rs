@@ -1,5 +1,6 @@
 /// A color in the `sRGB` color space.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Color {
     /// Red component, 0.0 - 1.0
     pub r: f32,

@@ -6,7 +6,7 @@
 //! use iced::Theme;
 //!
 //! pub fn main() -> iced::Result {
-//!     iced::application("A counter", update, view)
+//!     iced::application(u64::default, update, view)
 //!         .theme(|_| Theme::Dark)
 //!         .centered()
 //!         .run()
@@ -31,6 +31,7 @@
 //! }
 //! ```
 use crate::program::{self, Program};
+use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{
@@ -39,14 +40,14 @@ use crate::{
 
 use std::borrow::Cow;
 
-/// Creates an iced [`Application`] given its title, update, and view logic.
+/// Creates an iced [`Application`] given its boot, update, and view logic.
 ///
 /// # Example
 /// ```no_run,standalone_crate
 /// use iced::widget::{button, column, text, Column};
 ///
 /// pub fn main() -> iced::Result {
-///     iced::application("A counter", update, view).run()
+///     iced::application(u64::default, update, view).run()
 /// }
 ///
 /// #[derive(Debug, Clone)]
@@ -68,7 +69,7 @@ use std::borrow::Cow;
 /// }
 /// ```
 pub fn application<State, Message, Theme, Renderer>(
-    title: impl Title<State>,
+    boot: impl Boot<State, Message>,
     update: impl Update<State, Message>,
     view: impl for<'a> self::View<'a, State, Message, Theme, Renderer>,
 ) -> Application<impl Program<State = State, Message = Message, Theme = Theme>>
@@ -80,7 +81,8 @@ where
 {
     use std::marker::PhantomData;
 
-    struct Instance<State, Message, Theme, Renderer, Update, View> {
+    struct Instance<State, Message, Theme, Renderer, Boot, Update, View> {
+        boot: Boot,
         update: Update,
         view: View,
         _state: PhantomData<State>,
@@ -89,12 +91,13 @@ where
         _renderer: PhantomData<Renderer>,
     }
 
-    impl<State, Message, Theme, Renderer, Update, View> Program
-        for Instance<State, Message, Theme, Renderer, Update, View>
+    impl<State, Message, Theme, Renderer, Boot, Update, View> Program
+        for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
         Message: Send + std::fmt::Debug + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
+        Boot: self::Boot<State, Message>,
         Update: self::Update<State, Message>,
         View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
     {
@@ -103,6 +106,16 @@ where
         type Theme = Theme;
         type Renderer = Renderer;
         type Executor = iced_futures::backend::default::Executor;
+
+        fn name() -> &'static str {
+            let name = std::any::type_name::<State>();
+
+            name.split("::").next().unwrap_or("a_cool_application")
+        }
+
+        fn boot(&self) -> (State, Task<Message>) {
+            self.boot.boot()
+        }
 
         fn update(
             &self,
@@ -123,6 +136,7 @@ where
 
     Application {
         raw: Instance {
+            boot,
             update,
             view,
             _state: PhantomData,
@@ -133,7 +147,6 @@ where
         settings: Settings::default(),
         window: window::Settings::default(),
     }
-    .title(title)
 }
 
 /// The underlying definition and configuration of an iced application.
@@ -152,28 +165,17 @@ pub struct Application<P: Program> {
 
 impl<P: Program> Application<P> {
     /// Runs the [`Application`].
-    ///
-    /// The state of the [`Application`] must implement [`Default`].
-    /// If your state does not implement [`Default`], use [`run_with`]
-    /// instead.
-    ///
-    /// [`run_with`]: Self::run_with
     pub fn run(self) -> Result
     where
         Self: 'static,
-        P::State: Default,
     {
-        self.raw.run(self.settings, Some(self.window))
-    }
+        #[cfg(feature = "debug")]
+        let program = iced_devtools::attach(self.raw);
 
-    /// Runs the [`Application`] with a closure that creates the initial state.
-    pub fn run_with<I>(self, initialize: I) -> Result
-    where
-        Self: 'static,
-        I: FnOnce() -> (P::State, Task<P::Message>) + 'static,
-    {
-        self.raw
-            .run_with(self.settings, Some(self.window), initialize)
+        #[cfg(not(feature = "debug"))]
+        let program = self.raw;
+
+        Ok(shell::run(program, self.settings, Some(self.window))?)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Application`].
@@ -305,7 +307,7 @@ impl<P: Program> Application<P> {
     }
 
     /// Sets the [`Title`] of the [`Application`].
-    pub(crate) fn title(
+    pub fn title(
         self,
         title: impl Title<P::State>,
     ) -> Application<
@@ -392,6 +394,47 @@ impl<P: Program> Application<P> {
             settings: self.settings,
             window: self.window,
         }
+    }
+}
+
+/// The logic to initialize the `State` of some [`Application`].
+///
+/// This trait is implemented for both `Fn() -> State` and
+/// `Fn() -> (State, Task<Message>)`.
+///
+/// In practice, this means that [`application`] can both take
+/// simple functions like `State::default` and more advanced ones
+/// that return a [`Task`].
+pub trait Boot<State, Message> {
+    /// Initializes the [`Application`] state.
+    fn boot(&self) -> (State, Task<Message>);
+}
+
+impl<T, C, State, Message> Boot<State, Message> for T
+where
+    T: Fn() -> C,
+    C: IntoBoot<State, Message>,
+{
+    fn boot(&self) -> (State, Task<Message>) {
+        self().into_boot()
+    }
+}
+
+/// The initial state of some [`Application`].
+pub trait IntoBoot<State, Message> {
+    /// Turns some type into the initial state of some [`Application`].
+    fn into_boot(self) -> (State, Task<Message>);
+}
+
+impl<State, Message> IntoBoot<State, Message> for State {
+    fn into_boot(self) -> (State, Task<Message>) {
+        (self, Task::none())
+    }
+}
+
+impl<State, Message> IntoBoot<State, Message> for (State, Task<Message>) {
+    fn into_boot(self) -> (State, Task<Message>) {
+        self
     }
 }
 

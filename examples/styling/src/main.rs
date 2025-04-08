@@ -7,7 +7,7 @@ use iced::widget::{
 use iced::{Center, Element, Fill, Subscription, Theme};
 
 pub fn main() -> iced::Result {
-    iced::application("Styling - Iced", Styling::update, Styling::view)
+    iced::application(Styling::default, Styling::update, Styling::view)
         .subscription(Styling::subscription)
         .theme(Styling::theme)
         .run()

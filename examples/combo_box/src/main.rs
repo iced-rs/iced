@@ -4,7 +4,7 @@ use iced::widget::{
 use iced::{Center, Element, Fill};
 
 pub fn main() -> iced::Result {
-    iced::run("Combo Box - Iced", Example::update, Example::view)
+    iced::run(Example::update, Example::view)
 }
 
 struct Example {

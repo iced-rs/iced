@@ -2028,7 +2028,7 @@ pub fn focus_next<T>() -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus_next()))
 }
 
-/// A container intercepting mouse events.
+/// Creates a new [`MouseArea`].
 pub fn mouse_area<'a, Message, Theme, Renderer>(
     widget: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> MouseArea<'a, Message, Theme, Renderer>
