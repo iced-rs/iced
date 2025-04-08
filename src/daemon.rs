@@ -117,7 +117,13 @@ impl<P: Program> Daemon<P> {
     where
         Self: 'static,
     {
-        Ok(shell::run(self.raw, self.settings, None)?)
+        #[cfg(feature = "debug")]
+        let program = iced_devtools::attach(self.raw);
+
+        #[cfg(not(feature = "debug"))]
+        let program = self.raw;
+
+        Ok(shell::run(program, self.settings, None)?)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Daemon`].
