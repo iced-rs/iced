@@ -96,7 +96,7 @@ impl Storage {
     }
 
     /// Triggers the `end_frame` method on all pipelines that exist within [`Storage`].
-    pub fn end_frame(&mut self) {
+    pub(crate) fn end_frame(&mut self) {
         self.pipelines.values_mut().for_each(|pipeline| {
             pipeline.end_frame();
         });
