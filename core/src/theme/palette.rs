@@ -5,6 +5,7 @@ use std::sync::LazyLock;
 
 /// A color palette.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Palette {
     /// The background [`Color`] of the [`Palette`].
     pub background: Color,

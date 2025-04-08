@@ -133,12 +133,11 @@ fn benchmark<'a>(
 
         cache = Some(user_interface.into_cache());
 
-        let submission = renderer.present::<&str>(
+        let submission = renderer.present(
             Some(Color::BLACK),
             format,
             &texture_view,
             &viewport,
-            &[],
         );
 
         let _ = device.poll(wgpu::Maintain::WaitForSubmissionIndex(submission));

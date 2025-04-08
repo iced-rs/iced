@@ -252,7 +252,7 @@ impl fmt::Display for Custom {
     }
 }
 
-/// The base style of a [`Theme`].
+/// The base style of a theme.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The background [`Color`] of the application.
@@ -262,15 +262,26 @@ pub struct Style {
     pub text_color: Color,
 }
 
-/// The default blank style of a [`Theme`].
+/// The default blank style of a theme.
 pub trait Base {
-    /// Returns the default base [`Style`] of a [`Theme`].
+    /// Returns the default base [`Style`] of a theme.
     fn base(&self) -> Style;
+
+    /// Returns the color [`Palette`] of the theme.
+    ///
+    /// This [`Palette`] may be used by the runtime for
+    /// debugging purposes; like displaying performance
+    /// metrics or devtools.
+    fn palette(&self) -> Option<Palette>;
 }
 
 impl Base for Theme {
     fn base(&self) -> Style {
         default(self)
+    }
+
+    fn palette(&self) -> Option<Palette> {
+        Some(self.palette())
     }
 }
 

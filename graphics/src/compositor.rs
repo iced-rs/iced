@@ -73,13 +73,12 @@ pub trait Compositor: Sized {
     ///
     /// [`Renderer`]: Self::Renderer
     /// [`Surface`]: Self::Surface
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
         on_pre_present: impl FnOnce(),
     ) -> Result<(), SurfaceError>;
 
@@ -186,13 +185,12 @@ impl Compositor for () {
         }
     }
 
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         _renderer: &mut Self::Renderer,
         _surface: &mut Self::Surface,
         _viewport: &Viewport,
         _background_color: Color,
-        _overlay: &[T],
         _on_pre_present: impl FnOnce(),
     ) -> Result<(), SurfaceError> {
         Ok(())

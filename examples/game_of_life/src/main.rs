@@ -14,16 +14,11 @@ use iced::{Center, Element, Fill, Function, Subscription, Task, Theme};
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application(
-        "Game of Life - Iced",
-        GameOfLife::update,
-        GameOfLife::view,
-    )
-    .subscription(GameOfLife::subscription)
-    .theme(|_| Theme::Dark)
-    .antialiasing(true)
-    .centered()
-    .run()
+    iced::application(GameOfLife::default, GameOfLife::update, GameOfLife::view)
+        .subscription(GameOfLife::subscription)
+        .theme(|_| Theme::Dark)
+        .centered()
+        .run()
 }
 
 struct GameOfLife {

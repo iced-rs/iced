@@ -3,9 +3,8 @@ use iced::widget::{button, container, horizontal_space, hover, right};
 use iced::{Element, Theme};
 
 pub fn main() -> iced::Result {
-    iced::application("Bezier Tool - Iced", Example::update, Example::view)
+    iced::application(Example::default, Example::update, Example::view)
         .theme(|_| Theme::CatppuccinMocha)
-        .antialiasing(true)
         .run()
 }
 
