@@ -217,6 +217,7 @@ where
 
                 shell.request_redraw();
                 shell.capture_event();
+                shell.request_redraw();
             }
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let Some(cursor_position) = cursor.position_over(bounds) else {
@@ -230,6 +231,7 @@ where
 
                 shell.request_redraw();
                 shell.capture_event();
+                shell.request_redraw();
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 let state = tree.state.downcast_mut::<State>();
@@ -238,6 +240,7 @@ where
                     state.cursor_grabbed_at = None;
                     shell.request_redraw();
                     shell.capture_event();
+                    shell.request_redraw();
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
@@ -279,6 +282,7 @@ where
                     state.current_offset = Vector::new(x, y);
                     shell.request_redraw();
                     shell.capture_event();
+                    shell.request_redraw();
                 }
             }
             _ => {}
