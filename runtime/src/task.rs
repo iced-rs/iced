@@ -89,11 +89,16 @@ impl<T> Task<T> {
     where
         T: 'static,
     {
-        let select_all = stream::select_all(
-            tasks.into_iter().filter_map(|task| task.stream),
-        );
+        let mut select_all = stream::SelectAll::new();
+        let mut units = 0;
 
-        let units = select_all.len();
+        for task in tasks.into_iter() {
+            if let Some(stream) = task.stream {
+                select_all.push(stream);
+            }
+
+            units += task.units;
+        }
 
         Self {
             stream: Some(boxed_stream(select_all)),
