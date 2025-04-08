@@ -31,7 +31,7 @@
 //!
 //! ```no_run,standalone_crate
 //! pub fn main() -> iced::Result {
-//!     iced::run("A cool counter", update, view)
+//!     iced::run(update, view)
 //! }
 //! # fn update(state: &mut (), message: ()) {}
 //! # fn view(state: &()) -> iced::Element<()> { iced::widget::text("").into() }
@@ -198,14 +198,18 @@
 //! calling [`run`]:
 //!
 //! ```no_run,standalone_crate
-//! # #[derive(Default)]
 //! # struct State;
 //! use iced::Theme;
 //!
 //! pub fn main() -> iced::Result {
-//!     iced::application("A cool application", update, view)
+//!     iced::application(new, update, view)
 //!         .theme(theme)
 //!         .run()
+//! }
+//!
+//! fn new() -> State {
+//!     // ...
+//!     # State
 //! }
 //!
 //! fn theme(state: &State) -> Theme {
@@ -335,7 +339,6 @@
 //! You will need to define a `subscription` function and use the [`Application`] builder:
 //!
 //! ```no_run,standalone_crate
-//! # #[derive(Default)]
 //! # struct State;
 //! use iced::window;
 //! use iced::{Size, Subscription};
@@ -346,7 +349,7 @@
 //! }
 //!
 //! pub fn main() -> iced::Result {
-//!     iced::application("A cool application", update, view)
+//!     iced::application(new, update, view)
 //!         .subscription(subscription)
 //!         .run()
 //! }
@@ -354,6 +357,7 @@
 //! fn subscription(state: &State) -> Subscription<Message> {
 //!     window::resize_events().map(|(_id, size)| Message::WindowResized(size))
 //! }
+//! # fn new() -> State { State }
 //! # fn update(state: &mut State, message: Message) {}
 //! # fn view(state: &State) -> iced::Element<Message> { iced::widget::text("").into() }
 //! ```
@@ -475,6 +479,7 @@ use iced_widget::graphics;
 use iced_widget::renderer;
 use iced_winit as shell;
 use iced_winit::core;
+use iced_winit::program;
 use iced_winit::runtime;
 
 pub use iced_futures::futures;
@@ -499,7 +504,6 @@ pub use iced_highlighter as highlighter;
 pub use iced_renderer::wgpu::wgpu;
 
 mod error;
-mod program;
 
 pub mod application;
 pub mod daemon;
@@ -660,7 +664,7 @@ pub type Result = std::result::Result<(), Error>;
 /// use iced::widget::{button, column, text, Column};
 ///
 /// pub fn main() -> iced::Result {
-///     iced::run("A counter", update, view)
+///     iced::run(update, view)
 /// }
 ///
 /// #[derive(Debug, Clone)]
@@ -682,7 +686,6 @@ pub type Result = std::result::Result<(), Error>;
 /// }
 /// ```
 pub fn run<State, Message, Theme, Renderer>(
-    title: impl application::Title<State> + 'static,
     update: impl application::Update<State, Message> + 'static,
     view: impl for<'a> application::View<'a, State, Message, Theme, Renderer>
     + 'static,
@@ -693,5 +696,5 @@ where
     Theme: Default + theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
-    application(title, update, view).run()
+    application(State::default, update, view).run()
 }

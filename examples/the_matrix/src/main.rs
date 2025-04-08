@@ -10,9 +10,8 @@ use std::cell::RefCell;
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application("The Matrix - Iced", TheMatrix::update, TheMatrix::view)
+    iced::application(TheMatrix::default, TheMatrix::update, TheMatrix::view)
         .subscription(TheMatrix::subscription)
-        .antialiasing(true)
         .run()
 }
 

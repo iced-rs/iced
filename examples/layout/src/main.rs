@@ -12,9 +12,10 @@ use iced::{
 };
 
 pub fn main() -> iced::Result {
-    iced::application(Layout::title, Layout::update, Layout::view)
+    iced::application(Layout::default, Layout::update, Layout::view)
         .subscription(Layout::subscription)
         .theme(Layout::theme)
+        .title(Layout::title)
         .run()
 }
 

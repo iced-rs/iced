@@ -1,13 +1,14 @@
 //! Create and run daemons that run in the background.
 use crate::application;
 use crate::program::{self, Program};
+use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
 
 use std::borrow::Cow;
 
-/// Creates an iced [`Daemon`] given its title, update, and view logic.
+/// Creates an iced [`Daemon`] given its boot, update, and view logic.
 ///
 /// A [`Daemon`] will not open a window by default, but will run silently
 /// instead until a [`Task`] from [`window::open`] is returned by its update logic.
@@ -18,7 +19,7 @@ use std::borrow::Cow;
 ///
 /// [`exit`]: crate::exit
 pub fn daemon<State, Message, Theme, Renderer>(
-    title: impl Title<State>,
+    boot: impl application::Boot<State, Message>,
     update: impl application::Update<State, Message>,
     view: impl for<'a> self::View<'a, State, Message, Theme, Renderer>,
 ) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme>>
@@ -30,7 +31,8 @@ where
 {
     use std::marker::PhantomData;
 
-    struct Instance<State, Message, Theme, Renderer, Update, View> {
+    struct Instance<State, Message, Theme, Renderer, Boot, Update, View> {
+        boot: Boot,
         update: Update,
         view: View,
         _state: PhantomData<State>,
@@ -39,12 +41,13 @@ where
         _renderer: PhantomData<Renderer>,
     }
 
-    impl<State, Message, Theme, Renderer, Update, View> Program
-        for Instance<State, Message, Theme, Renderer, Update, View>
+    impl<State, Message, Theme, Renderer, Boot, Update, View> Program
+        for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
         Message: Send + std::fmt::Debug + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
+        Boot: application::Boot<State, Message>,
         Update: application::Update<State, Message>,
         View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
     {
@@ -53,6 +56,16 @@ where
         type Theme = Theme;
         type Renderer = Renderer;
         type Executor = iced_futures::backend::default::Executor;
+
+        fn name() -> &'static str {
+            let name = std::any::type_name::<State>();
+
+            name.split("::").next().unwrap_or("a_cool_daemon")
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.boot.boot()
+        }
 
         fn update(
             &self,
@@ -73,6 +86,7 @@ where
 
     Daemon {
         raw: Instance {
+            boot,
             update,
             view,
             _state: PhantomData,
@@ -82,7 +96,6 @@ where
         },
         settings: Settings::default(),
     }
-    .title(title)
 }
 
 /// The underlying definition and configuration of an iced daemon.
@@ -100,27 +113,17 @@ pub struct Daemon<P: Program> {
 
 impl<P: Program> Daemon<P> {
     /// Runs the [`Daemon`].
-    ///
-    /// The state of the [`Daemon`] must implement [`Default`].
-    /// If your state does not implement [`Default`], use [`run_with`]
-    /// instead.
-    ///
-    /// [`run_with`]: Self::run_with
     pub fn run(self) -> Result
     where
         Self: 'static,
-        P::State: Default,
     {
-        self.raw.run(self.settings, None)
-    }
+        #[cfg(feature = "debug")]
+        let program = iced_devtools::attach(self.raw);
 
-    /// Runs the [`Daemon`] with a closure that creates the initial state.
-    pub fn run_with<I>(self, initialize: I) -> Result
-    where
-        Self: 'static,
-        I: FnOnce() -> (P::State, Task<P::Message>) + 'static,
-    {
-        self.raw.run_with(self.settings, None, initialize)
+        #[cfg(not(feature = "debug"))]
+        let program = self.raw;
+
+        Ok(shell::run(program, self.settings, None)?)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Daemon`].
@@ -157,7 +160,7 @@ impl<P: Program> Daemon<P> {
     }
 
     /// Sets the [`Title`] of the [`Daemon`].
-    pub(crate) fn title(
+    pub fn title(
         self,
         title: impl Title<P::State>,
     ) -> Daemon<

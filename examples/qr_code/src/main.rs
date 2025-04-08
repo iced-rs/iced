@@ -7,7 +7,7 @@ use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
     iced::application(
-        "QR Code Generator - Iced",
+        QRGenerator::default,
         QRGenerator::update,
         QRGenerator::view,
     )
