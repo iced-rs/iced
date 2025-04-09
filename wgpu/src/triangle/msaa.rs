@@ -254,6 +254,8 @@ impl Targets {
 struct Ratio {
     u: f32,
     v: f32,
+    p0: f32,
+    p1: f32,
 }
 
 pub struct State {
@@ -306,6 +308,8 @@ impl State {
         let ratio = Ratio {
             u: region_size.width as f32 / targets.size.width as f32,
             v: region_size.height as f32 / targets.size.height as f32,
+            p0: 0.0,
+            p1: 0.0,
         };
 
         if Some(ratio) != self.last_ratio {
