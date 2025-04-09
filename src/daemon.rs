@@ -117,10 +117,10 @@ impl<P: Program> Daemon<P> {
     where
         Self: 'static,
     {
-        #[cfg(feature = "debug")]
+        #[cfg(all(feature = "debug", not(target_arch = "wasm32")))]
         let program = iced_devtools::attach(self.raw);
 
-        #[cfg(not(feature = "debug"))]
+        #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
         let program = self.raw;
 
         Ok(shell::run(program, self.settings, None)?)
