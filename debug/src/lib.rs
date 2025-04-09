@@ -7,6 +7,15 @@ pub use internal::Span;
 
 use std::io;
 
+#[derive(Debug, Clone, Copy)]
+pub enum Primitive {
+    Quad,
+    Triangle,
+    Shader,
+    Image,
+    Text,
+}
+
 pub fn init(name: &str) {
     internal::init(name);
 }
@@ -51,6 +60,14 @@ pub fn draw(window: window::Id) -> Span {
     internal::draw(window)
 }
 
+pub fn prepare(primitive: Primitive) -> Span {
+    internal::prepare(primitive)
+}
+
+pub fn render(primitive: Primitive) -> Span {
+    internal::render(primitive)
+}
+
 pub fn present(window: window::Id) -> Span {
     internal::present(window)
 }
@@ -65,6 +82,7 @@ pub fn skip_next_timing() {
 
 #[cfg(all(feature = "enable", not(target_arch = "wasm32")))]
 mod internal {
+    use crate::Primitive;
     use crate::core::theme;
     use crate::core::time::Instant;
     use crate::core::window;
@@ -171,6 +189,14 @@ mod internal {
         span(span::Stage::Draw(window))
     }
 
+    pub fn prepare(primitive: Primitive) -> Span {
+        span(span::Stage::Prepare(to_primitive(primitive)))
+    }
+
+    pub fn render(primitive: Primitive) -> Span {
+        span(span::Stage::Render(to_primitive(primitive)))
+    }
+
     pub fn present(window: window::Id) -> Span {
         span(span::Stage::Present(window))
     }
@@ -189,6 +215,16 @@ mod internal {
         Span {
             span,
             start: Instant::now(),
+        }
+    }
+
+    fn to_primitive(primitive: Primitive) -> span::Primitive {
+        match primitive {
+            Primitive::Quad => span::Primitive::Quad,
+            Primitive::Triangle => span::Primitive::Triangle,
+            Primitive::Shader => span::Primitive::Shader,
+            Primitive::Text => span::Primitive::Text,
+            Primitive::Image => span::Primitive::Image,
         }
     }
 
@@ -222,6 +258,7 @@ mod internal {
 
 #[cfg(any(not(feature = "enable"), target_arch = "wasm32"))]
 mod internal {
+    use crate::Primitive;
     use crate::core::theme;
     use crate::core::window;
 
@@ -260,6 +297,14 @@ mod internal {
     }
 
     pub fn draw(_window: window::Id) -> Span {
+        Span
+    }
+
+    pub fn prepare(_primitive: Primitive) -> Span {
+        Span
+    }
+
+    pub fn render(_primitive: Primitive) -> Span {
         Span
     }
 
