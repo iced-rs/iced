@@ -47,6 +47,7 @@ mod image;
 
 use buffer::Buffer;
 
+use iced_debug as debug;
 pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 
@@ -320,6 +321,8 @@ impl Renderer {
             }
 
             if !layer.quads.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Quad);
+
                 self.quad.prepare(
                     &self.engine.quad_pipeline,
                     &self.engine.device,
@@ -329,9 +332,13 @@ impl Renderer {
                     viewport.projection(),
                     scale_factor,
                 );
+
+                prepare_span.finish();
             }
 
             if !layer.triangles.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Triangle);
+
                 self.triangle.prepare(
                     &self.engine.triangle_pipeline,
                     &self.engine.device,
@@ -341,9 +348,13 @@ impl Renderer {
                     Transformation::scale(scale_factor),
                     viewport.physical_size(),
                 );
+
+                prepare_span.finish();
             }
 
             if !layer.primitives.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Shader);
+
                 let mut primitive_storage = self
                     .engine
                     .primitive_storage
@@ -360,10 +371,14 @@ impl Renderer {
                         viewport,
                     );
                 }
+
+                prepare_span.finish();
             }
 
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Image);
+
                 self.image.prepare(
                     &self.engine.image_pipeline,
                     &self.engine.device,
@@ -374,9 +389,13 @@ impl Renderer {
                     viewport.projection(),
                     scale_factor,
                 );
+
+                prepare_span.finish();
             }
 
             if !layer.text.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Text);
+
                 self.text.prepare(
                     &self.engine.text_pipeline,
                     &self.engine.device,
@@ -387,6 +406,8 @@ impl Renderer {
                     layer.bounds,
                     Transformation::scale(scale_factor),
                 );
+
+                prepare_span.finish();
             }
         }
     }
@@ -459,6 +480,7 @@ impl Renderer {
             };
 
             if !layer.quads.is_empty() {
+                let render_span = debug::render(debug::Primitive::Quad);
                 self.quad.render(
                     &self.engine.quad_pipeline,
                     quad_layer,
@@ -466,6 +488,7 @@ impl Renderer {
                     &layer.quads,
                     &mut render_pass,
                 );
+                render_span.finish();
 
                 quad_layer += 1;
             }
@@ -473,6 +496,7 @@ impl Renderer {
             if !layer.triangles.is_empty() {
                 let _ = ManuallyDrop::into_inner(render_pass);
 
+                let render_span = debug::render(debug::Primitive::Triangle);
                 mesh_layer += self.triangle.render(
                     &self.engine.triangle_pipeline,
                     encoder,
@@ -482,6 +506,7 @@ impl Renderer {
                     physical_bounds,
                     scale,
                 );
+                render_span.finish();
 
                 render_pass = ManuallyDrop::new(encoder.begin_render_pass(
                     &wgpu::RenderPassDescriptor {
@@ -504,6 +529,7 @@ impl Renderer {
             }
 
             if !layer.primitives.is_empty() {
+                let render_span = debug::render(debug::Primitive::Shader);
                 let _ = ManuallyDrop::into_inner(render_pass);
 
                 let primitive_storage = self
@@ -525,6 +551,8 @@ impl Renderer {
                         );
                     }
                 }
+
+                render_span.finish();
 
                 render_pass = ManuallyDrop::new(encoder.begin_render_pass(
                     &wgpu::RenderPassDescriptor {
@@ -548,6 +576,7 @@ impl Renderer {
 
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
+                let render_span = debug::render(debug::Primitive::Image);
                 self.image.render(
                     &self.engine.image_pipeline,
                     &image_cache,
@@ -555,11 +584,13 @@ impl Renderer {
                     scissor_rect,
                     &mut render_pass,
                 );
+                render_span.finish();
 
                 image_layer += 1;
             }
 
             if !layer.text.is_empty() {
+                let render_span = debug::render(debug::Primitive::Text);
                 text_layer += self.text.render(
                     &self.engine.text_pipeline,
                     &self.text_viewport,
@@ -568,6 +599,7 @@ impl Renderer {
                     scissor_rect,
                     &mut render_pass,
                 );
+                render_span.finish();
             }
         }
 
