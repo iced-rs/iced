@@ -751,6 +751,7 @@ async fn run_instance<P>(
                             .get_mut(&id)
                             .expect("Get user interface");
 
+                        let draw_span = debug::draw(id);
                         let (ui_state, _) = ui.update(
                             &[redraw_event.clone()],
                             cursor,
@@ -759,7 +760,6 @@ async fn run_instance<P>(
                             &mut messages,
                         );
 
-                        let draw_span = debug::draw(id);
                         let new_mouse_interaction = ui.draw(
                             &mut window.renderer,
                             window.state.theme(),
