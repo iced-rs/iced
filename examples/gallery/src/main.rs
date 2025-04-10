@@ -9,8 +9,8 @@ use crate::civitai::{Error, Id, Image, Rgba, Size};
 use iced::animation;
 use iced::time::{Instant, milliseconds};
 use iced::widget::{
-    button, center_x, container, horizontal_space, image, mouse_area, opaque,
-    pop, row, scrollable, stack,
+    button, container, grid, horizontal_space, image, mouse_area, opaque, pop,
+    scrollable, stack,
 };
 use iced::window;
 use iced::{
@@ -22,6 +22,10 @@ use std::collections::HashMap;
 
 fn main() -> iced::Result {
     iced::application(Gallery::new, Gallery::update, Gallery::view)
+        .window_size((
+            Preview::WIDTH as f32 * 4.0,
+            Preview::HEIGHT as f32 * 2.5,
+        ))
         .subscription(Gallery::subscription)
         .theme(Gallery::theme)
         .run()
@@ -175,19 +179,18 @@ impl Gallery {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        let gallery = if self.images.is_empty() {
-            row((0..=Image::LIMIT).map(|_| placeholder()))
-        } else {
-            row(self.images.iter().map(|image| {
-                card(image, self.previews.get(&image.id), self.now)
-            }))
-        }
-        .spacing(10)
-        .wrap();
+        let images = self
+            .images
+            .iter()
+            .map(|image| card(image, self.previews.get(&image.id), self.now))
+            .chain((self.images.len()..=Image::LIMIT).map(|_| placeholder()));
 
-        let content =
-            container(scrollable(center_x(gallery)).spacing(10)).padding(10);
+        let gallery = grid(images)
+            .fluid(Preview::WIDTH)
+            .height(grid::aspect_ratio(Preview::WIDTH, Preview::HEIGHT))
+            .spacing(10);
 
+        let content = container(scrollable(gallery).spacing(10)).padding(10);
         let viewer = self.viewer.view(self.now);
 
         stack![content, viewer].into()
@@ -204,7 +207,6 @@ fn card<'a>(
             if let Preview::Ready { thumbnail, .. } = &preview {
                 image(&thumbnail.handle)
                     .width(Fill)
-                    .height(Fill)
                     .content_fit(ContentFit::Cover)
                     .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now))
                     .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
@@ -216,7 +218,6 @@ fn card<'a>(
         if let Some(blurhash) = preview.blurhash(now) {
             let blurhash = image(&blurhash.handle)
                 .width(Fill)
-                .height(Fill)
                 .content_fit(ContentFit::Cover)
                 .opacity(blurhash.fade_in.interpolate(0.0, 1.0, now));
 
@@ -228,14 +229,9 @@ fn card<'a>(
         horizontal_space().into()
     };
 
-    let card = mouse_area(
-        container(image)
-            .width(Preview::WIDTH)
-            .height(Preview::HEIGHT)
-            .style(container::dark),
-    )
-    .on_enter(Message::ThumbnailHovered(metadata.id, true))
-    .on_exit(Message::ThumbnailHovered(metadata.id, false));
+    let card = mouse_area(container(image).style(container::dark))
+        .on_enter(Message::ThumbnailHovered(metadata.id, true))
+        .on_exit(Message::ThumbnailHovered(metadata.id, false));
 
     if let Some(preview) = preview {
         let is_thumbnail = matches!(preview, Preview::Ready { .. });
@@ -253,11 +249,7 @@ fn card<'a>(
 }
 
 fn placeholder<'a>() -> Element<'a, Message> {
-    container(horizontal_space())
-        .width(Preview::WIDTH)
-        .height(Preview::HEIGHT)
-        .style(container::dark)
-        .into()
+    container(horizontal_space()).style(container::dark).into()
 }
 
 enum Preview {
