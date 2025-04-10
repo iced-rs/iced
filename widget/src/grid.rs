@@ -181,8 +181,9 @@ where
         let available = limits.max();
 
         let cells_per_row = match self.columns {
-            Constraint::MaxWidth(pixels) => (available.width
-                / (pixels.0 + self.spacing / 2.0))
+            // width = n * (cell + spacing) - spacing, given n > 0
+            Constraint::MaxWidth(pixels) => ((available.width + self.spacing)
+                / (pixels.0 + self.spacing))
                 .ceil() as usize,
             Constraint::Amount(amount) => amount,
         };
