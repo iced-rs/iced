@@ -10,6 +10,7 @@ pub use iced_runtime::core;
 
 mod action;
 mod column;
+mod grid;
 mod mouse_area;
 mod pin;
 mod space;
@@ -58,6 +59,8 @@ pub use column::Column;
 pub use combo_box::ComboBox;
 #[doc(no_inline)]
 pub use container::Container;
+#[doc(no_inline)]
+pub use grid::Grid;
 #[doc(no_inline)]
 pub use mouse_area::MouseArea;
 #[doc(no_inline)]
