@@ -10,7 +10,6 @@ pub use iced_runtime::core;
 
 mod action;
 mod column;
-mod grid;
 mod mouse_area;
 mod pin;
 mod space;
@@ -21,6 +20,7 @@ pub mod button;
 pub mod checkbox;
 pub mod combo_box;
 pub mod container;
+pub mod grid;
 pub mod keyed;
 pub mod overlay;
 pub mod pane_grid;

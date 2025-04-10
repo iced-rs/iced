@@ -15,7 +15,7 @@ pub struct Grid<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,
     columns: Constraint,
     width: Option<Pixels>,
-    ratio: Option<Pixels>,
+    height: Sizing,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
 }
 
@@ -55,7 +55,7 @@ where
             spacing: 0.0,
             columns: Constraint::Amount(3),
             width: None,
-            ratio: None,
+            height: Sizing::AspectRatio(1.0),
             children,
         }
     }
@@ -76,6 +76,14 @@ where
         self
     }
 
+    /// Sets the height of the [`Grid`].
+    ///
+    /// By default, a [`Grid`] uses a cell aspect ratio of `1.0` (i.e. squares).
+    pub fn height(mut self, height: impl Into<Sizing>) -> Self {
+        self.height = height.into();
+        self
+    }
+
     /// Sets the amount of columns in the [`Grid`].
     pub fn columns(mut self, column: usize) -> Self {
         self.columns = Constraint::Amount(column);
@@ -86,12 +94,6 @@ where
     /// exceeding the provided `max_width`.
     pub fn fluid(mut self, max_width: impl Into<Pixels>) -> Self {
         self.columns = Constraint::MaxWidth(max_width.into());
-        self
-    }
-
-    /// Sets the amount of horizontal pixels per each vertical pixel of a cell in the [`Grid`].
-    pub fn ratio(mut self, ratio: impl Into<Pixels>) -> Self {
-        self.ratio = Some(ratio.into());
         self
     }
 
@@ -166,7 +168,10 @@ where
                 .width
                 .map(|pixels| Length::Fixed(pixels.0))
                 .unwrap_or(Length::Fill),
-            height: Length::Shrink,
+            height: match self.height {
+                Sizing::AspectRatio(_) => Length::Shrink,
+                Sizing::EvenlyDistribute(length) => length,
+            },
         }
     }
 
@@ -194,22 +199,23 @@ where
             - self.spacing * (cells_per_row - 1) as f32)
             / cells_per_row as f32;
 
-        let cell_height = if let Some(ratio) = self.ratio {
-            cell_width / ratio.0
-        } else if available.height.is_finite() {
-            available.height / total_rows as f32
-        } else {
-            f32::INFINITY
+        let cell_height = match self.height {
+            Sizing::AspectRatio(ratio) => Some(cell_width / ratio),
+            Sizing::EvenlyDistribute(Length::Shrink) => None,
+            Sizing::EvenlyDistribute(_) => {
+                Some(available.height / total_rows as f32)
+            }
         };
 
         let cell_limits = layout::Limits::new(
-            Size::new(cell_width, 0.0),
-            Size::new(cell_width, cell_height),
+            Size::new(cell_width, cell_height.unwrap_or(0.0)),
+            Size::new(cell_width, cell_height.unwrap_or(available.height)),
         );
 
         let mut nodes = Vec::new();
         let mut x = 0.0;
         let mut y = 0.0;
+        let mut row_height = 0.0f32;
 
         for (i, (child, tree)) in
             self.children.iter().zip(&mut tree.children).enumerate()
@@ -219,11 +225,15 @@ where
                 .layout(tree, renderer, &cell_limits)
                 .move_to((x, y));
 
-            x += node.size().width + self.spacing;
+            let size = node.size();
+
+            x += size.width + self.spacing;
+            row_height = row_height.max(size.height);
 
             if (i + 1) % cells_per_row == 0 {
-                y += cell_height + self.spacing;
+                y += cell_height.unwrap_or(row_height) + self.spacing;
                 x = 0.0;
+                row_height = 0.0;
             }
 
             nodes.push(node);
@@ -232,7 +242,7 @@ where
         if x == 0.0 {
             y -= self.spacing;
         } else {
-            y += cell_height;
+            y += cell_height.unwrap_or(row_height);
         }
 
         layout::Node::with_children(Size::new(available.width, y), nodes)
@@ -355,4 +365,39 @@ where
     fn from(row: Grid<'a, Message, Theme, Renderer>) -> Self {
         Self::new(row)
     }
+}
+
+/// The sizing strategy of a [`Grid`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Sizing {
+    /// The [`Grid`] will ensure each cell follows the given aspect ratio and the
+    /// total size will be the sum of the cells and the spacing between them.
+    ///
+    /// The ratio is the amount of horizontal pixels per each vertical pixel of a cell
+    /// in the [`Grid`].
+    AspectRatio(f32),
+
+    /// The [`Grid`] will evenly distribute the space available in the given [`Length`]
+    /// for each cell.
+    EvenlyDistribute(Length),
+}
+
+impl From<f32> for Sizing {
+    fn from(height: f32) -> Self {
+        Self::EvenlyDistribute(Length::from(height))
+    }
+}
+
+impl From<Length> for Sizing {
+    fn from(height: Length) -> Self {
+        Self::EvenlyDistribute(height)
+    }
+}
+
+/// Creates a new [`Sizing`] strategy that maintains the given aspect ratio.
+pub fn aspect_ratio(
+    width: impl Into<Pixels>,
+    height: impl Into<Pixels>,
+) -> Sizing {
+    Sizing::AspectRatio(width.into().0 / height.into().0)
 }

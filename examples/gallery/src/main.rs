@@ -22,6 +22,10 @@ use std::collections::HashMap;
 
 fn main() -> iced::Result {
     iced::application(Gallery::new, Gallery::update, Gallery::view)
+        .window_size((
+            Preview::WIDTH as f32 * 4.0,
+            Preview::HEIGHT as f32 * 2.5,
+        ))
         .subscription(Gallery::subscription)
         .theme(Gallery::theme)
         .run()
@@ -183,7 +187,7 @@ impl Gallery {
 
         let gallery = grid(images)
             .fluid(Preview::WIDTH)
-            .ratio(Preview::WIDTH as f32 / Preview::HEIGHT as f32)
+            .height(grid::aspect_ratio(Preview::WIDTH, Preview::HEIGHT))
             .spacing(10);
 
         let content = container(scrollable(gallery).spacing(10)).padding(10);
@@ -225,7 +229,7 @@ fn card<'a>(
         horizontal_space().into()
     };
 
-    let card = mouse_area(container(image).height(Fill).style(container::dark))
+    let card = mouse_area(container(image).style(container::dark))
         .on_enter(Message::ThumbnailHovered(metadata.id, true))
         .on_exit(Message::ThumbnailHovered(metadata.id, false));
 
@@ -245,10 +249,7 @@ fn card<'a>(
 }
 
 fn placeholder<'a>() -> Element<'a, Message> {
-    container(horizontal_space())
-        .height(Fill)
-        .style(container::dark)
-        .into()
+    container(horizontal_space()).style(container::dark).into()
 }
 
 enum Preview {
