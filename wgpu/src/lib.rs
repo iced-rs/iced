@@ -284,7 +284,7 @@ impl Renderer {
         let _ = self
             .engine
             .device
-            .poll(wgpu::Maintain::WaitForSubmissionIndex(index));
+            .poll(wgpu::PollType::WaitForSubmissionIndex(index));
 
         let mapped_buffer = slice.get_mapped_range();
 
@@ -818,21 +818,20 @@ impl renderer::Headless for Renderer {
                 force_fallback_adapter: false,
                 compatible_surface: None,
             })
-            .await?;
+            .await
+            .ok()?;
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: Some("iced_wgpu [headless]"),
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits {
-                        max_bind_groups: 2,
-                        ..wgpu::Limits::default()
-                    },
-                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("iced_wgpu [headless]"),
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits {
+                    max_bind_groups: 2,
+                    ..wgpu::Limits::default()
                 },
-                None,
-            )
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                trace: Default::default(),
+            })
             .await
             .ok()?;
 
