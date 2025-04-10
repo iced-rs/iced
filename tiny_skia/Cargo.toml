@@ -19,6 +19,7 @@ svg = ["iced_graphics/svg", "resvg"]
 geometry = ["iced_graphics/geometry"]
 
 [dependencies]
+iced_debug.workspace = true
 iced_graphics.workspace = true
 
 bytemuck.workspace = true

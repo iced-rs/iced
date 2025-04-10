@@ -94,6 +94,7 @@ pub fn run() -> impl Stream<Item = Event> {
 
             let mut last_message = String::new();
             let mut last_commands_spawned = 0;
+            let mut last_present_window = None;
 
             loop {
                 match receive(&mut stream, &mut buffer).await {
@@ -146,6 +147,11 @@ pub fn run() -> impl Stream<Item = Event> {
                                         last_message.clear();
                                         last_commands_spawned = 0;
                                     }
+                                    client::Event::SpanStarted(
+                                        span::Stage::Present(window),
+                                    ) => {
+                                        last_present_window = Some(window);
+                                    }
                                     client::Event::SpanStarted(_) => {}
                                     client::Event::SpanFinished(
                                         stage,
@@ -172,6 +178,30 @@ pub fn run() -> impl Stream<Item = Event> {
                                             }
                                             span::Stage::Draw(window) => {
                                                 Span::Draw { window }
+                                            }
+                                            span::Stage::Prepare(primitive) => {
+                                                let Some(window) =
+                                                    last_present_window
+                                                else {
+                                                    continue;
+                                                };
+
+                                                Span::Prepare {
+                                                    window,
+                                                    primitive,
+                                                }
+                                            }
+                                            span::Stage::Render(primitive) => {
+                                                let Some(window) =
+                                                    last_present_window
+                                                else {
+                                                    continue;
+                                                };
+
+                                                Span::Render {
+                                                    window,
+                                                    primitive,
+                                                }
                                             }
                                             span::Stage::Present(window) => {
                                                 Span::Present { window }

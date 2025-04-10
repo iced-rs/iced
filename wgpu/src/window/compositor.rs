@@ -52,15 +52,18 @@ impl Compositor {
         settings: Settings,
         compatible_window: Option<W>,
     ) -> Result<Self, Error> {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            backends: settings.backends,
-            flags: if cfg!(feature = "strict-assertions") {
-                wgpu::InstanceFlags::debugging()
-            } else {
-                wgpu::InstanceFlags::empty()
+        let instance = wgpu::util::new_instance_with_webgpu_detection(
+            &wgpu::InstanceDescriptor {
+                backends: settings.backends,
+                flags: if cfg!(feature = "strict-assertions") {
+                    wgpu::InstanceFlags::debugging()
+                } else {
+                    wgpu::InstanceFlags::empty()
+                },
+                ..Default::default()
             },
-            ..Default::default()
-        });
+        )
+        .await;
 
         log::info!("{settings:#?}");
 

@@ -21,6 +21,14 @@ pub enum Span {
     Draw {
         window: window::Id,
     },
+    Prepare {
+        window: window::Id,
+        primitive: Primitive,
+    },
+    Render {
+        window: window::Id,
+        primitive: Primitive,
+    },
     Present {
         window: window::Id,
     },
@@ -28,6 +36,26 @@ pub enum Span {
         window: window::Id,
         name: String,
     },
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+)]
+pub enum Primitive {
+    Quad,
+    Triangle,
+    Shader,
+    Text,
+    Image,
 }
 
 impl Span {
@@ -39,6 +67,8 @@ impl Span {
             Span::Layout { window } => Stage::Layout(*window),
             Span::Interact { window } => Stage::Interact(*window),
             Span::Draw { window } => Stage::Draw(*window),
+            Span::Prepare { primitive, .. } => Stage::Prepare(*primitive),
+            Span::Render { primitive, .. } => Stage::Render(*primitive),
             Span::Present { window } => Stage::Present(*window),
             Span::Custom { window, name } => {
                 Stage::Custom(*window, name.clone())
@@ -58,6 +88,8 @@ pub enum Stage {
     Interact(window::Id),
     Draw(window::Id),
     Present(window::Id),
+    Prepare(Primitive),
+    Render(Primitive),
     Custom(window::Id, String),
 }
 
@@ -70,6 +102,8 @@ impl std::fmt::Display for Stage {
             Stage::Layout(_) => "Layout",
             Stage::Interact(_) => "Interact",
             Stage::Draw(_) => "Draw",
+            Stage::Prepare(_) => "Prepare",
+            Stage::Render(_) => "Render",
             Stage::Present(_) => "Present",
             Stage::Custom(_, name) => name,
         })
