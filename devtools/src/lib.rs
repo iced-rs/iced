@@ -17,8 +17,8 @@ use crate::futures::Subscription;
 use crate::program::Program;
 use crate::runtime::Task;
 use crate::widget::{
-    bottom_right, button, center, column, container, horizontal_space, row,
-    scrollable, stack, text, themer,
+    bottom_right, button, center, column, container, horizontal_space, opaque,
+    row, scrollable, stack, text, themer,
 };
 
 use std::fmt;
@@ -354,16 +354,16 @@ where
         let notification = self.show_notification.then(|| {
             themer(
                 derive_theme(),
-                bottom_right(
+                bottom_right(opaque(
                     container(text("Press F12 to open debug metrics"))
                         .padding(10)
                         .style(container::dark),
-                ),
+                )),
             )
         });
 
         stack![view]
-            .push_maybe(mode)
+            .push_maybe(mode.map(opaque))
             .push_maybe(notification)
             .into()
     }
