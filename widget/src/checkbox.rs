@@ -16,7 +16,8 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     checkbox("Toggle me!", state.is_checked)
+//!     checkbox(state.is_checked)
+//!         .label("Toggle me!")
 //!         .on_toggle(Message::CheckboxToggled)
 //!         .into()
 //! }
@@ -63,7 +64,8 @@ use crate::core::{
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     checkbox("Toggle me!", state.is_checked)
+///     checkbox(state.is_checked)
+///         .label("Toggle me!")
 ///         .on_toggle(Message::CheckboxToggled)
 ///         .into()
 /// }
@@ -89,7 +91,7 @@ pub struct Checkbox<
 {
     is_checked: bool,
     on_toggle: Option<Box<dyn Fn(bool) -> Message + 'a>>,
-    label: String,
+    label: Option<text::Fragment<'a>>,
     width: Length,
     size: f32,
     spacing: f32,
@@ -117,13 +119,12 @@ where
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
-    ///   * the label of the [`Checkbox`]
     ///   * a boolean describing whether the [`Checkbox`] is checked or not
-    pub fn new(label: impl Into<String>, is_checked: bool) -> Self {
+    pub fn new(is_checked: bool) -> Self {
         Checkbox {
             is_checked,
             on_toggle: None,
-            label: label.into(),
+            label: None,
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SPACING,
@@ -142,6 +143,12 @@ where
             class: Theme::default(),
             last_status: None,
         }
+    }
+
+    /// Sets the label of the [`CheckBox`]
+    pub fn label(mut self, label: impl text::IntoFragment<'a>) -> Self {
+        self.label = Some(label.into_fragment());
+        self
     }
 
     /// Sets the function that will be called when the [`Checkbox`] is toggled.
@@ -279,25 +286,29 @@ where
             self.spacing,
             |_| layout::Node::new(Size::new(self.size, self.size)),
             |limits| {
-                let state = tree
+                if let Some(label) = self.label.as_deref() {
+                    let state = tree
                     .state
                     .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
 
-                widget::text::layout(
-                    state,
-                    renderer,
-                    limits,
-                    self.width,
-                    Length::Shrink,
-                    &self.label,
-                    self.text_line_height,
-                    self.text_size,
-                    self.font,
-                    text::Alignment::Default,
-                    alignment::Vertical::Top,
-                    self.text_shaping,
-                    self.text_wrapping,
-                )
+                    widget::text::layout(
+                        state,
+                        renderer,
+                        limits,
+                        self.width,
+                        Length::Shrink,
+                        label,
+                        self.text_line_height,
+                        self.text_size,
+                        self.font,
+                        text::Alignment::Default,
+                        alignment::Vertical::Top,
+                        self.text_shaping,
+                        self.text_wrapping,
+                    )
+                } else {
+                    layout::Node::new(Size::ZERO)
+                }
             },
         )
     }
@@ -453,7 +464,9 @@ where
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        operation.text(None, layout.bounds(), &self.label);
+        if let Some(label) = self.label.as_deref() {
+            operation.text(None, layout.bounds(), label);
+        }
     }
 }
 
