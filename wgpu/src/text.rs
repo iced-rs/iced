@@ -467,10 +467,10 @@ fn prepare(
         .iter()
         .map(|section| match section {
             Text::Paragraph { paragraph, .. } => {
-                paragraph.upgrade().map(Allocation::Paragraph)
+                Some(Allocation::Paragraph(paragraph.clone()))
             }
             Text::Editor { editor, .. } => {
-                editor.upgrade().map(Allocation::Editor)
+                Some(Allocation::Editor(editor.clone()))
             }
             Text::Cached {
                 content,
