@@ -196,7 +196,7 @@ where
                                 "--git",
                                 "https://github.com/iced-rs/comet.git",
                                 "--rev",
-                                "fc9832833f81a8e95e2c4ab8e7e65dcc3c000253",
+                                "eb114ba564a872acbd95e337d13e55f5f667b2f3",
                             ])
                             .stdin(Stdio::null())
                             .stdout(Stdio::null())
