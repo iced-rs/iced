@@ -72,8 +72,16 @@ pub fn present(window: window::Id) -> Span {
     internal::present(window)
 }
 
-pub fn time(window: window::Id, name: impl AsRef<str>) -> Span {
-    internal::time(window, name)
+pub fn time(name: impl Into<String>) -> Span {
+    internal::time(name)
+}
+
+pub fn time_with<T>(name: impl Into<String>, f: impl FnOnce() -> T) -> T {
+    let span = time(name);
+    let result = f();
+    span.finish();
+
+    result
 }
 
 pub fn skip_next_timing() {
@@ -201,8 +209,8 @@ mod internal {
         span(span::Stage::Present(window))
     }
 
-    pub fn time(window: window::Id, name: impl AsRef<str>) -> Span {
-        span(span::Stage::Custom(window, name.as_ref().to_owned()))
+    pub fn time(name: impl Into<String>) -> Span {
+        span(span::Stage::Custom(name.into()))
     }
 
     pub fn skip_next_timing() {
@@ -312,7 +320,7 @@ mod internal {
         Span
     }
 
-    pub fn time(_window: window::Id, _name: impl AsRef<str>) -> Span {
+    pub fn time(_name: impl Into<String>) -> Span {
         Span
     }
 
