@@ -87,7 +87,7 @@ use iced::widget::{center, column, slider, text};
 use iced::{Center, Color, Element, Shadow, Vector};
 
 pub fn main() -> iced::Result {
-    iced::run("Custom Quad - Iced", Example::update, Example::view)
+    iced::run(Example::update, Example::view)
 }
 
 struct Example {

@@ -461,7 +461,7 @@ where
                             limits.max().width
                         },
                         if self.direction.vertical().is_some() {
-                            f32::MAX
+                            f32::INFINITY
                         } else {
                             limits.max().height
                         },

@@ -85,7 +85,7 @@ impl core::text::Paragraph for Paragraph {
         buffer.set_text(
             font_system.raw(),
             text.content,
-            text::to_attributes(text.font),
+            &text::to_attributes(text.font),
             text::to_shaping(text.shaping),
         );
 
@@ -154,7 +154,7 @@ impl core::text::Paragraph for Paragraph {
 
                 (span.text.as_ref(), attrs.metadata(i))
             }),
-            text::to_attributes(text.font),
+            &text::to_attributes(text.font),
             text::to_shaping(text.shaping),
             None,
         );
@@ -186,7 +186,8 @@ impl core::text::Paragraph for Paragraph {
             Some(new_bounds.height),
         );
 
-        let (min_bounds, _has_rtl) = text::measure(&paragraph.buffer);
+        let min_bounds =
+            align(&mut paragraph.buffer, &mut font_system, paragraph.align_x);
 
         paragraph.bounds = new_bounds;
         paragraph.min_bounds = min_bounds;
@@ -376,6 +377,8 @@ fn align(
             }
 
             needs_relayout = true;
+        } else if let Some(line) = buffer.lines.first_mut() {
+            needs_relayout = line.set_align(None);
         }
     }
 

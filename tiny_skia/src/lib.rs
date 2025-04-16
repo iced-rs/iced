@@ -17,6 +17,7 @@ mod vector;
 #[cfg(feature = "geometry")]
 pub mod geometry;
 
+use iced_debug as debug;
 pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 
@@ -63,46 +64,15 @@ impl Renderer {
         self.layers.as_slice()
     }
 
-    pub fn draw<T: AsRef<str>>(
+    pub fn draw(
         &mut self,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: &mut tiny_skia::Mask,
         viewport: &Viewport,
         damage: &[Rectangle],
         background_color: Color,
-        overlay: &[T],
     ) {
-        let physical_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor() as f32;
-
-        if !overlay.is_empty() {
-            let path = tiny_skia::PathBuilder::from_rect(
-                tiny_skia::Rect::from_xywh(
-                    0.0,
-                    0.0,
-                    physical_size.width as f32,
-                    physical_size.height as f32,
-                )
-                .expect("Create damage rectangle"),
-            );
-
-            pixels.fill_path(
-                &path,
-                &tiny_skia::Paint {
-                    shader: tiny_skia::Shader::SolidColor(engine::into_color(
-                        Color {
-                            a: 0.1,
-                            ..background_color
-                        },
-                    )),
-                    anti_alias: false,
-                    ..Default::default()
-                },
-                tiny_skia::FillRule::default(),
-                tiny_skia::Transform::identity(),
-                None,
-            );
-        }
 
         self.layers.flush();
 
@@ -143,82 +113,85 @@ impl Renderer {
 
                 engine::adjust_clip_mask(clip_mask, clip_bounds);
 
-                for (quad, background) in &layer.quads {
-                    self.engine.draw_quad(
-                        quad,
-                        background,
-                        Transformation::scale(scale_factor),
-                        pixels,
-                        clip_mask,
-                        clip_bounds,
-                    );
+                if !layer.quads.is_empty() {
+                    let render_span = debug::render(debug::Primitive::Quad);
+                    for (quad, background) in &layer.quads {
+                        self.engine.draw_quad(
+                            quad,
+                            background,
+                            Transformation::scale(scale_factor),
+                            pixels,
+                            clip_mask,
+                            clip_bounds,
+                        );
+                    }
+                    render_span.finish();
                 }
 
-                for group in &layer.primitives {
-                    let Some(new_clip_bounds) = (group.clip_bounds()
-                        * scale_factor)
-                        .intersection(&clip_bounds)
-                    else {
-                        continue;
-                    };
+                if !layer.primitives.is_empty() {
+                    let render_span = debug::render(debug::Primitive::Triangle);
 
-                    engine::adjust_clip_mask(clip_mask, new_clip_bounds);
+                    for group in &layer.primitives {
+                        let Some(new_clip_bounds) = (group.clip_bounds()
+                            * scale_factor)
+                            .intersection(&clip_bounds)
+                        else {
+                            continue;
+                        };
 
-                    for primitive in group.as_slice() {
-                        self.engine.draw_primitive(
-                            primitive,
-                            group.transformation()
-                                * Transformation::scale(scale_factor),
+                        engine::adjust_clip_mask(clip_mask, new_clip_bounds);
+
+                        for primitive in group.as_slice() {
+                            self.engine.draw_primitive(
+                                primitive,
+                                group.transformation()
+                                    * Transformation::scale(scale_factor),
+                                pixels,
+                                clip_mask,
+                                clip_bounds,
+                            );
+                        }
+
+                        engine::adjust_clip_mask(clip_mask, clip_bounds);
+                    }
+
+                    render_span.finish();
+                }
+
+                if !layer.images.is_empty() {
+                    let render_span = debug::render(debug::Primitive::Image);
+
+                    for image in &layer.images {
+                        self.engine.draw_image(
+                            image,
+                            Transformation::scale(scale_factor),
                             pixels,
                             clip_mask,
                             clip_bounds,
                         );
                     }
 
-                    engine::adjust_clip_mask(clip_mask, clip_bounds);
+                    render_span.finish();
                 }
 
-                for image in &layer.images {
-                    self.engine.draw_image(
-                        image,
-                        Transformation::scale(scale_factor),
-                        pixels,
-                        clip_mask,
-                        clip_bounds,
-                    );
-                }
+                if !layer.text.is_empty() {
+                    let render_span = debug::render(debug::Primitive::Image);
 
-                for group in &layer.text {
-                    for text in group.as_slice() {
-                        self.engine.draw_text(
-                            text,
-                            group.transformation()
-                                * Transformation::scale(scale_factor),
-                            pixels,
-                            clip_mask,
-                            clip_bounds,
-                        );
+                    for group in &layer.text {
+                        for text in group.as_slice() {
+                            self.engine.draw_text(
+                                text,
+                                group.transformation()
+                                    * Transformation::scale(scale_factor),
+                                pixels,
+                                clip_mask,
+                                clip_bounds,
+                            );
+                        }
                     }
-                }
-            }
 
-            if !overlay.is_empty() {
-                pixels.stroke_path(
-                    &path,
-                    &tiny_skia::Paint {
-                        shader: tiny_skia::Shader::SolidColor(
-                            engine::into_color(Color::from_rgb(1.0, 0.0, 0.0)),
-                        ),
-                        anti_alias: false,
-                        ..tiny_skia::Paint::default()
-                    },
-                    &tiny_skia::Stroke {
-                        width: 1.0,
-                        ..tiny_skia::Stroke::default()
-                    },
-                    tiny_skia::Transform::identity(),
-                    None,
-                );
+                    render_span.finish();
+                }
             }
         }
 

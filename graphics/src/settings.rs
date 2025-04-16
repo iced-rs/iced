@@ -1,5 +1,5 @@
 use crate::Antialiasing;
-use crate::core::{Font, Pixels};
+use crate::core::{self, Font, Pixels};
 
 /// The settings of a renderer.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -24,6 +24,24 @@ impl Default for Settings {
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: None,
+        }
+    }
+}
+
+impl From<core::Settings> for Settings {
+    fn from(settings: core::Settings) -> Self {
+        Self {
+            default_font: if cfg!(all(
+                target_arch = "wasm32",
+                feature = "fira-sans"
+            )) && settings.default_font == Font::default()
+            {
+                Font::with_name("Fira Sans")
+            } else {
+                settings.default_font
+            },
+            default_text_size: settings.default_text_size,
+            antialiasing: settings.antialiasing.then_some(Antialiasing::MSAAx4),
         }
     }
 }

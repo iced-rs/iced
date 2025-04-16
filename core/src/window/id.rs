@@ -4,6 +4,7 @@ use std::sync::atomic::{self, AtomicU64};
 
 /// The id of the window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Id(u64);
 
 static COUNT: AtomicU64 = AtomicU64::new(1);

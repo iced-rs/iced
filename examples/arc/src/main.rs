@@ -8,10 +8,9 @@ use iced::window;
 use iced::{Element, Fill, Point, Rectangle, Renderer, Subscription, Theme};
 
 pub fn main() -> iced::Result {
-    iced::application("Arc - Iced", Arc::update, Arc::view)
+    iced::application(Arc::default, Arc::update, Arc::view)
         .subscription(Arc::subscription)
         .theme(|_| Theme::Dark)
-        .antialiasing(true)
         .run()
 }
 

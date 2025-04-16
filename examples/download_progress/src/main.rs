@@ -7,12 +7,7 @@ use iced::widget::{Column, button, center, column, progress_bar, text};
 use iced::{Center, Element, Function, Right, Task};
 
 pub fn main() -> iced::Result {
-    iced::application(
-        "Download Progress - Iced",
-        Example::update,
-        Example::view,
-    )
-    .run()
+    iced::application(Example::default, Example::update, Example::view).run()
 }
 
 #[derive(Debug)]

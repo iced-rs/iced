@@ -11,7 +11,7 @@ static SCROLLABLE_ID: LazyLock<scrollable::Id> =
 
 pub fn main() -> iced::Result {
     iced::application(
-        "Scrollable - Iced",
+        ScrollableDemo::default,
         ScrollableDemo::update,
         ScrollableDemo::view,
     )

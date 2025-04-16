@@ -10,11 +10,12 @@ use iced::{
 use std::collections::BTreeMap;
 
 fn main() -> iced::Result {
-    iced::daemon(Example::title, Example::update, Example::view)
+    iced::daemon(Example::new, Example::update, Example::view)
         .subscription(Example::subscription)
+        .title(Example::title)
         .theme(Example::theme)
         .scale_factor(Example::scale_factor)
-        .run_with(Example::new)
+        .run()
 }
 
 struct Example {

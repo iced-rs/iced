@@ -12,13 +12,12 @@ use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
     iced::application(
-        "Color Palette - Iced",
+        ColorPalette::default,
         ColorPalette::update,
         ColorPalette::view,
     )
     .theme(ColorPalette::theme)
     .default_font(Font::MONOSPACE)
-    .antialiasing(true)
     .run()
 }
 

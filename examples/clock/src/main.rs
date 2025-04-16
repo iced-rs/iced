@@ -11,10 +11,9 @@ use iced::{
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application("Clock - Iced", Clock::update, Clock::view)
+    iced::application(Clock::default, Clock::update, Clock::view)
         .subscription(Clock::subscription)
         .theme(Clock::theme)
-        .antialiasing(true)
         .run()
 }
 

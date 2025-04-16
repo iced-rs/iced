@@ -20,6 +20,7 @@ pub mod button;
 pub mod checkbox;
 pub mod combo_box;
 pub mod container;
+pub mod grid;
 pub mod keyed;
 pub mod overlay;
 pub mod pane_grid;
@@ -58,6 +59,8 @@ pub use column::Column;
 pub use combo_box::ComboBox;
 #[doc(no_inline)]
 pub use container::Container;
+#[doc(no_inline)]
+pub use grid::Grid;
 #[doc(no_inline)]
 pub use mouse_area::MouseArea;
 #[doc(no_inline)]
