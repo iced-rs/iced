@@ -33,7 +33,6 @@ pub enum Span {
         window: window::Id,
     },
     Custom {
-        window: window::Id,
         name: String,
     },
 }
@@ -70,9 +69,7 @@ impl Span {
             Span::Prepare { primitive, .. } => Stage::Prepare(*primitive),
             Span::Render { primitive, .. } => Stage::Render(*primitive),
             Span::Present { window } => Stage::Present(*window),
-            Span::Custom { window, name } => {
-                Stage::Custom(*window, name.clone())
-            }
+            Span::Custom { name, .. } => Stage::Custom(name.clone()),
         }
     }
 }
@@ -90,7 +87,7 @@ pub enum Stage {
     Present(window::Id),
     Prepare(Primitive),
     Render(Primitive),
-    Custom(window::Id, String),
+    Custom(String),
 }
 
 impl std::fmt::Display for Stage {
@@ -105,7 +102,7 @@ impl std::fmt::Display for Stage {
             Stage::Prepare(_) => "Prepare",
             Stage::Render(_) => "Render",
             Stage::Present(_) => "Present",
-            Stage::Custom(_, name) => name,
+            Stage::Custom(name) => name,
         })
     }
 }

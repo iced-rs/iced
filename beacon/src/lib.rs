@@ -206,10 +206,9 @@ pub fn run() -> impl Stream<Item = Event> {
                                             span::Stage::Present(window) => {
                                                 Span::Present { window }
                                             }
-                                            span::Stage::Custom(
-                                                window,
-                                                name,
-                                            ) => Span::Custom { window, name },
+                                            span::Stage::Custom(name) => {
+                                                Span::Custom { name }
+                                            }
                                         };
 
                                         let _ = output
