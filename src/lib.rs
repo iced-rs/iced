@@ -533,6 +533,11 @@ pub use Length::{Fill, FillPortion, Shrink};
 pub use alignment::Horizontal::{Left, Right};
 pub use alignment::Vertical::{Bottom, Top};
 
+pub mod debug {
+    //! Debug your applications.
+    pub use iced_debug::{Span, skip_next_timing, time, time_with};
+}
+
 pub mod task {
     //! Create runtime tasks.
     pub use crate::runtime::task::{Handle, Task};
