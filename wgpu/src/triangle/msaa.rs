@@ -254,8 +254,7 @@ impl Targets {
 struct Ratio {
     u: f32,
     v: f32,
-    // Padding field to make Ratio 16 byte aligned
-    //
+    // Padding field for 16-byte alignment.
     // See https://docs.rs/wgpu/latest/wgpu/struct.DownlevelFlags.html#associatedconstant.BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED
     _padding: [f32; 2],
 }
