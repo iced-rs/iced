@@ -75,7 +75,7 @@ pub fn application<State, Message, Theme, Renderer>(
 ) -> Application<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
-    Message: Send + std::fmt::Debug + 'static,
+    Message: program::Message + 'static,
     Theme: Default + theme::Base,
     Renderer: program::Renderer,
 {
@@ -94,7 +94,7 @@ where
     impl<State, Message, Theme, Renderer, Boot, Update, View> Program
         for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
-        Message: Send + std::fmt::Debug + 'static,
+        Message: program::Message + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
         Boot: self::Boot<State, Message>,

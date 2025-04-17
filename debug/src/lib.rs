@@ -1,7 +1,9 @@
 pub use iced_core as core;
+pub use iced_futures as futures;
 
 use crate::core::theme;
 use crate::core::window;
+use crate::futures::Subscription;
 
 pub use internal::Span;
 
@@ -14,6 +16,11 @@ pub enum Primitive {
     Shader,
     Image,
     Text,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Command {
+    RewindTo { message: usize },
 }
 
 pub fn init(name: &str) {
@@ -88,12 +95,18 @@ pub fn skip_next_timing() {
     internal::skip_next_timing();
 }
 
+pub fn commands() -> Subscription<Command> {
+    internal::commands()
+}
+
 #[cfg(all(feature = "enable", not(target_arch = "wasm32")))]
 mod internal {
-    use crate::Primitive;
     use crate::core::theme;
     use crate::core::time::Instant;
     use crate::core::window;
+    use crate::futures::Subscription;
+    use crate::futures::futures::Stream;
+    use crate::{Command, Primitive};
 
     use iced_beacon as beacon;
 
@@ -102,7 +115,7 @@ mod internal {
 
     use std::io;
     use std::process;
-    use std::sync::atomic::{self, AtomicBool};
+    use std::sync::atomic::{self, AtomicBool, AtomicUsize};
     use std::sync::{LazyLock, RwLock};
 
     pub fn init(name: &str) {
@@ -162,6 +175,8 @@ mod internal {
     pub fn update(message: &impl std::fmt::Debug) -> Span {
         let span = span(span::Stage::Update);
 
+        let number = LAST_UPDATE.fetch_add(1, atomic::Ordering::Relaxed);
+
         let start = Instant::now();
         let message = format!("{message:?}");
         let elapsed = start.elapsed();
@@ -172,11 +187,13 @@ mod internal {
             );
         }
 
-        BEACON.log(client::Event::MessageLogged(if message.len() > 49 {
+        let message = if message.len() > 49 {
             format!("{}...", &message[..49])
         } else {
             message
-        }));
+        };
+
+        BEACON.log(client::Event::MessageLogged { number, message });
 
         span
     }
@@ -215,6 +232,24 @@ mod internal {
 
     pub fn skip_next_timing() {
         SKIP_NEXT_SPAN.store(true, atomic::Ordering::Relaxed);
+    }
+
+    pub fn commands() -> Subscription<Command> {
+        fn listen_for_commands() -> impl Stream<Item = Command> {
+            use crate::futures::futures::stream;
+
+            stream::unfold(BEACON.subscribe(), async move |mut receiver| {
+                let command = match receiver.recv().await? {
+                    client::Command::RewindTo { message } => {
+                        Command::RewindTo { message }
+                    }
+                };
+
+                Some((command, receiver))
+            })
+        }
+
+        Subscription::run(listen_for_commands)
     }
 
     fn span(span: span::Stage) -> Span {
@@ -260,15 +295,17 @@ mod internal {
     });
 
     static NAME: RwLock<String> = RwLock::new(String::new());
+    static LAST_UPDATE: AtomicUsize = AtomicUsize::new(0);
     static LAST_PALETTE: RwLock<Option<theme::Palette>> = RwLock::new(None);
     static SKIP_NEXT_SPAN: AtomicBool = AtomicBool::new(false);
 }
 
 #[cfg(any(not(feature = "enable"), target_arch = "wasm32"))]
 mod internal {
-    use crate::Primitive;
     use crate::core::theme;
     use crate::core::window;
+    use crate::futures::Subscription;
+    use crate::{Command, Primitive};
 
     use std::io;
 
@@ -325,6 +362,10 @@ mod internal {
     }
 
     pub fn skip_next_timing() {}
+
+    pub fn commands() -> Subscription<Command> {
+        Subscription::none()
+    }
 
     #[derive(Debug)]
     pub struct Span;

@@ -13,6 +13,9 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[features]
+time-travel = ["iced_program/time-travel"]
+
 [dependencies]
 iced_program.workspace = true
 iced_widget.workspace = true

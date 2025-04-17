@@ -1,10 +1,12 @@
+use crate::Error;
 use crate::core::time::{Duration, SystemTime};
 use crate::span;
 use crate::theme;
 
+use futures::{FutureExt, select};
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use tokio::io::{self, AsyncWriteExt};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net;
 use tokio::sync::mpsc;
 use tokio::time;
@@ -17,7 +19,7 @@ pub const SERVER_ADDRESS: &str = "127.0.0.1:9167";
 
 #[derive(Debug, Clone)]
 pub struct Client {
-    sender: mpsc::Sender<Message>,
+    sender: mpsc::Sender<Action>,
     is_connected: Arc<AtomicBool>,
     _handle: Arc<thread::JoinHandle<()>>,
 }
@@ -43,17 +45,17 @@ pub enum Event {
     ThemeChanged(theme::Palette),
     SpanStarted(span::Stage),
     SpanFinished(span::Stage, Duration),
-    MessageLogged(String),
+    MessageLogged { number: usize, message: String },
     CommandsSpawned(usize),
     SubscriptionsTracked(usize),
 }
 
 impl Client {
     pub fn log(&self, event: Event) {
-        let _ = self.sender.try_send(Message::EventLogged {
+        let _ = self.sender.try_send(Action::Send(Message::EventLogged {
             at: SystemTime::now(),
             event,
-        });
+        }));
     }
 
     pub fn is_connected(&self) -> bool {
@@ -61,21 +63,28 @@ impl Client {
     }
 
     pub fn quit(&self) {
-        let _ = self.sender.try_send(Message::Quit {
+        let _ = self.sender.try_send(Action::Send(Message::Quit {
             at: SystemTime::now(),
-        });
+        }));
+    }
+
+    pub fn subscribe(&self) -> mpsc::Receiver<Command> {
+        let (sender, receiver) = mpsc::channel(100);
+        let _ = self.sender.try_send(Action::Forward(sender));
+
+        receiver
     }
 }
 
 #[must_use]
 pub fn connect(name: String) -> Client {
-    let (sender, receiver) = mpsc::channel(100);
+    let (sender, receiver) = mpsc::channel(10_000);
     let is_connected = Arc::new(AtomicBool::new(false));
 
     let handle = {
         let is_connected = is_connected.clone();
 
-        std::thread::spawn(move || run(name, is_connected.clone(), receiver))
+        std::thread::spawn(move || run(name, is_connected, receiver))
     };
 
     Client {
@@ -85,16 +94,30 @@ pub fn connect(name: String) -> Client {
     }
 }
 
+enum Action {
+    Send(Message),
+    Forward(mpsc::Sender<Command>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Command {
+    RewindTo { message: usize },
+}
+
 #[tokio::main]
 async fn run(
     name: String,
     is_connected: Arc<AtomicBool>,
-    mut receiver: mpsc::Receiver<Message>,
+    mut receiver: mpsc::Receiver<Action>,
 ) {
     let version = semver::Version::parse(env!("CARGO_PKG_VERSION"))
         .expect("Parse package version");
 
+    let mut buffer = Vec::new();
+
     loop {
+        let mut command_sender = None;
+
         match _connect().await {
             Ok(mut stream) => {
                 is_connected.store(true, atomic::Ordering::Relaxed);
@@ -109,16 +132,37 @@ async fn run(
                 )
                 .await;
 
-                while let Some(output) = receiver.recv().await {
-                    match send(&mut stream, output).await {
-                        Ok(()) => {}
-                        Err(error) => {
-                            if error.kind() != io::ErrorKind::BrokenPipe {
-                                log::warn!(
-                                    "Error sending message to server: {error}"
-                                );
+                loop {
+                    select! {
+                        action = receiver.recv().fuse() => {
+                            let Some(action) = action else { break; };
+
+                            match action {
+                                Action::Send(message) => {
+                                    match send(&mut stream, message).await {
+                                        Ok(()) => {}
+                                        Err(error) => {
+                                            if error.kind() != io::ErrorKind::BrokenPipe
+                                            {
+                                                log::warn!(
+                                                    "Error sending message to server: {error}"
+                                                );
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                                Action::Forward(sender) => {
+                                    command_sender = Some(sender);
+                                }
                             }
-                            break;
+                        }
+                        command = receive(&mut stream, &mut buffer).fuse() => {
+                            let Ok(command) = command else { continue; };
+
+                            if let Some(sender) = command_sender.as_mut() {
+                                let _ = sender.send(command).await;
+                            }
                         }
                     }
                 }
@@ -153,4 +197,19 @@ async fn send(
     stream.flush().await?;
 
     Ok(())
+}
+
+async fn receive(
+    stream: &mut net::TcpStream,
+    buffer: &mut Vec<u8>,
+) -> Result<Command, Error> {
+    let size = stream.read_u64().await? as usize;
+
+    if buffer.len() < size {
+        buffer.resize(size, 0);
+    }
+
+    let _n = stream.read_exact(&mut buffer[..size]).await?;
+
+    Ok(bincode::deserialize(buffer)?)
 }

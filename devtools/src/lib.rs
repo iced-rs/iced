@@ -115,6 +115,8 @@ where
     state: P::State,
     mode: Mode,
     show_notification: bool,
+    rewind: Option<P::State>,
+    log: Vec<P::Message>,
 }
 
 #[derive(Debug, Clone)]
@@ -147,6 +149,8 @@ where
                 state,
                 mode: Mode::None,
                 show_notification: true,
+                rewind: None,
+                log: Vec::new(),
             },
             executor::spawn_blocking(|mut sender| {
                 thread::sleep(seconds(2));
@@ -250,7 +254,46 @@ where
                 }
             },
             Event::Program(message) => {
-                program.update(&mut self.state, message).map(Event::Program)
+                if self.rewind.is_some() {
+                    return Task::none();
+                }
+
+                #[cfg(feature = "time-travel")]
+                {
+                    self.log.push(message.clone());
+                }
+
+                let span = debug::update(&message);
+                let task = program.update(&mut self.state, message);
+                debug::tasks_spawned(task.units());
+                span.finish();
+
+                task.map(Event::Program)
+            }
+            Event::Command(command) => {
+                match command {
+                    debug::Command::RewindTo { message } => {
+                        #[cfg(feature = "time-travel")]
+                        {
+                            let (mut state, _) = program.boot();
+
+                            if message < self.log.len() {
+                                // TODO: Run concurrently (?)
+                                for message in &self.log[0..message] {
+                                    let _ = program
+                                        .update(&mut state, message.clone());
+                                }
+                            }
+
+                            self.rewind = Some(state);
+                        }
+
+                        #[cfg(not(feature = "time-travel"))]
+                        let _ = message;
+                    }
+                }
+
+                Task::none()
             }
         }
     }
@@ -260,8 +303,10 @@ where
         program: &P,
         window: window::Id,
     ) -> Element<'_, Event<P>, P::Theme, P::Renderer> {
-        let view = program.view(&self.state, window).map(Event::Program);
-        let theme = program.theme(&self.state, window);
+        let state = self.rewind.as_ref().unwrap_or(&self.state);
+
+        let view = program.view(state, window).map(Event::Program);
+        let theme = program.theme(state, window);
 
         let derive_theme = move || {
             theme
@@ -363,6 +408,7 @@ where
         });
 
         stack![view]
+            .height(Fill)
             .push_maybe(mode.map(opaque))
             .push_maybe(notification)
             .into()
@@ -371,6 +417,8 @@ where
     pub fn subscription(&self, program: &P) -> Subscription<Event<P>> {
         let subscription =
             program.subscription(&self.state).map(Event::Program);
+
+        debug::subscriptions_tracked(subscription.units());
 
         let hotkeys =
             futures::keyboard::on_key_press(|key, _modifiers| match key {
@@ -381,19 +429,22 @@ where
             })
             .map(Event::Message);
 
-        Subscription::batch([subscription, hotkeys])
+        let commands = debug::commands().map(Event::Command);
+
+        Subscription::batch([subscription, hotkeys, commands])
     }
 
     pub fn theme(&self, program: &P, window: window::Id) -> P::Theme {
-        program.theme(&self.state, window)
+        program.theme(self.rewind.as_ref().unwrap_or(&self.state), window)
     }
 
     pub fn style(&self, program: &P, theme: &P::Theme) -> theme::Style {
-        program.style(&self.state, theme)
+        program.style(self.rewind.as_ref().unwrap_or(&self.state), theme)
     }
 
     pub fn scale_factor(&self, program: &P, window: window::Id) -> f64 {
-        program.scale_factor(&self.state, window)
+        program
+            .scale_factor(self.rewind.as_ref().unwrap_or(&self.state), window)
     }
 }
 
@@ -403,6 +454,7 @@ where
 {
     Message(Message),
     Program(P::Message),
+    Command(debug::Command),
 }
 
 impl<P> fmt::Debug for Event<P>
@@ -413,6 +465,21 @@ where
         match self {
             Self::Message(message) => message.fmt(f),
             Self::Program(message) => message.fmt(f),
+            Self::Command(command) => command.fmt(f),
+        }
+    }
+}
+
+#[cfg(feature = "time-travel")]
+impl<P> Clone for Event<P>
+where
+    P: Program,
+{
+    fn clone(&self) -> Self {
+        match self {
+            Event::Message(message) => Event::Message(message.clone()),
+            Event::Program(message) => Event::Program(message.clone()),
+            Event::Command(command) => Event::Command(*command),
         }
     }
 }

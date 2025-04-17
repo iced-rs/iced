@@ -23,7 +23,7 @@ struct Multitouch {
     fingers: HashMap<touch::Finger, Point>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Message {
     FingerPressed { id: touch::Finger, position: Point },
     FingerLifted { id: touch::Finger },

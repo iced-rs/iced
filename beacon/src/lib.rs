@@ -4,6 +4,7 @@ pub use semver::Version;
 pub mod client;
 pub mod span;
 
+mod error;
 mod stream;
 
 pub use client::Client;
@@ -11,14 +12,36 @@ pub use span::Span;
 
 use crate::core::theme;
 use crate::core::time::{Duration, SystemTime};
+use crate::error::Error;
 
 use futures::{SinkExt, Stream};
-use tokio::io::{self, AsyncReadExt};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net;
+use tokio::sync::mpsc;
+use tokio::task;
+
+#[derive(Debug, Clone)]
+pub struct Connection {
+    commands: mpsc::Sender<client::Command>,
+}
+
+impl Connection {
+    pub fn rewind_to<'a>(
+        &self,
+        message: usize,
+    ) -> impl Future<Output = ()> + 'a {
+        let commands = self.commands.clone();
+
+        async move {
+            let _ = commands.send(client::Command::RewindTo { message }).await;
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Event {
     Connected {
+        connection: Connection,
         at: SystemTime,
         name: String,
         version: Version,
@@ -86,18 +109,42 @@ pub fn run() -> impl Stream<Item = Event> {
         };
 
         loop {
-            let Ok((mut stream, _)) = server.accept().await else {
+            let Ok((stream, _)) = server.accept().await else {
                 continue;
             };
 
-            let _ = stream.set_nodelay(true);
+            let (mut reader, mut writer) = {
+                let _ = stream.set_nodelay(true);
+                stream.into_split()
+            };
 
+            let (command_sender, mut command_receiver) = mpsc::channel(1);
             let mut last_message = String::new();
+            let mut last_update_number = 0;
             let mut last_commands_spawned = 0;
             let mut last_present_window = None;
 
+            drop(task::spawn(async move {
+                let mut last_message_number = None;
+
+                while let Some(command) = command_receiver.recv().await {
+                    let client::Command::RewindTo { message } = command;
+
+                    if Some(message) == last_message_number {
+                        continue;
+                    }
+
+                    last_message_number = Some(message);
+
+                    let _ =
+                        send(&mut writer, command).await.inspect_err(|error| {
+                            log::error!("Error when sending command: {error}")
+                        });
+                }
+            }));
+
             loop {
-                match receive(&mut stream, &mut buffer).await {
+                match receive(&mut reader, &mut buffer).await {
                     Ok(message) => {
                         match message {
                             client::Message::Connected {
@@ -107,6 +154,9 @@ pub fn run() -> impl Stream<Item = Event> {
                             } => {
                                 let _ = output
                                     .send(Event::Connected {
+                                        connection: Connection {
+                                            commands: command_sender.clone(),
+                                        },
                                         at,
                                         name,
                                         version,
@@ -133,7 +183,11 @@ pub fn run() -> impl Stream<Item = Event> {
                                             })
                                             .await;
                                     }
-                                    client::Event::MessageLogged(message) => {
+                                    client::Event::MessageLogged {
+                                        number,
+                                        message,
+                                    } => {
+                                        last_update_number = number;
                                         last_message = message;
                                     }
                                     client::Event::CommandsSpawned(
@@ -161,6 +215,7 @@ pub fn run() -> impl Stream<Item = Event> {
                                             span::Stage::Boot => Span::Boot,
                                             span::Stage::Update => {
                                                 Span::Update {
+                                                    number: last_update_number,
                                                     message: last_message
                                                         .clone(),
                                                     commands_spawned:
@@ -246,7 +301,7 @@ pub fn run() -> impl Stream<Item = Event> {
 }
 
 async fn receive(
-    stream: &mut net::TcpStream,
+    stream: &mut net::tcp::OwnedReadHalf,
     buffer: &mut Vec<u8>,
 ) -> Result<client::Message, Error> {
     let size = stream.read_u64().await? as usize;
@@ -260,14 +315,20 @@ async fn receive(
     Ok(bincode::deserialize(buffer)?)
 }
 
-async fn delay() {
-    tokio::time::sleep(Duration::from_secs(2)).await;
+async fn send(
+    stream: &mut net::tcp::OwnedWriteHalf,
+    command: client::Command,
+) -> Result<(), io::Error> {
+    let bytes = bincode::serialize(&command).expect("Encode input message");
+    let size = bytes.len() as u64;
+
+    stream.write_all(&size.to_be_bytes()).await?;
+    stream.write_all(&bytes).await?;
+    stream.flush().await?;
+
+    Ok(())
 }
 
-#[derive(Debug, thiserror::Error)]
-enum Error {
-    #[error("input/output operation failed: {0}")]
-    IOFailed(#[from] io::Error),
-    #[error("decoding failed: {0}")]
-    DecodingFailed(#[from] Box<bincode::ErrorKind>),
+async fn delay() {
+    tokio::time::sleep(Duration::from_secs(2)).await;
 }

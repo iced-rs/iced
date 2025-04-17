@@ -105,6 +105,10 @@ impl State {
     }
 
     pub fn update(&mut self, now: Instant) {
+        if self.start > now {
+            self.start = now;
+        }
+
         self.now = now;
         self.system_cache.clear();
     }

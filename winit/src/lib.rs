@@ -1069,10 +1069,7 @@ fn update<P: Program, E: Executor>(
     P::Theme: theme::Base,
 {
     for message in messages.drain(..) {
-        let update_span = debug::update(&message);
         let task = runtime.enter(|| program.update(message));
-        debug::tasks_spawned(task.units());
-        update_span.finish();
 
         if let Some(stream) = runtime::task::into_stream(task) {
             runtime.run(stream);
@@ -1082,7 +1079,6 @@ fn update<P: Program, E: Executor>(
     let subscription = runtime.enter(|| program.subscription());
     let recipes = subscription::into_recipes(subscription.map(Action::Output));
 
-    debug::subscriptions_tracked(recipes.len());
     runtime.track(recipes);
 }
 

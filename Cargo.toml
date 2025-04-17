@@ -43,6 +43,8 @@ markdown = ["iced_widget/markdown"]
 lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug", "iced_devtools"]
+# Enables time-travel debugging (very experimental!)
+time-travel = ["debug", "iced_devtools/time-travel"]
 # Enables the `thread-pool` futures executor as the `executor::Default` on native platforms
 thread-pool = ["iced_futures/thread-pool"]
 # Enables `tokio` as the `executor::Default` on native platforms
