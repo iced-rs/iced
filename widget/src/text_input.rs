@@ -783,11 +783,14 @@ where
                             } else {
                                 state.cursor.move_to(position);
                             }
-                            state.is_dragging = true;
+
+                            state.is_dragging = Some(Drag::SingleClick);
                         }
                         click::Kind::Double => {
                             if self.is_secure {
                                 state.cursor.select_all(&self.value);
+
+                                state.is_dragging = None;
                             } else {
                                 let position = find_cursor_position(
                                     text_layout.bounds(),
@@ -801,13 +804,15 @@ where
                                     self.value.previous_start_of_word(position),
                                     self.value.next_end_of_word(position),
                                 );
-                            }
 
-                            state.is_dragging = false;
+                                state.is_dragging = Some(Drag::DoubleClick {
+                                    click_position: position,
+                                });
+                            }
                         }
                         click::Kind::Triple => {
                             state.cursor.select_all(&self.value);
-                            state.is_dragging = false;
+                            state.is_dragging = None;
                         }
                     }
 
@@ -823,13 +828,13 @@ where
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. })
             | Event::Touch(touch::Event::FingerLost { .. }) => {
-                state::<Renderer>(tree).is_dragging = false;
+                state::<Renderer>(tree).is_dragging = None;
             }
             Event::Mouse(mouse::Event::CursorMoved { position })
             | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
                 let state = state::<Renderer>(tree);
 
-                if state.is_dragging {
+                if let Some(is_dragging) = &state.is_dragging {
                     let text_layout = layout.children().next().unwrap();
 
                     let target = {
@@ -860,9 +865,30 @@ where
 
                     let selection_before = state.cursor.selection(&value);
 
-                    state
-                        .cursor
-                        .select_range(state.cursor.start(&value), position);
+                    match is_dragging {
+                        Drag::SingleClick => {
+                            state.cursor.select_range(
+                                state.cursor.start(&value),
+                                position,
+                            );
+                        }
+                        Drag::DoubleClick { click_position } => {
+                            if position < *click_position {
+                                state.cursor.select_range(
+                                    self.value.previous_start_of_word(position),
+                                    self.value
+                                        .next_end_of_word(*click_position),
+                                );
+                            } else {
+                                state.cursor.select_range(
+                                    self.value.previous_start_of_word(
+                                        *click_position,
+                                    ),
+                                    self.value.next_end_of_word(position),
+                                );
+                            }
+                        }
+                    }
 
                     if let Some(focus) = &mut state.is_focused {
                         focus.updated_at = Instant::now();
@@ -1222,7 +1248,7 @@ where
                         }
                         keyboard::Key::Named(key::Named::Escape) => {
                             state.is_focused = None;
-                            state.is_dragging = false;
+                            state.is_dragging = None;
                             state.is_pasting = None;
 
                             state.keyboard_modifiers =
@@ -1530,7 +1556,7 @@ pub struct State<P: text::Paragraph> {
     placeholder: paragraph::Plain<P>,
     icon: paragraph::Plain<P>,
     is_focused: Option<Focus>,
-    is_dragging: bool,
+    is_dragging: Option<Drag>,
     is_pasting: Option<Value>,
     preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
@@ -1550,6 +1576,12 @@ struct Focus {
     updated_at: Instant,
     now: Instant,
     is_window_focused: bool,
+}
+
+#[derive(Debug, Clone)]
+enum Drag {
+    SingleClick,
+    DoubleClick { click_position: usize },
 }
 
 impl<P: text::Paragraph> State<P> {
