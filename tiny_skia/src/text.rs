@@ -4,9 +4,9 @@ use crate::core::{
     Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
 use crate::graphics::text::cache::{self, Cache};
-use crate::graphics::text::editor;
+use crate::graphics::text::editor::Editor;
 use crate::graphics::text::font_system;
-use crate::graphics::text::paragraph;
+use crate::graphics::text::paragraph::Paragraph;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -40,7 +40,7 @@ impl Pipeline {
 
     pub fn draw_paragraph(
         &mut self,
-        paragraph: &paragraph::Weak,
+        paragraph: &Paragraph,
         position: Point,
         color: Color,
         pixels: &mut tiny_skia::PixmapMut<'_>,
@@ -48,10 +48,6 @@ impl Pipeline {
         transformation: Transformation,
     ) {
         use crate::core::text::Paragraph as _;
-
-        let Some(paragraph) = paragraph.upgrade() else {
-            return;
-        };
 
         let mut font_system = font_system().write().expect("Write font system");
 
@@ -71,7 +67,7 @@ impl Pipeline {
 
     pub fn draw_editor(
         &mut self,
-        editor: &editor::Weak,
+        editor: &Editor,
         position: Point,
         color: Color,
         pixels: &mut tiny_skia::PixmapMut<'_>,
@@ -79,10 +75,6 @@ impl Pipeline {
         transformation: Transformation,
     ) {
         use crate::core::text::Editor as _;
-
-        let Some(editor) = editor.upgrade() else {
-            return;
-        };
 
         let mut font_system = font_system().write().expect("Write font system");
 
