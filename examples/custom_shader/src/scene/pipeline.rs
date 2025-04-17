@@ -12,7 +12,7 @@ use vertex::Vertex;
 use crate::wgpu;
 use crate::wgpu::util::DeviceExt;
 
-use iced::{Rectangle, Size};
+use iced::{Rectangle, Size, widget::shader};
 
 const SKY_TEXTURE_SIZE: u32 = 128;
 
@@ -408,6 +408,8 @@ impl Pipeline {
         }
     }
 }
+
+impl shader::Pipeline for Pipeline {}
 
 struct DepthPipeline {
     pipeline: wgpu::RenderPipeline,
