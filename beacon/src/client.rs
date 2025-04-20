@@ -7,7 +7,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net;
-use tokio::sync::{RwLock, mpsc};
+use tokio::sync::{Mutex, mpsc};
 use tokio::task;
 use tokio::time;
 
@@ -116,7 +116,7 @@ async fn run(
     let mut buffer = Vec::new();
 
     loop {
-        let command_sender = Arc::new(RwLock::new(None));
+        let command_sender = Arc::new(Mutex::new(None));
 
         match _connect().await {
             Ok(stream) => {
@@ -156,8 +156,7 @@ async fn run(
                                     }
                                 }
                                 Action::Forward(sender) => {
-                                    *command_sender.write().await =
-                                        Some(sender);
+                                    *command_sender.lock().await = Some(sender);
                                 }
                             }
                         }
@@ -170,7 +169,7 @@ async fn run(
                         continue;
                     };
 
-                    if let Some(sender) = command_sender.read().await.as_ref() {
+                    if let Some(sender) = command_sender.lock().await.as_ref() {
                         let _ = sender.send(command).await;
                     }
                 }
