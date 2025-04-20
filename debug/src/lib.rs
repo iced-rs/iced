@@ -21,6 +21,15 @@ pub enum Primitive {
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
     RewindTo { message: usize },
+    GoLive,
+}
+
+pub fn enable() {
+    internal::enable();
+}
+
+pub fn disable() {
+    internal::disable();
 }
 
 pub fn init(name: &str) {
@@ -91,10 +100,6 @@ pub fn time_with<T>(name: impl Into<String>, f: impl FnOnce() -> T) -> T {
     result
 }
 
-pub fn skip_next_timing() {
-    internal::skip_next_timing();
-}
-
 pub fn commands() -> Subscription<Command> {
     internal::commands()
 }
@@ -139,7 +144,7 @@ mod internal {
             if let Some(palette) =
                 LAST_PALETTE.read().expect("Read last palette").as_ref()
             {
-                BEACON.log(client::Event::ThemeChanged(*palette));
+                log(client::Event::ThemeChanged(*palette));
             }
 
             Ok(())
@@ -154,18 +159,18 @@ mod internal {
         if LAST_PALETTE.read().expect("Read last palette").as_ref()
             != Some(&palette)
         {
-            BEACON.log(client::Event::ThemeChanged(palette));
+            log(client::Event::ThemeChanged(palette));
 
             *LAST_PALETTE.write().expect("Write last palette") = Some(palette);
         }
     }
 
     pub fn tasks_spawned(amount: usize) {
-        BEACON.log(client::Event::CommandsSpawned(amount));
+        log(client::Event::CommandsSpawned(amount));
     }
 
     pub fn subscriptions_tracked(amount: usize) {
-        BEACON.log(client::Event::SubscriptionsTracked(amount));
+        log(client::Event::SubscriptionsTracked(amount));
     }
 
     pub fn boot() -> Span {
@@ -193,7 +198,7 @@ mod internal {
             message
         };
 
-        BEACON.log(client::Event::MessageLogged { number, message });
+        log(client::Event::MessageLogged { number, message });
 
         span
     }
@@ -230,8 +235,12 @@ mod internal {
         span(span::Stage::Custom(name.into()))
     }
 
-    pub fn skip_next_timing() {
-        SKIP_NEXT_SPAN.store(true, atomic::Ordering::Relaxed);
+    pub fn enable() {
+        ENABLED.store(true, atomic::Ordering::Relaxed);
+    }
+
+    pub fn disable() {
+        ENABLED.store(false, atomic::Ordering::Relaxed);
     }
 
     pub fn commands() -> Subscription<Command> {
@@ -243,6 +252,7 @@ mod internal {
                     client::Command::RewindTo { message } => {
                         Command::RewindTo { message }
                     }
+                    client::Command::GoLive => Command::GoLive,
                 };
 
                 Some((command, receiver))
@@ -253,7 +263,7 @@ mod internal {
     }
 
     fn span(span: span::Stage) -> Span {
-        BEACON.log(client::Event::SpanStarted(span.clone()));
+        log(client::Event::SpanStarted(span.clone()));
 
         Span {
             span,
@@ -271,6 +281,12 @@ mod internal {
         }
     }
 
+    fn log(event: client::Event) {
+        if ENABLED.load(atomic::Ordering::Relaxed) {
+            BEACON.log(event);
+        }
+    }
+
     #[derive(Debug)]
     pub struct Span {
         span: span::Stage,
@@ -279,14 +295,7 @@ mod internal {
 
     impl Span {
         pub fn finish(self) {
-            if SKIP_NEXT_SPAN.fetch_and(false, atomic::Ordering::Relaxed) {
-                return;
-            }
-
-            BEACON.log(client::Event::SpanFinished(
-                self.span,
-                self.start.elapsed(),
-            ));
+            log(client::Event::SpanFinished(self.span, self.start.elapsed()));
         }
     }
 
@@ -297,7 +306,7 @@ mod internal {
     static NAME: RwLock<String> = RwLock::new(String::new());
     static LAST_UPDATE: AtomicUsize = AtomicUsize::new(0);
     static LAST_PALETTE: RwLock<Option<theme::Palette>> = RwLock::new(None);
-    static SKIP_NEXT_SPAN: AtomicBool = AtomicBool::new(false);
+    static ENABLED: AtomicBool = AtomicBool::new(true);
 }
 
 #[cfg(any(not(feature = "enable"), target_arch = "wasm32"))]
@@ -308,6 +317,9 @@ mod internal {
     use crate::{Command, Primitive};
 
     use std::io;
+
+    pub fn enable() {}
+    pub fn disable() {}
 
     pub fn init(_name: &str) {}
 
@@ -360,8 +372,6 @@ mod internal {
     pub fn time(_name: impl Into<String>) -> Span {
         Span
     }
-
-    pub fn skip_next_timing() {}
 
     pub fn commands() -> Subscription<Command> {
         Subscription::none()

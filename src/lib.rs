@@ -535,7 +535,7 @@ pub use alignment::Vertical::{Bottom, Top};
 
 pub mod debug {
     //! Debug your applications.
-    pub use iced_debug::{Span, skip_next_timing, time, time_with};
+    pub use iced_debug::{Span, time, time_with};
 }
 
 pub mod task {

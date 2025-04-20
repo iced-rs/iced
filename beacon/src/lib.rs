@@ -36,6 +36,14 @@ impl Connection {
             let _ = commands.send(client::Command::RewindTo { message }).await;
         }
     }
+
+    pub fn go_live<'a>(&self) -> impl Future<Output = ()> + 'a {
+        let commands = self.commands.clone();
+
+        async move {
+            let _ = commands.send(client::Command::GoLive).await;
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -128,13 +136,18 @@ pub fn run() -> impl Stream<Item = Event> {
                 let mut last_message_number = None;
 
                 while let Some(command) = command_receiver.recv().await {
-                    let client::Command::RewindTo { message } = command;
+                    match command {
+                        client::Command::RewindTo { message } => {
+                            if Some(message) == last_message_number {
+                                continue;
+                            }
 
-                    if Some(message) == last_message_number {
-                        continue;
+                            last_message_number = Some(message);
+                        }
+                        client::Command::GoLive => {
+                            last_message_number = None;
+                        }
                     }
-
-                    last_message_number = Some(message);
 
                     let _ =
                         send(&mut writer, command).await.inspect_err(|error| {

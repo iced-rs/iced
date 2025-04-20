@@ -99,9 +99,10 @@ enum Action {
     Forward(mpsc::Sender<Command>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Command {
     RewindTo { message: usize },
+    GoLive,
 }
 
 #[tokio::main]

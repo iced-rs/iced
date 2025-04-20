@@ -116,7 +116,7 @@ where
     mode: Mode,
     show_notification: bool,
     rewind: Option<P::State>,
-    log: Vec<P::Message>,
+    messages: Vec<P::Message>,
 }
 
 #[derive(Debug, Clone)]
@@ -150,7 +150,7 @@ where
                 mode: Mode::None,
                 show_notification: true,
                 rewind: None,
-                log: Vec::new(),
+                messages: Vec::new(),
             },
             executor::spawn_blocking(|mut sender| {
                 thread::sleep(seconds(2));
@@ -254,19 +254,23 @@ where
                 }
             },
             Event::Program(message) => {
-                if self.rewind.is_some() {
-                    return Task::none();
-                }
-
                 #[cfg(feature = "time-travel")]
                 {
-                    self.log.push(message.clone());
+                    self.messages.push(message.clone());
+                }
+
+                if self.rewind.is_some() {
+                    debug::enable();
                 }
 
                 let span = debug::update(&message);
                 let task = program.update(&mut self.state, message);
                 debug::tasks_spawned(task.units());
                 span.finish();
+
+                if self.rewind.is_some() {
+                    debug::disable();
+                }
 
                 task.map(Event::Program)
             }
@@ -277,24 +281,33 @@ where
                         {
                             let (mut state, _) = program.boot();
 
-                            if message < self.log.len() {
+                            if message < self.messages.len() {
                                 // TODO: Run concurrently (?)
-                                for message in &self.log[0..message] {
+                                for message in &self.messages[0..message] {
                                     let _ = program
                                         .update(&mut state, message.clone());
                                 }
                             }
 
                             self.rewind = Some(state);
+                            debug::disable();
                         }
 
                         #[cfg(not(feature = "time-travel"))]
                         let _ = message;
                     }
+                    debug::Command::GoLive => {
+                        #[cfg(feature = "time-travel")]
+                        {
+                            self.rewind = None;
+                            debug::enable();
+                        }
+                    }
                 }
 
                 Task::none()
             }
+            Event::Discard => Task::none(),
         }
     }
 
@@ -305,7 +318,16 @@ where
     ) -> Element<'_, Event<P>, P::Theme, P::Renderer> {
         let state = self.rewind.as_ref().unwrap_or(&self.state);
 
-        let view = program.view(state, window).map(Event::Program);
+        let view = {
+            let view = program.view(state, window);
+
+            if self.rewind.is_some() {
+                view.map(|_| Event::Discard)
+            } else {
+                view.map(Event::Program)
+            }
+        };
+
         let theme = program.theme(state, window);
 
         let derive_theme = move || {
@@ -455,6 +477,7 @@ where
     Message(Message),
     Program(P::Message),
     Command(debug::Command),
+    Discard,
 }
 
 impl<P> fmt::Debug for Event<P>
@@ -466,6 +489,7 @@ where
             Self::Message(message) => message.fmt(f),
             Self::Program(message) => message.fmt(f),
             Self::Command(command) => command.fmt(f),
+            Self::Discard => f.write_str("Discard"),
         }
     }
 }
@@ -477,9 +501,10 @@ where
 {
     fn clone(&self) -> Self {
         match self {
-            Event::Message(message) => Event::Message(message.clone()),
-            Event::Program(message) => Event::Program(message.clone()),
-            Event::Command(command) => Event::Command(*command),
+            Self::Message(message) => Self::Message(message.clone()),
+            Self::Program(message) => Self::Program(message.clone()),
+            Self::Command(command) => Self::Command(*command),
+            Self::Discard => Self::Discard,
         }
     }
 }
