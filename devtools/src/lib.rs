@@ -7,6 +7,7 @@ use iced_widget::runtime;
 use iced_widget::runtime::futures;
 
 mod executor;
+mod time_machine;
 
 use crate::core::keyboard;
 use crate::core::theme::{self, Base, Theme};
@@ -16,6 +17,7 @@ use crate::core::{Color, Element, Length::Fill};
 use crate::futures::Subscription;
 use crate::program::Program;
 use crate::runtime::Task;
+use crate::time_machine::TimeMachine;
 use crate::widget::{
     bottom_right, button, center, column, container, horizontal_space, opaque,
     row, scrollable, stack, text, themer,
@@ -115,8 +117,7 @@ where
     state: P::State,
     mode: Mode,
     show_notification: bool,
-    rewind: Option<P::State>,
-    messages: Vec<P::Message>,
+    time_machine: TimeMachine<P>,
 }
 
 #[derive(Debug, Clone)]
@@ -143,14 +144,13 @@ impl<P> DevTools<P>
 where
     P: Program + 'static,
 {
-    pub fn new(state: P::State) -> (Self, Task<Message>) {
+    fn new(state: P::State) -> (Self, Task<Message>) {
         (
             Self {
                 state,
                 mode: Mode::None,
                 show_notification: true,
-                rewind: None,
-                messages: Vec::new(),
+                time_machine: TimeMachine::new(),
             },
             executor::spawn_blocking(|mut sender| {
                 thread::sleep(seconds(2));
@@ -160,11 +160,11 @@ where
         )
     }
 
-    pub fn title(&self, program: &P, window: window::Id) -> String {
+    fn title(&self, program: &P, window: window::Id) -> String {
         program.title(&self.state, window)
     }
 
-    pub fn update(&mut self, program: &P, event: Event<P>) -> Task<Event<P>> {
+    fn update(&mut self, program: &P, event: Event<P>) -> Task<Event<P>> {
         match event {
             Event::Message(message) => match message {
                 Message::HideNotification => {
@@ -254,13 +254,12 @@ where
                 }
             },
             Event::Program(message) => {
-                #[cfg(feature = "time-travel")]
                 {
-                    self.messages.push(message.clone());
-                }
+                    self.time_machine.push(&message);
 
-                if self.rewind.is_some() {
-                    debug::enable();
+                    if self.time_machine.is_rewinding() {
+                        debug::enable();
+                    }
                 }
 
                 let span = debug::update(&message);
@@ -268,7 +267,7 @@ where
                 debug::tasks_spawned(task.units());
                 span.finish();
 
-                if self.rewind.is_some() {
+                if self.time_machine.is_rewinding() {
                     debug::disable();
                 }
 
@@ -277,31 +276,10 @@ where
             Event::Command(command) => {
                 match command {
                     debug::Command::RewindTo { message } => {
-                        #[cfg(feature = "time-travel")]
-                        {
-                            let (mut state, _) = program.boot();
-
-                            if message < self.messages.len() {
-                                // TODO: Run concurrently (?)
-                                for message in &self.messages[0..message] {
-                                    let _ = program
-                                        .update(&mut state, message.clone());
-                                }
-                            }
-
-                            self.rewind = Some(state);
-                            debug::disable();
-                        }
-
-                        #[cfg(not(feature = "time-travel"))]
-                        let _ = message;
+                        self.time_machine.rewind(program, message);
                     }
                     debug::Command::GoLive => {
-                        #[cfg(feature = "time-travel")]
-                        {
-                            self.rewind = None;
-                            debug::enable();
-                        }
+                        self.time_machine.go_to_present();
                     }
                 }
 
@@ -311,17 +289,17 @@ where
         }
     }
 
-    pub fn view(
+    fn view(
         &self,
         program: &P,
         window: window::Id,
     ) -> Element<'_, Event<P>, P::Theme, P::Renderer> {
-        let state = self.rewind.as_ref().unwrap_or(&self.state);
+        let state = self.state();
 
         let view = {
             let view = program.view(state, window);
 
-            if self.rewind.is_some() {
+            if self.time_machine.is_rewinding() {
                 view.map(|_| Event::Discard)
             } else {
                 view.map(Event::Program)
@@ -436,10 +414,9 @@ where
             .into()
     }
 
-    pub fn subscription(&self, program: &P) -> Subscription<Event<P>> {
+    fn subscription(&self, program: &P) -> Subscription<Event<P>> {
         let subscription =
             program.subscription(&self.state).map(Event::Program);
-
         debug::subscriptions_tracked(subscription.units());
 
         let hotkeys =
@@ -456,17 +433,20 @@ where
         Subscription::batch([subscription, hotkeys, commands])
     }
 
-    pub fn theme(&self, program: &P, window: window::Id) -> P::Theme {
-        program.theme(self.rewind.as_ref().unwrap_or(&self.state), window)
+    fn theme(&self, program: &P, window: window::Id) -> P::Theme {
+        program.theme(self.state(), window)
     }
 
-    pub fn style(&self, program: &P, theme: &P::Theme) -> theme::Style {
-        program.style(self.rewind.as_ref().unwrap_or(&self.state), theme)
+    fn style(&self, program: &P, theme: &P::Theme) -> theme::Style {
+        program.style(self.state(), theme)
     }
 
-    pub fn scale_factor(&self, program: &P, window: window::Id) -> f64 {
-        program
-            .scale_factor(self.rewind.as_ref().unwrap_or(&self.state), window)
+    fn scale_factor(&self, program: &P, window: window::Id) -> f64 {
+        program.scale_factor(self.state(), window)
+    }
+
+    fn state(&self) -> &P::State {
+        self.time_machine.state().unwrap_or(&self.state)
     }
 }
 
