@@ -8,7 +8,8 @@ pub enum Span {
     Update {
         number: usize,
         message: String,
-        commands_spawned: usize,
+        tasks: usize,
+        subscriptions: usize,
     },
     View {
         window: window::Id,

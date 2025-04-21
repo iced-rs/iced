@@ -254,12 +254,10 @@ where
                 }
             },
             Event::Program(message) => {
-                {
-                    self.time_machine.push(&message);
+                self.time_machine.push(&message);
 
-                    if self.time_machine.is_rewinding() {
-                        debug::enable();
-                    }
+                if self.time_machine.is_rewinding() {
+                    debug::enable();
                 }
 
                 let span = debug::update(&message);

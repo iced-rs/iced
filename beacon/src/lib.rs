@@ -61,10 +61,6 @@ pub enum Event {
         at: SystemTime,
         palette: theme::Palette,
     },
-    SubscriptionsTracked {
-        at: SystemTime,
-        amount_alive: usize,
-    },
     SpanFinished {
         at: SystemTime,
         duration: Duration,
@@ -84,7 +80,6 @@ impl Event {
             Self::Connected { at, .. }
             | Self::Disconnected { at, .. }
             | Self::ThemeChanged { at, .. }
-            | Self::SubscriptionsTracked { at, .. }
             | Self::SpanFinished { at, .. }
             | Self::QuitRequested { at }
             | Self::AlreadyRunning { at } => *at,
@@ -129,7 +124,8 @@ pub fn run() -> impl Stream<Item = Event> {
             let (command_sender, mut command_receiver) = mpsc::channel(1);
             let mut last_message = String::new();
             let mut last_update_number = 0;
-            let mut last_commands_spawned = 0;
+            let mut last_tasks = 0;
+            let mut last_subscriptions = 0;
             let mut last_present_window = None;
 
             drop(task::spawn(async move {
@@ -189,12 +185,7 @@ pub fn run() -> impl Stream<Item = Event> {
                                     client::Event::SubscriptionsTracked(
                                         amount_alive,
                                     ) => {
-                                        let _ = output
-                                            .send(Event::SubscriptionsTracked {
-                                                at,
-                                                amount_alive,
-                                            })
-                                            .await;
+                                        last_subscriptions = amount_alive;
                                     }
                                     client::Event::MessageLogged {
                                         number,
@@ -206,13 +197,13 @@ pub fn run() -> impl Stream<Item = Event> {
                                     client::Event::CommandsSpawned(
                                         commands,
                                     ) => {
-                                        last_commands_spawned = commands;
+                                        last_tasks = commands;
                                     }
                                     client::Event::SpanStarted(
                                         span::Stage::Update,
                                     ) => {
                                         last_message.clear();
-                                        last_commands_spawned = 0;
+                                        last_tasks = 0;
                                     }
                                     client::Event::SpanStarted(
                                         span::Stage::Present(window),
@@ -231,8 +222,9 @@ pub fn run() -> impl Stream<Item = Event> {
                                                     number: last_update_number,
                                                     message: last_message
                                                         .clone(),
-                                                    commands_spawned:
-                                                        last_commands_spawned,
+                                                    tasks: last_tasks,
+                                                    subscriptions:
+                                                        last_subscriptions,
                                                 }
                                             }
                                             span::Stage::View(window) => {
