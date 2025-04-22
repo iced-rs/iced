@@ -202,9 +202,10 @@ where
         let cell_height = match self.height {
             Sizing::AspectRatio(ratio) => Some(cell_width / ratio),
             Sizing::EvenlyDistribute(Length::Shrink) => None,
-            Sizing::EvenlyDistribute(_) => {
-                Some(available.height / total_rows as f32)
-            }
+            Sizing::EvenlyDistribute(_) => Some(
+                (available.height - self.spacing * (total_rows - 1) as f32)
+                    / total_rows as f32,
+            ),
         };
 
         let cell_limits = layout::Limits::new(
