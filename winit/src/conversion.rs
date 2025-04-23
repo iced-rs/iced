@@ -40,6 +40,7 @@ pub fn window_attributes(
         .with_decorations(settings.decorations)
         .with_transparent(settings.transparent)
         .with_window_icon(settings.icon.and_then(icon))
+        .with_blur(settings.blur)
         .with_window_level(window_level(settings.level))
         .with_visible(settings.visible);
 
@@ -79,6 +80,7 @@ pub fn window_attributes(
 
     #[cfg(target_os = "windows")]
     {
+        use winit::platform::windows::BackdropType;
         use winit::platform::windows::WindowAttributesExtWindows;
 
         attributes = attributes
@@ -90,6 +92,11 @@ pub fn window_attributes(
         attributes = attributes.with_undecorated_shadow(
             settings.platform_specific.undecorated_shadow,
         );
+
+        if settings.blur {
+            attributes =
+                attributes.with_system_backdrop(BackdropType::TransientWindow)
+        }
     }
 
     #[cfg(target_os = "macos")]
