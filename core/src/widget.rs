@@ -96,7 +96,9 @@ where
     }
 
     /// Reconciles the [`Widget`] with the provided [`Tree`].
-    fn diff(&self, _tree: &mut Tree) {}
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(&[] as &[&dyn Widget<Message, Theme, Renderer>]);
+    }
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
