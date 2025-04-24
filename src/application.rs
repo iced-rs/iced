@@ -309,6 +309,17 @@ impl<P: Program> Application<P> {
         }
     }
 
+    /// Sets the [`window::Settings::blur`] of the [`Application`].
+    pub fn blur(self, blur: bool) -> Self {
+        Self {
+            window: window::Settings {
+                blur,
+                ..self.window
+            },
+            ..self
+        }
+    }
+
     /// Sets the [`window::Settings::level`] of the [`Application`].
     pub fn level(self, level: window::Level) -> Self {
         Self {
