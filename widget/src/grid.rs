@@ -201,9 +201,7 @@ where
             Sizing::AspectRatio(ratio) => Some(cell_width / ratio),
             Sizing::EvenlyDistribute(Length::Shrink) => None,
             Sizing::EvenlyDistribute(_) => {
-                // (a + b - 1) / b = a / b, rounded up
-                let total_rows =
-                    (self.children.len() + cells_per_row - 1) / cells_per_row;
+                let total_rows = self.children.len().div_ceil(cells_per_row);
                 Some(
                     (available.height - self.spacing * (total_rows - 1) as f32)
                         / total_rows as f32,
