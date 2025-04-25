@@ -57,7 +57,7 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 /// }
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct Image<'a, Handle = image::Handle, Theme = crate::Theme>
 where
     Theme: Catalog,
@@ -70,6 +70,7 @@ where
     rotation: Rotation,
     opacity: f32,
     scale: f32,
+    translate: Option<Box<dyn Fn(Rectangle, Rectangle) -> Vector + 'a>>,
     float: bool,
     class: Theme::Class<'a>,
 }
@@ -89,6 +90,7 @@ where
             rotation: Rotation::default(),
             opacity: 1.0,
             scale: 1.0,
+            translate: None,
             float: false,
             class: Theme::default(),
         }
@@ -144,10 +146,27 @@ where
         self
     }
 
-    /// Sets whether an [`Image`] should float above other content when scaled up.
+    /// Sets the translation to apply to the [`Image`] when floating.
+    ///
+    /// This method takes a closure that will receive the non-scaled bounds of the [`Image`]
+    /// and the bounds of the viewport. The closure must produce a [`Vector`] representing
+    /// the translation to be applied.
+    ///
+    /// Translating can be useful to ensure floating images stay visible inside the
+    /// viewport.
+    pub fn translate(
+        mut self,
+        translate: impl Fn(Rectangle, Rectangle) -> Vector + 'a,
+    ) -> Self {
+        self.translate = Some(Box::new(translate));
+        self
+    }
+
+    /// Sets whether an [`Image`] should float above other content when
+    /// scaled up.
     ///
     /// By default, an [`Image`] has this flag set to `false`; meaning it
-    /// will be clipped or "framed" inside its bounds when scaled.
+    /// will be clipped or "framed" inside its bounds.
     ///
     /// Enabling this flag is useful to create cool hover effects!
     pub fn float(mut self, float: bool) -> Self {
@@ -459,7 +478,7 @@ pub trait Catalog {
     fn style(&self, class: &Self::Class<'_>) -> Style;
 }
 
-/// A styling function for a [`Button`].
+/// A styling function for an [`Image`].
 pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
 
 impl Catalog for crate::Theme {
@@ -499,9 +518,18 @@ where
     Handle: Clone,
     Theme: Catalog,
 {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        layout::Node::new(self.clip_bounds.size())
-            .move_to(self.clip_bounds.position())
+    fn layout(&mut self, _renderer: &Renderer, bounds: Size) -> layout::Node {
+        let bounds = if let Some(translate) = &self.image.translate {
+            self.clip_bounds
+                + translate(
+                    self.clip_bounds,
+                    Rectangle::new(Point::ORIGIN, bounds),
+                )
+        } else {
+            self.clip_bounds
+        };
+
+        layout::Node::new(bounds.size()).move_to(bounds.position())
     }
 
     fn is_over(
@@ -518,22 +546,12 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        _layout: Layout<'_>,
+        layout: Layout<'_>,
         _cursor: mouse::Cursor,
     ) {
-        let clip_bounds = Rectangle {
-            x: self.clip_bounds.x
-                - (self.clip_bounds.width * self.image.scale
-                    - self.clip_bounds.width)
-                    / 2.0,
-            y: self.clip_bounds.y
-                - (self.clip_bounds.height * self.image.scale
-                    - self.clip_bounds.height)
-                    / 2.0,
-            width: self.clip_bounds.width * self.image.scale,
-            height: self.clip_bounds.height * self.image.scale,
-        };
-
+        let bounds = layout.bounds();
+        let translation = bounds.position() - self.clip_bounds.position();
+        let clip_bounds = bounds.zoom(self.image.scale);
         let style = theme.style(&self.image.class);
 
         if style.shadow.color.a > 0.0 {
@@ -559,7 +577,7 @@ where
                 self.image.filter_method,
                 self.image.rotation,
                 self.image.opacity,
-                self.drawing_bounds,
+                self.drawing_bounds + translation,
             );
         });
     }
