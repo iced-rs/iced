@@ -14,8 +14,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Animation, ContentFit, Element, Fill, Function, Subscription, Task, Theme,
-    color,
+    Animation, Color, ContentFit, Element, Fill, Function, Shadow,
+    Subscription, Task, Theme, color,
 };
 
 use std::collections::HashMap;
@@ -210,6 +210,19 @@ fn card<'a>(
                     .content_fit(ContentFit::Cover)
                     .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now))
                     .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
+                    .float(true)
+                    .style(move |_theme| image::Style {
+                        shadow: Shadow {
+                            color: Color::BLACK.scale_alpha(
+                                thumbnail.zoom.interpolate(0.0, 1.0, now),
+                            ),
+                            blur_radius: thumbnail
+                                .zoom
+                                .interpolate(0.0, 20.0, now),
+                            ..Shadow::default()
+                        },
+                        ..image::Style::default()
+                    })
                     .into()
             } else {
                 horizontal_space().into()

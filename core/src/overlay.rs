@@ -101,6 +101,16 @@ where
     ) -> Option<Element<'a, Message, Theme, Renderer>> {
         None
     }
+
+    /// The index of the overlay.
+    ///
+    /// Overlays with a higher index will be rendered on top of overlays with
+    /// a lower index.
+    ///
+    /// By default, it returns `1.0`.
+    fn index(&self) -> f32 {
+        1.0
+    }
 }
 
 /// Returns a [`Group`] of overlay [`Element`] children.

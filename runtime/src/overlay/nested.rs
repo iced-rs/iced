@@ -39,10 +39,11 @@ where
         where
             Renderer: renderer::Renderer,
         {
-            let node = element.layout(renderer, bounds);
+            let overlay = element.as_overlay_mut();
+            let node = overlay.layout(renderer, bounds);
 
             if let Some(mut nested) =
-                element.overlay(Layout::new(&node), renderer)
+                overlay.overlay(Layout::new(&node), renderer)
             {
                 layout::Node::with_children(
                     node.size(),
@@ -79,13 +80,14 @@ where
 
             if let Some(layout) = layouts.next() {
                 let nested_layout = layouts.next();
+                let overlay = element.as_overlay_mut();
 
                 let is_over = cursor
                     .position()
                     .zip(nested_layout)
                     .and_then(|(cursor_position, nested_layout)| {
-                        element.overlay(layout, renderer).map(|nested| {
-                            nested.is_over(
+                        overlay.overlay(layout, renderer).map(|nested| {
+                            nested.as_overlay().is_over(
                                 nested_layout.children().next().unwrap(),
                                 renderer,
                                 cursor_position,
@@ -95,7 +97,7 @@ where
                     .unwrap_or_default();
 
                 renderer.with_layer(layout.bounds(), |renderer| {
-                    element.draw(
+                    overlay.draw(
                         renderer,
                         theme,
                         style,
@@ -109,7 +111,7 @@ where
                 });
 
                 if let Some((mut nested, nested_layout)) =
-                    element.overlay(layout, renderer).zip(nested_layout)
+                    overlay.overlay(layout, renderer).zip(nested_layout)
                 {
                     recurse(
                         &mut nested,
@@ -144,10 +146,12 @@ where
             let mut layouts = layout.children();
 
             if let Some(layout) = layouts.next() {
-                element.operate(layout, renderer, operation);
+                let overlay = element.as_overlay_mut();
+
+                overlay.operate(layout, renderer, operation);
 
                 if let Some((mut nested, nested_layout)) =
-                    element.overlay(layout, renderer).zip(layouts.next())
+                    overlay.overlay(layout, renderer).zip(layouts.next())
                 {
                     recurse(&mut nested, nested_layout, renderer, operation);
                 }
@@ -182,8 +186,10 @@ where
             let mut layouts = layout.children();
 
             if let Some(layout) = layouts.next() {
+                let overlay = element.as_overlay_mut();
+
                 let nested_is_over = if let Some((mut nested, nested_layout)) =
-                    element.overlay(layout, renderer).zip(layouts.next())
+                    overlay.overlay(layout, renderer).zip(layouts.next())
                 {
                     recurse(
                         &mut nested,
@@ -203,7 +209,7 @@ where
                         || cursor
                             .position()
                             .map(|cursor_position| {
-                                element.is_over(
+                                overlay.is_over(
                                     layout,
                                     renderer,
                                     cursor_position,
@@ -211,7 +217,7 @@ where
                             })
                             .unwrap_or_default();
 
-                    element.update(
+                    overlay.update(
                         event,
                         layout,
                         if nested_is_over {
@@ -266,13 +272,14 @@ where
 
             let layout = layouts.next()?;
             let cursor_position = cursor.position()?;
+            let overlay = element.as_overlay_mut();
 
-            if !element.is_over(layout, renderer, cursor_position) {
+            if !overlay.is_over(layout, renderer, cursor_position) {
                 return None;
             }
 
             Some(
-                element
+                overlay
                     .overlay(layout, renderer)
                     .zip(layouts.next())
                     .and_then(|(mut overlay, layout)| {
@@ -285,7 +292,7 @@ where
                         )
                     })
                     .unwrap_or_else(|| {
-                        element.mouse_interaction(
+                        overlay.mouse_interaction(
                             layout, cursor, viewport, renderer,
                         )
                     }),
@@ -315,12 +322,14 @@ where
             let mut layouts = layout.children();
 
             if let Some(layout) = layouts.next() {
-                if element.is_over(layout, renderer, cursor_position) {
+                let overlay = element.as_overlay_mut();
+
+                if overlay.is_over(layout, renderer, cursor_position) {
                     return true;
                 }
 
                 if let Some((mut nested, nested_layout)) =
-                    element.overlay(layout, renderer).zip(layouts.next())
+                    overlay.overlay(layout, renderer).zip(layouts.next())
                 {
                     recurse(
                         &mut nested,
