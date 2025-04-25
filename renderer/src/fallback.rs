@@ -97,6 +97,7 @@ where
     const ICON_FONT: Self::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
+    const ICED_LOGO: char = A::ICED_LOGO;
 
     fn default_font(&self) -> Self::Font {
         delegate!(self, renderer, renderer.default_font())

@@ -1836,7 +1836,6 @@ where
 ///
 /// Useful for showing some love to your favorite GUI library in your "About" screen,
 /// for instance.
-#[cfg(feature = "svg")]
 pub fn iced<'a, Message, Theme, Renderer>(
     text_size: impl Into<core::Pixels>,
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1846,24 +1845,38 @@ where
         + core::text::Renderer<Font = core::Font>
         + core::svg::Renderer
         + 'a,
-    Theme: text::Catalog + crate::svg::Catalog + 'a,
+    Theme: text::Catalog + container::Catalog + 'a,
+    <Theme as container::Catalog>::Class<'a>:
+        From<container::StyleFn<'a, Theme>>,
+    <Theme as text::Catalog>::Class<'a>: From<text::StyleFn<'a, Theme>>,
 {
-    use crate::core::{Alignment, Font};
-    use crate::svg;
-    use std::sync::LazyLock;
-
-    static LOGO: LazyLock<svg::Handle> = LazyLock::new(|| {
-        svg::Handle::from_memory(include_bytes!("../assets/iced-logo.svg"))
-    });
+    use crate::core::{
+        Alignment, Color, Font, Radians, border, border::radius, color,
+        gradient::Linear,
+    };
 
     let text_size = text_size.into();
 
     row![
-        svg(LOGO.clone()).width(text_size * 1.3),
-        text("iced")
-            .size(text_size)
-            .font(Font::MONOSPACE)
-            .shaping(text::Shaping::Advanced)
+        container(
+            text(Renderer::ICED_LOGO)
+                .line_height(1.0)
+                .size(text_size)
+                .font(Renderer::ICON_FONT)
+                .color(Color::WHITE)
+        )
+        .padding(text_size * 0.15)
+        .style(move |_| container::Style {
+            background: Some(
+                Linear::new(Radians::PI / 4.0)
+                    .add_stop(0.0, color!(0x3300ff))
+                    .add_stop(1.0, color!(0x00a3ff))
+                    .into()
+            ),
+            border: border::rounded(radius(text_size * 0.4)),
+            ..container::Style::default()
+        }),
+        text("iced").size(text_size).font(Font::MONOSPACE)
     ]
     .spacing(text_size.0 / 3.0)
     .align_y(Alignment::Center)

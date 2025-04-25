@@ -254,6 +254,7 @@ impl core::text::Renderer for Renderer {
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
     const ARROW_DOWN_ICON: char = '\u{e800}';
+    const ICED_LOGO: char = '\u{e801}';
 
     fn default_font(&self) -> Self::Font {
         self.default_font
