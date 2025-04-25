@@ -312,6 +312,11 @@ pub trait Renderer: crate::Renderer {
     /// [`ICON_FONT`]: Self::ICON_FONT
     const ARROW_DOWN_ICON: char;
 
+    /// The 'char' representing the iced logo in the built-in ['ICON_FONT'].
+    ///
+    /// ['ICON_FONT']: Self::ICON_FONT
+    const ICED_LOGO: char;
+
     /// Returns the default [`Self::Font`].
     fn default_font(&self) -> Self::Font;
 
