@@ -377,6 +377,18 @@ impl editor::Editor for Editor {
                     Edit::Paste(text) => {
                         editor.insert_string(&text, None);
                     }
+                    Edit::Indent => {
+                        editor.action(
+                            font_system.raw(),
+                            cosmic_text::Action::Indent,
+                        );
+                    }
+                    Edit::Unindent => {
+                        editor.action(
+                            font_system.raw(),
+                            cosmic_text::Action::Unindent,
+                        );
+                    }
                     Edit::Enter => {
                         editor.action(
                             font_system.raw(),
