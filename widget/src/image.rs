@@ -538,6 +538,10 @@ where
         let clip_bounds = bounds.zoom(self.image.scale);
         let style = theme.style(&self.image.class);
 
+        let clip_bounds = clip_bounds
+            .intersection(&self.viewport)
+            .unwrap_or(self.viewport);
+
         if style.shadow.color.a > 0.0 {
             renderer.with_layer(
                 clip_bounds.expand(style.shadow.blur_radius),
@@ -557,10 +561,6 @@ where
                 },
             );
         }
-
-        let clip_bounds = clip_bounds
-            .intersection(&self.viewport)
-            .unwrap_or(self.viewport);
 
         renderer.with_layer(clip_bounds, |renderer| {
             render(
