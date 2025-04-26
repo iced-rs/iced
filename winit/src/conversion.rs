@@ -110,7 +110,8 @@ pub fn window_attributes(
             )
             .with_fullsize_content_view(
                 settings.platform_specific.fullsize_content_view,
-            );
+            )
+            .with_blur_radius(settings.platform_specific.blur_radius);
     }
 
     #[cfg(target_os = "linux")]
