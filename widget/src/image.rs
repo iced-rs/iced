@@ -536,11 +536,12 @@ where
     ) {
         let bounds = layout.bounds();
         let clip_bounds = bounds.zoom(self.image.scale);
-        let style = theme.style(&self.image.class);
 
-        let clip_bounds = clip_bounds
-            .intersection(&self.viewport)
-            .unwrap_or(self.viewport);
+        let Some(clip_bounds) = clip_bounds.intersection(&self.viewport) else {
+            return;
+        };
+
+        let style = theme.style(&self.image.class);
 
         if style.shadow.color.a > 0.0 {
             renderer.with_layer(
