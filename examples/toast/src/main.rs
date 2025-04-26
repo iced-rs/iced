@@ -425,6 +425,7 @@ mod toast {
             state: &'b mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
+            viewport: &Rectangle,
             translation: Vector,
         ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
             let instants = state.state.downcast_mut::<Vec<Option<Instant>>>();
@@ -435,6 +436,7 @@ mod toast {
                 &mut content_state[0],
                 layout,
                 renderer,
+                viewport,
                 translation,
             );
 

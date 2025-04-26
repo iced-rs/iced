@@ -369,6 +369,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
@@ -376,6 +377,7 @@ where
             tree,
             layout,
             renderer,
+            viewport,
             translation,
         )
     }

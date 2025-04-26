@@ -101,6 +101,16 @@ where
     ) -> Option<Element<'a, Message, Theme, Renderer>> {
         None
     }
+
+    /// The index of the overlay.
+    ///
+    /// Overlays with a higher index will be rendered on top of overlays with
+    /// a lower index.
+    ///
+    /// By default, it returns `1.0`.
+    fn index(&self) -> f32 {
+        1.0
+    }
 }
 
 /// Returns a [`Group`] of overlay [`Element`] children.
@@ -112,6 +122,7 @@ pub fn from_children<'a, Message, Theme, Renderer>(
     tree: &'a mut Tree,
     layout: Layout<'_>,
     renderer: &Renderer,
+    viewport: &Rectangle,
     translation: Vector,
 ) -> Option<Element<'a, Message, Theme, Renderer>>
 where
@@ -122,9 +133,13 @@ where
         .zip(&mut tree.children)
         .zip(layout.children())
         .filter_map(|((child, state), layout)| {
-            child
-                .as_widget_mut()
-                .overlay(state, layout, renderer, translation)
+            child.as_widget_mut().overlay(
+                state,
+                layout,
+                renderer,
+                viewport,
+                translation,
+            )
         })
         .collect::<Vec<_>>();
 

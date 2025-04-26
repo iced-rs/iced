@@ -447,6 +447,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.rebuild_element_if_necessary();
@@ -469,6 +470,7 @@ where
                                 &mut tree.children[0],
                                 layout,
                                 renderer,
+                                viewport,
                                 translation,
                             )
                             .map(|overlay| RefCell::new(Nested::new(overlay)))

@@ -1180,11 +1180,13 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
+        let visible_bounds = bounds.intersection(viewport).unwrap_or(*viewport);
 
         let offset = tree.state.downcast_ref::<State>().translation(
             self.direction,
@@ -1196,6 +1198,7 @@ where
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
+            &visible_bounds,
             translation - offset,
         )
     }
