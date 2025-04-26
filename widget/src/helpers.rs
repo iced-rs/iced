@@ -694,6 +694,7 @@ where
             state: &'b mut core::widget::Tree,
             layout: core::Layout<'_>,
             renderer: &Renderer,
+            viewport: &Rectangle,
             translation: core::Vector,
         ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>>
         {
@@ -701,6 +702,7 @@ where
                 state,
                 layout,
                 renderer,
+                viewport,
                 translation,
             )
         }
@@ -948,6 +950,7 @@ where
             tree: &'b mut core::widget::Tree,
             layout: core::Layout<'_>,
             renderer: &Renderer,
+            viewport: &Rectangle,
             translation: core::Vector,
         ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>>
         {
@@ -959,6 +962,7 @@ where
                         tree,
                         layout,
                         renderer,
+                        viewport,
                         translation,
                     )
                 });

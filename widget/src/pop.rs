@@ -295,12 +295,14 @@ where
         tree: &'b mut Tree,
         layout: core::Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: core::Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout,
             renderer,
+            viewport,
             translation,
         )
     }

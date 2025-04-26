@@ -283,6 +283,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         use std::ops::DerefMut;
@@ -315,7 +316,13 @@ where
                 (
                     element
                         .as_widget_mut()
-                        .overlay(tree, content_layout, renderer, translation)
+                        .overlay(
+                            tree,
+                            content_layout,
+                            renderer,
+                            viewport,
+                            translation,
+                        )
                         .map(|overlay| RefCell::new(Nested::new(overlay))),
                     content_layout_node,
                 )

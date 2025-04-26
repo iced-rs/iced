@@ -146,6 +146,7 @@ where
         _state: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
+        _viewport: &Rectangle,
         _translation: Vector,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         None

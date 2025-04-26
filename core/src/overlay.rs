@@ -122,6 +122,7 @@ pub fn from_children<'a, Message, Theme, Renderer>(
     tree: &'a mut Tree,
     layout: Layout<'_>,
     renderer: &Renderer,
+    viewport: &Rectangle,
     translation: Vector,
 ) -> Option<Element<'a, Message, Theme, Renderer>>
 where
@@ -132,9 +133,13 @@ where
         .zip(&mut tree.children)
         .zip(layout.children())
         .filter_map(|((child, state), layout)| {
-            child
-                .as_widget_mut()
-                .overlay(state, layout, renderer, translation)
+            child.as_widget_mut().overlay(
+                state,
+                layout,
+                renderer,
+                viewport,
+                translation,
+            )
         })
         .collect::<Vec<_>>();
 

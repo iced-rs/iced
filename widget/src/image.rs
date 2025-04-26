@@ -71,7 +71,6 @@ where
     opacity: f32,
     scale: f32,
     translate: Option<Box<dyn Fn(Rectangle, Rectangle) -> Vector + 'a>>,
-    float: bool,
     class: Theme::Class<'a>,
 }
 
@@ -91,7 +90,6 @@ where
             opacity: 1.0,
             scale: 1.0,
             translate: None,
-            float: false,
             class: Theme::default(),
         }
     }
@@ -146,31 +144,19 @@ where
         self
     }
 
-    /// Sets the translation to apply to the [`Image`] when floating.
+    /// Sets the translation that should be applied to an [`Image`], potentially making it
+    /// float above other content.
     ///
     /// This method takes a closure that will receive the non-scaled bounds of the [`Image`]
     /// and the bounds of the viewport. The closure must produce a [`Vector`] representing
     /// the translation to be applied.
     ///
-    /// Translating can be useful to ensure floating images stay visible inside the
-    /// viewport.
+    /// Translating can be useful to ensure images stay visible inside the viewport.
     pub fn translate(
         mut self,
         translate: impl Fn(Rectangle, Rectangle) -> Vector + 'a,
     ) -> Self {
         self.translate = Some(Box::new(translate));
-        self
-    }
-
-    /// Sets whether an [`Image`] should float above other content when
-    /// scaled up.
-    ///
-    /// By default, an [`Image`] has this flag set to `false`; meaning it
-    /// will be clipped or "framed" inside its bounds.
-    ///
-    /// Enabling this flag is useful to create cool hover effects!
-    pub fn float(mut self, float: bool) -> Self {
-        self.float = float;
         self
     }
 
@@ -287,7 +273,7 @@ pub fn draw<Renderer, Handle>(
     rotation: Rotation,
     opacity: f32,
     scale: f32,
-    float: bool,
+    translate: Option<&dyn Fn(Rectangle, Rectangle) -> Vector>,
     style: Style,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
@@ -298,7 +284,9 @@ pub fn draw<Renderer, Handle>(
         drawing_bounds(renderer, bounds, handle, content_fit, rotation, scale);
 
     if must_clip(bounds, drawing_bounds) {
-        if scale > 1.0 && float {
+        if translate.is_some_and(|translate| {
+            scale > 1.0 || translate(bounds, *viewport) != Vector::ZERO
+        }) {
             return;
         }
 
@@ -411,7 +399,7 @@ where
             self.rotation,
             self.opacity,
             self.scale,
-            self.float,
+            self.translate.as_deref(),
             theme.style(&self.class),
         );
     }
@@ -421,12 +409,10 @@ where
         _state: &'a mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        if !self.float || self.scale <= 1.0 {
-            return None;
-        }
-
+        let translate = self.translate.as_ref()?;
         let bounds = layout.bounds() + translation;
         let drawing_bounds = drawing_bounds(
             renderer,
@@ -438,10 +424,17 @@ where
         );
 
         if must_clip(bounds, drawing_bounds) {
+            let translate = translate(bounds, *viewport);
+
+            if self.scale <= 1.0 && translate == Vector::ZERO {
+                return None;
+            }
+
             Some(overlay::Element::new(Box::new(Overlay {
                 image: self,
-                clip_bounds: bounds,
-                drawing_bounds,
+                viewport: *viewport,
+                clip_bounds: bounds + translate,
+                drawing_bounds: drawing_bounds + translate,
             })))
         } else {
             None
@@ -507,6 +500,7 @@ where
     Theme: Catalog,
 {
     image: &'a Image<'b, Handle, Theme>,
+    viewport: Rectangle,
     clip_bounds: Rectangle,
     drawing_bounds: Rectangle,
 }
@@ -518,18 +512,9 @@ where
     Handle: Clone,
     Theme: Catalog,
 {
-    fn layout(&mut self, _renderer: &Renderer, bounds: Size) -> layout::Node {
-        let bounds = if let Some(translate) = &self.image.translate {
-            self.clip_bounds
-                + translate(
-                    self.clip_bounds,
-                    Rectangle::new(Point::ORIGIN, bounds),
-                )
-        } else {
-            self.clip_bounds
-        };
-
-        layout::Node::new(bounds.size()).move_to(bounds.position())
+    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+        layout::Node::new(self.clip_bounds.size())
+            .move_to(self.clip_bounds.position())
     }
 
     fn is_over(
@@ -550,7 +535,6 @@ where
         _cursor: mouse::Cursor,
     ) {
         let bounds = layout.bounds();
-        let translation = bounds.position() - self.clip_bounds.position();
         let clip_bounds = bounds.zoom(self.image.scale);
         let style = theme.style(&self.image.class);
 
@@ -560,7 +544,11 @@ where
                 |renderer| {
                     renderer.fill_quad(
                         renderer::Quad {
-                            bounds: clip_bounds.shrink(1.0),
+                            bounds: self
+                                .drawing_bounds
+                                .intersection(&clip_bounds)
+                                .unwrap_or(self.drawing_bounds)
+                                .shrink(1.0),
                             shadow: style.shadow,
                             border: border::rounded(style.shadow_border_radius),
                         },
@@ -570,6 +558,10 @@ where
             );
         }
 
+        let clip_bounds = clip_bounds
+            .intersection(&self.viewport)
+            .unwrap_or(self.viewport);
+
         renderer.with_layer(clip_bounds, |renderer| {
             render(
                 renderer,
@@ -577,7 +569,7 @@ where
                 self.image.filter_method,
                 self.image.rotation,
                 self.image.opacity,
-                self.drawing_bounds + translation,
+                self.drawing_bounds,
             );
         });
     }

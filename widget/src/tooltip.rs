@@ -273,6 +273,7 @@ where
         tree: &'b mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
@@ -283,6 +284,7 @@ where
             children.next().unwrap(),
             layout,
             renderer,
+            viewport,
             translation,
         );
 
