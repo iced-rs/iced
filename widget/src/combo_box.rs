@@ -509,6 +509,10 @@ where
         vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _, _>)]
     }
 
+    fn diff(&self, _tree: &mut widget::Tree) {
+        // do nothing so the children don't get cleared
+    }
+
     fn update(
         &mut self,
         tree: &mut widget::Tree,
