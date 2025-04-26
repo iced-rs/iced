@@ -211,8 +211,7 @@ fn card<'a>(
                     .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now))
                     .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
                     .translate(move |bounds, viewport| {
-                        let final_bounds = bounds.zoom(1.1);
-                        final_bounds.offset(&viewport.shrink(10))
+                        bounds.zoom(1.1).offset(&viewport.shrink(10))
                             * thumbnail.zoom.interpolate(0.0, 1.0, now)
                     })
                     .style(move |_theme| image::Style {
