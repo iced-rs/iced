@@ -39,15 +39,6 @@ where
         Group { children }
     }
 
-    /// Adds an [`overlay::Element`] to the [`Group`].
-    pub fn push(
-        mut self,
-        child: impl Into<overlay::Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
-        self.children.push(child.into());
-        self
-    }
-
     /// Turns the [`Group`] into an overlay [`overlay::Element`].
     pub fn overlay(self) -> overlay::Element<'a, Message, Theme, Renderer> {
         overlay::Element::new(Box::new(self))
