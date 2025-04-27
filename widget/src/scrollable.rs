@@ -842,8 +842,8 @@ where
                 }
                 Event::Touch(event)
                     if state.scroll_area_touched_at.is_some()
-                        || !mouse_over_y_scrollbar
-                            && !mouse_over_x_scrollbar =>
+                        && !mouse_over_y_scrollbar
+                        && !mouse_over_x_scrollbar =>
                 {
                     match event {
                         touch::Event::FingerPressed { .. } => {
