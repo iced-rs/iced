@@ -876,18 +876,16 @@ where
                 }
                 Event::Touch(event)
                     if state.scroll_area_touched_at.is_some()
-                        || !mouse_over_y_scrollbar
-                            && !mouse_over_x_scrollbar =>
+                        || (!mouse_over_y_scrollbar
+                            && !mouse_over_x_scrollbar) =>
                 {
                     match event {
                         touch::Event::FingerPressed { .. } => {
-                            let Some(cursor_position) = cursor.position()
-                            else {
+                            if cursor_over_scrollable.is_none() {
                                 return;
-                            };
+                            }
 
-                            state.scroll_area_touched_at =
-                                Some(cursor_position);
+                            state.scroll_area_touched_at = cursor.position();
                         }
                         touch::Event::FingerMoved { .. } => {
                             if let Some(scroll_box_touched_at) =
