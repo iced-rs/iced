@@ -174,6 +174,7 @@ pub struct PickList<
     class: <Theme as Catalog>::Class<'a>,
     menu_class: <Theme as menu::Catalog>::Class<'a>,
     last_status: Option<Status>,
+    menu_height: Length,
 }
 
 impl<'a, T, L, V, Message, Theme, Renderer>
@@ -210,6 +211,7 @@ where
             class: <Theme as Catalog>::default(),
             menu_class: <Theme as Catalog>::default_menu(),
             last_status: None,
+            menu_height: Length::Shrink,
         }
     }
 
@@ -222,6 +224,12 @@ where
     /// Sets the width of the [`PickList`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
+        self
+    }
+
+    /// Sets the height of the [`Menu`].
+    pub fn menu_height(mut self, menu_height: impl Into<Length>) -> Self {
+        self.menu_height = menu_height.into();
         self
     }
 
@@ -722,7 +730,11 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            Some(menu.overlay(layout.position() + translation, bounds.height))
+            Some(menu.overlay(
+                layout.position() + translation,
+                bounds.height,
+                self.menu_height,
+            ))
         } else {
             None
         }
