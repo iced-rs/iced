@@ -6,6 +6,7 @@ use iced_widget::core;
 use iced_widget::runtime;
 use iced_widget::runtime::futures;
 
+mod comet;
 mod executor;
 mod time_machine;
 
@@ -24,7 +25,6 @@ use crate::widget::{
 };
 
 use std::fmt;
-use std::io;
 use std::thread;
 
 pub fn attach(program: impl Program + 'static) -> impl Program {
@@ -124,9 +124,9 @@ where
 enum Message {
     HideNotification,
     ToggleComet,
+    CometLaunched(Result<(), comet::Error>),
     InstallComet,
-    InstallationLogged(String),
-    InstallationFinished,
+    InstallationProgressed(Result<comet::Installation, comet::Error>),
     CancelSetup,
 }
 
@@ -136,8 +136,13 @@ enum Mode {
 }
 
 enum Setup {
-    Idle,
+    Idle { goal: Goal },
     Running { logs: Vec<String> },
+}
+
+enum Goal {
+    Installation,
+    Update { revision: Option<String> },
 }
 
 impl<P> DevTools<P>
@@ -174,12 +179,34 @@ where
                 }
                 Message::ToggleComet => {
                     if let Mode::Setup(setup) = &self.mode {
-                        if matches!(setup, Setup::Idle) {
+                        if matches!(setup, Setup::Idle { .. }) {
                             self.mode = Mode::None;
                         }
-                    } else if let Err(error) = debug::toggle_comet() {
-                        if error.kind() == io::ErrorKind::NotFound {
-                            self.mode = Mode::Setup(Setup::Idle);
+
+                        Task::none()
+                    } else if debug::quit() {
+                        Task::none()
+                    } else {
+                        comet::launch()
+                            .map(Message::CometLaunched)
+                            .map(Event::Message)
+                    }
+                }
+                Message::CometLaunched(Ok(())) => Task::none(),
+                Message::CometLaunched(Err(error)) => {
+                    match error {
+                        comet::Error::NotFound => {
+                            self.mode = Mode::Setup(Setup::Idle {
+                                goal: Goal::Installation,
+                            });
+                        }
+                        comet::Error::Outdated { revision } => {
+                            self.mode = Mode::Setup(Setup::Idle {
+                                goal: Goal::Update { revision },
+                            });
+                        }
+                        comet::Error::IoFailed(error) => {
+                            log::error!("comet failed to run: {error}");
                         }
                     }
 
@@ -189,62 +216,30 @@ where
                     self.mode =
                         Mode::Setup(Setup::Running { logs: Vec::new() });
 
-                    executor::spawn_blocking(|mut sender| {
-                        use std::io::{BufRead, BufReader};
-                        use std::process::{Command, Stdio};
+                    comet::install()
+                        .map(Message::InstallationProgressed)
+                        .map(Event::Message)
+                }
 
-                        let Ok(install) = Command::new("cargo")
-                            .args([
-                                "install",
-                                "--locked",
-                                "--git",
-                                "https://github.com/iced-rs/comet.git",
-                                "--rev",
-                                "eb114ba564a872acbd95e337d13e55f5f667b2f3",
-                            ])
-                            .stdin(Stdio::null())
-                            .stdout(Stdio::null())
-                            .stderr(Stdio::piped())
-                            .spawn()
-                        else {
-                            return;
-                        };
+                Message::InstallationProgressed(Ok(installation)) => {
+                    let Mode::Setup(Setup::Running { logs }) = &mut self.mode
+                    else {
+                        return Task::none();
+                    };
 
-                        let mut stderr = BufReader::new(
-                            install.stderr.expect("stderr must be piped"),
-                        );
-
-                        let mut log = String::new();
-
-                        while let Ok(n) = stderr.read_line(&mut log) {
-                            if n == 0 {
-                                break;
-                            }
-
-                            let _ = sender.try_send(
-                                Message::InstallationLogged(log.clone()),
-                            );
-
-                            log.clear();
+                    match installation {
+                        comet::Installation::Logged(log) => {
+                            logs.push(log);
+                            Task::none()
                         }
-
-                        let _ = sender.try_send(Message::InstallationFinished);
-                    })
-                    .map(Event::Message)
-                }
-                Message::InstallationLogged(log) => {
-                    if let Mode::Setup(Setup::Running { logs }) = &mut self.mode
-                    {
-                        logs.push(log);
+                        comet::Installation::Finished => {
+                            self.mode = Mode::None;
+                            comet::launch().discard()
+                        }
                     }
-
-                    Task::none()
                 }
-                Message::InstallationFinished => {
-                    self.mode = Mode::None;
-
-                    let _ = debug::toggle_comet();
-
+                Message::InstallationProgressed(_error) => {
+                    // TODO
                     Task::none()
                 }
                 Message::CancelSetup => {
@@ -317,40 +312,69 @@ where
             Mode::None => None,
             Mode::Setup(setup) => {
                 let stage: Element<'_, _, Theme, P::Renderer> = match setup {
-                    Setup::Idle => {
+                    Setup::Idle { goal } => {
                         let controls = row![
                             button(text("Cancel").center().width(Fill))
                                 .width(100)
                                 .on_press(Message::CancelSetup)
                                 .style(button::danger),
                             horizontal_space(),
-                            button(text("Install").center().width(Fill))
-                                .width(100)
-                                .on_press(Message::InstallComet)
-                                .style(button::success),
+                            button(
+                                text(match goal {
+                                    Goal::Installation => "Install",
+                                    Goal::Update { .. } => "Update",
+                                })
+                                .center()
+                                .width(Fill)
+                            )
+                            .width(100)
+                            .on_press(Message::InstallComet)
+                            .style(button::success),
                         ];
 
-                        column![
-                            text("comet is not installed!").size(20),
-                            "In order to display performance metrics, the \
-                            comet debugger must be installed in your system.",
-                            "The comet debugger is an official companion tool \
-                            that helps you debug your iced applications.",
-                            "Do you wish to install it with the following \
-                            command?",
-                            container(
-                                text(
-                                    "cargo install --locked \
-                                    --git https://github.com/iced-rs/comet.git"
-                                )
-                                .size(14)
+                        let command = container(
+                            text(
+                                "cargo install --locked \
+                                    --git https://github.com/iced-rs/comet.git",
                             )
-                            .width(Fill)
-                            .padding(5)
-                            .style(container::dark),
-                            controls,
-                        ]
-                        .spacing(20)
+                            .size(14),
+                        )
+                        .width(Fill)
+                        .padding(5)
+                        .style(container::dark);
+
+                        match goal {
+                            Goal::Installation => column![
+                                text("comet is not installed!").size(20),
+                                "In order to display performance \
+                            metrics, the  comet debugger must \
+                            be installed in your system.",
+                                "The comet debugger is an official \
+                            companion tool that helps you debug \
+                            your iced applications.",
+                                "Do you wish to install it with the \
+                            following  command?",
+                                command,
+                                controls,
+                            ]
+                            .spacing(20),
+                            Goal::Update { revision } => column![
+                                text("comet is out of date!").size(20),
+                                text!(
+                                    "The installed revision is \"{current}\", \
+                                but the latest compatible is \"{compatible}\".",
+                                    current = revision
+                                        .as_deref()
+                                        .unwrap_or("Unknown"),
+                                    compatible = comet::COMPATIBLE_REVISION,
+                                ),
+                                "Do you wish to update it with the following \
+                                command?",
+                                command,
+                                controls,
+                            ]
+                            .spacing(20),
+                        }
                         .into()
                     }
                     Setup::Running { logs } => column![

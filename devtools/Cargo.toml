@@ -20,3 +20,5 @@ time-travel = ["iced_program/time-travel"]
 iced_debug.workspace = true
 iced_program.workspace = true
 iced_widget.workspace = true
+
+log.workspace = true

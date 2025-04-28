@@ -2464,6 +2464,7 @@ dependencies = [
  "iced_debug",
  "iced_program",
  "iced_widget",
+ "log",
 ]
 
 [[package]]
