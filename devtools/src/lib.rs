@@ -10,11 +10,12 @@ mod comet;
 mod executor;
 mod time_machine;
 
+use crate::core::border;
 use crate::core::keyboard;
 use crate::core::theme::{self, Base, Theme};
 use crate::core::time::seconds;
 use crate::core::window;
-use crate::core::{Color, Element, Length::Fill};
+use crate::core::{Alignment::Center, Color, Element, Length::Fill};
 use crate::futures::Subscription;
 use crate::program::Program;
 use crate::runtime::Task;
@@ -124,9 +125,9 @@ where
 enum Message {
     HideNotification,
     ToggleComet,
-    CometLaunched(Result<(), comet::Error>),
+    CometLaunched(comet::launch::Result),
     InstallComet,
-    InstallationProgressed(Result<comet::Installation, comet::Error>),
+    Installing(comet::install::Result),
     CancelSetup,
 }
 
@@ -195,17 +196,17 @@ where
                 Message::CometLaunched(Ok(())) => Task::none(),
                 Message::CometLaunched(Err(error)) => {
                     match error {
-                        comet::Error::NotFound => {
+                        comet::launch::Error::NotFound => {
                             self.mode = Mode::Setup(Setup::Idle {
                                 goal: Goal::Installation,
                             });
                         }
-                        comet::Error::Outdated { revision } => {
+                        comet::launch::Error::Outdated { revision } => {
                             self.mode = Mode::Setup(Setup::Idle {
                                 goal: Goal::Update { revision },
                             });
                         }
-                        comet::Error::IoFailed(error) => {
+                        comet::launch::Error::IoFailed(error) => {
                             log::error!("comet failed to run: {error}");
                         }
                     }
@@ -217,29 +218,42 @@ where
                         Mode::Setup(Setup::Running { logs: Vec::new() });
 
                     comet::install()
-                        .map(Message::InstallationProgressed)
+                        .map(Message::Installing)
                         .map(Event::Message)
                 }
 
-                Message::InstallationProgressed(Ok(installation)) => {
+                Message::Installing(Ok(installation)) => {
                     let Mode::Setup(Setup::Running { logs }) = &mut self.mode
                     else {
                         return Task::none();
                     };
 
                     match installation {
-                        comet::Installation::Logged(log) => {
+                        comet::install::Event::Logged(log) => {
                             logs.push(log);
                             Task::none()
                         }
-                        comet::Installation::Finished => {
+                        comet::install::Event::Finished => {
                             self.mode = Mode::None;
                             comet::launch().discard()
                         }
                     }
                 }
-                Message::InstallationProgressed(_error) => {
-                    // TODO
+                Message::Installing(Err(error)) => {
+                    let Mode::Setup(Setup::Running { logs }) = &mut self.mode
+                    else {
+                        return Task::none();
+                    };
+
+                    match error {
+                        comet::install::Error::ProcessFailed(status) => {
+                            logs.push(format!("process failed with {status}"));
+                        }
+                        comet::install::Error::IoFailed(error) => {
+                            logs.push(error.to_string());
+                        }
+                    }
+
                     Task::none()
                 }
                 Message::CancelSetup => {
@@ -304,7 +318,7 @@ where
         let derive_theme = move || {
             theme
                 .palette()
-                .map(|palette| Theme::custom("DevTools".to_owned(), palette))
+                .map(|palette| Theme::custom("iced devtools", palette))
                 .unwrap_or_default()
         };
 
@@ -312,97 +326,14 @@ where
             Mode::None => None,
             Mode::Setup(setup) => {
                 let stage: Element<'_, _, Theme, P::Renderer> = match setup {
-                    Setup::Idle { goal } => {
-                        let controls = row![
-                            button(text("Cancel").center().width(Fill))
-                                .width(100)
-                                .on_press(Message::CancelSetup)
-                                .style(button::danger),
-                            horizontal_space(),
-                            button(
-                                text(match goal {
-                                    Goal::Installation => "Install",
-                                    Goal::Update { .. } => "Update",
-                                })
-                                .center()
-                                .width(Fill)
-                            )
-                            .width(100)
-                            .on_press(Message::InstallComet)
-                            .style(button::success),
-                        ];
-
-                        let command = container(
-                            text(
-                                "cargo install --locked \
-                                    --git https://github.com/iced-rs/comet.git",
-                            )
-                            .size(14),
-                        )
-                        .width(Fill)
-                        .padding(5)
-                        .style(container::dark);
-
-                        match goal {
-                            Goal::Installation => column![
-                                text("comet is not installed!").size(20),
-                                "In order to display performance \
-                            metrics, the  comet debugger must \
-                            be installed in your system.",
-                                "The comet debugger is an official \
-                            companion tool that helps you debug \
-                            your iced applications.",
-                                "Do you wish to install it with the \
-                            following  command?",
-                                command,
-                                controls,
-                            ]
-                            .spacing(20),
-                            Goal::Update { revision } => column![
-                                text("comet is out of date!").size(20),
-                                text!(
-                                    "The installed revision is \"{current}\", \
-                                but the latest compatible is \"{compatible}\".",
-                                    current = revision
-                                        .as_deref()
-                                        .unwrap_or("Unknown"),
-                                    compatible = comet::COMPATIBLE_REVISION,
-                                ),
-                                "Do you wish to update it with the following \
-                                command?",
-                                command,
-                                controls,
-                            ]
-                            .spacing(20),
-                        }
-                        .into()
-                    }
-                    Setup::Running { logs } => column![
-                        text("Installing comet...").size(20),
-                        container(
-                            scrollable(
-                                column(
-                                    logs.iter()
-                                        .map(|log| text(log).size(12).into()),
-                                )
-                                .spacing(3),
-                            )
-                            .spacing(10)
-                            .width(Fill)
-                            .height(300)
-                            .anchor_bottom(),
-                        )
-                        .padding(10)
-                        .style(container::dark)
-                    ]
-                    .spacing(20)
-                    .into(),
+                    Setup::Idle { goal } => self::setup(goal),
+                    Setup::Running { logs } => installation(logs),
                 };
 
                 let setup = center(
                     container(stage)
                         .padding(20)
-                        .width(500)
+                        .max_width(500)
                         .style(container::bordered_box),
                 )
                 .padding(10)
@@ -509,4 +440,135 @@ where
             Self::Discard => Self::Discard,
         }
     }
+}
+
+fn setup<Renderer>(goal: &Goal) -> Element<'_, Message, Theme, Renderer>
+where
+    Renderer: core::text::Renderer + 'static,
+{
+    let controls = row![
+        button(text("Cancel").center().width(Fill))
+            .width(100)
+            .on_press(Message::CancelSetup)
+            .style(button::danger),
+        horizontal_space(),
+        button(
+            text(match goal {
+                Goal::Installation => "Install",
+                Goal::Update { .. } => "Update",
+            })
+            .center()
+            .width(Fill)
+        )
+        .width(100)
+        .on_press(Message::InstallComet)
+        .style(button::success),
+    ];
+
+    let command = container(
+        text!(
+            "cargo install --locked \\
+    --git https://github.com/iced-rs/comet.git \\
+    --rev {}",
+            comet::COMPATIBLE_REVISION
+        )
+        .size(14)
+        .font(Renderer::MONOSPACE_FONT),
+    )
+    .width(Fill)
+    .padding(5)
+    .style(container::dark);
+
+    Element::from(match goal {
+        Goal::Installation => column![
+            text("comet is not installed!").size(20),
+            "In order to display performance \
+                metrics, the  comet debugger must \
+                be installed in your system.",
+            "The comet debugger is an official \
+                companion tool that helps you debug \
+                your iced applications.",
+            column![
+                "Do you wish to install it with the \
+                    following  command?",
+                command
+            ]
+            .spacing(10),
+            controls,
+        ]
+        .spacing(20),
+        Goal::Update { revision } => {
+            let comparison = column![
+                row![
+                    "Installed revision:",
+                    horizontal_space(),
+                    inline_code(revision.as_deref().unwrap_or("Unknown"))
+                ]
+                .align_y(Center),
+                row![
+                    "Compatible revision:",
+                    horizontal_space(),
+                    inline_code(comet::COMPATIBLE_REVISION),
+                ]
+                .align_y(Center)
+            ]
+            .spacing(5);
+
+            column![
+                text("comet is out of date!").size(20),
+                comparison,
+                column![
+                    "Do you wish to update it with the following \
+                        command?",
+                    command
+                ]
+                .spacing(10),
+                controls,
+            ]
+            .spacing(20)
+        }
+    })
+}
+
+fn installation<'a, Renderer>(
+    logs: &'a [String],
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Renderer: core::text::Renderer + 'a,
+{
+    column![
+        text("Installing comet...").size(20),
+        container(
+            scrollable(
+                column(logs.iter().map(|log| {
+                    text(log).size(12).font(Renderer::MONOSPACE_FONT).into()
+                }),)
+                .spacing(3),
+            )
+            .spacing(10)
+            .width(Fill)
+            .height(300)
+            .anchor_bottom(),
+        )
+        .padding(10)
+        .style(container::dark)
+    ]
+    .spacing(20)
+    .into()
+}
+
+fn inline_code<'a, Renderer>(
+    code: impl text::IntoFragment<'a>,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Renderer: core::text::Renderer + 'a,
+{
+    container(text(code).font(Renderer::MONOSPACE_FONT).size(12))
+        .style(|_theme| {
+            container::Style::default()
+                .background(Color::BLACK)
+                .border(border::rounded(2))
+        })
+        .padding([2, 4])
+        .into()
 }

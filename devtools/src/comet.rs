@@ -1,14 +1,12 @@
 use crate::executor;
 use crate::runtime::Task;
 
-use std::io;
 use std::process;
-use std::sync::Arc;
 
 pub const COMPATIBLE_REVISION: &str =
     "69dd2283886dccdaa1ee6e1c274af62f7250bc38";
 
-pub fn launch() -> Task<Result<(), Error>> {
+pub fn launch() -> Task<launch::Result> {
     executor::try_spawn_blocking(|mut sender| {
         let cargo_install = process::Command::new("cargo")
             .args(["install", "--list"])
@@ -22,15 +20,15 @@ pub fn launch() -> Task<Result<(), Error>> {
             }
 
             let Some((_, revision)) = line.rsplit_once("?rev=") else {
-                return Err(Error::Outdated { revision: None });
+                return Err(launch::Error::Outdated { revision: None });
             };
 
             let Some((revision, _)) = revision.rsplit_once("#") else {
-                return Err(Error::Outdated { revision: None });
+                return Err(launch::Error::Outdated { revision: None });
             };
 
             if revision != COMPATIBLE_REVISION {
-                return Err(Error::Outdated {
+                return Err(launch::Error::Outdated {
                     revision: Some(revision.to_owned()),
                 });
             }
@@ -45,16 +43,16 @@ pub fn launch() -> Task<Result<(), Error>> {
             return Ok(());
         }
 
-        Err(Error::NotFound)
+        Err(launch::Error::NotFound)
     })
 }
 
-pub fn install() -> Task<Result<Installation, Error>> {
+pub fn install() -> Task<install::Result> {
     executor::try_spawn_blocking(|mut sender| {
         use std::io::{BufRead, BufReader};
         use std::process::{Command, Stdio};
 
-        let install = Command::new("cargo")
+        let mut install = Command::new("cargo")
             .args([
                 "install",
                 "--locked",
@@ -68,41 +66,75 @@ pub fn install() -> Task<Result<Installation, Error>> {
             .stderr(Stdio::piped())
             .spawn()?;
 
-        let mut stderr =
-            BufReader::new(install.stderr.expect("stderr must be piped"));
+        let mut stderr = BufReader::new(
+            install.stderr.take().expect("stderr must be piped"),
+        );
 
         let mut log = String::new();
 
         while let Ok(n) = stderr.read_line(&mut log) {
             if n == 0 {
-                break;
+                let status = install.wait()?;
+
+                if status.success() {
+                    break;
+                } else {
+                    return Err(install::Error::ProcessFailed(status));
+                }
             }
 
-            let _ = sender.try_send(Installation::Logged(log.clone()));
+            let _ = sender.try_send(install::Event::Logged(log.clone()));
             log.clear();
         }
 
-        let _ = sender.try_send(Installation::Finished);
+        let _ = sender.try_send(install::Event::Finished);
 
         Ok(())
     })
 }
 
-#[derive(Debug, Clone)]
-pub enum Installation {
-    Logged(String),
-    Finished,
+pub mod launch {
+    use std::io;
+    use std::sync::Arc;
+
+    pub type Result = std::result::Result<(), Error>;
+
+    #[derive(Debug, Clone)]
+    pub enum Error {
+        NotFound,
+        Outdated { revision: Option<String> },
+        IoFailed(Arc<io::Error>),
+    }
+
+    impl From<io::Error> for Error {
+        fn from(error: io::Error) -> Self {
+            Self::IoFailed(Arc::new(error))
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
-pub enum Error {
-    NotFound,
-    Outdated { revision: Option<String> },
-    IoFailed(Arc<io::Error>),
-}
+pub mod install {
+    use std::io;
+    use std::process;
+    use std::sync::Arc;
 
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Self::IoFailed(Arc::new(error))
+    pub type Result = std::result::Result<Event, Error>;
+
+    #[derive(Debug, Clone)]
+    pub enum Event {
+        Logged(String),
+        Finished,
+    }
+
+    #[derive(Debug, Clone)]
+    pub enum Error {
+        ProcessFailed(process::ExitStatus),
+        IoFailed(Arc<io::Error>),
+    }
+
+    impl From<io::Error> for Error {
+        fn from(error: io::Error) -> Self {
+            Self::IoFailed(Arc::new(error))
+        }
     }
 }
