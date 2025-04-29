@@ -1025,7 +1025,7 @@ pub struct KeyPress {
     pub text: Option<SmolStr>,
     /// The current [`Status`] of the [`TextEditor`].
     pub status: Status,
-    ///
+    /// The physical key pressed.
     pub physical_key: Physical,
 }
 
