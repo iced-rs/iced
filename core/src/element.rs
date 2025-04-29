@@ -500,7 +500,9 @@ where
             .widget
             .draw(state, renderer, theme, style, layout, cursor, viewport);
 
-        explain_layout(renderer, self.color.into_iter(), layout);
+        renderer.with_layer(Rectangle::INFINITE, |renderer| {
+            explain_layout(renderer, self.color.into_iter(), layout);
+        });
     }
 
     fn mouse_interaction(
