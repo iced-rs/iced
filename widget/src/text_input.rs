@@ -901,6 +901,7 @@ where
 
                             return event::Status::Captured;
                         }
+                        keyboard::Key::Character("ф") |
                         keyboard::Key::Character("a")
                             if state.keyboard_modifiers.command() =>
                         {
