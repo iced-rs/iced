@@ -1,5 +1,5 @@
 use iced::mouse;
-use iced::time::{self, Instant, milliseconds};
+use iced::time::{self, milliseconds};
 use iced::widget::canvas;
 use iced::{
     Color, Element, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme,
@@ -22,13 +22,13 @@ struct TheMatrix {
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    Tick(Instant),
+    Tick,
 }
 
 impl TheMatrix {
     fn update(&mut self, message: Message) {
         match message {
-            Message::Tick(_now) => {
+            Message::Tick => {
                 self.tick += 1;
             }
         }
@@ -39,7 +39,7 @@ impl TheMatrix {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(milliseconds(50)).map(Message::Tick)
+        time::every(milliseconds(50)).map(|_| Message::Tick)
     }
 }
 

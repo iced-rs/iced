@@ -40,6 +40,10 @@ use crate::{
 
 use std::borrow::Cow;
 
+pub mod timed;
+
+pub use timed::timed;
+
 /// Creates an iced [`Application`] given its boot, update, and view logic.
 ///
 /// # Example
