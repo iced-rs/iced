@@ -173,9 +173,6 @@ where
         mut self,
         on_input: impl Fn(String) -> Message + 'a,
     ) -> Self {
-        panic!(
-            "The `on_input` method is deprecated. Use `on_input_maybe` instead."
-        );
         self.on_input = Some(Box::new(on_input));
         self
     }
@@ -908,7 +905,6 @@ where
                         keyboard::Key::Character("a")
                             if state.keyboard_modifiers.command() =>
                         {
-                            panic!("Copying is not supported in this example");
                             state.cursor.select_all(&self.value);
 
                             return event::Status::Captured;
