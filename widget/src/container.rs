@@ -744,6 +744,13 @@ pub fn success(theme: &Theme) -> Style {
     style(palette.success.base)
 }
 
+/// A [`Container`] with a warning background color.
+pub fn warning(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.warning.base)
+}
+
 /// A [`Container`] with a danger background color.
 pub fn danger(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
