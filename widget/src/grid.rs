@@ -193,8 +193,6 @@ where
             Constraint::Amount(amount) => amount,
         };
 
-        let total_rows = self.children.len() / cells_per_row;
-
         let cell_width = (available.width
             - self.spacing * (cells_per_row - 1) as f32)
             / cells_per_row as f32;
@@ -203,7 +201,11 @@ where
             Sizing::AspectRatio(ratio) => Some(cell_width / ratio),
             Sizing::EvenlyDistribute(Length::Shrink) => None,
             Sizing::EvenlyDistribute(_) => {
-                Some(available.height / total_rows as f32)
+                let total_rows = self.children.len().div_ceil(cells_per_row);
+                Some(
+                    (available.height - self.spacing * (total_rows - 1) as f32)
+                        / total_rows as f32,
+                )
             }
         };
 
@@ -212,7 +214,7 @@ where
             Size::new(cell_width, cell_height.unwrap_or(available.height)),
         );
 
-        let mut nodes = Vec::new();
+        let mut nodes = Vec::with_capacity(self.children.len());
         let mut x = 0.0;
         let mut y = 0.0;
         let mut row_height = 0.0f32;
@@ -343,6 +345,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
@@ -350,6 +353,7 @@ where
             tree,
             layout,
             renderer,
+            viewport,
             translation,
         )
     }

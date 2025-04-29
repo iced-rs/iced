@@ -96,7 +96,9 @@ where
     }
 
     /// Reconciles the [`Widget`] with the provided [`Tree`].
-    fn diff(&self, _tree: &mut Tree) {}
+    fn diff(&self, tree: &mut Tree) {
+        tree.children.clear();
+    }
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
@@ -144,6 +146,7 @@ where
         _state: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
+        _viewport: &Rectangle,
         _translation: Vector,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         None
