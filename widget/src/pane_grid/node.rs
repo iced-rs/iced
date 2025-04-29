@@ -53,17 +53,19 @@ impl Node {
     pub fn pane_regions(
         &self,
         spacing: f32,
-        size: Size,
+        min_size: f32,
+        bounds: Size,
     ) -> BTreeMap<Pane, Rectangle> {
         let mut regions = BTreeMap::new();
 
         self.compute_regions(
             spacing,
+            min_size,
             &Rectangle {
                 x: 0.0,
                 y: 0.0,
-                width: size.width,
-                height: size.height,
+                width: bounds.width,
+                height: bounds.height,
             },
             &mut regions,
         );
@@ -77,17 +79,19 @@ impl Node {
     pub fn split_regions(
         &self,
         spacing: f32,
-        size: Size,
+        min_size: f32,
+        bounds: Size,
     ) -> BTreeMap<Split, (Axis, Rectangle, f32)> {
         let mut splits = BTreeMap::new();
 
         self.compute_splits(
             spacing,
+            min_size,
             &Rectangle {
                 x: 0.0,
                 y: 0.0,
-                width: size.width,
-                height: size.height,
+                width: bounds.width,
+                height: bounds.height,
             },
             &mut splits,
         );
@@ -192,6 +196,7 @@ impl Node {
     fn compute_regions(
         &self,
         spacing: f32,
+        min_size: f32,
         current: &Rectangle,
         regions: &mut BTreeMap<Pane, Rectangle>,
     ) {
@@ -199,10 +204,11 @@ impl Node {
             Node::Split {
                 axis, ratio, a, b, ..
             } => {
-                let (region_a, region_b) = axis.split(current, *ratio, spacing);
+                let (region_a, region_b, _ratio) =
+                    axis.split(current, *ratio, spacing, min_size);
 
-                a.compute_regions(spacing, &region_a, regions);
-                b.compute_regions(spacing, &region_b, regions);
+                a.compute_regions(spacing, min_size, &region_a, regions);
+                b.compute_regions(spacing, min_size, &region_b, regions);
             }
             Node::Pane(pane) => {
                 let _ = regions.insert(*pane, *current);
@@ -213,6 +219,7 @@ impl Node {
     fn compute_splits(
         &self,
         spacing: f32,
+        min_size: f32,
         current: &Rectangle,
         splits: &mut BTreeMap<Split, (Axis, Rectangle, f32)>,
     ) {
@@ -224,12 +231,13 @@ impl Node {
                 b,
                 id,
             } => {
-                let (region_a, region_b) = axis.split(current, *ratio, spacing);
+                let (region_a, region_b, ratio) =
+                    axis.split(current, *ratio, spacing, min_size);
 
-                let _ = splits.insert(*id, (*axis, *current, *ratio));
+                let _ = splits.insert(*id, (*axis, *current, ratio));
 
-                a.compute_splits(spacing, &region_a, splits);
-                b.compute_splits(spacing, &region_b, splits);
+                a.compute_splits(spacing, min_size, &region_a, splits);
+                b.compute_splits(spacing, min_size, &region_b, splits);
             }
             Node::Pane(_) => {}
         }
