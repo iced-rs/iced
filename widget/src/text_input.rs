@@ -36,6 +36,7 @@ mod value;
 pub mod cursor;
 
 pub use cursor::Cursor;
+use iced_runtime::keyboard::key::Code;
 pub use value::Value;
 
 use editor::Editor;
@@ -809,7 +810,7 @@ where
                 }
             }
             Event::Keyboard(keyboard::Event::KeyPressed {
-                key, text, ..
+                key, text, physical_key,..
             }) => {
                 let state = state::<Renderer>(tree);
 
@@ -817,8 +818,8 @@ where
                     let modifiers = state.keyboard_modifiers;
                     focus.updated_at = Instant::now();
 
-                    match key.as_ref() {
-                        keyboard::Key::Character("c")
+                    match physical_key {
+                        key::Physical::Code(Code::KeyC)
                             if state.keyboard_modifiers.command()
                                 && !self.is_secure =>
                         {
@@ -833,7 +834,7 @@ where
 
                             return event::Status::Captured;
                         }
-                        keyboard::Key::Character("x")
+                        key::Physical::Code(Code::KeyX)
                             if state.keyboard_modifiers.command()
                                 && !self.is_secure =>
                         {
@@ -861,7 +862,7 @@ where
 
                             return event::Status::Captured;
                         }
-                        keyboard::Key::Character("v")
+                        key::Physical::Code(Code::KeyV)
                             if state.keyboard_modifiers.command()
                                 && !state.keyboard_modifiers.alt() =>
                         {
@@ -901,10 +902,9 @@ where
 
                             return event::Status::Captured;
                         }
-                        keyboard::Key::Character("ф") |
-                        keyboard::Key::Character("a")
+                        key::Physical::Code(Code::KeyA)
                             if state.keyboard_modifiers.command() =>
-                        {
+                        {                        
                             state.cursor.select_all(&self.value);
 
                             return event::Status::Captured;
