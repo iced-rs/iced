@@ -120,7 +120,7 @@ where
 pub fn from_children<'a, Message, Theme, Renderer>(
     children: &'a mut [crate::Element<'_, Message, Theme, Renderer>],
     tree: &'a mut Tree,
-    layout: Layout<'_>,
+    layout: Layout<'a>,
     renderer: &Renderer,
     viewport: &Rectangle,
     translation: Vector,

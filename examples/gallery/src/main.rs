@@ -9,8 +9,8 @@ use crate::civitai::{Error, Id, Image, Rgba, Size};
 use iced::animation;
 use iced::time::{Instant, milliseconds};
 use iced::widget::{
-    button, container, grid, horizontal_space, image, mouse_area, opaque, pop,
-    scrollable, stack,
+    button, container, float, grid, horizontal_space, image, mouse_area,
+    opaque, pop, scrollable, stack,
 };
 use iced::window;
 use iced::{
@@ -204,28 +204,28 @@ fn card<'a>(
     let image = if let Some(preview) = preview {
         let thumbnail: Element<'_, _> =
             if let Preview::Ready { thumbnail, .. } = &preview {
-                image(&thumbnail.handle)
-                    .width(Fill)
-                    .content_fit(ContentFit::Cover)
-                    .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now))
-                    .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
-                    .translate(move |bounds, viewport| {
-                        bounds.zoom(1.1).offset(&viewport.shrink(10))
-                            * thumbnail.zoom.interpolate(0.0, 1.0, now)
-                    })
-                    .style(move |_theme| image::Style {
-                        shadow: Shadow {
-                            color: Color::BLACK.scale_alpha(
-                                thumbnail.zoom.interpolate(0.0, 1.0, now),
-                            ),
-                            blur_radius: thumbnail
-                                .zoom
-                                .interpolate(0.0, 20.0, now),
-                            ..Shadow::default()
-                        },
-                        ..image::Style::default()
-                    })
-                    .into()
+                float(
+                    image(&thumbnail.handle)
+                        .width(Fill)
+                        .content_fit(ContentFit::Cover)
+                        .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now)),
+                )
+                .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
+                .translate(move |bounds, viewport| {
+                    bounds.zoom(1.1).offset(&viewport.shrink(10))
+                        * thumbnail.zoom.interpolate(0.0, 1.0, now)
+                })
+                .style(move |_theme| float::Style {
+                    shadow: Shadow {
+                        color: Color::BLACK.scale_alpha(
+                            thumbnail.zoom.interpolate(0.0, 1.0, now),
+                        ),
+                        blur_radius: thumbnail.zoom.interpolate(0.0, 20.0, now),
+                        ..Shadow::default()
+                    },
+                    ..float::Style::default()
+                })
+                .into()
             } else {
                 horizontal_space().into()
             };

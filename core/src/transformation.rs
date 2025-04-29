@@ -40,6 +40,11 @@ impl Transformation {
     pub fn translation(&self) -> Vector {
         Vector::new(self.0.w_axis.x, self.0.w_axis.y)
     }
+
+    /// Returns the inverse of the [`Transformation`].
+    pub fn inverse(self) -> Self {
+        Transformation(self.0.inverse())
+    }
 }
 
 impl Default for Transformation {
