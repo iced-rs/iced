@@ -173,6 +173,9 @@ where
         mut self,
         on_input: impl Fn(String) -> Message + 'a,
     ) -> Self {
+        panic!(
+            "The `on_input` method is deprecated. Use `on_input_maybe` instead."
+        );
         self.on_input = Some(Box::new(on_input));
         self
     }
