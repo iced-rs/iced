@@ -57,7 +57,7 @@ pub use border::Border;
 pub use clipboard::Clipboard;
 pub use color::Color;
 pub use content_fit::ContentFit;
-pub use element::Element;
+pub use element::{Element, ExplainColor};
 pub use event::Event;
 pub use font::Font;
 pub use gradient::Gradient;
