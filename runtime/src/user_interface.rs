@@ -190,6 +190,7 @@ where
         let mut outdated = false;
         let mut redraw_request = window::RedrawRequest::Wait;
         let mut input_method = InputMethod::Disabled;
+        let viewport = Rectangle::with_size(self.bounds);
 
         let mut manual_overlay = ManuallyDrop::new(
             self.root
@@ -198,6 +199,7 @@ where
                     &mut self.state,
                     Layout::new(&self.base),
                     renderer,
+                    &viewport,
                     Vector::ZERO,
                 )
                 .map(overlay::Nested::new),
@@ -242,6 +244,7 @@ where
                                 &mut self.state,
                                 Layout::new(&self.base),
                                 renderer,
+                                &viewport,
                                 Vector::ZERO,
                             )
                             .map(overlay::Nested::new),
@@ -443,6 +446,7 @@ where
                 &mut self.state,
                 Layout::new(&self.base),
                 renderer,
+                &viewport,
                 Vector::ZERO,
             )
             .map(overlay::Nested::new)
@@ -513,6 +517,7 @@ where
                         &mut self.state,
                         Layout::new(base),
                         renderer,
+                        &viewport,
                         Vector::ZERO,
                     )
                     .map(overlay::Nested::new)
@@ -558,6 +563,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
+        let viewport = Rectangle::with_size(self.bounds);
+
         self.root.as_widget().operate(
             &mut self.state,
             Layout::new(&self.base),
@@ -572,6 +579,7 @@ where
                 &mut self.state,
                 Layout::new(&self.base),
                 renderer,
+                &viewport,
                 Vector::ZERO,
             )
             .map(overlay::Nested::new)

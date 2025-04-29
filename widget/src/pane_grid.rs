@@ -979,6 +979,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let children = self
@@ -997,7 +998,7 @@ where
                     return None;
                 }
 
-                content.overlay(state, layout, renderer, translation)
+                content.overlay(state, layout, renderer, viewport, translation)
             })
             .collect::<Vec<_>>();
 
