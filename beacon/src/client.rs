@@ -48,6 +48,7 @@ pub enum Event {
     MessageLogged { number: usize, message: String },
     CommandsSpawned(usize),
     SubscriptionsTracked(usize),
+    LayersRendered(usize),
 }
 
 impl Client {

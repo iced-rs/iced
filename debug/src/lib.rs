@@ -43,11 +43,15 @@ pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
 }
 
 pub fn tasks_spawned(amount: usize) {
-    internal::tasks_spawned(amount)
+    internal::tasks_spawned(amount);
 }
 
 pub fn subscriptions_tracked(amount: usize) {
-    internal::subscriptions_tracked(amount)
+    internal::subscriptions_tracked(amount);
+}
+
+pub fn layers_rendered(amount: impl FnOnce() -> usize) {
+    internal::layers_rendered(amount);
 }
 
 pub fn boot() -> Span {
@@ -155,6 +159,10 @@ mod internal {
 
     pub fn subscriptions_tracked(amount: usize) {
         log(client::Event::SubscriptionsTracked(amount));
+    }
+
+    pub fn layers_rendered(amount: impl FnOnce() -> usize) {
+        log(client::Event::LayersRendered(amount()));
     }
 
     pub fn boot() -> Span {
@@ -300,8 +308,6 @@ mod internal {
     use crate::futures::Subscription;
     use crate::{Command, Primitive};
 
-    use std::io;
-
     pub fn enable() {}
     pub fn disable() {}
 
@@ -316,6 +322,8 @@ mod internal {
     pub fn tasks_spawned(_amount: usize) {}
 
     pub fn subscriptions_tracked(_amount: usize) {}
+
+    pub fn layers_rendered(_amount: impl FnOnce() -> usize) {}
 
     pub fn boot() -> Span {
         Span
