@@ -56,6 +56,7 @@ use std::fmt;
 use std::ops::DerefMut;
 use std::sync::Arc;
 
+use iced_runtime::keyboard::key::{Code, Physical};
 pub use text::editor::{Action, Edit, Motion};
 
 /// A multi-line text input.
@@ -1024,6 +1025,8 @@ pub struct KeyPress {
     pub text: Option<SmolStr>,
     /// The current [`Status`] of the [`TextEditor`].
     pub status: Status,
+    /// The physical key pressed.
+    pub physical_key: Physical,
 }
 
 impl<Message> Binding<Message> {
@@ -1034,68 +1037,72 @@ impl<Message> Binding<Message> {
             modifiers,
             text,
             status,
+            physical_key,
         } = event;
 
         if status != Status::Focused {
             return None;
         }
 
-        match key.as_ref() {
-            keyboard::Key::Named(key::Named::Enter) => Some(Self::Enter),
-            keyboard::Key::Named(key::Named::Backspace) => {
-                Some(Self::Backspace)
-            }
-            keyboard::Key::Named(key::Named::Delete) if text.is_none() => {
-                Some(Self::Delete)
-            }
-            keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
-            keyboard::Key::Character("c") if modifiers.command() => {
+        match physical_key {
+            Physical::Code(Code::KeyC) if modifiers.command() => {
                 Some(Self::Copy)
             }
-            keyboard::Key::Character("x") if modifiers.command() => {
+            Physical::Code(Code::KeyX) if modifiers.command() => {
                 Some(Self::Cut)
             }
-            keyboard::Key::Character("v")
+            Physical::Code(Code::KeyV)
                 if modifiers.command() && !modifiers.alt() =>
             {
                 Some(Self::Paste)
             }
-            keyboard::Key::Character("a") if modifiers.command() => {
+            Physical::Code(Code::KeyA) if modifiers.command() => {
                 Some(Self::SelectAll)
             }
-            _ => {
-                if let Some(text) = text {
-                    let c = text.chars().find(|c| !c.is_control())?;
-
-                    Some(Self::Insert(c))
-                } else if let keyboard::Key::Named(named_key) = key.as_ref() {
-                    let motion = motion(named_key)?;
-
-                    let motion = if modifiers.macos_command() {
-                        match motion {
-                            Motion::Left => Motion::Home,
-                            Motion::Right => Motion::End,
-                            _ => motion,
-                        }
-                    } else {
-                        motion
-                    };
-
-                    let motion = if modifiers.jump() {
-                        motion.widen()
-                    } else {
-                        motion
-                    };
-
-                    Some(if modifiers.shift() {
-                        Self::Select(motion)
-                    } else {
-                        Self::Move(motion)
-                    })
-                } else {
-                    None
+            _ => match key.as_ref() {
+                keyboard::Key::Named(key::Named::Enter) => Some(Self::Enter),
+                keyboard::Key::Named(key::Named::Backspace) => {
+                    Some(Self::Backspace)
                 }
-            }
+                keyboard::Key::Named(key::Named::Delete) if text.is_none() => {
+                    Some(Self::Delete)
+                }
+                keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
+                _ => {
+                    if let Some(text) = text {
+                        let c = text.chars().find(|c| !c.is_control())?;
+
+                        Some(Self::Insert(c))
+                    } else if let keyboard::Key::Named(named_key) = key.as_ref()
+                    {
+                        let motion = motion(named_key)?;
+
+                        let motion = if modifiers.macos_command() {
+                            match motion {
+                                Motion::Left => Motion::Home,
+                                Motion::Right => Motion::End,
+                                _ => motion,
+                            }
+                        } else {
+                            motion
+                        };
+
+                        let motion = if modifiers.jump() {
+                            motion.widen()
+                        } else {
+                            motion
+                        };
+
+                        Some(if modifiers.shift() {
+                            Self::Select(motion)
+                        } else {
+                            Self::Move(motion)
+                        })
+                    } else {
+                        None
+                    }
+                }
+            },
         }
     }
 }
@@ -1171,6 +1178,7 @@ impl<Message> Update<Message> {
                 key,
                 modifiers,
                 text,
+                physical_key,
                 ..
             }) => {
                 let status = if state.focus.is_some() {
@@ -1184,6 +1192,7 @@ impl<Message> Update<Message> {
                     modifiers,
                     text,
                     status,
+                    physical_key,
                 };
 
                 if let Some(key_binding) = key_binding {
