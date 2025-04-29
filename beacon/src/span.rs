@@ -6,8 +6,10 @@ use serde::{Deserialize, Serialize};
 pub enum Span {
     Boot,
     Update {
+        number: usize,
         message: String,
-        commands_spawned: usize,
+        tasks: usize,
+        subscriptions: usize,
     },
     View {
         window: window::Id,

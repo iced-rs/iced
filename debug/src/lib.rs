@@ -1,11 +1,11 @@
 pub use iced_core as core;
+pub use iced_futures as futures;
 
 use crate::core::theme;
 use crate::core::window;
+use crate::futures::Subscription;
 
 pub use internal::Span;
-
-use std::io;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Primitive {
@@ -16,12 +16,26 @@ pub enum Primitive {
     Text,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Command {
+    RewindTo { message: usize },
+    GoLive,
+}
+
+pub fn enable() {
+    internal::enable();
+}
+
+pub fn disable() {
+    internal::disable();
+}
+
 pub fn init(name: &str) {
     internal::init(name);
 }
 
-pub fn toggle_comet() -> Result<(), io::Error> {
-    internal::toggle_comet()
+pub fn quit() -> bool {
+    internal::quit()
 }
 
 pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
@@ -84,25 +98,25 @@ pub fn time_with<T>(name: impl Into<String>, f: impl FnOnce() -> T) -> T {
     result
 }
 
-pub fn skip_next_timing() {
-    internal::skip_next_timing();
+pub fn commands() -> Subscription<Command> {
+    internal::commands()
 }
 
 #[cfg(all(feature = "enable", not(target_arch = "wasm32")))]
 mod internal {
-    use crate::Primitive;
     use crate::core::theme;
     use crate::core::time::Instant;
     use crate::core::window;
+    use crate::futures::Subscription;
+    use crate::futures::futures::Stream;
+    use crate::{Command, Primitive};
 
     use iced_beacon as beacon;
 
     use beacon::client::{self, Client};
     use beacon::span;
 
-    use std::io;
-    use std::process;
-    use std::sync::atomic::{self, AtomicBool};
+    use std::sync::atomic::{self, AtomicBool, AtomicUsize};
     use std::sync::{LazyLock, RwLock};
 
     pub fn init(name: &str) {
@@ -111,25 +125,13 @@ mod internal {
         name.clone_into(&mut NAME.write().expect("Write application name"));
     }
 
-    pub fn toggle_comet() -> Result<(), io::Error> {
+    pub fn quit() -> bool {
         if BEACON.is_connected() {
             BEACON.quit();
 
-            Ok(())
+            true
         } else {
-            let _ = process::Command::new("iced_comet")
-                .stdin(process::Stdio::null())
-                .stdout(process::Stdio::null())
-                .stderr(process::Stdio::null())
-                .spawn()?;
-
-            if let Some(palette) =
-                LAST_PALETTE.read().expect("Read last palette").as_ref()
-            {
-                BEACON.log(client::Event::ThemeChanged(*palette));
-            }
-
-            Ok(())
+            false
         }
     }
 
@@ -141,18 +143,18 @@ mod internal {
         if LAST_PALETTE.read().expect("Read last palette").as_ref()
             != Some(&palette)
         {
-            BEACON.log(client::Event::ThemeChanged(palette));
+            log(client::Event::ThemeChanged(palette));
 
             *LAST_PALETTE.write().expect("Write last palette") = Some(palette);
         }
     }
 
     pub fn tasks_spawned(amount: usize) {
-        BEACON.log(client::Event::CommandsSpawned(amount));
+        log(client::Event::CommandsSpawned(amount));
     }
 
     pub fn subscriptions_tracked(amount: usize) {
-        BEACON.log(client::Event::SubscriptionsTracked(amount));
+        log(client::Event::SubscriptionsTracked(amount));
     }
 
     pub fn boot() -> Span {
@@ -161,6 +163,8 @@ mod internal {
 
     pub fn update(message: &impl std::fmt::Debug) -> Span {
         let span = span(span::Stage::Update);
+
+        let number = LAST_UPDATE.fetch_add(1, atomic::Ordering::Relaxed);
 
         let start = Instant::now();
         let message = format!("{message:?}");
@@ -172,11 +176,13 @@ mod internal {
             );
         }
 
-        BEACON.log(client::Event::MessageLogged(if message.len() > 49 {
+        let message = if message.len() > 49 {
             format!("{}...", &message[..49])
         } else {
             message
-        }));
+        };
+
+        log(client::Event::MessageLogged { number, message });
 
         span
     }
@@ -213,12 +219,35 @@ mod internal {
         span(span::Stage::Custom(name.into()))
     }
 
-    pub fn skip_next_timing() {
-        SKIP_NEXT_SPAN.store(true, atomic::Ordering::Relaxed);
+    pub fn enable() {
+        ENABLED.store(true, atomic::Ordering::Relaxed);
+    }
+
+    pub fn disable() {
+        ENABLED.store(false, atomic::Ordering::Relaxed);
+    }
+
+    pub fn commands() -> Subscription<Command> {
+        fn listen_for_commands() -> impl Stream<Item = Command> {
+            use crate::futures::futures::stream;
+
+            stream::unfold(BEACON.subscribe(), async move |mut receiver| {
+                let command = match receiver.recv().await? {
+                    client::Command::RewindTo { message } => {
+                        Command::RewindTo { message }
+                    }
+                    client::Command::GoLive => Command::GoLive,
+                };
+
+                Some((command, receiver))
+            })
+        }
+
+        Subscription::run(listen_for_commands)
     }
 
     fn span(span: span::Stage) -> Span {
-        BEACON.log(client::Event::SpanStarted(span.clone()));
+        log(client::Event::SpanStarted(span.clone()));
 
         Span {
             span,
@@ -236,6 +265,12 @@ mod internal {
         }
     }
 
+    fn log(event: client::Event) {
+        if ENABLED.load(atomic::Ordering::Relaxed) {
+            BEACON.log(event);
+        }
+    }
+
     #[derive(Debug)]
     pub struct Span {
         span: span::Stage,
@@ -244,14 +279,7 @@ mod internal {
 
     impl Span {
         pub fn finish(self) {
-            if SKIP_NEXT_SPAN.fetch_and(false, atomic::Ordering::Relaxed) {
-                return;
-            }
-
-            BEACON.log(client::Event::SpanFinished(
-                self.span,
-                self.start.elapsed(),
-            ));
+            log(client::Event::SpanFinished(self.span, self.start.elapsed()));
         }
     }
 
@@ -260,22 +288,27 @@ mod internal {
     });
 
     static NAME: RwLock<String> = RwLock::new(String::new());
+    static LAST_UPDATE: AtomicUsize = AtomicUsize::new(0);
     static LAST_PALETTE: RwLock<Option<theme::Palette>> = RwLock::new(None);
-    static SKIP_NEXT_SPAN: AtomicBool = AtomicBool::new(false);
+    static ENABLED: AtomicBool = AtomicBool::new(true);
 }
 
 #[cfg(any(not(feature = "enable"), target_arch = "wasm32"))]
 mod internal {
-    use crate::Primitive;
     use crate::core::theme;
     use crate::core::window;
+    use crate::futures::Subscription;
+    use crate::{Command, Primitive};
 
     use std::io;
 
+    pub fn enable() {}
+    pub fn disable() {}
+
     pub fn init(_name: &str) {}
 
-    pub fn toggle_comet() -> Result<(), io::Error> {
-        Ok(())
+    pub fn quit() -> bool {
+        false
     }
 
     pub fn theme_changed(_f: impl FnOnce() -> Option<theme::Palette>) {}
@@ -324,7 +357,9 @@ mod internal {
         Span
     }
 
-    pub fn skip_next_timing() {}
+    pub fn commands() -> Subscription<Command> {
+        Subscription::none()
+    }
 
     #[derive(Debug)]
     pub struct Span;

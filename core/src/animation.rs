@@ -90,15 +90,17 @@ where
         self
     }
 
-    /// Transitions the [`Animation`] from its current state to the given new state.
-    pub fn go(mut self, new_state: T) -> Self {
-        self.go_mut(new_state);
+    /// Transitions the [`Animation`] from its current state to the given new state
+    /// at the given time.
+    pub fn go(mut self, new_state: T, at: Instant) -> Self {
+        self.go_mut(new_state, at);
         self
     }
 
-    /// Transitions the [`Animation`] from its current state to the given new state, by reference.
-    pub fn go_mut(&mut self, new_state: T) {
-        self.raw.transition(new_state, Instant::now());
+    /// Transitions the [`Animation`] from its current state to the given new state
+    /// at the given time, by reference.
+    pub fn go_mut(&mut self, new_state: T, at: Instant) {
+        self.raw.transition(new_state, at);
     }
 
     /// Returns true if the [`Animation`] is currently in progress.
