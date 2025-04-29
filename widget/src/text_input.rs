@@ -905,6 +905,7 @@ where
                         keyboard::Key::Character("a")
                             if state.keyboard_modifiers.command() =>
                         {
+                            panic!("Copying is not supported in this example");
                             state.cursor.select_all(&self.value);
 
                             return event::Status::Captured;
