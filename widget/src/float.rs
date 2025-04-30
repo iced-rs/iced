@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+//! Make elements float!
 use crate::core;
 use crate::core::border;
 use crate::core::layout;
@@ -12,6 +12,7 @@ use crate::core::{
     Size, Transformation, Vector, Widget,
 };
 
+/// A widget that can make its contents float over other widgets.
 #[allow(missing_debug_implementations)]
 pub struct Float<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
@@ -28,6 +29,7 @@ impl<'a, Message, Theme, Renderer> Float<'a, Message, Theme, Renderer>
 where
     Theme: Catalog,
 {
+    /// Creates a new [`Float`] widget with the given content.
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -40,11 +42,17 @@ where
         }
     }
 
+    /// Sets the scale to be applied to the contents of the [`Float`].
     pub fn scale(mut self, scale: f32) -> Self {
         self.scale = scale;
         self
     }
 
+    /// Sets the translation logic to be applied to the contents of the [`Float`].
+    ///
+    /// The logic takes the original (non-scaled) bounds of the contents and the
+    /// viewport bounds. These bounds can be useful to ensure the floating elements
+    /// always stay on screen.
     pub fn translate(
         mut self,
         translate: impl Fn(Rectangle, Rectangle) -> Vector + 'a,
@@ -53,6 +61,12 @@ where
         self
     }
 
+    /// Sets whether the [`Float`] contents should be opaque when floating.
+    ///
+    /// Disabling opacity will make the mouse pass through the floating content, allowing
+    /// interaction with whatever is under it.
+    ///
+    /// By default, a [`Float`] widget is opaque.
     pub fn opaque(mut self, opaque: bool) -> Self {
         self.opaque = opaque;
         self
