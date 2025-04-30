@@ -97,10 +97,11 @@ impl<T> State<T> {
     /// Returns the adjacent [`Pane`] of another [`Pane`] in the given
     /// direction, if there is one.
     pub fn adjacent(&self, pane: Pane, direction: Direction) -> Option<Pane> {
-        let regions = self
-            .internal
-            .layout
-            .pane_regions(0.0, Size::new(4096.0, 4096.0));
+        let regions = self.internal.layout.pane_regions(
+            0.0,
+            0.0,
+            Size::new(4096.0, 4096.0),
+        );
 
         let current_region = regions.get(&pane)?;
 
