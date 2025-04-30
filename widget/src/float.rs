@@ -35,7 +35,7 @@ where
             content: content.into(),
             scale: 1.0,
             translate: None,
-            opaque: false,
+            opaque: true,
             class: Theme::default(),
         }
     }
@@ -134,6 +134,10 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
+        if self.is_floating(layout.bounds(), *viewport) {
+            return;
+        }
+
         self.content.as_widget_mut().update(
             state, event, layout, cursor, renderer, clipboard, shell, viewport,
         );
@@ -181,6 +185,10 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
+        if self.is_floating(layout.bounds(), *viewport) {
+            return mouse::Interaction::None;
+        }
+
         self.content
             .as_widget()
             .mouse_interaction(state, layout, cursor, viewport, renderer)
@@ -215,13 +223,23 @@ where
             .unwrap_or(Vector::ZERO);
 
         if self.scale > 1.0 || translation != Vector::ZERO {
+            let translation = translation + offset;
+
+            let transformation = Transformation::translate(
+                bounds.x + bounds.width / 2.0 + translation.x,
+                bounds.y + bounds.height / 2.0 + translation.y,
+            ) * Transformation::scale(self.scale)
+                * Transformation::translate(
+                    -bounds.x - bounds.width / 2.0,
+                    -bounds.y - bounds.height / 2.0,
+                );
+
             Some(overlay::Element::new(Box::new(Overlay {
                 float: self,
                 state,
                 layout,
                 viewport: *viewport,
-                bounds,
-                translation: translation + offset,
+                transformation,
             })))
         } else {
             self.content
@@ -247,12 +265,11 @@ struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Theme: Catalog,
 {
-    float: &'a Float<'b, Message, Theme, Renderer>,
+    float: &'a mut Float<'b, Message, Theme, Renderer>,
     state: &'a mut widget::Tree,
     layout: Layout<'a>,
     viewport: Rectangle,
-    bounds: Rectangle,
-    translation: Vector,
+    transformation: Transformation,
 }
 
 impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
@@ -262,7 +279,9 @@ where
     Renderer: core::Renderer,
 {
     fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        layout::Node::new(self.bounds.size()).move_to(self.bounds.position())
+        let bounds = self.layout.bounds();
+
+        layout::Node::new(bounds.size()).move_to(bounds.position())
     }
 
     fn is_over(
@@ -271,7 +290,33 @@ where
         _renderer: &Renderer,
         cursor_position: Point,
     ) -> bool {
-        self.float.opaque && layout.bounds().contains(cursor_position)
+        self.float.opaque
+            && layout
+                .bounds()
+                .contains(cursor_position * self.transformation.inverse())
+    }
+
+    fn update(
+        &mut self,
+        event: &Event,
+        _layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) {
+        let cursor = cursor * self.transformation.inverse();
+
+        self.float.content.as_widget_mut().update(
+            self.state,
+            event,
+            self.layout,
+            cursor,
+            renderer,
+            clipboard,
+            shell,
+            &self.viewport,
+        );
     }
 
     fn draw(
@@ -284,17 +329,8 @@ where
     ) {
         let bounds = layout.bounds();
 
-        let transformation = Transformation::translate(
-            bounds.x + bounds.width / 2.0 + self.translation.x,
-            bounds.y + bounds.height / 2.0 + self.translation.y,
-        ) * Transformation::scale(self.float.scale)
-            * Transformation::translate(
-                -bounds.x - bounds.width / 2.0,
-                -bounds.y - bounds.height / 2.0,
-            );
-
         renderer.with_layer(self.viewport, |renderer| {
-            renderer.with_transformation(transformation, |renderer| {
+            renderer.with_transformation(self.transformation, |renderer| {
                 {
                     let style = theme.style(&self.float.class);
 
@@ -319,14 +355,52 @@ where
                     style,
                     self.layout,
                     cursor,
-                    &(self.viewport * transformation.inverse()),
+                    &(self.viewport * self.transformation.inverse()),
                 );
             });
         });
     }
 
+    fn mouse_interaction(
+        &self,
+        _layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        _viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.float.content.as_widget().mouse_interaction(
+            self.state,
+            self.layout,
+            cursor * self.transformation.inverse(),
+            &self.viewport,
+            renderer,
+        )
+    }
+
     fn index(&self) -> f32 {
         self.float.scale * 0.5
+    }
+
+    fn operate(
+        &mut self,
+        _layout: Layout<'_>,
+        _renderer: &Renderer,
+        _operation: &mut dyn widget::Operation,
+    ) {
+    }
+
+    fn overlay<'a>(
+        &'a mut self,
+        _layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+        self.float.content.as_widget_mut().overlay(
+            self.state,
+            self.layout,
+            renderer,
+            &self.viewport,
+            self.transformation.translation(),
+        )
     }
 }
 

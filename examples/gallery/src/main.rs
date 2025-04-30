@@ -210,6 +210,7 @@ fn card<'a>(
                         .content_fit(ContentFit::Cover)
                         .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now)),
                 )
+                .opaque(false)
                 .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
                 .translate(move |bounds, viewport| {
                     bounds.zoom(1.1).offset(&viewport.shrink(10))
