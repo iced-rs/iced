@@ -479,6 +479,7 @@ fn prepare(
                 line_height,
                 font,
                 shaping,
+                align_x,
                 ..
             } => {
                 let (key, _) = buffer_cache.allocate(
@@ -488,6 +489,7 @@ fn prepare(
                         size: f32::from(*size),
                         line_height: f32::from(*line_height),
                         font: *font,
+                        align_x: *align_x,
                         bounds: Size {
                             width: bounds.width,
                             height: bounds.height,

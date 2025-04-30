@@ -89,7 +89,8 @@ impl core::text::Paragraph for Paragraph {
             text::to_shaping(text.shaping),
         );
 
-        let min_bounds = align(&mut buffer, &mut font_system, text.align_x);
+        let min_bounds =
+            text::align(&mut buffer, font_system.raw(), text.align_x);
 
         Self(Arc::new(Internal {
             buffer,
@@ -159,7 +160,8 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
-        let min_bounds = align(&mut buffer, &mut font_system, text.align_x);
+        let min_bounds =
+            text::align(&mut buffer, font_system.raw(), text.align_x);
 
         Self(Arc::new(Internal {
             buffer,
@@ -186,8 +188,11 @@ impl core::text::Paragraph for Paragraph {
             Some(new_bounds.height),
         );
 
-        let min_bounds =
-            align(&mut paragraph.buffer, &mut font_system, paragraph.align_x);
+        let min_bounds = text::align(
+            &mut paragraph.buffer,
+            font_system.raw(),
+            paragraph.align_x,
+        );
 
         paragraph.bounds = new_bounds;
         paragraph.min_bounds = min_bounds;
@@ -355,45 +360,6 @@ impl core::text::Paragraph for Paragraph {
             glyph.y - glyph.y_offset * glyph.font_size,
         ))
     }
-}
-
-fn align(
-    buffer: &mut cosmic_text::Buffer,
-    font_system: &mut text::FontSystem,
-    alignment: Alignment,
-) -> Size {
-    let (min_bounds, has_rtl) = text::measure(buffer);
-    let mut needs_relayout = has_rtl;
-
-    if let Some(align) = text::to_align(alignment) {
-        let has_multiple_lines = buffer.lines.len() > 1
-            || buffer.lines.first().is_some_and(|line| {
-                line.layout_opt().is_some_and(|layout| layout.len() > 1)
-            });
-
-        if has_multiple_lines {
-            for line in &mut buffer.lines {
-                let _ = line.set_align(Some(align));
-            }
-
-            needs_relayout = true;
-        } else if let Some(line) = buffer.lines.first_mut() {
-            needs_relayout = line.set_align(None);
-        }
-    }
-
-    // TODO: Avoid relayout with some changes to `cosmic-text` (?)
-    if needs_relayout {
-        log::trace!("Relayouting paragraph...");
-
-        buffer.set_size(
-            font_system.raw(),
-            Some(min_bounds.width),
-            Some(min_bounds.height),
-        );
-    }
-
-    min_bounds
 }
 
 impl Default for Paragraph {

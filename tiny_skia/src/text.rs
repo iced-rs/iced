@@ -108,8 +108,8 @@ impl Pipeline {
         size: Pixels,
         line_height: Pixels,
         font: Font,
-        horizontal_alignment: Alignment,
-        vertical_alignment: alignment::Vertical,
+        align_x: Alignment,
+        align_y: alignment::Vertical,
         shaping: Shaping,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
@@ -127,6 +127,7 @@ impl Pipeline {
             size: size.into(),
             line_height,
             shaping,
+            align_x,
         };
 
         let (_, entry) = self.cache.get_mut().allocate(font_system, key);
@@ -144,8 +145,8 @@ impl Pipeline {
                 ..bounds
             },
             color,
-            horizontal_alignment,
-            vertical_alignment,
+            align_x,
+            align_y,
             pixels,
             clip_mask,
             transformation,

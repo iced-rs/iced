@@ -301,9 +301,16 @@ impl geometry::frame::Backend for Frame {
             && scale_x > 0.0
             && scale_y > 0.0
         {
-            let (position, size, line_height) =
+            let (bounds, size, line_height) =
                 if self.transforms.current.is_identity() {
-                    (text.position, text.size, text.line_height)
+                    (
+                        Rectangle::new(
+                            text.position,
+                            Size::new(text.max_width, f32::INFINITY),
+                        ),
+                        text.size,
+                        text.line_height,
+                    )
                 } else {
                     let position =
                         self.transforms.current.transform_point(text.position);
@@ -319,15 +326,15 @@ impl geometry::frame::Backend for Frame {
                         }
                     };
 
-                    (position, size, line_height)
+                    (
+                        Rectangle::new(
+                            position,
+                            Size::new(text.max_width, f32::INFINITY),
+                        ),
+                        size,
+                        line_height,
+                    )
                 };
-
-            let bounds = Rectangle {
-                x: position.x,
-                y: position.y,
-                width: f32::INFINITY,
-                height: f32::INFINITY,
-            };
 
             self.text.push(Text::Cached {
                 content: text.content,
@@ -336,7 +343,7 @@ impl geometry::frame::Backend for Frame {
                 size,
                 line_height: line_height.to_absolute(size),
                 font: text.font,
-                align_x: text.align_x.into(),
+                align_x: text.align_x,
                 align_y: text.align_y,
                 shaping: text.shaping,
                 clip_bounds: self.clip_bounds,
