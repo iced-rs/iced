@@ -83,7 +83,7 @@ impl Node {
 
                 let (horizontal, vertical) = match axis {
                     Axis::Horizontal => (
-                        a.horizontal() + b.horizontal() + 1,
+                        1 + a.horizontal() + b.horizontal(),
                         a.vertical().max(b.vertical()),
                     ),
                     Axis::Vertical => (
