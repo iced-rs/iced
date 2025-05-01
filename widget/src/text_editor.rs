@@ -365,11 +365,13 @@ where
             self.text_size.unwrap_or_else(|| renderer.default_size()),
         );
 
-        let position =
-            cursor + translation + Vector::new(0.0, f32::from(line_height));
+        let position = cursor + translation;
 
         InputMethod::Enabled {
-            position,
+            cursor: Rectangle::new(
+                position,
+                Size::new(0.0, f32::from(line_height)),
+            ),
             purpose: input_method::Purpose::Normal,
             preedit: state.preedit.as_ref().map(input_method::Preedit::as_ref),
         }

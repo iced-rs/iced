@@ -785,10 +785,10 @@ where
                 );
 
                 if !had_input_method
-                    && let InputMethod::Enabled { position, .. } =
+                    && let InputMethod::Enabled { cursor, .. } =
                         shell.input_method_mut()
                 {
-                    *position = *position - translation;
+                    *cursor = *cursor - translation;
                 }
             };
 

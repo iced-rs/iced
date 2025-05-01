@@ -1,5 +1,5 @@
 //! Listen to input method events.
-use crate::{Pixels, Point};
+use crate::{Pixels, Rectangle};
 
 use std::ops::Range;
 
@@ -10,8 +10,10 @@ pub enum InputMethod<T = String> {
     Disabled,
     /// Input method is enabled.
     Enabled {
-        /// The position at which the input method dialog should be placed.
-        position: Point,
+        /// The area of the cursor of the input method.
+        ///
+        /// This area should not be covered.
+        cursor: Rectangle,
         /// The [`Purpose`] of the input method.
         purpose: Purpose,
         /// The preedit to overlay on top of the input method dialog, if needed.
@@ -130,11 +132,11 @@ impl<T> InputMethod<T> {
         match self {
             Self::Disabled => InputMethod::Disabled,
             Self::Enabled {
-                position,
+                cursor,
                 purpose,
                 preedit,
             } => InputMethod::Enabled {
-                position: *position,
+                cursor: *cursor,
                 purpose: *purpose,
                 preedit: preedit.as_ref().map(Preedit::to_owned),
             },
