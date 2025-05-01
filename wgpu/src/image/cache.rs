@@ -49,16 +49,19 @@ impl Cache {
     pub fn upload_raster(
         &mut self,
         device: &wgpu::Device,
+        backend: wgpu::Backend,
         encoder: &mut wgpu::CommandEncoder,
         handle: &core::image::Handle,
     ) -> Option<&atlas::Entry> {
-        self.raster.upload(device, encoder, handle, &mut self.atlas)
+        self.raster
+            .upload(device, backend, encoder, handle, &mut self.atlas)
     }
 
     #[cfg(feature = "svg")]
     pub fn upload_vector(
         &mut self,
         device: &wgpu::Device,
+        backend: wgpu::Backend,
         encoder: &mut wgpu::CommandEncoder,
         handle: &core::svg::Handle,
         color: Option<core::Color>,
@@ -67,6 +70,7 @@ impl Cache {
     ) -> Option<&atlas::Entry> {
         self.vector.upload(
             device,
+            backend,
             encoder,
             handle,
             color,

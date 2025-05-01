@@ -235,9 +235,12 @@ impl State {
             match &image {
                 #[cfg(feature = "image")]
                 Image::Raster(image, bounds) => {
-                    if let Some(atlas_entry) =
-                        cache.upload_raster(device, encoder, &image.handle)
-                    {
+                    if let Some(atlas_entry) = cache.upload_raster(
+                        device,
+                        pipeline.backend,
+                        encoder,
+                        &image.handle,
+                    ) {
                         add_instances(
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
@@ -265,6 +268,7 @@ impl State {
 
                     if let Some(atlas_entry) = cache.upload_vector(
                         device,
+                        pipeline.backend,
                         encoder,
                         &svg.handle,
                         svg.color,
