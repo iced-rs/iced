@@ -82,13 +82,19 @@ impl Node {
                 let b = b.count();
 
                 let (horizontal, vertical) = match axis {
-                    Axis::Horizontal => (1, 0),
-                    Axis::Vertical => (0, 1),
+                    Axis::Horizontal => (
+                        a.horizontal() + b.horizontal() + 1,
+                        a.vertical().max(b.vertical()),
+                    ),
+                    Axis::Vertical => (
+                        a.horizontal().max(b.horizontal()),
+                        1 + a.vertical() + b.vertical(),
+                    ),
                 };
 
                 Count::Split {
-                    horizontal: a.horizontal() + b.horizontal() + horizontal,
-                    vertical: a.vertical() + b.vertical() + vertical,
+                    horizontal,
+                    vertical,
                     a: Box::new(a),
                     b: Box::new(b),
                 }
