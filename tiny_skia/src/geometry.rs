@@ -245,6 +245,17 @@ impl geometry::frame::Backend for Frame {
         }
     }
 
+    fn stroke_text<'a>(
+        &mut self,
+        text: impl Into<geometry::Text>,
+        stroke: impl Into<Stroke<'a>>,
+    ) {
+        let text = text.into();
+        let stroke = stroke.into();
+
+        text.draw_with(|path, _color| self.stroke(&path, stroke));
+    }
+
     fn push_transform(&mut self) {
         self.stack.push(self.transform);
     }

@@ -291,6 +291,17 @@ impl geometry::frame::Backend for Frame {
             .expect("Stroke rectangle");
     }
 
+    fn stroke_text<'a>(
+        &mut self,
+        text: impl Into<geometry::Text>,
+        stroke: impl Into<Stroke<'a>>,
+    ) {
+        let text = text.into();
+        let stroke = stroke.into();
+
+        text.draw_with(|glyph, _color| self.stroke(&glyph, stroke));
+    }
+
     fn fill_text(&mut self, text: impl Into<geometry::Text>) {
         let text = text.into();
 
