@@ -423,7 +423,7 @@ mod toast {
         fn overlay<'b>(
             &'b mut self,
             state: &'b mut Tree,
-            layout: Layout<'_>,
+            layout: Layout<'b>,
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: Vector,

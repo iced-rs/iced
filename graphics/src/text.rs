@@ -257,6 +257,47 @@ pub fn measure(buffer: &cosmic_text::Buffer) -> (Size, bool) {
     (Size::new(width, height), has_rtl)
 }
 
+/// Aligns the given [`cosmic_text::Buffer`] with the given [`Alignment`]
+/// and returns its minimum [`Size`].
+pub fn align(
+    buffer: &mut cosmic_text::Buffer,
+    font_system: &mut cosmic_text::FontSystem,
+    alignment: Alignment,
+) -> Size {
+    let (min_bounds, has_rtl) = measure(buffer);
+    let mut needs_relayout = has_rtl;
+
+    if let Some(align) = to_align(alignment) {
+        let has_multiple_lines = buffer.lines.len() > 1
+            || buffer.lines.first().is_some_and(|line| {
+                line.layout_opt().is_some_and(|layout| layout.len() > 1)
+            });
+
+        if has_multiple_lines {
+            for line in &mut buffer.lines {
+                let _ = line.set_align(Some(align));
+            }
+
+            needs_relayout = true;
+        } else if let Some(line) = buffer.lines.first_mut() {
+            needs_relayout = line.set_align(None);
+        }
+    }
+
+    // TODO: Avoid relayout with some changes to `cosmic-text` (?)
+    if needs_relayout {
+        log::trace!("Relayouting paragraph...");
+
+        buffer.set_size(
+            font_system,
+            Some(min_bounds.width),
+            Some(min_bounds.height),
+        );
+    }
+
+    min_bounds
+}
+
 /// Returns the attributes of the given [`Font`].
 pub fn to_attributes(font: Font) -> cosmic_text::Attrs<'static> {
     cosmic_text::Attrs::new()

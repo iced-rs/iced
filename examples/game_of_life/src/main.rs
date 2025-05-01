@@ -187,6 +187,7 @@ mod grid {
     use iced::widget::canvas::{
         Cache, Canvas, Event, Frame, Geometry, Path, Text,
     };
+    use iced::widget::text;
     use iced::{
         Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
@@ -575,7 +576,7 @@ mod grid {
                     color: Color::WHITE,
                     size: 14.0.into(),
                     position: Point::new(frame.width(), frame.height()),
-                    align_x: alignment::Horizontal::Right,
+                    align_x: text::Alignment::Right,
                     align_y: alignment::Vertical::Bottom,
                     ..Text::default()
                 };

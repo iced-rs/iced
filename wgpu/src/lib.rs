@@ -604,6 +604,18 @@ impl Renderer {
         }
 
         let _ = ManuallyDrop::into_inner(render_pass);
+
+        debug::layers_rendered(|| {
+            self.layers
+                .iter()
+                .filter(|layer| {
+                    !layer.is_empty()
+                        && physical_bounds
+                            .intersection(&(layer.bounds * scale_factor))
+                            .is_some_and(|viewport| viewport.snap().is_some())
+                })
+                .count()
+        });
     }
 }
 

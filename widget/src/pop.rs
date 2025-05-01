@@ -293,7 +293,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: core::Layout<'_>,
+        layout: core::Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: core::Vector,

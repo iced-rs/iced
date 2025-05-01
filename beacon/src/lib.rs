@@ -127,6 +127,7 @@ pub fn run() -> impl Stream<Item = Event> {
             let mut last_tasks = 0;
             let mut last_subscriptions = 0;
             let mut last_present_window = None;
+            let mut last_present_layers = 0;
 
             drop(task::spawn(async move {
                 let mut last_message_number = None;
@@ -199,6 +200,9 @@ pub fn run() -> impl Stream<Item = Event> {
                                     ) => {
                                         last_tasks = commands;
                                     }
+                                    client::Event::LayersRendered(layers) => {
+                                        last_present_layers = layers;
+                                    }
                                     client::Event::SpanStarted(
                                         span::Stage::Update,
                                     ) => {
@@ -264,7 +268,10 @@ pub fn run() -> impl Stream<Item = Event> {
                                                 }
                                             }
                                             span::Stage::Present(window) => {
-                                                Span::Present { window }
+                                                Span::Present {
+                                                    window,
+                                                    layers: last_present_layers,
+                                                }
                                             }
                                             span::Stage::Custom(name) => {
                                                 Span::Custom { name }

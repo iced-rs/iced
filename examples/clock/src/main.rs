@@ -2,7 +2,7 @@ use iced::alignment;
 use iced::mouse;
 use iced::time::{self, milliseconds};
 use iced::widget::canvas::{Cache, Geometry, LineCap, Path, Stroke, stroke};
-use iced::widget::{canvas, container};
+use iced::widget::{canvas, container, text};
 use iced::{
     Degrees, Element, Fill, Font, Point, Radians, Rectangle, Renderer, Size,
     Subscription, Theme, Vector,
@@ -148,9 +148,9 @@ impl<Message> canvas::Program<Message> for Clock {
                     ),
                     color: palette.secondary.strong.text,
                     align_x: if rotate_factor > 0.0 {
-                        alignment::Horizontal::Right
+                        text::Alignment::Right
                     } else {
-                        alignment::Horizontal::Left
+                        text::Alignment::Left
                     },
                     align_y: alignment::Vertical::Bottom,
                     font: Font::MONOSPACE,
@@ -170,7 +170,7 @@ impl<Message> canvas::Program<Message> for Clock {
                     size: (radius / 5.0).into(),
                     position: Point::new(x * 0.82, y * 0.82),
                     color: palette.secondary.strong.text,
-                    align_x: alignment::Horizontal::Center,
+                    align_x: text::Alignment::Center,
                     align_y: alignment::Vertical::Center,
                     font: Font::MONOSPACE,
                     ..canvas::Text::default()

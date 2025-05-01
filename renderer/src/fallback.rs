@@ -537,6 +537,14 @@ mod geometry {
             );
         }
 
+        fn stroke_text<'a>(
+            &mut self,
+            text: impl Into<Text>,
+            stroke: impl Into<Stroke<'a>>,
+        ) {
+            delegate!(self, frame, frame.stroke_text(text, stroke));
+        }
+
         fn fill_text(&mut self, text: impl Into<Text>) {
             delegate!(self, frame, frame.fill_text(text));
         }

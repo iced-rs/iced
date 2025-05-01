@@ -144,7 +144,7 @@ where
     fn overlay<'a>(
         &'a mut self,
         _state: &'a mut Tree,
-        _layout: Layout<'_>,
+        _layout: Layout<'a>,
         _renderer: &Renderer,
         _viewport: &Rectangle,
         _translation: Vector,
