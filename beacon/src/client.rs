@@ -30,6 +30,8 @@ pub enum Message {
         at: SystemTime,
         name: String,
         version: Version,
+        theme: Option<theme::Palette>,
+        can_time_travel: bool,
     },
     EventLogged {
         at: SystemTime,
@@ -77,15 +79,22 @@ impl Client {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct Metadata {
+    pub name: &'static str,
+    pub theme: Option<theme::Palette>,
+    pub can_time_travel: bool,
+}
+
 #[must_use]
-pub fn connect(name: String) -> Client {
+pub fn connect(metadata: Metadata) -> Client {
     let (sender, receiver) = mpsc::channel(10_000);
     let is_connected = Arc::new(AtomicBool::new(false));
 
     let handle = {
         let is_connected = is_connected.clone();
 
-        std::thread::spawn(move || run(name, is_connected, receiver))
+        std::thread::spawn(move || run(metadata, is_connected, receiver))
     };
 
     Client {
@@ -108,7 +117,7 @@ pub enum Command {
 
 #[tokio::main]
 async fn run(
-    name: String,
+    mut metadata: Metadata,
     is_connected: Arc<AtomicBool>,
     mut receiver: mpsc::Receiver<Action>,
 ) {
@@ -133,8 +142,10 @@ async fn run(
                     &mut writer,
                     Message::Connected {
                         at: SystemTime::now(),
-                        name: name.clone(),
+                        name: metadata.name.to_owned(),
                         version: version.clone(),
+                        can_time_travel: metadata.can_time_travel,
+                        theme: metadata.theme,
                     },
                 )
                 .await;
@@ -148,6 +159,16 @@ async fn run(
                         loop {
                             match receive(&mut reader, &mut buffer).await {
                                 Ok(command) => {
+                                    match command {
+                                        Command::RewindTo { .. }
+                                        | Command::GoLive
+                                            if !metadata.can_time_travel =>
+                                        {
+                                            continue;
+                                        }
+                                        _ => {}
+                                    }
+
                                     let sender = command_sender.lock().await;
                                     let _ = sender.send(command).await;
                                 }
@@ -161,6 +182,14 @@ async fn run(
                 while let Some(action) = receiver.recv().await {
                     match action {
                         Action::Send(message) => {
+                            if let Message::EventLogged {
+                                event: Event::ThemeChanged(palette),
+                                ..
+                            } = message
+                            {
+                                metadata.theme = Some(palette);
+                            }
+
                             match send(&mut writer, message).await {
                                 Ok(()) => {}
                                 Err(error) => {

@@ -8,6 +8,13 @@ use crate::futures::Subscription;
 pub use internal::Span;
 
 #[derive(Debug, Clone, Copy)]
+pub struct Metadata {
+    pub name: &'static str,
+    pub theme: Option<theme::Palette>,
+    pub can_time_travel: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum Primitive {
     Quad,
     Triangle,
@@ -30,8 +37,8 @@ pub fn disable() {
     internal::disable();
 }
 
-pub fn init(name: &str) {
-    internal::init(name);
+pub fn init(metadata: Metadata) {
+    internal::init(metadata);
 }
 
 pub fn quit() -> bool {
@@ -113,7 +120,7 @@ mod internal {
     use crate::core::window;
     use crate::futures::Subscription;
     use crate::futures::futures::Stream;
-    use crate::{Command, Primitive};
+    use crate::{Command, Metadata, Primitive};
 
     use iced_beacon as beacon;
 
@@ -123,10 +130,15 @@ mod internal {
     use std::sync::atomic::{self, AtomicBool, AtomicUsize};
     use std::sync::{LazyLock, RwLock};
 
-    pub fn init(name: &str) {
-        let name = name.split("::").next().unwrap_or(name);
+    pub fn init(metadata: Metadata) {
+        let name = metadata.name.split("::").next().unwrap_or(metadata.name);
 
-        name.clone_into(&mut NAME.write().expect("Write application name"));
+        *METADATA.write().expect("Write application metadata") =
+            client::Metadata {
+                name,
+                theme: metadata.theme,
+                can_time_travel: metadata.can_time_travel,
+            };
     }
 
     pub fn quit() -> bool {
@@ -144,12 +156,12 @@ mod internal {
             return;
         };
 
-        if LAST_PALETTE.read().expect("Read last palette").as_ref()
+        if METADATA.read().expect("Read last palette").theme.as_ref()
             != Some(&palette)
         {
             log(client::Event::ThemeChanged(palette));
 
-            *LAST_PALETTE.write().expect("Write last palette") = Some(palette);
+            METADATA.write().expect("Write last palette").theme = Some(palette);
         }
     }
 
@@ -292,12 +304,18 @@ mod internal {
     }
 
     static BEACON: LazyLock<Client> = LazyLock::new(|| {
-        client::connect(NAME.read().expect("Read application name").to_owned())
+        let metadata = METADATA.read().expect("Read application metadata");
+
+        client::connect(metadata.clone())
     });
 
-    static NAME: RwLock<String> = RwLock::new(String::new());
+    static METADATA: RwLock<client::Metadata> = RwLock::new(client::Metadata {
+        name: "",
+        theme: None,
+        can_time_travel: false,
+    });
+
     static LAST_UPDATE: AtomicUsize = AtomicUsize::new(0);
-    static LAST_PALETTE: RwLock<Option<theme::Palette>> = RwLock::new(None);
     static ENABLED: AtomicBool = AtomicBool::new(true);
 }
 
@@ -306,12 +324,12 @@ mod internal {
     use crate::core::theme;
     use crate::core::window;
     use crate::futures::Subscription;
-    use crate::{Command, Primitive};
+    use crate::{Command, Metadata, Primitive};
 
     pub fn enable() {}
     pub fn disable() {}
 
-    pub fn init(_name: &str) {}
+    pub fn init(_metadata: Metadata) {}
 
     pub fn quit() -> bool {
         false

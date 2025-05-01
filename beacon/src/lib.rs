@@ -53,6 +53,8 @@ pub enum Event {
         at: SystemTime,
         name: String,
         version: Version,
+        theme: Option<theme::Palette>,
+        can_time_travel: bool,
     },
     Disconnected {
         at: SystemTime,
@@ -161,6 +163,8 @@ pub fn run() -> impl Stream<Item = Event> {
                                 at,
                                 name,
                                 version,
+                                theme,
+                                can_time_travel,
                             } => {
                                 let _ = output
                                     .send(Event::Connected {
@@ -170,6 +174,8 @@ pub fn run() -> impl Stream<Item = Event> {
                                         at,
                                         name,
                                         version,
+                                        theme,
+                                        can_time_travel,
                                     })
                                     .await;
                             }

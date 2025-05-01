@@ -76,8 +76,6 @@ where
 {
     use winit::event_loop::EventLoop;
 
-    debug::init(P::name());
-
     let boot_span = debug::boot();
 
     let graphics_settings = settings.clone().into();

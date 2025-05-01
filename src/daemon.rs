@@ -118,7 +118,15 @@ impl<P: Program> Daemon<P> {
         Self: 'static,
     {
         #[cfg(all(feature = "debug", not(target_arch = "wasm32")))]
-        let program = iced_devtools::attach(self.raw);
+        let program = {
+            iced_debug::init(iced_debug::Metadata {
+                name: P::name(),
+                theme: None,
+                can_time_travel: cfg!(feature = "time-travel"),
+            });
+
+            iced_devtools::attach(self.raw)
+        };
 
         #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
         let program = self.raw;
