@@ -8,7 +8,12 @@ pub trait Scrollable {
     fn snap_to(&mut self, offset: RelativeOffset);
 
     /// Scroll the widget to the given [`AbsoluteOffset`] along the horizontal & vertical axis.
-    fn scroll_to(&mut self, offset: AbsoluteOffset);
+    fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    );
 
     /// Scroll the widget by the given [`AbsoluteOffset`] along the horizontal & vertical axis.
     fn scroll_by(
@@ -75,13 +80,13 @@ pub fn scroll_to<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
         fn scrollable(
             &mut self,
             id: Option<&Id>,
-            _bounds: Rectangle,
-            _content_bounds: Rectangle,
+            bounds: Rectangle,
+            content_bounds: Rectangle,
             _translation: Vector,
             state: &mut dyn Scrollable,
         ) {
             if Some(&self.target) == id {
-                state.scroll_to(self.offset);
+                state.scroll_to(self.offset, bounds, content_bounds);
             }
         }
     }

@@ -1376,8 +1376,13 @@ impl operation::Scrollable for State {
         State::snap_to(self, offset);
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        State::scroll_to(self, offset);
+    fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        State::scroll_to(self, offset, bounds, content_bounds);
     }
 
     fn scroll_by(
@@ -1399,12 +1404,8 @@ enum Offset {
 impl Offset {
     fn absolute(self, viewport: f32, content: f32) -> f32 {
         match self {
-            Offset::Absolute(absolute) => {
-                absolute.min((content - viewport).max(0.0))
-            }
-            Offset::Relative(percentage) => {
-                ((content - viewport) * percentage).max(0.0)
-            }
+            Offset::Absolute(absolute) => absolute,
+            Offset::Relative(percentage) => (content - viewport) * percentage,
         }
     }
 
@@ -1546,9 +1547,22 @@ impl State {
     }
 
     /// Scroll to the provided [`AbsoluteOffset`].
-    pub fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        self.offset_x = Offset::Absolute(offset.x.max(0.0));
-        self.offset_y = Offset::Absolute(offset.y.max(0.0));
+    pub fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        if bounds.width < content_bounds.width {
+            self.offset_x = Offset::Absolute(
+                offset.x.clamp(0.0, content_bounds.width - bounds.width),
+            );
+        }
+        if bounds.height < content_bounds.height {
+            self.offset_y = Offset::Absolute(
+                offset.y.clamp(0.0, content_bounds.height - bounds.height),
+            );
+        }
     }
 
     /// Scroll by the provided [`AbsoluteOffset`].
