@@ -365,17 +365,27 @@ where
 
     fn mouse_interaction(
         &self,
-        _layout: Layout<'_>,
+        layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.float.content.as_widget().mouse_interaction(
+        if !cursor.is_over(layout.bounds()) {
+            return mouse::Interaction::None;
+        }
+
+        let interaction = self.float.content.as_widget().mouse_interaction(
             self.state,
             self.layout,
             cursor * self.transformation.inverse(),
             &self.viewport,
             renderer,
-        )
+        );
+
+        if self.float.opaque && interaction == mouse::Interaction::None {
+            return mouse::Interaction::Idle;
+        }
+
+        interaction
     }
 
     fn index(&self) -> f32 {
