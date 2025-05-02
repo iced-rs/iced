@@ -197,7 +197,11 @@ mod internal {
         }
 
         let message = if message.len() > 49 {
-            format!("{}...", &message[..49])
+            message
+                .chars()
+                .take(49)
+                .chain("...".chars())
+                .collect::<String>()
         } else {
             message
         };
