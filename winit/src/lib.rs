@@ -758,7 +758,7 @@ async fn run_instance<P>(
                             &mut messages,
                         );
 
-                        let new_mouse_interaction = ui.draw(
+                        ui.draw(
                             &mut window.renderer,
                             window.state.theme(),
                             &renderer::Style {
@@ -767,16 +767,6 @@ async fn run_instance<P>(
                             cursor,
                         );
                         draw_span.finish();
-
-                        if new_mouse_interaction != window.mouse_interaction {
-                            window.raw.set_cursor(
-                                conversion::mouse_interaction(
-                                    new_mouse_interaction,
-                                ),
-                            );
-
-                            window.mouse_interaction = new_mouse_interaction;
-                        }
 
                         runtime.broadcast(subscription::Event::Interaction {
                             window: id,
@@ -787,10 +777,12 @@ async fn run_instance<P>(
                         if let user_interface::State::Updated {
                             redraw_request,
                             input_method,
+                            mouse_interaction,
                         } = ui_state
                         {
                             window.request_redraw(redraw_request);
                             window.request_input_method(input_method);
+                            window.update_mouse(mouse_interaction);
                         }
 
                         window.draw_preedit();
@@ -944,8 +936,11 @@ async fn run_instance<P>(
                             match ui_state {
                                 user_interface::State::Updated {
                                     redraw_request: _redraw_request,
+                                    mouse_interaction,
                                     ..
                                 } => {
+                                    window.update_mouse(mouse_interaction);
+
                                     #[cfg(not(
                                         feature = "unconditional-rendering"
                                     ))]

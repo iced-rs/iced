@@ -436,7 +436,7 @@ where
             &mut self.messages,
         );
 
-        let _ = self.raw.draw(
+        self.raw.draw(
             &mut self.renderer,
             theme,
             &core::renderer::Style {

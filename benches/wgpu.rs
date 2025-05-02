@@ -122,7 +122,7 @@ fn benchmark<'a>(
             &mut renderer,
         );
 
-        let _ = user_interface.draw(
+        user_interface.draw(
             &mut renderer,
             &Theme::Dark,
             &core::renderer::Style {
