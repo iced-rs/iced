@@ -270,11 +270,11 @@ where
                 .as_mut()
                 .and_then(|overlay| {
                     cursor.position().map(|cursor_position| {
-                        overlay.is_over(
+                        overlay.mouse_interaction(
                             Layout::new(&layout),
+                            mouse::Cursor::Available(cursor_position),
                             renderer,
-                            cursor_position,
-                        )
+                        ) != mouse::Interaction::None
                     })
                 })
                 .unwrap_or_default()
@@ -439,7 +439,7 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        let base_cursor = if let Some(mut overlay) = self
+        let (base_cursor, overlay_interaction) = if let Some(mut overlay) = self
             .root
             .as_widget_mut()
             .overlay(
@@ -456,27 +456,31 @@ where
                 .take()
                 .unwrap_or_else(|| overlay.layout(renderer, self.bounds));
 
-            let cursor = if cursor
-                .position()
-                .map(|cursor_position| {
-                    overlay.is_over(
-                        Layout::new(&overlay_layout),
-                        renderer,
-                        cursor_position,
-                    )
-                })
-                .unwrap_or_default()
-            {
-                mouse::Cursor::Unavailable
-            } else {
-                cursor
+            let (cursor, overlay_interaction) = {
+                let overlay_interaction =
+                    cursor.position().map(|cursor_position| {
+                        overlay.mouse_interaction(
+                            Layout::new(&overlay_layout),
+                            mouse::Cursor::Available(cursor_position),
+                            renderer,
+                        )
+                    });
+
+                match overlay_interaction {
+                    Some(mouse::Interaction::None) | None => {
+                        (cursor, mouse::Interaction::None)
+                    }
+                    Some(interaction) => {
+                        (mouse::Cursor::Unavailable, interaction)
+                    }
+                }
             };
 
             self.overlay = Some(overlay_layout);
 
-            cursor
+            (cursor, overlay_interaction)
         } else {
-            cursor
+            (cursor, mouse::Interaction::None)
         };
 
         self.root.as_widget().draw(
@@ -522,13 +526,6 @@ where
                     )
                     .map(overlay::Nested::new)
                     .map(|mut overlay| {
-                        let overlay_interaction = overlay.mouse_interaction(
-                            Layout::new(layout),
-                            cursor,
-                            &viewport,
-                            renderer,
-                        );
-
                         overlay.draw(
                             renderer,
                             theme,
@@ -537,17 +534,7 @@ where
                             cursor,
                         );
 
-                        if cursor
-                            .position()
-                            .map(|cursor_position| {
-                                overlay.is_over(
-                                    Layout::new(layout),
-                                    renderer,
-                                    cursor_position,
-                                )
-                            })
-                            .unwrap_or_default()
-                        {
+                        if overlay_interaction != mouse::Interaction::None {
                             overlay_interaction
                         } else {
                             base_interaction

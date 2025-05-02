@@ -3,7 +3,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Event, Layout, Overlay, Point, Rectangle, Shell, Size};
+use crate::{Clipboard, Event, Layout, Overlay, Shell, Size};
 
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.
@@ -107,7 +107,6 @@ where
         &self,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.children
@@ -116,7 +115,7 @@ where
             .map(|(child, layout)| {
                 child
                     .as_overlay()
-                    .mouse_interaction(layout, cursor, viewport, renderer)
+                    .mouse_interaction(layout, cursor, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -135,22 +134,6 @@ where
                 },
             );
         });
-    }
-
-    fn is_over(
-        &self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        cursor_position: Point,
-    ) -> bool {
-        self.children
-            .iter()
-            .zip(layout.children())
-            .any(|(child, layout)| {
-                child
-                    .as_overlay()
-                    .is_over(layout, renderer, cursor_position)
-            })
     }
 
     fn overlay<'a>(

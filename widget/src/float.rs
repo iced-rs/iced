@@ -8,8 +8,8 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree;
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Point, Rectangle, Shadow, Shell,
-    Size, Transformation, Vector, Widget,
+    Clipboard, Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size,
+    Transformation, Vector, Widget,
 };
 
 /// A widget that can make its contents float over other widgets.
@@ -298,18 +298,6 @@ where
         layout::Node::new(bounds.size()).move_to(bounds.position())
     }
 
-    fn is_over(
-        &self,
-        layout: Layout<'_>,
-        _renderer: &Renderer,
-        cursor_position: Point,
-    ) -> bool {
-        self.float.opaque
-            && layout
-                .bounds()
-                .contains(cursor_position * self.transformation.inverse())
-    }
-
     fn update(
         &mut self,
         event: &Event,
@@ -379,7 +367,6 @@ where
         &self,
         _layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.float.content.as_widget().mouse_interaction(

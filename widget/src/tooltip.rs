@@ -508,13 +508,4 @@ where
             &Rectangle::with_size(Size::INFINITY),
         );
     }
-
-    fn is_over(
-        &self,
-        _layout: Layout<'_>,
-        _renderer: &Renderer,
-        _cursor_position: Point,
-    ) -> bool {
-        false
-    }
 }

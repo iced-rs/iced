@@ -416,11 +416,10 @@ where
         &self,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(layout, cursor, viewport, renderer)
+            overlay.mouse_interaction(layout, cursor, renderer)
         })
         .unwrap_or_default()
     }
@@ -447,18 +446,6 @@ where
                 **layout = true;
             });
         }
-    }
-
-    fn is_over(
-        &self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        cursor_position: Point,
-    ) -> bool {
-        self.with_overlay_maybe(|overlay| {
-            overlay.is_over(layout, renderer, cursor_position)
-        })
-        .unwrap_or_default()
     }
 
     fn operate(

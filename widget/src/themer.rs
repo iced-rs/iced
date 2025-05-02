@@ -6,8 +6,8 @@ use crate::core::renderer;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Clipboard, Color, Element, Event, Layout, Length, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 use std::marker::PhantomData;
@@ -248,25 +248,11 @@ where
                 &self,
                 layout: Layout<'_>,
                 cursor: mouse::Cursor,
-                viewport: &Rectangle,
                 renderer: &Renderer,
             ) -> mouse::Interaction {
                 self.content
                     .as_overlay()
-                    .mouse_interaction(layout, cursor, viewport, renderer)
-            }
-
-            fn is_over(
-                &self,
-                layout: Layout<'_>,
-                renderer: &Renderer,
-                cursor_position: Point,
-            ) -> bool {
-                self.content.as_overlay().is_over(
-                    layout,
-                    renderer,
-                    cursor_position,
-                )
+                    .mouse_interaction(layout, cursor, renderer)
             }
 
             fn overlay<'b>(
