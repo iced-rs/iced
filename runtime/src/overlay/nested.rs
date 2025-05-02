@@ -271,12 +271,7 @@ where
             let mut layouts = layout.children();
 
             let layout = layouts.next()?;
-            let cursor_position = cursor.position()?;
             let overlay = element.as_overlay_mut();
-
-            if !overlay.is_over(layout, renderer, cursor_position) {
-                return None;
-            }
 
             Some(
                 overlay

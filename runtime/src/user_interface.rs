@@ -537,16 +537,7 @@ where
                             cursor,
                         );
 
-                        if cursor
-                            .position()
-                            .map(|cursor_position| {
-                                overlay.is_over(
-                                    Layout::new(layout),
-                                    renderer,
-                                    cursor_position,
-                                )
-                            })
-                            .unwrap_or_default()
+                        if overlay_interaction != mouse::Interaction::default()
                         {
                             overlay_interaction
                         } else {
