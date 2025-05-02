@@ -443,6 +443,7 @@ mod toast {
             let toasts = (!self.toasts.is_empty()).then(|| {
                 overlay::Element::new(Box::new(Overlay {
                     position: layout.bounds().position() + translation,
+                    viewport: *viewport,
                     toasts: &mut self.toasts,
                     state: toasts_state,
                     instants,
@@ -460,6 +461,7 @@ mod toast {
 
     struct Overlay<'a, 'b, Message> {
         position: Point,
+        viewport: Rectangle,
         toasts: &'b mut [Element<'a, Message>],
         state: &'b mut [Tree],
         instants: &'b mut [Option<Instant>],
@@ -595,7 +597,6 @@ mod toast {
             &self,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
-            viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
             self.toasts
@@ -603,23 +604,24 @@ mod toast {
                 .zip(self.state.iter())
                 .zip(layout.children())
                 .map(|((child, state), layout)| {
-                    child.as_widget().mouse_interaction(
-                        state, layout, cursor, viewport, renderer,
-                    )
+                    child
+                        .as_widget()
+                        .mouse_interaction(
+                            state,
+                            layout,
+                            cursor,
+                            &self.viewport,
+                            renderer,
+                        )
+                        .max(
+                            cursor
+                                .is_over(layout.bounds())
+                                .then_some(mouse::Interaction::Idle)
+                                .unwrap_or_default(),
+                        )
                 })
                 .max()
                 .unwrap_or_default()
-        }
-
-        fn is_over(
-            &self,
-            layout: Layout<'_>,
-            _renderer: &Renderer,
-            cursor_position: Point,
-        ) -> bool {
-            layout
-                .children()
-                .any(|layout| layout.bounds().contains(cursor_position))
         }
     }
 

@@ -4,7 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size};
+use crate::{Clipboard, Event, Layout, Shell, Size};
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
@@ -112,11 +112,9 @@ where
         &self,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content
-            .mouse_interaction(layout, cursor, viewport, renderer)
+        self.content.mouse_interaction(layout, cursor, renderer)
     }
 
     fn draw(
@@ -128,15 +126,6 @@ where
         cursor: mouse::Cursor,
     ) {
         self.content.draw(renderer, theme, style, layout, cursor);
-    }
-
-    fn is_over(
-        &self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        cursor_position: Point,
-    ) -> bool {
-        self.content.is_over(layout, renderer, cursor_position)
     }
 
     fn overlay<'a>(

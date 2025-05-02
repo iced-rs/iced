@@ -4,7 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
-use crate::core::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size};
+use crate::core::{Clipboard, Event, Layout, Shell, Size};
 
 /// An overlay container that displays nested overlays
 #[allow(missing_debug_implementations)]
@@ -87,11 +87,11 @@ where
                     .zip(nested_layout)
                     .and_then(|(cursor_position, nested_layout)| {
                         overlay.overlay(layout, renderer).map(|nested| {
-                            nested.as_overlay().is_over(
+                            nested.as_overlay().mouse_interaction(
                                 nested_layout.children().next().unwrap(),
+                                mouse::Cursor::Available(cursor_position),
                                 renderer,
-                                cursor_position,
-                            )
+                            ) != mouse::Interaction::None
                         })
                     })
                     .unwrap_or_default();
@@ -209,11 +209,11 @@ where
                         || cursor
                             .position()
                             .map(|cursor_position| {
-                                overlay.is_over(
+                                overlay.mouse_interaction(
                                     layout,
+                                    mouse::Cursor::Available(cursor_position),
                                     renderer,
-                                    cursor_position,
-                                )
+                                ) != mouse::Interaction::None
                             })
                             .unwrap_or_default();
 
@@ -255,14 +255,12 @@ where
         &mut self,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
-            viewport: &Rectangle,
             renderer: &Renderer,
         ) -> Option<mouse::Interaction>
         where
@@ -278,68 +276,14 @@ where
                     .overlay(layout, renderer)
                     .zip(layouts.next())
                     .and_then(|(mut overlay, layout)| {
-                        recurse(
-                            &mut overlay,
-                            layout,
-                            cursor,
-                            viewport,
-                            renderer,
-                        )
+                        recurse(&mut overlay, layout, cursor, renderer)
                     })
                     .unwrap_or_else(|| {
-                        overlay.mouse_interaction(
-                            layout, cursor, viewport, renderer,
-                        )
+                        overlay.mouse_interaction(layout, cursor, renderer)
                     }),
             )
         }
 
-        recurse(&mut self.overlay, layout, cursor, viewport, renderer)
-            .unwrap_or_default()
-    }
-
-    /// Returns true if the cursor is over the [`Nested`] overlay.
-    pub fn is_over(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        cursor_position: Point,
-    ) -> bool {
-        fn recurse<Message, Theme, Renderer>(
-            element: &mut overlay::Element<'_, Message, Theme, Renderer>,
-            layout: Layout<'_>,
-            renderer: &Renderer,
-            cursor_position: Point,
-        ) -> bool
-        where
-            Renderer: renderer::Renderer,
-        {
-            let mut layouts = layout.children();
-
-            if let Some(layout) = layouts.next() {
-                let overlay = element.as_overlay_mut();
-
-                if overlay.is_over(layout, renderer, cursor_position) {
-                    return true;
-                }
-
-                if let Some((mut nested, nested_layout)) =
-                    overlay.overlay(layout, renderer).zip(layouts.next())
-                {
-                    recurse(
-                        &mut nested,
-                        nested_layout,
-                        renderer,
-                        cursor_position,
-                    )
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        }
-
-        recurse(&mut self.overlay, layout, renderer, cursor_position)
+        recurse(&mut self.overlay, layout, cursor, renderer).unwrap_or_default()
     }
 }
