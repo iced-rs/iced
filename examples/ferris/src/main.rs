@@ -153,7 +153,8 @@ impl Image {
                         self.rotation.degrees(),
                         Message::RotationChanged
                     ),
-                    checkbox("Spin!", self.spin)
+                    checkbox(self.spin)
+                        .label("Spin!")
                         .text_size(12)
                         .on_toggle(Message::SpinToggled)
                         .size(12)
