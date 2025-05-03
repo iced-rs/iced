@@ -1417,7 +1417,7 @@ impl Default for State {
             keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,
             last_scrolled: None,
-            is_scrollbar_visible: false,
+            is_scrollbar_visible: true,
         }
     }
 }
