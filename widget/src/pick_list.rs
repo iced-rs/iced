@@ -381,14 +381,14 @@ where
         {
             let label = option.to_string();
 
-            paragraph.update(Text {
+            let _ = paragraph.update(Text {
                 content: &label,
                 ..option_text
             });
         }
 
         if let Some(placeholder) = &self.placeholder {
-            state.placeholder.update(Text {
+            let _ = state.placeholder.update(Text {
                 content: placeholder,
                 ..option_text
             });

@@ -79,11 +79,13 @@ impl<P: Paragraph> Plain<P> {
     }
 
     /// Updates the plain [`Paragraph`] to match the given [`Text`], if needed.
-    pub fn update(&mut self, text: Text<&str, P::Font>) {
+    ///
+    /// Returns true if the [`Paragraph`] changed.
+    pub fn update(&mut self, text: Text<&str, P::Font>) -> bool {
         if self.content != text.content {
             text.content.clone_into(&mut self.content);
             self.raw = P::with_text(text);
-            return;
+            return true;
         }
 
         match self.raw.compare(Text {
@@ -97,12 +99,14 @@ impl<P: Paragraph> Plain<P> {
             shaping: text.shaping,
             wrapping: text.wrapping,
         }) {
-            Difference::None => {}
+            Difference::None => false,
             Difference::Bounds => {
                 self.raw.resize(text.bounds);
+                true
             }
             Difference::Shape => {
                 self.raw = P::with_text(text);
+                true
             }
         }
     }

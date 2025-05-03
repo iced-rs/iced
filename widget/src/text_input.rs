@@ -325,12 +325,12 @@ where
             wrapping: text::Wrapping::default(),
         };
 
-        state.placeholder.update(placeholder_text);
+        let _ = state.placeholder.update(placeholder_text);
 
         let secure_value = self.is_secure.then(|| value.secure());
         let value = secure_value.as_ref().unwrap_or(value);
 
-        state.value.update(Text {
+        let _ = state.value.update(Text {
             content: &value.to_string(),
             ..placeholder_text
         });
@@ -350,7 +350,7 @@ where
                 wrapping: text::Wrapping::default(),
             };
 
-            state.icon.update(icon_text);
+            let _ = state.icon.update(icon_text);
 
             let icon_width = state.icon.min_width();
 

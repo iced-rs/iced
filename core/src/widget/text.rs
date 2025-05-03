@@ -303,7 +303,7 @@ where
 
         let State(paragraph) = state;
 
-        paragraph.update(text::Text {
+        let _ = paragraph.update(text::Text {
             content,
             bounds,
             size,
@@ -340,25 +340,35 @@ pub fn draw<Renderer>(
     Renderer: text::Renderer,
 {
     let bounds = layout.bounds();
+    let anchor = anchor(bounds, paragraph.align_x(), paragraph.align_y());
 
-    let x = match paragraph.align_x() {
+    renderer.fill_paragraph(
+        paragraph,
+        anchor,
+        appearance.color.unwrap_or(style.text_color),
+        *viewport,
+    );
+}
+
+/// Returns the anchor position of a [`Text`] widget.
+pub fn anchor(
+    bounds: Rectangle,
+    align_x: text::Alignment,
+    align_y: alignment::Vertical,
+) -> Point {
+    let x = match align_x {
         Alignment::Default | Alignment::Left | Alignment::Justified => bounds.x,
         Alignment::Center => bounds.center_x(),
         Alignment::Right => bounds.x + bounds.width,
     };
 
-    let y = match paragraph.align_y() {
+    let y = match align_y {
         alignment::Vertical::Top => bounds.y,
         alignment::Vertical::Center => bounds.center_y(),
         alignment::Vertical::Bottom => bounds.y + bounds.height,
     };
 
-    renderer.fill_paragraph(
-        paragraph,
-        Point::new(x, y),
-        appearance.color.unwrap_or(style.text_color),
-        *viewport,
-    );
+    Point::new(x, y)
 }
 
 impl<'a, Message, Theme, Renderer> From<Text<'a, Theme, Renderer>>
