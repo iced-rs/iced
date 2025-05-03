@@ -56,7 +56,7 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     out.offsets = input.offsets;
     out.direction = input.direction * globals.scale;
     out.position_and_scale = vec4<f32>(pos, scale);
-    out.border_color = vec4(input.border_color.xyz * input.border_color.a, input.border_color.a);
+    out.border_color = premultiply(input.border_color);
     out.border_radius = border_radius * globals.scale;
     out.border_width = input.border_width * globals.scale;
 
@@ -198,9 +198,7 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
 }
 
 fn unpack_color(data: vec2<u32>) -> vec4<f32> {
-    let color = unpack_u32(data);
-
-    return vec4(color.xyz * color.a, color.a);
+    return premultiply(unpack_u32(data));
 }
 
 fn unpack_u32(data: vec2<u32>) -> vec4<f32> {

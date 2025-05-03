@@ -56,13 +56,13 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     );
 
     out.position = globals.transform * transform * vec4<f32>(vertex_position(input.vertex_index), 0.0, 1.0);
-    out.color = vec4(input.color.xyz * input.color.a, input.color.a);
-    out.border_color = vec4(input.border_color.xyz * input.border_color.a, input.border_color.a);
+    out.color = premultiply(input.color);
+    out.border_color = premultiply(input.border_color);
     out.pos = input.pos * globals.scale + snap;
     out.scale = input.scale * globals.scale;
     out.border_radius = border_radius * globals.scale;
     out.border_width = input.border_width * globals.scale;
-    out.shadow_color = vec4(input.shadow_color.xyz, input.shadow_color.a);
+    out.shadow_color = premultiply(input.shadow_color);
     out.shadow_offset = input.shadow_offset * globals.scale;
     out.shadow_blur_radius = input.shadow_blur_radius * globals.scale;
 

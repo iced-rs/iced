@@ -5,6 +5,10 @@ struct Globals {
 
 @group(0) @binding(0) var<uniform> globals: Globals;
 
+fn premultiply(color: vec4<f32>) -> vec4<f32> {
+    return vec4(color.xyz * color.a, color.a);
+}
+
 fn blend(over: vec4<f32>, under: vec4<f32>, alpha: f32) -> vec4<f32> {
     return over * alpha + under * (1.0 - alpha);
 }
