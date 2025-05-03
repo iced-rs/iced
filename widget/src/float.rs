@@ -21,7 +21,6 @@ where
     content: Element<'a, Message, Theme, Renderer>,
     scale: f32,
     translate: Option<Box<dyn Fn(Rectangle, Rectangle) -> Vector + 'a>>,
-    opaque: bool,
     class: Theme::Class<'a>,
 }
 
@@ -37,7 +36,6 @@ where
             content: content.into(),
             scale: 1.0,
             translate: None,
-            opaque: true,
             class: Theme::default(),
         }
     }
@@ -58,17 +56,6 @@ where
         translate: impl Fn(Rectangle, Rectangle) -> Vector + 'a,
     ) -> Self {
         self.translate = Some(Box::new(translate));
-        self
-    }
-
-    /// Sets whether the [`Float`] contents should be opaque when floating.
-    ///
-    /// Disabling opacity will make the mouse pass through the floating content, allowing
-    /// interaction with whatever is under it.
-    ///
-    /// By default, a [`Float`] widget is opaque.
-    pub fn opaque(mut self, opaque: bool) -> Self {
-        self.opaque = opaque;
         self
     }
 
@@ -293,7 +280,7 @@ where
     Renderer: core::Renderer,
 {
     fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        let bounds = self.layout.bounds();
+        let bounds = self.layout.bounds() * self.transformation;
 
         layout::Node::new(bounds.size()).move_to(bounds.position())
     }
@@ -307,17 +294,17 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
-        let cursor = cursor * self.transformation.inverse();
+        let inverse = self.transformation.inverse();
 
         self.float.content.as_widget_mut().update(
             self.state,
             event,
             self.layout,
-            cursor,
+            cursor * inverse,
             renderer,
             clipboard,
             shell,
-            &self.viewport,
+            &(self.viewport * inverse),
         );
     }
 
@@ -326,10 +313,11 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        _layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        let bounds = layout.bounds();
+        let bounds = self.layout.bounds();
+        let inverse = self.transformation.inverse();
 
         renderer.with_layer(self.viewport, |renderer| {
             renderer.with_transformation(self.transformation, |renderer| {
@@ -356,8 +344,8 @@ where
                     theme,
                     style,
                     self.layout,
-                    cursor,
-                    &(self.viewport * self.transformation.inverse()),
+                    cursor * inverse,
+                    &(self.viewport * inverse),
                 );
             });
         });
@@ -373,31 +361,19 @@ where
             return mouse::Interaction::None;
         }
 
-        let interaction = self.float.content.as_widget().mouse_interaction(
+        let inverse = self.transformation.inverse();
+
+        self.float.content.as_widget().mouse_interaction(
             self.state,
             self.layout,
-            cursor * self.transformation.inverse(),
-            &self.viewport,
+            cursor * inverse,
+            &(self.viewport * inverse),
             renderer,
-        );
-
-        if self.float.opaque && interaction == mouse::Interaction::None {
-            return mouse::Interaction::Idle;
-        }
-
-        interaction
+        )
     }
 
     fn index(&self) -> f32 {
         self.float.scale * 0.5
-    }
-
-    fn operate(
-        &mut self,
-        _layout: Layout<'_>,
-        _renderer: &Renderer,
-        _operation: &mut dyn widget::Operation,
-    ) {
     }
 
     fn overlay<'a>(
@@ -409,7 +385,7 @@ where
             self.state,
             self.layout,
             renderer,
-            &self.viewport,
+            &(self.viewport * self.transformation.inverse()),
             self.transformation.translation(),
         )
     }
