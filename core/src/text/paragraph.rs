@@ -143,4 +143,9 @@ impl<P: Paragraph> Plain<P> {
     pub fn raw(&self) -> &P {
         &self.raw
     }
+
+    /// Returns the current content of the plain [`Paragraph`].
+    pub fn content(&self) -> &str {
+        &self.content
+    }
 }
