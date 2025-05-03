@@ -104,6 +104,7 @@ impl WebSocket {
             )
             .id(MESSAGE_LOG.clone())
             .height(Fill)
+            .spacing(10)
             .into()
         };
 

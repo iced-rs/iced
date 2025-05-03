@@ -168,19 +168,17 @@ impl Tour {
             Screen::End => self.end(),
         };
 
-        let content: Element<_> = column![screen, controls,]
-            .max_width(540)
-            .spacing(20)
-            .padding(20)
-            .into();
+        let content: Element<_> =
+            column![screen, controls].max_width(540).spacing(20).into();
 
         let scrollable = scrollable(center_x(if self.debug {
             content.explain(Color::BLACK)
         } else {
             content
-        }));
+        }))
+        .spacing(10);
 
-        center_y(scrollable).into()
+        center_y(scrollable).padding(10).into()
     }
 
     fn can_continue(&self) -> bool {
