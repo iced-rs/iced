@@ -421,7 +421,7 @@ where
                         shaping: *shaping,
                         wrapping: text::Wrapping::default(),
                     },
-                    bounds.position(),
+                    bounds.center(),
                     style.icon_color,
                     *viewport,
                 );
