@@ -88,6 +88,18 @@ impl text::Paragraph for () {
         text::Difference::None
     }
 
+    fn size(&self) -> Pixels {
+        Pixels(16.0)
+    }
+
+    fn font(&self) -> Font {
+        Font::DEFAULT
+    }
+
+    fn line_height(&self) -> text::LineHeight {
+        text::LineHeight::default()
+    }
+
     fn align_x(&self) -> text::Alignment {
         text::Alignment::Default
     }
@@ -96,8 +108,20 @@ impl text::Paragraph for () {
         alignment::Vertical::Top
     }
 
+    fn wrapping(&self) -> text::Wrapping {
+        text::Wrapping::default()
+    }
+
+    fn shaping(&self) -> text::Shaping {
+        text::Shaping::default()
+    }
+
     fn grapheme_position(&self, _line: usize, _index: usize) -> Option<Point> {
         None
+    }
+
+    fn bounds(&self) -> Size {
+        Size::ZERO
     }
 
     fn min_bounds(&self) -> Size {

@@ -46,6 +46,38 @@ pub struct Text<Content = String, Font = crate::Font> {
     pub wrapping: Wrapping,
 }
 
+impl<Content, Font> Text<Content, Font>
+where
+    Font: Copy,
+{
+    /// Returns a new [`Text`] replacing only the content with the
+    /// given value.
+    pub fn with_content<T>(&self, content: T) -> Text<T, Font> {
+        Text {
+            content,
+            bounds: self.bounds,
+            size: self.size,
+            line_height: self.line_height,
+            font: self.font,
+            align_x: self.align_x,
+            align_y: self.align_y,
+            shaping: self.shaping,
+            wrapping: self.wrapping,
+        }
+    }
+}
+
+impl<Content, Font> Text<Content, Font>
+where
+    Content: AsRef<str>,
+    Font: Copy,
+{
+    /// Returns a borrowed version of [`Text`].
+    pub fn as_ref(&self) -> Text<&str, Font> {
+        self.with_content(self.content.as_ref())
+    }
+}
+
 /// The alignment of some text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Alignment {
@@ -81,6 +113,18 @@ impl From<crate::Alignment> for Alignment {
             crate::Alignment::Start => Self::Left,
             crate::Alignment::Center => Self::Center,
             crate::Alignment::End => Self::Right,
+        }
+    }
+}
+
+impl From<Alignment> for alignment::Horizontal {
+    fn from(alignment: Alignment) -> Self {
+        match alignment {
+            Alignment::Default | Alignment::Left | Alignment::Justified => {
+                alignment::Horizontal::Left
+            }
+            Alignment::Center => alignment::Horizontal::Center,
+            Alignment::Right => alignment::Horizontal::Right,
         }
     }
 }

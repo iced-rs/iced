@@ -1,8 +1,10 @@
 //! Draw paragraphs.
 use crate::core;
 use crate::core::alignment;
-use crate::core::text::{Alignment, Hit, Shaping, Span, Text, Wrapping};
-use crate::core::{Font, Point, Rectangle, Size};
+use crate::core::text::{
+    Alignment, Hit, LineHeight, Shaping, Span, Text, Wrapping,
+};
+use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
 use std::fmt;
@@ -220,12 +222,36 @@ impl core::text::Paragraph for Paragraph {
         }
     }
 
+    fn size(&self) -> Pixels {
+        Pixels(self.0.buffer.metrics().font_size)
+    }
+
+    fn font(&self) -> Font {
+        self.0.font
+    }
+
+    fn line_height(&self) -> LineHeight {
+        LineHeight::Absolute(Pixels(self.0.buffer.metrics().line_height))
+    }
+
     fn align_x(&self) -> Alignment {
         self.internal().align_x
     }
 
     fn align_y(&self) -> alignment::Vertical {
         self.internal().align_y
+    }
+
+    fn wrapping(&self) -> Wrapping {
+        self.0.wrapping
+    }
+
+    fn shaping(&self) -> Shaping {
+        self.0.shaping
+    }
+
+    fn bounds(&self) -> Size {
+        self.0.bounds
     }
 
     fn min_bounds(&self) -> Size {
