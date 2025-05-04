@@ -66,7 +66,6 @@ impl Cache {
     pub fn upload(
         &mut self,
         device: &wgpu::Device,
-        backend: wgpu::Backend,
         encoder: &mut wgpu::CommandEncoder,
         handle: &image::Handle,
         atlas: &mut Atlas,
@@ -76,8 +75,7 @@ impl Cache {
         if let Memory::Host(image) = memory {
             let (width, height) = image.dimensions();
 
-            let entry =
-                atlas.upload(device, backend, encoder, width, height, image)?;
+            let entry = atlas.upload(device, encoder, width, height, image)?;
 
             *memory = Memory::Device(entry);
         }

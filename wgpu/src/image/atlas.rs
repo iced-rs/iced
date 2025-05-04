@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Atlas {
+    backend: wgpu::Backend,
     texture: wgpu::Texture,
     texture_view: wgpu::TextureView,
     texture_bind_group: wgpu::BindGroup,
@@ -79,6 +80,7 @@ impl Atlas {
             });
 
         Atlas {
+            backend,
             texture,
             texture_view,
             texture_bind_group,
@@ -98,7 +100,6 @@ impl Atlas {
     pub fn upload(
         &mut self,
         device: &wgpu::Device,
-        backend: wgpu::Backend,
         encoder: &mut wgpu::CommandEncoder,
         width: u32,
         height: u32,
@@ -110,7 +111,7 @@ impl Atlas {
 
             // We grow the internal texture after allocating if necessary
             let new_layers = self.layers.len() - current_size;
-            self.grow(new_layers, device, backend, encoder);
+            self.grow(new_layers, device, encoder);
 
             entry
         };
@@ -371,7 +372,6 @@ impl Atlas {
         &mut self,
         amount: usize,
         device: &wgpu::Device,
-        backend: wgpu::Backend,
         encoder: &mut wgpu::CommandEncoder,
     ) {
         if amount == 0 {
@@ -383,7 +383,7 @@ impl Atlas {
         // some unused memory on GL, but it's better than not being able to grow the atlas past a depth
         // of 6!
         // https://github.com/gfx-rs/wgpu/blob/004e3efe84a320d9331371ed31fa50baa2414911/wgpu-hal/src/gles/mod.rs#L371
-        let depth_or_array_layers = match backend {
+        let depth_or_array_layers = match self.backend {
             wgpu::Backend::Gl if self.layers.len() == 6 => 7,
             _ => self.layers.len() as u32,
         };
