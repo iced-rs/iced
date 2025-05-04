@@ -28,90 +28,84 @@ use crate::widget::{
 use std::fmt;
 use std::thread;
 
-pub fn attach(program: impl Program + 'static) -> impl Program {
-    struct Attach<P> {
-        program: P,
-    }
-
-    impl<P> Program for Attach<P>
-    where
-        P: Program + 'static,
-    {
-        type State = DevTools<P>;
-        type Message = Event<P>;
-        type Theme = P::Theme;
-        type Renderer = P::Renderer;
-        type Executor = P::Executor;
-
-        fn name() -> &'static str {
-            P::name()
-        }
-
-        fn boot(&self) -> (Self::State, Task<Self::Message>) {
-            let (state, boot) = self.program.boot();
-            let (devtools, task) = DevTools::new(state);
-
-            (
-                devtools,
-                Task::batch([
-                    boot.map(Event::Program),
-                    task.map(Event::Message),
-                ]),
-            )
-        }
-
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
-            state.update(&self.program, message)
-        }
-
-        fn view<'a>(
-            &self,
-            state: &'a Self::State,
-            window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            state.view(&self.program, window)
-        }
-
-        fn title(&self, state: &Self::State, window: window::Id) -> String {
-            state.title(&self.program, window)
-        }
-
-        fn subscription(
-            &self,
-            state: &Self::State,
-        ) -> runtime::futures::Subscription<Self::Message> {
-            state.subscription(&self.program)
-        }
-
-        fn theme(
-            &self,
-            state: &Self::State,
-            window: window::Id,
-        ) -> Self::Theme {
-            state.theme(&self.program, window)
-        }
-
-        fn style(
-            &self,
-            state: &Self::State,
-            theme: &Self::Theme,
-        ) -> theme::Style {
-            state.style(&self.program, theme)
-        }
-
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
-            state.scale_factor(&self.program, window)
-        }
-    }
-
+pub fn attach<P: Program + 'static>(program: P) -> Attach<P> {
     Attach { program }
 }
 
-struct DevTools<P>
+/// A [`Program`] with some devtools attached to it.
+#[derive(Debug)]
+pub struct Attach<P> {
+    /// The original [`Program`] managed by these devtools.
+    pub program: P,
+}
+
+impl<P> Program for Attach<P>
+where
+    P: Program + 'static,
+{
+    type State = DevTools<P>;
+    type Message = Event<P>;
+    type Theme = P::Theme;
+    type Renderer = P::Renderer;
+    type Executor = P::Executor;
+
+    fn name() -> &'static str {
+        P::name()
+    }
+
+    fn boot(&self) -> (Self::State, Task<Self::Message>) {
+        let (state, boot) = self.program.boot();
+        let (devtools, task) = DevTools::new(state);
+
+        (
+            devtools,
+            Task::batch([boot.map(Event::Program), task.map(Event::Message)]),
+        )
+    }
+
+    fn update(
+        &self,
+        state: &mut Self::State,
+        message: Self::Message,
+    ) -> Task<Self::Message> {
+        state.update(&self.program, message)
+    }
+
+    fn view<'a>(
+        &self,
+        state: &'a Self::State,
+        window: window::Id,
+    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        state.view(&self.program, window)
+    }
+
+    fn title(&self, state: &Self::State, window: window::Id) -> String {
+        state.title(&self.program, window)
+    }
+
+    fn subscription(
+        &self,
+        state: &Self::State,
+    ) -> runtime::futures::Subscription<Self::Message> {
+        state.subscription(&self.program)
+    }
+
+    fn theme(&self, state: &Self::State, window: window::Id) -> Self::Theme {
+        state.theme(&self.program, window)
+    }
+
+    fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
+        state.style(&self.program, theme)
+    }
+
+    fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+        state.scale_factor(&self.program, window)
+    }
+}
+
+/// The state of the devtools.
+#[allow(missing_debug_implementations)]
+pub struct DevTools<P>
 where
     P: Program,
 {
@@ -122,7 +116,7 @@ where
 }
 
 #[derive(Debug, Clone)]
-enum Message {
+pub enum Message {
     HideNotification,
     ToggleComet,
     CometLaunched(comet::launch::Result),
@@ -403,7 +397,7 @@ where
     }
 }
 
-enum Event<P>
+pub enum Event<P>
 where
     P: Program,
 {
