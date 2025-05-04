@@ -48,6 +48,7 @@ impl From<core::Settings> for Settings {
             },
             default_text_size: settings.default_text_size,
             antialiasing: settings.antialiasing.then_some(Antialiasing::MSAAx4),
+            vsync: settings.vsync,
         }
     }
 }
