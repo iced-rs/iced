@@ -71,6 +71,8 @@ strict-assertions = ["iced_renderer/strict-assertions"]
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
 # Enables support for the `sipper` library
 sipper = ["iced_runtime/sipper"]
+# Custom native menu
+custom-menu = ["iced_winit/custom-menu"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -85,6 +87,7 @@ iced_winit.workspace = true
 iced_devtools.workspace = true
 iced_devtools.optional = true
 
+muda.workspace = true
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
 
@@ -209,6 +212,7 @@ web-time = "1.1"
 wgpu = "24.0"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b" }
+muda = "0.16.1"
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }

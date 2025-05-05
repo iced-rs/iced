@@ -25,3 +25,5 @@ thiserror.workspace = true
 
 sipper.workspace = true
 sipper.optional = true
+
+muda.workspace = true

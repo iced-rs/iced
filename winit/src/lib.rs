@@ -33,6 +33,7 @@ pub mod conversion;
 pub mod system;
 
 mod error;
+mod event_loop;
 mod proxy;
 mod window;
 
@@ -74,16 +75,12 @@ where
     P: Program + 'static,
     P::Theme: theme::Base,
 {
-    use winit::event_loop::EventLoop;
-
     let boot_span = debug::boot();
 
     let graphics_settings = settings.clone().into();
-    let event_loop = EventLoop::with_user_event()
-        .build()
-        .expect("Create event loop");
 
-    let (proxy, worker) = Proxy::new(event_loop.create_proxy());
+    let (event_loop, proxy, worker) =
+        event_loop::create_event_loop::<P::Message>();
 
     let mut runtime = {
         let executor =
@@ -527,7 +524,7 @@ async fn run_instance<P>(
 
                     let create_compositor = {
                         let window = window.clone();
-                        let mut proxy = proxy.clone();
+                        let proxy = proxy.clone();
                         let default_fonts = default_fonts.clone();
 
                         async move {
@@ -1100,6 +1097,12 @@ fn run_action<P, C>(
     use crate::runtime::window;
 
     match action {
+        Action::Menu(ev) => {
+            events.push((
+                crate::window::Id::unique(),
+                core::Event::Menu(ev.id.0),
+            ));
+        }
         Action::Output(message) => {
             messages.push(message);
         }

@@ -56,6 +56,8 @@ pub enum Action<T> {
     /// Run a system action.
     System(system::Action),
 
+    /// Muda menu event, passed via proxy
+    Menu(muda::MenuEvent),
     /// Exits the runtime.
     ///
     /// This will normally close any application windows and
@@ -71,6 +73,7 @@ impl<T> Action<T> {
 
     fn output<O>(self) -> Result<T, Action<O>> {
         match self {
+            Action::Menu(_) => todo!(),
             Action::Output(output) => Ok(output),
             Action::LoadFont { bytes, channel } => {
                 Err(Action::LoadFont { bytes, channel })
@@ -90,6 +93,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Action::Menu(_) => todo!(),
             Action::Output(output) => write!(f, "Action::Output({output:?})"),
             Action::LoadFont { .. } => {
                 write!(f, "Action::LoadFont")

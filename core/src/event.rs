@@ -27,6 +27,9 @@ pub enum Event {
 
     /// An input method event
     InputMethod(input_method::Event),
+
+    /// A menu event
+    Menu(String),
 }
 
 /// The status of an [`Event`] after being processed.
