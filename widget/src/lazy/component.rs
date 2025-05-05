@@ -374,6 +374,7 @@ where
             ));
 
             shell.invalidate_layout();
+            shell.request_redraw();
         }
     }
 
