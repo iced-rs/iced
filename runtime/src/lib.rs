@@ -73,7 +73,6 @@ impl<T> Action<T> {
 
     fn output<O>(self) -> Result<T, Action<O>> {
         match self {
-            Action::Menu(_) => todo!(),
             Action::Output(output) => Ok(output),
             Action::LoadFont { bytes, channel } => {
                 Err(Action::LoadFont { bytes, channel })
@@ -81,6 +80,7 @@ impl<T> Action<T> {
             Action::Widget(operation) => Err(Action::Widget(operation)),
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
+            Action::Menu(ev) => Err(Action::Menu(ev)),
             Action::System(action) => Err(Action::System(action)),
             Action::Exit => Err(Action::Exit),
         }
@@ -93,7 +93,6 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Action::Menu(_) => todo!(),
             Action::Output(output) => write!(f, "Action::Output({output:?})"),
             Action::LoadFont { .. } => {
                 write!(f, "Action::LoadFont")
@@ -105,6 +104,7 @@ where
                 write!(f, "Action::Clipboard({action:?})")
             }
             Action::Window(_) => write!(f, "Action::Window"),
+            Action::Menu(ev) => write!(f, "Action::Menu({ev:?}"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
             Action::Exit => write!(f, "Action::Exit"),
         }
