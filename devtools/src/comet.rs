@@ -4,7 +4,7 @@ use crate::runtime::Task;
 use std::process;
 
 pub const COMPATIBLE_REVISION: &str =
-    "bd407e839a1c64c936318128ec5b5f19500a30f2";
+    "20f9c9a897fecac5dce0977bbb5639fdce1f54b9";
 
 pub fn launch() -> Task<launch::Result> {
     executor::try_spawn_blocking(|mut sender| {
