@@ -294,7 +294,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -344,10 +344,6 @@ fn update<Message: Clone, Theme, Renderer>(
         state.is_hovered = cursor.is_over(layout.bounds());
         state.cursor_position = cursor_position;
         state.bounds = bounds;
-
-        if widget.interaction.is_some() && state.is_hovered != was_hovered {
-            shell.request_redraw();
-        }
 
         match (
             widget.on_enter.as_ref(),

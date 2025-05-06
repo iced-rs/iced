@@ -604,6 +604,18 @@ impl Renderer {
         }
 
         let _ = ManuallyDrop::into_inner(render_pass);
+
+        debug::layers_rendered(|| {
+            self.layers
+                .iter()
+                .filter(|layer| {
+                    !layer.is_empty()
+                        && physical_bounds
+                            .intersection(&(layer.bounds * scale_factor))
+                            .is_some_and(|viewport| viewport.snap().is_some())
+                })
+                .count()
+        });
     }
 }
 
@@ -643,6 +655,7 @@ impl core::text::Renderer for Renderer {
     type Paragraph = Paragraph;
     type Editor = Editor;
 
+    const MONOSPACE_FONT: Font = Font::MONOSPACE;
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
     const ARROW_DOWN_ICON: char = '\u{e800}';

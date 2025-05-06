@@ -5,6 +5,7 @@ pub use palette::Palette;
 
 use crate::Color;
 
+use std::borrow::Cow;
 use std::fmt;
 use std::sync::Arc;
 
@@ -87,14 +88,17 @@ impl Theme {
     ];
 
     /// Creates a new custom [`Theme`] from the given [`Palette`].
-    pub fn custom(name: String, palette: Palette) -> Self {
+    pub fn custom(
+        name: impl Into<Cow<'static, str>>,
+        palette: Palette,
+    ) -> Self {
         Self::custom_with_fn(name, palette, palette::Extended::generate)
     }
 
     /// Creates a new custom [`Theme`] from the given [`Palette`], with
     /// a custom generator of a [`palette::Extended`].
     pub fn custom_with_fn(
-        name: String,
+        name: impl Into<Cow<'static, str>>,
         palette: Palette,
         generate: impl FnOnce(Palette) -> palette::Extended,
     ) -> Self {
@@ -220,7 +224,7 @@ impl fmt::Display for Theme {
 /// A [`Theme`] with a customized [`Palette`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct Custom {
-    name: String,
+    name: Cow<'static, str>,
     palette: Palette,
     extended: palette::Extended,
 }
@@ -234,12 +238,12 @@ impl Custom {
     /// Creates a [`Custom`] theme from the given [`Palette`] with
     /// a custom generator of a [`palette::Extended`].
     pub fn with_fn(
-        name: String,
+        name: impl Into<Cow<'static, str>>,
         palette: Palette,
         generate: impl FnOnce(Palette) -> palette::Extended,
     ) -> Self {
         Self {
-            name,
+            name: name.into(),
             palette,
             extended: generate(palette),
         }

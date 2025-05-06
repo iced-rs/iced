@@ -365,7 +365,7 @@ where
         text::draw(
             renderer,
             defaults,
-            layout,
+            layout.bounds(),
             &state.paragraph,
             style,
             viewport,

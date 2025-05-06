@@ -163,6 +163,7 @@ pub struct PaneGrid<
     width: Length,
     height: Length,
     spacing: f32,
+    min_size: f32,
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
@@ -200,6 +201,7 @@ where
             width: Length::Fill,
             height: Length::Fill,
             spacing: 0.0,
+            min_size: 50.0,
             on_click: None,
             on_drag: None,
             on_resize: None,
@@ -223,6 +225,12 @@ where
     /// Sets the spacing _between_ the panes of the [`PaneGrid`].
     pub fn spacing(mut self, amount: impl Into<Pixels>) -> Self {
         self.spacing = amount.into().0;
+        self
+    }
+
+    /// Sets the minimum size of a [`Pane`] in the [`PaneGrid`] on both axes.
+    pub fn min_size(mut self, min_size: impl Into<Pixels>) -> Self {
+        self.min_size = min_size.into().0;
         self
     }
 
@@ -315,8 +323,11 @@ where
                     let cursor_position = cursor.position()?;
                     let bounds = layout.bounds();
 
-                    let splits =
-                        node.split_regions(self.spacing, bounds.size());
+                    let splits = node.split_regions(
+                        self.spacing,
+                        self.min_size,
+                        bounds.size(),
+                    );
 
                     let relative_cursor = Point::new(
                         cursor_position.x - bounds.x,
@@ -412,8 +423,12 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let size = limits.resolve(self.width, self.height, Size::ZERO);
-        let regions = self.internal.layout().pane_regions(self.spacing, size);
+        let bounds = limits.resolve(self.width, self.height, Size::ZERO);
+        let regions = self.internal.layout().pane_regions(
+            self.spacing,
+            self.min_size,
+            bounds,
+        );
 
         let children = self
             .panes
@@ -443,7 +458,7 @@ where
             })
             .collect();
 
-        layout::Node::with_children(size, children)
+        layout::Node::with_children(bounds, children)
     }
 
     fn operate(
@@ -531,7 +546,8 @@ where
 
                             let splits = node.split_regions(
                                 self.spacing,
-                                Size::new(bounds.width, bounds.height),
+                                self.min_size,
+                                bounds.size(),
                             );
 
                             let clicked_split = hovered_split(
@@ -640,7 +656,8 @@ where
 
                         let splits = node.split_regions(
                             self.spacing,
-                            Size::new(bounds.width, bounds.height),
+                            self.min_size,
+                            bounds.size(),
                         );
 
                         if let Some((axis, rectangle, _)) = splits.get(&split) {
@@ -652,7 +669,7 @@ where
                                             - rectangle.y;
 
                                         (position / rectangle.height)
-                                            .clamp(0.1, 0.9)
+                                            .clamp(0.0, 1.0)
                                     }
                                     Axis::Vertical => {
                                         let position = cursor_position.x
@@ -660,7 +677,7 @@ where
                                             - rectangle.x;
 
                                         (position / rectangle.width)
-                                            .clamp(0.1, 0.9)
+                                            .clamp(0.0, 1.0)
                                     }
                                 };
 
@@ -781,7 +798,11 @@ where
             .and_then(|(split, axis)| {
                 let bounds = layout.bounds();
 
-                let splits = node.split_regions(self.spacing, bounds.size());
+                let splits = node.split_regions(
+                    self.spacing,
+                    self.min_size,
+                    bounds.size(),
+                );
 
                 let (_axis, region, ratio) = splits.get(&split)?;
 
@@ -800,8 +821,11 @@ where
                         cursor_position.y - bounds.y,
                     );
 
-                    let splits =
-                        node.split_regions(self.spacing, bounds.size());
+                    let splits = node.split_regions(
+                        self.spacing,
+                        self.min_size,
+                        bounds.size(),
+                    );
 
                     let (_split, axis, region) = hovered_split(
                         splits.iter(),
@@ -977,7 +1001,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,

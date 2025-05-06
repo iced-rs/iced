@@ -381,14 +381,14 @@ where
         {
             let label = option.to_string();
 
-            paragraph.update(Text {
+            let _ = paragraph.update(Text {
                 content: &label,
                 ..option_text
             });
         }
 
         if let Some(placeholder) = &self.placeholder {
-            state.placeholder.update(Text {
+            let _ = state.placeholder.update(Text {
                 content: placeholder,
                 ..option_text
             });
@@ -690,7 +690,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
@@ -722,7 +722,11 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            Some(menu.overlay(layout.position() + translation, bounds.height))
+            Some(menu.overlay(
+                layout.position() + translation,
+                *viewport,
+                bounds.height,
+            ))
         } else {
             None
         }

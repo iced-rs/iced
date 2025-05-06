@@ -19,17 +19,14 @@
 pub mod viewer;
 pub use viewer::Viewer;
 
-use crate::core;
-use crate::core::border;
 use crate::core::image;
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Shadow,
-    Size, Vector, Widget,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size,
+    Vector, Widget,
 };
 
 pub use image::{FilterMethod, Handle};
@@ -58,10 +55,7 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[allow(missing_debug_implementations)]
-pub struct Image<'a, Handle = image::Handle, Theme = crate::Theme>
-where
-    Theme: Catalog,
-{
+pub struct Image<Handle = image::Handle> {
     handle: Handle,
     width: Length,
     height: Length,
@@ -70,14 +64,9 @@ where
     rotation: Rotation,
     opacity: f32,
     scale: f32,
-    translate: Option<Box<dyn Fn(Rectangle, Rectangle) -> Vector + 'a>>,
-    class: Theme::Class<'a>,
 }
 
-impl<'a, Handle, Theme> Image<'a, Handle, Theme>
-where
-    Theme: Catalog,
-{
+impl<Handle> Image<Handle> {
     /// Creates a new [`Image`] with the given path.
     pub fn new(handle: impl Into<Handle>) -> Self {
         Image {
@@ -89,8 +78,6 @@ where
             rotation: Rotation::default(),
             opacity: 1.0,
             scale: 1.0,
-            translate: None,
-            class: Theme::default(),
         }
     }
 
@@ -141,40 +128,6 @@ where
     /// This can be useful to create certain effects and animations, like smooth zoom in / out.
     pub fn scale(mut self, scale: impl Into<f32>) -> Self {
         self.scale = scale.into();
-        self
-    }
-
-    /// Sets the translation that should be applied to an [`Image`], potentially making it
-    /// float above other content.
-    ///
-    /// This method takes a closure that will receive the non-scaled bounds of the [`Image`]
-    /// and the bounds of the viewport. The closure must produce a [`Vector`] representing
-    /// the translation to be applied.
-    ///
-    /// Translating can be useful to ensure images stay visible inside the viewport.
-    pub fn translate(
-        mut self,
-        translate: impl Fn(Rectangle, Rectangle) -> Vector + 'a,
-    ) -> Self {
-        self.translate = Some(Box::new(translate));
-        self
-    }
-
-    /// Sets the style of the [`Image`].
-    #[must_use]
-    pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
-    where
-        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
-    {
-        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
-        self
-    }
-
-    /// Sets the style class of the [`Image`].
-    #[cfg(feature = "advanced")]
-    #[must_use]
-    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
-        self.class = class.into();
         self
     }
 }
@@ -273,8 +226,6 @@ pub fn draw<Renderer, Handle>(
     rotation: Rotation,
     opacity: f32,
     scale: f32,
-    translate: Option<&dyn Fn(Rectangle, Rectangle) -> Vector>,
-    style: Style,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -284,12 +235,6 @@ pub fn draw<Renderer, Handle>(
         drawing_bounds(renderer, bounds, handle, content_fit, rotation, scale);
 
     if must_clip(bounds, drawing_bounds) {
-        if translate.is_some_and(|translate| {
-            scale > 1.0 || translate(bounds, *viewport) != Vector::ZERO
-        }) {
-            return;
-        }
-
         if let Some(bounds) = bounds.intersection(viewport) {
             renderer.with_layer(bounds, |renderer| {
                 render(
@@ -310,17 +255,6 @@ pub fn draw<Renderer, Handle>(
             rotation,
             opacity,
             drawing_bounds,
-        );
-    }
-
-    if style.shadow.color.a > 0.0 {
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds: bounds.shrink(1.0),
-                shadow: style.shadow,
-                border: border::rounded(style.shadow_border_radius),
-            },
-            style.shadow.color,
         );
     }
 }
@@ -349,11 +283,10 @@ fn render<Renderer, Handle>(
 }
 
 impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
-    for Image<'_, Handle, Theme>
+    for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
-    Theme: Catalog,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -383,7 +316,7 @@ where
         &self,
         _state: &Tree,
         renderer: &mut Renderer,
-        theme: &Theme,
+        _theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
@@ -399,183 +332,17 @@ where
             self.rotation,
             self.opacity,
             self.scale,
-            self.translate.as_deref(),
-            theme.style(&self.class),
         );
-    }
-
-    fn overlay<'a>(
-        &'a mut self,
-        _state: &'a mut Tree,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        let translate = self.translate.as_ref()?;
-        let bounds = layout.bounds() + translation;
-        let drawing_bounds = drawing_bounds(
-            renderer,
-            bounds,
-            &self.handle,
-            self.content_fit,
-            self.rotation,
-            self.scale,
-        );
-
-        if must_clip(bounds, drawing_bounds) {
-            let translate = translate(bounds, *viewport);
-
-            if self.scale <= 1.0 && translate == Vector::ZERO {
-                return None;
-            }
-
-            Some(overlay::Element::new(Box::new(Overlay {
-                image: self,
-                viewport: *viewport,
-                clip_bounds: bounds + translate,
-                drawing_bounds: drawing_bounds + translate,
-            })))
-        } else {
-            None
-        }
     }
 }
 
-impl<'a, Message, Theme, Renderer, Handle> From<Image<'a, Handle, Theme>>
+impl<'a, Message, Theme, Renderer, Handle> From<Image<Handle>>
     for Element<'a, Message, Theme, Renderer>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + 'a,
-    Theme: Catalog + 'a,
 {
-    fn from(
-        image: Image<'a, Handle, Theme>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn from(image: Image<Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(image)
-    }
-}
-
-/// The theme catalog of an [`Image`].
-///
-/// All themes that can be used with [`Image`]
-/// must implement this trait.
-pub trait Catalog {
-    /// The item class of the [`Catalog`].
-    type Class<'a>;
-
-    /// The default class produced by the [`Catalog`].
-    fn default<'a>() -> Self::Class<'a>;
-
-    /// The [`Style`] of a class with the given status.
-    fn style(&self, class: &Self::Class<'_>) -> Style;
-}
-
-/// A styling function for an [`Image`].
-pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
-
-impl Catalog for crate::Theme {
-    type Class<'a> = StyleFn<'a, Self>;
-
-    fn default<'a>() -> Self::Class<'a> {
-        Box::new(|_| Style::default())
-    }
-
-    fn style(&self, class: &Self::Class<'_>) -> Style {
-        class(self)
-    }
-}
-
-/// The style of an [`Image`].
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Style {
-    /// The [`Shadow`] of the [`Image`].
-    pub shadow: Shadow,
-    /// The border radius of the shadow.
-    pub shadow_border_radius: border::Radius,
-}
-
-struct Overlay<'a, 'b, Handle, Theme>
-where
-    Theme: Catalog,
-{
-    image: &'a Image<'b, Handle, Theme>,
-    viewport: Rectangle,
-    clip_bounds: Rectangle,
-    drawing_bounds: Rectangle,
-}
-
-impl<Message, Theme, Renderer, Handle> core::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Handle, Theme>
-where
-    Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone,
-    Theme: Catalog,
-{
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        layout::Node::new(self.clip_bounds.size())
-            .move_to(self.clip_bounds.position())
-    }
-
-    fn is_over(
-        &self,
-        _layout: Layout<'_>,
-        _renderer: &Renderer,
-        _cursor_position: Point,
-    ) -> bool {
-        false
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Theme,
-        _style: &renderer::Style,
-        layout: Layout<'_>,
-        _cursor: mouse::Cursor,
-    ) {
-        let bounds = layout.bounds();
-        let clip_bounds = bounds.zoom(self.image.scale);
-
-        let Some(clip_bounds) = clip_bounds.intersection(&self.viewport) else {
-            return;
-        };
-
-        let style = theme.style(&self.image.class);
-
-        if style.shadow.color.a > 0.0 {
-            renderer.with_layer(
-                clip_bounds.expand(style.shadow.blur_radius),
-                |renderer| {
-                    renderer.fill_quad(
-                        renderer::Quad {
-                            bounds: self
-                                .drawing_bounds
-                                .intersection(&clip_bounds)
-                                .unwrap_or(self.drawing_bounds)
-                                .shrink(1.0),
-                            shadow: style.shadow,
-                            border: border::rounded(style.shadow_border_radius),
-                        },
-                        style.shadow.color,
-                    );
-                },
-            );
-        }
-
-        renderer.with_layer(clip_bounds, |renderer| {
-            render(
-                renderer,
-                &self.image.handle,
-                self.image.filter_method,
-                self.image.rotation,
-                self.image.opacity,
-                self.drawing_bounds,
-            );
-        });
-    }
-
-    fn index(&self) -> f32 {
-        self.image.scale * 0.5
     }
 }

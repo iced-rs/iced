@@ -18,7 +18,7 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    self, Clipboard, Event, Length, Point, Rectangle, Shell, Size, Vector,
+    self, Clipboard, Event, Length, Rectangle, Shell, Size, Vector,
 };
 use crate::runtime::overlay::Nested;
 
@@ -265,7 +265,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -281,10 +281,11 @@ where
                 .take()
                 .unwrap(),
             tree: &mut tree.children[0],
-            overlay_builder: |element, tree| {
+            layout,
+            overlay_builder: |element, tree, layout| {
                 element
                     .as_widget_mut()
-                    .overlay(tree, layout, renderer, viewport, translation)
+                    .overlay(tree, *layout, renderer, viewport, translation)
                     .map(|overlay| RefCell::new(Nested::new(overlay)))
             },
         }
@@ -312,8 +313,9 @@ struct Inner<'a, Message: 'a, Theme: 'a, Renderer: 'a> {
     cell: Rc<RefCell<Option<Element<'static, Message, Theme, Renderer>>>>,
     element: Element<'static, Message, Theme, Renderer>,
     tree: &'a mut Tree,
+    layout: Layout<'a>,
 
-    #[borrows(mut element, mut tree)]
+    #[borrows(mut element, mut tree, layout)]
     #[not_covariant]
     overlay: Option<RefCell<Nested<'this, Message, Theme, Renderer>>>,
 }
@@ -376,11 +378,10 @@ where
         &self,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(layout, cursor, viewport, renderer)
+            overlay.mouse_interaction(layout, cursor, renderer)
         })
         .unwrap_or_default()
     }
@@ -397,18 +398,6 @@ where
         let _ = self.with_overlay_mut_maybe(|overlay| {
             overlay.update(event, layout, cursor, renderer, clipboard, shell);
         });
-    }
-
-    fn is_over(
-        &self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        cursor_position: Point,
-    ) -> bool {
-        self.with_overlay_maybe(|overlay| {
-            overlay.is_over(layout, renderer, cursor_position)
-        })
-        .unwrap_or_default()
     }
 }
 

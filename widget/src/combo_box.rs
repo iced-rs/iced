@@ -836,7 +836,7 @@ where
         tree: &'b mut widget::Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let is_focused = {
@@ -889,12 +889,11 @@ where
                     menu = menu.text_size(size);
                 }
 
-                Some(
-                    menu.overlay(
-                        layout.position() + translation,
-                        bounds.height,
-                    ),
-                )
+                Some(menu.overlay(
+                    layout.position() + translation,
+                    *viewport,
+                    bounds.height,
+                ))
             }
         } else {
             None

@@ -122,7 +122,7 @@ fn benchmark<'a>(
             &mut renderer,
         );
 
-        let _ = user_interface.draw(
+        user_interface.draw(
             &mut renderer,
             &Theme::Dark,
             &core::renderer::Style {
@@ -179,9 +179,10 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
                         size: Pixels::from(16),
                         line_height: text::LineHeight::default(),
                         font: Font::DEFAULT,
-                        align_x: alignment::Horizontal::Left,
+                        align_x: text::Alignment::Left,
                         align_y: alignment::Vertical::Top,
                         shaping: text::Shaping::Basic,
+                        max_width: f32::INFINITY,
                     });
                 }
             })]

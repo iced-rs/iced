@@ -50,6 +50,7 @@ where
             content: RefCell::new(Content {
                 size: Size::ZERO,
                 layout: None,
+                is_layout_invalid: true,
                 element: Element::new(horizontal_space().width(0)),
             }),
         }
@@ -59,6 +60,7 @@ where
 struct Content<'a, Message, Theme, Renderer> {
     size: Size,
     layout: Option<layout::Node>,
+    is_layout_invalid: bool,
     element: Element<'a, Message, Theme, Renderer>,
 }
 
@@ -67,12 +69,13 @@ where
     Renderer: core::Renderer,
 {
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer) {
-        if self.layout.is_none() {
+        if self.layout.is_none() || self.is_layout_invalid {
             self.layout = Some(self.element.as_widget().layout(
                 tree,
                 renderer,
                 &layout::Limits::new(Size::ZERO, self.size),
             ));
+            self.is_layout_invalid = false;
         }
     }
 
@@ -281,7 +284,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -305,6 +308,7 @@ where
                 let Content {
                     element,
                     layout: content_layout_node,
+                    is_layout_invalid,
                     ..
                 } = content.deref_mut();
 
@@ -324,7 +328,7 @@ where
                             translation,
                         )
                         .map(|overlay| RefCell::new(Nested::new(overlay))),
-                    content_layout_node,
+                    is_layout_invalid,
                 )
             },
         }
@@ -361,7 +365,7 @@ struct Overlay<'a, 'b, Message, Theme, Renderer> {
     #[not_covariant]
     overlay: (
         Option<RefCell<Nested<'this, Message, Theme, Renderer>>>,
-        &'this mut Option<layout::Node>,
+        &'this mut bool,
     ),
 }
 
@@ -412,11 +416,10 @@ where
         &self,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(layout, cursor, viewport, renderer)
+            overlay.mouse_interaction(layout, cursor, renderer)
         })
         .unwrap_or_default()
     }
@@ -440,21 +443,9 @@ where
 
         if is_layout_invalid {
             self.with_overlay_mut(|(_overlay, layout)| {
-                **layout = None;
+                **layout = true;
             });
         }
-    }
-
-    fn is_over(
-        &self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        cursor_position: Point,
-    ) -> bool {
-        self.with_overlay_maybe(|overlay| {
-            overlay.is_over(layout, renderer, cursor_position)
-        })
-        .unwrap_or_default()
     }
 
     fn operate(

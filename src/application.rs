@@ -40,6 +40,10 @@ use crate::{
 
 use std::borrow::Cow;
 
+pub mod timed;
+
+pub use timed::timed;
+
 /// Creates an iced [`Application`] given its boot, update, and view logic.
 ///
 /// # Example
@@ -75,7 +79,7 @@ pub fn application<State, Message, Theme, Renderer>(
 ) -> Application<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
-    Message: Send + std::fmt::Debug + 'static,
+    Message: program::Message + 'static,
     Theme: Default + theme::Base,
     Renderer: program::Renderer,
 {
@@ -94,7 +98,7 @@ where
     impl<State, Message, Theme, Renderer, Boot, Update, View> Program
         for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
-        Message: Send + std::fmt::Debug + 'static,
+        Message: program::Message + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
         Boot: self::Boot<State, Message>,
@@ -170,7 +174,15 @@ impl<P: Program> Application<P> {
         Self: 'static,
     {
         #[cfg(all(feature = "debug", not(target_arch = "wasm32")))]
-        let program = iced_devtools::attach(self.raw);
+        let program = {
+            iced_debug::init(iced_debug::Metadata {
+                name: P::name(),
+                theme: None,
+                can_time_travel: cfg!(feature = "time-travel"),
+            });
+
+            iced_devtools::attach(self.raw)
+        };
 
         #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
         let program = self.raw;

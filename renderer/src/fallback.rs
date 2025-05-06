@@ -84,6 +84,7 @@ where
     type Paragraph = A::Paragraph;
     type Editor = A::Editor;
 
+    const MONOSPACE_FONT: Self::Font = A::MONOSPACE_FONT;
     const ICON_FONT: Self::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
@@ -534,6 +535,14 @@ mod geometry {
                 frame,
                 frame.stroke_rectangle(top_left, size, stroke)
             );
+        }
+
+        fn stroke_text<'a>(
+            &mut self,
+            text: impl Into<Text>,
+            stroke: impl Into<Stroke<'a>>,
+        ) {
+            delegate!(self, frame, frame.stroke_text(text, stroke));
         }
 
         fn fill_text(&mut self, text: impl Into<Text>) {

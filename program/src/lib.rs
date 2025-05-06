@@ -22,7 +22,7 @@ pub trait Program: Sized {
     type State;
 
     /// The message of the program.
-    type Message: Send + std::fmt::Debug + 'static;
+    type Message: Message + 'static;
 
     /// The theme of the program.
     type Theme: Default + theme::Base;
@@ -642,3 +642,17 @@ impl<P: Program> Instance<P> {
         self.program.scale_factor(&self.state, window)
     }
 }
+
+/// A trait alias for the [`Message`](Program::Message) of a [`Program`].
+#[cfg(feature = "time-travel")]
+pub trait Message: Send + std::fmt::Debug + Clone {}
+
+#[cfg(feature = "time-travel")]
+impl<T: Send + std::fmt::Debug + Clone> Message for T {}
+
+/// A trait alias for the [`Message`](Program::Message) of a [`Program`].
+#[cfg(not(feature = "time-travel"))]
+pub trait Message: Send + std::fmt::Debug {}
+
+#[cfg(not(feature = "time-travel"))]
+impl<T: Send + std::fmt::Debug> Message for T {}

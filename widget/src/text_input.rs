@@ -57,8 +57,9 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, InputMethod, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Alignment, Background, Border, Color, Element, Event, InputMethod, Layout,
+    Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
+    Widget,
 };
 use crate::runtime::Action;
 use crate::runtime::task::{self, Task};
@@ -325,12 +326,12 @@ where
             wrapping: text::Wrapping::default(),
         };
 
-        state.placeholder.update(placeholder_text);
+        let _ = state.placeholder.update(placeholder_text);
 
         let secure_value = self.is_secure.then(|| value.secure());
         let value = secure_value.as_ref().unwrap_or(value);
 
-        state.value.update(Text {
+        let _ = state.value.update(Text {
             content: &value.to_string(),
             ..placeholder_text
         });
@@ -350,7 +351,7 @@ where
                 wrapping: text::Wrapping::default(),
             };
 
-            state.icon.update(icon_text);
+            let _ = state.icon.update(icon_text);
 
             let icon_width = state.icon.min_width();
 
@@ -481,9 +482,15 @@ where
         if self.icon.is_some() {
             let icon_layout = children_layout.next().unwrap();
 
+            let icon = state.icon.raw();
+
             renderer.fill_paragraph(
-                state.icon.raw(),
-                icon_layout.bounds().center(),
+                icon,
+                icon_layout.bounds().anchor(
+                    icon.min_bounds(),
+                    Alignment::Center,
+                    Alignment::Center,
+                ),
                 style.icon,
                 *viewport,
             );
@@ -609,8 +616,11 @@ where
 
             renderer.fill_paragraph(
                 paragraph,
-                Point::new(text_bounds.x, text_bounds.center_y())
-                    + Vector::new(alignment_offset - offset, 0.0),
+                text_bounds.anchor(
+                    paragraph.min_bounds(),
+                    Alignment::Start,
+                    Alignment::Center,
+                ) + Vector::new(alignment_offset - offset, 0.0),
                 if text.is_empty() {
                     style.placeholder
                 } else {
@@ -1724,7 +1734,7 @@ fn replace_paragraph<Renderer>(
     state.value = paragraph::Plain::new(Text {
         font,
         line_height,
-        content: &value.to_string(),
+        content: value.to_string(),
         bounds: Size::new(f32::INFINITY, text_bounds.height),
         size: text_size,
         align_x: text::Alignment::Default,

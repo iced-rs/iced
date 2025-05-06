@@ -169,7 +169,7 @@ impl Theme {
         });
 
         let mut text = canvas::Text {
-            align_x: alignment::Horizontal::Center,
+            align_x: text::Alignment::Center,
             align_y: alignment::Vertical::Top,
             size: Pixels(15.0),
             color: text_color,

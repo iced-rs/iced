@@ -28,8 +28,7 @@ use crate::text;
 use crate::text::paragraph::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme,
-    Widget,
+    Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget,
 };
 
 pub use text::{Alignment, LineHeight, Shaping, Wrapping};
@@ -63,15 +62,7 @@ where
     Renderer: text::Renderer,
 {
     fragment: text::Fragment<'a>,
-    size: Option<Pixels>,
-    line_height: LineHeight,
-    width: Length,
-    height: Length,
-    align_x: text::Alignment,
-    align_y: alignment::Vertical,
-    font: Option<Renderer::Font>,
-    shaping: Shaping,
-    wrapping: Wrapping,
+    format: Format<Renderer::Font>,
     class: Theme::Class<'a>,
 }
 
@@ -84,28 +75,20 @@ where
     pub fn new(fragment: impl text::IntoFragment<'a>) -> Self {
         Text {
             fragment: fragment.into_fragment(),
-            size: None,
-            line_height: LineHeight::default(),
-            font: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
-            align_x: text::Alignment::Default,
-            align_y: alignment::Vertical::Top,
-            shaping: Shaping::default(),
-            wrapping: Wrapping::default(),
+            format: Format::default(),
             class: Theme::default(),
         }
     }
 
     /// Sets the size of the [`Text`].
     pub fn size(mut self, size: impl Into<Pixels>) -> Self {
-        self.size = Some(size.into());
+        self.format.size = Some(size.into());
         self
     }
 
     /// Sets the [`LineHeight`] of the [`Text`].
     pub fn line_height(mut self, line_height: impl Into<LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.format.line_height = line_height.into();
         self
     }
 
@@ -113,19 +96,19 @@ where
     ///
     /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
-        self.font = Some(font.into());
+        self.format.font = Some(font.into());
         self
     }
 
     /// Sets the width of the [`Text`] boundaries.
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+        self.format.width = width.into();
         self
     }
 
     /// Sets the height of the [`Text`] boundaries.
     pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
+        self.format.height = height.into();
         self
     }
 
@@ -137,7 +120,7 @@ where
 
     /// Sets the [`alignment::Horizontal`] of the [`Text`].
     pub fn align_x(mut self, alignment: impl Into<text::Alignment>) -> Self {
-        self.align_x = alignment.into();
+        self.format.align_x = alignment.into();
         self
     }
 
@@ -146,19 +129,19 @@ where
         mut self,
         alignment: impl Into<alignment::Vertical>,
     ) -> Self {
-        self.align_y = alignment.into();
+        self.format.align_y = alignment.into();
         self
     }
 
     /// Sets the [`Shaping`] strategy of the [`Text`].
     pub fn shaping(mut self, shaping: Shaping) -> Self {
-        self.shaping = shaping;
+        self.format.shaping = shaping;
         self
     }
 
     /// Sets the [`Wrapping`] strategy of the [`Text`].
     pub fn wrapping(mut self, wrapping: Wrapping) -> Self {
-        self.wrapping = wrapping;
+        self.format.wrapping = wrapping;
         self
     }
 
@@ -200,8 +183,7 @@ where
 }
 
 /// The internal state of a [`Text`] widget.
-#[derive(Debug, Default)]
-pub struct State<P: Paragraph>(pub paragraph::Plain<P>);
+pub type State<P> = paragraph::Plain<P>;
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Text<'_, Theme, Renderer>
@@ -214,15 +196,13 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::<Renderer::Paragraph>(
-            paragraph::Plain::default(),
-        ))
+        tree::State::new(paragraph::Plain::<Renderer::Paragraph>::default())
     }
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width,
-            height: self.height,
+            width: self.format.width,
+            height: self.format.height,
         }
     }
 
@@ -236,16 +216,8 @@ where
             tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
             renderer,
             limits,
-            self.width,
-            self.height,
             &self.fragment,
-            self.line_height,
-            self.size,
-            self.font,
-            self.align_x,
-            self.align_y,
-            self.shaping,
-            self.wrapping,
+            self.format,
         )
     }
 
@@ -262,7 +234,14 @@ where
         let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
         let style = theme.style(&self.class);
 
-        draw(renderer, defaults, layout, state.0.raw(), style, viewport);
+        draw(
+            renderer,
+            defaults,
+            layout.bounds(),
+            state.raw(),
+            style,
+            viewport,
+        );
     }
 
     fn operate(
@@ -276,43 +255,67 @@ where
     }
 }
 
+/// The format of some [`Text`].
+///
+/// Check out the methods of the [`Text`] widget
+/// to learn more about each field.
+#[derive(Debug, Clone, Copy)]
+#[allow(missing_docs)]
+pub struct Format<Font> {
+    pub width: Length,
+    pub height: Length,
+    pub size: Option<Pixels>,
+    pub font: Option<Font>,
+    pub line_height: LineHeight,
+    pub align_x: text::Alignment,
+    pub align_y: alignment::Vertical,
+    pub shaping: Shaping,
+    pub wrapping: Wrapping,
+}
+
+impl<Font> Default for Format<Font> {
+    fn default() -> Self {
+        Self {
+            size: None,
+            line_height: LineHeight::default(),
+            font: None,
+            width: Length::Shrink,
+            height: Length::Shrink,
+            align_x: text::Alignment::Default,
+            align_y: alignment::Vertical::Top,
+            shaping: Shaping::default(),
+            wrapping: Wrapping::default(),
+        }
+    }
+}
+
 /// Produces the [`layout::Node`] of a [`Text`] widget.
 pub fn layout<Renderer>(
-    state: &mut State<Renderer::Paragraph>,
+    paragraph: &mut paragraph::Plain<Renderer::Paragraph>,
     renderer: &Renderer,
     limits: &layout::Limits,
-    width: Length,
-    height: Length,
     content: &str,
-    line_height: LineHeight,
-    size: Option<Pixels>,
-    font: Option<Renderer::Font>,
-    align_x: text::Alignment,
-    align_y: alignment::Vertical,
-    shaping: Shaping,
-    wrapping: Wrapping,
+    format: Format<Renderer::Font>,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
 {
-    layout::sized(limits, width, height, |limits| {
+    layout::sized(limits, format.width, format.height, |limits| {
         let bounds = limits.max();
 
-        let size = size.unwrap_or_else(|| renderer.default_size());
-        let font = font.unwrap_or_else(|| renderer.default_font());
+        let size = format.size.unwrap_or_else(|| renderer.default_size());
+        let font = format.font.unwrap_or_else(|| renderer.default_font());
 
-        let State(paragraph) = state;
-
-        paragraph.update(text::Text {
+        let _ = paragraph.update(text::Text {
             content,
             bounds,
             size,
-            line_height,
+            line_height: format.line_height,
             font,
-            align_x,
-            align_y,
-            shaping,
-            wrapping,
+            align_x: format.align_x,
+            align_y: format.align_y,
+            shaping: format.shaping,
+            wrapping: format.wrapping,
         });
 
         paragraph.min_bounds()
@@ -320,42 +323,25 @@ where
 }
 
 /// Draws text using the same logic as the [`Text`] widget.
-///
-/// Specifically:
-///
-/// * If no `size` is provided, the default text size of the `Renderer` will be
-///   used.
-/// * If no `color` is provided, the [`renderer::Style::text_color`] will be
-///   used.
-/// * The alignment attributes do not affect the position of the bounds of the
-///   [`Layout`].
 pub fn draw<Renderer>(
     renderer: &mut Renderer,
     style: &renderer::Style,
-    layout: Layout<'_>,
+    bounds: Rectangle,
     paragraph: &Renderer::Paragraph,
     appearance: Style,
     viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
 {
-    let bounds = layout.bounds();
-
-    let x = match paragraph.align_x() {
-        Alignment::Default | Alignment::Left | Alignment::Justified => bounds.x,
-        Alignment::Center => bounds.center_x(),
-        Alignment::Right => bounds.x + bounds.width,
-    };
-
-    let y = match paragraph.align_y() {
-        alignment::Vertical::Top => bounds.y,
-        alignment::Vertical::Center => bounds.center_y(),
-        alignment::Vertical::Bottom => bounds.y + bounds.height,
-    };
+    let anchor = bounds.anchor(
+        paragraph.min_bounds(),
+        paragraph.align_x(),
+        paragraph.align_y(),
+    );
 
     renderer.fill_paragraph(
         paragraph,
-        Point::new(x, y),
+        anchor,
         appearance.color.unwrap_or(style.text_color),
         *viewport,
     );
