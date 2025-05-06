@@ -243,16 +243,19 @@ impl Rectangle<f32> {
 
     /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
     pub fn snap(self) -> Option<Rectangle<u32>> {
-        let width = self.width as u32;
-        let height = self.height as u32;
+        let top_left = self.position().snap();
+        let bottom_right = (self.position() + self.size().into()).snap();
+
+        let width = bottom_right.x - top_left.x;
+        let height = bottom_right.y - top_left.y;
 
         if width < 1 || height < 1 {
             return None;
         }
 
         Some(Rectangle {
-            x: self.x as u32,
-            y: self.y as u32,
+            x: top_left.x,
+            y: top_left.y,
             width,
             height,
         })
