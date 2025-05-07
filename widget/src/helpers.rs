@@ -655,7 +655,7 @@ where
         ) {
             let is_mouse_press = matches!(
                 event,
-                core::Event::Mouse(mouse::Event::ButtonPressed(_))
+                core::Event::Mouse(mouse::Event::ButtonPressed { .. })
             );
 
             self.content.as_widget_mut().update(
@@ -892,7 +892,7 @@ where
                 event,
                 Event::Mouse(
                     mouse::Event::CursorMoved { .. }
-                        | mouse::Event::ButtonReleased(_)
+                        | mouse::Event::ButtonReleased { .. }
                 )
             ) || is_visible
             {
