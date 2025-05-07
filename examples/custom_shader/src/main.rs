@@ -9,6 +9,8 @@ use iced::window;
 use iced::{Center, Color, Element, Fill, Subscription};
 
 fn main() -> iced::Result {
+    #[cfg(target_arch = "wasm32")]
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     iced::application(IcedCubes::default, IcedCubes::update, IcedCubes::view)
         .subscription(IcedCubes::subscription)
         .run()
