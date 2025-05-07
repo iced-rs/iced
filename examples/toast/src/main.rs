@@ -187,11 +187,17 @@ mod toast {
         Secondary,
         Success,
         Danger,
+        Warning,
     }
 
     impl Status {
-        pub const ALL: &'static [Self] =
-            &[Self::Primary, Self::Secondary, Self::Success, Self::Danger];
+        pub const ALL: &'static [Self] = &[
+            Self::Primary,
+            Self::Secondary,
+            Self::Success,
+            Self::Danger,
+            Self::Warning,
+        ];
     }
 
     impl fmt::Display for Status {
@@ -201,6 +207,7 @@ mod toast {
                 Status::Secondary => "Secondary",
                 Status::Success => "Success",
                 Status::Danger => "Danger",
+                Status::Warning => "Warning",
             }
             .fmt(f)
         }
@@ -251,6 +258,7 @@ mod toast {
                             Status::Secondary => secondary,
                             Status::Success => success,
                             Status::Danger => danger,
+                            Status::Warning => warning,
                         }),
                         rule::horizontal(1),
                         container(text(toast.body.as_str()))
@@ -663,5 +671,11 @@ mod toast {
         let palette = theme.extended_palette();
 
         styled(palette.danger.weak)
+    }
+
+    fn warning(theme: &Theme) -> container::Style {
+        let palette = theme.extended_palette();
+
+        styled(palette.warning.weak)
     }
 }
