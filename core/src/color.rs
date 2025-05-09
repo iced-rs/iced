@@ -1,4 +1,15 @@
+use std::{fmt::Display, num::ParseIntError, str::FromStr};
+
+use thiserror::Error;
+
 /// A color in the `sRGB` color space.
+///
+/// # String Representation
+///
+/// A color can be represented in either of the following valid formats: `#rrggbb`, `#rrggbbaa`, `#rgb`, and `#rgba`.
+/// Both uppercase and lowercase letters are supported.
+///
+/// If `a` (transparency) is not specified, `1.0` (completely opaque) would be used by default.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Color {
@@ -108,41 +119,7 @@ impl Color {
     ///
     /// [`color!`]: crate::color!
     pub fn parse(s: &str) -> Option<Color> {
-        let hex = s.strip_prefix('#').unwrap_or(s);
-
-        let parse_channel = |from: usize, to: usize| {
-            let num =
-                usize::from_str_radix(&hex[from..=to], 16).ok()? as f32 / 255.0;
-
-            // If we only got half a byte (one letter), expand it into a full byte (two letters)
-            Some(if from == to { num + num * 16.0 } else { num })
-        };
-
-        Some(match hex.len() {
-            3 => Color::from_rgb(
-                parse_channel(0, 0)?,
-                parse_channel(1, 1)?,
-                parse_channel(2, 2)?,
-            ),
-            4 => Color::from_rgba(
-                parse_channel(0, 0)?,
-                parse_channel(1, 1)?,
-                parse_channel(2, 2)?,
-                parse_channel(3, 3)?,
-            ),
-            6 => Color::from_rgb(
-                parse_channel(0, 1)?,
-                parse_channel(2, 3)?,
-                parse_channel(4, 5)?,
-            ),
-            8 => Color::from_rgba(
-                parse_channel(0, 1)?,
-                parse_channel(2, 3)?,
-                parse_channel(4, 5)?,
-                parse_channel(6, 7)?,
-            ),
-            _ => None?,
-        })
+        s.parse().ok()
     }
 
     /// Converts the [`Color`] into its RGBA8 equivalent.
@@ -206,6 +183,76 @@ impl From<[f32; 3]> for Color {
 impl From<[f32; 4]> for Color {
     fn from([r, g, b, a]: [f32; 4]) -> Self {
         Color::new(r, g, b, a)
+    }
+}
+
+/// An error which can be returned when parsing color from an RGB hexadecimal string.
+///
+/// See [`Color`] for specifications for the string.
+#[derive(Debug, Error)]
+pub enum ParseColorError {
+    /// The string could not be parsed to valid integers.
+    #[error(transparent)]
+    ParseIntError(#[from] ParseIntError),
+    /// The string is of invalid length.
+    #[error(
+        "expected hex string of length 3, 4, 6 or 8 excluding optional prefix '#', found {0}"
+    )]
+    InvalidLength(usize),
+}
+
+impl FromStr for Color {
+    type Err = ParseColorError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let hex = s.strip_prefix('#').unwrap_or(s);
+
+        let parse_channel =
+            |from: usize, to: usize| -> Result<f32, ParseIntError> {
+                let num =
+                    usize::from_str_radix(&hex[from..=to], 16)? as f32 / 255.0;
+
+                // If we only got half a byte (one letter), expand it into a full byte (two letters)
+                Ok(if from == to { num + num * 16.0 } else { num })
+            };
+
+        let val = match hex.len() {
+            3 => Color::from_rgb(
+                parse_channel(0, 0)?,
+                parse_channel(1, 1)?,
+                parse_channel(2, 2)?,
+            ),
+            4 => Color::from_rgba(
+                parse_channel(0, 0)?,
+                parse_channel(1, 1)?,
+                parse_channel(2, 2)?,
+                parse_channel(3, 3)?,
+            ),
+            6 => Color::from_rgb(
+                parse_channel(0, 1)?,
+                parse_channel(2, 3)?,
+                parse_channel(4, 5)?,
+            ),
+            8 => Color::from_rgba(
+                parse_channel(0, 1)?,
+                parse_channel(2, 3)?,
+                parse_channel(4, 5)?,
+                parse_channel(6, 7)?,
+            ),
+            _ => return Err(ParseColorError::InvalidLength(hex.len())),
+        };
+
+        Ok(val)
+    }
+}
+
+impl Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let [r, g, b, a] = self.into_rgba8();
+        if self.a == 1.0 {
+            return write!(f, "#{r:02x}{g:02x}{b:02x}");
+        }
+        write!(f, "#{r:02x}{g:02x}{b:02x}{a:02x}")
     }
 }
 
