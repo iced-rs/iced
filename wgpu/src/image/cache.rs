@@ -16,7 +16,7 @@ impl Cache {
     pub fn new(
         device: &wgpu::Device,
         backend: wgpu::Backend,
-        layout: Arc<wgpu::BindGroupLayout>,
+        layout: wgpu::BindGroupLayout,
     ) -> Self {
         Self {
             atlas: Atlas::new(device, backend, layout),
