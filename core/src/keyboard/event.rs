@@ -18,9 +18,6 @@ pub enum Event {
         /// The key pressed with all keyboard modifiers applied, except Ctrl.
         modified_key: Key,
 
-        /// The physical key pressed.
-        physical_key: key::Physical,
-
         /// The location of the key.
         location: Location,
 
@@ -38,9 +35,6 @@ pub enum Event {
 
         /// The key released with all keyboard modifiers applied, except Ctrl.
         modified_key: Key,
-
-        /// The physical key released.
-        physical_key: key::Physical,
 
         /// The location of the key.
         location: Location,

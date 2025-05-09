@@ -348,6 +348,20 @@ impl<P: Program> Application<P> {
         }
     }
 
+    /// Sets the menu logic of the [`Application`].
+    pub fn menu(
+        self,
+        f: impl Fn(&P::State) -> Option<muda::Menu>,
+    ) -> Application<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
+    > {
+        Application {
+            raw: program::with_menu(self.raw, f),
+            settings: self.settings,
+            window: self.window,
+        }
+    }
+
     /// Sets the theme logic of the [`Application`].
     pub fn theme(
         self,

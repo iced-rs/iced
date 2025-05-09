@@ -28,7 +28,6 @@ custom-menu = []
 [dependencies]
 iced_debug.workspace = true
 iced_program.workspace = true
-
 log.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true

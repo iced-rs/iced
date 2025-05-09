@@ -263,7 +263,6 @@ pub fn window_event(
                     keyboard::Event::KeyPressed {
                         key,
                         modified_key,
-                        physical_key,
                         modifiers,
                         location,
                         text,
@@ -273,7 +272,6 @@ pub fn window_event(
                     keyboard::Event::KeyReleased {
                         key,
                         modified_key,
-                        physical_key,
                         modifiers,
                         location,
                     }

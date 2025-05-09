@@ -1,0 +1,27 @@
+[package]
+name = "iced_tao"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+tao.workspace = true
+iced_debug.workspace = true
+iced_program.workspace = true
+thiserror.workspace = true
+muda.workspace = true
+rustc-hash.workspace = true
+window_clipboard.workspace = true
+log.workspace = true
+
+[features]
+program = []
+
+[lints]
+workspace = true

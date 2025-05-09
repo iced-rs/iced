@@ -86,6 +86,10 @@ pub trait Program: Sized {
         Subscription::none()
     }
 
+    fn menu(&self, _state: &Self::State) -> Option<muda::Menu> {
+        None
+    }
+
     fn theme(&self, _state: &Self::State, _window: window::Id) -> Self::Theme {
         <Self::Theme as Default>::default()
     }
@@ -259,6 +263,88 @@ pub fn with_subscription<P: Program>(
         program,
         subscription: f,
     }
+}
+
+/// Decorates a [`Program`] with the given menu function.
+pub fn with_menu<P: Program>(
+    program: P,
+    f: impl Fn(&P::State) -> Option<muda::Menu>,
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+    struct WithMenu<P, F> {
+        program: P,
+        menu: F,
+    }
+
+    impl<P: Program, F> Program for WithMenu<P, F>
+    where
+        F: Fn(&P::State) -> Option<muda::Menu>,
+    {
+        type State = P::State;
+        type Message = P::Message;
+        type Theme = P::Theme;
+        type Renderer = P::Renderer;
+        type Executor = P::Executor;
+
+        fn subscription(
+            &self,
+            state: &Self::State,
+        ) -> Subscription<Self::Message> {
+            self.program.subscription(state)
+        }
+
+        fn name() -> &'static str {
+            P::name()
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.program.boot()
+        }
+
+        fn update(
+            &self,
+            state: &mut Self::State,
+            message: Self::Message,
+        ) -> Task<Self::Message> {
+            self.program.update(state, message)
+        }
+
+        fn view<'a>(
+            &self,
+            state: &'a Self::State,
+            window: window::Id,
+        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+            self.program.view(state, window)
+        }
+
+        fn menu(&self, state: &Self::State) -> Option<muda::Menu> {
+            (self.menu)(state)
+        }
+
+        fn title(&self, state: &Self::State, window: window::Id) -> String {
+            self.program.title(state, window)
+        }
+
+        fn theme(
+            &self,
+            state: &Self::State,
+            window: window::Id,
+        ) -> Self::Theme {
+            self.program.theme(state, window)
+        }
+
+        fn style(
+            &self,
+            state: &Self::State,
+            theme: &Self::Theme,
+        ) -> theme::Style {
+            self.program.style(state, theme)
+        }
+
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+            self.program.scale_factor(state, window)
+        }
+    }
+    WithMenu { program, menu: f }
 }
 
 /// Decorates a [`Program`] with the given theme function.
