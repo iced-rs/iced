@@ -23,7 +23,7 @@ pub struct Atlas {
     texture: wgpu::Texture,
     texture_view: wgpu::TextureView,
     texture_bind_group: wgpu::BindGroup,
-    texture_layout: Arc<wgpu::BindGroupLayout>,
+    texture_layout: wgpu::BindGroupLayout,
     layers: Vec<Layer>,
 }
 
@@ -31,7 +31,7 @@ impl Atlas {
     pub fn new(
         device: &wgpu::Device,
         backend: wgpu::Backend,
-        texture_layout: Arc<wgpu::BindGroupLayout>,
+        texture_layout: wgpu::BindGroupLayout,
     ) -> Self {
         let layers = match backend {
             // On the GL backend we start with 2 layers, to help wgpu figure
