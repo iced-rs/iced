@@ -34,46 +34,71 @@ pkgs.mkShell rec {
 }
 ```
 
-Alternatively, you can use this `flake.nix` to create a dev shell, activated by `nix develop`:
+Alternatively, you can use this `flake.nix` to create a dev shell, activated by `nix develop` and build the package by `nix run`:
 
 ```nix
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {
-    nixpkgs,
-    flake-utils,
-    ...
-  }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
     flake-utils.lib.eachDefaultSystem (
-      system: let
+      system:
+      let
         pkgs = import nixpkgs {
           inherit system;
         };
-
-        buildInputs = with pkgs; [
-          expat
-          fontconfig
-          freetype
-          freetype.dev
-          libGL
+        dependencies = with pkgs; [
+          makeWrapper
           pkg-config
+        ];
+        runtimeDependencies = with pkgs;
+        [ ]
+        ++ lib.optionals stdenv.hostPlatform.isLinux
+          libxkbcommon
+          wayland
           xorg.libX11
           xorg.libXcursor
           xorg.libXi
           xorg.libXrandr
-          wayland
-          libxkbcommon
         ];
-      in {
-        devShells.default = pkgs.mkShell {
-          inherit buildInputs;
-
-          LD_LIBRARY_PATH =
-            builtins.foldl' (a: b: "${a}:${b}/lib") "${pkgs.vulkan-loader}/lib" buildInputs;
+      in
+      {
+        defaultPackage = pkgs.rustPlatform.buildRustPackage {
+          pname = "INSERT NAME OF APP";
+          version = "0.1.0";
+          src = ./.;
+          nativeBuildInputs = runtimeDependencies;
+          buildInputs = dependencies;
+          cargoHash = pkgs.lib.fakeHash;
+          postFixup = pkgs.lib.optional pkgs.stdenv.hostPlatform.isLinux (
+            let
+              rpathWayland = pkgs.lib.makeLibraryPath [
+                pkgs.wayland
+                pkgs.vulkan-loader
+                pkgs.libxkbcommon
+              ];
+            in
+            ''
+              rpath=$(patchelf --print-rpath $out/bin/rust-qr)
+              patchelf --set-rpath "$rpath:${rpathWayland}" $out/bin/rust-qr
+            ''
+          );
+        };
+        formatter = pkgs.nixfmt-tree;
+        devShell = pkgs.mkShell {
+          buildInputs = [
+            dependencies
+            runtimeDependencies
+          ];
+          LD_LIBRARY_PATH = builtins.foldl' (a: b: "${a}:${b}/lib") "${pkgs.vulkan-loader}/lib" runtimeDependencies;
         };
       }
     );
