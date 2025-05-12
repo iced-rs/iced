@@ -97,6 +97,8 @@ impl Pipeline {
                                         "../shader/quad/gradient.wgsl"
                                     ),
                                     "\n",
+                                    include_str!("../shader/color.wgsl"),
+                                    "\n",
                                     include_str!("../shader/color/oklab.wgsl")
                                 )
                             } else {
@@ -108,6 +110,8 @@ impl Pipeline {
                                     include_str!(
                                         "../shader/quad/gradient.wgsl"
                                     ),
+                                    "\n",
+                                    include_str!("../shader/color.wgsl"),
                                     "\n",
                                     include_str!(
                                         "../shader/color/linear_rgb.wgsl"

@@ -5,10 +5,6 @@ struct Globals {
 
 @group(0) @binding(0) var<uniform> globals: Globals;
 
-fn premultiply(color: vec4<f32>) -> vec4<f32> {
-    return vec4(color.xyz * color.a, color.a);
-}
-
 fn distance_alg(
     frag_coord: vec2<f32>,
     position: vec2<f32>,

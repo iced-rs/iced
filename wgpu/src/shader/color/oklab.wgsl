@@ -20,7 +20,7 @@ fn interpolate_color(from_: vec4<f32>, to_: vec4<f32>, factor: f32) -> vec4<f32>
     var color = to_rgb * (mixed * mixed * mixed);
 
     // Alpha interpolation
-    color = to_ * factor + from_ * (1.0 - factor);
+    color.a = mix(from_.a, to_.a, factor);
 
     return color;
 }
