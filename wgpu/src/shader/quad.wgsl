@@ -9,10 +9,6 @@ fn premultiply(color: vec4<f32>) -> vec4<f32> {
     return vec4(color.xyz * color.a, color.a);
 }
 
-fn blend(over: vec4<f32>, under: vec4<f32>, alpha: f32) -> vec4<f32> {
-    return over * alpha + under * (1.0 - alpha);
-}
-
 fn distance_alg(
     frag_coord: vec2<f32>,
     position: vec2<f32>,

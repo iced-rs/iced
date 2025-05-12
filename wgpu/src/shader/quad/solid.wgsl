@@ -97,7 +97,7 @@ fn solid_fs_main(
             internal_distance
         );
 
-        mixed_color = blend(input.border_color, input.color, border_mix);
+        mixed_color = mix(input.color, input.border_color, border_mix);
     }
 
     var dist: f32 = distance_alg(
@@ -125,7 +125,7 @@ fn solid_fs_main(
         let shadow_distance = max(rounded_box_sdf(input.position.xy - input.pos - input.shadow_offset - (input.scale / 2.0), input.scale / 2.0, shadow_radius), 0.);
         let shadow_alpha = 1.0 - smoothstep(-input.shadow_blur_radius, input.shadow_blur_radius, shadow_distance);
 
-        return blend(input.shadow_color, quad_color, (1.0 - radius_alpha) * shadow_alpha);
+        return mix(quad_color, input.shadow_color, (1.0 - radius_alpha) * shadow_alpha);
     } else {
         return quad_color;
     }

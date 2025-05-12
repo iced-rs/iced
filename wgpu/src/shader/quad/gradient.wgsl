@@ -179,7 +179,7 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
             internal_distance
         );
 
-        mixed_color = blend(input.border_color, mixed_color, border_mix);
+        mixed_color = mix(mixed_color, input.border_color, border_mix);
     }
 
     var dist: f32 = distance_alg(
