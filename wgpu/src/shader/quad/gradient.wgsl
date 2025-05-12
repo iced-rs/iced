@@ -56,7 +56,7 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     out.offsets = input.offsets;
     out.direction = input.direction * globals.scale;
     out.position_and_scale = vec4<f32>(pos, scale);
-    out.border_color = input.border_color;
+    out.border_color = premultiply(input.border_color);
     out.border_radius = border_radius * globals.scale;
     out.border_width = input.border_width * globals.scale;
 
@@ -119,14 +119,14 @@ fn gradient(
 @fragment
 fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let colors = array<vec4<f32>, 8>(
-        unpack_u32(input.colors_1.xy),
-        unpack_u32(input.colors_1.zw),
-        unpack_u32(input.colors_2.xy),
-        unpack_u32(input.colors_2.zw),
-        unpack_u32(input.colors_3.xy),
-        unpack_u32(input.colors_3.zw),
-        unpack_u32(input.colors_4.xy),
-        unpack_u32(input.colors_4.zw),
+        unpack_color(input.colors_1.xy),
+        unpack_color(input.colors_1.zw),
+        unpack_color(input.colors_2.xy),
+        unpack_color(input.colors_2.zw),
+        unpack_color(input.colors_3.xy),
+        unpack_color(input.colors_3.zw),
+        unpack_color(input.colors_4.xy),
+        unpack_color(input.colors_4.zw),
     );
 
     let offsets_1: vec4<f32> = unpack_u32(input.offsets.xy);
@@ -179,7 +179,7 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
             internal_distance
         );
 
-        mixed_color = mix(mixed_color, input.border_color, vec4<f32>(border_mix, border_mix, border_mix, border_mix));
+        mixed_color = mix(mixed_color, input.border_color, border_mix);
     }
 
     var dist: f32 = distance_alg(
@@ -194,12 +194,5 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
         border_radius + 0.5,
         dist);
 
-    return vec4<f32>(mixed_color.x, mixed_color.y, mixed_color.z, mixed_color.w * radius_alpha);
-}
-
-fn unpack_u32(color: vec2<u32>) -> vec4<f32> {
-    let rg: vec2<f32> = unpack2x16float(color.x);
-    let ba: vec2<f32> = unpack2x16float(color.y);
-
-    return vec4<f32>(rg.y, rg.x, ba.y, ba.x);
+    return mixed_color * radius_alpha;
 }

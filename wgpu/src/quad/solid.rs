@@ -74,6 +74,8 @@ impl Pipeline {
                 label: Some("iced_wgpu.quad.solid.shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     concat!(
+                        include_str!("../shader/color.wgsl"),
+                        "\n",
                         include_str!("../shader/quad.wgsl"),
                         "\n",
                         include_str!("../shader/vertex.wgsl"),
