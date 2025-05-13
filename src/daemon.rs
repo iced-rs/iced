@@ -21,7 +21,7 @@ use std::borrow::Cow;
 pub fn daemon<State, Message, Theme, Renderer>(
     boot: impl application::Boot<State, Message>,
     update: impl application::Update<State, Message>,
-    view: impl for<'a> self::View<'a, State, Message, Theme, Renderer>,
+    view: impl for<'a> View<'a, State, Message, Theme, Renderer>,
 ) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
@@ -286,7 +286,7 @@ pub trait View<'a, State, Message, Theme, Renderer> {
         &self,
         state: &'a State,
         window: window::Id,
-    ) -> impl Into<Element<'a, Message, Theme, Renderer>>;
+    ) -> Element<'a, Message, Theme, Renderer>;
 }
 
 impl<'a, T, State, Message, Theme, Renderer, Widget>
@@ -300,7 +300,7 @@ where
         &self,
         state: &'a State,
         window: window::Id,
-    ) -> impl Into<Element<'a, Message, Theme, Renderer>> {
-        self(state, window)
+    ) -> Element<'a, Message, Theme, Renderer> {
+        self(state, window).into()
     }
 }
