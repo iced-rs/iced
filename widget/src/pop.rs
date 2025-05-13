@@ -12,8 +12,6 @@ use crate::core::{
     Size, Vector, Widget,
 };
 
-use std::borrow::Cow;
-
 /// A widget that can generate messages when its content pops in and out of view.
 ///
 /// It can even notify you with anticipation at a given distance!
@@ -24,11 +22,9 @@ pub struct Pop<
     Message,
     Theme = crate::Theme,
     Renderer = crate::Renderer,
-> where
-    Key: ToOwned + ?Sized,
-{
+> {
     content: Element<'a, Message, Theme, Renderer>,
-    key: Cow<'a, Key>,
+    key: Key,
     on_show: Option<Box<dyn Fn(Size) -> Message + 'a>>,
     on_resize: Option<Box<dyn Fn(Size) -> Message + 'a>>,
     on_hide: Option<Message>,
@@ -47,7 +43,7 @@ where
     ) -> Self {
         Self {
             content: content.into(),
-            key: Cow::Owned(()),
+            key: (),
             on_show: None,
             on_resize: None,
             on_hide: None,
@@ -60,7 +56,7 @@ where
 impl<'a, Key, Message, Theme, Renderer> Pop<'a, Key, Message, Theme, Renderer>
 where
     Message: Clone,
-    Key: ToOwned + ?Sized,
+    Key: self::Key,
     Renderer: core::Renderer,
 {
     /// Sets the message to be produced when the content pops into view.
@@ -93,14 +89,14 @@ where
     /// If the key changes, the [`Pop`] widget will trigger again.
     pub fn key<K>(
         self,
-        key: impl Into<Cow<'a, K>>,
-    ) -> Pop<'a, K, Message, Theme, Renderer>
+        key: K,
+    ) -> Pop<'a, impl self::Key, Message, Theme, Renderer>
     where
-        K: ToOwned + ?Sized,
+        K: Clone + PartialEq + 'static,
     {
         Pop {
             content: self.content,
-            key: key.into(),
+            key: OwnedKey(key),
             on_show: self.on_show,
             on_resize: self.on_resize,
             on_hide: self.on_hide,
@@ -112,11 +108,23 @@ where
     /// Sets the key of the [`Pop`] widget, for continuity; using a reference.
     ///
     /// If the key changes, the [`Pop`] widget will trigger again.
-    pub fn key_ref<K>(self, key: &'a K) -> Pop<'a, K, Message, Theme, Renderer>
+    pub fn key_ref<K>(
+        self,
+        key: &'a K,
+    ) -> Pop<'a, &'a K, Message, Theme, Renderer>
     where
-        K: ToOwned + ?Sized,
+        K: ToOwned + PartialEq<K::Owned> + ?Sized,
+        K::Owned: 'static,
     {
-        self.key(Cow::Borrowed(key))
+        Pop {
+            content: self.content,
+            key,
+            on_show: self.on_show,
+            on_resize: self.on_resize,
+            on_hide: self.on_hide,
+            anticipate: self.anticipate,
+            delay: self.delay,
+        }
     }
 
     /// Sets the distance in [`Pixels`] to use in anticipation of the
@@ -154,8 +162,7 @@ struct State<Key> {
 impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Pop<'_, Key, Message, Theme, Renderer>
 where
-    Key: ToOwned + PartialEq<Key::Owned> + ?Sized,
-    Key::Owned: 'static,
+    Key: self::Key,
     Message: Clone,
     Renderer: core::Renderer,
 {
@@ -168,7 +175,7 @@ where
             has_popped_in: false,
             should_notify_at: None,
             last_size: None,
-            last_key: self.key.as_ref().to_owned(),
+            last_key: self.key.to_owned(),
         })
     }
 
@@ -194,10 +201,10 @@ where
         if let Event::Window(window::Event::RedrawRequested(now)) = &event {
             let state = tree.state.downcast_mut::<State<Key::Owned>>();
 
-            if state.has_popped_in && self.key.as_ref() != &state.last_key {
+            if state.has_popped_in && !self.key.eq(&state.last_key) {
                 state.has_popped_in = false;
                 state.should_notify_at = None;
-                state.last_key = self.key.as_ref().to_owned();
+                state.last_key = self.key.to_owned();
             }
 
             let bounds = layout.bounds();
@@ -356,12 +363,77 @@ impl<'a, Key, Message, Theme, Renderer>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
-    Key: ToOwned + PartialEq<Key::Owned> + ?Sized + 'a,
-    Key::Owned: 'static,
+    Key: self::Key + 'a,
     Renderer: core::Renderer + 'a,
     Theme: 'a,
 {
     fn from(pop: Pop<'a, Key, Message, Theme, Renderer>) -> Self {
         Element::new(pop)
+    }
+}
+
+/// The key of a widget.
+///
+/// You should generally not need to care about this trait.
+pub trait Key {
+    /// The owned version of the key.
+    type Owned: 'static;
+
+    /// Returns the owned version of the key.
+    fn to_owned(&self) -> Self::Owned;
+
+    /// Compares the key with the given owned version.
+    fn eq(&self, other: &Self::Owned) -> bool;
+}
+
+impl<T> Key for &T
+where
+    T: ToOwned + PartialEq<T::Owned> + ?Sized,
+    T::Owned: 'static,
+{
+    type Owned = T::Owned;
+
+    fn to_owned(&self) -> <Self as Key>::Owned {
+        ToOwned::to_owned(*self)
+    }
+
+    fn eq(&self, other: &Self::Owned) -> bool {
+        *self == other
+    }
+}
+
+struct OwnedKey<T>(T);
+
+impl<T> Key for OwnedKey<T>
+where
+    T: PartialEq + Clone + 'static,
+{
+    type Owned = T;
+
+    fn to_owned(&self) -> Self::Owned {
+        self.0.clone()
+    }
+
+    fn eq(&self, other: &Self::Owned) -> bool {
+        &self.0 == other
+    }
+}
+
+impl<T> PartialEq<T> for OwnedKey<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &T) -> bool {
+        &self.0 == other
+    }
+}
+
+impl Key for () {
+    type Owned = ();
+
+    fn to_owned(&self) -> Self::Owned {}
+
+    fn eq(&self, _other: &Self::Owned) -> bool {
+        true
     }
 }
