@@ -15,3 +15,10 @@ glam.workspace = true
 glam.features = ["bytemuck"]
 
 rand = "0.8.5"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+iced.workspace = true
+iced.features = ["debug", "image", "advanced", "webgl", "fira-sans"]
+getrandom = { version = "0.2", features = ["js"] }
+console_error_panic_hook = "0.1"
+console_log = "1.0"
