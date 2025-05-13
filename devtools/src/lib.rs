@@ -144,7 +144,7 @@ impl<P> DevTools<P>
 where
     P: Program + 'static,
 {
-    fn new(state: P::State) -> (Self, Task<Message>) {
+    pub fn new(state: P::State) -> (Self, Task<Message>) {
         (
             Self {
                 state,
@@ -160,11 +160,11 @@ where
         )
     }
 
-    fn title(&self, program: &P, window: window::Id) -> String {
+    pub fn title(&self, program: &P, window: window::Id) -> String {
         program.title(&self.state, window)
     }
 
-    fn update(&mut self, program: &P, event: Event<P>) -> Task<Event<P>> {
+    pub fn update(&mut self, program: &P, event: Event<P>) -> Task<Event<P>> {
         match event {
             Event::Message(message) => match message {
                 Message::HideNotification => {
@@ -290,7 +290,7 @@ where
         }
     }
 
-    fn view(
+    pub fn view(
         &self,
         program: &P,
         window: window::Id,
@@ -361,7 +361,7 @@ where
             .into()
     }
 
-    fn subscription(&self, program: &P) -> Subscription<Event<P>> {
+    pub fn subscription(&self, program: &P) -> Subscription<Event<P>> {
         let subscription =
             program.subscription(&self.state).map(Event::Program);
         debug::subscriptions_tracked(subscription.units());
@@ -380,19 +380,19 @@ where
         Subscription::batch([subscription, hotkeys, commands])
     }
 
-    fn theme(&self, program: &P, window: window::Id) -> P::Theme {
+    pub fn theme(&self, program: &P, window: window::Id) -> P::Theme {
         program.theme(self.state(), window)
     }
 
-    fn style(&self, program: &P, theme: &P::Theme) -> theme::Style {
+    pub fn style(&self, program: &P, theme: &P::Theme) -> theme::Style {
         program.style(self.state(), theme)
     }
 
-    fn scale_factor(&self, program: &P, window: window::Id) -> f64 {
+    pub fn scale_factor(&self, program: &P, window: window::Id) -> f64 {
         program.scale_factor(self.state(), window)
     }
 
-    fn state(&self) -> &P::State {
+    pub fn state(&self) -> &P::State {
         self.time_machine.state().unwrap_or(&self.state)
     }
 }
