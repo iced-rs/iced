@@ -3,7 +3,6 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::text;
 use crate::core::time::{Duration, Instant};
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
@@ -13,13 +12,23 @@ use crate::core::{
     Size, Vector, Widget,
 };
 
+use std::borrow::Cow;
+
 /// A widget that can generate messages when its content pops in and out of view.
 ///
 /// It can even notify you with anticipation at a given distance!
 #[allow(missing_debug_implementations)]
-pub struct Pop<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
+pub struct Pop<
+    'a,
+    Key,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Key: ToOwned + ?Sized,
+{
     content: Element<'a, Message, Theme, Renderer>,
-    key: Option<text::Fragment<'a>>,
+    key: Cow<'a, Key>,
     on_show: Option<Box<dyn Fn(Size) -> Message + 'a>>,
     on_resize: Option<Box<dyn Fn(Size) -> Message + 'a>>,
     on_hide: Option<Message>,
@@ -27,10 +36,10 @@ pub struct Pop<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     delay: Duration,
 }
 
-impl<'a, Message, Theme, Renderer> Pop<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> Pop<'a, (), Message, Theme, Renderer>
 where
-    Renderer: core::Renderer,
     Message: Clone,
+    Renderer: core::Renderer,
 {
     /// Creates a new [`Pop`] widget with the given content.
     pub fn new(
@@ -38,7 +47,7 @@ where
     ) -> Self {
         Self {
             content: content.into(),
-            key: None,
+            key: Cow::Owned(()),
             on_show: None,
             on_resize: None,
             on_hide: None,
@@ -46,7 +55,14 @@ where
             delay: Duration::ZERO,
         }
     }
+}
 
+impl<'a, Key, Message, Theme, Renderer> Pop<'a, Key, Message, Theme, Renderer>
+where
+    Message: Clone,
+    Key: ToOwned + ?Sized,
+    Renderer: core::Renderer,
+{
     /// Sets the message to be produced when the content pops into view.
     ///
     /// The closure will receive the [`Size`] of the content in that moment.
@@ -75,9 +91,32 @@ where
     /// Sets the key of the [`Pop`] widget, for continuity.
     ///
     /// If the key changes, the [`Pop`] widget will trigger again.
-    pub fn key(mut self, key: impl text::IntoFragment<'a>) -> Self {
-        self.key = Some(key.into_fragment());
-        self
+    pub fn key<K>(
+        self,
+        key: impl Into<Cow<'a, K>>,
+    ) -> Pop<'a, K, Message, Theme, Renderer>
+    where
+        K: ToOwned + ?Sized,
+    {
+        Pop {
+            content: self.content,
+            key: key.into(),
+            on_show: self.on_show,
+            on_resize: self.on_resize,
+            on_hide: self.on_hide,
+            anticipate: self.anticipate,
+            delay: self.delay,
+        }
+    }
+
+    /// Sets the key of the [`Pop`] widget, for continuity; using a reference.
+    ///
+    /// If the key changes, the [`Pop`] widget will trigger again.
+    pub fn key_ref<K>(self, key: &'a K) -> Pop<'a, K, Message, Theme, Renderer>
+    where
+        K: ToOwned + ?Sized,
+    {
+        self.key(Cow::Borrowed(key))
     }
 
     /// Sets the distance in [`Pixels`] to use in anticipation of the
@@ -104,26 +143,33 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default)]
-struct State {
+#[derive(Debug, Clone)]
+struct State<Key> {
     has_popped_in: bool,
     should_notify_at: Option<(bool, Instant)>,
     last_size: Option<Size>,
-    last_key: Option<String>,
+    last_key: Key,
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Pop<'_, Message, Theme, Renderer>
+impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Pop<'_, Key, Message, Theme, Renderer>
 where
+    Key: ToOwned + PartialEq<Key::Owned> + ?Sized,
+    Key::Owned: 'static,
     Message: Clone,
     Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State>()
+        tree::Tag::of::<State<Key::Owned>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::default())
+        tree::State::new(State {
+            has_popped_in: false,
+            should_notify_at: None,
+            last_size: None,
+            last_key: self.key.as_ref().to_owned(),
+        })
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -146,15 +192,12 @@ where
         viewport: &Rectangle,
     ) {
         if let Event::Window(window::Event::RedrawRequested(now)) = &event {
-            let state = tree.state.downcast_mut::<State>();
+            let state = tree.state.downcast_mut::<State<Key::Owned>>();
 
-            if state.has_popped_in
-                && state.last_key.as_deref() != self.key.as_deref()
-            {
+            if state.has_popped_in && self.key.as_ref() != &state.last_key {
                 state.has_popped_in = false;
                 state.should_notify_at = None;
-                state.last_key =
-                    self.key.as_ref().cloned().map(text::Fragment::into_owned);
+                state.last_key = self.key.as_ref().to_owned();
             }
 
             let bounds = layout.bounds();
@@ -308,14 +351,17 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Pop<'a, Message, Theme, Renderer>>
+impl<'a, Key, Message, Theme, Renderer>
+    From<Pop<'a, Key, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
+    Message: Clone + 'a,
+    Key: ToOwned + PartialEq<Key::Owned> + ?Sized + 'a,
+    Key::Owned: 'static,
     Renderer: core::Renderer + 'a,
     Theme: 'a,
-    Message: Clone + 'a,
 {
-    fn from(pop: Pop<'a, Message, Theme, Renderer>) -> Self {
+    fn from(pop: Pop<'a, Key, Message, Theme, Renderer>) -> Self {
         Element::new(pop)
     }
 }
