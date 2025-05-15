@@ -341,7 +341,30 @@ where
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
-                    self.overlay = None;
+                    if let Some(mut overlay) = self
+                        .root
+                        .as_widget_mut()
+                        .overlay(
+                            &mut self.state,
+                            Layout::new(&self.base),
+                            renderer,
+                            &viewport,
+                            Vector::ZERO,
+                        )
+                        .map(overlay::Nested::new)
+                    {
+                        let layout = overlay.layout(renderer, self.bounds);
+                        let interaction = overlay.mouse_interaction(
+                            Layout::new(&layout),
+                            cursor,
+                            renderer,
+                        );
+
+                        self.overlay = Some(Overlay {
+                            layout,
+                            interaction,
+                        });
+                    }
                 });
 
                 if shell.are_widgets_invalid() {
