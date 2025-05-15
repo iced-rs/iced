@@ -173,10 +173,7 @@ where
         let nodes = std::iter::once(base)
             .chain(self.children[1..].iter().zip(&mut tree.children[1..]).map(
                 |(layer, tree)| {
-                    let node =
-                        layer.as_widget().layout(tree, renderer, &limits);
-
-                    node
+                    layer.as_widget().layout(tree, renderer, &limits)
                 },
             ))
             .collect();
