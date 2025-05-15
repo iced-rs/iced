@@ -138,7 +138,7 @@ where
 
     fn overlay<'a>(
         &'a mut self,
-        layout: Layout<'_>,
+        layout: Layout<'a>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         let children = self

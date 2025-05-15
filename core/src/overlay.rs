@@ -82,7 +82,7 @@ where
     /// Returns the nested overlay of the [`Overlay`], if there is any.
     fn overlay<'a>(
         &'a mut self,
-        _layout: Layout<'_>,
+        _layout: Layout<'a>,
         _renderer: &Renderer,
     ) -> Option<Element<'a, Message, Theme, Renderer>> {
         None
