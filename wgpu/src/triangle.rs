@@ -595,7 +595,7 @@ fn fragment_target(
 ) -> wgpu::ColorTargetState {
     wgpu::ColorTargetState {
         format: texture_format,
-        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+        blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
         write_mask: wgpu::ColorWrites::ALL,
     }
 }
@@ -754,6 +754,8 @@ mod solid {
                             include_str!("shader/triangle.wgsl"),
                             "\n",
                             include_str!("shader/triangle/solid.wgsl"),
+                            "\n",
+                            include_str!("shader/color.wgsl"),
                         )),
                     ),
                 });
@@ -913,6 +915,8 @@ mod gradient {
                                         "shader/triangle/gradient.wgsl"
                                     ),
                                     "\n",
+                                    include_str!("shader/color.wgsl"),
+                                    "\n",
                                     include_str!("shader/color/oklab.wgsl")
                                 )
                             } else {
@@ -922,6 +926,8 @@ mod gradient {
                                     include_str!(
                                         "shader/triangle/gradient.wgsl"
                                     ),
+                                    "\n",
+                                    include_str!("shader/color.wgsl"),
                                     "\n",
                                     include_str!(
                                         "shader/color/linear_rgb.wgsl"

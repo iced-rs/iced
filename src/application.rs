@@ -75,7 +75,7 @@ pub use timed::timed;
 pub fn application<State, Message, Theme, Renderer>(
     boot: impl Boot<State, Message>,
     update: impl Update<State, Message>,
-    view: impl for<'a> self::View<'a, State, Message, Theme, Renderer>,
+    view: impl for<'a> View<'a, State, Message, Theme, Renderer>,
 ) -> Application<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
@@ -126,7 +126,7 @@ where
             state: &mut Self::State,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.update.update(state, message).into()
+            self.update.update(state, message)
         }
 
         fn view<'a>(
@@ -134,7 +134,7 @@ where
             state: &'a Self::State,
             _window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.view.view(state).into()
+            self.view.view(state)
         }
     }
 
@@ -482,19 +482,12 @@ where
 /// returns any `Into<Task<Message>>`.
 pub trait Update<State, Message> {
     /// Processes the message and updates the state of the [`Application`].
-    fn update(
-        &self,
-        state: &mut State,
-        message: Message,
-    ) -> impl Into<Task<Message>>;
+    fn update(&self, state: &mut State, message: Message) -> Task<Message>;
 }
 
 impl<State, Message> Update<State, Message> for () {
-    fn update(
-        &self,
-        _state: &mut State,
-        _message: Message,
-    ) -> impl Into<Task<Message>> {
+    fn update(&self, _state: &mut State, _message: Message) -> Task<Message> {
+        Task::none()
     }
 }
 
@@ -503,12 +496,8 @@ where
     T: Fn(&mut State, Message) -> C,
     C: Into<Task<Message>>,
 {
-    fn update(
-        &self,
-        state: &mut State,
-        message: Message,
-    ) -> impl Into<Task<Message>> {
-        self(state, message)
+    fn update(&self, state: &mut State, message: Message) -> Task<Message> {
+        self(state, message).into()
     }
 }
 
@@ -518,10 +507,7 @@ where
 /// returns any `Into<Element<'_, Message>>`.
 pub trait View<'a, State, Message, Theme, Renderer> {
     /// Produces the widget of the [`Application`].
-    fn view(
-        &self,
-        state: &'a State,
-    ) -> impl Into<Element<'a, Message, Theme, Renderer>>;
+    fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer>;
 }
 
 impl<'a, T, State, Message, Theme, Renderer, Widget>
@@ -531,10 +517,7 @@ where
     State: 'static,
     Widget: Into<Element<'a, Message, Theme, Renderer>>,
 {
-    fn view(
-        &self,
-        state: &'a State,
-    ) -> impl Into<Element<'a, Message, Theme, Renderer>> {
-        self(state)
+    fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer> {
+        self(state).into()
     }
 }

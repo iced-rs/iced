@@ -220,6 +220,8 @@ unused_results = "deny"
 [workspace.lints.clippy]
 type-complexity = "allow"
 map-entry = "allow"
+large-enum-variant = "allow"
+result_large_err = "allow"
 semicolon_if_nothing_returned = "deny"
 trivially-copy-pass-by-ref = "deny"
 default_trait_access = "deny"

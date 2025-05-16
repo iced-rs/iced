@@ -110,7 +110,6 @@ where
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.view
                 .view(state)
-                .into()
                 .map(|message| (message, Instant::now()))
         }
 

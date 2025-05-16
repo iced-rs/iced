@@ -994,7 +994,7 @@ where
 /// It can even notify you with anticipation at a given distance!
 pub fn pop<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Pop<'a, Message, Theme, Renderer>
+) -> Pop<'a, (), Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
     Message: Clone,
