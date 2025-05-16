@@ -1,8 +1,6 @@
 use crate::core::{self, Size};
 use crate::image::atlas::{self, Atlas};
 
-use std::sync::Arc;
-
 #[derive(Debug)]
 pub struct Cache {
     atlas: Atlas,
@@ -16,7 +14,7 @@ impl Cache {
     pub fn new(
         device: &wgpu::Device,
         backend: wgpu::Backend,
-        layout: Arc<wgpu::BindGroupLayout>,
+        layout: wgpu::BindGroupLayout,
     ) -> Self {
         Self {
             atlas: Atlas::new(device, backend, layout),
