@@ -194,7 +194,7 @@ sipper = "0.1"
 smol = "2"
 smol_str = "0.2"
 softbuffer = "0.4"
-syntect = "5.1"
+syntect = { version = "5.2", default-features = false, features = ["default-fancy"] }
 sysinfo = "0.33"
 thiserror = "1.0"
 tiny-skia = "0.11"
