@@ -279,7 +279,11 @@ where
 
         layout::next_to_each_other(
             &limits,
-            self.spacing,
+            if self.label.is_some() {
+                self.spacing
+            } else {
+                0.0
+            },
             |_| layout::Node::new(Size::new(2.0 * self.size, self.size)),
             |limits| {
                 if let Some(label) = self.label.as_deref() {
