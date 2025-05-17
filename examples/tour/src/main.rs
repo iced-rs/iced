@@ -469,6 +469,7 @@ impl Tour {
                 } else {
                     value
                 })
+                .shaping(text::Shaping::Advanced)
                 .width(Fill)
                 .align_x(Center),
             )
