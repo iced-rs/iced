@@ -799,10 +799,11 @@ where
                 );
 
                 if !had_input_method {
-                    if let InputMethod::Enabled { position, .. } =
-                        shell.input_method_mut()
+                    if let InputMethod::Enabled {
+                        cursor_position, ..
+                    } = shell.input_method_mut()
                     {
-                        *position = *position - translation;
+                        *cursor_position = *cursor_position - translation;
                     }
                 }
             };
