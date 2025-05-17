@@ -50,6 +50,7 @@ use crate::core::{
     Background, Border, Color, Element, Event, InputMethod, Length, Padding,
     Pixels, Point, Rectangle, Shell, Size, SmolStr, Theme, Vector,
 };
+use crate::runtime::task::{self, Task};
 
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -105,6 +106,7 @@ pub struct TextEditor<
     Theme: Catalog,
     Renderer: text::Renderer,
 {
+    id: Option<Id>,
     content: &'a Content<Renderer>,
     placeholder: Option<text::Fragment<'a>>,
     font: Option<Renderer::Font>,
@@ -136,6 +138,7 @@ where
     /// Creates new [`TextEditor`] with the given [`Content`].
     pub fn new(content: &'a Content<Renderer>) -> Self {
         Self {
+            id: None,
             content,
             placeholder: None,
             font: None,
@@ -172,6 +175,12 @@ where
         placeholder: impl text::IntoFragment<'a>,
     ) -> Self {
         self.placeholder = Some(placeholder.into_fragment());
+        self
+    }
+
+    /// Sets the [`Id`] of the [`TextEditor`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
         self
     }
 
@@ -276,6 +285,7 @@ where
         ) -> highlighter::Format<Renderer::Font>,
     ) -> TextEditor<'a, H, Message, Theme, Renderer> {
         TextEditor {
+            id: self.id,
             content: self.content,
             placeholder: self.placeholder,
             font: self.font,
@@ -1061,7 +1071,7 @@ where
     ) {
         let state = tree.state.downcast_mut::<State<Highlighter>>();
 
-        operation.focusable(None, layout.bounds(), state);
+        operation.focusable(self.id.as_ref().map(|id| &id.0), layout.bounds(), state);
     }
 }
 
@@ -1450,4 +1460,33 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             ..active
         },
     }
+}
+
+/// The identifier of a [`TextEditor`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+impl Id {
+    /// Creates a custom [`Id`].
+    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(widget::Id::new(id))
+    }
+
+    /// Creates a unique [`Id`].
+    ///
+    /// This function produces a different [`Id`] every time it is called.
+    pub fn unique() -> Self {
+        Self(widget::Id::unique())
+    }
+}
+
+impl From<Id> for widget::Id {
+    fn from(id: Id) -> Self {
+        id.0
+    }
+}
+
+/// Produces a [`Task`] that focuses the [`TextEditor`] with the given [`Id`].
+pub fn focus<T>(id: Id) -> Task<T> {
+    task::effect(crate::runtime::Action::widget(operation::focusable::focus(id.0)))
 }
