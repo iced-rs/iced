@@ -406,7 +406,10 @@ where
         _viewport: &Rectangle,
     ) {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed {
+                button: mouse::Button::Left,
+                ..
+            }) => {
                 if cursor.is_over(layout.bounds()) {
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
