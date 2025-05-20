@@ -119,12 +119,12 @@ where
 
         debug_assert!(
             self.direction.vertical().is_none() || !size_hint.height.is_fill(),
-            "scrollable content must not fill its vertical scrolling axis"
+            "Scrollable's content must not expand to fill its vertical axis. Try putting `.height(Length::Fixed(<number>))` on this scrollable's child."
         );
 
         debug_assert!(
             self.direction.horizontal().is_none() || !size_hint.width.is_fill(),
-            "scrollable content must not fill its horizontal scrolling axis"
+            "Scrollable content must not expand to fill its horizontal axis. Try putting `.width(Length::Fixed(<number>))` on this scrollable's child."
         );
 
         if self.direction.horizontal().is_none() {
