@@ -2,6 +2,7 @@
 use crate::core::{self, Rectangle};
 use crate::graphics::Viewport;
 
+use iced_graphics::futures::{MaybeSend, MaybeSync};
 use rustc_hash::FxHashMap;
 use std::any::{Any, TypeId};
 use std::fmt::Debug;
@@ -58,10 +59,23 @@ pub trait Renderer: core::Renderer {
     fn draw_primitive(&mut self, bounds: Rectangle, primitive: impl Primitive);
 }
 
+pub trait Storable: Any + MaybeSend + MaybeSync {}
+
+impl<T: Any + MaybeSend + MaybeSync> Storable for T {}
+
 /// Stores custom, user-provided types.
-#[derive(Default, Debug)]
+/// The stored type needs to be Sync and Send on native platforms, but not for WebAssembly.
+/// See [MaybeSend] and [MaybeSync]
+#[derive(Default)]
 pub struct Storage {
-    pipelines: FxHashMap<TypeId, Box<dyn Any + Send + Sync>>,
+    pipelines: FxHashMap<TypeId, Box<dyn Storable>>,
+}
+
+// Manual Debug implementation is required to not impose a Debug bound on storable types.
+impl Debug for Storage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Storage").finish_non_exhaustive()
+    }
 }
 
 impl Storage {
@@ -71,14 +85,15 @@ impl Storage {
     }
 
     /// Inserts the data `T` in to [`Storage`].
-    pub fn store<T: 'static + Send + Sync>(&mut self, data: T) {
+    pub fn store<T: 'static + Storable>(&mut self, data: T) {
         let _ = self.pipelines.insert(TypeId::of::<T>(), Box::new(data));
     }
 
     /// Returns a reference to the data with type `T` if it exists in [`Storage`].
     pub fn get<T: 'static>(&self) -> Option<&T> {
         self.pipelines.get(&TypeId::of::<T>()).map(|pipeline| {
-            pipeline
+            let any_ref = pipeline.as_ref() as &dyn Any;
+            any_ref
                 .downcast_ref::<T>()
                 .expect("Value with this type does not exist in Storage.")
         })
@@ -87,7 +102,8 @@ impl Storage {
     /// Returns a mutable reference to the data with type `T` if it exists in [`Storage`].
     pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.pipelines.get_mut(&TypeId::of::<T>()).map(|pipeline| {
-            pipeline
+            let any_mut = pipeline.as_mut() as &mut dyn Any;
+            any_mut
                 .downcast_mut::<T>()
                 .expect("Value with this type does not exist in Storage.")
         })
