@@ -18,21 +18,17 @@
       with pkgs;
       {
         devShells.default = mkShell rec {
-          nativeBuildInputs = [
+          buildInputs = [
             bacon
             cargo-udeps
             cargo-edit
             rust-analyzer
             cargo-deny
             rust-bin.stable.latest.default
-
             pkg-config
             dbus
-          ];
-          buildInputs = [
             libxkbcommon
-          ];
-          runtimeDependencies = [
+          ] ++ lib.optionals (stdenv.isLinux) [
             wayland
           ];
           LD_LIBRARY_PATH = lib.makeLibraryPath (nativeBuildInputs ++ buildInputs ++ runtimeDependencies);
