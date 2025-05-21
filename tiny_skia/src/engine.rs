@@ -44,15 +44,17 @@ impl Engine {
             quad.bounds.height.is_normal(),
             "Quad with non-normal height!"
         );
+        let physical_bounds_with_shadow =
+            quad.bounds_with_shadow() * transformation;
 
-        let physical_bounds = quad.bounds * transformation;
-
-        if !clip_bounds.intersects(&physical_bounds) {
+        if !clip_bounds.intersects(&physical_bounds_with_shadow) {
             return;
         }
 
-        let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+        let clip_mask = (!physical_bounds_with_shadow.is_within(&clip_bounds))
             .then_some(clip_mask as &_);
+
+        let physical_bounds = quad.bounds * transformation;
 
         let transform = into_transform(transformation);
 
@@ -76,12 +78,7 @@ impl Engine {
         let shadow = quad.shadow;
 
         if shadow.color.a > 0.0 {
-            let shadow_bounds = Rectangle {
-                x: quad.bounds.x + shadow.offset.x - shadow.blur_radius,
-                y: quad.bounds.y + shadow.offset.y - shadow.blur_radius,
-                width: quad.bounds.width + shadow.blur_radius * 2.0,
-                height: quad.bounds.height + shadow.blur_radius * 2.0,
-            } * transformation;
+            let shadow_bounds = quad.bounds_with_shadow() * transformation;
 
             let radii = fill_border_radius
                 .into_iter()
@@ -148,7 +145,7 @@ impl Engine {
                     pixmap.as_ref(),
                     &tiny_skia::PixmapPaint::default(),
                     tiny_skia::Transform::default(),
-                    None,
+                    clip_mask,
                 );
             }
         }
