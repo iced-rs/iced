@@ -17,7 +17,6 @@ pub use sipper::{Never, Sender, Sipper, Straw, sipper, stream};
 /// A set of concurrent actions to be performed by the iced runtime.
 ///
 /// A [`Task`] _may_ produce a bunch of values of type `T`.
-#[allow(missing_debug_implementations)]
 #[must_use = "`Task` must be returned to the runtime to take effect; normally in your `update` or `new` functions."]
 pub struct Task<T> {
     stream: Option<BoxStream<Action<T>>>,
@@ -275,6 +274,17 @@ impl<T> Task<T> {
     /// Returns the amount of work "units" of the [`Task`].
     pub fn units(&self) -> usize {
         self.units
+    }
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for Task<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Task<{}>, units={}",
+            std::any::type_name::<T>(),
+            self.units
+        )
     }
 }
 
