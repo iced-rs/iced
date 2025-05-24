@@ -71,6 +71,8 @@ strict-assertions = ["iced_renderer/strict-assertions"]
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
 # Enables support for the `sipper` library
 sipper = ["iced_runtime/sipper"]
+# Enables widget animations
+animations = ["iced_widget/animations"]
 
 [dependencies]
 iced_debug.workspace = true
