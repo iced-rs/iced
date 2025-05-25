@@ -16,6 +16,67 @@ fn distance_alg(
     return rounded_box_sdf(frag_coord - top_left - inner_half_size, inner_half_size, 0.0);
 }
 
+struct CornerPos {
+    pos: vec2<f32>,
+    with_shadow: vec2<f32>,
+    to_edge: vec2<f32>,
+}
+fn corner_pos(
+    vertex_index: u32,
+    input_scale: vec2<f32>,
+    position: vec2<f32>,
+    global_scale: f32,
+    shadow_offset: vec2<f32>,
+    shadow_blur_radius: f32,
+) -> CornerPos {
+    var base_pos = (position + vertex_position(vertex_index) * input_scale) * global_scale;
+    var ret: CornerPos;
+    switch vertex_index {
+        case 0u, 5u: {
+            ret.pos = vec2(ceil(base_pos.x), ceil(base_pos.y));
+            ret.with_shadow = ret.pos
+                + (vec2(
+                    max(shadow_offset.x, 0.0),
+                    max(shadow_offset.y, 0.0),
+                ) + vec2(shadow_blur_radius, shadow_blur_radius)) * global_scale;
+            ret.to_edge = vec2(0.5, 0.5);
+        }
+        case 1u: {
+            ret.pos = vec2(ceil(base_pos.x), floor(base_pos.y));
+            ret.with_shadow = ret.pos
+                + (vec2(
+                    max(shadow_offset.x, 0.0),
+                    min(shadow_offset.y, 0.0),
+                ) + vec2(shadow_blur_radius, -shadow_blur_radius)) * global_scale;
+            ret.to_edge = vec2(0.5, -0.5);
+        }
+        case 2u, 3u: {
+            ret.pos = vec2(floor(base_pos.x), floor(base_pos.y));
+            ret.with_shadow = ret.pos
+                + (vec2(
+                    min(shadow_offset.x, 0.0),
+                    min(shadow_offset.y, 0.0),
+                ) + vec2(-shadow_blur_radius, -shadow_blur_radius)) * global_scale;
+            ret.to_edge = vec2(-0.5, -0.5);
+        }
+        case 4u: {
+            ret.pos = vec2(floor(base_pos.x), ceil(base_pos.y));
+            ret.with_shadow = ret.pos
+                + (vec2(
+                    min(shadow_offset.x, 0.0),
+                    max(shadow_offset.y, 0.0),
+                ) + vec2(-shadow_blur_radius, shadow_blur_radius)) * global_scale;
+            ret.to_edge = vec2(-0.5, 0.5);
+        }
+        default: {
+            ret.pos = vec2<f32>();
+            ret.with_shadow = vec2<f32>();
+            ret.to_edge = vec2<f32>();
+        }
+    }
+    return ret;
+}
+
 fn rounded_box_sdf2(p: vec2<f32>, size: vec2<f32>, corners: vec4<f32>) -> f32 {
     var box_half = select(corners.yz, corners.xw, p.x > 0.0);
     var corner = select(box_half.y, box_half.x, p.y > 0.0);
