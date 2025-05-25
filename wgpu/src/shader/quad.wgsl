@@ -31,9 +31,9 @@ fn corner_pos(
 ) -> CornerPos {
     var base_pos = (position + vertex_position(vertex_index) * input_scale) * global_scale;
     var ret: CornerPos;
+    ret.pos = round(base_pos);
     switch vertex_index {
         case 0u, 5u: {
-            ret.pos = vec2(ceil(base_pos.x), ceil(base_pos.y));
             ret.with_shadow = ret.pos
                 + (vec2(
                     max(shadow_offset.x, 0.0),
@@ -42,7 +42,6 @@ fn corner_pos(
             ret.to_edge = vec2(0.5, 0.5);
         }
         case 1u: {
-            ret.pos = vec2(ceil(base_pos.x), floor(base_pos.y));
             ret.with_shadow = ret.pos
                 + (vec2(
                     max(shadow_offset.x, 0.0),
@@ -51,7 +50,6 @@ fn corner_pos(
             ret.to_edge = vec2(0.5, -0.5);
         }
         case 2u, 3u: {
-            ret.pos = vec2(floor(base_pos.x), floor(base_pos.y));
             ret.with_shadow = ret.pos
                 + (vec2(
                     min(shadow_offset.x, 0.0),
@@ -60,7 +58,6 @@ fn corner_pos(
             ret.to_edge = vec2(-0.5, -0.5);
         }
         case 4u: {
-            ret.pos = vec2(floor(base_pos.x), ceil(base_pos.y));
             ret.with_shadow = ret.pos
                 + (vec2(
                     min(shadow_offset.x, 0.0),
