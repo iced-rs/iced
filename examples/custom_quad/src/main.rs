@@ -107,6 +107,7 @@ enum Message {
     ShadowXOffsetChanged(f32),
     ShadowYOffsetChanged(f32),
     ShadowBlurRadiusChanged(f32),
+    None,
 }
 
 impl Example {
@@ -148,6 +149,7 @@ impl Example {
             Message::ShadowBlurRadiusChanged(s) => {
                 self.shadow.blur_radius = s;
             }
+            Message::None => {}
         }
     }
 
@@ -172,7 +174,7 @@ impl Example {
                 self.border_width,
                 self.shadow
             ),
-            text!("Radius: {top_left:.2}/{top_right:.2}/{bottom_right:.2}/{bottom_left:.2}"),
+            text!("Radius: {top_left:.2}/{top_right:.2}/{bottom_right:.2}/{bottom_left:.2} - {:.2}", self.border_width),
             slider(1.0..=100.0, top_left, Message::RadiusTopLeftChanged).step(0.01),
             slider(1.0..=100.0, top_right, Message::RadiusTopRightChanged).step(0.01),
             slider(1.0..=100.0, bottom_right, Message::RadiusBottomRightChanged)
@@ -188,6 +190,13 @@ impl Example {
                 .step(0.01),
             slider(0.0..=100.0, sr, Message::ShadowBlurRadiusChanged)
                 .step(0.01),
+            iced::widget::button("test")
+                .style(|theme, status| {
+                    let mut style = iced::widget::button::primary(theme, status);
+                    style.border.radius = iced::border::left(10.0);
+                    style
+                })
+                .on_press(Message::None)
         ]
         .padding(20)
         .spacing(20)

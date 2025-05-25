@@ -16,6 +16,13 @@ fn distance_alg(
     return rounded_box_sdf(frag_coord - top_left - inner_half_size, inner_half_size, 0.0);
 }
 
+fn rounded_box_sdf2(p: vec2<f32>, size: vec2<f32>, corners: vec4<f32>) -> f32 {
+    var box_half = select(corners.yz, corners.xw, p.x > 0.0);
+    var corner = select(box_half.y, box_half.x, p.y > 0.0);
+    var q = abs(p) - size + corner;
+    return min(max(q.x, q.y), 0.0) + length(max(q, vec2(0.0))) - corner;
+}
+
 // Given a vector from a point to the center of a rounded rectangle of the given `size` and
 // border `radius`, determines the point's distance from the nearest edge of the rounded rectangle
 fn rounded_box_sdf(to_center: vec2<f32>, size: vec2<f32>, radius: f32) -> f32 {
