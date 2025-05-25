@@ -33,6 +33,9 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     var pos: vec2<f32> = input.position_and_scale.xy * globals.scale;
     var scale: vec2<f32> = input.position_and_scale.zw * globals.scale;
 
+    var pos_snap: vec2<f32> = vec2<f32>(round(pos.x + 0.01) - pos.x, round(pos.y + 0.01) - pos.y);
+    var scale_snap: vec2<f32> = vec2<f32>(round(scale.x + 0.01) - scale.x, round(scale.y + 0.01) - scale.y);
+
     var min_border_radius = min(input.position_and_scale.z, input.position_and_scale.w) * 0.5;
     var border_radius: vec4<f32> = vec4<f32>(
         min(input.border_radius.x, min_border_radius),
@@ -42,10 +45,10 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     );
 
     var transform: mat4x4<f32> = mat4x4<f32>(
-        vec4<f32>(scale.x + 1.0, 0.0, 0.0, 0.0),
-        vec4<f32>(0.0, scale.y + 1.0, 0.0, 0.0),
+        vec4<f32>(scale.x + scale_snap.x + 1.0, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, scale.y + scale_snap.y + 1.0, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(pos - vec2<f32>(0.5, 0.5), 0.0, 1.0)
+        vec4<f32>(pos + pos_snap - vec2<f32>(0.5, 0.5), 0.0, 1.0)
     );
 
     out.position = globals.transform * transform * vec4<f32>(vertex_position(input.vertex_index), 0.0, 1.0);
@@ -55,7 +58,7 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     out.colors_4 = input.colors_4;
     out.offsets = input.offsets;
     out.direction = input.direction * globals.scale;
-    out.position_and_scale = vec4<f32>(pos, scale);
+    out.position_and_scale = vec4<f32>(pos + pos_snap, scale + scale_snap);
     out.border_color = premultiply(input.border_color);
     out.border_radius = border_radius * globals.scale;
     out.border_width = input.border_width * globals.scale;

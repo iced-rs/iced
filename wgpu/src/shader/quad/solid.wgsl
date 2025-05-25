@@ -30,15 +30,9 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
 
     var pos: vec2<f32> = (input.pos + min(input.shadow_offset, vec2<f32>(0.0, 0.0)) - input.shadow_blur_radius) * globals.scale;
     var scale: vec2<f32> = (input.scale + vec2<f32>(abs(input.shadow_offset.x), abs(input.shadow_offset.y)) + input.shadow_blur_radius * 2.0) * globals.scale;
-    var snap: vec2<f32> = vec2<f32>(0.0, 0.0);
 
-    if input.scale.x == 1.0 {
-        snap.x = round(pos.x) - pos.x;
-    }
-
-    if input.scale.y == 1.0 {
-        snap.y = round(pos.y) - pos.y;
-    }
+    var pos_snap: vec2<f32> = vec2<f32>(round(pos.x + 0.01) - pos.x, round(pos.y + 0.01) - pos.y);
+    var scale_snap: vec2<f32> = vec2<f32>(round(scale.x + 0.01) - scale.x, round(scale.y + 0.01) - scale.y);
 
     var min_border_radius = min(input.scale.x, input.scale.y) * 0.5;
     var border_radius: vec4<f32> = vec4<f32>(
@@ -49,17 +43,17 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     );
 
     var transform: mat4x4<f32> = mat4x4<f32>(
-        vec4<f32>(scale.x + 1.0, 0.0, 0.0, 0.0),
-        vec4<f32>(0.0, scale.y + 1.0, 0.0, 0.0),
+        vec4<f32>(scale.x + scale_snap.x + 1.0, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, scale.y + scale_snap.y + 1.0, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(pos - vec2<f32>(0.5, 0.5) + snap, 0.0, 1.0)
+        vec4<f32>(pos + pos_snap - vec2<f32>(0.5, 0.5), 0.0, 1.0)
     );
 
     out.position = globals.transform * transform * vec4<f32>(vertex_position(input.vertex_index), 0.0, 1.0);
     out.color = premultiply(input.color);
     out.border_color = premultiply(input.border_color);
-    out.pos = input.pos * globals.scale + snap;
-    out.scale = input.scale * globals.scale;
+    out.pos = input.pos * globals.scale + pos_snap;
+    out.scale = input.scale * globals.scale + scale_snap;
     out.border_radius = border_radius * globals.scale;
     out.border_width = input.border_width * globals.scale;
     out.shadow_color = premultiply(input.shadow_color);
