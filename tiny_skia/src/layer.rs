@@ -5,7 +5,7 @@ use crate::core::{
 };
 use crate::graphics::damage;
 use crate::graphics::layer;
-use crate::graphics::text::{Editor, Paragraph, Text};
+use crate::graphics::text::{Editor, Paragraph, Raw, Text};
 use crate::graphics::{self, Image};
 
 use std::sync::Arc;
@@ -68,6 +68,15 @@ impl Layer {
         };
 
         self.text.push(Item::Live(editor));
+    }
+
+    pub fn draw_raw(&mut self, raw: Raw, transformation: Transformation) {
+        let raw = Text::Raw {
+            raw,
+            transformation,
+        };
+
+        self.text.push(Item::Live(raw));
     }
 
     pub fn draw_text(

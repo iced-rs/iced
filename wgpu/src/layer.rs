@@ -5,7 +5,7 @@ use crate::graphics;
 use crate::graphics::Mesh;
 use crate::graphics::color;
 use crate::graphics::layer;
-use crate::graphics::text::{Editor, Paragraph};
+use crate::graphics::text::{Editor, Paragraph, Raw};
 use crate::image::{self, Image};
 use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};
@@ -99,6 +99,15 @@ impl Layer {
         };
 
         self.pending_text.push(editor);
+    }
+
+    pub fn draw_raw(&mut self, raw: Raw, transformation: Transformation) {
+        let raw = Text::Raw {
+            raw,
+            transformation,
+        };
+
+        self.pending_text.push(raw);
     }
 
     pub fn draw_text(

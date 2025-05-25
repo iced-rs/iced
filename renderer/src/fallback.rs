@@ -88,11 +88,13 @@ where
             Font = A::Font,
             Paragraph = A::Paragraph,
             Editor = A::Editor,
+            Raw = A::Raw,
         >,
 {
     type Font = A::Font;
     type Paragraph = A::Paragraph;
     type Editor = A::Editor;
+    type Raw = A::Raw;
 
     const ICON_FONT: Self::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
@@ -133,6 +135,10 @@ where
             renderer,
             renderer.fill_editor(editor, position, color, clip_bounds)
         );
+    }
+
+    fn fill_raw(&mut self, raw: Self::Raw) {
+        delegate!(self, renderer, renderer.fill_raw(raw));
     }
 
     fn fill_text(
