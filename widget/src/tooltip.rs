@@ -1,5 +1,8 @@
 //! Tooltips display a hint of information over some element when hovered.
 //!
+//! By default, the tooltip is only displayed after a short duration. (This
+//! delay can be customized.)
+//!
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } }
@@ -27,12 +30,16 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::time::{Duration, Instant};
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
     Clipboard, Element, Event, Length, Padding, Pixels, Point, Rectangle,
     Shell, Size, Vector,
 };
+
+// Default tooltip delay, 2 seconds. Chosen because it's the default on macOS.
+const DEFAULT_TOOLTIP_DELAY: Duration = Duration::from_millis(2000);
 
 /// An element to display a widget over another.
 ///
@@ -72,6 +79,7 @@ pub struct Tooltip<
     gap: f32,
     padding: f32,
     snap_within_viewport: bool,
+    delay: Duration,
     class: Theme::Class<'a>,
 }
 
@@ -98,6 +106,7 @@ where
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
+            delay: DEFAULT_TOOLTIP_DELAY,
             class: Theme::default(),
         }
     }
@@ -111,6 +120,13 @@ where
     /// Sets the padding of the [`Tooltip`].
     pub fn padding(mut self, padding: impl Into<Pixels>) -> Self {
         self.padding = padding.into().0;
+        self
+    }
+
+    /// Sets the delay before the [`Tooltip`] is shown. Set to 0 milliseconds
+    /// to be shown immediately.
+    pub fn delay(mut self, delay: Duration) -> Self {
+        self.delay = delay;
         self
     }
 
@@ -206,23 +222,54 @@ where
         | Event::Window(window::Event::RedrawRequested(_)) = event
         {
             let state = tree.state.downcast_mut::<State>();
-            let previous_state = *state;
-            let was_idle = *state == State::Idle;
+            let now = Instant::now();
+            let cursor_position = cursor.position_over(layout.bounds());
 
-            *state = cursor
-                .position_over(layout.bounds())
-                .map(|cursor_position| State::Hovered { cursor_position })
-                .unwrap_or_default();
+            match (&state, cursor_position) {
+                // Tooltip was idle, but is now hovered.
+                (State::Idle, Some(cursor_position)) => {
+                    shell.invalidate_layout();
+                    shell.request_redraw_at(now + self.delay);
+                    *state = State::Hovered {
+                        cursor_position,
+                        at: now,
+                    };
+                }
 
-            let is_idle = *state == State::Idle;
+                // Tooltip was active and isn't hovered anymore.
+                (State::Hovered { .. }, None) => {
+                    shell.invalidate_layout();
+                    shell.request_redraw();
+                    *state = State::Idle;
+                }
 
-            if was_idle != is_idle {
-                shell.invalidate_layout();
-                shell.request_redraw();
-            } else if self.position == Position::FollowCursor
-                && *state != previous_state
-            {
-                shell.request_redraw();
+                // Tooltip is active, but not for long enough.
+                (State::Hovered { at, .. }, Some(cursor_position))
+                    if at.elapsed() < self.delay =>
+                {
+                    let when = now + self.delay - at.elapsed();
+                    shell.request_redraw_at(when);
+                    *state = State::Hovered {
+                        at: *at,
+                        cursor_position,
+                    };
+                }
+
+                // Tooltip has been active long enough, and is following the cursor
+                // (thus requiring a redraw)
+                (State::Hovered { at, .. }, Some(cursor_position))
+                    if self.position == Position::FollowCursor =>
+                {
+                    shell.request_redraw();
+                    *state = State::Hovered {
+                        at: *at,
+                        cursor_position,
+                    };
+                }
+
+                // No change in state.
+                (State::Hovered { .. }, Some(_)) => (),
+                (State::Idle, None) => (),
             }
         }
 
@@ -296,21 +343,25 @@ where
             translation,
         );
 
-        let tooltip = if let State::Hovered { cursor_position } = *state {
-            Some(overlay::Element::new(Box::new(Overlay {
-                position: layout.position() + translation,
-                tooltip: &mut self.tooltip,
-                tree: children.next().unwrap(),
+        let tooltip = match *state {
+            State::Hovered {
                 cursor_position,
-                content_bounds: layout.bounds(),
-                snap_within_viewport: self.snap_within_viewport,
-                positioning: self.position,
-                gap: self.gap,
-                padding: self.padding,
-                class: &self.class,
-            })))
-        } else {
-            None
+                at,
+            } if at.elapsed() > self.delay => {
+                Some(overlay::Element::new(Box::new(Overlay {
+                    position: layout.position() + translation,
+                    tooltip: &mut self.tooltip,
+                    tree: children.next().unwrap(),
+                    cursor_position,
+                    content_bounds: layout.bounds(),
+                    snap_within_viewport: self.snap_within_viewport,
+                    positioning: self.position,
+                    gap: self.gap,
+                    padding: self.padding,
+                    class: &self.class,
+                })))
+            }
+            _ => None,
         };
 
         if content.is_some() || tooltip.is_some() {
@@ -362,6 +413,7 @@ enum State {
     Idle,
     Hovered {
         cursor_position: Point,
+        at: Instant,
     },
 }
 

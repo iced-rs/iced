@@ -1,6 +1,7 @@
 use iced::Element;
 use iced::widget::tooltip::Position;
-use iced::widget::{button, center, container, tooltip};
+use iced::widget::{button, center, checkbox, column, container, tooltip};
+use iced::{alignment, time::Duration};
 
 pub fn main() -> iced::Result {
     iced::run(Tooltip::update, Tooltip::view)
@@ -9,11 +10,13 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct Tooltip {
     position: Position,
+    is_immediate: bool,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     ChangePosition,
+    SetImmediate(bool),
 }
 
 impl Tooltip {
@@ -30,10 +33,17 @@ impl Tooltip {
 
                 self.position = position;
             }
+
+            Message::SetImmediate(is_immediate) => {
+                self.is_immediate = is_immediate;
+            }
         }
     }
 
     fn view(&self) -> Element<'_, Message> {
+        let delay =
+            Duration::from_millis(if self.is_immediate { 0 } else { 2000 });
+
         let tooltip = tooltip(
             button("Press to change position")
                 .on_press(Message::ChangePosition),
@@ -41,9 +51,19 @@ impl Tooltip {
             self.position,
         )
         .gap(10)
+        .delay(delay)
         .style(container::rounded_box);
 
-        center(tooltip).into()
+        let checkbox = checkbox(self.is_immediate)
+            .label("Show immediately")
+            .on_toggle(Message::SetImmediate);
+
+        center(
+            column![tooltip, checkbox]
+                .align_x(alignment::Horizontal::Center)
+                .spacing(7),
+        )
+        .into()
     }
 }
 
