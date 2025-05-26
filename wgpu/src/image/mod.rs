@@ -147,8 +147,6 @@ impl Pipeline {
                             6 => Float32x2,
                             // Layer
                             7 => Sint32,
-                            // Snap
-                            8 => Uint32,
                         ),
                     }],
                     compilation_options:
@@ -243,7 +241,7 @@ impl State {
                             [bounds.width, bounds.height],
                             f32::from(image.rotation),
                             image.opacity,
-                            image.snap,
+                            scale,
                             atlas_entry,
                             match image.filter_method {
                                 crate::core::image::FilterMethod::Nearest => {
@@ -276,7 +274,7 @@ impl State {
                             size,
                             f32::from(svg.rotation),
                             svg.opacity,
-                            true,
+                            scale,
                             atlas_entry,
                             nearest_instances,
                         );
@@ -506,7 +504,6 @@ struct Instance {
     _position_in_atlas: [f32; 2],
     _size_in_atlas: [f32; 2],
     _layer: u32,
-    _snap: u32,
 }
 
 impl Instance {
@@ -524,14 +521,21 @@ struct Uniforms {
 }
 
 fn add_instances(
-    image_position: [f32; 2],
-    image_size: [f32; 2],
+    mut image_position: [f32; 2],
+    mut image_size: [f32; 2],
     rotation: f32,
     opacity: f32,
-    snap: bool,
+    scale: f32,
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
+    let snap = |coordinate: f32| (coordinate * scale).round() / scale;
+
+    image_position[0] = snap(image_position[0]);
+    image_position[1] = snap(image_position[1]);
+    image_size[0] = snap(image_size[0]);
+    image_size[1] = snap(image_size[1]);
+
     let center = [
         image_position[0] + image_size[0] / 2.0,
         image_position[1] + image_size[1] / 2.0,
@@ -545,7 +549,6 @@ fn add_instances(
                 image_size,
                 rotation,
                 opacity,
-                snap,
                 allocation,
                 instances,
             );
@@ -575,8 +578,8 @@ fn add_instances(
                 ];
 
                 add_instance(
-                    position, center, size, rotation, opacity, snap,
-                    allocation, instances,
+                    position, center, size, rotation, opacity, allocation,
+                    instances,
                 );
             }
         }
@@ -590,7 +593,6 @@ fn add_instance(
     size: [f32; 2],
     rotation: f32,
     opacity: f32,
-    snap: bool,
     allocation: &atlas::Allocation,
     instances: &mut Vec<Instance>,
 ) {
@@ -613,7 +615,6 @@ fn add_instance(
             (height as f32 - 1.0) / atlas::SIZE as f32,
         ],
         _layer: layer as u32,
-        _snap: snap as u32,
     };
 
     instances.push(instance);
