@@ -44,26 +44,8 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
         input.shadow_offset,
         input.shadow_blur_radius,
     );
-    var other_index: u32;
-    switch input.vertex_index {
-        case 0u, 5u: {
-            other_index = 2;
-        }
-        case 1u: {
-            other_index = 4;
-        }
-        case 2u, 3u: {
-            other_index = 0;
-        }
-        case 4u: {
-            other_index = 1;
-        }
-        default: {
-            other_index = 0;
-        }
-    }
     var other_cpos = corner_pos(
-        other_index,
+        opposite_vertex(input.vertex_index),
         input.scale,
         input.pos,
         globals.scale,
@@ -91,7 +73,7 @@ fn solid_fs_main(
 ) -> @location(0) vec4<f32> {
     var mixed_color: vec4<f32> = input.color;
 
-    var dist: f32 = rounded_box_sdf2(
+    var dist: f32 = rounded_box_sdf(
         -(input.position.xy - input.pos - input.scale/2.0) * 2.0,
         input.scale,
         input.border_radius * 2.0
@@ -105,13 +87,12 @@ fn solid_fs_main(
         );
     }
 
-
     var radius_alpha: f32 = clamp(0.5-dist, 0.0, 1.0);
 
     let quad_color = mixed_color * radius_alpha;
 
     if input.shadow_color.a > 0.0 {
-        var shadow_dist: f32 = rounded_box_sdf2(
+        var shadow_dist: f32 = rounded_box_sdf(
             -(input.position.xy - input.pos - input.shadow_offset - input.scale/2.0) * 2.0,
             input.scale,
             input.border_radius * 2.0

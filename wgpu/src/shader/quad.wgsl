@@ -10,6 +10,7 @@ struct CornerPos {
     with_shadow: vec2<f32>,
     to_edge: vec2<f32>,
 }
+
 fn corner_pos(
     vertex_index: u32,
     input_scale: vec2<f32>,
@@ -18,8 +19,8 @@ fn corner_pos(
     shadow_offset: vec2<f32>,
     shadow_blur_radius: f32,
 ) -> CornerPos {
-    var base_pos = (position + vertex_position(vertex_index) * input_scale) * global_scale;
     var ret: CornerPos;
+    var base_pos = (position + vertex_position(vertex_index) * input_scale) * global_scale;
     ret.pos = round(base_pos);
     switch vertex_index {
         case 0u, 5u: {
@@ -63,7 +64,7 @@ fn corner_pos(
     return ret;
 }
 
-fn rounded_box_sdf2(p: vec2<f32>, size: vec2<f32>, corners: vec4<f32>) -> f32 {
+fn rounded_box_sdf(p: vec2<f32>, size: vec2<f32>, corners: vec4<f32>) -> f32 {
     var box_half = select(corners.yz, corners.xw, p.x > 0.0);
     var corner = select(box_half.y, box_half.x, p.y > 0.0);
     var q = abs(p) - size + corner;

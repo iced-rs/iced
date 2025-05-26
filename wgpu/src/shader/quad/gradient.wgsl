@@ -49,26 +49,8 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
         vec2(0.0),
         0.0,
     );
-    var other_index: u32;
-    switch input.vertex_index {
-        case 0u, 5u: {
-            other_index = 2;
-        }
-        case 1u: {
-            other_index = 4;
-        }
-        case 2u, 3u: {
-            other_index = 0;
-        }
-        case 4u: {
-            other_index = 1;
-        }
-        default: {
-            other_index = 0;
-        }
-    }
     var other_cpos = corner_pos(
-        other_index,
+        opposite_vertex(input.vertex_index),
         input.position_and_scale.zw,
         input.position_and_scale.xy,
         globals.scale,
@@ -188,7 +170,7 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let pos = input.position_and_scale.xy;
     let scale = input.position_and_scale.zw;
 
-    var dist: f32 = rounded_box_sdf2(
+    var dist: f32 = rounded_box_sdf(
         -(input.position.xy - pos - scale / 2.0) * 2.0,
         scale,
         input.border_radius * 2.0
