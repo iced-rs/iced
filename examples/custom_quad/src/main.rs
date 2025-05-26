@@ -82,9 +82,12 @@ mod quad {
     }
 }
 
-use iced::border;
-use iced::widget::{center, column, slider, text};
+use iced::alignment::Horizontal;
+use iced::widget::{
+    center, column, container, row, slider, text, vertical_space,
+};
 use iced::{Center, Color, Element, Shadow, Vector};
+use iced::{Length, border};
 
 pub fn main() -> iced::Result {
     iced::run(Example::update, Example::view)
@@ -107,7 +110,6 @@ enum Message {
     ShadowXOffsetChanged(f32),
     ShadowYOffsetChanged(f32),
     ShadowBlurRadiusChanged(f32),
-    None,
 }
 
 impl Example {
@@ -149,7 +151,6 @@ impl Example {
             Message::ShadowBlurRadiusChanged(s) => {
                 self.shadow.blur_radius = s;
             }
-            Message::None => {}
         }
     }
 
@@ -190,13 +191,28 @@ impl Example {
                 .step(0.01),
             slider(0.0..=100.0, sr, Message::ShadowBlurRadiusChanged)
                 .step(0.01),
-            iced::widget::button("test")
-                .style(|theme, status| {
-                    let mut style = iced::widget::button::primary(theme, status);
-                    style.border.radius = iced::border::left(10.0);
-                    style
-                })
-                .on_press(Message::None)
+            row![
+                iced::widget::button("-")
+                    .style(|theme, status| {
+                        let mut style = iced::widget::button::primary(theme, status);
+                        style.border.radius = iced::border::left(10.0);
+                        style
+                    })
+                    .on_press(Message::BorderWidthChanged((self.border_width - 1.0).max(0.0))),
+                container(vertical_space().width(1.0)).style(|theme: &iced::Theme| {
+                    container::Style {
+                        background: Some(iced::Background::Color(theme.extended_palette().primary.weak.color)),
+                        ..Default::default()
+                    }
+                }),
+                iced::widget::button("+")
+                    .style(|theme, status| {
+                        let mut style = iced::widget::button::primary(theme, status);
+                        style.border.radius = iced::border::right(10.0);
+                        style
+                    })
+                    .on_press(Message::BorderWidthChanged((self.border_width + 1.0).min(10.0)))
+            ].height(Length::Shrink)
         ]
         .padding(20)
         .spacing(20)

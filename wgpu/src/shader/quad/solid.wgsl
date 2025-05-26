@@ -74,7 +74,7 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     out.position = globals.transform * vec4<f32>(cpos.with_shadow + cpos.to_edge, 0.0, 1.0);
     out.color = premultiply(input.color);
     out.border_color = premultiply(input.border_color);
-    out.pos = vec2(min(cpos.pos.x, other_cpos.pos.x), min(cpos.pos.y, other_cpos.pos.y)); // input.pos * globals.scale - cpos.difference;
+    out.pos = vec2(min(cpos.pos.x, other_cpos.pos.x), min(cpos.pos.y, other_cpos.pos.y));
     out.scale = abs(cpos.pos - other_cpos.pos);
     out.border_radius = border_radius * globals.scale;
     out.border_width = input.border_width * globals.scale;
@@ -101,7 +101,7 @@ fn solid_fs_main(
         mixed_color = mix(
             input.color,
             input.border_color,
-            clamp(0.5 + dist + input.border_width, 0.0, 1.0)
+            clamp(0.75 + dist + input.border_width, 0.0, 1.0)
         );
     }
 

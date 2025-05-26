@@ -41,21 +41,52 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
         min(input.border_radius.w, min_border_radius)
     );
 
-    var transform: mat4x4<f32> = mat4x4<f32>(
-        vec4<f32>(scale.x + 1.0, 0.0, 0.0, 0.0),
-        vec4<f32>(0.0, scale.y + 1.0, 0.0, 0.0),
-        vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(pos - vec2<f32>(0.5, 0.5), 0.0, 1.0)
+    var cpos = corner_pos(
+        input.vertex_index,
+        input.position_and_scale.zw,
+        input.position_and_scale.xy,
+        globals.scale,
+        vec2(0.0),
+        0.0,
+    );
+    var other_index: u32;
+    switch input.vertex_index {
+        case 0u, 5u: {
+            other_index = 2;
+        }
+        case 1u: {
+            other_index = 4;
+        }
+        case 2u, 3u: {
+            other_index = 0;
+        }
+        case 4u: {
+            other_index = 1;
+        }
+        default: {
+            other_index = 0;
+        }
+    }
+    var other_cpos = corner_pos(
+        other_index,
+        input.position_and_scale.zw,
+        input.position_and_scale.xy,
+        globals.scale,
+        vec2(0.0),
+        0.0,
     );
 
-    out.position = globals.transform * transform * vec4<f32>(vertex_position(input.vertex_index), 0.0, 1.0);
+    out.position = globals.transform  * vec4<f32>(cpos.with_shadow + cpos.to_edge, 0.0, 1.0);
     out.colors_1 = input.colors_1;
     out.colors_2 = input.colors_2;
     out.colors_3 = input.colors_3;
     out.colors_4 = input.colors_4;
     out.offsets = input.offsets;
     out.direction = input.direction * globals.scale;
-    out.position_and_scale = vec4<f32>(pos, scale);
+    out.position_and_scale = vec4<f32>(
+        vec2(min(cpos.pos.x, other_cpos.pos.x), min(cpos.pos.y, other_cpos.pos.y)),
+        abs(cpos.pos - other_cpos.pos)
+    );
     out.border_color = premultiply(input.border_color);
     out.border_radius = border_radius * globals.scale;
     out.border_width = input.border_width * globals.scale;
@@ -157,42 +188,19 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let pos = input.position_and_scale.xy;
     let scale = input.position_and_scale.zw;
 
-    var border_radius = select_border_radius(
-        input.border_radius,
-        input.position.xy,
-        (pos + scale * 0.5).xy
-    );
+    var dist: f32 = rounded_box_sdf2(
+        -(input.position.xy - pos - scale / 2.0) * 2.0,
+        scale,
+        input.border_radius * 2.0
+    ) / 2.0;
 
     if (input.border_width > 0.0) {
-        var internal_border: f32 = max(border_radius - input.border_width, 0.0);
-
-        var internal_distance: f32 = distance_alg(
-            input.position.xy,
-            pos + vec2<f32>(input.border_width, input.border_width),
-            scale - vec2<f32>(input.border_width * 2.0, input.border_width * 2.0),
-            internal_border
+        mixed_color = mix(
+            mixed_color,
+            input.border_color,
+            clamp(0.5 + dist + input.border_width, 0.0, 1.0)
         );
-
-        var border_mix: f32 = smoothstep(
-            max(internal_border - 0.5, 0.0),
-            internal_border + 0.5,
-            internal_distance
-        );
-
-        mixed_color = mix(mixed_color, input.border_color, border_mix);
     }
 
-    var dist: f32 = distance_alg(
-        input.position.xy,
-        pos,
-        scale,
-        border_radius
-    );
-
-    var radius_alpha: f32 = 1.0 - smoothstep(
-        max(border_radius - 0.5, 0.0),
-        border_radius + 0.5,
-        dist);
-
-    return mixed_color * radius_alpha;
+    return mixed_color * clamp(0.5-dist, 0.0, 1.0);
 }
