@@ -82,7 +82,6 @@ mod quad {
     }
 }
 
-use iced::alignment::Horizontal;
 use iced::widget::{
     center, column, container, row, slider, text, vertical_space,
 };
