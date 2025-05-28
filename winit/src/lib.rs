@@ -54,6 +54,7 @@ use crate::futures::subscription;
 use crate::futures::{Executor, Runtime};
 use crate::graphics::{Compositor, compositor};
 use crate::runtime::user_interface::{self, UserInterface};
+use crate::runtime::window::Handle;
 use crate::runtime::{Action, Task};
 
 use program::Program;
@@ -1356,13 +1357,18 @@ fn run_action<P, C>(
                 }
             }
             window::Action::RunWithHandle(id, f) => {
+                use window::raw_window_handle::HasDisplayHandle;
                 use window::raw_window_handle::HasWindowHandle;
 
-                if let Some(handle) = window_manager
-                    .get_mut(id)
-                    .and_then(|window| window.raw.window_handle().ok())
+                if let Some((Some(window), Some(display))) =
+                    window_manager.get_mut(id).map(|window| {
+                        (
+                            window.raw.window_handle().ok(),
+                            window.raw.display_handle().ok(),
+                        )
+                    })
                 {
-                    f(handle);
+                    f(Handle { window, display });
                 }
             }
             window::Action::Screenshot(id, channel) => {
