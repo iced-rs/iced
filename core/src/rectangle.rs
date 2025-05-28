@@ -250,14 +250,11 @@ impl Rectangle<f32> {
             return None;
         }
 
-        let x = (self.x + 0.01).round();
-        let y = (self.y + 0.01).round();
-
         Some(Rectangle {
-            x: x as u32,
-            y: y as u32,
-            width: ((self.x + self.width + 0.01).round() - x) as u32,
-            height: ((self.y + self.height + 0.01).round() - y) as u32,
+            x: self.x as u32,
+            y: self.y as u32,
+            width,
+            height,
         })
     }
 

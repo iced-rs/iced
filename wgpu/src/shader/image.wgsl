@@ -17,6 +17,7 @@ struct VertexInput {
     @location(5) atlas_pos: vec2<f32>,
     @location(6) atlas_scale: vec2<f32>,
     @location(7) layer: i32,
+    @location(8) snap: u32,
 }
 
 struct VertexOutput {
@@ -53,7 +54,11 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
     // Calculate the final position of the vertex
     out.position = vec4(vec2(globals.scale_factor), 1.0, 1.0) * (vec4<f32>(input.center, 0.0, 0.0) + rotate * vec4<f32>(v_pos, 0.0, 1.0));
-    out.position = round(out.position);
+
+    if bool(input.snap) {
+        out.position = round(out.position);
+    }
+
     out.position = globals.transform * out.position;
 
     return out;
