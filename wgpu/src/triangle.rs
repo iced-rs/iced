@@ -2,7 +2,7 @@
 mod msaa;
 
 use crate::Buffer;
-use crate::core::{Rectangle, Size, Transformation};
+use crate::core::{Point, Rectangle, Size, Transformation, Vector};
 use crate::graphics::Antialiasing;
 use crate::graphics::mesh::{self, Mesh};
 
@@ -445,10 +445,25 @@ impl Layer {
         let mut index_offset = 0;
 
         for mesh in meshes {
-            let indices = mesh.indices();
+            let clip_bounds = mesh.clip_bounds() * transformation;
+            let snap_distance = clip_bounds
+                .snap()
+                .map(|snapped_bounds| {
+                    Point::new(snapped_bounds.x as f32, snapped_bounds.y as f32)
+                        - clip_bounds.position()
+                })
+                .unwrap_or(Vector::ZERO);
 
-            let uniforms =
-                Uniforms::new(transformation * mesh.transformation());
+            let uniforms = Uniforms::new(
+                transformation
+                    * mesh.transformation()
+                    * Transformation::translate(
+                        snap_distance.x,
+                        snap_distance.y,
+                    ),
+            );
+
+            let indices = mesh.indices();
 
             index_offset += self.index_buffer.write(
                 device,
