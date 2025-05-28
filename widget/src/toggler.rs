@@ -424,7 +424,7 @@ where
             .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
-        let space = SPACE_RATIO * bounds.height;
+        let space = (SPACE_RATIO * bounds.height).round();
 
         let toggler_background_bounds = Rectangle {
             x: bounds.x + space,
