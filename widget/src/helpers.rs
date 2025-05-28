@@ -997,7 +997,6 @@ pub fn pop<'a, Message, Theme, Renderer>(
 ) -> Pop<'a, (), Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
-    Message: Clone,
 {
     Pop::new(content)
 }
@@ -2054,22 +2053,14 @@ where
 }
 
 /// A widget that applies any `Theme` to its contents.
-pub fn themer<'a, Message, OldTheme, NewTheme, Renderer>(
-    new_theme: NewTheme,
-    content: impl Into<Element<'a, Message, NewTheme, Renderer>>,
-) -> Themer<
-    'a,
-    Message,
-    OldTheme,
-    NewTheme,
-    impl Fn(&OldTheme) -> NewTheme,
-    Renderer,
->
+pub fn themer<'a, Message, Theme, Renderer>(
+    theme: Theme,
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Themer<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
-    NewTheme: Clone,
 {
-    Themer::new(move |_| new_theme.clone(), content)
+    Themer::new(theme, content)
 }
 
 /// Creates a [`PaneGrid`] with the given [`pane_grid::State`] and view function.

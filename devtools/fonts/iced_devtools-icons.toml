@@ -1,0 +1,8 @@
+module = "icon"
+
+[glyphs]
+play = "entypo-play"
+stop = "entypo-stop"
+record = "entypo-record"
+import = "entypo-folder"
+export = "entypo-floppy"

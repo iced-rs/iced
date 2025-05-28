@@ -4,10 +4,10 @@ pub use iced_runtime as runtime;
 pub use iced_runtime::core;
 pub use iced_runtime::futures;
 
-use crate::core::Element;
 use crate::core::text;
 use crate::core::theme;
 use crate::core::window;
+use crate::core::{Element, Font};
 use crate::futures::{Executor, Subscription};
 use crate::graphics::compositor;
 use crate::runtime::Task;
@@ -585,9 +585,10 @@ pub fn with_executor<P: Program, E: Executor>(
 }
 
 /// The renderer of some [`Program`].
-pub trait Renderer: text::Renderer + compositor::Default {}
+pub trait Renderer: text::Renderer<Font = Font> + compositor::Default {}
 
-impl<T> Renderer for T where T: text::Renderer + compositor::Default {}
+impl<T> Renderer for T where T: text::Renderer<Font = Font> + compositor::Default
+{}
 
 /// A particular instance of a running [`Program`].
 #[allow(missing_debug_implementations)]

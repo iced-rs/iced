@@ -19,6 +19,10 @@ time-travel = ["iced_program/time-travel"]
 [dependencies]
 iced_debug.workspace = true
 iced_program.workspace = true
+iced_test.workspace = true
 iced_widget.workspace = true
 
 log.workspace = true
+
+[build-dependencies]
+iced_fontello = "0.14.0-dev"

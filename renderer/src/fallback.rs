@@ -84,7 +84,6 @@ where
     type Paragraph = A::Paragraph;
     type Editor = A::Editor;
 
-    const MONOSPACE_FONT: Self::Font = A::MONOSPACE_FONT;
     const ICON_FONT: Self::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
