@@ -165,7 +165,7 @@ where
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
         };
 
-        container::draw_background(renderer, &style, bounds);
+        let _ = container::draw_background(renderer, &style, bounds);
 
         let mut children = layout.children();
         let padded = children.next().unwrap();
@@ -177,6 +177,7 @@ where
         if let Some(controls) = &self.controls {
             if show_controls || self.always_show_controls {
                 let controls_layout = children.next().unwrap();
+
                 if title_layout.bounds().width + controls_layout.bounds().width
                     > padded.bounds().width
                 {

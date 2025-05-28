@@ -1,5 +1,5 @@
 //! Draw and stack layers of graphical primitives.
-use crate::core::{Rectangle, Transformation};
+use crate::core::{Point, Rectangle, Transformation};
 
 /// A layer of graphical primitives.
 ///
@@ -27,6 +27,7 @@ pub trait Layer: Default {
 pub struct Stack<T: Layer> {
     layers: Vec<T>,
     transformations: Vec<Transformation>,
+    snaps: Vec<Point>,
     previous: Vec<usize>,
     current: usize,
     active_count: usize,
@@ -38,6 +39,7 @@ impl<T: Layer> Stack<T> {
         Self {
             layers: vec![T::default()],
             transformations: vec![Transformation::IDENTITY],
+            snaps: vec![Point::ORIGIN],
             previous: vec![],
             current: 0,
             active_count: 1,
@@ -57,6 +59,12 @@ impl<T: Layer> Stack<T> {
     #[inline]
     pub fn transformation(&self) -> Transformation {
         self.transformations.last().copied().unwrap()
+    }
+
+    /// Returns the current snapping [`Point`] of the [`Stack`].
+    #[inline]
+    pub fn snap(&self) -> Point {
+        self.snaps.last().copied().unwrap()
     }
 
     /// Pushes a new clipping region in the [`Stack`]; creating a new layer in the
@@ -99,6 +107,16 @@ impl<T: Layer> Stack<T> {
     /// Pops the current [`Transformation`] in the [`Stack`].
     pub fn pop_transformation(&mut self) {
         let _ = self.transformations.pop();
+    }
+
+    /// Pushes a snapping [`Point`] in the [`Stack`].
+    pub fn push_snap(&mut self, point: Point) {
+        self.snaps.push(point);
+    }
+
+    /// Pops the last snapping [`Point`] in the [`Stack`].
+    pub fn pop_snap(&mut self) {
+        let _ = self.snaps.pop();
     }
 
     /// Returns an iterator over mutable references to the layers in the [`Stack`].

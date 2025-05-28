@@ -492,7 +492,7 @@ where
     ) {
         let style = theme.style(self.class);
 
-        container::draw_background(renderer, &style, layout.bounds());
+        let _ = container::draw_background(renderer, &style, layout.bounds());
 
         let defaults = renderer::Style {
             text_color: style.text_color.unwrap_or(inherited_style.text_color),

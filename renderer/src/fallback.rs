@@ -69,6 +69,14 @@ where
     fn end_transformation(&mut self) {
         delegate!(self, renderer, renderer.end_transformation());
     }
+
+    fn start_snap(&mut self, point: Point) {
+        delegate!(self, renderer, renderer.start_snap(point));
+    }
+
+    fn end_snap(&mut self) {
+        delegate!(self, renderer, renderer.end_snap());
+    }
 }
 
 impl<A, B> core::text::Renderer for Renderer<A, B>

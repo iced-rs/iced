@@ -152,7 +152,7 @@ where
         let theme = (self.to_theme)(theme);
 
         if let Some(background) = self.background {
-            container::draw_background(
+            let _ = container::draw_background(
                 renderer,
                 &container::Style {
                     background: Some(background(&theme)),

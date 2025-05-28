@@ -118,11 +118,11 @@ where
     ) {
         let bounds = layout.bounds();
 
-        {
-            let style = theme.style(&self.class);
-
-            container::draw_background(renderer, &style, bounds);
-        }
+        let _ = container::draw_background(
+            renderer,
+            &theme.style(&self.class),
+            bounds,
+        );
 
         if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();

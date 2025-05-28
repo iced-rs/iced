@@ -39,6 +39,7 @@ impl Layer {
         color: Color,
         clip_bounds: Rectangle,
         transformation: Transformation,
+        snap_to: Point,
     ) {
         let paragraph = Text::Paragraph {
             paragraph: paragraph.downgrade(),
@@ -46,6 +47,7 @@ impl Layer {
             color,
             clip_bounds,
             transformation,
+            snap_to,
         };
 
         self.text.push(Item::Live(paragraph));
@@ -58,6 +60,7 @@ impl Layer {
         color: Color,
         clip_bounds: Rectangle,
         transformation: Transformation,
+        snap_to: Point,
     ) {
         let editor = Text::Editor {
             editor: editor.downgrade(),
@@ -65,6 +68,7 @@ impl Layer {
             color,
             clip_bounds,
             transformation,
+            snap_to,
         };
 
         self.text.push(Item::Live(editor));

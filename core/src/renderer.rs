@@ -3,7 +3,7 @@
 mod null;
 
 use crate::{
-    Background, Border, Color, Font, Pixels, Rectangle, Shadow, Size,
+    Background, Border, Color, Font, Pixels, Point, Rectangle, Shadow, Size,
     Transformation, Vector,
 };
 
@@ -55,6 +55,23 @@ pub trait Renderer {
             Transformation::translate(translation.x, translation.y),
             f,
         );
+    }
+
+    /// Applies a snapping [`Point`] as the reference for the next primitives recorded.
+    fn start_snap(&mut self, point: Point);
+
+    /// Removes the latest snapping [`Point`].
+    fn end_snap(&mut self);
+
+    /// Applies a snapping [`Point`] as the reference for the primitives recorded
+    /// in the given closure.
+    ///
+    /// This can help the [`Renderer`] to consistently align primitives to the pixel grid
+    /// and avoid jitter.
+    fn with_snap(&mut self, point: Point, f: impl FnOnce(&mut Self)) {
+        self.start_snap(point);
+        f(self);
+        self.end_snap();
     }
 
     /// Fills a [`Quad`] with the provided [`Background`].

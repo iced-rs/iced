@@ -31,8 +31,8 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     var pos: vec2<f32> = (input.pos + min(input.shadow_offset, vec2<f32>(0.0, 0.0)) - input.shadow_blur_radius) * globals.scale;
     var scale: vec2<f32> = (input.scale + vec2<f32>(abs(input.shadow_offset.x), abs(input.shadow_offset.y)) + input.shadow_blur_radius * 2.0) * globals.scale;
 
-    var pos_snap: vec2<f32> = round(pos + vec2(0.01, 0.01)) - pos;
-    var scale_snap: vec2<f32> = round(pos + scale + vec2(0.01, 0.01)) - pos - pos_snap - scale;
+    var pos_snap: vec2<f32> = round(pos + vec2(0.001, 0.001)) - pos;
+    var scale_snap: vec2<f32> = round(pos + scale + vec2(0.001, 0.001)) - pos - pos_snap - scale;
 
     var min_border_radius = min(input.scale.x, input.scale.y) * 0.5;
     var border_radius: vec4<f32> = vec4<f32>(

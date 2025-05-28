@@ -397,17 +397,19 @@ where
             *viewport
         };
 
-        self.content.as_widget().draw(
-            &tree.children[0],
-            renderer,
-            theme,
-            &renderer::Style {
-                text_color: style.text_color,
-            },
-            content_layout,
-            cursor,
-            &viewport,
-        );
+        renderer.with_snap(bounds.position(), |renderer| {
+            self.content.as_widget().draw(
+                &tree.children[0],
+                renderer,
+                theme,
+                &renderer::Style {
+                    text_color: style.text_color,
+                },
+                content_layout,
+                cursor,
+                &viewport,
+            );
+        });
     }
 
     fn mouse_interaction(

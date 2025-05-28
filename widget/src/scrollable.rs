@@ -1044,7 +1044,11 @@ where
             }),
         );
 
-        container::draw_background(renderer, &style.container, layout.bounds());
+        let _ = container::draw_background(
+            renderer,
+            &style.container,
+            layout.bounds(),
+        );
 
         // Draw inner content
         if scrollbars.active() {

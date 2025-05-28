@@ -352,7 +352,11 @@ where
         let style = theme.style(&self.class);
 
         if let Some(clipped_viewport) = bounds.intersection(viewport) {
-            draw_background(renderer, &style, bounds);
+            let has_background = draw_background(renderer, &style, bounds);
+
+            if has_background {
+                renderer.start_snap(bounds.position());
+            }
 
             self.content.as_widget().draw(
                 tree,
@@ -371,6 +375,10 @@ where
                     viewport
                 },
             );
+
+            if has_background {
+                renderer.end_snap();
+            }
         }
     }
 
@@ -439,7 +447,8 @@ pub fn draw_background<Renderer>(
     renderer: &mut Renderer,
     style: &Style,
     bounds: Rectangle,
-) where
+) -> bool
+where
     Renderer: core::Renderer,
 {
     if style.background.is_some()
@@ -456,6 +465,10 @@ pub fn draw_background<Renderer>(
                 .background
                 .unwrap_or(Background::Color(Color::TRANSPARENT)),
         );
+
+        true
+    } else {
+        false
     }
 }
 

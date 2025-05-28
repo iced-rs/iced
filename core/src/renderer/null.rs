@@ -16,6 +16,10 @@ impl Renderer for () {
 
     fn end_transformation(&mut self) {}
 
+    fn start_snap(&mut self, _point: Point) {}
+
+    fn end_snap(&mut self) {}
+
     fn clear(&mut self) {}
 
     fn fill_quad(

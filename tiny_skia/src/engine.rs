@@ -338,6 +338,7 @@ impl Engine {
             Text::Paragraph {
                 paragraph,
                 position,
+                snap_to: _, // TODO
                 color,
                 clip_bounds: _, // TODO
                 transformation: local_transformation,
@@ -367,6 +368,7 @@ impl Engine {
             Text::Editor {
                 editor,
                 position,
+                snap_to: _, // TODO
                 color,
                 clip_bounds: _, // TODO
                 transformation: local_transformation,

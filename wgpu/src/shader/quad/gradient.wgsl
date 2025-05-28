@@ -33,8 +33,8 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     var pos: vec2<f32> = input.position_and_scale.xy * globals.scale;
     var scale: vec2<f32> = input.position_and_scale.zw * globals.scale;
 
-    var pos_snap: vec2<f32> = round(pos + vec2(0.01, 0.01)) - pos;
-    var scale_snap: vec2<f32> = round(pos + scale + vec2(0.01, 0.01)) - pos - pos_snap - scale;
+    var pos_snap: vec2<f32> = round(pos + vec2(0.001, 0.001)) - pos;
+    var scale_snap: vec2<f32> = round(pos + scale + vec2(0.001, 0.001)) - pos - pos_snap - scale;
 
     var min_border_radius = min(input.position_and_scale.z, input.position_and_scale.w) * 0.5;
     var border_radius: vec4<f32> = vec4<f32>(

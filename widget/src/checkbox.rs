@@ -401,6 +401,8 @@ where
                 style.background,
             );
 
+            renderer.start_snap(bounds.position());
+
             let Icon {
                 font,
                 code_point,
@@ -446,6 +448,8 @@ where
                 viewport,
             );
         }
+
+        renderer.end_snap();
     }
 
     fn operate(

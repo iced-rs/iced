@@ -26,6 +26,7 @@ pub enum Text {
     Paragraph {
         paragraph: paragraph::Weak,
         position: Point,
+        snap_to: Point,
         color: Color,
         clip_bounds: Rectangle,
         transformation: Transformation,
@@ -35,6 +36,7 @@ pub enum Text {
     Editor {
         editor: editor::Weak,
         position: Point,
+        snap_to: Point,
         color: Color,
         clip_bounds: Rectangle,
         transformation: Transformation,

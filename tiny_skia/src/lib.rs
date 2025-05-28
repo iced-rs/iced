@@ -216,6 +216,14 @@ impl core::Renderer for Renderer {
         self.layers.pop_transformation();
     }
 
+    fn start_snap(&mut self, point: Point) {
+        self.layers.push_snap(point);
+    }
+
+    fn end_snap(&mut self) {
+        self.layers.pop_snap();
+    }
+
     fn fill_quad(
         &mut self,
         quad: renderer::Quad,
@@ -255,6 +263,7 @@ impl core::text::Renderer for Renderer {
         color: Color,
         clip_bounds: Rectangle,
     ) {
+        let snap = self.layers.snap();
         let (layer, transformation) = self.layers.current_mut();
 
         layer.draw_paragraph(
@@ -263,6 +272,7 @@ impl core::text::Renderer for Renderer {
             color,
             clip_bounds,
             transformation,
+            snap,
         );
     }
 
@@ -273,8 +283,17 @@ impl core::text::Renderer for Renderer {
         color: Color,
         clip_bounds: Rectangle,
     ) {
+        let snap = self.layers.snap();
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_editor(editor, position, color, clip_bounds, transformation);
+
+        layer.draw_editor(
+            editor,
+            position,
+            color,
+            clip_bounds,
+            transformation,
+            snap,
+        );
     }
 
     fn fill_text(

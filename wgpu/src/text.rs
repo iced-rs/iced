@@ -1,6 +1,6 @@
 use crate::core::alignment;
 use crate::core::text::Alignment;
-use crate::core::{Rectangle, Size, Transformation};
+use crate::core::{Point, Rectangle, Size, Transformation};
 use crate::graphics::cache;
 use crate::graphics::color;
 use crate::graphics::text::cache::{self as text_cache, Cache as BufferCache};
@@ -504,15 +504,23 @@ fn prepare(
         })
         .collect();
 
-    let text_areas = sections.iter().zip(allocations.iter()).filter_map(
-        |(section, allocation)| {
-            let (buffer, position, color, clip_bounds, transformation) =
-                match section {
+    let text_areas =
+        sections.iter().zip(allocations.iter()).filter_map(
+            |(section, allocation)| {
+                let (
+                    buffer,
+                    position,
+                    color,
+                    clip_bounds,
+                    transformation,
+                    snap_to,
+                ) = match section {
                     Text::Paragraph {
                         position,
                         color,
                         clip_bounds,
                         transformation,
+                        snap_to,
                         ..
                     } => {
                         let Some(Allocation::Paragraph(paragraph)) = allocation
@@ -526,6 +534,7 @@ fn prepare(
                             *color,
                             *clip_bounds,
                             *transformation,
+                            *snap_to,
                         )
                     }
                     Text::Editor {
@@ -533,6 +542,7 @@ fn prepare(
                         color,
                         clip_bounds,
                         transformation,
+                        snap_to,
                         ..
                     } => {
                         let Some(Allocation::Editor(editor)) = allocation
@@ -546,6 +556,7 @@ fn prepare(
                             *color,
                             *clip_bounds,
                             *transformation,
+                            *snap_to,
                         )
                     }
                     Text::Cached {
@@ -593,6 +604,7 @@ fn prepare(
                             *color,
                             *clip_bounds,
                             Transformation::IDENTITY,
+                            Point::ORIGIN,
                         )
                     }
                     Text::Raw {
@@ -609,32 +621,41 @@ fn prepare(
                             raw.color,
                             raw.clip_bounds,
                             *transformation,
+                            Point::ORIGIN,
                         )
                     }
                 };
 
-            let position = position * transformation * layer_transformation;
+                let transformation = transformation * layer_transformation;
+                let position = position * transformation;
 
-            let clip_bounds = layer_bounds.intersection(
-                &(clip_bounds * transformation * layer_transformation),
-            )?;
+                let clip_bounds = layer_bounds
+                    .intersection(&(clip_bounds * transformation))?;
 
-            Some(cryoglyph::TextArea {
-                buffer,
-                left: position.x.round(),
-                top: position.y,
-                scale: transformation.scale_factor()
-                    * layer_transformation.scale_factor(),
-                bounds: cryoglyph::TextBounds {
-                    left: clip_bounds.x as i32,
-                    top: clip_bounds.y as i32,
-                    right: (clip_bounds.x + clip_bounds.width) as i32,
-                    bottom: (clip_bounds.y + clip_bounds.height) as i32,
-                },
-                default_color: to_color(color),
-            })
-        },
-    );
+                let snap_to = snap_to * transformation;
+                let left =
+                    position.x + ((snap_to.x + 0.001).round() - snap_to.x);
+                let top =
+                    position.y + ((snap_to.y + 0.001).round() - snap_to.y);
+
+                // let left = position.x;
+                // let top = position.y;
+
+                Some(cryoglyph::TextArea {
+                    buffer,
+                    left,
+                    top,
+                    scale: transformation.scale_factor(),
+                    bounds: cryoglyph::TextBounds {
+                        left: clip_bounds.x as i32,
+                        top: clip_bounds.y as i32,
+                        right: (clip_bounds.x + clip_bounds.width) as i32,
+                        bottom: (clip_bounds.y + clip_bounds.height) as i32,
+                    },
+                    default_color: to_color(color),
+                })
+            },
+        );
 
     renderer.prepare(
         device,

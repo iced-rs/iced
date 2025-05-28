@@ -262,7 +262,7 @@ fn view_content<'a>(
     size: Size,
 ) -> Element<'a, Message> {
     let button = |label, message| {
-        button(text(label).width(Fill).align_x(Center).size(16))
+        button(container(text(label)).center_x(Fill))
             .width(Fill)
             .padding(8)
             .on_press(message)
