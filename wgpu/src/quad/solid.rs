@@ -114,6 +114,8 @@ impl Pipeline {
                             7 => Float32x2,
                             // Shadow blur radius
                             8 => Float32,
+                            // Snap
+                            9 => Uint32,
                         ),
                     }],
                     compilation_options:

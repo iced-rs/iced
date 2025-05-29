@@ -54,6 +54,7 @@ impl Layer {
             shadow_color: color::pack(quad.shadow.color),
             shadow_offset: quad.shadow.offset.into(),
             shadow_blur_radius: quad.shadow.blur_radius,
+            snap: quad.snap as u32,
         };
 
         self.quads.add(quad, &background);

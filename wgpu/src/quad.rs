@@ -41,6 +41,9 @@ pub struct Quad {
 
     /// The shadow blur radius of the [`Quad`].
     pub shadow_blur_radius: f32,
+
+    /// Whether the [`Quad`] should be snapped to the pixel grid.
+    pub snap: u32,
 }
 
 #[derive(Debug, Clone)]

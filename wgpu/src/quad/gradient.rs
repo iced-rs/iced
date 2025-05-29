@@ -153,7 +153,9 @@ impl Pipeline {
                                 // Border radius
                                 8 => Float32x4,
                                 // Border width
-                                9 => Float32
+                                9 => Float32,
+                                // Snap
+                                10 => Uint32,
                             ),
                         }],
                         compilation_options:

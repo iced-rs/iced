@@ -9,6 +9,7 @@ struct SolidVertexInput {
     @location(6) shadow_color: vec4<f32>,
     @location(7) shadow_offset: vec2<f32>,
     @location(8) shadow_blur_radius: f32,
+    @location(9) snap: u32,
 }
 
 struct SolidVertexOutput {
@@ -30,14 +31,13 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
 
     var pos: vec2<f32> = (input.pos + min(input.shadow_offset, vec2<f32>(0.0, 0.0)) - input.shadow_blur_radius) * globals.scale;
     var scale: vec2<f32> = (input.scale + vec2<f32>(abs(input.shadow_offset.x), abs(input.shadow_offset.y)) + input.shadow_blur_radius * 2.0) * globals.scale;
-    var snap: vec2<f32> = vec2<f32>(0.0, 0.0);
 
-    if input.scale.x == 1.0 {
-        snap.x = round(pos.x) - pos.x;
-    }
+    var pos_snap = vec2<f32>(0.0, 0.0);
+    var scale_snap = vec2<f32>(0.0, 0.0);
 
-    if input.scale.y == 1.0 {
-        snap.y = round(pos.y) - pos.y;
+    if bool(input.snap) {
+        pos_snap = round(pos + vec2(0.001, 0.001)) - pos;
+        scale_snap = round(pos + scale + vec2(0.001, 0.001)) - pos - pos_snap - scale;
     }
 
     var min_border_radius = min(input.scale.x, input.scale.y) * 0.5;
@@ -49,17 +49,17 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     );
 
     var transform: mat4x4<f32> = mat4x4<f32>(
-        vec4<f32>(scale.x + 1.0, 0.0, 0.0, 0.0),
-        vec4<f32>(0.0, scale.y + 1.0, 0.0, 0.0),
+        vec4<f32>(scale.x + scale_snap.x + 1.0, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, scale.y + scale_snap.y + 1.0, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(pos - vec2<f32>(0.5, 0.5) + snap, 0.0, 1.0)
+        vec4<f32>(pos + pos_snap - vec2<f32>(0.5, 0.5), 0.0, 1.0)
     );
 
     out.position = globals.transform * transform * vec4<f32>(vertex_position(input.vertex_index), 0.0, 1.0);
     out.color = premultiply(input.color);
     out.border_color = premultiply(input.border_color);
-    out.pos = input.pos * globals.scale + snap;
-    out.scale = input.scale * globals.scale;
+    out.pos = input.pos * globals.scale + pos_snap;
+    out.scale = input.scale * globals.scale + scale_snap;
     out.border_radius = border_radius * globals.scale;
     out.border_width = input.border_width * globals.scale;
     out.shadow_color = premultiply(input.shadow_color);
