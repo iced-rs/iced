@@ -73,74 +73,32 @@ pub enum Text {
 impl Text {
     /// Returns the visible bounds of the [`Text`].
     pub fn visible_bounds(&self) -> Option<Rectangle> {
-        let (bounds, align_x, align_y) = match self {
+        match self {
             Text::Paragraph {
                 position,
                 paragraph,
                 clip_bounds,
                 transformation,
                 ..
-            } => (
-                Rectangle::new(*position, paragraph.min_bounds)
-                    .intersection(clip_bounds)
-                    .map(|bounds| bounds * *transformation),
-                paragraph.align_x,
-                Some(paragraph.align_y),
-            ),
+            } => Rectangle::new(*position, paragraph.min_bounds)
+                .intersection(clip_bounds)
+                .map(|bounds| bounds * *transformation),
             Text::Editor {
                 editor,
                 position,
                 clip_bounds,
                 transformation,
                 ..
-            } => (
-                Rectangle::new(*position, editor.bounds)
-                    .intersection(clip_bounds)
-                    .map(|bounds| bounds * *transformation),
-                Alignment::Default,
-                None,
-            ),
+            } => Rectangle::new(*position, editor.bounds)
+                .intersection(clip_bounds)
+                .map(|bounds| bounds * *transformation),
             Text::Cached {
                 bounds,
                 clip_bounds,
-                align_x: horizontal_alignment,
-                align_y: vertical_alignment,
                 ..
-            } => (
-                bounds.intersection(clip_bounds),
-                *horizontal_alignment,
-                Some(*vertical_alignment),
-            ),
-            Text::Raw { raw, .. } => {
-                (Some(raw.clip_bounds), Alignment::Default, None)
-            }
-        };
-
-        let mut bounds = bounds?;
-
-        match align_x {
-            Alignment::Default | Alignment::Left | Alignment::Justified => {}
-            Alignment::Center => {
-                bounds.x -= bounds.width / 2.0;
-            }
-            Alignment::Right => {
-                bounds.x -= bounds.width;
-            }
+            } => bounds.intersection(clip_bounds),
+            Text::Raw { raw, .. } => Some(raw.clip_bounds),
         }
-
-        if let Some(alignment) = align_y {
-            match alignment {
-                alignment::Vertical::Top => {}
-                alignment::Vertical::Center => {
-                    bounds.y -= bounds.height / 2.0;
-                }
-                alignment::Vertical::Bottom => {
-                    bounds.y -= bounds.height;
-                }
-            }
-        }
-
-        Some(bounds)
     }
 }
 
