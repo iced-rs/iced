@@ -108,6 +108,10 @@ impl editor::Editor for Editor {
         self.buffer().lines.len()
     }
 
+    fn scroll_top(&self) -> usize {
+        self.buffer().scroll().line
+    }
+
     fn selection(&self) -> Option<String> {
         self.internal().editor.copy_selection()
     }

@@ -429,6 +429,11 @@ where
             .flatten()
     }
 
+    /// Returns the topmost visible line index.
+    pub fn scroll_top(&self) -> usize {
+        self.0.borrow().editor.scroll_top()
+    }
+
     /// Returns the text of the [`Content`].
     pub fn text(&self) -> String {
         let mut contents = String::new();
