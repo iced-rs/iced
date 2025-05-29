@@ -698,6 +698,7 @@ pub fn rounded_box(theme: &Theme) -> Style {
 
     Style {
         background: Some(palette.background.weak.color.into()),
+        text_color: Some(palette.background.weak.text),
         border: border::rounded(2),
         ..Style::default()
     }
@@ -709,6 +710,7 @@ pub fn bordered_box(theme: &Theme) -> Style {
 
     Style {
         background: Some(palette.background.weakest.color.into()),
+        text_color: Some(palette.background.weakest.text),
         border: Border {
             width: 1.0,
             radius: 5.0.into(),

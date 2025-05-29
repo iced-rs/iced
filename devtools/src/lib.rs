@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 use iced_debug as debug;
 use iced_program as program;
-use iced_widget as widget;
+use iced_test as test;
 use iced_widget::core;
 use iced_widget::runtime;
 use iced_widget::runtime::futures;
@@ -10,6 +10,7 @@ mod comet;
 mod executor;
 mod icon;
 mod time_machine;
+mod widget;
 
 use crate::core::alignment::Horizontal::Right;
 use crate::core::border;
@@ -24,6 +25,7 @@ use crate::futures::Subscription;
 use crate::program::Program;
 use crate::runtime::Task;
 use crate::runtime::font;
+use crate::test::instruction;
 use crate::time_machine::TimeMachine;
 use crate::widget::{
     Text, bottom_right, button, center, column, container, horizontal_space,
@@ -137,6 +139,8 @@ pub enum Message {
     ChangeWidth(String),
     ChangeHeight(String),
     Record,
+    Stop,
+    Recorded(core::Event),
 }
 
 enum Mode {
@@ -145,9 +149,9 @@ enum Mode {
     Setup(Setup),
 }
 
-enum Recorder {
-    Idle { events: Vec<core::Event> },
-    Recording { events: Vec<core::Event> },
+struct Recorder {
+    instructions: Vec<test::Instruction>,
+    is_recording: bool,
 }
 
 enum Setup {
@@ -194,21 +198,19 @@ where
                     Task::none()
                 }
                 Message::Toggle => {
-                    match self.mode {
+                    match &self.mode {
                         Mode::Hidden => {
                             self.mode = Mode::Open {
-                                recorder: Recorder::Idle { events: Vec::new() },
+                                recorder: Recorder {
+                                    instructions: Vec::new(),
+                                    is_recording: false,
+                                },
                             };
                         }
-                        Mode::Open {
-                            recorder: Recorder::Idle { .. },
-                        } => {
+                        Mode::Open { recorder } if !recorder.is_recording => {
                             self.mode = Mode::Hidden;
                         }
-                        Mode::Setup(_)
-                        | Mode::Open {
-                            recorder: Recorder::Recording { .. },
-                        } => {}
+                        Mode::Setup(_) | Mode::Open { .. } => {}
                     }
 
                     Task::none()
@@ -256,7 +258,6 @@ where
                         .map(Message::Installing)
                         .map(Event::Message)
                 }
-
                 Message::Installing(Ok(installation)) => {
                     let Mode::Setup(Setup::Running { logs }) = &mut self.mode
                     else {
@@ -311,14 +312,60 @@ where
                     Task::none()
                 }
                 Message::Record => {
-                    let (state, task) = program.boot();
-
-                    self.state = state;
-                    self.mode = Mode::Open {
-                        recorder: Recorder::Recording { events: Vec::new() },
+                    let Mode::Open { recorder } = &mut self.mode else {
+                        return Task::none();
                     };
 
+                    recorder.instructions.clear();
+                    recorder.is_recording = true;
+
+                    let (state, task) = program.boot();
+                    self.state = state;
+
                     task.map(Event::Program)
+                }
+                Message::Recorded(event) => {
+                    let Mode::Open { recorder } = &mut self.mode else {
+                        return Task::none();
+                    };
+
+                    let Some(interaction) =
+                        instruction::Interaction::from_event(event)
+                    else {
+                        return Task::none();
+                    };
+
+                    if let Some(test::Instruction::Interact(last_interaction)) =
+                        recorder.instructions.pop()
+                    {
+                        let (last_interaction, new_interaction) =
+                            last_interaction.merge(interaction);
+
+                        recorder.instructions.push(
+                            test::Instruction::Interact(last_interaction),
+                        );
+
+                        if let Some(new_interaction) = new_interaction {
+                            recorder.instructions.push(
+                                test::Instruction::Interact(new_interaction),
+                            );
+                        }
+                    } else {
+                        recorder
+                            .instructions
+                            .push(test::Instruction::Interact(interaction));
+                    }
+
+                    Task::none()
+                }
+                Message::Stop => {
+                    let Mode::Open { recorder } = &mut self.mode else {
+                        return Task::none();
+                    };
+
+                    recorder.is_recording = false;
+
+                    Task::none()
                 }
             },
             Event::Program(message) => {
@@ -417,41 +464,43 @@ where
             let title = monospace("Developer Tools");
 
             let recorder = {
-                let events = center(match recorder {
-                    Recorder::Idle { events } if events.is_empty() => {
-                        monospace("No events recorded yet!")
+                let events = container(if recorder.instructions.is_empty() {
+                    Element::from(center(
+                        monospace("No instructions recorded yet!")
                             .size(14)
                             .width(Fill)
-                            .center()
-                    }
-                    Recorder::Idle { events }
-                    | Recorder::Recording { events } => {
-                        monospace(format!("{} events recorded", events.len()))
-                    }
+                            .center(),
+                    ))
+                } else {
+                    scrollable(
+                        column(recorder.instructions.iter().map(
+                            |instruction| {
+                                monospace(instruction.to_string())
+                                    .size(10)
+                                    .into()
+                            },
+                        ))
+                        .spacing(5),
+                    )
+                    .spacing(5)
+                    .into()
                 })
-                .style(container::bordered_box);
+                .width(Fill)
+                .height(Fill)
+                .style(container::rounded_box)
+                .padding(5);
 
                 let controls = {
                     row![
                         button(icon::play().size(14).width(Fill).center()),
-                        match recorder {
-                            Recorder::Idle { .. } => {
-                                button(
-                                    icon::record()
-                                        .size(14)
-                                        .width(Fill)
-                                        .center(),
-                                )
+                        if recorder.is_recording {
+                            button(icon::stop().size(14).width(Fill).center())
+                                .on_press(Message::Stop)
+                                .style(button::success)
+                        } else {
+                            button(icon::record().size(14).width(Fill).center())
                                 .on_press(Message::Record)
                                 .style(button::danger)
-                            }
-                            Recorder::Recording { .. } => {
-                                button(
-                                    icon::stop().size(14).width(Fill).center(),
-                                )
-                                .on_press(Message::Record)
-                                .style(button::success)
-                            }
                         }
                     ]
                     .spacing(10)
@@ -491,7 +540,7 @@ where
         };
 
         let content = row![if let Mode::Open { recorder } = &self.mode {
-            let is_recording = matches!(recorder, Recorder::Recording { .. });
+            let is_recording = recorder.is_recording;
 
             let status = if is_recording {
                 monospace("Recording").style(|theme| text::Style {
@@ -507,9 +556,17 @@ where
 
             let viewport = container(
                 scrollable(
-                    container(view)
-                        .width(self.size.width)
-                        .height(self.size.height),
+                    container(if recorder.is_recording {
+                        widget::recorder(view)
+                            .on_event(|event| {
+                                Event::Message(Message::Recorded(event))
+                            })
+                            .into()
+                    } else {
+                        view
+                    })
+                    .width(self.size.width)
+                    .height(self.size.height),
                 )
                 .direction(scrollable::Direction::Both {
                     vertical: scrollable::Scrollbar::default(),
@@ -673,7 +730,7 @@ where
                 your iced applications.",
             column![
                 "Do you wish to install it with the \
-                    following  command?",
+                    following command?",
                 command
             ]
             .spacing(10),

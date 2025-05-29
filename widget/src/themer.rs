@@ -206,13 +206,9 @@ where
                 layout: Layout<'_>,
                 cursor: mouse::Cursor,
             ) {
-                self.content.as_overlay().draw(
-                    renderer,
-                    &self.theme,
-                    style,
-                    layout,
-                    cursor,
-                );
+                self.content
+                    .as_overlay()
+                    .draw(renderer, self.theme, style, layout, cursor);
             }
 
             fn update(
