@@ -246,8 +246,8 @@ impl Rectangle<f32> {
         let top_left = self.position().snap();
         let bottom_right = (self.position() + self.size().into()).snap();
 
-        let width = bottom_right.x - top_left.x;
-        let height = bottom_right.y - top_left.y;
+        let width = bottom_right.x.checked_sub(top_left.x)?;
+        let height = bottom_right.y.checked_sub(top_left.y)?;
 
         if width < 1 || height < 1 {
             return None;
