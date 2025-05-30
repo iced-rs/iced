@@ -167,6 +167,7 @@ where
             renderer::Quad {
                 bounds,
                 border: border::rounded(style.radius),
+                snap: true,
                 ..renderer::Quad::default()
             },
             style.color,
