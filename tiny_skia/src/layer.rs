@@ -201,7 +201,7 @@ impl Layer {
                 item.as_slice()
                     .iter()
                     .filter_map(Text::visible_bounds)
-                    .map(|bounds| bounds * item.transformation())
+                    .map(|bounds| bounds.expand(1.0) * item.transformation())
                     .collect()
             },
             |text_a, text_b| {
@@ -211,7 +211,7 @@ impl Layer {
                     |text| {
                         text.visible_bounds()
                             .into_iter()
-                            .map(|bounds| bounds * text_a.transformation())
+                            .map(|bounds| bounds.expand(1.0) * text_a.transformation())
                             .collect()
                     },
                     |text_a, text_b| text_a == text_b,
