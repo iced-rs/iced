@@ -64,6 +64,15 @@ impl Size {
                 + (self.height * radians.cos()).abs(),
         }
     }
+
+    /// Modifies the [`Size`] to satisfy an aspect ratio within the bounds of the current [`Size`]
+    /// while being as large as possible.
+    pub const fn aspect_ratio(self, ratio: f32) -> Size {
+        Size {
+            width: (self.height * ratio).min(self.width),
+            height: (self.width / ratio).min(self.height),
+        }
+    }
 }
 
 impl<T> From<[T; 2]> for Size<T> {
