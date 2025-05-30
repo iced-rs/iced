@@ -167,6 +167,7 @@ where
                         bounds: layout.bounds().shrink(1.0),
                         shadow: style.shadow,
                         border: border::rounded(style.shadow_border_radius),
+                        snap: false,
                     },
                     style.shadow.color,
                 );
@@ -332,6 +333,7 @@ where
                                 border: border::rounded(
                                     style.shadow_border_radius,
                                 ),
+                                snap: false,
                             },
                             style.shadow.color,
                         );
