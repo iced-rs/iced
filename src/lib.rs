@@ -659,8 +659,8 @@ pub type Element<
 /// The result of running an iced program.
 pub type Result = std::result::Result<(), Error>;
 
-/// Runs a basic iced application with default [`Settings`] given its title,
-/// update, and view logic.
+/// Runs a basic iced application with default [`Settings`] given its update
+/// and view logic.
 ///
 /// This is equivalent to chaining [`application()`] with [`Application::run`].
 ///
