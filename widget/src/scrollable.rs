@@ -953,6 +953,74 @@ where
                 }
                 _ => {}
             }
+
+            match event {
+                Event::Mouse(mouse::Event::ButtonPressed(
+                    mouse::Button::Middle,
+                )) => {
+                    if let Some(pos) = cursor_over_scrollable {
+                        state.autoscroll = AutoScrollMode::Active {
+                            origin: pos,
+                            last_cursor: pos,
+                        };
+                        shell.request_redraw();
+                        shell.capture_event();
+                    }
+                }
+                Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                    if let AutoScrollMode::Active { origin, .. } =
+                        state.autoscroll
+                    {
+                        if let Some(current) = cursor.position() {
+                            state.autoscroll = AutoScrollMode::Active {
+                                origin,
+                                last_cursor: current,
+                            };
+                            shell.request_redraw();
+                            shell.capture_event();
+                        }
+                    }
+                }
+                Event::Mouse(mouse::Event::ButtonPressed(_))
+                | Event::Keyboard(_) => {
+                    if let AutoScrollMode::Active { .. } = state.autoscroll {
+                        state.autoscroll = AutoScrollMode::Off;
+                        shell.capture_event();
+                    }
+                }
+                Event::Window(window::Event::RedrawRequested(_)) => {
+                    if let AutoScrollMode::Active {
+                        origin,
+                        last_cursor,
+                    } = state.autoscroll
+                    {
+                        let delta = last_cursor - origin;
+                        let threshold = 20.0; // px deadzone
+                        if delta.x.abs() > threshold
+                            || delta.y.abs() > threshold
+                        {
+                            let scroll_factor = 0.25; // Lower is slower
+                            state.scroll(
+                                self.direction.align(Vector::new(
+                                    delta.x * scroll_factor,
+                                    delta.y * scroll_factor,
+                                )),
+                                bounds,
+                                content_bounds,
+                            );
+                            let _ = notify_scroll(
+                                state,
+                                &self.on_scroll,
+                                bounds,
+                                content_bounds,
+                                shell,
+                            );
+                            shell.request_redraw();
+                        }
+                    }
+                }
+                _ => {}
+            }
         };
 
         update();
@@ -1197,6 +1265,8 @@ where
             || state.scrollers_grabbed()
         {
             mouse::Interaction::None
+        } else if let AutoScrollMode::Active { .. } = state.autoscroll {
+            mouse::Interaction::Grabbing
         } else {
             let translation =
                 state.translation(self.direction, bounds, content_bounds);
@@ -1394,6 +1464,12 @@ fn notify_viewport<Message>(
 }
 
 #[derive(Debug, Clone, Copy)]
+enum AutoScrollMode {
+    Off,
+    Active { origin: Point, last_cursor: Point },
+}
+
+#[derive(Debug, Clone, Copy)]
 struct State {
     scroll_area_touched_at: Option<Point>,
     offset_y: Offset,
@@ -1404,6 +1480,7 @@ struct State {
     last_notified: Option<Viewport>,
     last_scrolled: Option<Instant>,
     is_scrollbar_visible: bool,
+    autoscroll: AutoScrollMode,
 }
 
 impl Default for State {
@@ -1418,6 +1495,7 @@ impl Default for State {
             last_notified: None,
             last_scrolled: None,
             is_scrollbar_visible: true,
+            autoscroll: AutoScrollMode::Off,
         }
     }
 }
