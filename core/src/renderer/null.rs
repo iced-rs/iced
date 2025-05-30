@@ -174,6 +174,10 @@ impl text::Editor for () {
         0
     }
 
+    fn scroll_last_visible_line(&self) -> usize {
+        0
+    }
+
     fn perform(&mut self, _action: text::editor::Action) {}
 
     fn bounds(&self) -> Size {

@@ -112,6 +112,10 @@ impl editor::Editor for Editor {
         self.buffer().scroll().line
     }
 
+    fn scroll_last_visible_line(&self) -> usize {
+        self.buffer().layout_runs().last().map(|run| run.line_i).unwrap_or_default()
+    }
+
     fn selection(&self) -> Option<String> {
         self.internal().editor.copy_selection()
     }
