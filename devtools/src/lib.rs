@@ -60,6 +60,10 @@ where
         P::name()
     }
 
+    fn settings(&self) -> core::Settings {
+        self.program.settings()
+    }
+
     fn boot(&self) -> (Self::State, Task<Self::Message>) {
         let (state, boot) = self.program.boot();
         let (devtools, task) = DevTools::new(state);

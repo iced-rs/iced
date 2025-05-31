@@ -1,6 +1,7 @@
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::{Event, Point};
+use crate::simulator;
 
 use std::fmt;
 
@@ -145,6 +146,62 @@ impl Interaction {
             (current, next) => (current, Some(next)),
         }
     }
+
+    pub fn events(&self) -> Vec<Event> {
+        let mouse_move_ =
+            |to| Event::Mouse(mouse::Event::CursorMoved { position: to });
+
+        let mouse_press =
+            |button| Event::Mouse(mouse::Event::ButtonPressed(button));
+
+        let mouse_release =
+            |button| Event::Mouse(mouse::Event::ButtonReleased(button));
+
+        let key_press = |key| simulator::press_key(key, None);
+
+        let key_release = |key| simulator::release_key(key);
+
+        match self {
+            Interaction::Mouse(mouse) => match mouse {
+                Mouse::Move(to) => vec![mouse_move_(*to)],
+                Mouse::Press {
+                    button,
+                    at: Some(at),
+                } => vec![mouse_move_(*at), mouse_press(*button)],
+                Mouse::Press { button, at: None } => {
+                    vec![mouse_press(*button)]
+                }
+                Mouse::Release {
+                    button,
+                    at: Some(at),
+                } => vec![mouse_move_(*at), mouse_release(*button)],
+                Mouse::Release { button, at: None } => {
+                    vec![mouse_release(*button)]
+                }
+                Mouse::Click {
+                    button,
+                    at: Some(at),
+                } => {
+                    vec![
+                        mouse_move_(*at),
+                        mouse_press(*button),
+                        mouse_release(*button),
+                    ]
+                }
+                Mouse::Click { button, at: None } => {
+                    vec![mouse_press(*button), mouse_release(*button)]
+                }
+            },
+            Interaction::Keyboard(keyboard) => match keyboard {
+                Keyboard::Press(key) => vec![key_press(*key)],
+                Keyboard::Release(key) => vec![key_release(*key)],
+                Keyboard::Type(key) => vec![key_press(*key), key_release(*key)],
+                Keyboard::Typewrite(text) => {
+                    simulator::typewrite(text).collect()
+                }
+            },
+        }
+    }
 }
 
 impl fmt::Display for Interaction {
@@ -200,14 +257,6 @@ pub enum Keyboard {
     Typewrite(String),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Key {
-    Enter,
-    Escape,
-    Tab,
-    Backspace,
-}
-
 impl fmt::Display for Keyboard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -223,6 +272,25 @@ impl fmt::Display for Keyboard {
             Keyboard::Typewrite(text) => {
                 write!(f, "type \"{text}\"")
             }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Key {
+    Enter,
+    Escape,
+    Tab,
+    Backspace,
+}
+
+impl From<Key> for keyboard::Key {
+    fn from(key: Key) -> Self {
+        match key {
+            Key::Enter => Self::Named(keyboard::key::Named::Enter),
+            Key::Escape => Self::Named(keyboard::key::Named::Escape),
+            Key::Tab => Self::Named(keyboard::key::Named::Tab),
+            Key::Backspace => Self::Named(keyboard::key::Named::Backspace),
         }
     }
 }

@@ -86,6 +86,10 @@ where
             name.split("::").next().unwrap_or("a_cool_application")
         }
 
+        fn settings(&self) -> Settings {
+            Settings::default()
+        }
+
         fn boot(&self) -> (State, Task<Self::Message>) {
             let (state, task) = self.boot.boot();
 

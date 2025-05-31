@@ -68,8 +68,7 @@ where
                         mouse::Event::ButtonPressed(_)
                         | mouse::Event::ButtonReleased(_)
                         | mouse::Event::WheelScrolled { .. } => {
-                            shell
-                                .publish(on_event(Event::Mouse(event.clone())));
+                            shell.publish(on_event(Event::Mouse(*event)));
                         }
                         mouse::Event::CursorMoved { position } => {
                             shell.publish(on_event(Event::Mouse(

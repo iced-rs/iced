@@ -63,6 +63,10 @@ where
             name.split("::").next().unwrap_or("a_cool_daemon")
         }
 
+        fn settings(&self) -> Settings {
+            Settings::default()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.boot.boot()
         }
@@ -117,6 +121,8 @@ impl<P: Program> Daemon<P> {
     where
         Self: 'static,
     {
+        let settings = self.settings.clone();
+
         #[cfg(all(feature = "debug", not(target_arch = "wasm32")))]
         let program = {
             iced_debug::init(iced_debug::Metadata {
@@ -125,13 +131,13 @@ impl<P: Program> Daemon<P> {
                 can_time_travel: cfg!(feature = "time-travel"),
             });
 
-            iced_devtools::attach(self.raw)
+            iced_devtools::attach(self)
         };
 
         #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
-        let program = self.raw;
+        let program = self;
 
-        Ok(shell::run(program, self.settings, None)?)
+        Ok(shell::run(program, settings, None)?)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Daemon`].
@@ -247,6 +253,66 @@ impl<P: Program> Daemon<P> {
             raw: program::with_executor::<P, E>(self.raw),
             settings: self.settings,
         }
+    }
+}
+
+impl<P: Program> Program for Daemon<P> {
+    type State = P::State;
+    type Message = P::Message;
+    type Theme = P::Theme;
+    type Renderer = P::Renderer;
+    type Executor = P::Executor;
+
+    fn name() -> &'static str {
+        P::name()
+    }
+
+    fn settings(&self) -> Settings {
+        self.settings.clone()
+    }
+
+    fn boot(&self) -> (Self::State, Task<Self::Message>) {
+        self.raw.boot()
+    }
+
+    fn update(
+        &self,
+        state: &mut Self::State,
+        message: Self::Message,
+    ) -> Task<Self::Message> {
+        self.raw.update(state, message)
+    }
+
+    fn view<'a>(
+        &self,
+        state: &'a Self::State,
+        window: window::Id,
+    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        self.raw.view(state, window)
+    }
+
+    fn title(&self, state: &Self::State, window: window::Id) -> String {
+        self.raw.title(state, window)
+    }
+
+    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+        self.raw.subscription(state)
+    }
+
+    fn theme(
+        &self,
+        state: &Self::State,
+        window: iced_core::window::Id,
+    ) -> Self::Theme {
+        self.raw.theme(state, window)
+    }
+
+    fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
+        self.raw.style(state, theme)
+    }
+
+    fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+        self.raw.scale_factor(state, window)
     }
 }
 

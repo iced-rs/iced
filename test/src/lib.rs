@@ -84,10 +84,12 @@
 //!
 //! [the classical counter interface]: https://book.iced.rs/architecture.html#dissecting-an-interface
 #![allow(missing_docs)]
+use iced_program as program;
 use iced_renderer as renderer;
 use iced_runtime as runtime;
 use iced_runtime::core;
 
+pub mod emulator;
 pub mod instruction;
 pub mod selector;
 pub mod simulator;
@@ -98,8 +100,3 @@ pub use error::Error;
 pub use instruction::Instruction;
 pub use selector::Selector;
 pub use simulator::{Simulator, simulator};
-
-#[derive(Debug, Clone)]
-pub struct Test {
-    instructions: Vec<Instruction>,
-}

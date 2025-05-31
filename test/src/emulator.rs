@@ -1,0 +1,169 @@
+use crate::Instruction;
+use crate::core;
+use crate::core::mouse;
+use crate::core::renderer;
+use crate::core::window;
+use crate::core::{Element, Size};
+use crate::program::Program;
+use crate::runtime::futures::futures::StreamExt;
+use crate::runtime::futures::futures::channel::mpsc;
+use crate::runtime::futures::{Executor, Runtime};
+use crate::runtime::task;
+use crate::runtime::user_interface;
+use crate::runtime::{Action, UserInterface};
+
+#[allow(missing_debug_implementations)]
+pub struct Emulator<P: Program> {
+    state: P::State,
+    runtime: Runtime<P::Executor, mpsc::Sender<Event<P>>, Event<P>>,
+    renderer: P::Renderer,
+    size: Size,
+    window: window::Id,
+    cursor: mouse::Cursor,
+    clipboard: Clipboard,
+    cache: Option<user_interface::Cache>,
+}
+
+#[allow(missing_debug_implementations)]
+pub enum Event<P: Program> {
+    Action(Action<P::Message>),
+}
+
+impl<P: Program + 'static> Emulator<P> {
+    pub fn new(
+        program: &P,
+        size: Size,
+        sender: mpsc::Sender<Event<P>>,
+    ) -> Emulator<P> {
+        use renderer::Headless;
+
+        let settings = program.settings();
+
+        // TODO: Error handling
+        let executor = P::Executor::new().expect("Create emulator executor");
+
+        let renderer = executor
+            .block_on(P::Renderer::new(
+                settings.default_font,
+                settings.default_text_size,
+                None,
+            ))
+            .expect("Create emulator renderer");
+
+        let mut runtime = Runtime::new(executor, sender);
+
+        let (state, task) = program.boot();
+
+        if let Some(stream) = task::into_stream(task) {
+            runtime.run(stream.map(Event::Action).boxed());
+        }
+
+        Self {
+            state,
+            runtime,
+            renderer,
+            size,
+            clipboard: Clipboard { content: None },
+            cursor: mouse::Cursor::Unavailable,
+            window: window::Id::unique(),
+            cache: Some(user_interface::Cache::default()),
+        }
+    }
+
+    pub fn update(&mut self, program: &P, message: P::Message) {
+        let task = program.update(&mut self.state, message);
+
+        if let Some(stream) = task::into_stream(task) {
+            self.runtime.run(stream.map(Event::Action).boxed());
+        }
+    }
+
+    pub fn perform(&mut self, program: &P, action: Action<P::Message>) {
+        match action {
+            Action::Output(message) => {
+                self.update(program, message);
+            }
+            Action::LoadFont { .. } => {
+                // TODO
+            }
+            Action::Widget(_operation) => {
+                // TODO
+            }
+            Action::Clipboard(action) => {
+                // TODO
+                dbg!(action);
+            }
+            Action::Window(_action) => {
+                // TODO
+            }
+            Action::System(action) => {
+                // TODO
+                dbg!(action);
+            }
+            Action::Exit => {
+                // TODO
+            }
+        }
+    }
+
+    pub fn run(&mut self, program: &P, instruction: Instruction) {
+        let mut user_interface = UserInterface::build(
+            program.view(&self.state, self.window),
+            self.size,
+            self.cache.take().unwrap(),
+            &mut self.renderer,
+        );
+
+        let mut messages = Vec::new();
+
+        match instruction {
+            Instruction::Interact(interaction) => {
+                let events = interaction.events();
+
+                for event in &events {
+                    if let core::Event::Mouse(mouse::Event::CursorMoved {
+                        position,
+                    }) = event
+                    {
+                        self.cursor = mouse::Cursor::Available(*position);
+                    }
+                }
+
+                let (_state, _status) = user_interface.update(
+                    &events,
+                    self.cursor,
+                    &mut self.renderer,
+                    &mut self.clipboard,
+                    &mut messages,
+                );
+            }
+        }
+
+        self.cache = Some(user_interface.into_cache());
+
+        for message in messages {
+            self.update(program, message);
+        }
+    }
+
+    pub fn view(
+        &self,
+        program: &P,
+    ) -> Element<'_, P::Message, P::Theme, P::Renderer> {
+        program.view(&self.state, self.window)
+    }
+}
+
+struct Clipboard {
+    content: Option<String>,
+}
+
+impl core::Clipboard for Clipboard {
+    fn read(&self, _kind: core::clipboard::Kind) -> Option<String> {
+        self.content.clone()
+    }
+
+    fn write(&mut self, _kind: core::clipboard::Kind, contents: String) {
+        self.content = Some(contents);
+    }
+}

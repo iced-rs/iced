@@ -4,10 +4,11 @@ pub use iced_runtime as runtime;
 pub use iced_runtime::core;
 pub use iced_runtime::futures;
 
+use crate::core::renderer;
 use crate::core::text;
 use crate::core::theme;
 use crate::core::window;
-use crate::core::{Element, Font};
+use crate::core::{Element, Font, Settings};
 use crate::futures::{Executor, Subscription};
 use crate::graphics::compositor;
 use crate::runtime::Task;
@@ -35,6 +36,8 @@ pub trait Program: Sized {
 
     /// Returns the unique name of the [`Program`].
     fn name() -> &'static str;
+
+    fn settings(&self) -> Settings;
 
     fn boot(&self) -> (Self::State, Task<Self::Message>);
 
@@ -128,6 +131,10 @@ pub fn with_title<P: Program>(
             P::name()
         }
 
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -208,6 +215,10 @@ pub fn with_subscription<P: Program>(
 
         fn name() -> &'static str {
             P::name()
+        }
+
+        fn settings(&self) -> Settings {
+            self.program.settings()
         }
 
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
@@ -293,6 +304,10 @@ pub fn with_theme<P: Program>(
             P::name()
         }
 
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -372,6 +387,10 @@ pub fn with_style<P: Program>(
             P::name()
         }
 
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -445,6 +464,10 @@ pub fn with_scale_factor<P: Program>(
 
         fn name() -> &'static str {
             P::name()
+        }
+
+        fn settings(&self) -> Settings {
+            self.program.settings()
         }
 
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
@@ -530,6 +553,10 @@ pub fn with_executor<P: Program, E: Executor>(
             P::name()
         }
 
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -585,10 +612,15 @@ pub fn with_executor<P: Program, E: Executor>(
 }
 
 /// The renderer of some [`Program`].
-pub trait Renderer: text::Renderer<Font = Font> + compositor::Default {}
+pub trait Renderer:
+    text::Renderer<Font = Font> + compositor::Default + renderer::Headless
+{
+}
 
-impl<T> Renderer for T where T: text::Renderer<Font = Font> + compositor::Default
-{}
+impl<T> Renderer for T where
+    T: text::Renderer<Font = Font> + compositor::Default + renderer::Headless
+{
+}
 
 /// A particular instance of a running [`Program`].
 #[allow(missing_debug_implementations)]

@@ -483,6 +483,38 @@ pub fn click() -> impl Iterator<Item = Event> {
     .into_iter()
 }
 
+pub fn press_key(
+    key: impl Into<keyboard::Key>,
+    text: Option<SmolStr>,
+) -> Event {
+    let key = key.into();
+
+    Event::Keyboard(keyboard::Event::KeyPressed {
+        key: key.clone(),
+        modified_key: key,
+        physical_key: keyboard::key::Physical::Unidentified(
+            keyboard::key::NativeCode::Unidentified,
+        ),
+        location: keyboard::Location::Standard,
+        modifiers: keyboard::Modifiers::default(),
+        text,
+    })
+}
+
+pub fn release_key(key: impl Into<keyboard::Key>) -> Event {
+    let key = key.into();
+
+    Event::Keyboard(keyboard::Event::KeyReleased {
+        key: key.clone(),
+        modified_key: key,
+        physical_key: keyboard::key::Physical::Unidentified(
+            keyboard::key::NativeCode::Unidentified,
+        ),
+        location: keyboard::Location::Standard,
+        modifiers: keyboard::Modifiers::default(),
+    })
+}
+
 /// Returns the sequence of events of a "key tap" (i.e. pressing and releasing a key).
 pub fn tap_key(
     key: impl Into<keyboard::Key>,
@@ -490,28 +522,7 @@ pub fn tap_key(
 ) -> impl Iterator<Item = Event> {
     let key = key.into();
 
-    [
-        Event::Keyboard(keyboard::Event::KeyPressed {
-            key: key.clone(),
-            modified_key: key.clone(),
-            physical_key: keyboard::key::Physical::Unidentified(
-                keyboard::key::NativeCode::Unidentified,
-            ),
-            location: keyboard::Location::Standard,
-            modifiers: keyboard::Modifiers::default(),
-            text,
-        }),
-        Event::Keyboard(keyboard::Event::KeyReleased {
-            key: key.clone(),
-            modified_key: key,
-            physical_key: keyboard::key::Physical::Unidentified(
-                keyboard::key::NativeCode::Unidentified,
-            ),
-            location: keyboard::Location::Standard,
-            modifiers: keyboard::Modifiers::default(),
-        }),
-    ]
-    .into_iter()
+    [press_key(key.clone(), text), release_key(key)].into_iter()
 }
 
 /// Returns the sequence of events of typewriting the given text in a keyboard.
