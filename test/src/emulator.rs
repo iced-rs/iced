@@ -27,6 +27,7 @@ pub struct Emulator<P: Program> {
 #[allow(missing_debug_implementations)]
 pub enum Event<P: Program> {
     Action(Action<P::Message>),
+    Ready,
 }
 
 impl<P: Program + 'static> Emulator<P> {
@@ -57,6 +58,9 @@ impl<P: Program + 'static> Emulator<P> {
         if let Some(stream) = task::into_stream(task) {
             runtime.run(stream.map(Event::Action).boxed());
         }
+
+        // TODO: Async boot environments
+        runtime.send(Event::Ready);
 
         Self {
             state,
@@ -144,6 +148,8 @@ impl<P: Program + 'static> Emulator<P> {
         for message in messages {
             self.update(program, message);
         }
+
+        self.runtime.send(Event::Ready);
     }
 
     pub fn view(

@@ -96,6 +96,7 @@ pub mod simulator;
 
 mod error;
 
+pub use emulator::Emulator;
 pub use error::Error;
 pub use instruction::Instruction;
 pub use selector::Selector;

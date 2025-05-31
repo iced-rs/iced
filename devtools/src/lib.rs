@@ -25,6 +25,8 @@ use crate::futures::Subscription;
 use crate::program::Program;
 use crate::runtime::Task;
 use crate::runtime::font;
+use crate::test::Emulator;
+use crate::test::emulator;
 use crate::test::instruction;
 use crate::time_machine::TimeMachine;
 use crate::widget::{
@@ -126,7 +128,7 @@ where
 {
     state: P::State,
     size: Size,
-    mode: Mode,
+    mode: Mode<P>,
     show_notification: bool,
     time_machine: TimeMachine<P>,
 }
@@ -145,17 +147,27 @@ pub enum Message {
     Record,
     Stop,
     Recorded(core::Event),
+    Play,
 }
 
-enum Mode {
+enum Mode<P: Program> {
     Hidden,
-    Open { recorder: Recorder },
+    Open { recorder: Recorder<P> },
     Setup(Setup),
 }
 
-struct Recorder {
+struct Recorder<P: Program> {
     instructions: Vec<test::Instruction>,
-    is_recording: bool,
+    state: State<P>,
+}
+
+enum State<P: Program> {
+    Idle,
+    Recording,
+    Playing {
+        emulator: Emulator<P>,
+        current: usize,
+    },
 }
 
 enum Setup {
@@ -207,11 +219,16 @@ where
                             self.mode = Mode::Open {
                                 recorder: Recorder {
                                     instructions: Vec::new(),
-                                    is_recording: false,
+                                    state: State::Idle,
                                 },
                             };
                         }
-                        Mode::Open { recorder } if !recorder.is_recording => {
+                        Mode::Open {
+                            recorder:
+                                Recorder {
+                                    state: State::Idle, ..
+                                },
+                        } => {
                             self.mode = Mode::Hidden;
                         }
                         Mode::Setup(_) | Mode::Open { .. } => {}
@@ -321,7 +338,7 @@ where
                     };
 
                     recorder.instructions.clear();
-                    recorder.is_recording = true;
+                    recorder.state = State::Recording;
 
                     let (state, task) = program.boot();
                     self.state = state;
@@ -367,9 +384,26 @@ where
                         return Task::none();
                     };
 
-                    recorder.is_recording = false;
+                    recorder.state = State::Idle;
 
                     Task::none()
+                }
+                Message::Play => {
+                    let Mode::Open { recorder } = &mut self.mode else {
+                        return Task::none();
+                    };
+
+                    let (sender, receiver) =
+                        futures::futures::channel::mpsc::channel(1);
+
+                    let emulator = Emulator::new(program, self.size, sender);
+
+                    recorder.state = State::Playing {
+                        emulator,
+                        current: 0,
+                    };
+
+                    Task::run(receiver, Event::Emulator)
                 }
             },
             Event::Program(message) => {
@@ -402,6 +436,34 @@ where
 
                 Task::none()
             }
+            Event::Emulator(event) => {
+                let Mode::Open {
+                    recorder:
+                        Recorder {
+                            state: State::Playing { emulator, current },
+                            instructions,
+                        },
+                } = &mut self.mode
+                else {
+                    return Task::none();
+                };
+
+                match event {
+                    emulator::Event::Action(action) => {
+                        emulator.perform(program, action);
+                    }
+                    emulator::Event::Ready => {
+                        if let Some(instruction) =
+                            instructions.get(*current).cloned()
+                        {
+                            emulator.run(program, instruction);
+                            *current += 1;
+                        }
+                    }
+                }
+
+                Task::none()
+            }
             Event::Discard => Task::none(),
         }
     }
@@ -414,7 +476,17 @@ where
         let state = self.state();
 
         let view = {
-            let view = program.view(state, window);
+            let view = match &self.mode {
+                Mode::Open {
+                    recorder:
+                        Recorder {
+                            state: State::Playing { emulator, .. },
+                            ..
+                        },
+                } => emulator.view(program),
+                _ => program.view(state, window),
+            };
+
             let theme = program.theme(state, window);
 
             let view: Element<'_, _, Theme, _> = themer(theme, view).into();
@@ -477,10 +549,34 @@ where
                     ))
                 } else {
                     scrollable(
-                        column(recorder.instructions.iter().map(
-                            |instruction| {
+                        column(recorder.instructions.iter().enumerate().map(
+                            |(i, instruction)| {
                                 monospace(instruction.to_string())
                                     .size(10)
+                                    .style(move |theme: &Theme| text::Style {
+                                        color: match &recorder.state {
+                                            State::Playing {
+                                                current, ..
+                                            } => {
+                                                if *current == i {
+                                                    Some(
+                                                        theme.palette().primary,
+                                                    )
+                                                } else if *current > i {
+                                                    Some(
+                                                        theme
+                                                            .extended_palette()
+                                                            .success
+                                                            .strong
+                                                            .color,
+                                                    )
+                                                } else {
+                                                    None
+                                                }
+                                            }
+                                            _ => None,
+                                        },
+                                    })
                                     .into()
                             },
                         ))
@@ -491,19 +587,26 @@ where
                 })
                 .width(Fill)
                 .height(Fill)
-                .style(container::rounded_box)
                 .padding(5);
 
                 let controls = {
                     row![
-                        button(icon::play().size(14).width(Fill).center()),
-                        if recorder.is_recording {
+                        button(icon::play().size(14).width(Fill).center())
+                            .on_press_maybe(
+                                (!matches!(recorder.state, State::Recording)
+                                    && !recorder.instructions.is_empty())
+                                .then_some(Message::Play),
+                            ),
+                        if let State::Recording = &recorder.state {
                             button(icon::stop().size(14).width(Fill).center())
                                 .on_press(Message::Stop)
                                 .style(button::success)
                         } else {
                             button(icon::record().size(14).width(Fill).center())
-                                .on_press(Message::Record)
+                                .on_press_maybe(
+                                    matches!(recorder.state, State::Idle)
+                                        .then_some(Message::Record),
+                                )
                                 .style(button::danger)
                         }
                     ]
@@ -544,23 +647,27 @@ where
         };
 
         let content = row![if let Mode::Open { recorder } = &self.mode {
-            let is_recording = recorder.is_recording;
-
-            let status = if is_recording {
-                monospace("Recording").style(|theme| text::Style {
-                    color: Some(theme.palette().danger),
-                })
-            } else {
-                monospace("Idle").style(|theme| text::Style {
+            let status = match &recorder.state {
+                State::Idle => monospace("Idle").style(|theme| text::Style {
                     color: Some(
                         theme.extended_palette().background.strongest.color,
                     ),
-                })
+                }),
+                State::Recording => {
+                    monospace("Recording").style(|theme| text::Style {
+                        color: Some(theme.palette().danger),
+                    })
+                }
+                State::Playing { .. } => {
+                    monospace("Playing").style(|theme| text::Style {
+                        color: Some(theme.palette().primary),
+                    })
+                }
             };
 
             let viewport = container(
                 scrollable(
-                    container(if recorder.is_recording {
+                    container(if let State::Recording = &recorder.state {
                         widget::recorder(view)
                             .on_event(|event| {
                                 Event::Message(Message::Recorded(event))
@@ -577,14 +684,14 @@ where
                     horizontal: scrollable::Scrollbar::default(),
                 }),
             )
-            .style(move |theme| {
+            .style(|theme| {
                 let palette = theme.extended_palette();
 
                 container::Style {
-                    border: border::width(2.0).color(if is_recording {
-                        palette.danger.base.color
-                    } else {
-                        palette.background.strongest.color
+                    border: border::width(2.0).color(match &recorder.state {
+                        State::Idle => palette.background.strongest.color,
+                        State::Recording => palette.danger.base.color,
+                        State::Playing { .. } => palette.primary.base.color,
                     }),
                     ..container::Style::default()
                 }
@@ -654,6 +761,7 @@ where
 {
     Message(Message),
     Program(P::Message),
+    Emulator(emulator::Event<P>),
     Command(debug::Command),
     Discard,
 }
@@ -666,6 +774,7 @@ where
         match self {
             Self::Message(message) => message.fmt(f),
             Self::Program(message) => message.fmt(f),
+            Self::Emulator(_) => f.write_str("Emulator"),
             Self::Command(command) => command.fmt(f),
             Self::Discard => f.write_str("Discard"),
         }
@@ -682,6 +791,7 @@ where
             Self::Message(message) => Self::Message(message.clone()),
             Self::Program(message) => Self::Program(message.clone()),
             Self::Command(command) => Self::Command(*command),
+            Self::Emulator(_) => Self::Discard, // Time traveling an emulator?!
             Self::Discard => Self::Discard,
         }
     }
