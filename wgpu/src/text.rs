@@ -628,8 +628,8 @@ fn prepare(
                 bounds: cryoglyph::TextBounds {
                     left: clip_bounds.x as i32,
                     top: clip_bounds.y as i32,
-                    right: (clip_bounds.x + clip_bounds.width) as i32,
-                    bottom: (clip_bounds.y + clip_bounds.height) as i32,
+                    right: (clip_bounds.x + clip_bounds.width).round() as i32,
+                    bottom: (clip_bounds.y + clip_bounds.height).round() as i32,
                 },
                 default_color: to_color(color),
             })
