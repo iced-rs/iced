@@ -7,6 +7,7 @@ use crate::core::{Element, Size};
 use crate::program::Program;
 use crate::runtime::futures::futures::StreamExt;
 use crate::runtime::futures::futures::channel::mpsc;
+use crate::runtime::futures::subscription;
 use crate::runtime::futures::{Executor, Runtime};
 use crate::runtime::task;
 use crate::runtime::user_interface;
@@ -80,6 +81,12 @@ impl<P: Program + 'static> Emulator<P> {
         if let Some(stream) = task::into_stream(task) {
             self.runtime.run(stream.map(Event::Action).boxed());
         }
+
+        self.runtime.track(subscription::into_recipes(
+            program
+                .subscription(&self.state)
+                .map(|message| Event::Action(Action::Output(message))),
+        ));
     }
 
     pub fn perform(&mut self, program: &P, action: Action<P::Message>) {
