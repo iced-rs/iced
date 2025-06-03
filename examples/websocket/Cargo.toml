@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["debug", "tokio", "sipper"]
+iced.features = ["tester", "tokio", "sipper"]
 
 warp = "0.3"
 

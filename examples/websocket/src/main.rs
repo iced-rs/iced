@@ -1,9 +1,11 @@
 mod echo;
 
+use iced::futures::stream;
 use iced::widget::{
     self, button, center, column, row, scrollable, text, text_input,
 };
 use iced::{Center, Element, Fill, Subscription, Task, color};
+
 use std::sync::LazyLock;
 
 pub fn main() -> iced::Result {
@@ -34,10 +36,7 @@ impl WebSocket {
                 new_message: String::new(),
                 state: State::Disconnected,
             },
-            Task::batch([
-                Task::perform(echo::server::run(), |_| Message::Server),
-                widget::focus_next(),
-            ]),
+            widget::focus_next(),
         )
     }
 
@@ -87,7 +86,11 @@ impl WebSocket {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        Subscription::run(echo::connect).map(Message::Echo)
+        Subscription::batch([
+            Subscription::run(|| stream::once(echo::server::run()))
+                .map(|_| Message::Server),
+            Subscription::run(echo::connect).map(Message::Echo),
+        ])
     }
 
     fn view(&self) -> Element<Message> {

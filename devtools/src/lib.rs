@@ -104,10 +104,7 @@ where
         state.title(&self.program, window)
     }
 
-    fn subscription(
-        &self,
-        state: &Self::State,
-    ) -> runtime::futures::Subscription<Self::Message> {
+    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
         state.subscription(&self.program)
     }
 
@@ -438,9 +435,19 @@ where
     }
 
     fn subscription(&self, program: &P) -> Subscription<Event<P>> {
-        let subscription =
-            program.subscription(&self.state).map(Event::Program);
-        debug::subscriptions_tracked(subscription.units());
+        let subscription = match &self.mode {
+            Mode::Open { tester } if !tester.is_idle() => {
+                tester.subscription(program).map(Event::Tester)
+            }
+            _ => {
+                let subscription =
+                    program.subscription(&self.state).map(Event::Program);
+
+                debug::subscriptions_tracked(subscription.units());
+
+                subscription
+            }
+        };
 
         let hotkeys =
             futures::keyboard::on_key_press(|key, _modifiers| match key {
@@ -473,7 +480,11 @@ where
     }
 
     fn scale_factor(&self, program: &P, window: window::Id) -> f64 {
-        program.scale_factor(self.state(), window)
+        if let Mode::Open { .. } = &self.mode {
+            1.0
+        } else {
+            program.scale_factor(self.state(), window)
+        }
     }
 
     fn state(&self) -> &P::State {

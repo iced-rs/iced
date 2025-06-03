@@ -9,6 +9,7 @@ use crate::core::alignment::Horizontal::Right;
 use crate::core::border;
 use crate::core::window;
 use crate::core::{Element, Event, Size, Theme};
+use crate::futures::Subscription;
 use crate::futures::futures::channel::mpsc;
 use crate::icon;
 use crate::program;
@@ -62,8 +63,12 @@ impl<P: Program + 'static> Tester<P> {
         }
     }
 
+    pub fn is_idle(&self) -> bool {
+        matches!(self.state, State::Idle)
+    }
+
     pub fn is_busy(&self) -> bool {
-        matches!(self.state, State::Idle | State::Playing { .. })
+        matches!(self.state, State::Recording { .. } | State::Playing { .. })
     }
 
     pub fn update(&mut self, program: &P, message: Message) -> Task<Tick<P>> {
@@ -156,6 +161,15 @@ impl<P: Program + 'static> Tester<P> {
                 }
 
                 Task::none()
+            }
+        }
+    }
+
+    pub fn subscription(&self, program: &P) -> Subscription<Tick<P>> {
+        match &self.state {
+            State::Idle | State::Playing { .. } => Subscription::none(),
+            State::Recording { state } => {
+                program.subscription(state).map(Tick::Program)
             }
         }
     }
