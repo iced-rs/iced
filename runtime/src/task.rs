@@ -279,12 +279,9 @@ impl<T> Task<T> {
 
 impl<T> std::fmt::Debug for Task<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Task<{}>, units={}",
-            std::any::type_name::<T>(),
-            self.units
-        )
+        f.debug_struct(&format!("Task<{}>", std::any::type_name::<T>()))
+            .field("units", &self.units)
+            .finish()
     }
 }
 
