@@ -30,6 +30,7 @@ where
     }
 
     pub fn rewind(&mut self, program: &P, message: usize) {
+        crate::debug::disable();
         let (mut state, _) = program.boot();
 
         if message < self.messages.len() {
@@ -40,7 +41,6 @@ where
         }
 
         self.state = Some(state);
-        crate::debug::disable();
     }
 
     pub fn go_to_present(&mut self) {

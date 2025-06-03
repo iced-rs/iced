@@ -158,6 +158,10 @@ impl<P: Program + 'static> Emulator<P> {
     ) -> Element<'_, P::Message, P::Theme, P::Renderer> {
         program.view(&self.state, self.window)
     }
+
+    pub fn theme(&self, program: &P) -> P::Theme {
+        program.theme(&self.state, self.window)
+    }
 }
 
 struct Clipboard {

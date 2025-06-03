@@ -1,6 +1,4 @@
-// Generated automatically by iced_fontello at build time.
-// Do not edit manually. Source: ../fonts/iced_devtools-icons.toml
-// 3139a163a989c992b8f038da359b59e9292fc49f031e760b61a8d76e2037aee2
+#![allow(unused)]
 use crate::core::Font;
 use crate::program;
 use crate::widget::{Text, text};

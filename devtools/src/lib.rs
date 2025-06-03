@@ -1,6 +1,7 @@
 #![allow(missing_docs)]
 use iced_debug as debug;
 use iced_program as program;
+#[cfg(feature = "tester")]
 use iced_test as test;
 use iced_widget::core;
 use iced_widget::runtime;
@@ -12,26 +13,29 @@ mod icon;
 mod time_machine;
 mod widget;
 
-use crate::core::alignment::Horizontal::Right;
+#[cfg(feature = "tester")]
+mod tester;
+
+#[cfg(not(feature = "tester"))]
+#[path = "tester/null.rs"]
+mod tester;
+
+use crate::tester::Tester;
+
 use crate::core::border;
 use crate::core::keyboard;
 use crate::core::theme::{self, Base, Theme};
 use crate::core::time::seconds;
 use crate::core::window;
-use crate::core::{
-    Alignment::Center, Color, Element, Font, Length::Fill, Size,
-};
+use crate::core::{Alignment::Center, Color, Element, Length::Fill};
 use crate::futures::Subscription;
 use crate::program::Program;
 use crate::runtime::Task;
 use crate::runtime::font;
-use crate::test::Emulator;
-use crate::test::emulator;
-use crate::test::instruction;
 use crate::time_machine::TimeMachine;
 use crate::widget::{
-    Text, bottom_right, button, center, column, container, horizontal_space,
-    opaque, row, scrollable, stack, text, text_input, themer,
+    bottom_right, button, center, column, container, horizontal_space,
+    monospace, opaque, row, scrollable, stack, text, themer,
 };
 
 use std::fmt;
@@ -127,47 +131,27 @@ where
     P: Program,
 {
     state: P::State,
-    size: Size,
-    mode: Mode<P>,
     show_notification: bool,
     time_machine: TimeMachine<P>,
+    mode: Mode<P>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     HideNotification,
-    Toggle,
     ToggleComet,
     CometLaunched(comet::launch::Result),
     InstallComet,
     Installing(comet::install::Result),
     CancelSetup,
-    ChangeWidth(String),
-    ChangeHeight(String),
-    Record,
-    Stop,
-    Recorded(core::Event),
-    Play,
+    Toggle,
+    Tester(tester::Message),
 }
 
 enum Mode<P: Program> {
     Hidden,
-    Open { recorder: Recorder<P> },
+    Open { tester: Tester<P> },
     Setup(Setup),
-}
-
-struct Recorder<P: Program> {
-    instructions: Vec<test::Instruction>,
-    state: State<P>,
-}
-
-enum State<P: Program> {
-    Idle,
-    Recording,
-    Playing {
-        emulator: Emulator<P>,
-        current: usize,
-    },
 }
 
 enum Setup {
@@ -188,7 +172,6 @@ where
         (
             Self {
                 state,
-                size: Size::new(512.0, 512.0),
                 mode: Mode::Hidden,
                 show_notification: true,
                 time_machine: TimeMachine::new(),
@@ -217,18 +200,10 @@ where
                     match &self.mode {
                         Mode::Hidden => {
                             self.mode = Mode::Open {
-                                recorder: Recorder {
-                                    instructions: Vec::new(),
-                                    state: State::Idle,
-                                },
+                                tester: Tester::new(),
                             };
                         }
-                        Mode::Open {
-                            recorder:
-                                Recorder {
-                                    state: State::Idle, ..
-                                },
-                        } => {
+                        Mode::Open { tester } if !tester.is_busy() => {
                             self.mode = Mode::Hidden;
                         }
                         Mode::Setup(_) | Mode::Open { .. } => {}
@@ -318,92 +293,12 @@ where
 
                     Task::none()
                 }
-                Message::ChangeWidth(width) => {
-                    if let Ok(width) = width.parse() {
-                        self.size.width = width;
-                    }
-
-                    Task::none()
-                }
-                Message::ChangeHeight(height) => {
-                    if let Ok(height) = height.parse() {
-                        self.size.height = height;
-                    }
-
-                    Task::none()
-                }
-                Message::Record => {
-                    let Mode::Open { recorder } = &mut self.mode else {
+                Message::Tester(message) => {
+                    let Mode::Open { tester } = &mut self.mode else {
                         return Task::none();
                     };
 
-                    recorder.instructions.clear();
-                    recorder.state = State::Recording;
-
-                    let (state, task) = program.boot();
-                    self.state = state;
-
-                    task.map(Event::Program)
-                }
-                Message::Recorded(event) => {
-                    let Mode::Open { recorder } = &mut self.mode else {
-                        return Task::none();
-                    };
-
-                    let Some(interaction) =
-                        instruction::Interaction::from_event(event)
-                    else {
-                        return Task::none();
-                    };
-
-                    if let Some(test::Instruction::Interact(last_interaction)) =
-                        recorder.instructions.pop()
-                    {
-                        let (last_interaction, new_interaction) =
-                            last_interaction.merge(interaction);
-
-                        recorder.instructions.push(
-                            test::Instruction::Interact(last_interaction),
-                        );
-
-                        if let Some(new_interaction) = new_interaction {
-                            recorder.instructions.push(
-                                test::Instruction::Interact(new_interaction),
-                            );
-                        }
-                    } else {
-                        recorder
-                            .instructions
-                            .push(test::Instruction::Interact(interaction));
-                    }
-
-                    Task::none()
-                }
-                Message::Stop => {
-                    let Mode::Open { recorder } = &mut self.mode else {
-                        return Task::none();
-                    };
-
-                    recorder.state = State::Idle;
-
-                    Task::none()
-                }
-                Message::Play => {
-                    let Mode::Open { recorder } = &mut self.mode else {
-                        return Task::none();
-                    };
-
-                    let (sender, receiver) =
-                        futures::futures::channel::mpsc::channel(1);
-
-                    let emulator = Emulator::new(program, self.size, sender);
-
-                    recorder.state = State::Playing {
-                        emulator,
-                        current: 0,
-                    };
-
-                    Task::run(receiver, Event::Emulator)
+                    tester.update(program, message).map(Event::Tester)
                 }
             },
             Event::Program(message) => {
@@ -436,33 +331,12 @@ where
 
                 Task::none()
             }
-            Event::Emulator(event) => {
-                let Mode::Open {
-                    recorder:
-                        Recorder {
-                            state: State::Playing { emulator, current },
-                            instructions,
-                        },
-                } = &mut self.mode
-                else {
+            Event::Tester(tick) => {
+                let Mode::Open { tester } = &mut self.mode else {
                     return Task::none();
                 };
 
-                match event {
-                    emulator::Event::Action(action) => {
-                        emulator.perform(program, action);
-                    }
-                    emulator::Event::Ready => {
-                        if let Some(instruction) =
-                            instructions.get(*current).cloned()
-                        {
-                            emulator.run(program, instruction);
-                            *current += 1;
-                        }
-                    }
-                }
-
-                Task::none()
+                tester.tick(program, tick).map(Event::Tester)
             }
             Event::Discard => Task::none(),
         }
@@ -476,25 +350,23 @@ where
         let state = self.state();
 
         let view = {
-            let view = match &self.mode {
-                Mode::Open {
-                    recorder:
-                        Recorder {
-                            state: State::Playing { emulator, .. },
-                            ..
-                        },
-                } => emulator.view(program),
-                _ => program.view(state, window),
+            let view = || {
+                let theme = program.theme(state, window);
+                let view: Element<'_, _, Theme, _> =
+                    themer(theme, program.view(&self.state, window)).into();
+
+                if self.time_machine.is_rewinding() {
+                    view.map(|_| Event::Discard)
+                } else {
+                    view.map(Event::Program)
+                }
             };
 
-            let theme = program.theme(state, window);
-
-            let view: Element<'_, _, Theme, _> = themer(theme, view).into();
-
-            if self.time_machine.is_rewinding() {
-                view.map(|_| Event::Discard)
-            } else {
-                view.map(Event::Program)
+            match &self.mode {
+                Mode::Open { tester } => {
+                    tester.view(program, window, view, Event::Tester)
+                }
+                _ => view(),
             }
         };
 
@@ -536,104 +408,11 @@ where
             ))
         });
 
-        let sidebar = if let Mode::Open { recorder } = &self.mode {
+        let sidebar = if let Mode::Open { tester } = &self.mode {
             let title = monospace("Developer Tools");
+            let tester = tester.controls().map(Message::Tester);
 
-            let recorder = {
-                let events = container(if recorder.instructions.is_empty() {
-                    Element::from(center(
-                        monospace("No instructions recorded yet!")
-                            .size(14)
-                            .width(Fill)
-                            .center(),
-                    ))
-                } else {
-                    scrollable(
-                        column(recorder.instructions.iter().enumerate().map(
-                            |(i, instruction)| {
-                                monospace(instruction.to_string())
-                                    .size(10)
-                                    .style(move |theme: &Theme| text::Style {
-                                        color: match &recorder.state {
-                                            State::Playing {
-                                                current, ..
-                                            } => {
-                                                if *current == i {
-                                                    Some(
-                                                        theme.palette().primary,
-                                                    )
-                                                } else if *current > i {
-                                                    Some(
-                                                        theme
-                                                            .extended_palette()
-                                                            .success
-                                                            .strong
-                                                            .color,
-                                                    )
-                                                } else {
-                                                    None
-                                                }
-                                            }
-                                            _ => None,
-                                        },
-                                    })
-                                    .into()
-                            },
-                        ))
-                        .spacing(5),
-                    )
-                    .spacing(5)
-                    .into()
-                })
-                .width(Fill)
-                .height(Fill)
-                .padding(5);
-
-                let controls = {
-                    row![
-                        button(icon::play().size(14).width(Fill).center())
-                            .on_press_maybe(
-                                (!matches!(recorder.state, State::Recording)
-                                    && !recorder.instructions.is_empty())
-                                .then_some(Message::Play),
-                            ),
-                        if let State::Recording = &recorder.state {
-                            button(icon::stop().size(14).width(Fill).center())
-                                .on_press(Message::Stop)
-                                .style(button::success)
-                        } else {
-                            button(icon::record().size(14).width(Fill).center())
-                                .on_press_maybe(
-                                    matches!(recorder.state, State::Idle)
-                                        .then_some(Message::Record),
-                                )
-                                .style(button::danger)
-                        }
-                    ]
-                    .spacing(10)
-                };
-
-                column![events, controls].spacing(10).align_x(Center)
-            };
-
-            let viewport = row![
-                text_input("Width", &self.size.width.to_string())
-                    .size(14)
-                    .on_input(Message::ChangeWidth),
-                monospace("x"),
-                text_input("Height", &self.size.height.to_string())
-                    .size(14)
-                    .on_input(Message::ChangeHeight),
-            ]
-            .spacing(10)
-            .align_y(Center);
-
-            let tools = column![
-                title,
-                labeled("Viewport", viewport),
-                labeled("Tester", recorder)
-            ]
-            .spacing(10);
+            let tools = column![title, tester].spacing(10);
 
             let sidebar = container(tools)
                 .padding(10)
@@ -646,65 +425,7 @@ where
             None
         };
 
-        let content = row![if let Mode::Open { recorder } = &self.mode {
-            let status = match &recorder.state {
-                State::Idle => monospace("Idle").style(|theme| text::Style {
-                    color: Some(
-                        theme.extended_palette().background.strongest.color,
-                    ),
-                }),
-                State::Recording => {
-                    monospace("Recording").style(|theme| text::Style {
-                        color: Some(theme.palette().danger),
-                    })
-                }
-                State::Playing { .. } => {
-                    monospace("Playing").style(|theme| text::Style {
-                        color: Some(theme.palette().primary),
-                    })
-                }
-            };
-
-            let viewport = container(
-                scrollable(
-                    container(if let State::Recording = &recorder.state {
-                        widget::recorder(view)
-                            .on_event(|event| {
-                                Event::Message(Message::Recorded(event))
-                            })
-                            .into()
-                    } else {
-                        view
-                    })
-                    .width(self.size.width)
-                    .height(self.size.height),
-                )
-                .direction(scrollable::Direction::Both {
-                    vertical: scrollable::Scrollbar::default(),
-                    horizontal: scrollable::Scrollbar::default(),
-                }),
-            )
-            .style(|theme| {
-                let palette = theme.extended_palette();
-
-                container::Style {
-                    border: border::width(2.0).color(match &recorder.state {
-                        State::Idle => palette.background.strongest.color,
-                        State::Recording => palette.danger.base.color,
-                        State::Playing { .. } => palette.primary.base.color,
-                    }),
-                    ..container::Style::default()
-                }
-            })
-            .padding(10);
-
-            center(column![status, viewport].spacing(10).align_x(Right))
-                .padding(10)
-                .into()
-        } else {
-            view
-        }]
-        .push_maybe(sidebar);
+        let content = row![view].push_maybe(sidebar);
 
         themer(
             theme,
@@ -724,8 +445,13 @@ where
         let hotkeys =
             futures::keyboard::on_key_press(|key, _modifiers| match key {
                 keyboard::Key::Named(keyboard::key::Named::F12) => {
-                    Some(Message::Toggle)
+                    Some(if cfg!(feature = "tester") {
+                        Message::Toggle
+                    } else {
+                        Message::ToggleComet
+                    })
                 }
+                #[cfg(feature = "tester")]
                 keyboard::Key::Named(keyboard::key::Named::F11) => {
                     Some(Message::ToggleComet)
                 }
@@ -761,7 +487,7 @@ where
 {
     Message(Message),
     Program(P::Message),
-    Emulator(emulator::Event<P>),
+    Tester(tester::Tick<P>),
     Command(debug::Command),
     Discard,
 }
@@ -774,7 +500,7 @@ where
         match self {
             Self::Message(message) => message.fmt(f),
             Self::Program(message) => message.fmt(f),
-            Self::Emulator(_) => f.write_str("Emulator"),
+            Self::Tester(_) => f.write_str("Tester"),
             Self::Command(command) => command.fmt(f),
             Self::Discard => f.write_str("Discard"),
         }
@@ -791,7 +517,7 @@ where
             Self::Message(message) => Self::Message(message.clone()),
             Self::Program(message) => Self::Program(message.clone()),
             Self::Command(command) => Self::Command(*command),
-            Self::Emulator(_) => Self::Discard, // Time traveling an emulator?!
+            Self::Tester(_) => Self::Discard, // Time traveling an emulator?!
             Self::Discard => Self::Discard,
         }
     }
@@ -924,27 +650,5 @@ where
                 .border(border::rounded(2))
         })
         .padding([2, 4])
-        .into()
-}
-
-fn monospace<'a, Renderer>(
-    fragment: impl text::IntoFragment<'a>,
-) -> Text<'a, Theme, Renderer>
-where
-    Renderer: program::Renderer + 'a,
-{
-    text(fragment).font(Font::MONOSPACE)
-}
-
-fn labeled<'a, Message, Renderer>(
-    fragment: impl text::IntoFragment<'a>,
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Renderer: program::Renderer + 'a,
-{
-    column![monospace(fragment).size(14), content.into()]
-        .spacing(5)
         .into()
 }
