@@ -244,7 +244,7 @@ impl Rectangle<f32> {
     /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
     pub fn snap(self) -> Option<Rectangle<u32>> {
         let top_left = self.position().snap();
-        let bottom_right = (self.position() + self.size().into()).snap();
+        let bottom_right = (self.position() + Vector::from(self.size())).snap();
 
         let width = bottom_right.x.checked_sub(top_left.x)?;
         let height = bottom_right.y.checked_sub(top_left.y)?;
