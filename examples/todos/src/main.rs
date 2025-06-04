@@ -588,10 +588,10 @@ fn presets() -> impl Iterator<Item = iced::application::Preset<Todos, Message>>
                 Command::done(Message::Loaded(Err(LoadError::File))),
             )
         }),
-        Preset::new("Basic", || {
+        Preset::new("Carl Sagan", || {
             (
                 Todos::Loaded(State {
-                    input_value: "Bake an apple pie".to_owned(),
+                    input_value: "Make an apple pie".to_owned(),
                     filter: Filter::All,
                     tasks: vec![Task {
                         id: Uuid::new_v4(),

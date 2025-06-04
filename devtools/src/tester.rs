@@ -36,10 +36,20 @@ enum State<P: Program> {
     Recording {
         state: P::State,
     },
+    Ready {
+        state: P::State,
+    },
     Playing {
         emulator: Emulator<P>,
         current: usize,
+        outcome: Outcome,
     },
+}
+
+enum Outcome {
+    Running,
+    Failed,
+    Success,
 }
 
 #[derive(Debug, Clone)]
@@ -83,7 +93,14 @@ impl<P: Program + 'static> Tester<P> {
     }
 
     pub fn is_busy(&self) -> bool {
-        matches!(self.state, State::Recording { .. } | State::Playing { .. })
+        matches!(
+            self.state,
+            State::Recording { .. }
+                | State::Playing {
+                    outcome: Outcome::Running,
+                    ..
+                }
+        )
     }
 
     pub fn update(&mut self, program: &P, message: Message) -> Task<Tick<P>> {
@@ -117,7 +134,13 @@ impl<P: Program + 'static> Tester<P> {
                 task.map(Tick::Program)
             }
             Message::Stop => {
-                self.state = State::Idle;
+                let State::Recording { state } =
+                    std::mem::replace(&mut self.state, State::Idle)
+                else {
+                    return Task::none();
+                };
+
+                self.state = State::Ready { state };
 
                 Task::none()
             }
@@ -135,6 +158,7 @@ impl<P: Program + 'static> Tester<P> {
                 self.state = State::Playing {
                     emulator,
                     current: 0,
+                    outcome: Outcome::Running,
                 };
 
                 Task::run(receiver, Tick::Emulator)
@@ -190,7 +214,11 @@ impl<P: Program + 'static> Tester<P> {
                 Task::none()
             }
             Tick::Emulator(event) => {
-                let State::Playing { emulator, current } = &mut self.state
+                let State::Playing {
+                    emulator,
+                    current,
+                    outcome,
+                } = &mut self.state
                 else {
                     return Task::none();
                 };
@@ -199,12 +227,19 @@ impl<P: Program + 'static> Tester<P> {
                     emulator::Event::Action(action) => {
                         emulator.perform(program, action);
                     }
+                    emulator::Event::Failed => {
+                        *outcome = Outcome::Failed;
+                    }
                     emulator::Event::Ready => {
                         if let Some(instruction) =
                             self.instructions.get(*current).cloned()
                         {
                             emulator.run(program, instruction);
                             *current += 1;
+                        }
+
+                        if *current >= self.instructions.len() {
+                            *outcome = Outcome::Success;
                         }
                     }
                 }
@@ -216,7 +251,9 @@ impl<P: Program + 'static> Tester<P> {
 
     pub fn subscription(&self, program: &P) -> Subscription<Tick<P>> {
         match &self.state {
-            State::Idle | State::Playing { .. } => Subscription::none(),
+            State::Idle | State::Playing { .. } | State::Ready { .. } => {
+                Subscription::none()
+            }
             State::Recording { state } => {
                 program.subscription(state).map(Tick::Program)
             }
@@ -230,22 +267,44 @@ impl<P: Program + 'static> Tester<P> {
         current: impl FnOnce() -> Element<'a, T, Theme, P::Renderer>,
         emulate: impl Fn(Tick<P>) -> T + 'a,
     ) -> Element<'a, T, Theme, P::Renderer> {
-        let status = match &self.state {
-            State::Idle => monospace("Idle").style(|theme| text::Style {
-                color: Some(
-                    theme.extended_palette().background.strongest.color,
-                ),
-            }),
-            State::Recording { .. } => {
-                monospace("Recording").style(|theme| text::Style {
-                    color: Some(theme.palette().danger),
+        let status = {
+            let (icon, label) = match &self.state {
+                State::Idle => (text(""), "Idle"),
+                State::Recording { .. } => (icon::record(), "Recording"),
+                State::Ready { .. } => (icon::lightbulb(), "Ready"),
+                State::Playing { outcome, .. } => match outcome {
+                    Outcome::Running => (icon::play(), "Playing"),
+                    Outcome::Failed => (icon::cancel(), "Failed"),
+                    Outcome::Success => (icon::check(), "Success"),
+                },
+            };
+
+            container(row![icon.size(14), label].align_y(Center).spacing(8))
+                .style(|theme: &Theme| {
+                    let palette = theme.extended_palette();
+
+                    container::Style {
+                        text_color: Some(match &self.state {
+                            State::Idle => palette.background.strongest.color,
+                            State::Recording { .. } => {
+                                palette.danger.base.color
+                            }
+                            State::Ready { .. } => palette.warning.base.color,
+                            State::Playing { outcome, .. } => match outcome {
+                                Outcome::Running => theme.palette().primary,
+                                Outcome::Failed => theme.palette().danger,
+                                Outcome::Success => {
+                                    theme
+                                        .extended_palette()
+                                        .success
+                                        .strong
+                                        .color
+                                }
+                            },
+                        }),
+                        ..container::Style::default()
+                    }
                 })
-            }
-            State::Playing { .. } => {
-                monospace("Playing").style(|theme| text::Style {
-                    color: Some(theme.palette().primary),
-                })
-            }
         };
 
         let viewport = container(
@@ -262,6 +321,13 @@ impl<P: Program + 'static> Tester<P> {
                                 .on_event(Tick::Recorder),
                         )
                         .map(emulate)
+                    }
+                    State::Ready { state } => {
+                        let theme = program.theme(state, window);
+                        let view =
+                            program.view(state, window).map(Tick::Program);
+
+                        Element::from(themer(theme, view)).map(emulate)
                     }
                     State::Playing { emulator, .. } => {
                         let theme = emulator.theme(program);
@@ -285,7 +351,12 @@ impl<P: Program + 'static> Tester<P> {
                 border: border::width(2.0).color(match &self.state {
                     State::Idle => palette.background.strongest.color,
                     State::Recording { .. } => palette.danger.base.color,
-                    State::Playing { .. } => palette.primary.base.color,
+                    State::Ready { .. } => palette.warning.weak.color,
+                    State::Playing { outcome, .. } => match outcome {
+                        Outcome::Running => palette.primary.base.color,
+                        Outcome::Failed => palette.danger.strong.color,
+                        Outcome::Success => palette.success.strong.color,
+                    },
                 }),
                 ..container::Style::default()
             }
@@ -305,7 +376,7 @@ impl<P: Program + 'static> Tester<P> {
                     width: width.parse().unwrap_or(self.viewport.width),
                     ..self.viewport
                 })),
-            monospace("x"),
+            monospace("x").size(14),
             text_input("Height", &self.viewport.height.to_string())
                 .size(14)
                 .on_input(|height| Message::ChangeViewport(Size {
@@ -318,7 +389,7 @@ impl<P: Program + 'static> Tester<P> {
 
         let preset = combo_box(
             &self.presets,
-            "Default Preset",
+            "Default",
             self.preset.as_ref(),
             Message::PresetSelected,
         )
@@ -349,9 +420,32 @@ impl<P: Program + 'static> Tester<P> {
                                 .size(10)
                                 .style(move |theme: &Theme| text::Style {
                                     color: match &self.state {
-                                        State::Playing { current, .. } => {
+                                        State::Playing {
+                                            current,
+                                            outcome,
+                                            ..
+                                        } => {
                                             if *current == i {
-                                                Some(theme.palette().primary)
+                                                Some(match outcome {
+                                                    Outcome::Running => {
+                                                        theme.palette().primary
+                                                    }
+
+                                                    Outcome::Failed => {
+                                                        theme
+                                                            .extended_palette()
+                                                            .danger
+                                                            .strong
+                                                            .color
+                                                    }
+                                                    Outcome::Success => {
+                                                        theme
+                                                            .extended_palette()
+                                                            .success
+                                                            .strong
+                                                            .color
+                                                    }
+                                                })
                                             } else if *current > i {
                                                 Some(
                                                     theme
@@ -394,8 +488,7 @@ impl<P: Program + 'static> Tester<P> {
                     } else {
                         button(icon::record().size(14).width(Fill).center())
                             .on_press_maybe(
-                                matches!(self.state, State::Idle)
-                                    .then_some(Message::Record),
+                                (!self.is_busy()).then_some(Message::Record),
                             )
                             .style(button::danger)
                     }

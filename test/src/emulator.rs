@@ -34,6 +34,7 @@ pub struct Emulator<P: Program> {
 #[allow(missing_debug_implementations)]
 pub enum Event<P: Program> {
     Action(Action<P::Message>),
+    Failed,
     Ready,
 }
 
