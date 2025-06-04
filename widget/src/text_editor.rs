@@ -1236,7 +1236,10 @@ impl<Message> Update<Message> {
 
         match event {
             Event::Mouse(event) => match event {
-                mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                mouse::Event::ButtonPressed {
+                    button: mouse::Button::Left,
+                    ..
+                } => {
                     if let Some(cursor_position) = cursor.position_in(bounds) {
                         let cursor_position = cursor_position
                             - Vector::new(padding.top, padding.left);
@@ -1266,7 +1269,7 @@ impl<Message> Update<Message> {
                     }
                     _ => None,
                 },
-                mouse::Event::WheelScrolled { delta }
+                mouse::Event::WheelScrolled { delta, .. }
                     if cursor.is_over(bounds) =>
                 {
                     Some(Update::Scroll(match delta {

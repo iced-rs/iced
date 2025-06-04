@@ -299,7 +299,10 @@ where
         }
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            Event::Mouse(mouse::Event::ButtonPressed {
+                button: mouse::Button::Left,
+                ..
+            })
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if self.on_press.is_some() {
                     let bounds = layout.bounds();
@@ -539,11 +542,11 @@ impl Default for Style {
 ///
 /// impl Catalog for MyTheme {
 ///     type Class<'a> = ButtonClass;
-///     
+///
 ///     fn default<'a>() -> Self::Class<'a> {
 ///         ButtonClass::default()
 ///     }
-///     
+///
 ///
 ///     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
 ///         let mut style = Style::default();
