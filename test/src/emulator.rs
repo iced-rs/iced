@@ -2,6 +2,7 @@ use crate::Instruction;
 use crate::core;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::widget::operation;
 use crate::core::window;
 use crate::core::{Element, Size};
 use crate::program::Program;
@@ -91,8 +92,29 @@ impl<P: Program + 'static> Emulator<P> {
             Action::LoadFont { .. } => {
                 // TODO
             }
-            Action::Widget(_operation) => {
-                // TODO
+            Action::Widget(operation) => {
+                let mut user_interface = UserInterface::build(
+                    program.view(&self.state, self.window),
+                    self.size,
+                    self.cache.take().unwrap(),
+                    &mut self.renderer,
+                );
+
+                let mut operation = Some(operation);
+
+                while let Some(mut current) = operation.take() {
+                    user_interface.operate(&self.renderer, &mut current);
+
+                    match current.finish() {
+                        operation::Outcome::None => {}
+                        operation::Outcome::Some(()) => {}
+                        operation::Outcome::Chain(next) => {
+                            operation = Some(next);
+                        }
+                    }
+                }
+
+                self.cache = Some(user_interface.into_cache());
             }
             Action::Clipboard(action) => {
                 // TODO
