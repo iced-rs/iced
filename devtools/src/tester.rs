@@ -9,6 +9,7 @@ use crate::core::alignment::Horizontal::Right;
 use crate::core::border;
 use crate::core::window;
 use crate::core::{Element, Event, Size, Theme};
+use crate::executor;
 use crate::futures::Subscription;
 use crate::futures::futures::channel::mpsc;
 use crate::icon;
@@ -60,10 +61,14 @@ pub enum Message {
     Record,
     Stop,
     Play,
+    Import,
+    Export,
+    Imported(Option<String>),
 }
 
 #[allow(missing_debug_implementations)]
 pub enum Tick<P: Program> {
+    Tester(Message),
     Program(P::Message),
     Recorder(Event),
     Emulator(emulator::Event<P>),
@@ -163,6 +168,67 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::run(receiver, Tick::Emulator)
             }
+            Message::Import => {
+                use std::fs;
+
+                let import = rfd::AsyncFileDialog::new()
+                    .add_filter("ice", &["ice"])
+                    .pick_file();
+
+                Task::future(import)
+                    .and_then(|file| {
+                        executor::spawn_blocking(move |mut sender| {
+                            let _ = sender
+                                .try_send(fs::read_to_string(file.path()).ok());
+                        })
+                    })
+                    .map(Message::Imported)
+                    .map(Tick::Tester)
+            }
+            Message::Export => {
+                use std::fs;
+                use std::thread;
+
+                let test: Vec<_> = self
+                    .instructions
+                    .iter()
+                    .map(Instruction::to_string)
+                    .collect();
+
+                let export = rfd::AsyncFileDialog::new()
+                    .add_filter("ice", &["ice"])
+                    .save_file();
+
+                Task::future(async move {
+                    let Some(file) = export.await else {
+                        return;
+                    };
+
+                    let _ = thread::spawn(move || {
+                        fs::write(file.path(), test.join("\n"))
+                    });
+                })
+                .discard()
+            }
+            Message::Imported(instructions) => {
+                let Some(instructions) = instructions else {
+                    return Task::none();
+                };
+
+                let instructions: Result<Vec<_>, _> =
+                    instructions.lines().map(Instruction::parse).collect();
+
+                match instructions {
+                    Ok(instructions) => {
+                        self.instructions = instructions;
+                    }
+                    Err(error) => {
+                        log::error!("{error}");
+                    }
+                }
+
+                Task::none()
+            }
         }
     }
 
@@ -180,6 +246,7 @@ impl<P: Program + 'static> Tester<P> {
 
     pub fn tick(&mut self, program: &P, tick: Tick<P>) -> Task<Tick<P>> {
         match tick {
+            Tick::Tester(message) => self.update(program, message),
             Tick::Program(message) => {
                 let State::Recording { state } = &mut self.state else {
                     return Task::none();
@@ -473,28 +540,42 @@ impl<P: Program + 'static> Tester<P> {
             .height(Fill)
             .padding(5);
 
-            let controls = {
-                row![
-                    button(icon::play().size(14).width(Fill).center())
-                        .on_press_maybe(
-                            (!matches!(self.state, State::Recording { .. })
-                                && !self.instructions.is_empty())
-                            .then_some(Message::Play),
-                        ),
-                    if let State::Recording { .. } = &self.state {
-                        button(icon::stop().size(14).width(Fill).center())
-                            .on_press(Message::Stop)
-                            .style(button::success)
-                    } else {
-                        button(icon::record().size(14).width(Fill).center())
-                            .on_press_maybe(
-                                (!self.is_busy()).then_some(Message::Record),
-                            )
-                            .style(button::danger)
-                    }
-                ]
-                .spacing(10)
+            let control = |icon: text::Text<'static, _, _>| {
+                button(icon.size(14).width(Fill).height(Fill).center())
             };
+
+            let play = control(icon::play()).on_press_maybe(
+                (!matches!(self.state, State::Recording { .. })
+                    && !self.instructions.is_empty())
+                .then_some(Message::Play),
+            );
+
+            let record = if let State::Recording { .. } = &self.state {
+                control(icon::stop())
+                    .on_press(Message::Stop)
+                    .style(button::success)
+            } else {
+                control(icon::record())
+                    .on_press_maybe(
+                        (!self.is_busy()).then_some(Message::Record),
+                    )
+                    .style(button::danger)
+            };
+
+            let import = control(icon::folder())
+                .on_press_maybe((!self.is_busy()).then_some(Message::Import))
+                .style(button::secondary);
+
+            let export = control(icon::floppy())
+                .on_press_maybe(
+                    (!matches!(self.state, State::Recording { .. })
+                        && !self.instructions.is_empty())
+                    .then_some(Message::Export),
+                )
+                .style(button::success);
+
+            let controls =
+                row![import, export, play, record].height(30).spacing(10);
 
             column![instructions, controls].spacing(10).align_x(Center)
         };

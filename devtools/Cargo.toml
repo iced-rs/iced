@@ -15,7 +15,7 @@ workspace = true
 
 [features]
 time-travel = ["iced_program/time-travel"]
-tester = ["dep:iced_test"]
+tester = ["dep:iced_test", "dep:rfd"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -25,3 +25,6 @@ log.workspace = true
 
 iced_test.workspace = true
 iced_test.optional = true
+
+rfd.workspace = true
+rfd.optional = true

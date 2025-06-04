@@ -10,6 +10,12 @@ pub enum Instruction {
     Interact(Interaction),
 }
 
+impl Instruction {
+    pub fn parse(line: &str) -> Result<Self, ParseError> {
+        parser::run(line)
+    }
+}
+
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -331,15 +337,16 @@ mod format {
     }
 }
 
-pub use parser::{Error as ParseError, run as parse};
+pub use parser::Error as ParseError;
 
 mod parser {
     use super::*;
 
     use nom::branch::alt;
     use nom::bytes::complete::tag;
-    use nom::character::complete::{char, multispace0};
-    use nom::combinator::{map, opt};
+    use nom::character::complete::{char, multispace0, satisfy};
+    use nom::combinator::{map, opt, recognize};
+    use nom::multi::many0;
     use nom::number::float;
     use nom::sequence::{delimited, preceded, separated_pair};
     use nom::{Finish, IResult, Parser};
@@ -360,7 +367,11 @@ mod parser {
     }
 
     fn interaction(input: &str) -> IResult<&str, Interaction> {
-        map(mouse, Interaction::Mouse).parse(input)
+        alt((
+            map(mouse, Interaction::Mouse),
+            map(keyboard, Interaction::Keyboard),
+        ))
+        .parse(input)
     }
 
     fn mouse(input: &str) -> IResult<&str, Mouse> {
@@ -392,6 +403,33 @@ mod parser {
             tag("left").map(|_| mouse::Button::Left),
             tag("right").map(|_| mouse::Button::Right),
         ))
+        .parse(input)
+    }
+
+    fn keyboard(input: &str) -> IResult<&str, Keyboard> {
+        alt((
+            map(preceded(tag("type "), string), Keyboard::Typewrite),
+            map(preceded(tag("type "), key), Keyboard::Type),
+        ))
+        .parse(input)
+    }
+
+    fn key(input: &str) -> IResult<&str, Key> {
+        alt((
+            map(tag("enter"), |_| Key::Enter),
+            map(tag("escape"), |_| Key::Escape),
+            map(tag("tab"), |_| Key::Tab),
+            map(tag("backspace"), |_| Key::Backspace),
+        ))
+        .parse(input)
+    }
+
+    fn string(input: &str) -> IResult<&str, String> {
+        delimited(
+            char('"'),
+            map(recognize(many0(satisfy(|c| c != '"'))), str::to_owned),
+            char('"'),
+        )
         .parse(input)
     }
 
