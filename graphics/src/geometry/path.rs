@@ -61,7 +61,10 @@ impl Path {
     /// Creates a new [`Path`] representing a circle given its center
     /// coordinate and its radius.
     pub fn circle(center: Point, radius: f32) -> Self {
-        Self::new(|p| p.circle(center, radius))
+        Self::new(|p| {
+            p.circle(center, radius);
+            p.close();
+        })
     }
 
     /// Returns the internal [`lyon_path::Path`].
