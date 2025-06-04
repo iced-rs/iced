@@ -7,11 +7,12 @@ use crate::core::{Element, Size};
 use crate::program::Program;
 use crate::runtime::futures::futures::StreamExt;
 use crate::runtime::futures::futures::channel::mpsc;
+use crate::runtime::futures::futures::stream;
 use crate::runtime::futures::subscription;
 use crate::runtime::futures::{Executor, Runtime};
 use crate::runtime::task;
 use crate::runtime::user_interface;
-use crate::runtime::{Action, UserInterface};
+use crate::runtime::{Action, Task, UserInterface};
 
 #[allow(missing_debug_implementations)]
 pub struct Emulator<P: Program> {
@@ -52,18 +53,10 @@ impl<P: Program + 'static> Emulator<P> {
             ))
             .expect("Create emulator renderer");
 
-        let mut runtime = Runtime::new(executor, sender);
-
+        let runtime = Runtime::new(executor, sender);
         let (state, task) = program.boot();
 
-        if let Some(stream) = task::into_stream(task) {
-            runtime.run(stream.map(Event::Action).boxed());
-        }
-
-        // TODO: Async boot environments
-        runtime.send(Event::Ready);
-
-        Self {
+        let mut emulator = Self {
             state,
             runtime,
             renderer,
@@ -72,7 +65,12 @@ impl<P: Program + 'static> Emulator<P> {
             cursor: mouse::Cursor::Unavailable,
             window: window::Id::unique(),
             cache: Some(user_interface::Cache::default()),
-        }
+        };
+
+        // TODO: Configurable
+        emulator.wait_for(task);
+
+        emulator
     }
 
     pub fn update(&mut self, program: &P, message: P::Message) {
@@ -82,11 +80,7 @@ impl<P: Program + 'static> Emulator<P> {
             self.runtime.run(stream.map(Event::Action).boxed());
         }
 
-        self.runtime.track(subscription::into_recipes(
-            program
-                .subscription(&self.state)
-                .map(|message| Event::Action(Action::Output(message))),
-        ));
+        self.resubscribe(program);
     }
 
     pub fn perform(&mut self, program: &P, action: Action<P::Message>) {
@@ -152,11 +146,35 @@ impl<P: Program + 'static> Emulator<P> {
 
         self.cache = Some(user_interface.into_cache());
 
-        for message in messages {
-            self.update(program, message);
-        }
+        let task = Task::batch(
+            messages
+                .into_iter()
+                .map(|message| program.update(&mut self.state, message)),
+        );
 
-        self.runtime.send(Event::Ready);
+        // TODO: Configurable
+        self.wait_for(task);
+
+        self.resubscribe(program);
+    }
+
+    pub fn wait_for(&mut self, task: Task<P::Message>) {
+        if let Some(stream) = task::into_stream(task) {
+            self.runtime.run(
+                stream
+                    .map(Event::Action)
+                    .chain(stream::once(async { Event::Ready }))
+                    .boxed(),
+            );
+        }
+    }
+
+    pub fn resubscribe(&mut self, program: &P) {
+        self.runtime.track(subscription::into_recipes(
+            program
+                .subscription(&self.state)
+                .map(|message| Event::Action(Action::Output(message))),
+        ));
     }
 
     pub fn view(
