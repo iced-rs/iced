@@ -4,6 +4,12 @@ pub use iced_runtime as runtime;
 pub use iced_runtime::core;
 pub use iced_runtime::futures;
 
+#[cfg(feature = "test")]
+mod preset;
+
+#[cfg(feature = "test")]
+pub use preset::Preset;
+
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::theme;
@@ -99,6 +105,11 @@ pub trait Program: Sized {
 
     fn scale_factor(&self, _state: &Self::State, _window: window::Id) -> f64 {
         1.0
+    }
+
+    #[cfg(feature = "test")]
+    fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
+        &[]
     }
 }
 

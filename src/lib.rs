@@ -475,11 +475,11 @@
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+use iced_program as program;
 use iced_widget::graphics;
 use iced_widget::renderer;
 use iced_winit as shell;
 use iced_winit::core;
-use iced_winit::program;
 use iced_winit::runtime;
 
 pub use iced_futures::futures;

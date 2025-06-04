@@ -18,12 +18,15 @@ use crate::test::emulator;
 use crate::test::instruction;
 use crate::test::{Emulator, Instruction};
 use crate::widget::{
-    button, center, column, container, monospace, row, scrollable, text,
-    text_input, themer,
+    button, center, column, combo_box, container, monospace, pick_list, row,
+    scrollable, text, text_input, themer,
 };
 
 pub struct Tester<P: Program> {
     viewport: Size,
+    mode: emulator::Mode,
+    presets: combo_box::State<String>,
+    preset: Option<String>,
     instructions: Vec<Instruction>,
     state: State<P>,
 }
@@ -42,6 +45,8 @@ enum State<P: Program> {
 #[derive(Debug, Clone)]
 pub enum Message {
     ChangeViewport(Size),
+    ModeSelected(emulator::Mode),
+    PresetSelected(String),
     Record,
     Stop,
     Play,
@@ -55,9 +60,19 @@ pub enum Tick<P: Program> {
 }
 
 impl<P: Program + 'static> Tester<P> {
-    pub fn new() -> Self {
+    pub fn new(program: &P) -> Self {
         Self {
+            mode: emulator::Mode::default(),
             viewport: Size::new(512.0, 512.0),
+            presets: combo_box::State::new(
+                program
+                    .presets()
+                    .iter()
+                    .map(program::Preset::name)
+                    .map(str::to_owned)
+                    .collect(),
+            ),
+            preset: None,
             instructions: Vec::new(),
             state: State::Idle,
         }
@@ -78,10 +93,25 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::none()
             }
+            Message::ModeSelected(mode) => {
+                self.mode = mode;
+
+                Task::none()
+            }
+            Message::PresetSelected(preset) => {
+                self.preset = Some(preset);
+
+                Task::none()
+            }
             Message::Record => {
                 self.instructions.clear();
 
-                let (state, task) = program.boot();
+                let (state, task) = if let Some(preset) = self.preset(program) {
+                    preset.boot()
+                } else {
+                    program.boot()
+                };
+
                 self.state = State::Recording { state };
 
                 task.map(Tick::Program)
@@ -93,7 +123,14 @@ impl<P: Program + 'static> Tester<P> {
             }
             Message::Play => {
                 let (sender, receiver) = mpsc::channel(1);
-                let emulator = Emulator::new(program, self.viewport, sender);
+
+                let emulator = Emulator::with_preset(
+                    sender,
+                    program,
+                    self.mode,
+                    self.viewport,
+                    self.preset(program),
+                );
 
                 self.state = State::Playing {
                     emulator,
@@ -103,6 +140,18 @@ impl<P: Program + 'static> Tester<P> {
                 Task::run(receiver, Tick::Emulator)
             }
         }
+    }
+
+    fn preset<'a>(
+        &self,
+        program: &'a P,
+    ) -> Option<&'a program::Preset<P::State, P::Message>> {
+        self.preset.as_ref().and_then(|preset| {
+            program
+                .presets()
+                .iter()
+                .find(|candidate| candidate.name() == preset)
+        })
     }
 
     pub fn tick(&mut self, program: &P, tick: Tick<P>) -> Task<Tick<P>> {
@@ -267,8 +316,25 @@ impl<P: Program + 'static> Tester<P> {
         .spacing(10)
         .align_y(Center);
 
+        let preset = combo_box(
+            &self.presets,
+            "Default Preset",
+            self.preset.as_ref(),
+            Message::PresetSelected,
+        )
+        .size(14)
+        .width(Fill);
+
+        let mode = pick_list(
+            emulator::Mode::ALL,
+            Some(self.mode),
+            Message::ModeSelected,
+        )
+        .text_size(14)
+        .width(Fill);
+
         let player = {
-            let events = container(if self.instructions.is_empty() {
+            let instructions = container(if self.instructions.is_empty() {
                 Element::from(center(
                     monospace("No instructions recorded yet!")
                         .size(14)
@@ -337,12 +403,17 @@ impl<P: Program + 'static> Tester<P> {
                 .spacing(10)
             };
 
-            column![events, controls].spacing(10).align_x(Center)
+            column![instructions, controls].spacing(10).align_x(Center)
         };
 
-        column![labeled("Viewport", viewport), labeled("Tester", player)]
-            .spacing(10)
-            .into()
+        column![
+            labeled("Viewport", viewport),
+            labeled("Mode", mode),
+            labeled("Preset", preset),
+            labeled("Instructions", player)
+        ]
+        .spacing(10)
+        .into()
     }
 }
 

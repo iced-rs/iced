@@ -20,7 +20,7 @@ pub struct Tick<P: Program> {
 }
 
 impl<P: Program> Tester<P> {
-    pub fn new() -> Self {
+    pub fn new(_program: &P) -> Self {
         Self { _type: PhantomData }
     }
 

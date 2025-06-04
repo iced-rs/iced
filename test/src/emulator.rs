@@ -2,9 +2,10 @@ use crate::Instruction;
 use crate::core;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::operation;
+use crate::core::widget;
 use crate::core::window;
 use crate::core::{Element, Size};
+use crate::program;
 use crate::program::Program;
 use crate::runtime::futures::futures::StreamExt;
 use crate::runtime::futures::futures::channel::mpsc;
@@ -15,11 +16,14 @@ use crate::runtime::task;
 use crate::runtime::user_interface;
 use crate::runtime::{Action, Task, UserInterface};
 
+use std::fmt;
+
 #[allow(missing_debug_implementations)]
 pub struct Emulator<P: Program> {
     state: P::State,
     runtime: Runtime<P::Executor, mpsc::Sender<Event<P>>, Event<P>>,
     renderer: P::Renderer,
+    mode: Mode,
     size: Size,
     window: window::Id,
     cursor: mouse::Cursor,
@@ -35,9 +39,20 @@ pub enum Event<P: Program> {
 
 impl<P: Program + 'static> Emulator<P> {
     pub fn new(
-        program: &P,
-        size: Size,
         sender: mpsc::Sender<Event<P>>,
+        program: &P,
+        mode: Mode,
+        size: Size,
+    ) -> Emulator<P> {
+        Self::with_preset(sender, program, mode, size, None)
+    }
+
+    pub fn with_preset(
+        sender: mpsc::Sender<Event<P>>,
+        program: &P,
+        mode: Mode,
+        size: Size,
+        preset: Option<&program::Preset<P::State, P::Message>>,
     ) -> Emulator<P> {
         use renderer::Headless;
 
@@ -55,12 +70,18 @@ impl<P: Program + 'static> Emulator<P> {
             .expect("Create emulator renderer");
 
         let runtime = Runtime::new(executor, sender);
-        let (state, task) = program.boot();
+
+        let (state, task) = if let Some(preset) = preset {
+            preset.boot()
+        } else {
+            program.boot()
+        };
 
         let mut emulator = Self {
             state,
             runtime,
             renderer,
+            mode,
             size,
             clipboard: Clipboard { content: None },
             cursor: mouse::Cursor::Unavailable,
@@ -68,8 +89,8 @@ impl<P: Program + 'static> Emulator<P> {
             cache: Some(user_interface::Cache::default()),
         };
 
-        // TODO: Configurable
         emulator.wait_for(task);
+        emulator.resubscribe(program);
 
         emulator
     }
@@ -106,9 +127,9 @@ impl<P: Program + 'static> Emulator<P> {
                     user_interface.operate(&self.renderer, &mut current);
 
                     match current.finish() {
-                        operation::Outcome::None => {}
-                        operation::Outcome::Some(()) => {}
-                        operation::Outcome::Chain(next) => {
+                        widget::operation::Outcome::None => {}
+                        widget::operation::Outcome::Some(()) => {}
+                        widget::operation::Outcome::Chain(next) => {
                             operation = Some(next);
                         }
                     }
@@ -174,20 +195,28 @@ impl<P: Program + 'static> Emulator<P> {
                 .map(|message| program.update(&mut self.state, message)),
         );
 
-        // TODO: Configurable
         self.wait_for(task);
-
         self.resubscribe(program);
     }
 
     pub fn wait_for(&mut self, task: Task<P::Message>) {
         if let Some(stream) = task::into_stream(task) {
-            self.runtime.run(
-                stream
-                    .map(Event::Action)
-                    .chain(stream::once(async { Event::Ready }))
-                    .boxed(),
-            );
+            match self.mode {
+                Mode::Patient => {
+                    self.runtime.run(
+                        stream
+                            .map(Event::Action)
+                            .chain(stream::once(async { Event::Ready }))
+                            .boxed(),
+                    );
+                }
+                Mode::Impatient => {
+                    self.runtime.run(stream.map(Event::Action).boxed());
+                    self.runtime.send(Event::Ready);
+                }
+            }
+        } else {
+            self.runtime.send(Event::Ready);
         }
     }
 
@@ -208,6 +237,26 @@ impl<P: Program + 'static> Emulator<P> {
 
     pub fn theme(&self, program: &P) -> P::Theme {
         program.theme(&self.state, self.window)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Mode {
+    Patient,
+    #[default]
+    Impatient,
+}
+
+impl Mode {
+    pub const ALL: &[Self] = &[Self::Patient, Self::Impatient];
+}
+
+impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Mode::Patient => f.write_str("Patient"),
+            Mode::Impatient => f.write_str("Impatient"),
+        }
     }
 }
 

@@ -138,6 +138,9 @@ where
         },
         settings: Settings::default(),
         window: window::Settings::default(),
+
+        #[cfg(feature = "test")]
+        presets: Vec::new(),
     }
 }
 

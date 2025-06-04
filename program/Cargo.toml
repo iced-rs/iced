@@ -15,6 +15,7 @@ workspace = true
 
 [features]
 time-travel = []
+test = []
 
 [dependencies]
 iced_graphics.workspace = true

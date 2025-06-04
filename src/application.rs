@@ -42,6 +42,8 @@ use std::borrow::Cow;
 
 pub mod timed;
 
+#[cfg(feature = "test")]
+pub use program::Preset;
 pub use timed::timed;
 
 /// Creates an iced [`Application`] given its boot, update, and view logic.
@@ -154,6 +156,9 @@ where
         },
         settings: Settings::default(),
         window: window::Settings::default(),
+
+        #[cfg(feature = "test")]
+        presets: Vec::new(),
     }
 }
 
@@ -169,6 +174,9 @@ pub struct Application<P: Program> {
     raw: P,
     settings: Settings,
     window: window::Settings,
+
+    #[cfg(feature = "test")]
+    presets: Vec<Preset<P::State, P::Message>>,
 }
 
 impl<P: Program> Application<P> {
@@ -338,6 +346,8 @@ impl<P: Program> Application<P> {
             }),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "test")]
+            presets: self.presets,
         }
     }
 
@@ -352,6 +362,8 @@ impl<P: Program> Application<P> {
             raw: program::with_subscription(self.raw, f),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "test")]
+            presets: self.presets,
         }
     }
 
@@ -366,6 +378,8 @@ impl<P: Program> Application<P> {
             raw: program::with_theme(self.raw, move |state, _window| f(state)),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "test")]
+            presets: self.presets,
         }
     }
 
@@ -380,6 +394,8 @@ impl<P: Program> Application<P> {
             raw: program::with_style(self.raw, f),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "test")]
+            presets: self.presets,
         }
     }
 
@@ -396,6 +412,8 @@ impl<P: Program> Application<P> {
             }),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "test")]
+            presets: self.presets,
         }
     }
 
@@ -412,6 +430,24 @@ impl<P: Program> Application<P> {
             raw: program::with_executor::<P, E>(self.raw),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "test")]
+            presets: self.presets,
+        }
+    }
+
+    /// Sets the boot presets of the [`Application`].
+    ///
+    /// Presets can be used to override the default booting strategy
+    /// of your application during testing to create reproducible
+    /// environments.
+    #[cfg(feature = "test")]
+    pub fn presets(
+        self,
+        presets: impl IntoIterator<Item = Preset<P::State, P::Message>>,
+    ) -> Self {
+        Self {
+            presets: presets.into_iter().collect(),
+            ..self
         }
     }
 }
@@ -473,6 +509,11 @@ impl<P: Program> Program for Application<P> {
 
     fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
         self.raw.scale_factor(state, window)
+    }
+
+    #[cfg(feature = "test")]
+    fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
+        &self.presets
     }
 }
 

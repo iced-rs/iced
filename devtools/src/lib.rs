@@ -197,7 +197,7 @@ where
                     match &self.mode {
                         Mode::Hidden => {
                             self.mode = Mode::Open {
-                                tester: Tester::new(),
+                                tester: Tester::new(program),
                             };
                         }
                         Mode::Open { tester } if !tester.is_busy() => {

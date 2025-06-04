@@ -15,12 +15,16 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    iced::application(Todos::new, Todos::update, Todos::view)
+    let todos = iced::application(Todos::new, Todos::update, Todos::view)
         .subscription(Todos::subscription)
         .title(Todos::title)
         .font(Todos::ICON_FONT)
-        .window_size((500.0, 800.0))
-        .run()
+        .window_size((500.0, 800.0));
+
+    #[cfg(feature = "test")]
+    let todos = todos.presets(presets());
+
+    todos.run()
 }
 
 #[derive(Debug)]
@@ -570,6 +574,39 @@ impl SavedState {
 
         Ok(())
     }
+}
+
+#[cfg(feature = "test")]
+fn presets() -> impl Iterator<Item = iced::application::Preset<Todos, Message>>
+{
+    use iced::application::Preset;
+
+    [
+        Preset::new("Empty", || {
+            (
+                Todos::Loading,
+                Command::done(Message::Loaded(Err(LoadError::File))),
+            )
+        }),
+        Preset::new("Basic", || {
+            (
+                Todos::Loaded(State {
+                    input_value: "Bake an apple pie".to_owned(),
+                    filter: Filter::All,
+                    tasks: vec![Task {
+                        id: Uuid::new_v4(),
+                        description: "Create the universe".to_owned(),
+                        completed: false,
+                        state: TaskState::Idle,
+                    }],
+                    dirty: false,
+                    saving: false,
+                }),
+                Command::none(),
+            )
+        }),
+    ]
+    .into_iter()
 }
 
 #[cfg(test)]
