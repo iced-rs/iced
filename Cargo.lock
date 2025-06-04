@@ -783,7 +783,7 @@ dependencies = [
  "log",
  "reqwest",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "tokio",
  "tracing-subscriber",
  "webbrowser",
@@ -2457,7 +2457,7 @@ dependencies = [
  "iced_widget",
  "iced_winit",
  "image",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -2470,7 +2470,7 @@ dependencies = [
  "log",
  "semver",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "tokio",
 ]
 
@@ -2488,7 +2488,7 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "smol_str",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "web-time",
 ]
 
@@ -2544,7 +2544,7 @@ dependencies = [
  "lyon_path",
  "raw-window-handle 0.6.2",
  "rustc-hash 2.1.1",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "unicode-segmentation",
 ]
 
@@ -2572,7 +2572,7 @@ dependencies = [
  "iced_tiny_skia",
  "iced_wgpu",
  "log",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -2585,7 +2585,7 @@ dependencies = [
  "iced_futures",
  "raw-window-handle 0.6.2",
  "sipper",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -2598,7 +2598,7 @@ dependencies = [
  "nom 8.0.0",
  "png",
  "sha2",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -2633,7 +2633,7 @@ dependencies = [
  "lyon",
  "resvg",
  "rustc-hash 2.1.1",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "wgpu",
 ]
 
@@ -2650,7 +2650,7 @@ dependencies = [
  "pulldown-cmark",
  "qrcode",
  "rustc-hash 2.1.1",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "unicode-segmentation",
  "url",
 ]
@@ -2664,7 +2664,7 @@ dependencies = [
  "log",
  "rustc-hash 2.1.1",
  "sysinfo",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "tracing",
  "wasm-bindgen-futures",
  "web-sys",
