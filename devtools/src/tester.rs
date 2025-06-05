@@ -8,7 +8,7 @@ use crate::core::Length::Fill;
 use crate::core::alignment::Horizontal::Right;
 use crate::core::border;
 use crate::core::window;
-use crate::core::{Element, Event, Size, Theme};
+use crate::core::{Element, Event, Font, Size, Theme};
 use crate::executor;
 use crate::futures::Subscription;
 use crate::futures::futures::channel::mpsc;
@@ -19,8 +19,8 @@ use crate::test::emulator;
 use crate::test::instruction;
 use crate::test::{Emulator, Instruction};
 use crate::widget::{
-    button, center, column, combo_box, container, monospace, pick_list, row,
-    scrollable, text, text_input, themer,
+    button, center, column, combo_box, container, horizontal_space, monospace,
+    pick_list, row, scrollable, text, text_editor, text_input, themer,
 };
 
 pub struct Tester<P: Program> {
@@ -30,6 +30,7 @@ pub struct Tester<P: Program> {
     preset: Option<String>,
     instructions: Vec<Instruction>,
     state: State<P>,
+    edit: Option<text_editor::Content<P::Renderer>>,
 }
 
 enum State<P: Program> {
@@ -64,6 +65,9 @@ pub enum Message {
     Import,
     Export,
     Imported(Option<String>),
+    Edit,
+    Edited(text_editor::Action),
+    Confirm,
 }
 
 #[allow(missing_debug_implementations)]
@@ -90,6 +94,7 @@ impl<P: Program + 'static> Tester<P> {
             preset: None,
             instructions: Vec::new(),
             state: State::Idle,
+            edit: None,
         }
     }
 
@@ -126,6 +131,7 @@ impl<P: Program + 'static> Tester<P> {
                 Task::none()
             }
             Message::Record => {
+                self.edit = None;
                 self.instructions.clear();
 
                 let (state, task) = if let Some(preset) = self.preset(program) {
@@ -150,6 +156,8 @@ impl<P: Program + 'static> Tester<P> {
                 Task::none()
             }
             Message::Play => {
+                self.confirm();
+
                 let (sender, receiver) = mpsc::channel(1);
 
                 let emulator = Emulator::with_preset(
@@ -189,6 +197,8 @@ impl<P: Program + 'static> Tester<P> {
                 use std::fs;
                 use std::thread;
 
+                self.confirm();
+
                 let test: Vec<_> = self
                     .instructions
                     .iter()
@@ -221,6 +231,7 @@ impl<P: Program + 'static> Tester<P> {
                 match instructions {
                     Ok(instructions) => {
                         self.instructions = instructions;
+                        self.edit = None;
                     }
                     Err(error) => {
                         log::error!("{error}");
@@ -229,7 +240,49 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::none()
             }
+            Message::Edit => {
+                if self.is_busy() {
+                    return Task::none();
+                }
+
+                self.edit = Some(text_editor::Content::with_text(
+                    &self
+                        .instructions
+                        .iter()
+                        .map(Instruction::to_string)
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                ));
+
+                Task::none()
+            }
+            Message::Edited(action) => {
+                if let Some(edit) = &mut self.edit {
+                    edit.perform(action);
+                }
+
+                Task::none()
+            }
+            Message::Confirm => {
+                self.confirm();
+
+                Task::none()
+            }
         }
+    }
+
+    fn confirm(&mut self) {
+        let Some(edit) = &mut self.edit else {
+            return;
+        };
+
+        self.instructions = edit
+            .lines()
+            .filter(|line| !line.text.trim().is_empty())
+            .filter_map(|line| Instruction::parse(&line.text).ok())
+            .collect();
+
+        self.edit = None;
     }
 
     fn preset<'a>(
@@ -472,7 +525,14 @@ impl<P: Program + 'static> Tester<P> {
         .width(Fill);
 
         let player = {
-            let instructions = container(if self.instructions.is_empty() {
+            let instructions = if let Some(edit) = &self.edit {
+                text_editor(edit)
+                    .size(12)
+                    .height(Fill)
+                    .font(Font::MONOSPACE)
+                    .on_action(Message::Edited)
+                    .into()
+            } else if self.instructions.is_empty() {
                 Element::from(center(
                     monospace("No instructions recorded yet!")
                         .size(14)
@@ -497,7 +557,6 @@ impl<P: Program + 'static> Tester<P> {
                                                     Outcome::Running => {
                                                         theme.palette().primary
                                                     }
-
                                                     Outcome::Failed => {
                                                         theme
                                                             .extended_palette()
@@ -533,12 +592,11 @@ impl<P: Program + 'static> Tester<P> {
                     ))
                     .spacing(5),
                 )
+                .width(Fill)
+                .height(Fill)
                 .spacing(5)
                 .into()
-            })
-            .width(Fill)
-            .height(Fill)
-            .padding(5);
+            };
 
             let control = |icon: text::Text<'static, _, _>| {
                 button(icon.size(14).width(Fill).height(Fill).center())
@@ -580,11 +638,27 @@ impl<P: Program + 'static> Tester<P> {
             column![instructions, controls].spacing(10).align_x(Center)
         };
 
+        let edit = if self.is_busy() {
+            Element::from(horizontal_space())
+        } else if self.edit.is_none() {
+            button(icon::pencil().size(14))
+                .padding(0)
+                .on_press(Message::Edit)
+                .style(button::text)
+                .into()
+        } else {
+            button(icon::check().size(14))
+                .padding(0)
+                .on_press(Message::Confirm)
+                .style(button::text)
+                .into()
+        };
+
         column![
             labeled("Viewport", viewport),
             labeled("Mode", mode),
             labeled("Preset", preset),
-            labeled("Instructions", player)
+            labeled_with("Instructions", edit, player)
         ]
         .spacing(10)
         .into()
@@ -602,4 +676,27 @@ where
     column![monospace(fragment).size(14), content.into()]
         .spacing(5)
         .into()
+}
+
+fn labeled_with<'a, Message, Renderer>(
+    fragment: impl text::IntoFragment<'a>,
+    control: impl Into<Element<'a, Message, Theme, Renderer>>,
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Renderer: program::Renderer + 'a,
+{
+    column![
+        row![
+            monospace(fragment).size(14),
+            horizontal_space(),
+            control.into()
+        ]
+        .spacing(5)
+        .align_y(Center),
+        content.into()
+    ]
+    .spacing(5)
+    .into()
 }

@@ -37,6 +37,14 @@ where
     icon("\u{1F4C1}")
 }
 
+pub fn keyboard<'a, Theme, Renderer>() -> Text<'a, Theme, Renderer>
+where
+    Theme: text::Catalog + 'a,
+    Renderer: program::Renderer,
+{
+    icon("\u{2328}")
+}
+
 pub fn lightbulb<'a, Theme, Renderer>() -> Text<'a, Theme, Renderer>
 where
     Theme: text::Catalog + 'a,
@@ -45,12 +53,28 @@ where
     icon("\u{F0EB}")
 }
 
+pub fn mouse_pointer<'a, Theme, Renderer>() -> Text<'a, Theme, Renderer>
+where
+    Theme: text::Catalog + 'a,
+    Renderer: program::Renderer,
+{
+    icon("\u{F245}")
+}
+
 pub fn pause<'a, Theme, Renderer>() -> Text<'a, Theme, Renderer>
 where
     Theme: text::Catalog + 'a,
     Renderer: program::Renderer,
 {
     icon("\u{2389}")
+}
+
+pub fn pencil<'a, Theme, Renderer>() -> Text<'a, Theme, Renderer>
+where
+    Theme: text::Catalog + 'a,
+    Renderer: program::Renderer,
+{
+    icon("\u{270E}")
 }
 
 pub fn play<'a, Theme, Renderer>() -> Text<'a, Theme, Renderer>
