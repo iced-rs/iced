@@ -1,6 +1,8 @@
+use crate::Selector;
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::{Event, Point};
+use crate::selector;
 use crate::simulator;
 
 use std::fmt;
@@ -8,6 +10,7 @@ use std::fmt;
 #[derive(Debug, Clone)]
 pub enum Instruction {
     Interact(Interaction),
+    Expect(Expectation),
 }
 
 impl Instruction {
@@ -20,6 +23,7 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Instruction::Interact(interaction) => interaction.fmt(f),
+            Instruction::Expect(expectation) => expectation.fmt(f),
         }
     }
 }
@@ -337,6 +341,24 @@ mod format {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum Expectation {
+    Presence(Selector),
+}
+
+impl fmt::Display for Expectation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Expectation::Presence(Selector::Id(_id)) => {
+                write!(f, "expect id") // TODO
+            }
+            Expectation::Presence(Selector::Text(text)) => {
+                write!(f, "expect text \"{text}\"")
+            }
+        }
+    }
+}
+
 pub use parser::Error as ParseError;
 
 mod parser {
@@ -363,7 +385,11 @@ mod parser {
     }
 
     fn instruction(input: &str) -> IResult<&str, Instruction> {
-        map(interaction, Instruction::Interact).parse(input)
+        alt((
+            map(interaction, Instruction::Interact),
+            map(expectation, Instruction::Expect),
+        ))
+        .parse(input)
     }
 
     fn interaction(input: &str) -> IResult<&str, Interaction> {
@@ -411,6 +437,13 @@ mod parser {
             map(preceded(tag("type "), string), Keyboard::Typewrite),
             map(preceded(tag("type "), key), Keyboard::Type),
         ))
+        .parse(input)
+    }
+
+    fn expectation(input: &str) -> IResult<&str, Expectation> {
+        map(preceded(tag("expect text "), string), |text| {
+            Expectation::Presence(selector::text(text))
+        })
         .parse(input)
     }
 

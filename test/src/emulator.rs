@@ -5,6 +5,7 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{Element, Size};
+use crate::instruction;
 use crate::program;
 use crate::program::Program;
 use crate::runtime::futures::futures::StreamExt;
@@ -185,19 +186,41 @@ impl<P: Program + 'static> Emulator<P> {
                     &mut self.clipboard,
                     &mut messages,
                 );
+
+                self.cache = Some(user_interface.into_cache());
+
+                let task =
+                    Task::batch(messages.into_iter().map(|message| {
+                        program.update(&mut self.state, message)
+                    }));
+
+                self.wait_for(task);
+                self.resubscribe(program);
             }
+            Instruction::Expect(expectation) => match expectation {
+                instruction::Expectation::Presence(selector) => {
+                    use widget::Operation;
+
+                    let mut operation = selector.operation();
+
+                    user_interface.operate(
+                        &self.renderer,
+                        &mut widget::operation::black_box(&mut operation),
+                    );
+
+                    match operation.finish() {
+                        widget::operation::Outcome::Some(Some(_)) => {
+                            self.runtime.send(Event::Ready);
+                        }
+                        _ => {
+                            self.runtime.send(Event::Failed);
+                        }
+                    }
+
+                    self.cache = Some(user_interface.into_cache());
+                }
+            },
         }
-
-        self.cache = Some(user_interface.into_cache());
-
-        let task = Task::batch(
-            messages
-                .into_iter()
-                .map(|message| program.update(&mut self.state, message)),
-        );
-
-        self.wait_for(task);
-        self.resubscribe(program);
     }
 
     pub fn wait_for(&mut self, task: Task<P::Message>) {

@@ -1,6 +1,7 @@
 //! Select widgets of a user interface.
 use crate::core::text;
 use crate::core::widget;
+use crate::core::{Rectangle, Vector};
 
 /// A selector describes a strategy to find a certain widget in a user interface.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -9,6 +10,165 @@ pub enum Selector {
     Id(widget::Id),
     /// Find the widget containing the given [`text::Fragment`].
     Text(text::Fragment<'static>),
+}
+
+impl Selector {
+    pub fn operation<'a>(&self) -> impl widget::Operation<Option<Target>> + 'a {
+        match self {
+            Selector::Id(id) => {
+                struct FindById {
+                    id: widget::Id,
+                    target: Option<Target>,
+                }
+
+                impl widget::Operation<Option<Target>> for FindById {
+                    fn container(
+                        &mut self,
+                        id: Option<&widget::Id>,
+                        bounds: Rectangle,
+                        operate_on_children: &mut dyn FnMut(
+                            &mut dyn widget::Operation<Option<Target>>,
+                        ),
+                    ) {
+                        if self.target.is_some() {
+                            return;
+                        }
+
+                        if Some(&self.id) == id {
+                            self.target = Some(Target { bounds });
+                            return;
+                        }
+
+                        operate_on_children(self);
+                    }
+
+                    fn scrollable(
+                        &mut self,
+                        id: Option<&widget::Id>,
+                        bounds: Rectangle,
+                        _content_bounds: Rectangle,
+                        _translation: Vector,
+                        _state: &mut dyn widget::operation::Scrollable,
+                    ) {
+                        if self.target.is_some() {
+                            return;
+                        }
+
+                        if Some(&self.id) == id {
+                            self.target = Some(Target { bounds });
+                        }
+                    }
+
+                    fn text_input(
+                        &mut self,
+                        id: Option<&widget::Id>,
+                        bounds: Rectangle,
+                        _state: &mut dyn widget::operation::TextInput,
+                    ) {
+                        if self.target.is_some() {
+                            return;
+                        }
+
+                        if Some(&self.id) == id {
+                            self.target = Some(Target { bounds });
+                        }
+                    }
+
+                    fn text(
+                        &mut self,
+                        id: Option<&widget::Id>,
+                        bounds: Rectangle,
+                        _text: &str,
+                    ) {
+                        if self.target.is_some() {
+                            return;
+                        }
+
+                        if Some(&self.id) == id {
+                            self.target = Some(Target { bounds });
+                        }
+                    }
+
+                    fn custom(
+                        &mut self,
+                        id: Option<&widget::Id>,
+                        bounds: Rectangle,
+                        _state: &mut dyn std::any::Any,
+                    ) {
+                        if self.target.is_some() {
+                            return;
+                        }
+
+                        if Some(&self.id) == id {
+                            self.target = Some(Target { bounds });
+                        }
+                    }
+
+                    fn finish(
+                        &self,
+                    ) -> widget::operation::Outcome<Option<Target>>
+                    {
+                        widget::operation::Outcome::Some(self.target)
+                    }
+                }
+
+                Box::new(FindById {
+                    id: id.clone(),
+                    target: None,
+                }) as Box<dyn widget::Operation<_>>
+            }
+            Selector::Text(text) => {
+                struct FindByText {
+                    text: text::Fragment<'static>,
+                    target: Option<Target>,
+                }
+
+                impl widget::Operation<Option<Target>> for FindByText {
+                    fn container(
+                        &mut self,
+                        _id: Option<&widget::Id>,
+                        _bounds: Rectangle,
+                        operate_on_children: &mut dyn FnMut(
+                            &mut dyn widget::Operation<Option<Target>>,
+                        ),
+                    ) {
+                        if self.target.is_some() {
+                            return;
+                        }
+
+                        operate_on_children(self);
+                    }
+
+                    fn text(
+                        &mut self,
+                        _id: Option<&widget::Id>,
+                        bounds: Rectangle,
+                        text: &str,
+                    ) {
+                        if self.target.is_some() {
+                            return;
+                        }
+
+                        if self.text == text {
+                            self.target = Some(Target { bounds });
+                        }
+                    }
+
+                    fn finish(
+                        &self,
+                    ) -> widget::operation::Outcome<Option<Target>>
+                    {
+                        widget::operation::Outcome::Some(self.target)
+                    }
+                }
+
+                Box::new(FindByText {
+                    text: text.clone(),
+                    target: None,
+                })
+            }
+        }
+    }
 }
 
 impl From<widget::Id> for Selector {
@@ -31,4 +191,11 @@ pub fn id(id: impl Into<widget::Id>) -> Selector {
 /// Creates a [`Selector`] that finds the widget containing the given text fragment.
 pub fn text(fragment: impl text::IntoFragment<'static>) -> Selector {
     Selector::Text(fragment.into_fragment())
+}
+
+/// A specific area, normally containing a widget.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Target {
+    /// The bounds of the area.
+    pub bounds: Rectangle,
 }

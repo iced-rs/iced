@@ -351,11 +351,12 @@ impl<P: Program + 'static> Tester<P> {
                         *outcome = Outcome::Failed;
                     }
                     emulator::Event::Ready => {
+                        *current += 1;
+
                         if let Some(instruction) =
-                            self.instructions.get(*current).cloned()
+                            self.instructions.get(*current - 1).cloned()
                         {
                             emulator.run(program, instruction);
-                            *current += 1;
                         }
 
                         if *current >= self.instructions.len() {
@@ -552,7 +553,7 @@ impl<P: Program + 'static> Tester<P> {
                                             outcome,
                                             ..
                                         } => {
-                                            if *current == i {
+                                            if *current == i + 1 {
                                                 Some(match outcome {
                                                     Outcome::Running => {
                                                         theme.palette().primary
@@ -572,7 +573,7 @@ impl<P: Program + 'static> Tester<P> {
                                                             .color
                                                     }
                                                 })
-                                            } else if *current > i {
+                                            } else if *current > i + 1 {
                                                 Some(
                                                     theme
                                                         .extended_palette()

@@ -8,12 +8,11 @@ use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{
-    Element, Event, Font, Point, Rectangle, Settings, Size, SmolStr,
-};
+use crate::core::{Element, Event, Font, Point, Settings, Size, SmolStr};
 use crate::renderer;
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
+use crate::selector;
 use crate::{Error, Selector};
 
 use std::borrow::Cow;
@@ -34,13 +33,6 @@ pub struct Simulator<
     size: Size,
     cursor: mouse::Cursor,
     messages: Vec<Message>,
-}
-
-/// A specific area of a [`Simulator`], normally containing a widget.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Target {
-    /// The bounds of the area.
-    pub bounds: Rectangle,
 }
 
 impl<'a, Message, Theme, Renderer> Simulator<'a, Message, Theme, Renderer>
@@ -111,148 +103,20 @@ where
     pub fn find(
         &mut self,
         selector: impl Into<Selector>,
-    ) -> Result<Target, Error> {
+    ) -> Result<selector::Target, Error> {
+        use widget::Operation;
+
         let selector = selector.into();
+        let mut operation = selector.operation();
 
-        match &selector {
-            Selector::Id(id) => {
-                struct FindById<'a> {
-                    id: &'a widget::Id,
-                    target: Option<Target>,
-                }
+        self.raw.operate(
+            &self.renderer,
+            &mut widget::operation::black_box(&mut operation),
+        );
 
-                impl widget::Operation for FindById<'_> {
-                    fn container(
-                        &mut self,
-                        id: Option<&widget::Id>,
-                        bounds: Rectangle,
-                        operate_on_children: &mut dyn FnMut(
-                            &mut dyn widget::Operation<()>,
-                        ),
-                    ) {
-                        if self.target.is_some() {
-                            return;
-                        }
-
-                        if Some(self.id) == id {
-                            self.target = Some(Target { bounds });
-                            return;
-                        }
-
-                        operate_on_children(self);
-                    }
-
-                    fn scrollable(
-                        &mut self,
-                        id: Option<&widget::Id>,
-                        bounds: Rectangle,
-                        _content_bounds: Rectangle,
-                        _translation: core::Vector,
-                        _state: &mut dyn widget::operation::Scrollable,
-                    ) {
-                        if self.target.is_some() {
-                            return;
-                        }
-
-                        if Some(self.id) == id {
-                            self.target = Some(Target { bounds });
-                        }
-                    }
-
-                    fn text_input(
-                        &mut self,
-                        id: Option<&widget::Id>,
-                        bounds: Rectangle,
-                        _state: &mut dyn widget::operation::TextInput,
-                    ) {
-                        if self.target.is_some() {
-                            return;
-                        }
-
-                        if Some(self.id) == id {
-                            self.target = Some(Target { bounds });
-                        }
-                    }
-
-                    fn text(
-                        &mut self,
-                        id: Option<&widget::Id>,
-                        bounds: Rectangle,
-                        _text: &str,
-                    ) {
-                        if self.target.is_some() {
-                            return;
-                        }
-
-                        if Some(self.id) == id {
-                            self.target = Some(Target { bounds });
-                        }
-                    }
-
-                    fn custom(
-                        &mut self,
-                        id: Option<&widget::Id>,
-                        bounds: Rectangle,
-                        _state: &mut dyn std::any::Any,
-                    ) {
-                        if self.target.is_some() {
-                            return;
-                        }
-
-                        if Some(self.id) == id {
-                            self.target = Some(Target { bounds });
-                        }
-                    }
-                }
-
-                let mut find = FindById { id, target: None };
-                self.raw.operate(&self.renderer, &mut find);
-
-                find.target.ok_or(Error::NotFound(selector))
-            }
-            Selector::Text(text) => {
-                struct FindByText<'a> {
-                    text: &'a str,
-                    target: Option<Target>,
-                }
-
-                impl widget::Operation for FindByText<'_> {
-                    fn container(
-                        &mut self,
-                        _id: Option<&widget::Id>,
-                        _bounds: Rectangle,
-                        operate_on_children: &mut dyn FnMut(
-                            &mut dyn widget::Operation<()>,
-                        ),
-                    ) {
-                        if self.target.is_some() {
-                            return;
-                        }
-
-                        operate_on_children(self);
-                    }
-
-                    fn text(
-                        &mut self,
-                        _id: Option<&widget::Id>,
-                        bounds: Rectangle,
-                        text: &str,
-                    ) {
-                        if self.target.is_some() {
-                            return;
-                        }
-
-                        if self.text == text {
-                            self.target = Some(Target { bounds });
-                        }
-                    }
-                }
-
-                let mut find = FindByText { text, target: None };
-                self.raw.operate(&self.renderer, &mut find);
-
-                find.target.ok_or(Error::NotFound(selector))
-            }
+        match operation.finish() {
+            widget::operation::Outcome::Some(Some(target)) => Ok(target),
+            _ => Err(Error::NotFound(selector)),
         }
     }
 
@@ -271,7 +135,7 @@ where
     pub fn click(
         &mut self,
         selector: impl Into<Selector>,
-    ) -> Result<Target, Error> {
+    ) -> Result<selector::Target, Error> {
         let target = self.find(selector)?;
         self.point_at(target.bounds.center());
 
