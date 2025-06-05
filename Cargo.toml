@@ -213,7 +213,8 @@ web-sys = "0.3.69"
 web-time = "1.1"
 wgpu = "24.0"
 window_clipboard = "0.4.1"
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b" }
+# TODO: switch back to iced-rs/winit if merged
+winit = { git = "https://github.com/pml68/winit.git", rev = "30deb1b4641b9ec0d4568bd8b521c7419d3a172a" }
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
