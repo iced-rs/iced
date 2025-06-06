@@ -6,6 +6,8 @@ use crate::time::Instant;
 use crate::window;
 use crate::{Element, Program, Settings, Subscription, Task};
 
+use iced_debug as debug;
+
 /// Creates an [`Application`] with an `update` function that also
 /// takes the [`Instant`] of each `Message`.
 ///
@@ -97,10 +99,12 @@ where
             state: &mut Self::State,
             (message, now): Self::Message,
         ) -> Task<Self::Message> {
-            self.update
-                .update(state, message, now)
-                .into()
-                .map(|message| (message, Instant::now()))
+            debug::hot(move || {
+                self.update
+                    .update(state, message, now)
+                    .into()
+                    .map(|message| (message, Instant::now()))
+            })
         }
 
         fn view<'a>(
@@ -108,16 +112,21 @@ where
             state: &'a Self::State,
             _window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.view
-                .view(state)
-                .map(|message| (message, Instant::now()))
+            debug::hot(|| {
+                self.view
+                    .view(state)
+                    .map(|message| (message, Instant::now()))
+            })
         }
 
         fn subscription(
             &self,
             state: &Self::State,
         ) -> self::Subscription<Self::Message> {
-            (self.subscription)(state).map(|message| (message, Instant::now()))
+            debug::hot(|| {
+                (self.subscription)(state)
+                    .map(|message| (message, Instant::now()))
+            })
         }
     }
 

@@ -113,6 +113,14 @@ pub fn commands() -> Subscription<Command> {
     internal::commands()
 }
 
+pub fn hot<O>(f: impl FnOnce() -> O) -> O {
+    internal::hot(f)
+}
+
+pub fn on_hotpatch(f: impl Fn() + Send + Sync + 'static) {
+    internal::on_hotpatch(f)
+}
+
 #[cfg(all(feature = "enable", not(target_arch = "wasm32")))]
 mod internal {
     use crate::core::theme;
@@ -129,7 +137,7 @@ mod internal {
     use beacon::span::present;
 
     use std::sync::atomic::{self, AtomicBool, AtomicUsize};
-    use std::sync::{LazyLock, RwLock};
+    use std::sync::{Arc, LazyLock, RwLock};
 
     pub fn init(metadata: Metadata) {
         let name = metadata.name.split("::").next().unwrap_or(metadata.name);
@@ -140,6 +148,8 @@ mod internal {
                 theme: metadata.theme,
                 can_time_travel: metadata.can_time_travel,
             };
+
+        cargo_hot::connect();
     }
 
     pub fn quit() -> bool {
@@ -271,6 +281,20 @@ mod internal {
         Subscription::run(listen_for_commands)
     }
 
+    pub fn hot<O>(f: impl FnOnce() -> O) -> O {
+        let mut f = Some(f);
+
+        // The `move` here is important. Hotpatching will not work
+        // otherwise.
+        cargo_hot::subsecond::call(move || {
+            f.take().expect("Hot function is stale")()
+        })
+    }
+
+    pub fn on_hotpatch(f: impl Fn() + Send + Sync + 'static) {
+        cargo_hot::subsecond::register_handler(Arc::new(f));
+    }
+
     fn span(span: span::Stage) -> Span {
         log(client::Event::SpanStarted(span.clone()));
 
@@ -398,4 +422,10 @@ mod internal {
     impl Span {
         pub fn finish(self) {}
     }
+
+    pub fn hot<O>(f: impl FnOnce() -> O) -> O {
+        f()
+    }
+
+    pub fn on_hotpatch(_f: impl Fn() + Send + Sync + 'static) {}
 }

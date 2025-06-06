@@ -56,6 +56,9 @@ pub enum Action<T> {
     /// Run a system action.
     System(system::Action),
 
+    /// Recreate all user interfaces and redraw all windows.
+    Reload,
+
     /// Exits the runtime.
     ///
     /// This will normally close any application windows and
@@ -79,6 +82,7 @@ impl<T> Action<T> {
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
+            Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
         }
     }
@@ -102,6 +106,7 @@ where
             }
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
+            Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),
         }
     }

@@ -6,6 +6,8 @@ use crate::theme;
 use crate::window;
 use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
 
+use iced_debug as debug;
+
 use std::borrow::Cow;
 
 /// Creates an iced [`Daemon`] given its boot, update, and view logic.
@@ -72,7 +74,7 @@ where
             state: &mut Self::State,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.update.update(state, message)
+            debug::hot(|| self.update.update(state, message))
         }
 
         fn view<'a>(
@@ -80,7 +82,7 @@ where
             state: &'a Self::State,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.view.view(state, window)
+            debug::hot(|| self.view.view(state, window))
         }
     }
 
@@ -176,7 +178,7 @@ impl<P: Program> Daemon<P> {
     > {
         Daemon {
             raw: program::with_title(self.raw, move |state, window| {
-                title.title(state, window)
+                debug::hot(|| title.title(state, window))
             }),
             settings: self.settings,
         }
@@ -190,7 +192,9 @@ impl<P: Program> Daemon<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
-            raw: program::with_subscription(self.raw, f),
+            raw: program::with_subscription(self.raw, move |state| {
+                debug::hot(|| f(state))
+            }),
             settings: self.settings,
         }
     }
@@ -203,7 +207,9 @@ impl<P: Program> Daemon<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
-            raw: program::with_theme(self.raw, f),
+            raw: program::with_theme(self.raw, move |state, window| {
+                debug::hot(|| f(state, window))
+            }),
             settings: self.settings,
         }
     }
@@ -216,7 +222,9 @@ impl<P: Program> Daemon<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
-            raw: program::with_style(self.raw, f),
+            raw: program::with_style(self.raw, move |state, theme| {
+                debug::hot(|| f(state, theme))
+            }),
             settings: self.settings,
         }
     }
@@ -229,7 +237,9 @@ impl<P: Program> Daemon<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
-            raw: program::with_scale_factor(self.raw, f),
+            raw: program::with_scale_factor(self.raw, move |state, window| {
+                debug::hot(|| f(state, window))
+            }),
             settings: self.settings,
         }
     }
