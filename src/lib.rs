@@ -524,6 +524,9 @@ pub mod window;
 #[cfg(feature = "advanced")]
 pub mod advanced;
 
+#[cfg(target_os = "macos")]
+pub use crate::core::ActivationPolicy;
+pub use crate::core::PlatformSpecific;
 pub use crate::core::alignment;
 pub use crate::core::animation;
 pub use crate::core::border;

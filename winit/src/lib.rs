@@ -77,9 +77,36 @@ where
     let window_settings = program.window();
 
     let graphics_settings = settings.clone().into();
-    let event_loop = EventLoop::with_user_event()
-        .build()
-        .expect("Create event loop");
+
+    let mut event_loop_builder = EventLoop::with_user_event();
+
+    #[cfg(target_os = "macos")]
+    let event_loop_builder = {
+        use crate::core::ActivationPolicy;
+        use winit::platform::macos::EventLoopBuilderExtMacOS;
+
+        let activation_policy =
+            match settings.platform_specific.activation_policy {
+                ActivationPolicy::Regular => {
+                    winit::platform::macos::ActivationPolicy::Regular
+                }
+                ActivationPolicy::Accessory => {
+                    winit::platform::macos::ActivationPolicy::Accessory
+                }
+                ActivationPolicy::Prohibited => {
+                    winit::platform::macos::ActivationPolicy::Prohibited
+                }
+            };
+
+        let activate_ignoring_other_apps =
+            settings.platform_specific.activate_ignoring_other_apps;
+
+        event_loop_builder
+            .with_activation_policy(activation_policy)
+            .with_activate_ignoring_other_apps(activate_ignoring_other_apps)
+    };
+
+    let event_loop = event_loop_builder.build().expect("Create event loop");
 
     let (proxy, worker) = Proxy::new(event_loop.create_proxy());
 

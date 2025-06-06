@@ -72,6 +72,9 @@ pub use point::Point;
 pub use rectangle::Rectangle;
 pub use renderer::Renderer;
 pub use rotation::Rotation;
+#[cfg(target_os = "macos")]
+pub use settings::ActivationPolicy;
+pub use settings::PlatformSpecific;
 pub use settings::Settings;
 pub use shadow::Shadow;
 pub use shell::Shell;
