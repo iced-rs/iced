@@ -725,7 +725,7 @@ dependencies = [
 [[package]]
 name = "cargo-hot-protocol"
 version = "0.1.0"
-source = "git+https://github.com/hecrj/cargo-hot.git?rev=e71ddcd1d37be79ddb6f22262600798319235ba5#e71ddcd1d37be79ddb6f22262600798319235ba5"
+source = "git+https://github.com/hecrj/cargo-hot.git?rev=b8dc518b8640928178a501257e353b73bc06cf47#b8dc518b8640928178a501257e353b73bc06cf47"
 dependencies = [
  "anyhow",
  "bincode 2.0.1",
