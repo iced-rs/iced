@@ -121,6 +121,10 @@ pub fn on_hotpatch(f: impl Fn() + Send + Sync + 'static) {
     internal::on_hotpatch(f)
 }
 
+pub fn is_stale() -> bool {
+    internal::is_stale()
+}
+
 #[cfg(all(feature = "enable", not(target_arch = "wasm32")))]
 mod internal {
     use crate::core::theme;
@@ -136,8 +140,16 @@ mod internal {
     use beacon::span;
     use beacon::span::present;
 
+    use std::collections::BTreeSet;
     use std::sync::atomic::{self, AtomicBool, AtomicUsize};
-    use std::sync::{Arc, LazyLock, RwLock};
+    use std::sync::{Arc, LazyLock, Mutex, OnceLock, RwLock};
+
+    static IS_STALE: AtomicBool = AtomicBool::new(false);
+
+    static HOT_FUNCTIONS_PENDING: Mutex<BTreeSet<u64>> =
+        Mutex::new(BTreeSet::new());
+
+    static HOT_FUNCTIONS: OnceLock<BTreeSet<u64>> = OnceLock::new();
 
     pub fn init(metadata: Metadata) {
         let name = metadata.name.split("::").next().unwrap_or(metadata.name);
@@ -150,6 +162,20 @@ mod internal {
             };
 
         cargo_hot::connect();
+
+        cargo_hot::subsecond::register_handler(Arc::new(|| {
+            if HOT_FUNCTIONS.get().is_none() {
+                HOT_FUNCTIONS
+                    .set(std::mem::take(
+                        &mut HOT_FUNCTIONS_PENDING
+                            .lock()
+                            .expect("Lock hot functions"),
+                    ))
+                    .expect("Set hot functions");
+            }
+
+            IS_STALE.store(false, atomic::Ordering::Relaxed);
+        }));
     }
 
     pub fn quit() -> bool {
@@ -286,13 +312,32 @@ mod internal {
 
         // The `move` here is important. Hotpatching will not work
         // otherwise.
-        cargo_hot::subsecond::call(move || {
+        let mut f = cargo_hot::subsecond::HotFn::current(move || {
             f.take().expect("Hot function is stale")()
-        })
+        });
+
+        let address = f.ptr_address().0;
+
+        if let Some(hot_functions) = HOT_FUNCTIONS.get() {
+            if hot_functions.contains(&address) {
+                IS_STALE.store(true, atomic::Ordering::Relaxed);
+            }
+        } else {
+            let _ = HOT_FUNCTIONS_PENDING
+                .lock()
+                .expect("Lock hot functions")
+                .insert(address);
+        }
+
+        f.call(())
     }
 
     pub fn on_hotpatch(f: impl Fn() + Send + Sync + 'static) {
         cargo_hot::subsecond::register_handler(Arc::new(f));
+    }
+
+    pub fn is_stale() -> bool {
+        IS_STALE.load(atomic::Ordering::Relaxed)
     }
 
     fn span(span: span::Stage) -> Span {
@@ -428,4 +473,8 @@ mod internal {
     }
 
     pub fn on_hotpatch(_f: impl Fn() + Send + Sync + 'static) {}
+
+    pub fn is_stale() -> bool {
+        false
+    }
 }
