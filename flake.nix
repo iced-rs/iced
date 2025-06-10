@@ -20,10 +20,8 @@
         devShells.default = mkShell rec {
           buildInputs = [
             bacon
-            cargo-udeps
             cargo-edit
             rust-analyzer
-            cargo-deny
             rust-bin.stable.latest.default
 
             pkg-config
