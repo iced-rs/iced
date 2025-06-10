@@ -343,21 +343,30 @@ where
             themer(derive_theme(), Element::from(mode).map(Event::Message))
         });
 
-        let notification = self.show_notification.then(|| {
-            themer(
-                derive_theme(),
-                bottom_right(opaque(
-                    container(text("Press F12 to open debug metrics"))
-                        .padding(10)
-                        .style(container::dark),
-                )),
-            )
-        });
+        let notification = self
+            .show_notification
+            .then(|| text("Press F12 to open debug metrics"))
+            .or_else(|| {
+                debug::is_stale().then(|| {
+                    text(
+                        "Types have changed. Restart to re-enable hotpatching.",
+                    )
+                })
+            });
 
         stack![view]
             .height(Fill)
             .push_maybe(mode.map(opaque))
-            .push_maybe(notification)
+            .push_maybe(notification.map(|notification| {
+                themer(
+                    derive_theme(),
+                    bottom_right(opaque(
+                        container(notification)
+                            .padding(10)
+                            .style(container::dark),
+                    )),
+                )
+            }))
             .into()
     }
 
