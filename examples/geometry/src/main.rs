@@ -47,10 +47,10 @@ mod rainbow {
             cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {
+            use iced::advanced::Renderer as _;
             use iced::advanced::graphics::mesh::{
                 self, Mesh, Renderer as _, SolidVertex2D,
             };
-            use iced::advanced::Renderer as _;
 
             let bounds = layout.bounds();
 
@@ -152,12 +152,12 @@ mod rainbow {
     }
 }
 
-use iced::widget::{center_x, center_y, column, scrollable};
 use iced::Element;
+use iced::widget::{center_x, center_y, column, scrollable};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
-    iced::run("Custom 2D Geometry - Iced", |_: &mut _, _| {}, view)
+    iced::run((), view)
 }
 
 fn view(_state: &()) -> Element<'_, ()> {

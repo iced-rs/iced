@@ -13,16 +13,15 @@ keywords.workspace = true
 [lints]
 workspace = true
 
-[features]
-debug = []
-multi-window = []
-
 [dependencies]
 bytes.workspace = true
 iced_core.workspace = true
+iced_debug.workspace = true
+
 iced_futures.workspace = true
-iced_futures.features = ["thread-pool"]
 
 raw-window-handle.workspace = true
-sipper.workspace = true
 thiserror.workspace = true
+
+sipper.workspace = true
+sipper.optional = true

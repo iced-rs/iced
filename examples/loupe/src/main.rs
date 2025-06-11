@@ -4,7 +4,7 @@ use iced::{Center, Element};
 use loupe::loupe;
 
 pub fn main() -> iced::Result {
-    iced::run("Loupe - Iced", Loupe::update, Loupe::view)
+    iced::run(Loupe::update, Loupe::view)
 }
 
 #[derive(Default)]
@@ -46,10 +46,10 @@ impl Loupe {
 }
 
 mod loupe {
+    use iced::advanced::Renderer as _;
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::advanced::Renderer as _;
     use iced::mouse;
     use iced::{
         Color, Element, Length, Rectangle, Renderer, Size, Theme,

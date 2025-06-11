@@ -7,14 +7,15 @@ use iced::widget::{
     text, vertical_rule,
 };
 use iced::{
-    color, Center, Element, Fill, Font, Length, Point, Rectangle, Renderer,
-    Shrink, Subscription, Theme,
+    Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink,
+    Subscription, Theme, color,
 };
 
 pub fn main() -> iced::Result {
-    iced::application(Layout::title, Layout::update, Layout::view)
+    iced::application(Layout::default, Layout::update, Layout::view)
         .subscription(Layout::subscription)
         .theme(Layout::theme)
+        .title(Layout::title)
         .run()
 }
 

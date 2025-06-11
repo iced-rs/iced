@@ -5,9 +5,9 @@ use crate::core::window::{
     UserAttention,
 };
 use crate::core::{Point, Size};
+use crate::futures::Subscription;
 use crate::futures::event;
 use crate::futures::futures::channel::oneshot;
-use crate::futures::Subscription;
 use crate::task::{self, Task};
 
 pub use raw_window_handle;

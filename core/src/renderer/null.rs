@@ -31,6 +31,7 @@ impl text::Renderer for () {
     type Paragraph = ();
     type Editor = ();
 
+    const MONOSPACE_FONT: Font = Font::MONOSPACE;
     const ICON_FONT: Font = Font::DEFAULT;
     const CHECKMARK_ICON: char = '0';
     const ARROW_DOWN_ICON: char = '0';
@@ -87,16 +88,40 @@ impl text::Paragraph for () {
         text::Difference::None
     }
 
-    fn horizontal_alignment(&self) -> alignment::Horizontal {
-        alignment::Horizontal::Left
+    fn size(&self) -> Pixels {
+        Pixels(16.0)
     }
 
-    fn vertical_alignment(&self) -> alignment::Vertical {
+    fn font(&self) -> Font {
+        Font::DEFAULT
+    }
+
+    fn line_height(&self) -> text::LineHeight {
+        text::LineHeight::default()
+    }
+
+    fn align_x(&self) -> text::Alignment {
+        text::Alignment::Default
+    }
+
+    fn align_y(&self) -> alignment::Vertical {
         alignment::Vertical::Top
+    }
+
+    fn wrapping(&self) -> text::Wrapping {
+        text::Wrapping::default()
+    }
+
+    fn shaping(&self) -> text::Shaping {
+        text::Shaping::default()
     }
 
     fn grapheme_position(&self, _line: usize, _index: usize) -> Option<Point> {
         None
+    }
+
+    fn bounds(&self) -> Size {
+        Size::ZERO
     }
 
     fn min_bounds(&self) -> Size {

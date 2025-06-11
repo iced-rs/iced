@@ -167,7 +167,10 @@ where
     ///
     /// The original alignment of the [`Row`] is preserved per row wrapped.
     pub fn wrap(self) -> Wrapping<'a, Message, Theme, Renderer> {
-        Wrapping { row: self }
+        Wrapping {
+            row: self,
+            vertical_spacing: None,
+        }
     }
 }
 
@@ -332,8 +335,9 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
@@ -341,6 +345,7 @@ where
             tree,
             layout,
             renderer,
+            viewport,
             translation,
         )
     }
@@ -372,6 +377,15 @@ pub struct Wrapping<
     Renderer = crate::Renderer,
 > {
     row: Row<'a, Message, Theme, Renderer>,
+    vertical_spacing: Option<f32>,
+}
+
+impl<Message, Theme, Renderer> Wrapping<'_, Message, Theme, Renderer> {
+    /// Sets the vertical spacing _between_ lines.
+    pub fn vertical_spacing(mut self, amount: impl Into<Pixels>) -> Self {
+        self.vertical_spacing = Some(amount.into().0);
+        self
+    }
 }
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -403,6 +417,7 @@ where
             .shrink(self.row.padding);
 
         let spacing = self.row.spacing;
+        let vertical_spacing = self.vertical_spacing.unwrap_or(spacing);
         let max_width = limits.max().width;
 
         let mut children: Vec<layout::Node> = Vec::new();
@@ -447,7 +462,7 @@ where
 
                 align(row_start..i, row_height, &mut children);
 
-                y += row_height + spacing;
+                y += row_height + vertical_spacing;
                 x = 0.0;
                 row_start = i;
                 row_height = 0.0;
@@ -531,11 +546,13 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.row.overlay(tree, layout, renderer, translation)
+        self.row
+            .overlay(tree, layout, renderer, viewport, translation)
     }
 }
 

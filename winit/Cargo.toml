@@ -15,7 +15,7 @@ workspace = true
 
 [features]
 default = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
-debug = ["iced_runtime/debug"]
+debug = ["iced_debug/enable"]
 system = ["sysinfo"]
 program = []
 x11 = ["winit/x11"]
@@ -25,9 +25,8 @@ wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 unconditional-rendering = []
 
 [dependencies]
-iced_futures.workspace = true
-iced_graphics.workspace = true
-iced_runtime.workspace = true
+iced_debug.workspace = true
+iced_program.workspace = true
 
 log.workspace = true
 rustc-hash.workspace = true

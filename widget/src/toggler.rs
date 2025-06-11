@@ -93,7 +93,7 @@ pub struct Toggler<
     size: f32,
     text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
-    text_alignment: alignment::Horizontal,
+    text_alignment: text::Alignment,
     text_shaping: text::Shaping,
     text_wrapping: text::Wrapping,
     spacing: f32,
@@ -127,7 +127,7 @@ where
             size: Self::DEFAULT_SIZE,
             text_size: None,
             text_line_height: text::LineHeight::default(),
-            text_alignment: alignment::Horizontal::Left,
+            text_alignment: text::Alignment::Default,
             text_shaping: text::Shaping::default(),
             text_wrapping: text::Wrapping::default(),
             spacing: Self::DEFAULT_SIZE / 2.0,
@@ -195,8 +195,11 @@ where
     }
 
     /// Sets the horizontal alignment of the text of the [`Toggler`]
-    pub fn text_alignment(mut self, alignment: alignment::Horizontal) -> Self {
-        self.text_alignment = alignment;
+    pub fn text_alignment(
+        mut self,
+        alignment: impl Into<text::Alignment>,
+    ) -> Self {
+        self.text_alignment = alignment.into();
         self
     }
 
@@ -276,7 +279,11 @@ where
 
         layout::next_to_each_other(
             &limits,
-            self.spacing,
+            if self.label.is_some() {
+                self.spacing
+            } else {
+                0.0
+            },
             |_| layout::Node::new(Size::new(2.0 * self.size, self.size)),
             |limits| {
                 if let Some(label) = self.label.as_deref() {
@@ -288,16 +295,18 @@ where
                         state,
                         renderer,
                         limits,
-                        self.width,
-                        Length::Shrink,
                         label,
-                        self.text_line_height,
-                        self.text_size,
-                        self.font,
-                        self.text_alignment,
-                        alignment::Vertical::Top,
-                        self.text_shaping,
-                        self.text_wrapping,
+                        widget::text::Format {
+                            width: self.width,
+                            height: Length::Shrink,
+                            line_height: self.text_line_height,
+                            size: self.text_size,
+                            font: self.font,
+                            align_x: self.text_alignment,
+                            align_y: alignment::Vertical::Top,
+                            shaping: self.text_shaping,
+                            wrapping: self.text_wrapping,
+                        },
                     )
                 } else {
                     layout::Node::new(Size::ZERO)
@@ -403,8 +412,8 @@ where
             crate::text::draw(
                 renderer,
                 style,
-                label_layout,
-                state.0.raw(),
+                label_layout.bounds(),
+                state.raw(),
                 crate::text::Style::default(),
                 viewport,
             );
@@ -415,7 +424,7 @@ where
             .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
-        let space = SPACE_RATIO * bounds.height;
+        let space = (SPACE_RATIO * bounds.height).round();
 
         let toggler_background_bounds = Rectangle {
             x: bounds.x + space,

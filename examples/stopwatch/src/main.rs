@@ -1,10 +1,10 @@
 use iced::keyboard;
-use iced::time::{self, milliseconds, Duration, Instant};
+use iced::time::{self, Duration, Instant, milliseconds};
 use iced::widget::{button, center, column, row, text};
 use iced::{Center, Element, Subscription, Theme};
 
 pub fn main() -> iced::Result {
-    iced::application("Stopwatch - Iced", Stopwatch::update, Stopwatch::view)
+    iced::application(Stopwatch::default, Stopwatch::update, Stopwatch::view)
         .subscription(Stopwatch::subscription)
         .theme(Stopwatch::theme)
         .run()

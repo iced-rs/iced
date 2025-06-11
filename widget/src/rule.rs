@@ -167,6 +167,7 @@ where
             renderer::Quad {
                 bounds,
                 border: border::rounded(style.radius),
+                snap: style.snap,
                 ..renderer::Quad::default()
             },
             style.color,
@@ -197,6 +198,8 @@ pub struct Style {
     pub radius: border::Radius,
     /// The [`FillMode`] of the rule.
     pub fill_mode: FillMode,
+    /// Whether the rule should be snapped to the pixel grid.
+    pub snap: bool,
 }
 
 /// The fill mode of a rule.
@@ -301,5 +304,6 @@ pub fn default(theme: &Theme) -> Style {
         width: 1,
         radius: 0.0.into(),
         fill_mode: FillMode::Full,
+        snap: true,
     }
 }

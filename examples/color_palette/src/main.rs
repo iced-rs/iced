@@ -1,24 +1,23 @@
 use iced::alignment;
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
-use iced::widget::{column, row, text, Slider};
+use iced::widget::{Slider, column, row, text};
 use iced::{
     Center, Color, Element, Fill, Font, Pixels, Point, Rectangle, Renderer,
     Size, Vector,
 };
-use palette::{convert::FromColor, rgb::Rgb, Darken, Hsl, Lighten, ShiftHue};
+use palette::{Darken, Hsl, Lighten, ShiftHue, convert::FromColor, rgb::Rgb};
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
     iced::application(
-        "Color Palette - Iced",
+        ColorPalette::default,
         ColorPalette::update,
         ColorPalette::view,
     )
     .theme(ColorPalette::theme)
     .default_font(Font::MONOSPACE)
-    .antialiasing(true)
     .run()
 }
 
@@ -46,7 +45,7 @@ pub enum Message {
 impl ColorPalette {
     fn update(&mut self, message: Message) {
         let srgb = match message {
-            Message::RgbColorChanged(rgb) => Rgb::from(rgb),
+            Message::RgbColorChanged(rgb) => to_rgb(rgb),
             Message::HslColorChanged(hsl) => Rgb::from_color(hsl),
             Message::HsvColorChanged(hsv) => Rgb::from_color(hsv),
             Message::HwbColorChanged(hwb) => Rgb::from_color(hwb),
@@ -54,13 +53,13 @@ impl ColorPalette {
             Message::LchColorChanged(lch) => Rgb::from_color(lch),
         };
 
-        self.theme = Theme::new(srgb);
+        self.theme = Theme::new(to_color(srgb));
     }
 
     fn view(&self) -> Element<Message> {
         let base = self.theme.base;
 
-        let srgb = Rgb::from(base);
+        let srgb = to_rgb(base);
         let hsl = palette::Hsl::from_color(srgb);
         let hsv = palette::Hsv::from_color(srgb);
         let hwb = palette::Hwb::from_color(srgb);
@@ -109,7 +108,7 @@ impl Theme {
         let base = base.into();
 
         // Convert to HSL color for manipulation
-        let hsl = Hsl::from_color(Rgb::from(base));
+        let hsl = Hsl::from_color(to_rgb(base));
 
         let lower = [
             hsl.shift_hue(-135.0).lighten(0.075),
@@ -128,12 +127,12 @@ impl Theme {
         Theme {
             lower: lower
                 .iter()
-                .map(|&color| Rgb::from_color(color).into())
+                .map(|&color| to_color(Rgb::from_color(color)))
                 .collect(),
             base,
             higher: higher
                 .iter()
-                .map(|&color| Rgb::from_color(color).into())
+                .map(|&color| to_color(Rgb::from_color(color)))
                 .collect(),
             canvas_cache: canvas::Cache::default(),
         }
@@ -170,8 +169,8 @@ impl Theme {
         });
 
         let mut text = canvas::Text {
-            horizontal_alignment: alignment::Horizontal::Center,
-            vertical_alignment: alignment::Vertical::Top,
+            align_x: text::Alignment::Center,
+            align_y: alignment::Vertical::Top,
             size: Pixels(15.0),
             color: text_color,
             ..canvas::Text::default()
@@ -214,16 +213,16 @@ impl Theme {
             });
         }
 
-        text.vertical_alignment = alignment::Vertical::Bottom;
+        text.align_y = alignment::Vertical::Bottom;
 
-        let hsl = Hsl::from_color(Rgb::from(self.base));
+        let hsl = Hsl::from_color(to_rgb(self.base));
         for i in 0..self.len() {
             let pct = (i as f32 + 1.0) / (self.len() as f32 + 1.0);
             let graded = Hsl {
                 lightness: 1.0 - pct,
                 ..hsl
             };
-            let color: Color = Rgb::from_color(graded).into();
+            let color: Color = to_color(Rgb::from_color(graded));
 
             let anchor = Point {
                 x: (i as f32) * box_size.width,
@@ -473,5 +472,23 @@ impl ColorSpace for palette::Lch {
             self.chroma,
             self.hue.into_positive_degrees()
         )
+    }
+}
+
+fn to_rgb(color: Color) -> Rgb {
+    Rgb {
+        red: color.r,
+        green: color.g,
+        blue: color.b,
+        ..Rgb::default()
+    }
+}
+
+fn to_color(rgb: Rgb) -> Color {
+    Color {
+        r: rgb.red,
+        g: rgb.green,
+        b: rgb.blue,
+        a: 1.0,
     }
 }

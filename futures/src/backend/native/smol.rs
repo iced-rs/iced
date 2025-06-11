@@ -1,5 +1,4 @@
 //! A `smol` backend.
-use futures::Future;
 
 /// A `smol` executor.
 #[derive(Debug)]
@@ -12,6 +11,10 @@ impl crate::Executor for Executor {
 
     fn spawn(&self, future: impl Future<Output = ()> + Send + 'static) {
         smol::spawn(future).detach();
+    }
+
+    fn block_on<T>(&self, future: impl Future<Output = T>) -> T {
+        smol::block_on(future)
     }
 }
 

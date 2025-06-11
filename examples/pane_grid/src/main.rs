@@ -6,7 +6,7 @@ use iced::widget::{
 use iced::{Center, Color, Element, Fill, Size, Subscription};
 
 pub fn main() -> iced::Result {
-    iced::application("Pane Grid - Iced", Example::update, Example::view)
+    iced::application(Example::default, Example::update, Example::view)
         .subscription(Example::subscription)
         .run()
 }

@@ -1,3 +1,4 @@
+use crate::alignment;
 use crate::{Padding, Point, Radians, Size, Vector};
 
 /// An axis-aligned rectangle.
@@ -136,6 +137,7 @@ impl Rectangle<f32> {
     }
 
     /// Returns true if the given [`Point`] is contained in the [`Rectangle`].
+    /// Excludes the right and bottom edges.
     pub fn contains(&self, point: Point) -> bool {
         self.x <= point.x
             && point.x < self.x + self.width
@@ -157,13 +159,37 @@ impl Rectangle<f32> {
         distance_x.hypot(distance_y)
     }
 
-    /// Returns true if the current [`Rectangle`] is completely within the given
-    /// `container`.
+    /// Computes the offset that must be applied to the [`Rectangle`] to be placed
+    /// inside the given `container`.
+    pub fn offset(&self, container: &Rectangle) -> Vector {
+        let Some(intersection) = self.intersection(container) else {
+            return Vector::ZERO;
+        };
+
+        let left = intersection.x - self.x;
+        let top = intersection.y - self.y;
+
+        Vector::new(
+            if left > 0.0 {
+                left
+            } else {
+                intersection.x + intersection.width - self.x - self.width
+            },
+            if top > 0.0 {
+                top
+            } else {
+                intersection.y + intersection.height - self.y - self.height
+            },
+        )
+    }
+
+    /// Returns true if the current [`Rectangle`] is within the given
+    /// `container`. Includes the right and bottom edges.
     pub fn is_within(&self, container: &Rectangle) -> bool {
-        container.contains(self.position())
-            && container.contains(
-                self.position() + Vector::new(self.width, self.height),
-            )
+        self.x >= container.x
+            && self.y >= container.y
+            && self.x + self.width <= container.x + container.width
+            && self.y + self.height <= container.y + container.height
     }
 
     /// Computes the intersection with the given [`Rectangle`].
@@ -218,16 +244,19 @@ impl Rectangle<f32> {
 
     /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
     pub fn snap(self) -> Option<Rectangle<u32>> {
-        let width = self.width as u32;
-        let height = self.height as u32;
+        let top_left = self.position().snap();
+        let bottom_right = (self.position() + Vector::from(self.size())).snap();
+
+        let width = bottom_right.x.checked_sub(top_left.x)?;
+        let height = bottom_right.y.checked_sub(top_left.y)?;
 
         if width < 1 || height < 1 {
             return None;
         }
 
         Some(Rectangle {
-            x: self.x as u32,
-            y: self.y as u32,
+            x: top_left.x,
+            y: top_left.y,
             width,
             height,
         })
@@ -267,6 +296,45 @@ impl Rectangle<f32> {
         );
 
         Self::new(position, size)
+    }
+
+    /// Scales the [`Rectangle`] without changing its position, effectively
+    /// "zooming" it.
+    pub fn zoom(self, zoom: f32) -> Self {
+        Self {
+            x: self.x - (self.width * (zoom - 1.0)) / 2.0,
+            y: self.y - (self.height * (zoom - 1.0)) / 2.0,
+            width: self.width * zoom,
+            height: self.height * zoom,
+        }
+    }
+
+    /// Returns the top-left position to render an object of the given [`Size`].
+    /// inside the [`Rectangle`] that is anchored to the edge or corner
+    /// defined by the alignment arguments.
+    pub fn anchor(
+        &self,
+        size: Size,
+        align_x: impl Into<alignment::Horizontal>,
+        align_y: impl Into<alignment::Vertical>,
+    ) -> Point {
+        let x = match align_x.into() {
+            alignment::Horizontal::Left => self.x,
+            alignment::Horizontal::Center => {
+                self.x + (self.width - size.width) / 2.0
+            }
+            alignment::Horizontal::Right => self.x + self.width - size.width,
+        };
+
+        let y = match align_y.into() {
+            alignment::Vertical::Top => self.y,
+            alignment::Vertical::Center => {
+                self.y + (self.height - size.height) / 2.0
+            }
+            alignment::Vertical::Bottom => self.y + self.height - size.height,
+        };
+
+        Point::new(x, y)
     }
 }
 

@@ -2,34 +2,27 @@ use crate::core::{Size, Transformation};
 use crate::graphics;
 
 use std::num::NonZeroU64;
+use std::sync::{Arc, RwLock};
 
-#[derive(Debug)]
-pub struct Blit {
+#[derive(Debug, Clone)]
+pub struct Pipeline {
     format: wgpu::TextureFormat,
-    pipeline: wgpu::RenderPipeline,
-    constants: wgpu::BindGroup,
-    ratio: wgpu::Buffer,
+    sampler: wgpu::Sampler,
+    raw: wgpu::RenderPipeline,
+    constant_layout: wgpu::BindGroupLayout,
     texture_layout: wgpu::BindGroupLayout,
     sample_count: u32,
-    targets: Option<Targets>,
-    last_region: Option<Size<u32>>,
+    targets: Arc<RwLock<Option<Targets>>>,
 }
 
-impl Blit {
+impl Pipeline {
     pub fn new(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
         antialiasing: graphics::Antialiasing,
-    ) -> Blit {
+    ) -> Pipeline {
         let sampler =
             device.create_sampler(&wgpu::SamplerDescriptor::default());
-
-        let ratio = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("iced-wgpu::triangle::msaa ratio"),
-            size: std::mem::size_of::<Ratio>() as u64,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
-            mapped_at_creation: false,
-        });
 
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -52,22 +45,6 @@ impl Blit {
                             min_binding_size: None,
                         },
                         count: None,
-                    },
-                ],
-            });
-
-        let constant_bind_group =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::triangle::msaa uniforms bind group"),
-                layout: &constant_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Sampler(&sampler),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: ratio.as_entire_binding(),
                     },
                 ],
             });
@@ -143,31 +120,30 @@ impl Blit {
                 cache: None,
             });
 
-        Blit {
+        Self {
             format,
-            pipeline,
-            constants: constant_bind_group,
-            ratio,
+            sampler,
+            raw: pipeline,
+            constant_layout,
             texture_layout,
             sample_count: antialiasing.sample_count(),
-            targets: None,
-            last_region: None,
+            targets: Arc::new(RwLock::new(None)),
         }
     }
 
-    pub fn prepare(
-        &mut self,
+    fn targets(
+        &self,
         device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        belt: &mut wgpu::util::StagingBelt,
         region_size: Size<u32>,
-    ) -> Transformation {
-        match &mut self.targets {
+    ) -> Targets {
+        let mut targets = self.targets.write().expect("Write MSAA targets");
+
+        match targets.as_mut() {
             Some(targets)
                 if region_size.width <= targets.size.width
                     && region_size.height <= targets.size.height => {}
             _ => {
-                self.targets = Some(Targets::new(
+                *targets = Some(Targets::new(
                     device,
                     self.format,
                     &self.texture_layout,
@@ -177,69 +153,34 @@ impl Blit {
             }
         }
 
-        let targets = self.targets.as_mut().unwrap();
-
-        if Some(region_size) != self.last_region {
-            let ratio = Ratio {
-                u: region_size.width as f32 / targets.size.width as f32,
-                v: region_size.height as f32 / targets.size.height as f32,
-            };
-
-            belt.write_buffer(
-                encoder,
-                &self.ratio,
-                0,
-                NonZeroU64::new(std::mem::size_of::<Ratio>() as u64)
-                    .expect("non-empty ratio"),
-                device,
-            )
-            .copy_from_slice(bytemuck::bytes_of(&ratio));
-
-            self.last_region = Some(region_size);
-        }
-
-        Transformation::orthographic(targets.size.width, targets.size.height)
+        targets.as_ref().unwrap().clone()
     }
 
-    pub fn targets(&self) -> (&wgpu::TextureView, &wgpu::TextureView) {
-        let targets = self.targets.as_ref().unwrap();
-
-        (&targets.attachment, &targets.resolve)
-    }
-
-    pub fn draw(
+    pub fn render_pass<'a>(
         &self,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
-    ) {
-        let mut render_pass =
-            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("iced_wgpu::triangle::msaa render pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: target,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
+        encoder: &'a mut wgpu::CommandEncoder,
+    ) -> wgpu::RenderPass<'a> {
+        let targets = self.targets.read().expect("Read MSAA targets");
+        let targets = targets.as_ref().unwrap();
 
-        render_pass.set_pipeline(&self.pipeline);
-        render_pass.set_bind_group(0, &self.constants, &[]);
-        render_pass.set_bind_group(
-            1,
-            &self.targets.as_ref().unwrap().bind_group,
-            &[],
-        );
-        render_pass.draw(0..6, 0..1);
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("iced_wgpu.triangle.render_pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &targets.attachment,
+                resolve_target: Some(&targets.resolve),
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        })
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Targets {
     attachment: wgpu::TextureView,
     resolve: wgpu::TextureView,
@@ -308,9 +249,121 @@ impl Targets {
     }
 }
 
-#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Debug, Clone, Copy, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 struct Ratio {
     u: f32,
     v: f32,
+    // Padding field for 16-byte alignment.
+    // See https://docs.rs/wgpu/latest/wgpu/struct.DownlevelFlags.html#associatedconstant.BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED
+    _padding: [f32; 2],
+}
+
+pub struct State {
+    ratio: wgpu::Buffer,
+    constants: wgpu::BindGroup,
+    last_ratio: Option<Ratio>,
+}
+
+impl State {
+    pub fn new(device: &wgpu::Device, pipeline: &Pipeline) -> Self {
+        let ratio = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("iced_wgpu::triangle::msaa ratio"),
+            size: std::mem::size_of::<Ratio>() as u64,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+            mapped_at_creation: false,
+        });
+
+        let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::triangle::msaa uniforms bind group"),
+            layout: &pipeline.constant_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&pipeline.sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: ratio.as_entire_binding(),
+                },
+            ],
+        });
+
+        Self {
+            ratio,
+            constants,
+            last_ratio: None,
+        }
+    }
+
+    pub fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
+        pipeline: &Pipeline,
+        region_size: Size<u32>,
+    ) -> Transformation {
+        let targets = pipeline.targets(device, region_size);
+
+        let ratio = Ratio {
+            u: region_size.width as f32 / targets.size.width as f32,
+            v: region_size.height as f32 / targets.size.height as f32,
+            _padding: [0.0; 2],
+        };
+
+        if Some(ratio) != self.last_ratio {
+            belt.write_buffer(
+                encoder,
+                &self.ratio,
+                0,
+                NonZeroU64::new(std::mem::size_of::<Ratio>() as u64)
+                    .expect("non-empty ratio"),
+                device,
+            )
+            .copy_from_slice(bytemuck::bytes_of(&ratio));
+
+            self.last_ratio = Some(ratio);
+        }
+
+        Transformation::orthographic(targets.size.width, targets.size.height)
+    }
+
+    pub fn render(
+        &self,
+        pipeline: &Pipeline,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+    ) {
+        let mut render_pass =
+            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("iced_wgpu::triangle::msaa render pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: target,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+
+        render_pass.set_pipeline(&pipeline.raw);
+        render_pass.set_bind_group(0, &self.constants, &[]);
+        render_pass.set_bind_group(
+            1,
+            &pipeline
+                .targets
+                .read()
+                .expect("Read MSAA targets")
+                .as_ref()
+                .unwrap()
+                .bind_group,
+            &[],
+        );
+        render_pass.draw(0..6, 0..1);
+    }
 }

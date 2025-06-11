@@ -2,7 +2,7 @@ name: Document
 on: [push, pull_request]
 jobs:
   all:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
     steps:
@@ -15,14 +15,17 @@ jobs:
         RUSTDOCFLAGS="--cfg docsrs" \
           cargo doc --no-deps --all-features \
           -p futures-core \
+          -p iced_beacon \
           -p iced_core \
-          -p iced_highlighter \
+          -p iced_debug \
+          -p iced_devtools \
           -p iced_futures \
-          -p iced_runtime \
           -p iced_graphics \
-          -p iced_wgpu \
-          -p iced_tiny_skia \
+          -p iced_highlighter \
           -p iced_renderer \
+          -p iced_runtime \
+          -p iced_tiny_skia \
+          -p iced_wgpu \
           -p iced_widget \
           -p iced_winit \
           -p iced

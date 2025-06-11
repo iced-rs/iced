@@ -568,8 +568,9 @@ where
     pub(crate) fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let mut children = layout.children();
@@ -588,7 +589,7 @@ where
 
         content
             .as_widget_mut()
-            .overlay(title_state, title_layout, renderer, translation)
+            .overlay(title_state, title_layout, renderer, viewport, translation)
             .or_else(move || {
                 controls.as_mut().and_then(|controls| {
                     let controls_layout = children.next()?;
@@ -605,6 +606,7 @@ where
                                 compact_state,
                                 compact_layout,
                                 renderer,
+                                viewport,
                                 translation,
                             )
                         } else {
@@ -612,6 +614,7 @@ where
                                 controls_state,
                                 controls_layout,
                                 renderer,
+                                viewport,
                                 translation,
                             )
                         }
@@ -620,6 +623,7 @@ where
                             controls_state,
                             controls_layout,
                             renderer,
+                            viewport,
                             translation,
                         )
                     }

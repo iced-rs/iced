@@ -8,7 +8,6 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
 
 use std::borrow::Cow;
-use std::future::Future;
 
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {
@@ -74,25 +73,24 @@ pub trait Compositor: Sized {
     ///
     /// [`Renderer`]: Self::Renderer
     /// [`Surface`]: Self::Surface
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
+        on_pre_present: impl FnOnce(),
     ) -> Result<(), SurfaceError>;
 
     /// Screenshots the current [`Renderer`] primitives to an offscreen texture, and returns the bytes of
     /// the texture ordered as `RGBA` in the `sRGB` color space.
     ///
     /// [`Renderer`]: Self::Renderer
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8>;
 }
 
@@ -120,9 +118,7 @@ pub trait Default {
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum SurfaceError {
     /// A timeout was encountered while trying to acquire the next frame.
-    #[error(
-        "A timeout was encountered while trying to acquire the next frame"
-    )]
+    #[error("A timeout was encountered while trying to acquire the next frame")]
     Timeout,
     /// The underlying surface has changed, and therefore the surface must be updated.
     #[error(
@@ -135,6 +131,9 @@ pub enum SurfaceError {
     /// There is no more memory left to allocate a new frame.
     #[error("There is no more memory left to allocate a new frame")]
     OutOfMemory,
+    /// Acquiring a texture failed with a generic error.
+    #[error("Acquiring a texture failed with a generic error")]
+    Other,
 }
 
 /// Contains information about the graphics (e.g. graphics adapter, graphics backend).
@@ -186,23 +185,22 @@ impl Compositor for () {
         }
     }
 
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         _renderer: &mut Self::Renderer,
         _surface: &mut Self::Surface,
         _viewport: &Viewport,
         _background_color: Color,
-        _overlay: &[T],
+        _on_pre_present: impl FnOnce(),
     ) -> Result<(), SurfaceError> {
         Ok(())
     }
 
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         _renderer: &mut Self::Renderer,
         _viewport: &Viewport,
         _background_color: Color,
-        _overlay: &[T],
     ) -> Vec<u8> {
         vec![]
     }

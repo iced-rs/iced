@@ -151,39 +151,6 @@ impl<T> InputMethod<T> {
 /// However, one couldn't possibly have a key for every single
 /// unicode character that the user might want to type. The solution operating systems employ is
 /// to allow the user to type these using _a sequence of keypresses_ instead.
-///
-/// A prominent example of this is accents—many keyboard layouts allow you to first click the
-/// "accent key", and then the character you want to apply the accent to. In this case, some
-/// platforms will generate the following event sequence:
-///
-/// ```ignore
-/// // Press "`" key
-/// Ime::Preedit("`", Some((0, 0)))
-/// // Press "E" key
-/// Ime::Preedit("", None) // Synthetic event generated to clear preedit.
-/// Ime::Commit("é")
-/// ```
-///
-/// Additionally, certain input devices are configured to display a candidate box that allow the
-/// user to select the desired character interactively. (To properly position this box, you must use
-/// [`Shell::request_input_method`](crate::Shell::request_input_method).)
-///
-/// An example of a keyboard layout which uses candidate boxes is pinyin. On a latin keyboard the
-/// following event sequence could be obtained:
-///
-/// ```ignore
-/// // Press "A" key
-/// Ime::Preedit("a", Some((1, 1)))
-/// // Press "B" key
-/// Ime::Preedit("a b", Some((3, 3)))
-/// // Press left arrow key
-/// Ime::Preedit("a b", Some((1, 1)))
-/// // Press space key
-/// Ime::Preedit("啊b", Some((3, 3)))
-/// // Press space key
-/// Ime::Preedit("", None) // Synthetic event generated to clear preedit.
-/// Ime::Commit("啊不")
-/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Event {
     /// Notifies when the IME was opened.

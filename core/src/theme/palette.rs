@@ -1,14 +1,11 @@
 //! Define the colors of a theme.
-use crate::{color, Color};
-
-use palette::color_difference::Wcag21RelativeContrast;
-use palette::rgb::Rgb;
-use palette::{FromColor, Hsl, Mix};
+use crate::{Color, color};
 
 use std::sync::LazyLock;
 
 /// A color palette.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Palette {
     /// The background [`Color`] of the [`Palette`].
     pub background: Color,
@@ -29,7 +26,7 @@ impl Palette {
     pub const LIGHT: Self = Self {
         background: Color::WHITE,
         text: Color::BLACK,
-        primary: color!(0x5e7ce2),
+        primary: color!(0x5865F2),
         success: color!(0x12664f),
         warning: color!(0xffc14e),
         danger: color!(0xc3423f),
@@ -37,9 +34,9 @@ impl Palette {
 
     /// The built-in dark variant of a [`Palette`].
     pub const DARK: Self = Self {
-        background: color!(0x202225),
+        background: color!(0x2B2D31),
         text: Color::from_rgb(0.90, 0.90, 0.90),
-        primary: color!(0x5e7ce2),
+        primary: color!(0x5865F2),
         success: color!(0x12664f),
         warning: color!(0xffc14e),
         danger: color!(0xc3423f),
@@ -205,9 +202,9 @@ impl Palette {
     ///
     /// [Kanagawa]: https://github.com/rebelot/kanagawa.nvim
     pub const KANAGAWA_WAVE: Self = Self {
-        background: color!(0x363646), // Sumi Ink 3
-        text: color!(0xCD7BA),        // Fuji White
-        primary: color!(0x2D4F67),    // Wave Blue 2
+        background: color!(0x1f1f28), // Sumi Ink 3
+        text: color!(0xDCD7BA),       // Fuji White
+        primary: color!(0x7FB4CA),    // Wave Blue
         success: color!(0x76946A),    // Autumn Green
         warning: color!(0xff9e3b),    // Ronin Yellow
         danger: color!(0xC34043),     // Autumn Red
@@ -231,7 +228,7 @@ impl Palette {
     pub const KANAGAWA_LOTUS: Self = Self {
         background: color!(0xf2ecbc), // Lotus White 3
         text: color!(0x545464),       // Lotus Ink 1
-        primary: color!(0xc9cbd1),    // Lotus Violet 3
+        primary: color!(0x4d699b),    // Lotus Blue
         success: color!(0x6f894e),    // Lotus Green
         warning: color!(0xe98a00),    // Lotus Orange 2
         danger: color!(0xc84053),     // Lotus Red
@@ -453,22 +450,30 @@ impl Pair {
 pub struct Background {
     /// The base background color.
     pub base: Pair,
+    /// The weakest version of the base background color.
+    pub weakest: Pair,
     /// A weaker version of the base background color.
     pub weak: Pair,
     /// A stronger version of the base background color.
     pub strong: Pair,
+    /// The strongest version of the base background color.
+    pub strongest: Pair,
 }
 
 impl Background {
     /// Generates a set of [`Background`] colors from the base and text colors.
     pub fn new(base: Color, text: Color) -> Self {
-        let weak = mix(base, text, 0.15);
-        let strong = mix(base, text, 0.40);
+        let weakest = deviate(base, 0.03);
+        let weak = muted(deviate(base, 0.1));
+        let strong = muted(deviate(base, 0.2));
+        let strongest = muted(deviate(base, 0.3));
 
         Self {
             base: Pair::new(base, text),
+            weakest: Pair::new(weakest, text),
             weak: Pair::new(weak, text),
             strong: Pair::new(strong, text),
+            strongest: Pair::new(strongest, text),
         }
     }
 }
@@ -599,13 +604,20 @@ impl Danger {
     }
 }
 
+struct Hsl {
+    h: f32,
+    s: f32,
+    l: f32,
+    a: f32,
+}
+
 fn darken(color: Color, amount: f32) -> Color {
     let mut hsl = to_hsl(color);
 
-    hsl.lightness = if hsl.lightness - amount < 0.0 {
+    hsl.l = if hsl.l - amount < 0.0 {
         0.0
     } else {
-        hsl.lightness - amount
+        hsl.l - amount
     };
 
     from_hsl(hsl)
@@ -614,10 +626,10 @@ fn darken(color: Color, amount: f32) -> Color {
 fn lighten(color: Color, amount: f32) -> Color {
     let mut hsl = to_hsl(color);
 
-    hsl.lightness = if hsl.lightness + amount > 1.0 {
+    hsl.l = if hsl.l + amount > 1.0 {
         1.0
     } else {
-        hsl.lightness + amount
+        hsl.l + amount
     };
 
     from_hsl(hsl)
@@ -627,55 +639,137 @@ fn deviate(color: Color, amount: f32) -> Color {
     if is_dark(color) {
         lighten(color, amount)
     } else {
-        darken(color, amount)
+        darken(color, amount * 0.8)
     }
 }
 
-fn mix(a: Color, b: Color, factor: f32) -> Color {
-    let a_lin = Rgb::from(a).into_linear();
-    let b_lin = Rgb::from(b).into_linear();
+fn muted(color: Color) -> Color {
+    let mut hsl = to_hsl(color);
 
-    let mixed = a_lin.mix(b_lin, factor);
-    Rgb::from_linear(mixed).into()
+    hsl.s = hsl.s.min(0.5);
+
+    from_hsl(hsl)
+}
+
+fn mix(a: Color, b: Color, factor: f32) -> Color {
+    let b_amount = factor.clamp(0.0, 1.0);
+    let a_amount = 1.0 - b_amount;
+
+    let a_linear = a.into_linear().map(|c| c * a_amount);
+    let b_linear = b.into_linear().map(|c| c * b_amount);
+
+    Color::from_linear_rgba(
+        a_linear[0] + b_linear[0],
+        a_linear[1] + b_linear[1],
+        a_linear[2] + b_linear[2],
+        a_linear[3] + b_linear[3],
+    )
 }
 
 fn readable(background: Color, text: Color) -> Color {
     if is_readable(background, text) {
-        text
-    } else {
-        let white_contrast = relative_contrast(background, Color::WHITE);
-        let black_contrast = relative_contrast(background, Color::BLACK);
+        return text;
+    }
 
-        if white_contrast >= black_contrast {
-            Color::WHITE
-        } else {
-            Color::BLACK
-        }
+    let improve = if is_dark(background) { lighten } else { darken };
+
+    // TODO: Compute factor from relative contrast value
+    let candidate = improve(text, 0.1);
+
+    if is_readable(background, candidate) {
+        return candidate;
+    }
+
+    let white_contrast = relative_contrast(background, Color::WHITE);
+    let black_contrast = relative_contrast(background, Color::BLACK);
+
+    if white_contrast >= black_contrast {
+        mix(Color::WHITE, background, 0.05)
+    } else {
+        mix(Color::BLACK, background, 0.05)
     }
 }
 
 fn is_dark(color: Color) -> bool {
-    to_hsl(color).lightness < 0.6
+    to_hsl(color).l < 0.6
 }
 
 fn is_readable(a: Color, b: Color) -> bool {
-    let a_srgb = Rgb::from(a);
-    let b_srgb = Rgb::from(b);
-
-    a_srgb.has_enhanced_contrast_text(b_srgb)
+    relative_contrast(a, b) >= 7.0
 }
 
+// https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
 fn relative_contrast(a: Color, b: Color) -> f32 {
-    let a_srgb = Rgb::from(a);
-    let b_srgb = Rgb::from(b);
-
-    a_srgb.relative_contrast(b_srgb)
+    let lum_a = relative_luminance(a);
+    let lum_b = relative_luminance(b);
+    (lum_a.max(lum_b) + 0.05) / (lum_a.min(lum_b) + 0.05)
 }
 
+// https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
+fn relative_luminance(color: Color) -> f32 {
+    let linear = color.into_linear();
+    0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+}
+
+// https://en.wikipedia.org/wiki/HSL_and_HSV#From_RGB
 fn to_hsl(color: Color) -> Hsl {
-    Hsl::from_color(Rgb::from(color))
+    let x_max = color.r.max(color.g).max(color.b);
+    let x_min = color.r.min(color.g).min(color.b);
+    let c = x_max - x_min;
+    let l = x_max.midpoint(x_min);
+
+    let h = if c == 0.0 {
+        0.0
+    } else if x_max == color.r {
+        60.0 * ((color.g - color.b) / c).rem_euclid(6.0)
+    } else if x_max == color.g {
+        60.0 * (((color.b - color.r) / c) + 2.0)
+    } else {
+        // x_max == color.b
+        60.0 * (((color.r - color.g) / c) + 4.0)
+    };
+
+    let s = if l == 0.0 || l == 1.0 {
+        0.0
+    } else {
+        (x_max - l) / l.min(1.0 - l)
+    };
+
+    Hsl {
+        h,
+        s,
+        l,
+        a: color.a,
+    }
 }
 
+// https://en.wikipedia.org/wiki/HSL_and_HSV#HSL_to_RGB
 fn from_hsl(hsl: Hsl) -> Color {
-    Rgb::from_color(hsl).into()
+    let c = (1.0 - (2.0 * hsl.l - 1.0).abs()) * hsl.s;
+    let h = hsl.h / 60.0;
+    let x = c * (1.0 - (h.rem_euclid(2.0) - 1.0).abs());
+
+    let (r1, g1, b1) = if h < 1.0 {
+        (c, x, 0.0)
+    } else if h < 2.0 {
+        (x, c, 0.0)
+    } else if h < 3.0 {
+        (0.0, c, x)
+    } else if h < 4.0 {
+        (0.0, x, c)
+    } else if h < 5.0 {
+        (x, 0.0, c)
+    } else {
+        // h < 6.0
+        (c, 0.0, x)
+    };
+
+    let m = hsl.l - (c / 2.0);
+
+    Color {
+        r: r1 + m,
+        g: g1 + m,
+        b: b1 + m,
+        a: hsl.a,
+    }
 }

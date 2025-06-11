@@ -1,5 +1,5 @@
 //! A backend that does nothing!
-use futures::Future;
+use crate::MaybeSend;
 
 /// An executor that drops all the futures, instead of spawning them.
 #[derive(Debug)]
@@ -10,11 +10,12 @@ impl crate::Executor for Executor {
         Ok(Self)
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    fn spawn(&self, _future: impl Future<Output = ()> + Send + 'static) {}
+    fn spawn(&self, _future: impl Future<Output = ()> + MaybeSend + 'static) {}
 
-    #[cfg(target_arch = "wasm32")]
-    fn spawn(&self, _future: impl Future<Output = ()> + 'static) {}
+    #[cfg(not(target_arch = "wasm32"))]
+    fn block_on<T>(&self, _future: impl Future<Output = T>) -> T {
+        unimplemented!()
+    }
 }
 
 pub mod time {

@@ -14,16 +14,11 @@ use iced::{Center, Element, Fill, Function, Subscription, Task, Theme};
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application(
-        "Game of Life - Iced",
-        GameOfLife::update,
-        GameOfLife::view,
-    )
-    .subscription(GameOfLife::subscription)
-    .theme(|_| Theme::Dark)
-    .antialiasing(true)
-    .centered()
-    .run()
+    iced::application(GameOfLife::default, GameOfLife::update, GameOfLife::view)
+        .subscription(GameOfLife::subscription)
+        .theme(|_| Theme::Dark)
+        .centered()
+        .run()
 }
 
 struct GameOfLife {
@@ -192,11 +187,11 @@ mod grid {
     use iced::widget::canvas::{
         Cache, Canvas, Event, Frame, Geometry, Path, Text,
     };
+    use iced::widget::text;
     use iced::{
         Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
-    use std::future::Future;
     use std::ops::RangeInclusive;
 
     pub struct Grid {
@@ -261,7 +256,7 @@ mod grid {
         pub fn tick(
             &mut self,
             amount: usize,
-        ) -> Option<impl Future<Output = Message>> {
+        ) -> Option<impl Future<Output = Message> + use<>> {
             let tick = self.state.tick(amount)?;
 
             self.last_queued_ticks = amount;
@@ -581,8 +576,8 @@ mod grid {
                     color: Color::WHITE,
                     size: 14.0.into(),
                     position: Point::new(frame.width(), frame.height()),
-                    horizontal_alignment: alignment::Horizontal::Right,
-                    vertical_alignment: alignment::Vertical::Bottom,
+                    align_x: text::Alignment::Right,
+                    align_y: alignment::Vertical::Bottom,
                     ..Text::default()
                 };
 
@@ -722,7 +717,8 @@ mod grid {
         fn tick(
             &mut self,
             amount: usize,
-        ) -> Option<impl Future<Output = Result<Life, TickError>>> {
+        ) -> Option<impl Future<Output = Result<Life, TickError>> + use<>>
+        {
             if self.is_ticking {
                 return None;
             }

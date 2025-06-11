@@ -1,9 +1,9 @@
+use iced::Element;
 use iced::widget::tooltip::Position;
 use iced::widget::{button, center, container, tooltip};
-use iced::Element;
 
 pub fn main() -> iced::Result {
-    iced::run("Tooltip - Iced", Tooltip::update, Tooltip::view)
+    iced::run(Tooltip::update, Tooltip::view)
 }
 
 #[derive(Default)]

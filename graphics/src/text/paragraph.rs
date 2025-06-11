@@ -1,8 +1,10 @@
 //! Draw paragraphs.
 use crate::core;
 use crate::core::alignment;
-use crate::core::text::{Hit, Shaping, Span, Text, Wrapping};
-use crate::core::{Font, Point, Rectangle, Size};
+use crate::core::text::{
+    Alignment, Hit, LineHeight, Shaping, Span, Text, Wrapping,
+};
+use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
 use std::fmt;
@@ -18,8 +20,8 @@ struct Internal {
     font: Font,
     shaping: Shaping,
     wrapping: Wrapping,
-    horizontal_alignment: alignment::Horizontal,
-    vertical_alignment: alignment::Vertical,
+    align_x: Alignment,
+    align_y: alignment::Vertical,
     bounds: Size,
     min_bounds: Size,
     version: text::Version,
@@ -47,8 +49,8 @@ impl Paragraph {
         Weak {
             raw: Arc::downgrade(paragraph),
             min_bounds: paragraph.min_bounds,
-            horizontal_alignment: paragraph.horizontal_alignment,
-            vertical_alignment: paragraph.vertical_alignment,
+            align_x: paragraph.align_x,
+            align_y: paragraph.align_y,
         }
     }
 
@@ -85,17 +87,18 @@ impl core::text::Paragraph for Paragraph {
         buffer.set_text(
             font_system.raw(),
             text.content,
-            text::to_attributes(text.font),
+            &text::to_attributes(text.font),
             text::to_shaping(text.shaping),
         );
 
-        let min_bounds = text::measure(&buffer);
+        let min_bounds =
+            text::align(&mut buffer, font_system.raw(), text.align_x);
 
         Self(Arc::new(Internal {
             buffer,
             font: text.font,
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
+            align_x: text.align_x,
+            align_y: text.align_y,
             shaping: text.shaping,
             wrapping: text.wrapping,
             bounds: text.bounds,
@@ -154,17 +157,19 @@ impl core::text::Paragraph for Paragraph {
 
                 (span.text.as_ref(), attrs.metadata(i))
             }),
-            text::to_attributes(text.font),
+            &text::to_attributes(text.font),
             text::to_shaping(text.shaping),
+            None,
         );
 
-        let min_bounds = text::measure(&buffer);
+        let min_bounds =
+            text::align(&mut buffer, font_system.raw(), text.align_x);
 
         Self(Arc::new(Internal {
             buffer,
             font: text.font,
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
+            align_x: text.align_x,
+            align_y: text.align_y,
             shaping: text.shaping,
             wrapping: text.wrapping,
             bounds: text.bounds,
@@ -185,8 +190,14 @@ impl core::text::Paragraph for Paragraph {
             Some(new_bounds.height),
         );
 
+        let min_bounds = text::align(
+            &mut paragraph.buffer,
+            font_system.raw(),
+            paragraph.align_x,
+        );
+
         paragraph.bounds = new_bounds;
-        paragraph.min_bounds = text::measure(&paragraph.buffer);
+        paragraph.min_bounds = min_bounds;
     }
 
     fn compare(&self, text: Text<()>) -> core::text::Difference {
@@ -200,8 +211,8 @@ impl core::text::Paragraph for Paragraph {
             || paragraph.font != text.font
             || paragraph.shaping != text.shaping
             || paragraph.wrapping != text.wrapping
-            || paragraph.horizontal_alignment != text.horizontal_alignment
-            || paragraph.vertical_alignment != text.vertical_alignment
+            || paragraph.align_x != text.align_x
+            || paragraph.align_y != text.align_y
         {
             core::text::Difference::Shape
         } else if paragraph.bounds != text.bounds {
@@ -211,12 +222,36 @@ impl core::text::Paragraph for Paragraph {
         }
     }
 
-    fn horizontal_alignment(&self) -> alignment::Horizontal {
-        self.internal().horizontal_alignment
+    fn size(&self) -> Pixels {
+        Pixels(self.0.buffer.metrics().font_size)
     }
 
-    fn vertical_alignment(&self) -> alignment::Vertical {
-        self.internal().vertical_alignment
+    fn font(&self) -> Font {
+        self.0.font
+    }
+
+    fn line_height(&self) -> LineHeight {
+        LineHeight::Absolute(Pixels(self.0.buffer.metrics().line_height))
+    }
+
+    fn align_x(&self) -> Alignment {
+        self.internal().align_x
+    }
+
+    fn align_y(&self) -> alignment::Vertical {
+        self.internal().align_y
+    }
+
+    fn wrapping(&self) -> Wrapping {
+        self.0.wrapping
+    }
+
+    fn shaping(&self) -> Shaping {
+        self.0.shaping
+    }
+
+    fn bounds(&self) -> Size {
+        self.0.bounds
     }
 
     fn min_bounds(&self) -> Size {
@@ -366,8 +401,8 @@ impl fmt::Debug for Paragraph {
         f.debug_struct("Paragraph")
             .field("font", &paragraph.font)
             .field("shaping", &paragraph.shaping)
-            .field("horizontal_alignment", &paragraph.horizontal_alignment)
-            .field("vertical_alignment", &paragraph.vertical_alignment)
+            .field("horizontal_alignment", &paragraph.align_x)
+            .field("vertical_alignment", &paragraph.align_y)
             .field("bounds", &paragraph.bounds)
             .field("min_bounds", &paragraph.min_bounds)
             .finish()
@@ -378,8 +413,8 @@ impl PartialEq for Internal {
     fn eq(&self, other: &Self) -> bool {
         self.font == other.font
             && self.shaping == other.shaping
-            && self.horizontal_alignment == other.horizontal_alignment
-            && self.vertical_alignment == other.vertical_alignment
+            && self.align_x == other.align_x
+            && self.align_y == other.align_y
             && self.bounds == other.bounds
             && self.min_bounds == other.min_bounds
             && self.buffer.metrics() == other.buffer.metrics()
@@ -396,8 +431,8 @@ impl Default for Internal {
             font: Font::default(),
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Top,
+            align_x: Alignment::Default,
+            align_y: alignment::Vertical::Top,
             bounds: Size::ZERO,
             min_bounds: Size::ZERO,
             version: text::Version::default(),
@@ -412,9 +447,9 @@ pub struct Weak {
     /// The minimum bounds of the [`Paragraph`].
     pub min_bounds: Size,
     /// The horizontal alignment of the [`Paragraph`].
-    pub horizontal_alignment: alignment::Horizontal,
+    pub align_x: Alignment,
     /// The vertical alignment of the [`Paragraph`].
-    pub vertical_alignment: alignment::Vertical,
+    pub align_y: alignment::Vertical,
 }
 
 impl Weak {

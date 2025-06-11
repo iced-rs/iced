@@ -1,10 +1,10 @@
 use iced::event::{self, Event};
-use iced::widget::{button, center, checkbox, text, Column};
+use iced::widget::{Column, button, center, checkbox, text};
 use iced::window;
 use iced::{Center, Element, Fill, Subscription, Task};
 
 pub fn main() -> iced::Result {
-    iced::application("Events - Iced", Events::update, Events::view)
+    iced::application(Events::default, Events::update, Events::view)
         .subscription(Events::subscription)
         .exit_on_close_request(false)
         .run()

@@ -13,29 +13,15 @@ pub mod clipboard;
 pub mod font;
 pub mod keyboard;
 pub mod overlay;
-pub mod program;
 pub mod system;
 pub mod task;
 pub mod user_interface;
 pub mod window;
 
-#[cfg(feature = "multi-window")]
-pub mod multi_window;
-
-// We disable debug capabilities on release builds unless the `debug` feature
-// is explicitly enabled.
-#[cfg(feature = "debug")]
-#[path = "debug/basic.rs"]
-mod debug;
-#[cfg(not(feature = "debug"))]
-#[path = "debug/null.rs"]
-mod debug;
-
 pub use iced_core as core;
+pub use iced_debug as debug;
 pub use iced_futures as futures;
 
-pub use debug::Debug;
-pub use program::Program;
 pub use task::Task;
 pub use user_interface::UserInterface;
 

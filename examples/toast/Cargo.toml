@@ -2,7 +2,7 @@
 name = "toast"
 version = "0.1.0"
 authors = ["tarkah <admin@tarkah.dev>"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]

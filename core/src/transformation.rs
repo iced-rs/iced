@@ -13,8 +13,8 @@ impl Transformation {
 
     /// Creates an orthographic projection.
     #[rustfmt::skip]
-    pub fn orthographic(width: u32, height: u32) -> Transformation {
-        Transformation(Mat4::orthographic_rh_gl(
+    pub fn orthographic(width: u32, height: u32) -> Self{
+        Self(Mat4::orthographic_rh_gl(
             0.0, width as f32,
             height as f32, 0.0,
             -1.0, 1.0
@@ -22,13 +22,18 @@ impl Transformation {
     }
 
     /// Creates a translate transformation.
-    pub fn translate(x: f32, y: f32) -> Transformation {
-        Transformation(Mat4::from_translation(Vec3::new(x, y, 0.0)))
+    pub fn translate(x: f32, y: f32) -> Self {
+        Self(Mat4::from_translation(Vec3::new(x, y, 0.0)))
     }
 
     /// Creates a uniform scaling transformation.
-    pub fn scale(scaling: f32) -> Transformation {
-        Transformation(Mat4::from_scale(Vec3::new(scaling, scaling, 1.0)))
+    pub fn scale(scaling: f32) -> Self {
+        Self(Mat4::from_scale(Vec3::new(scaling, scaling, 1.0)))
+    }
+
+    /// Returns the inverse of the [`Transformation`].
+    pub fn inverse(self) -> Self {
+        Self(self.0.inverse())
     }
 
     /// Returns the scale factor of the [`Transformation`].
@@ -52,7 +57,7 @@ impl Mul for Transformation {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self {
-        Transformation(self.0 * rhs.0)
+        Self(self.0 * rhs.0)
     }
 }
 

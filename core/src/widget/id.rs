@@ -23,6 +23,12 @@ impl Id {
     }
 }
 
+impl From<&'static str> for Id {
+    fn from(value: &'static str) -> Self {
+        Self::new(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum Internal {
     Unique(usize),

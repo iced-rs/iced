@@ -7,6 +7,7 @@ use crate::core;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
 use crate::core::{Element, Length, Pixels, Widget};
+use crate::float::{self, Float};
 use crate::keyed;
 use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
@@ -14,8 +15,8 @@ use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::rule::{self, Rule};
-use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
+use crate::runtime::task::{self, Task};
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
 use crate::text::{self, Text};
@@ -24,7 +25,7 @@ use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::vertical_slider::{self, VerticalSlider};
-use crate::{Column, MouseArea, Pin, Pop, Row, Space, Stack, Themer};
+use crate::{Column, Grid, MouseArea, Pin, Pop, Row, Space, Stack, Themer};
 
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
@@ -529,6 +530,16 @@ where
     Row::with_children(children)
 }
 
+/// Creates a new [`Grid`] from an iterator.
+pub fn grid<'a, Message, Theme, Renderer>(
+    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+) -> Grid<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    Grid::with_children(children)
+}
+
 /// Creates a new [`Stack`] with the given children.
 ///
 /// [`Stack`]: crate::Stack
@@ -682,8 +693,9 @@ where
         fn overlay<'b>(
             &'b mut self,
             state: &'b mut core::widget::Tree,
-            layout: core::Layout<'_>,
+            layout: core::Layout<'b>,
             renderer: &Renderer,
+            viewport: &Rectangle,
             translation: core::Vector,
         ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>>
         {
@@ -691,6 +703,7 @@ where
                 state,
                 layout,
                 renderer,
+                viewport,
                 translation,
             )
         }
@@ -936,8 +949,9 @@ where
         fn overlay<'b>(
             &'b mut self,
             tree: &'b mut core::widget::Tree,
-            layout: core::Layout<'_>,
+            layout: core::Layout<'b>,
             renderer: &Renderer,
+            viewport: &Rectangle,
             translation: core::Vector,
         ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>>
         {
@@ -949,6 +963,7 @@ where
                         tree,
                         layout,
                         renderer,
+                        viewport,
                         translation,
                     )
                 });
@@ -979,7 +994,7 @@ where
 /// It can even notify you with anticipation at a given distance!
 pub fn pop<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Pop<'a, Message, Theme, Renderer>
+) -> Pop<'a, (), Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
     Message: Clone,
@@ -2028,7 +2043,7 @@ pub fn focus_next<T>() -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus_next()))
 }
 
-/// A container intercepting mouse events.
+/// Creates a new [`MouseArea`].
 pub fn mouse_area<'a, Message, Theme, Renderer>(
     widget: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> MouseArea<'a, Message, Theme, Renderer>
@@ -2107,4 +2122,15 @@ where
     Renderer: core::Renderer,
 {
     PaneGrid::new(state, view)
+}
+
+/// Creates a new [`Float`] widget with the given content.
+pub fn float<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Float<'a, Message, Theme, Renderer>
+where
+    Theme: float::Catalog,
+    Renderer: core::Renderer,
+{
+    Float::new(content)
 }

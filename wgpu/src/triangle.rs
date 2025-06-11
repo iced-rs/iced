@@ -1,10 +1,10 @@
 //! Draw meshes of triangles.
 mod msaa;
 
-use crate::core::{Rectangle, Size, Transformation};
-use crate::graphics::mesh::{self, Mesh};
-use crate::graphics::Antialiasing;
 use crate::Buffer;
+use crate::core::{Point, Rectangle, Size, Transformation, Vector};
+use crate::graphics::Antialiasing;
+use crate::graphics::mesh::{self, Mesh};
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
@@ -153,42 +153,47 @@ impl Storage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pipeline {
-    blit: Option<msaa::Blit>,
+    msaa: Option<msaa::Pipeline>,
     solid: solid::Pipeline,
     gradient: gradient::Pipeline,
-    layers: Vec<Layer>,
-    prepare_layer: usize,
 }
 
-impl Pipeline {
-    pub fn new(
-        device: &wgpu::Device,
-        format: wgpu::TextureFormat,
-        antialiasing: Option<Antialiasing>,
-    ) -> Pipeline {
-        Pipeline {
-            blit: antialiasing.map(|a| msaa::Blit::new(device, format, a)),
-            solid: solid::Pipeline::new(device, format, antialiasing),
-            gradient: gradient::Pipeline::new(device, format, antialiasing),
+pub struct State {
+    msaa: Option<msaa::State>,
+    layers: Vec<Layer>,
+    prepare_layer: usize,
+    storage: Storage,
+}
+
+impl State {
+    pub fn new(device: &wgpu::Device, pipeline: &Pipeline) -> Self {
+        Self {
+            msaa: pipeline
+                .msaa
+                .as_ref()
+                .map(|pipeline| msaa::State::new(device, pipeline)),
             layers: Vec::new(),
             prepare_layer: 0,
+            storage: Storage::new(),
         }
     }
 
     pub fn prepare(
         &mut self,
+        pipeline: &Pipeline,
         device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
-        storage: &mut Storage,
+        encoder: &mut wgpu::CommandEncoder,
         items: &[Item],
         scale: Transformation,
         target_size: Size<u32>,
     ) {
-        let projection = if let Some(blit) = &mut self.blit {
-            blit.prepare(device, encoder, belt, target_size) * scale
+        let projection = if let Some((state, pipeline)) =
+            self.msaa.as_mut().zip(pipeline.msaa.as_ref())
+        {
+            state.prepare(device, encoder, belt, pipeline, target_size) * scale
         } else {
             Transformation::orthographic(target_size.width, target_size.height)
                 * scale
@@ -203,8 +208,8 @@ impl Pipeline {
                     if self.layers.len() <= self.prepare_layer {
                         self.layers.push(Layer::new(
                             device,
-                            &self.solid,
-                            &self.gradient,
+                            &pipeline.solid,
+                            &pipeline.gradient,
                         ));
                     }
 
@@ -213,8 +218,8 @@ impl Pipeline {
                         device,
                         encoder,
                         belt,
-                        &self.solid,
-                        &self.gradient,
+                        &pipeline.solid,
+                        &pipeline.gradient,
                         meshes,
                         projection * *transformation,
                     );
@@ -225,12 +230,12 @@ impl Pipeline {
                     transformation,
                     cache,
                 } => {
-                    storage.prepare(
+                    self.storage.prepare(
                         device,
                         encoder,
                         belt,
-                        &self.solid,
-                        &self.gradient,
+                        &pipeline.solid,
+                        &pipeline.gradient,
                         cache,
                         projection * *transformation,
                     );
@@ -241,9 +246,9 @@ impl Pipeline {
 
     pub fn render(
         &mut self,
+        pipeline: &Pipeline,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
-        storage: &Storage,
         start: usize,
         batch: &Batch,
         bounds: Rectangle,
@@ -269,7 +274,7 @@ impl Pipeline {
                 transformation,
                 cache,
             } => {
-                let upload = storage.get(cache)?;
+                let upload = self.storage.get(cache)?;
 
                 Some((
                     &upload.layer,
@@ -282,9 +287,9 @@ impl Pipeline {
         render(
             encoder,
             target,
-            self.blit.as_mut(),
-            &self.solid,
-            &self.gradient,
+            self.msaa.as_ref().zip(pipeline.msaa.as_ref()),
+            &pipeline.solid,
+            &pipeline.gradient,
             bounds,
             items,
         );
@@ -292,48 +297,55 @@ impl Pipeline {
         layer_count
     }
 
-    pub fn end_frame(&mut self) {
+    pub fn trim(&mut self) {
+        self.storage.trim();
+
         self.prepare_layer = 0;
+    }
+}
+
+impl Pipeline {
+    pub fn new(
+        device: &wgpu::Device,
+        format: wgpu::TextureFormat,
+        antialiasing: Option<Antialiasing>,
+    ) -> Pipeline {
+        Pipeline {
+            msaa: antialiasing.map(|a| msaa::Pipeline::new(device, format, a)),
+            solid: solid::Pipeline::new(device, format, antialiasing),
+            gradient: gradient::Pipeline::new(device, format, antialiasing),
+        }
     }
 }
 
 fn render<'a>(
     encoder: &mut wgpu::CommandEncoder,
     target: &wgpu::TextureView,
-    mut blit: Option<&mut msaa::Blit>,
+    mut msaa: Option<(&msaa::State, &msaa::Pipeline)>,
     solid: &solid::Pipeline,
     gradient: &gradient::Pipeline,
     bounds: Rectangle,
     group: impl Iterator<Item = (&'a Layer, &'a [Mesh], Transformation)>,
 ) {
     {
-        let (attachment, resolve_target, load) = if let Some(blit) = &mut blit {
-            let (attachment, resolve_target) = blit.targets();
-
-            (
-                attachment,
-                Some(resolve_target),
-                wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-            )
+        let mut render_pass = if let Some((_state, pipeline)) = &mut msaa {
+            pipeline.render_pass(encoder)
         } else {
-            (target, None, wgpu::LoadOp::Load)
-        };
-
-        let mut render_pass =
             encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("iced_wgpu.triangle.render_pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: attachment,
-                    resolve_target,
+                    view: target,
+                    resolve_target: None,
                     ops: wgpu::Operations {
-                        load,
+                        load: wgpu::LoadOp::Load,
                         store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
                 occlusion_query_set: None,
-            });
+            })
+        };
 
         for (layer, meshes, transformation) in group {
             layer.render(
@@ -347,8 +359,8 @@ fn render<'a>(
         }
     }
 
-    if let Some(blit) = blit {
-        blit.draw(encoder, target);
+    if let Some((state, pipeline)) = msaa {
+        state.render(pipeline, encoder, target);
     }
 }
 
@@ -433,10 +445,25 @@ impl Layer {
         let mut index_offset = 0;
 
         for mesh in meshes {
-            let indices = mesh.indices();
+            let clip_bounds = mesh.clip_bounds() * transformation;
+            let snap_distance = clip_bounds
+                .snap()
+                .map(|snapped_bounds| {
+                    Point::new(snapped_bounds.x as f32, snapped_bounds.y as f32)
+                        - clip_bounds.position()
+                })
+                .unwrap_or(Vector::ZERO);
 
-            let uniforms =
-                Uniforms::new(transformation * mesh.transformation());
+            let uniforms = Uniforms::new(
+                transformation
+                    * mesh.transformation()
+                    * Transformation::translate(
+                        snap_distance.x,
+                        snap_distance.y,
+                    ),
+            );
+
+            let indices = mesh.indices();
 
             index_offset += self.index_buffer.write(
                 device,
@@ -583,7 +610,7 @@ fn fragment_target(
 ) -> wgpu::ColorTargetState {
     wgpu::ColorTargetState {
         format: texture_format,
-        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+        blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
         write_mask: wgpu::ColorWrites::ALL,
     }
 }
@@ -644,12 +671,12 @@ impl Uniforms {
 }
 
 mod solid {
-    use crate::graphics::mesh;
-    use crate::graphics::Antialiasing;
-    use crate::triangle;
     use crate::Buffer;
+    use crate::graphics::Antialiasing;
+    use crate::graphics::mesh;
+    use crate::triangle;
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Pipeline {
         pub pipeline: wgpu::RenderPipeline,
         pub constants_layout: wgpu::BindGroupLayout,
@@ -742,6 +769,8 @@ mod solid {
                             include_str!("shader/triangle.wgsl"),
                             "\n",
                             include_str!("shader/triangle/solid.wgsl"),
+                            "\n",
+                            include_str!("shader/color.wgsl"),
                         )),
                     ),
                 });
@@ -795,13 +824,13 @@ mod solid {
 }
 
 mod gradient {
+    use crate::Buffer;
+    use crate::graphics::Antialiasing;
     use crate::graphics::color;
     use crate::graphics::mesh;
-    use crate::graphics::Antialiasing;
     use crate::triangle;
-    use crate::Buffer;
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Pipeline {
         pub pipeline: wgpu::RenderPipeline,
         pub constants_layout: wgpu::BindGroupLayout,
@@ -901,6 +930,8 @@ mod gradient {
                                         "shader/triangle/gradient.wgsl"
                                     ),
                                     "\n",
+                                    include_str!("shader/color.wgsl"),
+                                    "\n",
                                     include_str!("shader/color/oklab.wgsl")
                                 )
                             } else {
@@ -910,6 +941,8 @@ mod gradient {
                                     include_str!(
                                         "shader/triangle/gradient.wgsl"
                                     ),
+                                    "\n",
+                                    include_str!("shader/color.wgsl"),
                                     "\n",
                                     include_str!(
                                         "shader/color/linear_rgb.wgsl"

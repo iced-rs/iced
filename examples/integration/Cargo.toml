@@ -2,7 +2,7 @@
 name = "integration"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]
@@ -11,6 +11,9 @@ iced_wgpu.workspace = true
 
 iced_widget.workspace = true
 iced_widget.features = ["wgpu"]
+
+futures.workspace = true
+futures.features = ["thread-pool"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tracing-subscriber = "0.3"

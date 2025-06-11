@@ -2,11 +2,11 @@
 name = "color_palette"
 version = "0.1.0"
 authors = ["Clark Moody <clark@clarkmoody.com>"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]
 iced.workspace = true
 iced.features = ["canvas"]
 
-palette.workspace = true
+palette = "0.7"

@@ -5,16 +5,17 @@ use controls::Controls;
 use scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
-use iced_wgpu::{wgpu, Engine, Renderer};
+use iced_wgpu::{Engine, Renderer, wgpu};
+use iced_winit::Clipboard;
 use iced_winit::conversion;
 use iced_winit::core::mouse;
 use iced_winit::core::renderer;
-use iced_winit::core::{Color, Font, Pixels, Size, Theme};
+use iced_winit::core::time::Instant;
+use iced_winit::core::window;
+use iced_winit::core::{Event, Font, Pixels, Size, Theme};
 use iced_winit::futures;
-use iced_winit::runtime::program;
-use iced_winit::runtime::Debug;
+use iced_winit::runtime::user_interface::{self, UserInterface};
 use iced_winit::winit;
-use iced_winit::Clipboard;
 
 use winit::{
     event::WindowEvent,
@@ -35,20 +36,20 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
         Loading,
         Ready {
             window: Arc<winit::window::Window>,
-            device: wgpu::Device,
             queue: wgpu::Queue,
+            device: wgpu::Device,
             surface: wgpu::Surface<'static>,
             format: wgpu::TextureFormat,
-            engine: Engine,
             renderer: Renderer,
             scene: Scene,
-            state: program::State<Controls>,
-            cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
+            controls: Controls,
+            events: Vec<Event>,
+            cursor: mouse::Cursor,
+            cache: user_interface::Cache,
             clipboard: Clipboard,
             viewport: Viewport,
             modifiers: ModifiersState,
             resized: bool,
-            debug: Debug,
         },
     }
 
@@ -70,10 +71,9 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 );
                 let clipboard = Clipboard::connect(window.clone());
 
-                let backend =
-                    wgpu::util::backend_bits_from_env().unwrap_or_default();
+                let backend = wgpu::Backends::from_env().unwrap_or_default();
 
-                let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+                let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
                     backends: backend,
                     ..Default::default()
                 });
@@ -145,22 +145,18 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 let controls = Controls::new();
 
                 // Initialize iced
-                let mut debug = Debug::new();
-                let engine =
-                    Engine::new(&adapter, &device, &queue, format, None);
-                let mut renderer = Renderer::new(
-                    &device,
-                    &engine,
-                    Font::default(),
-                    Pixels::from(16),
-                );
 
-                let state = program::State::new(
-                    controls,
-                    viewport.logical_size(),
-                    &mut renderer,
-                    &mut debug,
-                );
+                let renderer = {
+                    let engine = Engine::new(
+                        &adapter,
+                        device.clone(),
+                        queue.clone(),
+                        format,
+                        None,
+                    );
+
+                    Renderer::new(engine, Font::default(), Pixels::from(16))
+                };
 
                 // You should change this if you want to render continuously
                 event_loop.set_control_flow(ControlFlow::Wait);
@@ -169,18 +165,18 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     window,
                     device,
                     queue,
+                    renderer,
                     surface,
                     format,
-                    engine,
-                    renderer,
                     scene,
-                    state,
-                    cursor_position: None,
+                    controls,
+                    events: Vec::new(),
+                    cursor: mouse::Cursor::Unavailable,
                     modifiers: ModifiersState::default(),
+                    cache: user_interface::Cache::new(),
                     clipboard,
                     viewport,
                     resized: false,
-                    debug,
                 };
             }
         }
@@ -197,16 +193,16 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 queue,
                 surface,
                 format,
-                engine,
                 renderer,
                 scene,
-                state,
+                controls,
+                events,
                 viewport,
-                cursor_position,
+                cursor,
                 modifiers,
                 clipboard,
+                cache,
                 resized,
-                debug,
             } = self
             else {
                 return;
@@ -241,57 +237,86 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                     match surface.get_current_texture() {
                         Ok(frame) => {
-                            let mut encoder = device.create_command_encoder(
-                                &wgpu::CommandEncoderDescriptor { label: None },
-                            );
-
-                            let program = state.program();
-
                             let view = frame.texture.create_view(
                                 &wgpu::TextureViewDescriptor::default(),
                             );
 
+                            let mut encoder = device.create_command_encoder(
+                                &wgpu::CommandEncoderDescriptor { label: None },
+                            );
+
                             {
-                                // We clear the frame
+                                // Clear the frame
                                 let mut render_pass = Scene::clear(
                                     &view,
                                     &mut encoder,
-                                    program.background_color(),
+                                    controls.background_color(),
                                 );
 
                                 // Draw the scene
                                 scene.draw(&mut render_pass);
                             }
 
-                            // And then iced on top
+                            // Submit the scene
+                            queue.submit([encoder.finish()]);
+
+                            // Draw iced on top
+                            let mut interface = UserInterface::build(
+                                controls.view(),
+                                viewport.logical_size(),
+                                std::mem::take(cache),
+                                renderer,
+                            );
+
+                            let (state, _) = interface.update(
+                                &[Event::Window(
+                                    window::Event::RedrawRequested(
+                                        Instant::now(),
+                                    ),
+                                )],
+                                *cursor,
+                                renderer,
+                                clipboard,
+                                &mut Vec::new(),
+                            );
+
+                            // Update the mouse cursor
+                            if let user_interface::State::Updated {
+                                mouse_interaction,
+                                ..
+                            } = state
+                            {
+                                window.set_cursor(
+                                    conversion::mouse_interaction(
+                                        mouse_interaction,
+                                    ),
+                                );
+                            }
+
+                            // Draw the interface
+                            interface.draw(
+                                renderer,
+                                &Theme::Dark,
+                                &renderer::Style::default(),
+                                *cursor,
+                            );
+                            *cache = interface.into_cache();
+
                             renderer.present(
-                                engine,
-                                device,
-                                queue,
-                                &mut encoder,
                                 None,
                                 frame.texture.format(),
                                 &view,
                                 viewport,
-                                &debug.overlay(),
                             );
 
-                            // Then we submit the work
-                            engine.submit(queue, encoder);
+                            // Present the frame
                             frame.present();
-
-                            // Update the mouse cursor
-                            window.set_cursor(
-                                iced_winit::conversion::mouse_interaction(
-                                    state.mouse_interaction(),
-                                ),
-                            );
                         }
                         Err(error) => match error {
                             wgpu::SurfaceError::OutOfMemory => {
                                 panic!(
                                     "Swapchain error: {error}. \
-                                Rendering cannot continue."
+                                        Rendering cannot continue."
                                 )
                             }
                             _ => {
@@ -302,7 +327,11 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     }
                 }
                 WindowEvent::CursorMoved { position, .. } => {
-                    *cursor_position = Some(position);
+                    *cursor =
+                        mouse::Cursor::Available(conversion::cursor_position(
+                            position,
+                            viewport.scale_factor(),
+                        ));
                 }
                 WindowEvent::ModifiersChanged(new_modifiers) => {
                     *modifiers = new_modifiers.state();
@@ -317,36 +346,41 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             }
 
             // Map window event to iced event
-            if let Some(event) = iced_winit::conversion::window_event(
+            if let Some(event) = conversion::window_event(
                 event,
                 window.scale_factor(),
                 *modifiers,
             ) {
-                state.queue_event(event);
+                events.push(event);
             }
 
             // If there are events pending
-            if !state.is_queue_empty() {
-                // We update iced
-                let _ = state.update(
+            if !events.is_empty() {
+                // We process them
+                let mut interface = UserInterface::build(
+                    controls.view(),
                     viewport.logical_size(),
-                    cursor_position
-                        .map(|p| {
-                            conversion::cursor_position(
-                                p,
-                                viewport.scale_factor(),
-                            )
-                        })
-                        .map(mouse::Cursor::Available)
-                        .unwrap_or(mouse::Cursor::Unavailable),
+                    std::mem::take(cache),
                     renderer,
-                    &Theme::Dark,
-                    &renderer::Style {
-                        text_color: Color::WHITE,
-                    },
-                    clipboard,
-                    debug,
                 );
+
+                let mut messages = Vec::new();
+
+                let _ = interface.update(
+                    events,
+                    *cursor,
+                    renderer,
+                    clipboard,
+                    &mut messages,
+                );
+
+                events.clear();
+                *cache = interface.into_cache();
+
+                // update our UI with any messages
+                for message in messages {
+                    controls.update(message);
+                }
 
                 // and request a redraw
                 window.request_redraw();

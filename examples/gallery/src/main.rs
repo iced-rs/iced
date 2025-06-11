@@ -7,24 +7,29 @@ mod civitai;
 use crate::civitai::{Error, Id, Image, Rgba, Size};
 
 use iced::animation;
-use iced::time::{milliseconds, Instant};
+use iced::time::{Instant, milliseconds};
 use iced::widget::{
-    button, center_x, container, horizontal_space, image, mouse_area, opaque,
-    pop, row, scrollable, stack,
+    button, container, float, grid, horizontal_space, image, mouse_area,
+    opaque, pop, scrollable, stack,
 };
 use iced::window;
 use iced::{
-    color, Animation, ContentFit, Element, Fill, Function, Subscription, Task,
-    Theme,
+    Animation, Color, ContentFit, Element, Fill, Function, Shadow,
+    Subscription, Task, Theme, color,
 };
 
 use std::collections::HashMap;
 
 fn main() -> iced::Result {
-    iced::application("Gallery - Iced", Gallery::update, Gallery::view)
-        .subscription(Gallery::subscription)
-        .theme(Gallery::theme)
-        .run_with(Gallery::new)
+    iced::application::timed(
+        Gallery::new,
+        Gallery::update,
+        Gallery::subscription,
+        Gallery::view,
+    )
+    .window_size((Preview::WIDTH as f32 * 4.0, Preview::HEIGHT as f32 * 2.5))
+    .theme(Gallery::theme)
+    .run()
 }
 
 struct Gallery {
@@ -44,7 +49,7 @@ enum Message {
     BlurhashDecoded(Id, civitai::Blurhash),
     Open(Id),
     Close,
-    Animate(Instant),
+    Animate,
 }
 
 impl Gallery {
@@ -72,13 +77,15 @@ impl Gallery {
             || self.viewer.is_animating(self.now);
 
         if is_animating {
-            window::frames().map(Message::Animate)
+            window::frames().map(|_| Message::Animate)
         } else {
             Subscription::none()
         }
     }
 
-    pub fn update(&mut self, message: Message) -> Task<Message> {
+    pub fn update(&mut self, message: Message, now: Instant) -> Task<Message> {
+        self.now = now;
+
         match message {
             Message::ImagesListed(Ok(images)) => {
                 self.images = images;
@@ -105,16 +112,16 @@ impl Gallery {
                 )
             }
             Message::ImageDownloaded(Ok(rgba)) => {
-                self.viewer.show(rgba);
+                self.viewer.show(rgba, self.now);
 
                 Task::none()
             }
             Message::ThumbnailDownloaded(id, Ok(rgba)) => {
                 let thumbnail = if let Some(preview) = self.previews.remove(&id)
                 {
-                    preview.load(rgba)
+                    preview.load(rgba, self.now)
                 } else {
-                    Preview::ready(rgba)
+                    Preview::ready(rgba, self.now)
                 };
 
                 let _ = self.previews.insert(id, thumbnail);
@@ -123,7 +130,7 @@ impl Gallery {
             }
             Message::ThumbnailHovered(id, is_hovered) => {
                 if let Some(preview) = self.previews.get_mut(&id) {
-                    preview.toggle_zoom(is_hovered);
+                    preview.toggle_zoom(is_hovered, self.now);
                 }
 
                 Task::none()
@@ -132,7 +139,7 @@ impl Gallery {
                 if !self.previews.contains_key(&id) {
                     let _ = self
                         .previews
-                        .insert(id, Preview::loading(blurhash.rgba));
+                        .insert(id, Preview::loading(blurhash.rgba, self.now));
                 }
 
                 Task::none()
@@ -147,7 +154,7 @@ impl Gallery {
                     return Task::none();
                 };
 
-                self.viewer.open();
+                self.viewer.open(self.now);
 
                 Task::perform(
                     image.download(Size::Original),
@@ -155,15 +162,11 @@ impl Gallery {
                 )
             }
             Message::Close => {
-                self.viewer.close();
+                self.viewer.close(self.now);
 
                 Task::none()
             }
-            Message::Animate(now) => {
-                self.now = now;
-
-                Task::none()
-            }
+            Message::Animate => Task::none(),
             Message::ImagesListed(Err(error))
             | Message::ImageDownloaded(Err(error))
             | Message::ThumbnailDownloaded(_, Err(error)) => {
@@ -175,19 +178,18 @@ impl Gallery {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        let gallery = if self.images.is_empty() {
-            row((0..=Image::LIMIT).map(|_| placeholder()))
-        } else {
-            row(self.images.iter().map(|image| {
-                card(image, self.previews.get(&image.id), self.now)
-            }))
-        }
-        .spacing(10)
-        .wrap();
+        let images = self
+            .images
+            .iter()
+            .map(|image| card(image, self.previews.get(&image.id), self.now))
+            .chain((self.images.len()..=Image::LIMIT).map(|_| placeholder()));
 
-        let content =
-            container(scrollable(center_x(gallery)).spacing(10)).padding(10);
+        let gallery = grid(images)
+            .fluid(Preview::WIDTH)
+            .height(grid::aspect_ratio(Preview::WIDTH, Preview::HEIGHT))
+            .spacing(10);
 
+        let content = container(scrollable(gallery).spacing(10)).padding(10);
         let viewer = self.viewer.view(self.now);
 
         stack![content, viewer].into()
@@ -202,13 +204,28 @@ fn card<'a>(
     let image = if let Some(preview) = preview {
         let thumbnail: Element<'_, _> =
             if let Preview::Ready { thumbnail, .. } = &preview {
-                image(&thumbnail.handle)
-                    .width(Fill)
-                    .height(Fill)
-                    .content_fit(ContentFit::Cover)
-                    .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now))
-                    .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
-                    .into()
+                float(
+                    image(&thumbnail.handle)
+                        .width(Fill)
+                        .content_fit(ContentFit::Cover)
+                        .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now)),
+                )
+                .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
+                .translate(move |bounds, viewport| {
+                    bounds.zoom(1.1).offset(&viewport.shrink(10))
+                        * thumbnail.zoom.interpolate(0.0, 1.0, now)
+                })
+                .style(move |_theme| float::Style {
+                    shadow: Shadow {
+                        color: Color::BLACK.scale_alpha(
+                            thumbnail.zoom.interpolate(0.0, 1.0, now),
+                        ),
+                        blur_radius: thumbnail.zoom.interpolate(0.0, 20.0, now),
+                        ..Shadow::default()
+                    },
+                    ..float::Style::default()
+                })
+                .into()
             } else {
                 horizontal_space().into()
             };
@@ -216,7 +233,6 @@ fn card<'a>(
         if let Some(blurhash) = preview.blurhash(now) {
             let blurhash = image(&blurhash.handle)
                 .width(Fill)
-                .height(Fill)
                 .content_fit(ContentFit::Cover)
                 .opacity(blurhash.fade_in.interpolate(0.0, 1.0, now));
 
@@ -228,14 +244,9 @@ fn card<'a>(
         horizontal_space().into()
     };
 
-    let card = mouse_area(
-        container(image)
-            .width(Preview::WIDTH)
-            .height(Preview::HEIGHT)
-            .style(container::dark),
-    )
-    .on_enter(Message::ThumbnailHovered(metadata.id, true))
-    .on_exit(Message::ThumbnailHovered(metadata.id, false));
+    let card = mouse_area(container(image).style(container::dark))
+        .on_enter(Message::ThumbnailHovered(metadata.id, true))
+        .on_exit(Message::ThumbnailHovered(metadata.id, false));
 
     if let Some(preview) = preview {
         let is_thumbnail = matches!(preview, Preview::Ready { .. });
@@ -253,11 +264,7 @@ fn card<'a>(
 }
 
 fn placeholder<'a>() -> Element<'a, Message> {
-    container(horizontal_space())
-        .width(Preview::WIDTH)
-        .height(Preview::HEIGHT)
-        .style(container::dark)
-        .into()
+    container(horizontal_space()).style(container::dark).into()
 }
 
 enum Preview {
@@ -285,13 +292,13 @@ impl Preview {
     const WIDTH: u32 = 320;
     const HEIGHT: u32 = 410;
 
-    fn loading(rgba: Rgba) -> Self {
+    fn loading(rgba: Rgba, now: Instant) -> Self {
         Self::Loading {
             blurhash: Blurhash {
                 fade_in: Animation::new(false)
                     .duration(milliseconds(700))
                     .easing(animation::Easing::EaseIn)
-                    .go(true),
+                    .go(true, now),
                 handle: image::Handle::from_rgba(
                     rgba.width,
                     rgba.height,
@@ -301,27 +308,27 @@ impl Preview {
         }
     }
 
-    fn ready(rgba: Rgba) -> Self {
+    fn ready(rgba: Rgba, now: Instant) -> Self {
         Self::Ready {
             blurhash: None,
-            thumbnail: Thumbnail::new(rgba),
+            thumbnail: Thumbnail::new(rgba, now),
         }
     }
 
-    fn load(self, rgba: Rgba) -> Self {
+    fn load(self, rgba: Rgba, now: Instant) -> Self {
         let Self::Loading { blurhash } = self else {
             return self;
         };
 
         Self::Ready {
             blurhash: Some(blurhash),
-            thumbnail: Thumbnail::new(rgba),
+            thumbnail: Thumbnail::new(rgba, now),
         }
     }
 
-    fn toggle_zoom(&mut self, enabled: bool) {
+    fn toggle_zoom(&mut self, enabled: bool, now: Instant) {
         if let Self::Ready { thumbnail, .. } = self {
-            thumbnail.zoom.go_mut(enabled);
+            thumbnail.zoom.go_mut(enabled, now);
         }
     }
 
@@ -349,14 +356,14 @@ impl Preview {
 }
 
 impl Thumbnail {
-    pub fn new(rgba: Rgba) -> Self {
+    pub fn new(rgba: Rgba, now: Instant) -> Self {
         Self {
             handle: image::Handle::from_rgba(
                 rgba.width,
                 rgba.height,
                 rgba.pixels,
             ),
-            fade_in: Animation::new(false).slow().go(true),
+            fade_in: Animation::new(false).slow().go(true, now),
             zoom: Animation::new(false)
                 .quick()
                 .easing(animation::Easing::EaseInOut),
@@ -383,24 +390,24 @@ impl Viewer {
         }
     }
 
-    fn open(&mut self) {
+    fn open(&mut self, now: Instant) {
         self.image = None;
-        self.background_fade_in.go_mut(true);
+        self.background_fade_in.go_mut(true, now);
     }
 
-    fn show(&mut self, rgba: Rgba) {
+    fn show(&mut self, rgba: Rgba, now: Instant) {
         self.image = Some(image::Handle::from_rgba(
             rgba.width,
             rgba.height,
             rgba.pixels,
         ));
-        self.background_fade_in.go_mut(true);
-        self.image_fade_in.go_mut(true);
+        self.background_fade_in.go_mut(true, now);
+        self.image_fade_in.go_mut(true, now);
     }
 
-    fn close(&mut self) {
-        self.background_fade_in.go_mut(false);
-        self.image_fade_in.go_mut(false);
+    fn close(&mut self, now: Instant) {
+        self.background_fade_in.go_mut(false, now);
+        self.image_fade_in.go_mut(false, now);
     }
 
     fn is_animating(&self, now: Instant) -> bool {

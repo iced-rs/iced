@@ -1,8 +1,8 @@
 use crate::futures::futures::{
+    Future, Sink, StreamExt,
     channel::mpsc,
     select,
     task::{Context, Poll},
-    Future, Sink, StreamExt,
 };
 use crate::runtime::Action;
 use std::pin::Pin;

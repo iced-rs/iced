@@ -161,7 +161,7 @@ impl<T> Subscription<T> {
     /// }
     ///
     /// fn some_worker() -> impl Stream<Item = Event> {
-    ///     stream::channel(100, |mut output| async move {
+    ///     stream::channel(100, async |mut output| {
     ///         // Create channel
     ///         let (sender, mut receiver) = mpsc::channel(100);
     ///
@@ -284,6 +284,11 @@ impl<T> Subscription<T> {
                 })
                 .collect(),
         }
+    }
+
+    /// Returns the amount of recipe units in this [`Subscription`].
+    pub fn units(&self) -> usize {
+        self.recipes.len()
     }
 }
 

@@ -1,10 +1,10 @@
 use iced::futures::StreamExt;
-use iced::task::{sipper, Straw};
+use iced::task::{Straw, sipper};
 
 use std::sync::Arc;
 
 pub fn download(url: impl AsRef<str>) -> impl Straw<(), Progress, Error> {
-    sipper(move |mut progress| async move {
+    sipper(async move |mut progress| {
         let response = reqwest::get(url.as_ref()).await?;
         let total = response.content_length().ok_or(Error::NoContentLength)?;
 

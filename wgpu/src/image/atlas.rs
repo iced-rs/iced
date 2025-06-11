@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Atlas {
+    backend: wgpu::Backend,
     texture: wgpu::Texture,
     texture_view: wgpu::TextureView,
     texture_bind_group: wgpu::BindGroup,
@@ -79,6 +80,7 @@ impl Atlas {
             });
 
         Atlas {
+            backend,
             texture,
             texture_view,
             texture_bind_group,
@@ -344,15 +346,15 @@ impl Atlas {
             });
 
         encoder.copy_buffer_to_texture(
-            wgpu::ImageCopyBuffer {
+            wgpu::TexelCopyBufferInfo {
                 buffer: &buffer,
-                layout: wgpu::ImageDataLayout {
+                layout: wgpu::TexelCopyBufferLayout {
                     offset: offset as u64,
                     bytes_per_row: Some(4 * image_width + padding),
                     rows_per_image: Some(image_height),
                 },
             },
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &self.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d {
@@ -376,12 +378,22 @@ impl Atlas {
             return;
         }
 
+        // On the GL backend if layers.len() == 6 we need to help wgpu figure out that this texture
+        // is still a `GL_TEXTURE_2D_ARRAY` rather than `GL_TEXTURE_CUBE_MAP`. This will over-allocate
+        // some unused memory on GL, but it's better than not being able to grow the atlas past a depth
+        // of 6!
+        // https://github.com/gfx-rs/wgpu/blob/004e3efe84a320d9331371ed31fa50baa2414911/wgpu-hal/src/gles/mod.rs#L371
+        let depth_or_array_layers = match self.backend {
+            wgpu::Backend::Gl if self.layers.len() == 6 => 7,
+            _ => self.layers.len() as u32,
+        };
+
         let new_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("iced_wgpu::image texture atlas"),
             size: wgpu::Extent3d {
                 width: SIZE,
                 height: SIZE,
-                depth_or_array_layers: self.layers.len() as u32,
+                depth_or_array_layers,
             },
             mip_level_count: 1,
             sample_count: 1,
@@ -407,7 +419,7 @@ impl Atlas {
             }
 
             encoder.copy_texture_to_texture(
-                wgpu::ImageCopyTexture {
+                wgpu::TexelCopyTextureInfo {
                     texture: &self.texture,
                     mip_level: 0,
                     origin: wgpu::Origin3d {
@@ -417,7 +429,7 @@ impl Atlas {
                     },
                     aspect: wgpu::TextureAspect::default(),
                 },
-                wgpu::ImageCopyTexture {
+                wgpu::TexelCopyTextureInfo {
                     texture: &new_texture,
                     mip_level: 0,
                     origin: wgpu::Origin3d {

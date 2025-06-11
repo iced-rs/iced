@@ -23,8 +23,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme::palette;
 use crate::core::touch;
-use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
+use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     Background, Clipboard, Color, Element, Event, Layout, Length, Padding,
@@ -384,6 +384,7 @@ where
                     bounds,
                     border: style.border,
                     shadow: style.shadow,
+                    snap: style.snap,
                 },
                 style
                     .background
@@ -430,14 +431,16 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
+            viewport,
             translation,
         )
     }
@@ -490,6 +493,8 @@ pub struct Style {
     pub border: Border,
     /// The [`Shadow`] of the button.
     pub shadow: Shadow,
+    /// Whether the button should be snapped to the pixel grid.
+    pub snap: bool,
 }
 
 impl Style {
@@ -509,6 +514,7 @@ impl Default for Style {
             text_color: Color::BLACK,
             border: Border::default(),
             shadow: Shadow::default(),
+            snap: cfg!(feature = "crisp"),
         }
     }
 }
@@ -591,12 +597,12 @@ impl Catalog for Theme {
 /// A primary button; denoting a main action.
 pub fn primary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
-    let base = styled(palette.primary.strong);
+    let base = styled(palette.primary.base);
 
     match status {
         Status::Active | Status::Pressed => base,
         Status::Hovered => Style {
-            background: Some(Background::Color(palette.primary.base.color)),
+            background: Some(Background::Color(palette.primary.strong.color)),
             ..base
         },
         Status::Disabled => disabled(base),

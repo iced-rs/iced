@@ -34,16 +34,99 @@ pub struct Text<Content = String, Font = crate::Font> {
     pub font: Font,
 
     /// The horizontal alignment of the [`Text`].
-    pub horizontal_alignment: alignment::Horizontal,
+    pub align_x: Alignment,
 
     /// The vertical alignment of the [`Text`].
-    pub vertical_alignment: alignment::Vertical,
+    pub align_y: alignment::Vertical,
 
     /// The [`Shaping`] strategy of the [`Text`].
     pub shaping: Shaping,
 
     /// The [`Wrapping`] strategy of the [`Text`].
     pub wrapping: Wrapping,
+}
+
+impl<Content, Font> Text<Content, Font>
+where
+    Font: Copy,
+{
+    /// Returns a new [`Text`] replacing only the content with the
+    /// given value.
+    pub fn with_content<T>(&self, content: T) -> Text<T, Font> {
+        Text {
+            content,
+            bounds: self.bounds,
+            size: self.size,
+            line_height: self.line_height,
+            font: self.font,
+            align_x: self.align_x,
+            align_y: self.align_y,
+            shaping: self.shaping,
+            wrapping: self.wrapping,
+        }
+    }
+}
+
+impl<Content, Font> Text<Content, Font>
+where
+    Content: AsRef<str>,
+    Font: Copy,
+{
+    /// Returns a borrowed version of [`Text`].
+    pub fn as_ref(&self) -> Text<&str, Font> {
+        self.with_content(self.content.as_ref())
+    }
+}
+
+/// The alignment of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Alignment {
+    /// No specific alignment.
+    ///
+    /// Left-to-right text will be aligned to the left, while
+    /// right-to-left text will be aligned to the right.
+    #[default]
+    Default,
+    /// Align text to the left.
+    Left,
+    /// Center text.
+    Center,
+    /// Align text to the right.
+    Right,
+    /// Justify text.
+    Justified,
+}
+
+impl From<alignment::Horizontal> for Alignment {
+    fn from(alignment: alignment::Horizontal) -> Self {
+        match alignment {
+            alignment::Horizontal::Left => Self::Left,
+            alignment::Horizontal::Center => Self::Center,
+            alignment::Horizontal::Right => Self::Right,
+        }
+    }
+}
+
+impl From<crate::Alignment> for Alignment {
+    fn from(alignment: crate::Alignment) -> Self {
+        match alignment {
+            crate::Alignment::Start => Self::Left,
+            crate::Alignment::Center => Self::Center,
+            crate::Alignment::End => Self::Right,
+        }
+    }
+}
+
+impl From<Alignment> for alignment::Horizontal {
+    fn from(alignment: Alignment) -> Self {
+        match alignment {
+            Alignment::Default | Alignment::Left | Alignment::Justified => {
+                alignment::Horizontal::Left
+            }
+            Alignment::Center => alignment::Horizontal::Center,
+            Alignment::Right => alignment::Horizontal::Right,
+        }
+    }
 }
 
 /// The shaping strategy of some text.
@@ -192,6 +275,11 @@ pub trait Renderer: crate::Renderer {
 
     /// The [`Editor`] of this [`Renderer`].
     type Editor: Editor<Font = Self::Font> + 'static;
+
+    /// A monospace font.
+    ///
+    /// It may be used by devtools.
+    const MONOSPACE_FONT: Self::Font;
 
     /// The icon font of the backend.
     const ICON_FONT: Self::Font;

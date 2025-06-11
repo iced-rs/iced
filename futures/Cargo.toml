@@ -24,14 +24,12 @@ thread-pool = ["futures/thread-pool"]
 iced_core.workspace = true
 
 futures.workspace = true
+futures.features = ["std", "async-await"]
+
 log.workspace = true
 rustc-hash.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-async-std.workspace = true
-async-std.optional = true
-async-std.features = ["unstable"]
-
 smol.workspace = true
 smol.optional = true
 

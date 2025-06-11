@@ -465,6 +465,15 @@ where
     }
 }
 
+impl<Renderer> Clone for Content<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn clone(&self) -> Self {
+        Self::with_text(&self.text())
+    }
+}
+
 impl<Renderer> Default for Content<Renderer>
 where
     Renderer: text::Renderer,
@@ -955,8 +964,8 @@ where
                             .unwrap_or_else(|| renderer.default_size()),
                         line_height: self.line_height,
                         font,
-                        horizontal_alignment: alignment::Horizontal::Left,
-                        vertical_alignment: alignment::Vertical::Top,
+                        align_x: text::Alignment::Default,
+                        align_y: alignment::Vertical::Top,
                         shaping: text::Shaping::Advanced,
                         wrapping: self.wrapping,
                     },

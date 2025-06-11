@@ -1,10 +1,10 @@
+use crate::Primitive;
 use crate::core::renderer::Quad;
 use crate::core::{
     Background, Color, Gradient, Rectangle, Size, Transformation, Vector,
 };
 use crate::graphics::{Image, Text};
 use crate::text;
-use crate::Primitive;
 
 #[derive(Debug)]
 pub struct Engine {
@@ -396,8 +396,8 @@ impl Engine {
                 size,
                 line_height,
                 font,
-                horizontal_alignment,
-                vertical_alignment,
+                align_x,
+                align_y,
                 shaping,
                 clip_bounds: text_bounds, // TODO
             } => {
@@ -417,8 +417,8 @@ impl Engine {
                     *size,
                     *line_height,
                     *font,
-                    *horizontal_alignment,
-                    *vertical_alignment,
+                    *align_x,
+                    *align_y,
                     *shaping,
                     pixels,
                     clip_mask,

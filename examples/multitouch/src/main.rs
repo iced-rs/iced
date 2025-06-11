@@ -12,8 +12,7 @@ use std::collections::HashMap;
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application("Multitouch - Iced", Multitouch::update, Multitouch::view)
-        .antialiasing(true)
+    iced::application(Multitouch::default, Multitouch::update, Multitouch::view)
         .centered()
         .run()
 }
@@ -24,7 +23,7 @@ struct Multitouch {
     fingers: HashMap<touch::Finger, Point>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Message {
     FingerPressed { id: touch::Finger, position: Point },
     FingerLifted { id: touch::Finger },

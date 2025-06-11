@@ -1,11 +1,11 @@
 use crate::core::{
-    self, renderer, Background, Color, Point, Rectangle, Svg, Transformation,
+    self, Background, Color, Point, Rectangle, Svg, Transformation, renderer,
 };
 use crate::graphics;
+use crate::graphics::Mesh;
 use crate::graphics::color;
 use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph};
-use crate::graphics::Mesh;
 use crate::image::{self, Image};
 use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};
@@ -27,6 +27,16 @@ pub struct Layer {
 }
 
 impl Layer {
+    pub fn is_empty(&self) -> bool {
+        self.quads.is_empty()
+            && self.triangles.is_empty()
+            && self.primitives.is_empty()
+            && self.images.is_empty()
+            && self.text.is_empty()
+            && self.pending_meshes.is_empty()
+            && self.pending_text.is_empty()
+    }
+
     pub fn draw_quad(
         &mut self,
         quad: renderer::Quad,
@@ -44,6 +54,7 @@ impl Layer {
             shadow_color: color::pack(quad.shadow.color),
             shadow_offset: quad.shadow.offset.into(),
             shadow_blur_radius: quad.shadow.blur_radius,
+            snap: quad.snap as u32,
         };
 
         self.quads.add(quad, &background);
@@ -103,8 +114,8 @@ impl Layer {
             line_height: text.line_height.to_absolute(text.size)
                 * transformation.scale_factor(),
             font: text.font,
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
+            align_x: text.align_x,
+            align_y: text.align_y,
             shaping: text.shaping,
             clip_bounds: clip_bounds * transformation,
         };

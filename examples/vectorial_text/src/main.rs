@@ -7,12 +7,11 @@ use iced::{Center, Element, Fill, Point, Rectangle, Renderer, Theme, Vector};
 
 pub fn main() -> iced::Result {
     iced::application(
-        "Vectorial Text - Iced",
+        VectorialText::default,
         VectorialText::update,
         VectorialText::view,
     )
     .theme(|_| Theme::Dark)
-    .antialiasing(true)
     .run()
 }
 
@@ -142,8 +141,8 @@ impl<Message> canvas::Program<Message> for State {
                 } else {
                     "Vectorial Text! 🎉"
                 }),
-                horizontal_alignment: alignment::Horizontal::Center,
-                vertical_alignment: alignment::Vertical::Center,
+                align_x: text::Alignment::Center,
+                align_y: alignment::Vertical::Center,
                 shaping: text::Shaping::Advanced,
                 ..canvas::Text::default()
             });

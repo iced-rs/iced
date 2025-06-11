@@ -1,8 +1,8 @@
 use crate::scene::pipeline::Vertex;
 use crate::wgpu;
 
-use glam::{vec2, vec3, Vec3};
-use rand::{thread_rng, Rng};
+use glam::{Vec3, vec2, vec3};
+use rand::{Rng, thread_rng};
 
 /// A single instance of a cube.
 #[derive(Debug, Clone)]

@@ -18,12 +18,17 @@ impl From<widget::Id> for Selector {
 }
 
 impl From<&'static str> for Selector {
-    fn from(id: &'static str) -> Self {
-        Self::Id(widget::Id::new(id))
+    fn from(text: &'static str) -> Self {
+        Self::Text(text.into())
     }
 }
 
-/// Creates [`Selector`] that finds the widget containing the given text fragment.
+/// Creates a [`Selector`] that finds the widget with the given [`widget::Id`].
+pub fn id(id: impl Into<widget::Id>) -> Selector {
+    Selector::Id(id.into())
+}
+
+/// Creates a [`Selector`] that finds the widget containing the given text fragment.
 pub fn text(fragment: impl text::IntoFragment<'static>) -> Selector {
     Selector::Text(fragment.into_fragment())
 }

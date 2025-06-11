@@ -509,6 +509,10 @@ where
         vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _, _>)]
     }
 
+    fn diff(&self, _tree: &mut widget::Tree) {
+        // do nothing so the children don't get cleared
+    }
+
     fn update(
         &mut self,
         tree: &mut widget::Tree,
@@ -832,6 +836,7 @@ where
         tree: &'b mut widget::Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let is_focused = {
@@ -884,12 +889,11 @@ where
                     menu = menu.text_size(size);
                 }
 
-                Some(
-                    menu.overlay(
-                        layout.position() + translation,
-                        bounds.height,
-                    ),
-                )
+                Some(menu.overlay(
+                    layout.position() + translation,
+                    *viewport,
+                    bounds.height,
+                ))
             }
         } else {
             None

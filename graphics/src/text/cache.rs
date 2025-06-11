@@ -54,11 +54,12 @@ impl Cache {
             buffer.set_text(
                 font_system,
                 key.content,
-                text::to_attributes(key.font),
+                &text::to_attributes(key.font),
                 text::to_shaping(key.shaping),
             );
 
-            let bounds = text::measure(&buffer);
+            let bounds = text::align(&mut buffer, font_system, key.align_x);
+
             let _ = entry.insert(Entry {
                 buffer,
                 min_bounds: bounds,
@@ -114,6 +115,8 @@ pub struct Key<'a> {
     pub bounds: Size,
     /// The shaping strategy of the text.
     pub shaping: text::Shaping,
+    /// The alignment of the text.
+    pub align_x: text::Alignment,
 }
 
 impl Key<'_> {
@@ -125,6 +128,7 @@ impl Key<'_> {
         self.bounds.width.to_bits().hash(&mut hasher);
         self.bounds.height.to_bits().hash(&mut hasher);
         self.shaping.hash(&mut hasher);
+        self.align_x.hash(&mut hasher);
 
         hasher.finish()
     }

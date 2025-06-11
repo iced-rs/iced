@@ -26,13 +26,14 @@ webgl = ["wgpu/webgl"]
 strict-assertions = []
 
 [dependencies]
+iced_debug.workspace = true
 iced_graphics.workspace = true
 
 bitflags.workspace = true
 bytemuck.workspace = true
 futures.workspace = true
 glam.workspace = true
-glyphon.workspace = true
+cryoglyph.workspace = true
 guillotiere.workspace = true
 log.workspace = true
 rustc-hash.workspace = true

@@ -127,10 +127,12 @@ where
     pub fn overlay(
         self,
         position: Point,
+        viewport: Rectangle,
         target_height: f32,
     ) -> overlay::Element<'a, Message, Theme, Renderer> {
         overlay::Element::new(Box::new(Overlay::new(
             position,
+            viewport,
             self,
             target_height,
         )))
@@ -164,6 +166,7 @@ where
     Renderer: crate::core::Renderer,
 {
     position: Point,
+    viewport: Rectangle,
     state: &'a mut Tree,
     list: Scrollable<'a, Message, Theme, Renderer>,
     width: f32,
@@ -180,6 +183,7 @@ where
 {
     pub fn new<T>(
         position: Point,
+        viewport: Rectangle,
         menu: Menu<'a, 'b, T, Message, Theme, Renderer>,
         target_height: f32,
     ) -> Self
@@ -218,6 +222,7 @@ where
 
         Self {
             position,
+            viewport,
             state: &mut state.tree,
             list,
             width,
@@ -282,11 +287,15 @@ where
         &self,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.list
-            .mouse_interaction(self.state, layout, cursor, viewport, renderer)
+        self.list.mouse_interaction(
+            self.state,
+            layout,
+            cursor,
+            &self.viewport,
+            renderer,
+        )
     }
 
     fn draw(
@@ -552,8 +561,8 @@ where
                     size: text_size,
                     line_height: self.text_line_height,
                     font: self.font.unwrap_or_else(|| renderer.default_font()),
-                    horizontal_alignment: alignment::Horizontal::Left,
-                    vertical_alignment: alignment::Vertical::Center,
+                    align_x: text::Alignment::Default,
+                    align_y: alignment::Vertical::Center,
                     shaping: self.text_shaping,
                     wrapping: text::Wrapping::default(),
                 },

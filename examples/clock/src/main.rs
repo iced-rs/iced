@@ -1,20 +1,19 @@
+use iced::alignment;
 use iced::mouse;
 use iced::time::{self, milliseconds};
-use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
-use iced::widget::{canvas, container};
-use iced::{alignment, Radians};
+use iced::widget::canvas::{Cache, Geometry, LineCap, Path, Stroke, stroke};
+use iced::widget::{canvas, container, text};
 use iced::{
-    Degrees, Element, Fill, Font, Point, Rectangle, Renderer, Size,
+    Degrees, Element, Fill, Font, Point, Radians, Rectangle, Renderer, Size,
     Subscription, Theme, Vector,
 };
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application("Clock - Iced", Clock::update, Clock::view)
+    iced::application(Clock::new, Clock::update, Clock::view)
         .subscription(Clock::subscription)
         .theme(Clock::theme)
-        .antialiasing(true)
         .run()
 }
 
@@ -29,6 +28,13 @@ enum Message {
 }
 
 impl Clock {
+    fn new() -> Self {
+        Self {
+            now: chrono::offset::Local::now(),
+            clock: Cache::default(),
+        }
+    }
+
     fn update(&mut self, message: Message) {
         match message {
             Message::Tick(local_time) => {
@@ -56,15 +62,6 @@ impl Clock {
     fn theme(&self) -> Theme {
         Theme::ALL[(self.now.timestamp() as usize / 10) % Theme::ALL.len()]
             .clone()
-    }
-}
-
-impl Default for Clock {
-    fn default() -> Self {
-        Self {
-            now: chrono::offset::Local::now(),
-            clock: Cache::default(),
-        }
     }
 }
 
@@ -150,12 +147,12 @@ impl<Message> canvas::Program<Message> for Clock {
                         -width * 2.0,
                     ),
                     color: palette.secondary.strong.text,
-                    horizontal_alignment: if rotate_factor > 0.0 {
-                        alignment::Horizontal::Right
+                    align_x: if rotate_factor > 0.0 {
+                        text::Alignment::Right
                     } else {
-                        alignment::Horizontal::Left
+                        text::Alignment::Left
                     },
-                    vertical_alignment: alignment::Vertical::Bottom,
+                    align_y: alignment::Vertical::Bottom,
                     font: Font::MONOSPACE,
                     ..canvas::Text::default()
                 });
@@ -173,8 +170,8 @@ impl<Message> canvas::Program<Message> for Clock {
                     size: (radius / 5.0).into(),
                     position: Point::new(x * 0.82, y * 0.82),
                     color: palette.secondary.strong.text,
-                    horizontal_alignment: alignment::Horizontal::Center,
-                    vertical_alignment: alignment::Vertical::Center,
+                    align_x: text::Alignment::Center,
+                    align_y: alignment::Vertical::Center,
                     font: Font::MONOSPACE,
                     ..canvas::Text::default()
                 });

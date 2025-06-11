@@ -1,9 +1,11 @@
+use iced::border;
+use iced::widget::{Button, Column, Container, Slider};
 use iced::widget::{
     button, center_x, center_y, checkbox, column, horizontal_space, image,
-    radio, row, scrollable, slider, text, text_input, toggler, vertical_space,
+    radio, rich_text, row, scrollable, slider, span, text, text_input, toggler,
+    vertical_space,
 };
-use iced::widget::{Button, Column, Container, Slider};
-use iced::{Center, Color, Element, Fill, Font, Pixels};
+use iced::{Center, Color, Element, Fill, Font, Pixels, Theme};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -15,7 +17,8 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    iced::application(Tour::title, Tour::update, Tour::view)
+    iced::application(Tour::default, Tour::update, Tour::view)
+        .title(Tour::title)
         .centered()
         .run()
 }
@@ -54,6 +57,7 @@ pub enum Message {
     ToggleTextInputIcon(bool),
     DebugToggled(bool),
     TogglerChanged(bool),
+    OpenTrunk,
 }
 
 impl Tour {
@@ -130,6 +134,10 @@ impl Tour {
             Message::TogglerChanged(toggler) => {
                 self.toggler = toggler;
             }
+            Message::OpenTrunk => {
+                #[cfg(not(target_arch = "wasm32"))]
+                let _ = open::that_in_background("https://trunkrs.dev");
+            }
         }
     }
 
@@ -160,19 +168,17 @@ impl Tour {
             Screen::End => self.end(),
         };
 
-        let content: Element<_> = column![screen, controls,]
-            .max_width(540)
-            .spacing(20)
-            .padding(20)
-            .into();
+        let content: Element<_> =
+            column![screen, controls].max_width(540).spacing(20).into();
 
         let scrollable = scrollable(center_x(if self.debug {
             content.explain(Color::BLACK)
         } else {
             content
-        }));
+        }))
+        .spacing(10);
 
-        center_y(scrollable).into()
+        center_y(scrollable).padding(10).into()
     }
 
     fn can_continue(&self) -> bool {
@@ -194,8 +200,8 @@ impl Tour {
     fn welcome(&self) -> Column<Message> {
         Self::container("Welcome!")
             .push(
-                "This is a simple tour meant to showcase a bunch of widgets \
-                 that can be easily implemented on top of Iced.",
+                "This is a simple tour meant to showcase a bunch of \
+                widgets that can be easily implemented on top of Iced.",
             )
             .push(
                 "Iced is a cross-platform GUI library for Rust focused on \
@@ -210,13 +216,31 @@ impl Tour {
                  built on top of wgpu, a graphics library supporting Vulkan, \
                  Metal, DX11, and DX12.",
             )
+            .push({
+                let theme = Theme::default();
+                let palette = theme.extended_palette();
+
+                rich_text![
+                    "Additionally, this tour can also run on WebAssembly ",
+                    "by leveraging ",
+                    span("trunk")
+                        .color(palette.primary.base.color)
+                        .background(palette.background.weakest.color)
+                        .border(
+                            border::rounded(2)
+                                .width(1)
+                                .color(palette.background.weak.color)
+                        )
+                        .padding([0, 2])
+                        .font(Font::MONOSPACE)
+                        .link(Message::OpenTrunk),
+                    "."
+                ]
+                .on_link_click(std::convert::identity)
+            })
             .push(
-                "Additionally, this tour can also run on WebAssembly thanks \
-                 to dodrio, an experimental VDOM library for Rust.",
-            )
-            .push(
-                "You will need to interact with the UI in order to reach the \
-                 end!",
+                "You will need to interact with the UI in order to reach \
+                 the end!",
             )
     }
 

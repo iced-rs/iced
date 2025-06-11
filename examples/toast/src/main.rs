@@ -9,7 +9,7 @@ use iced::{Center, Element, Fill, Subscription, Task};
 use toast::{Status, Toast};
 
 pub fn main() -> iced::Result {
-    iced::application("Toast - Iced", App::update, App::view)
+    iced::application(App::default, App::update, App::view)
         .subscription(App::subscription)
         .run()
 }
@@ -327,9 +327,10 @@ mod toast {
                     instants.truncate(new);
                 }
                 (old, new) if old < new => {
-                    instants.extend(
-                        std::iter::repeat(Some(Instant::now())).take(new - old),
-                    );
+                    instants.extend(std::iter::repeat_n(
+                        Some(Instant::now()),
+                        new - old,
+                    ));
                 }
                 _ => {}
             }
@@ -422,8 +423,9 @@ mod toast {
         fn overlay<'b>(
             &'b mut self,
             state: &'b mut Tree,
-            layout: Layout<'_>,
+            layout: Layout<'b>,
             renderer: &Renderer,
+            viewport: &Rectangle,
             translation: Vector,
         ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
             let instants = state.state.downcast_mut::<Vec<Option<Instant>>>();
@@ -434,12 +436,14 @@ mod toast {
                 &mut content_state[0],
                 layout,
                 renderer,
+                viewport,
                 translation,
             );
 
             let toasts = (!self.toasts.is_empty()).then(|| {
                 overlay::Element::new(Box::new(Overlay {
                     position: layout.bounds().position() + translation,
+                    viewport: *viewport,
                     toasts: &mut self.toasts,
                     state: toasts_state,
                     instants,
@@ -457,6 +461,7 @@ mod toast {
 
     struct Overlay<'a, 'b, Message> {
         position: Point,
+        viewport: Rectangle,
         toasts: &'b mut [Element<'a, Message>],
         state: &'b mut [Tree],
         instants: &'b mut [Option<Instant>],
@@ -592,7 +597,6 @@ mod toast {
             &self,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
-            viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
             self.toasts
@@ -600,23 +604,24 @@ mod toast {
                 .zip(self.state.iter())
                 .zip(layout.children())
                 .map(|((child, state), layout)| {
-                    child.as_widget().mouse_interaction(
-                        state, layout, cursor, viewport, renderer,
-                    )
+                    child
+                        .as_widget()
+                        .mouse_interaction(
+                            state,
+                            layout,
+                            cursor,
+                            &self.viewport,
+                            renderer,
+                        )
+                        .max(
+                            cursor
+                                .is_over(layout.bounds())
+                                .then_some(mouse::Interaction::Idle)
+                                .unwrap_or_default(),
+                        )
                 })
                 .max()
                 .unwrap_or_default()
-        }
-
-        fn is_over(
-            &self,
-            layout: Layout<'_>,
-            _renderer: &Renderer,
-            cursor_position: Point,
-        ) -> bool {
-            layout
-                .children()
-                .any(|layout| layout.bounds().contains(cursor_position))
         }
     }
 

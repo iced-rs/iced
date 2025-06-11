@@ -1,8 +1,6 @@
 //! Choose your preferred executor to power a runtime.
 use crate::MaybeSend;
 
-use futures::Future;
-
 /// A type that can run futures.
 pub trait Executor: Sized {
     /// Creates a new [`Executor`].
@@ -12,6 +10,10 @@ pub trait Executor: Sized {
 
     /// Spawns a future in the [`Executor`].
     fn spawn(&self, future: impl Future<Output = ()> + MaybeSend + 'static);
+
+    /// Runs a future to completion in the current thread within the [`Executor`].
+    #[cfg(not(target_arch = "wasm32"))]
+    fn block_on<T>(&self, future: impl Future<Output = T>) -> T;
 
     /// Runs the given closure inside the [`Executor`].
     ///

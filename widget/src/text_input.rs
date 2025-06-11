@@ -57,11 +57,12 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, InputMethod, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Alignment, Background, Border, Color, Element, Event, InputMethod, Layout,
+    Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
+    Widget,
 };
-use crate::runtime::task::{self, Task};
 use crate::runtime::Action;
+use crate::runtime::task::{self, Task};
 
 /// A field that can be filled with text.
 ///
@@ -319,18 +320,18 @@ where
             content: self.placeholder.as_str(),
             bounds: Size::new(f32::INFINITY, text_bounds.height),
             size: text_size,
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
+            align_x: text::Alignment::Default,
+            align_y: alignment::Vertical::Center,
             shaping: text::Shaping::Advanced,
             wrapping: text::Wrapping::default(),
         };
 
-        state.placeholder.update(placeholder_text);
+        let _ = state.placeholder.update(placeholder_text);
 
         let secure_value = self.is_secure.then(|| value.secure());
         let value = secure_value.as_ref().unwrap_or(value);
 
-        state.value.update(Text {
+        let _ = state.value.update(Text {
             content: &value.to_string(),
             ..placeholder_text
         });
@@ -344,13 +345,13 @@ where
                 font: icon.font,
                 size: icon.size.unwrap_or_else(|| renderer.default_size()),
                 bounds: Size::new(f32::INFINITY, text_bounds.height),
-                horizontal_alignment: alignment::Horizontal::Center,
-                vertical_alignment: alignment::Vertical::Center,
+                align_x: text::Alignment::Center,
+                align_y: alignment::Vertical::Center,
                 shaping: text::Shaping::Advanced,
                 wrapping: text::Wrapping::default(),
             };
 
-            state.icon.update(icon_text);
+            let _ = state.icon.update(icon_text);
 
             let icon_width = state.icon.min_width();
 
@@ -481,9 +482,15 @@ where
         if self.icon.is_some() {
             let icon_layout = children_layout.next().unwrap();
 
+            let icon = state.icon.raw();
+
             renderer.fill_paragraph(
-                state.icon.raw(),
-                icon_layout.bounds().center(),
+                icon,
+                icon_layout.bounds().anchor(
+                    icon.min_bounds(),
+                    Alignment::Center,
+                    Alignment::Center,
+                ),
                 style.icon,
                 *viewport,
             );
@@ -609,8 +616,11 @@ where
 
             renderer.fill_paragraph(
                 paragraph,
-                Point::new(text_bounds.x, text_bounds.center_y())
-                    + Vector::new(alignment_offset - offset, 0.0),
+                text_bounds.anchor(
+                    paragraph.min_bounds(),
+                    Alignment::Start,
+                    Alignment::Center,
+                ) + Vector::new(alignment_offset - offset, 0.0),
                 if text.is_empty() {
                     style.placeholder
                 } else {
@@ -1481,6 +1491,11 @@ impl From<String> for Id {
     }
 }
 
+/// Produces a [`Task`] that returns whether the [`TextInput`] with the given [`Id`] is focused or not.
+pub fn is_focused(id: impl Into<Id>) -> Task<bool> {
+    task::widget(operation::focusable::is_focused(id.into().into()))
+}
+
 /// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
 pub fn focus<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus(id.into().0)))
@@ -1719,11 +1734,11 @@ fn replace_paragraph<Renderer>(
     state.value = paragraph::Plain::new(Text {
         font,
         line_height,
-        content: &value.to_string(),
+        content: value.to_string(),
         bounds: Size::new(f32::INFINITY, text_bounds.height),
         size: text_size,
-        horizontal_alignment: alignment::Horizontal::Left,
-        vertical_alignment: alignment::Vertical::Center,
+        align_x: text::Alignment::Default,
+        align_y: alignment::Vertical::Center,
         shaping: text::Shaping::Advanced,
         wrapping: text::Wrapping::default(),
     });
@@ -1802,10 +1817,10 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
-            color: palette.background.strong.color,
+            color: palette.background.strongest.color,
         },
         icon: palette.background.weak.text,
-        placeholder: palette.background.strong.color,
+        placeholder: palette.background.strongest.color,
         value: palette.background.base.text,
         selection: palette.primary.weak.color,
     };

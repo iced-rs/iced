@@ -3,16 +3,11 @@ mod download;
 use download::download;
 
 use iced::task;
-use iced::widget::{button, center, column, progress_bar, text, Column};
+use iced::widget::{Column, button, center, column, progress_bar, text};
 use iced::{Center, Element, Function, Right, Task};
 
 pub fn main() -> iced::Result {
-    iced::application(
-        "Download Progress - Iced",
-        Example::update,
-        Example::view,
-    )
-    .run()
+    iced::application(Example::default, Example::update, Example::view).run()
 }
 
 #[derive(Debug)]
@@ -117,9 +112,7 @@ impl Download {
 
     pub fn start(&mut self) -> Task<Update> {
         match self.state {
-            State::Idle { .. }
-            | State::Finished { .. }
-            | State::Errored { .. } => {
+            State::Idle | State::Finished | State::Errored => {
                 let (task, handle) = Task::sip(
                     download(
                         "https://huggingface.co/\
@@ -161,10 +154,10 @@ impl Download {
 
     pub fn view(&self) -> Element<Message> {
         let current_progress = match &self.state {
-            State::Idle { .. } => 0.0,
+            State::Idle => 0.0,
             State::Downloading { progress, .. } => *progress,
-            State::Finished { .. } => 100.0,
-            State::Errored { .. } => 0.0,
+            State::Finished => 100.0,
+            State::Errored => 0.0,
         };
 
         let progress_bar = progress_bar(0.0..=100.0, current_progress);

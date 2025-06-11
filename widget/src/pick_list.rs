@@ -371,8 +371,8 @@ where
             size: text_size,
             line_height: self.text_line_height,
             font,
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
+            align_x: text::Alignment::Default,
+            align_y: alignment::Vertical::Center,
             shaping: self.text_shaping,
             wrapping: text::Wrapping::default(),
         };
@@ -381,14 +381,14 @@ where
         {
             let label = option.to_string();
 
-            paragraph.update(Text {
+            let _ = paragraph.update(Text {
                 content: &label,
                 ..option_text
             });
         }
 
         if let Some(placeholder) = &self.placeholder {
-            state.placeholder.update(Text {
+            let _ = state.placeholder.update(Text {
                 content: placeholder,
                 ..option_text
             });
@@ -639,8 +639,8 @@ where
                         bounds.width,
                         f32::from(line_height.to_absolute(size)),
                     ),
-                    horizontal_alignment: alignment::Horizontal::Right,
-                    vertical_alignment: alignment::Vertical::Center,
+                    align_x: text::Alignment::Right,
+                    align_y: alignment::Vertical::Center,
                     shaping,
                     wrapping: text::Wrapping::default(),
                 },
@@ -669,8 +669,8 @@ where
                         bounds.width - self.padding.horizontal(),
                         f32::from(self.text_line_height.to_absolute(text_size)),
                     ),
-                    horizontal_alignment: alignment::Horizontal::Left,
-                    vertical_alignment: alignment::Vertical::Center,
+                    align_x: text::Alignment::Default,
+                    align_y: alignment::Vertical::Center,
                     shaping: self.text_shaping,
                     wrapping: text::Wrapping::default(),
                 },
@@ -690,6 +690,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
@@ -721,7 +722,11 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            Some(menu.overlay(layout.position() + translation, bounds.height))
+            Some(menu.overlay(
+                layout.position() + translation,
+                *viewport,
+                bounds.height,
+            ))
         } else {
             None
         }

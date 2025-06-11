@@ -21,31 +21,36 @@ use std::time::Instant;
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application(
-        "Solar System - Iced",
+    iced::application::timed(
+        SolarSystem::new,
         SolarSystem::update,
+        SolarSystem::subscription,
         SolarSystem::view,
     )
-    .subscription(SolarSystem::subscription)
     .theme(SolarSystem::theme)
     .run()
 }
 
-#[derive(Default)]
 struct SolarSystem {
     state: State,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    Tick(Instant),
+    Tick,
 }
 
 impl SolarSystem {
-    fn update(&mut self, message: Message) {
+    fn new() -> Self {
+        Self {
+            state: State::new(),
+        }
+    }
+
+    fn update(&mut self, message: Message, now: Instant) {
         match message {
-            Message::Tick(instant) => {
-                self.state.update(instant);
+            Message::Tick => {
+                self.state.update(now);
             }
         }
     }
@@ -59,7 +64,7 @@ impl SolarSystem {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        window::frames().map(Message::Tick)
+        window::frames().map(|_| Message::Tick)
     }
 }
 
@@ -105,6 +110,7 @@ impl State {
     }
 
     pub fn update(&mut self, now: Instant) {
+        self.start = self.start.min(now);
         self.now = now;
         self.system_cache.clear();
     }
@@ -200,11 +206,5 @@ impl<Message> canvas::Program<Message> for State {
         });
 
         vec![background, system]
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self::new()
     }
 }

@@ -1,11 +1,11 @@
+use iced::Element;
 use iced::widget::{
     center, center_x, checkbox, column, progress_bar, row, slider,
     vertical_slider,
 };
-use iced::Element;
 
 pub fn main() -> iced::Result {
-    iced::run("Progress Bar - Iced", Progress::update, Progress::view)
+    iced::run(Progress::update, Progress::view)
 }
 
 #[derive(Default)]
