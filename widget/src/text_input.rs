@@ -1533,6 +1533,15 @@ pub fn select_all<T>(id: impl Into<Id>) -> Task<T> {
     )))
 }
 
+/// Produces a [`Task`] that selects a range of text in the [`TextInput`] with the given [`Id`].
+pub fn select_range<T>(id: impl Into<Id>, start: usize, end: usize) -> Task<T> {
+    task::effect(Action::widget(operation::text_input::select_range(
+        id.into().0,
+        start,
+        end,
+    )))
+}
+
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
 pub struct State<P: text::Paragraph> {
@@ -1615,6 +1624,11 @@ impl<P: text::Paragraph> State<P> {
     pub fn select_all(&mut self) {
         self.cursor.select_range(0, usize::MAX);
     }
+
+    /// Selects a range of text in the [`TextInput`].
+    pub fn select_range(&mut self, start: usize, end: usize) {
+        self.cursor.select_range(start, end);
+    }
 }
 
 impl<P: text::Paragraph> operation::Focusable for State<P> {
@@ -1646,6 +1660,10 @@ impl<P: text::Paragraph> operation::TextInput for State<P> {
 
     fn select_all(&mut self) {
         State::select_all(self);
+    }
+
+    fn select_range(&mut self, start: usize, end: usize) {
+        State::select_range(self, start, end);
     }
 }
 

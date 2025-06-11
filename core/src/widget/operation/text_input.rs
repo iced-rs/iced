@@ -13,6 +13,8 @@ pub trait TextInput {
     fn move_cursor_to(&mut self, position: usize);
     /// Selects all the content of the text input.
     fn select_all(&mut self);
+    /// Selects a range of text in the text input.
+    fn select_range(&mut self, start: usize, end: usize);
 }
 
 /// Produces an [`Operation`] that moves the cursor of the widget with the given [`Id`] to the
@@ -123,11 +125,11 @@ pub fn move_cursor_to<T>(target: Id, position: usize) -> impl Operation<T> {
 
 /// Produces an [`Operation`] that selects all the content of the widget with the given [`Id`].
 pub fn select_all<T>(target: Id) -> impl Operation<T> {
-    struct MoveCursor {
+    struct SelectAll {
         target: Id,
     }
 
-    impl<T> Operation<T> for MoveCursor {
+    impl<T> Operation<T> for SelectAll {
         fn text_input(
             &mut self,
             id: Option<&Id>,
@@ -152,5 +154,41 @@ pub fn select_all<T>(target: Id) -> impl Operation<T> {
         }
     }
 
-    MoveCursor { target }
+    SelectAll { target }
+}
+
+/// Produces an [`Operation`] that selects a range of text in the widget with the given [`Id`].
+pub fn select_range<T>(target: Id, start: usize, end: usize) -> impl Operation<T> {
+    struct SelectRange {
+        target: Id,
+        start: usize,
+        end: usize,
+    }
+
+    impl<T> Operation<T> for SelectRange {
+        fn text_input(
+            &mut self,
+            id: Option<&Id>,
+            _bounds: Rectangle,
+            state: &mut dyn TextInput,
+        ) {
+            match id {
+                Some(id) if id == &self.target => {
+                    state.select_range(self.start, self.end);
+                }
+                _ => {}
+            }
+        }
+
+        fn container(
+            &mut self,
+            _id: Option<&Id>,
+            _bounds: Rectangle,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
+        ) {
+            operate_on_children(self);
+        }
+    }
+
+    SelectRange { target, start, end }
 }
