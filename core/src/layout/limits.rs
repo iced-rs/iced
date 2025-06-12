@@ -106,7 +106,7 @@ impl Limits {
         Limits { min, max }
     }
 
-    /// Removes the minimum width constraint for the current [`Limits`].
+    /// Removes the minimum constraint for the current [`Limits`].
     pub fn loose(&self) -> Limits {
         Limits {
             min: Size::ZERO,
