@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{Point, keyboard::Modifiers};
 
 use super::Button;
 
@@ -20,18 +20,32 @@ pub enum Event {
     CursorMoved {
         /// The new position of the mouse cursor
         position: Point,
+        /// the modifier keys at the time of the cursor movement
+        modifiers: Modifiers,
     },
 
     /// A mouse button was pressed.
-    ButtonPressed(Button),
+    ButtonPressed {
+        /// the button that was pressed
+        button: Button,
+        /// the modifier keys at the time of the button press
+        modifiers: Modifiers,
+    },
 
     /// A mouse button was released.
-    ButtonReleased(Button),
+    ButtonReleased {
+        /// the button that was released
+        button: Button,
+        /// the modifier keys at the time of the button release
+        modifiers: Modifiers,
+    },
 
     /// The mouse wheel was scrolled.
     WheelScrolled {
         /// The scroll movement.
         delta: ScrollDelta,
+        /// the modifier keys at the time of the scroll movement
+        modifiers: Modifiers,
     },
 }
 
