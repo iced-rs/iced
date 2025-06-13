@@ -266,8 +266,8 @@ impl<P: Program + 'static> Emulator<P> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Mode {
-    Patient,
     #[default]
+    Patient,
     Impatient,
 }
 
