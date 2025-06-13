@@ -1,11 +1,12 @@
 use crate::core::layout;
 use crate::core::mouse;
+use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree;
 use crate::core::{
     self, Clipboard, Element, Event, Layout, Length, Point, Rectangle, Shell,
-    Size, Widget,
+    Size, Vector, Widget,
 };
 
 pub fn recorder<'a, Message, Theme, Renderer>(
@@ -64,35 +65,7 @@ where
         );
 
         if let Some(on_event) = &self.on_event {
-            match event {
-                Event::Mouse(event) => {
-                    if !cursor.is_over(layout.bounds()) {
-                        return;
-                    }
-
-                    match event {
-                        mouse::Event::ButtonPressed(_)
-                        | mouse::Event::ButtonReleased(_)
-                        | mouse::Event::WheelScrolled { .. } => {
-                            shell.publish(on_event(Event::Mouse(*event)));
-                        }
-                        mouse::Event::CursorMoved { position } => {
-                            shell.publish(on_event(Event::Mouse(
-                                mouse::Event::CursorMoved {
-                                    position: *position
-                                        - (layout.bounds().position()
-                                            - Point::ORIGIN),
-                                },
-                            )));
-                        }
-                        _ => {}
-                    }
-                }
-                Event::Keyboard(event) => {
-                    shell.publish(on_event(Event::Keyboard(event.clone())));
-                }
-                _ => {}
-            }
+            record(event, cursor, shell, layout.bounds(), on_event);
         }
     }
 
@@ -168,6 +141,26 @@ where
             .as_widget()
             .operate(state, layout, renderer, operation);
     }
+
+    fn overlay<'a>(
+        &'a mut self,
+        state: &'a mut widget::Tree,
+        layout: Layout<'a>,
+        renderer: &Renderer,
+        _viewport: &Rectangle,
+        translation: Vector,
+    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+        self.content
+            .as_widget_mut()
+            .overlay(state, layout, renderer, &layout.bounds(), translation)
+            .map(|raw| {
+                overlay::Element::new(Box::new(Overlay {
+                    raw,
+                    bounds: layout.bounds(),
+                    on_event: self.on_event.as_deref(),
+                }))
+            })
+    }
 }
 
 impl<'a, Message, Theme, Renderer> From<Recorder<'a, Message, Theme, Renderer>>
@@ -179,5 +172,138 @@ where
 {
     fn from(recorder: Recorder<'a, Message, Theme, Renderer>) -> Self {
         Element::new(recorder)
+    }
+}
+
+struct Overlay<'a, Message, Theme, Renderer> {
+    raw: overlay::Element<'a, Message, Theme, Renderer>,
+    bounds: Rectangle,
+    on_event: Option<&'a dyn Fn(Event) -> Message>,
+}
+
+impl<'a, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
+    for Overlay<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer + 'a,
+{
+    fn layout(&mut self, renderer: &Renderer, _bounds: Size) -> layout::Node {
+        self.raw
+            .as_overlay_mut()
+            .layout(renderer, self.bounds.size())
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+    ) {
+        self.raw
+            .as_overlay()
+            .draw(renderer, theme, style, layout, cursor);
+    }
+
+    fn operate(
+        &mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        self.raw
+            .as_overlay_mut()
+            .operate(layout, renderer, operation);
+    }
+
+    fn update(
+        &mut self,
+        event: &Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) {
+        if shell.is_event_captured() {
+            return;
+        }
+
+        self.raw
+            .as_overlay_mut()
+            .update(event, layout, cursor, renderer, clipboard, shell);
+
+        if let Some(on_event) = &self.on_event {
+            record(event, cursor, shell, self.bounds, on_event);
+        }
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.raw
+            .as_overlay()
+            .mouse_interaction(layout, cursor, renderer)
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        layout: Layout<'b>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        self.raw
+            .as_overlay_mut()
+            .overlay(layout, renderer)
+            .map(|raw| {
+                overlay::Element::new(Box::new(Overlay {
+                    raw,
+                    bounds: self.bounds,
+                    on_event: self.on_event,
+                }))
+            })
+    }
+
+    fn index(&self) -> f32 {
+        self.raw.as_overlay().index()
+    }
+}
+
+fn record<Message>(
+    event: &Event,
+    cursor: mouse::Cursor,
+    shell: &mut Shell<'_, Message>,
+    bounds: Rectangle,
+    on_event: impl Fn(Event) -> Message,
+) {
+    match event {
+        Event::Mouse(event) => {
+            if !cursor.is_over(bounds) {
+                return;
+            }
+
+            match event {
+                mouse::Event::ButtonPressed(_)
+                | mouse::Event::ButtonReleased(_)
+                | mouse::Event::WheelScrolled { .. } => {
+                    shell.publish(on_event(Event::Mouse(*event)));
+                }
+                mouse::Event::CursorMoved { position } => {
+                    shell.publish(on_event(Event::Mouse(
+                        mouse::Event::CursorMoved {
+                            position: *position
+                                - (bounds.position() - Point::ORIGIN),
+                        },
+                    )));
+                }
+                _ => {}
+            }
+        }
+        Event::Keyboard(event) => {
+            shell.publish(on_event(Event::Keyboard(event.clone())));
+        }
+        _ => {}
     }
 }
