@@ -20,10 +20,6 @@ pub fn window_attributes(
 
     attributes = attributes
         .with_title(title)
-        .with_inner_size(winit::dpi::LogicalSize {
-            width: settings.size.width,
-            height: settings.size.height,
-        })
         .with_maximized(settings.maximized)
         .with_fullscreen(
             settings
@@ -43,8 +39,17 @@ pub fn window_attributes(
         .with_window_level(window_level(settings.level))
         .with_visible(settings.visible);
 
+    let size = size(primary_monitor.as_ref(), settings.size);
+
+    if let Some(size) = size {
+        attributes = attributes.with_inner_size(winit::dpi::LogicalSize {
+            width: size.width,
+            height: size.height,
+        });
+    }
+
     if let Some(position) =
-        position(primary_monitor.as_ref(), settings.size, settings.position)
+        position(primary_monitor.as_ref(), size, settings.position)
     {
         attributes = attributes.with_position(position);
     }
@@ -334,12 +339,35 @@ pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
     }
 }
 
+/// Converts a [`window::Size`] to an [`iced::Size`] for a given monitor.
+pub fn size(
+    monitor: Option<&winit::monitor::MonitorHandle>,
+    size: window::Size,
+) -> Option<crate::Size> {
+    match size {
+        window::Size::Fixed(size) => Some(size),
+        window::Size::FromScreensize(to_size) => {
+            if let Some(monitor) = monitor {
+                let resolution: winit::dpi::LogicalSize<f32> =
+                    monitor.size().to_logical(monitor.scale_factor());
+
+                let size =
+                    to_size(Size::new(resolution.width, resolution.height));
+
+                Some(size)
+            } else {
+                None
+            }
+        }
+    }
+}
+
 /// Converts a [`window::Position`] to a [`winit`] logical position for a given monitor.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn position(
     monitor: Option<&winit::monitor::MonitorHandle>,
-    size: Size,
+    size: Option<Size>,
     position: window::Position,
 ) -> Option<winit::dpi::Position> {
     match position {
@@ -351,7 +379,7 @@ pub fn position(
             }))
         }
         window::Position::SpecificWith(to_position) => {
-            if let Some(monitor) = monitor {
+            if let Some((monitor, size)) = monitor.zip(size) {
                 let start = monitor.position();
 
                 let resolution: winit::dpi::LogicalSize<f32> =
@@ -380,7 +408,7 @@ pub fn position(
             }
         }
         window::Position::Centered => {
-            if let Some(monitor) = monitor {
+            if let Some((monitor, size)) = monitor.zip(size) {
                 let start = monitor.position();
 
                 let resolution: winit::dpi::LogicalSize<f64> =
