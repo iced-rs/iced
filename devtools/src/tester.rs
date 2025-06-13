@@ -308,27 +308,30 @@ impl<P: Program + 'static> Tester<P> {
                 program.update(state, message).map(Tick::Program)
             }
             Tick::Recorder(event) => {
-                let Some(interaction) =
-                    instruction::Interaction::from_event(event)
-                else {
-                    return Task::none();
-                };
+                let mut interaction =
+                    instruction::Interaction::from_event(event);
 
-                if let Some(Instruction::Interact(last_interaction)) =
-                    self.instructions.pop()
-                {
-                    let (last_interaction, new_interaction) =
-                        last_interaction.merge(interaction);
+                while let Some(new_interaction) = interaction.take() {
+                    if let Some(Instruction::Interact(last_interaction)) =
+                        self.instructions.pop()
+                    {
+                        let (merged_interaction, new_interaction) =
+                            last_interaction.merge(new_interaction);
 
-                    self.instructions
-                        .push(Instruction::Interact(last_interaction));
+                        if let Some(new_interaction) = new_interaction {
+                            self.instructions.push(Instruction::Interact(
+                                merged_interaction,
+                            ));
 
-                    if let Some(new_interaction) = new_interaction {
+                            self.instructions
+                                .push(Instruction::Interact(new_interaction));
+                        } else {
+                            interaction = Some(merged_interaction);
+                        }
+                    } else {
                         self.instructions
                             .push(Instruction::Interact(new_interaction));
                     }
-                } else {
-                    self.instructions.push(Instruction::Interact(interaction));
                 }
 
                 Task::none()
