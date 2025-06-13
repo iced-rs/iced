@@ -127,6 +127,22 @@ impl Interaction {
                             None,
                         )
                     }
+                    (
+                        current @ Mouse::Release {
+                            button: button_a,
+                            at: at_a,
+                        }
+                        | current @ Mouse::Click {
+                            button: button_a,
+                            at: at_a,
+                        },
+                        Mouse::Release {
+                            button: button_b,
+                            at: at_b,
+                        },
+                    ) if button_a == button_b && at_a == at_b => {
+                        (Self::Mouse(current), None)
+                    }
                     (current, next) => {
                         (Self::Mouse(current), Some(Self::Mouse(next)))
                     }
