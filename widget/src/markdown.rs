@@ -562,7 +562,8 @@ fn parse_with<'a>(
                 match Url::parse(&dest_url) {
                     Ok(url)
                         if url.scheme() == "http"
-                            || url.scheme() == "https" =>
+                            || url.scheme() == "https"
+                            || url.scheme() == "mailto" =>
                     {
                         link = Some(url);
                     }
