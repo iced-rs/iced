@@ -603,16 +603,7 @@ fn parse_with<'a>(
                 None
             }
             pulldown_cmark::Tag::Link { dest_url, .. } if !metadata => {
-                match Url::parse(&dest_url) {
-                    Ok(url)
-                        if url.scheme() == "http"
-                            || url.scheme() == "https" =>
-                    {
-                        link = Some(url);
-                    }
-                    _ => {}
-                }
-
+                link = Url::parse(&dest_url).ok();
                 None
             }
             pulldown_cmark::Tag::Image {
