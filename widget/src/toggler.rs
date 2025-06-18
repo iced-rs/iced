@@ -279,7 +279,11 @@ where
 
         layout::next_to_each_other(
             &limits,
-            self.spacing,
+            if self.label.is_some() {
+                self.spacing
+            } else {
+                0.0
+            },
             |_| layout::Node::new(Size::new(2.0 * self.size, self.size)),
             |limits| {
                 if let Some(label) = self.label.as_deref() {
@@ -420,7 +424,7 @@ where
             .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
-        let space = SPACE_RATIO * bounds.height;
+        let space = (SPACE_RATIO * bounds.height).round();
 
         let toggler_background_bounds = Rectangle {
             x: bounds.x + space,

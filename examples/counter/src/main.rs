@@ -42,7 +42,6 @@ impl Counter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use iced_test::selector::text;
     use iced_test::{Error, simulator};
 
     #[test]
@@ -50,9 +49,9 @@ mod tests {
         let mut counter = Counter { value: 0 };
         let mut ui = simulator(counter.view());
 
-        let _ = ui.click(text("Increment"))?;
-        let _ = ui.click(text("Increment"))?;
-        let _ = ui.click(text("Decrement"))?;
+        let _ = ui.click("Increment")?;
+        let _ = ui.click("Increment")?;
+        let _ = ui.click("Decrement")?;
 
         for message in ui.into_messages() {
             counter.update(message);
@@ -61,7 +60,7 @@ mod tests {
         assert_eq!(counter.value, 1);
 
         let mut ui = simulator(counter.view());
-        assert!(ui.find(text("1")).is_ok(), "Counter should display 1!");
+        assert!(ui.find("1").is_ok(), "Counter should display 1!");
 
         Ok(())
     }

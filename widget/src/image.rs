@@ -64,6 +64,7 @@ pub struct Image<Handle = image::Handle> {
     rotation: Rotation,
     opacity: f32,
     scale: f32,
+    expand: bool,
 }
 
 impl<Handle> Image<Handle> {
@@ -78,6 +79,7 @@ impl<Handle> Image<Handle> {
             rotation: Rotation::default(),
             opacity: 1.0,
             scale: 1.0,
+            expand: false,
         }
     }
 
@@ -90,6 +92,19 @@ impl<Handle> Image<Handle> {
     /// Sets the height of the [`Image`] boundaries.
     pub fn height(mut self, height: impl Into<Length>) -> Self {
         self.height = height.into();
+        self
+    }
+
+    /// Sets whether the [`Image`] should try to fill as much space
+    /// available as possible while keeping aspect ratio and without
+    /// allocating extra space in any axis with a [`Length::Shrink`]
+    /// sizing strategy.
+    ///
+    /// This is similar to using [`Length::Fill`] for both the
+    /// [`width`](Self::width) and the [`height`](Self::height),
+    /// but without the downside of blank space.
+    pub fn expand(mut self, expand: bool) -> Self {
+        self.expand = expand;
         self
     }
 
@@ -141,6 +156,7 @@ pub fn layout<Renderer, Handle>(
     height: Length,
     content_fit: ContentFit,
     rotation: Rotation,
+    expand: bool,
 ) -> layout::Node
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -154,20 +170,24 @@ where
     let rotated_size = rotation.apply(image_size);
 
     // The size to be available to the widget prior to `Shrink`ing
-    let raw_size = limits.resolve(width, height, rotated_size);
+    let bounds = if expand {
+        limits.max()
+    } else {
+        limits.resolve(width, height, rotated_size)
+    };
 
     // The uncropped size of the image when fit to the bounds above
-    let full_size = content_fit.fit(rotated_size, raw_size);
+    let full_size = content_fit.fit(rotated_size, bounds);
 
     // Shrink the widget to fit the resized image, if requested
     let final_size = Size {
         width: match width {
-            Length::Shrink => f32::min(raw_size.width, full_size.width),
-            _ => raw_size.width,
+            Length::Shrink => f32::min(bounds.width, full_size.width),
+            _ => bounds.width,
         },
         height: match height {
-            Length::Shrink => f32::min(raw_size.height, full_size.height),
-            _ => raw_size.height,
+            Length::Shrink => f32::min(bounds.height, full_size.height),
+            _ => bounds.height,
         },
     };
 
@@ -309,6 +329,7 @@ where
             self.height,
             self.content_fit,
             self.rotation,
+            self.expand,
         )
     }
 

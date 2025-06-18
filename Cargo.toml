@@ -55,6 +55,8 @@ smol = ["iced_futures/smol"]
 system = ["iced_winit/system"]
 # Enables broken "sRGB linear" blending to reproduce color management of the Web
 web-colors = ["iced_renderer/web-colors"]
+# Enables pixel snapping for crisp edges by default (can cause jitter!)
+crisp = ["iced_core/crisp", "iced_widget/crisp"]
 # Enables the WebGL backend
 webgl = ["iced_renderer/webgl"]
 # Enables syntax highligthing
@@ -222,6 +224,8 @@ unused_results = "deny"
 [workspace.lints.clippy]
 type-complexity = "allow"
 map-entry = "allow"
+large-enum-variant = "allow"
+result_large_err = "allow"
 semicolon_if_nothing_returned = "deny"
 trivially-copy-pass-by-ref = "deny"
 default_trait_access = "deny"

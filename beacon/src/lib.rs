@@ -13,6 +13,7 @@ pub use span::Span;
 use crate::core::theme;
 use crate::core::time::{Duration, SystemTime};
 use crate::error::Error;
+use crate::span::present;
 
 use futures::{SinkExt, Stream};
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
@@ -128,8 +129,9 @@ pub fn run() -> impl Stream<Item = Event> {
             let mut last_update_number = 0;
             let mut last_tasks = 0;
             let mut last_subscriptions = 0;
-            let mut last_present_window = None;
             let mut last_present_layers = 0;
+            let mut last_prepare = present::Stage::default();
+            let mut last_render = present::Stage::default();
 
             drop(task::spawn(async move {
                 let mut last_message_number = None;
@@ -215,11 +217,6 @@ pub fn run() -> impl Stream<Item = Event> {
                                         last_message.clear();
                                         last_tasks = 0;
                                     }
-                                    client::Event::SpanStarted(
-                                        span::Stage::Present(window),
-                                    ) => {
-                                        last_present_window = Some(window);
-                                    }
                                     client::Event::SpanStarted(_) => {}
                                     client::Event::SpanFinished(
                                         stage,
@@ -249,35 +246,44 @@ pub fn run() -> impl Stream<Item = Event> {
                                             span::Stage::Draw(window) => {
                                                 Span::Draw { window }
                                             }
-                                            span::Stage::Prepare(primitive) => {
-                                                let Some(window) =
-                                                    last_present_window
-                                                else {
-                                                    continue;
+                                            span::Stage::Prepare(primitive)
+                                            | span::Stage::Render(primitive) => {
+                                                let stage = if matches!(
+                                                    stage,
+                                                    span::Stage::Prepare(_),
+                                                ) {
+                                                    &mut last_prepare
+                                                } else {
+                                                    &mut last_render
                                                 };
 
-                                                Span::Prepare {
-                                                    window,
-                                                    primitive,
-                                                }
-                                            }
-                                            span::Stage::Render(primitive) => {
-                                                let Some(window) =
-                                                    last_present_window
-                                                else {
-                                                    continue;
+                                                let primitive = match primitive {
+                                                    present::Primitive::Quad => &mut stage.quads,
+                                                    present::Primitive::Triangle => &mut stage.triangles,
+                                                    present::Primitive::Shader => &mut stage.shaders,
+                                                    present::Primitive::Text => &mut stage.text,
+                                                    present::Primitive::Image => &mut stage.images,
                                                 };
 
-                                                Span::Render {
-                                                    window,
-                                                    primitive,
-                                                }
+                                                *primitive += duration;
+
+                                                continue;
                                             }
                                             span::Stage::Present(window) => {
-                                                Span::Present {
+                                                let span = Span::Present {
                                                     window,
+                                                    prepare: last_prepare,
+                                                    render: last_render,
                                                     layers: last_present_layers,
-                                                }
+                                                };
+
+                                                last_prepare =
+                                                    present::Stage::default();
+                                                last_render =
+                                                    present::Stage::default();
+                                                last_present_layers = 0;
+
+                                                span
                                             }
                                             span::Stage::Custom(name) => {
                                                 Span::Custom { name }

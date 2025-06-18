@@ -577,7 +577,7 @@ mod tests {
     use super::*;
 
     use iced::{Settings, Theme};
-    use iced_test::selector::text;
+    use iced_test::selector::id;
     use iced_test::{Error, Simulator};
 
     fn simulator(todos: &Todos) -> Simulator<Message> {
@@ -596,7 +596,7 @@ mod tests {
         let _command = todos.update(Message::Loaded(Err(LoadError::File)));
 
         let mut ui = simulator(&todos);
-        let _input = ui.click("new-task")?;
+        let _input = ui.click(id("new-task"))?;
 
         let _ = ui.typewrite("Create the universe");
         let _ = ui.tap_key(keyboard::key::Named::Enter);
@@ -606,7 +606,7 @@ mod tests {
         }
 
         let mut ui = simulator(&todos);
-        let _ = ui.find(text("Create the universe"))?;
+        let _ = ui.find("Create the universe")?;
 
         let snapshot = ui.snapshot(&Theme::Dark)?;
         assert!(

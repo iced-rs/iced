@@ -1633,20 +1633,24 @@ impl State {
     ) -> Vector {
         Vector::new(
             if let Some(horizontal) = direction.horizontal() {
-                self.offset_x.translation(
-                    bounds.width,
-                    content_bounds.width,
-                    horizontal.alignment,
-                )
+                self.offset_x
+                    .translation(
+                        bounds.width,
+                        content_bounds.width,
+                        horizontal.alignment,
+                    )
+                    .round()
             } else {
                 0.0
             },
             if let Some(vertical) = direction.vertical() {
-                self.offset_y.translation(
-                    bounds.height,
-                    content_bounds.height,
-                    vertical.alignment,
-                )
+                self.offset_y
+                    .translation(
+                        bounds.height,
+                        content_bounds.height,
+                        vertical.alignment,
+                    )
+                    .round()
             } else {
                 0.0
             },

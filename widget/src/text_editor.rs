@@ -465,6 +465,15 @@ where
     }
 }
 
+impl<Renderer> Clone for Content<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn clone(&self) -> Self {
+        Self::with_text(&self.text())
+    }
+}
+
 impl<Renderer> Default for Content<Renderer>
 where
     Renderer: text::Renderer,

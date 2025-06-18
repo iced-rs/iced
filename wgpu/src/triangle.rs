@@ -2,7 +2,7 @@
 mod msaa;
 
 use crate::Buffer;
-use crate::core::{Rectangle, Size, Transformation};
+use crate::core::{Point, Rectangle, Size, Transformation, Vector};
 use crate::graphics::Antialiasing;
 use crate::graphics::mesh::{self, Mesh};
 
@@ -445,10 +445,25 @@ impl Layer {
         let mut index_offset = 0;
 
         for mesh in meshes {
-            let indices = mesh.indices();
+            let clip_bounds = mesh.clip_bounds() * transformation;
+            let snap_distance = clip_bounds
+                .snap()
+                .map(|snapped_bounds| {
+                    Point::new(snapped_bounds.x as f32, snapped_bounds.y as f32)
+                        - clip_bounds.position()
+                })
+                .unwrap_or(Vector::ZERO);
 
-            let uniforms =
-                Uniforms::new(transformation * mesh.transformation());
+            let uniforms = Uniforms::new(
+                transformation
+                    * mesh.transformation()
+                    * Transformation::translate(
+                        snap_distance.x,
+                        snap_distance.y,
+                    ),
+            );
+
+            let indices = mesh.indices();
 
             index_offset += self.index_buffer.write(
                 device,
@@ -595,7 +610,7 @@ fn fragment_target(
 ) -> wgpu::ColorTargetState {
     wgpu::ColorTargetState {
         format: texture_format,
-        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+        blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
         write_mask: wgpu::ColorWrites::ALL,
     }
 }
@@ -754,6 +769,8 @@ mod solid {
                             include_str!("shader/triangle.wgsl"),
                             "\n",
                             include_str!("shader/triangle/solid.wgsl"),
+                            "\n",
+                            include_str!("shader/color.wgsl"),
                         )),
                     ),
                 });
@@ -913,6 +930,8 @@ mod gradient {
                                         "shader/triangle/gradient.wgsl"
                                     ),
                                     "\n",
+                                    include_str!("shader/color.wgsl"),
+                                    "\n",
                                     include_str!("shader/color/oklab.wgsl")
                                 )
                             } else {
@@ -922,6 +941,8 @@ mod gradient {
                                     include_str!(
                                         "shader/triangle/gradient.wgsl"
                                     ),
+                                    "\n",
+                                    include_str!("shader/color.wgsl"),
                                     "\n",
                                     include_str!(
                                         "shader/color/linear_rgb.wgsl"

@@ -257,7 +257,7 @@ where
 
             fn overlay<'b>(
                 &'b mut self,
-                layout: Layout<'_>,
+                layout: Layout<'b>,
                 renderer: &Renderer,
             ) -> Option<overlay::Element<'b, Message, Theme, Renderer>>
             {

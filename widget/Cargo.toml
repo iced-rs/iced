@@ -28,6 +28,7 @@ markdown = ["dep:pulldown-cmark", "dep:url"]
 highlighter = ["dep:iced_highlighter"]
 advanced = []
 animations = []
+crisp = []
 
 [dependencies]
 iced_renderer.workspace = true

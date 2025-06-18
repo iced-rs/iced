@@ -384,6 +384,7 @@ where
                     bounds,
                     border: style.border,
                     shadow: style.shadow,
+                    snap: style.snap,
                 },
                 style
                     .background
@@ -492,6 +493,8 @@ pub struct Style {
     pub border: Border,
     /// The [`Shadow`] of the button.
     pub shadow: Shadow,
+    /// Whether the button should be snapped to the pixel grid.
+    pub snap: bool,
 }
 
 impl Style {
@@ -511,6 +514,7 @@ impl Default for Style {
             text_color: Color::BLACK,
             border: Border::default(),
             shadow: Shadow::default(),
+            snap: cfg!(feature = "crisp"),
         }
     }
 }
