@@ -130,7 +130,7 @@ impl Example {
         }
     }
 
-    fn view(&self, window_id: window::Id) -> Element<Message> {
+    fn view(&self, window_id: window::Id) -> Element<'_, Message> {
         if let Some(window) = self.windows.get(&window_id) {
             center(window.view(window_id)).into()
         } else {
@@ -168,7 +168,7 @@ impl Window {
         }
     }
 
-    fn view(&self, id: window::Id) -> Element<Message> {
+    fn view(&self, id: window::Id) -> Element<'_, Message> {
         let scale_input = column![
             text("Window scale factor:"),
             text_input("Window Scale", &self.scale_input)

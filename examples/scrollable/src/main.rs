@@ -118,7 +118,7 @@ impl ScrollableDemo {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let scrollbar_width_slider = slider(
             0..=15,
             self.scrollbar_width,

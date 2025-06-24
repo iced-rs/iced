@@ -63,7 +63,7 @@ impl QRGenerator {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let title = text("QR Code Generator").size(70);
 
         let input =

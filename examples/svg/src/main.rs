@@ -24,7 +24,7 @@ impl Tiger {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let handle = svg::Handle::from_path(format!(
             "{}/resources/tiger.svg",
             env!("CARGO_MANIFEST_DIR")

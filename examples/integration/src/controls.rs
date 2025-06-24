@@ -38,7 +38,7 @@ impl Controls {
         }
     }
 
-    pub fn view(&self) -> Element<Message, Theme, Renderer> {
+    pub fn view(&self) -> Element<'_, Message, Theme, Renderer> {
         let background_color = self.background_color;
 
         let sliders = row![

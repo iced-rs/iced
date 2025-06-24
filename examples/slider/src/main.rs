@@ -27,7 +27,7 @@ impl Slider {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let h_slider = container(
             slider(1..=100, self.value, Message::SliderChanged)
                 .default(50)

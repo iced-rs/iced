@@ -48,7 +48,7 @@ impl Clock {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let canvas = canvas(self as &Self).width(Fill).height(Fill);
 
         container(canvas).padding(20).into()

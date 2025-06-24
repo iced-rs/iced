@@ -339,8 +339,8 @@ impl Span {
 ///
 ///     fn view(&self) -> Element<'_, Message> {
 ///         markdown::view(&self.markdown, Theme::TokyoNight)
-///            .map(Message::LinkClicked)
-///            .into()
+///             .map(Message::LinkClicked)
+///             .into()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {

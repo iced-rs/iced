@@ -48,7 +48,7 @@ impl VectorialText {
         self.state.cache.clear();
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let slider_with_label = |label, range, value, message: fn(f32) -> _| {
             column![
                 row![text(label), horizontal_space(), text!("{:.2}", value)],
