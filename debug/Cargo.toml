@@ -11,7 +11,8 @@ categories.workspace = true
 keywords.workspace = true
 
 [features]
-enable = ["dep:iced_beacon", "dep:cargo-hot"]
+enable = ["dep:iced_beacon"]
+hot = ["enable", "dep:cargo-hot"]
 
 [dependencies]
 iced_core.workspace = true
