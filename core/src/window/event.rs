@@ -71,4 +71,7 @@ pub enum Event {
     ///
     /// - **Wayland:** Not implemented.
     FilesHoveredLeft,
+
+    /// A window's scale factor was changed.
+    ScaleFactorChanged(f64),
 }
