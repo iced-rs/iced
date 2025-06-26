@@ -613,12 +613,11 @@ mod toast {
                             &self.viewport,
                             renderer,
                         )
-                        .max(
-                            cursor
-                                .is_over(layout.bounds())
-                                .then_some(mouse::Interaction::Idle)
-                                .unwrap_or_default(),
-                        )
+                        .max(if cursor.is_over(layout.bounds()) {
+                            mouse::Interaction::Idle
+                        } else {
+                            Default::default()
+                        })
                 })
                 .max()
                 .unwrap_or_default()

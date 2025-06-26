@@ -297,11 +297,11 @@ where
     }
 
     fn drag_enabled(&self) -> bool {
-        self.internal
-            .maximized()
-            .is_none()
-            .then(|| self.on_drag.is_some())
-            .unwrap_or_default()
+        if self.internal.maximized().is_none() {
+            self.on_drag.is_some()
+        } else {
+            Default::default()
+        }
     }
 
     fn grid_interaction(

@@ -166,7 +166,7 @@ impl<Message> canvas::Program<Message> for Clock {
                 let y = radius * angle.0.sin();
 
                 frame.fill_text(canvas::Text {
-                    content: format!("{}", hour),
+                    content: format!("{hour}"),
                     size: (radius / 5.0).into(),
                     position: Point::new(x * 0.82, y * 0.82),
                     color: palette.secondary.strong.text,

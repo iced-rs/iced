@@ -810,7 +810,7 @@ async fn run_instance<P>(
                             Err(error) => match error {
                                 // This is an unrecoverable error.
                                 compositor::SurfaceError::OutOfMemory => {
-                                    panic!("{:?}", error);
+                                    panic!("{error:?}");
                                 }
                                 _ => {
                                     present_span.finish();

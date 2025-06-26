@@ -76,7 +76,7 @@ impl Tour {
             Screen::End => "End",
         };
 
-        format!("{} - Iced", screen)
+        format!("{screen} - Iced")
     }
 
     fn update(&mut self, event: Message) {
