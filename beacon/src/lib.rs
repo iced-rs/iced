@@ -21,6 +21,15 @@ use tokio::net;
 use tokio::sync::mpsc;
 use tokio::task;
 
+/// Defines a helper to retrieve the connection address from an envvar and
+/// fallback to default otherwise.
+pub fn server_address_from_env() -> String {
+    const SERVER_ADDRESS_DEFAULT: &str = "127.0.0.1:9167";
+
+    std::env::var("ICED_BEACON_SERVER_ADDRESS")
+        .unwrap_or_else(|_| String::from(SERVER_ADDRESS_DEFAULT))
+}
+
 #[derive(Debug, Clone)]
 pub struct Connection {
     commands: mpsc::Sender<client::Command>,
@@ -91,7 +100,7 @@ impl Event {
 }
 
 pub fn is_running() -> bool {
-    std::net::TcpListener::bind(client::SERVER_ADDRESS).is_err()
+    std::net::TcpListener::bind(server_address_from_env()).is_err()
 }
 
 pub fn run() -> impl Stream<Item = Event> {
@@ -99,7 +108,7 @@ pub fn run() -> impl Stream<Item = Event> {
         let mut buffer = Vec::new();
 
         let server = loop {
-            match net::TcpListener::bind(client::SERVER_ADDRESS).await {
+            match net::TcpListener::bind(server_address_from_env()).await {
                 Ok(server) => break server,
                 Err(error) => {
                     if error.kind() == io::ErrorKind::AddrInUse {
