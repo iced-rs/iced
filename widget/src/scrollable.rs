@@ -438,7 +438,7 @@ where
                 },
                 |limits| {
                     let child_limits = layout::Limits::new(
-                        Size::new(limits.min().width, limits.min().height),
+                        limits.min(),
                         Size::new(
                             if self.direction.horizontal().is_some() {
                                 f32::INFINITY
