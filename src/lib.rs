@@ -540,7 +540,7 @@ pub mod debug {
 
 pub mod task {
     //! Create runtime tasks.
-    pub use crate::runtime::task::{Handle, Task};
+    pub use crate::runtime::task::{Handle, Task, widget};
 
     #[cfg(feature = "sipper")]
     pub use crate::runtime::task::{Never, Sipper, Straw, sipper, stream};
