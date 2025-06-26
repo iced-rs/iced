@@ -10,6 +10,7 @@ use crate::{
 };
 
 use std::borrow::Borrow;
+use std::iter::Cycle;
 
 /// A generic [`Widget`].
 ///
@@ -206,7 +207,7 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     /// This can be very useful for debugging your layout!
     ///
     /// [`Renderer`]: crate::Renderer
-    pub fn explain<C: Into<Color>>(
+    pub fn explain<C: Into<ExplainColor>>(
         self,
         color: C,
     ) -> Element<'a, Message, Theme, Renderer>
@@ -381,7 +382,7 @@ where
 
 struct Explain<'a, Message, Theme, Renderer: crate::Renderer> {
     element: Element<'a, Message, Theme, Renderer>,
-    color: Color,
+    color: ExplainColor,
 }
 
 impl<'a, Message, Theme, Renderer> Explain<'a, Message, Theme, Renderer>
@@ -390,7 +391,7 @@ where
 {
     fn new(
         element: Element<'a, Message, Theme, Renderer>,
-        color: Color,
+        color: ExplainColor,
     ) -> Self {
         Explain { element, color }
     }
@@ -474,14 +475,14 @@ where
     ) {
         fn explain_layout<Renderer: crate::Renderer>(
             renderer: &mut Renderer,
-            color: Color,
+            mut color: ExplainIterator,
             layout: Layout<'_>,
         ) {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
                     border: Border {
-                        color,
+                        color: color.next().unwrap(),
                         width: 1.0,
                         ..Border::default()
                     },
@@ -491,7 +492,7 @@ where
             );
 
             for child in layout.children() {
-                explain_layout(renderer, color, child);
+                explain_layout(renderer, color.clone(), child);
             }
         }
 
@@ -499,7 +500,9 @@ where
             .widget
             .draw(state, renderer, theme, style, layout, cursor, viewport);
 
-        explain_layout(renderer, self.color, layout);
+        renderer.with_layer(Rectangle::INFINITE, |renderer| {
+            explain_layout(renderer, self.color.into_iter(), layout);
+        });
     }
 
     fn mouse_interaction(
@@ -530,5 +533,64 @@ where
             viewport,
             translation,
         )
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+/// What color to use when explaining the layout of an [`Element`].
+pub enum ExplainColor {
+    /// Use a single color for this element and its children
+    Color(Color),
+    /// Cycle through the colors of the rainbow for every child of this element
+    Rainbow,
+}
+
+impl<C> From<C> for ExplainColor
+where
+    C: Into<Color>,
+{
+    fn from(color: C) -> Self {
+        Self::Color(color.into())
+    }
+}
+
+impl IntoIterator for ExplainColor {
+    type Item = Color;
+    type IntoIter = ExplainIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        const RAINBOW: [Color; 6] = [
+            Color::from_rgb8(235, 134, 149), // Red
+            Color::from_rgb8(243, 167, 126), // Orange
+            Color::from_rgb8(233, 207, 157), // Yellow
+            Color::from_rgb8(165, 217, 148), // Green
+            Color::from_rgb8(121, 189, 221), // Blue
+            Color::from_rgb8(193, 157, 241), // Purple
+        ];
+        match self {
+            ExplainColor::Rainbow => {
+                ExplainIterator::Rainbow(RAINBOW.into_iter().cycle())
+            }
+            ExplainColor::Color(color) => ExplainIterator::Color(color),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+/// A never-ending iterator that either returns a single color every time
+/// or cycles through the colors of the rainbow on each call to [`Iterator::next`].
+pub enum ExplainIterator {
+    Rainbow(Cycle<std::array::IntoIter<Color, 6>>),
+    Color(Color),
+}
+
+impl Iterator for ExplainIterator {
+    type Item = Color;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            ExplainIterator::Rainbow(rainbow) => rainbow.next(),
+            ExplainIterator::Color(color) => Some(*color),
+        }
     }
 }

@@ -7,8 +7,8 @@ use iced::widget::{
     text, vertical_rule,
 };
 use iced::{
-    Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink,
-    Subscription, Theme, color,
+    Center, Element, ExplainColor, Fill, Font, Length, Point, Rectangle,
+    Renderer, Shrink, Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -80,7 +80,7 @@ impl Layout {
         .align_y(Center);
 
         let example = center(if self.explain {
-            self.example.view().explain(color!(0x0000ff))
+            self.example.view().explain(ExplainColor::Rainbow)
         } else {
             self.example.view()
         })
