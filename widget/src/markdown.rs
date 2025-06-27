@@ -51,8 +51,8 @@ use crate::core::{
     self, Color, Element, Length, Padding, Pixels, Theme, color,
 };
 use crate::{
-    column, container, rich_text, row, rule, scrollable, span, text,
-    vertical_rule,
+    column, container, horizontal_rule, rich_text, row, rule, scrollable, span,
+    text, vertical_rule,
 };
 
 use std::borrow::BorrowMut;
@@ -213,6 +213,8 @@ pub enum Item {
     },
     /// A quote.
     Quote(Vec<Item>),
+    /// A horizontal separator.
+    Rule,
 }
 
 /// A bunch of parsed Markdown text.
@@ -877,6 +879,9 @@ fn parse_with<'a>(
             });
             None
         }
+        pulldown_cmark::Event::Rule => {
+            produce(state.borrow_mut(), &mut stack, Item::Rule, source)
+        }
         _ => None,
     })
 }
@@ -1107,6 +1112,7 @@ where
             items,
         } => viewer.ordered_list(settings, *start, items),
         Item::Quote(quote) => viewer.quote(settings, quote),
+        Item::Rule => viewer.rule(settings),
     }
 }
 
@@ -1296,6 +1302,17 @@ where
     .into()
 }
 
+/// Displays a rule using the default look.
+pub fn rule<'a, Message, Theme, Renderer>()
+-> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    horizontal_rule(2).into()
+}
+
 /// A view strategy to display a Markdown [`Item`].
 pub trait Viewer<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
@@ -1401,6 +1418,16 @@ where
         contents: &'a [Item],
     ) -> Element<'a, Message, Theme, Renderer> {
         quote(self, settings, contents)
+    }
+
+    /// Displays a rule.
+    ///
+    /// By default, it calls [`rule`](self::rule()).
+    fn rule(
+        &self,
+        _settings: Settings,
+    ) -> Element<'a, Message, Theme, Renderer> {
+        rule()
     }
 }
 
