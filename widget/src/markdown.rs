@@ -1394,7 +1394,7 @@ where
 
     /// Displays a quote.
     ///
-    /// By default, it call [`quote`].
+    /// By default, it calls [`quote`].
     fn quote(
         &self,
         settings: Settings,
