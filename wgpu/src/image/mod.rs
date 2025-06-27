@@ -605,8 +605,8 @@ fn add_instance(
         _rotation: rotation,
         _opacity: opacity,
         _position_in_atlas: [
-            (x as f32 + 0.5) / atlas::SIZE as f32,
-            (y as f32 + 0.5) / atlas::SIZE as f32,
+            (x as f32) / atlas::SIZE as f32,
+            (y as f32) / atlas::SIZE as f32,
         ],
         _size_in_atlas: [
             (width as f32 - 1.0) / atlas::SIZE as f32,
