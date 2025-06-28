@@ -594,6 +594,7 @@ pub fn tap_key(
             location: keyboard::Location::Standard,
             modifiers: keyboard::Modifiers::default(),
             text,
+            repeat: false,
         }),
         Event::Keyboard(keyboard::Event::KeyReleased {
             key: key.clone(),
