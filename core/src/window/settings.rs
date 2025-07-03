@@ -33,7 +33,7 @@ pub use platform::PlatformSpecific;
 #[derive(Debug, Clone)]
 pub struct Settings {
     /// The initial logical dimensions of the window.
-    pub size: Size,
+    pub size: crate::window::Size,
 
     /// Whether the window should start maximized.
     pub maximized: bool,
@@ -85,7 +85,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            size: Size::new(1024.0, 768.0),
+            size: crate::window::Size::default(),
             maximized: false,
             fullscreen: false,
             position: Position::default(),

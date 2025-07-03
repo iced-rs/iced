@@ -34,9 +34,7 @@ use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
 use crate::window;
-use crate::{
-    Element, Executor, Font, Result, Settings, Size, Subscription, Task,
-};
+use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
 
 use iced_debug as debug;
 
@@ -255,7 +253,7 @@ impl<P: Program> Application<P> {
     }
 
     /// Sets the [`window::Settings::size`] of the [`Application`].
-    pub fn window_size(self, size: impl Into<Size>) -> Self {
+    pub fn window_size(self, size: impl Into<window::Size>) -> Self {
         Self {
             window: window::Settings {
                 size: size.into(),
