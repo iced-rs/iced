@@ -130,7 +130,7 @@ impl Example {
         }
     }
 
-    fn view(&self, window_id: window::Id) -> Element<Message> {
+    fn view(&self, window_id: window::Id) -> Element<'_, Message> {
         if let Some(window) = self.windows.get(&window_id) {
             center(window.view(window_id)).into()
         } else {
@@ -161,14 +161,14 @@ impl Example {
 impl Window {
     fn new(count: usize) -> Self {
         Self {
-            title: format!("Window_{}", count),
+            title: format!("Window_{count}"),
             scale_input: "1.0".to_string(),
             current_scale: 1.0,
             theme: Theme::ALL[count % Theme::ALL.len()].clone(),
         }
     }
 
-    fn view(&self, id: window::Id) -> Element<Message> {
+    fn view(&self, id: window::Id) -> Element<'_, Message> {
         let scale_input = column![
             text("Window scale factor:"),
             text_input("Window Scale", &self.scale_input)

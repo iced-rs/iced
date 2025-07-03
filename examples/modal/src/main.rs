@@ -92,7 +92,7 @@ impl App {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let content = container(
             column![
                 row![text("Top Left"), horizontal_space(), text("Top Right")]

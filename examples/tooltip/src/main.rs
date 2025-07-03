@@ -33,7 +33,7 @@ impl Tooltip {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let tooltip = tooltip(
             button("Press to change position")
                 .on_press(Message::ChangePosition),

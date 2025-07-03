@@ -129,7 +129,7 @@ impl Example {
         })
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let focus = self.focus;
         let total_panes = self.panes.len();
 

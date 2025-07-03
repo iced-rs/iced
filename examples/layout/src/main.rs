@@ -68,7 +68,7 @@ impl Layout {
         })
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let header = row![
             text(self.example.title).size(20).font(Font::MONOSPACE),
             horizontal_space(),
@@ -121,7 +121,7 @@ impl Layout {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Eq)]
 struct Example {
     title: &'static str,
     view: fn() -> Element<'static, Message>,
@@ -190,7 +190,7 @@ impl Example {
         Self::LIST.get(index + 1).copied().unwrap_or(self)
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         (self.view)()
     }
 }
@@ -198,6 +198,12 @@ impl Example {
 impl Default for Example {
     fn default() -> Self {
         Self::LIST[0]
+    }
+}
+
+impl PartialEq for Example {
+    fn eq(&self, other: &Self) -> bool {
+        self.title == other.title
     }
 }
 

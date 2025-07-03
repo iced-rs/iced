@@ -85,6 +85,15 @@ where
 
     let (proxy, worker) = Proxy::new(event_loop.create_proxy());
 
+    #[cfg(feature = "debug")]
+    {
+        let proxy = proxy.clone();
+
+        debug::on_hotpatch(move || {
+            proxy.send_action(Action::Reload);
+        });
+    }
+
     let mut runtime = {
         let executor =
             P::Executor::new().map_err(Error::ExecutorCreationFailed)?;
@@ -527,7 +536,7 @@ async fn run_instance<P>(
 
                     let create_compositor = {
                         let window = window.clone();
-                        let mut proxy = proxy.clone();
+                        let proxy = proxy.clone();
                         let default_fonts = default_fonts.clone();
 
                         async move {
@@ -801,7 +810,7 @@ async fn run_instance<P>(
                             Err(error) => match error {
                                 // This is an unrecoverable error.
                                 compositor::SurfaceError::OutOfMemory => {
-                                    panic!("{:?}", error);
+                                    panic!("{error:?}");
                                 }
                                 _ => {
                                     present_span.finish();
@@ -1075,9 +1084,9 @@ fn update<P: Program, E: Executor>(
     runtime.track(recipes);
 }
 
-fn run_action<P, C>(
+fn run_action<'a, P, C>(
     action: Action<P::Message>,
-    program: &program::Instance<P>,
+    program: &'a program::Instance<P>,
     compositor: &mut Option<C>,
     events: &mut Vec<(window::Id, core::Event)>,
     messages: &mut Vec<P::Message>,
@@ -1085,7 +1094,7 @@ fn run_action<P, C>(
     control_sender: &mut mpsc::UnboundedSender<Control>,
     interfaces: &mut FxHashMap<
         window::Id,
-        UserInterface<'_, P::Message, P::Theme, P::Renderer>,
+        UserInterface<'a, P::Message, P::Theme, P::Renderer>,
     >,
     window_manager: &mut WindowManager<P, C>,
     ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
@@ -1435,6 +1444,29 @@ fn run_action<P, C>(
                 compositor.load_font(bytes.clone());
 
                 let _ = channel.send(Ok(()));
+            }
+        }
+        Action::Reload => {
+            for (id, window) in window_manager.iter_mut() {
+                let Some(ui) = interfaces.remove(&id) else {
+                    continue;
+                };
+
+                let cache = ui.into_cache();
+                let size = window.size();
+
+                let _ = interfaces.insert(
+                    id,
+                    build_user_interface(
+                        program,
+                        cache,
+                        &mut window.renderer,
+                        size,
+                        id,
+                    ),
+                );
+
+                window.raw.request_redraw();
             }
         }
         Action::Exit => {

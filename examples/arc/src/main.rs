@@ -36,7 +36,7 @@ impl Arc {
         self.cache.clear();
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         Canvas::new(self).width(Fill).height(Fill).into()
     }
 

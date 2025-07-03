@@ -182,7 +182,7 @@ impl Todos {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         match self {
             Todos::Loading => loading_message(),
             Todos::Loaded(State {
@@ -334,7 +334,7 @@ impl Task {
         }
     }
 
-    fn view(&self, i: usize) -> Element<TaskMessage> {
+    fn view(&self, i: usize) -> Element<'_, TaskMessage> {
         match &self.state {
             TaskState::Idle => {
                 let checkbox = checkbox(&self.description, self.completed)
@@ -381,7 +381,10 @@ impl Task {
     }
 }
 
-fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
+fn view_controls(
+    tasks: &[Task],
+    current_filter: Filter,
+) -> Element<'_, Message> {
     let tasks_left = tasks.iter().filter(|task| !task.completed).count();
 
     let filter_button = |label, filter, current_filter| {
@@ -580,7 +583,7 @@ mod tests {
     use iced_test::selector::id;
     use iced_test::{Error, Simulator};
 
-    fn simulator(todos: &Todos) -> Simulator<Message> {
+    fn simulator(todos: &Todos) -> Simulator<'_, Message> {
         Simulator::with_settings(
             Settings {
                 fonts: vec![Todos::ICON_FONT.into()],

@@ -56,7 +56,7 @@ impl ColorPalette {
         self.theme = Theme::new(to_color(srgb));
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let base = self.theme.base;
 
         let srgb = to_rgb(base);
@@ -149,7 +149,7 @@ impl Theme {
             .chain(self.higher.iter())
     }
 
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<'_, Message> {
         Canvas::new(self).width(Fill).height(Fill).into()
     }
 
@@ -296,7 +296,7 @@ trait ColorSpace: Sized {
 }
 
 impl<C: ColorSpace + Copy> ColorPicker<C> {
-    fn view(&self, color: C) -> Element<C> {
+    fn view(&self, color: C) -> Element<'_, C> {
         let [c1, c2, c3] = color.components();
         let [cr1, cr2, cr3] = C::COMPONENT_RANGES;
 

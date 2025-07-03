@@ -144,7 +144,7 @@ impl Editor {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let controls = row![
             action(new_icon(), "New file", Some(Message::NewFile)),
             action(

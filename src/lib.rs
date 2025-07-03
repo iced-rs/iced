@@ -34,7 +34,7 @@
 //!     iced::run(update, view)
 //! }
 //! # fn update(state: &mut (), message: ()) {}
-//! # fn view(state: &()) -> iced::Element<()> { iced::widget::text("").into() }
+//! # fn view(state: &()) -> iced::Element<'_, ()> { iced::widget::text("").into() }
 //! ```
 //!
 //! Define an `update` function to __change__ your state:
@@ -55,7 +55,7 @@
 //! use iced::widget::{button, text};
 //! use iced::Element;
 //!
-//! fn view(counter: &u64) -> Element<Message> {
+//! fn view(counter: &u64) -> Element<'_, Message> {
 //!     button(text(counter)).on_press(Message::Increment).into()
 //! }
 //! # #[derive(Clone)]
@@ -95,7 +95,7 @@
 //!     }
 //! }
 //!
-//! fn view(counter: &Counter) -> Element<Message> {
+//! fn view(counter: &Counter) -> Element<'_, Message> {
 //!     button(text(counter.value)).on_press(Message::Increment).into()
 //! }
 //! ```
@@ -115,7 +115,7 @@
 //! use iced::widget::{button, column, text};
 //! use iced::Element;
 //!
-//! fn view(counter: &Counter) -> Element<Message> {
+//! fn view(counter: &Counter) -> Element<'_, Message> {
 //!     column![
 //!         text(counter.value).size(20),
 //!         button("Increment").on_press(Message::Increment),
@@ -144,7 +144,7 @@
 //! use iced::widget::{column, container, row};
 //! use iced::{Fill, Element};
 //!
-//! fn view(state: &State) -> Element<Message> {
+//! fn view(state: &State) -> Element<'_, Message> {
 //!     container(
 //!         column![
 //!             "Top",
@@ -187,7 +187,7 @@
 //! use iced::widget::container;
 //! use iced::Element;
 //!
-//! fn view(state: &State) -> Element<Message> {
+//! fn view(state: &State) -> Element<'_, Message> {
 //!     container("I am 300px tall!").height(300).into()
 //! }
 //! ```
@@ -216,7 +216,7 @@
 //!     Theme::TokyoNight
 //! }
 //! # fn update(state: &mut State, message: ()) {}
-//! # fn view(state: &State) -> iced::Element<()> { iced::widget::text("").into() }
+//! # fn view(state: &State) -> iced::Element<'_, ()> { iced::widget::text("").into() }
 //! ```
 //!
 //! The `theme` function takes the current state of the application, allowing the
@@ -237,7 +237,7 @@
 //! use iced::widget::container;
 //! use iced::Element;
 //!
-//! fn view(state: &State) -> Element<Message> {
+//! fn view(state: &State) -> Element<'_, Message> {
 //!     container("I am a rounded box!").style(container::rounded_box).into()
 //! }
 //! ```
@@ -252,7 +252,7 @@
 //! use iced::widget::button;
 //! use iced::{Element, Theme};
 //!
-//! fn view(state: &State) -> Element<Message> {
+//! fn view(state: &State) -> Element<'_, Message> {
 //!     button("I am a styled button!").style(|theme: &Theme, status| {
 //!         let palette = theme.extended_palette();
 //!
@@ -359,7 +359,7 @@
 //! }
 //! # fn new() -> State { State }
 //! # fn update(state: &mut State, message: Message) {}
-//! # fn view(state: &State) -> iced::Element<Message> { iced::widget::text("").into() }
+//! # fn view(state: &State) -> iced::Element<'_, Message> { iced::widget::text("").into() }
 //! ```
 //!
 //! A [`Subscription`] is [a _declarative_ builder of streams](Subscription#the-lifetime-of-a-subscription)
@@ -452,7 +452,7 @@
 //!     }
 //! }
 //!
-//! fn view(state: &State) -> Element<Message> {
+//! fn view(state: &State) -> Element<'_, Message> {
 //!     match &state.screen {
 //!         Screen::Contacts(contacts) => contacts.view().map(Message::Contacts),
 //!         Screen::Conversation(conversation) => conversation.view().map(Message::Conversation),

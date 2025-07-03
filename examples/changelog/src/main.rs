@@ -217,7 +217,7 @@ impl Generator {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         match self {
             Self::Loading => center("Loading...").into(),
             Self::Done => center(

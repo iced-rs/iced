@@ -96,7 +96,7 @@ impl Compositor {
         let adapter = instance
             .request_adapter(&adapter_options)
             .await
-            .ok_or(Error::NoAdapterFound(format!("{:?}", adapter_options)))?;
+            .ok_or(Error::NoAdapterFound(format!("{adapter_options:?}")))?;
 
         log::info!("Selected: {:#?}", adapter.get_info());
 

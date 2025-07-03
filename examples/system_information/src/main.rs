@@ -47,7 +47,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         use bytesize::ByteSize;
 
         let content: Element<_> = match self {

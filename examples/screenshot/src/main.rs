@@ -174,7 +174,7 @@ impl Example {
                     |png_result| match png_result {
                         Ok(path) => format!("Png saved as: {path:?}!"),
                         Err(PngError(error)) => {
-                            format!("Png could not be saved due to:\n{}", error)
+                            format!("Png could not be saved due to:\n{error}")
                         }
                     },
                 );

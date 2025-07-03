@@ -74,7 +74,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let border::Radius {
             top_left,
             top_right,

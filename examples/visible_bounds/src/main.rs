@@ -59,7 +59,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let data_row = |label, value, color| {
             row![
                 text(label),

@@ -65,7 +65,7 @@ impl Styling {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let choose_theme = column![
             text("Theme:"),
             pick_list(Theme::ALL, Some(&self.theme), Message::ThemeChanged)
@@ -126,7 +126,7 @@ impl Styling {
 
         let content = column![
             choose_theme,
-            horizontal_rule(38),
+            horizontal_rule(1),
             text_input,
             row![primary, success, warning, danger]
                 .spacing(10)
@@ -135,8 +135,8 @@ impl Styling {
             progress_bar(),
             row![
                 scrollable,
-                vertical_rule(38),
-                column![checkbox, toggler].spacing(20)
+                row![vertical_rule(1), column![checkbox, toggler].spacing(20)]
+                    .spacing(20)
             ]
             .spacing(10)
             .height(100)

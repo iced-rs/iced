@@ -51,7 +51,7 @@ impl Gradient {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let Self {
             start,
             end,

@@ -30,7 +30,7 @@ impl Loupe {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         center(loupe(
             3.0,
             column![

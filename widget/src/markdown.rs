@@ -50,7 +50,10 @@ use crate::core::theme;
 use crate::core::{
     self, Color, Element, Length, Padding, Pixels, Theme, color,
 };
-use crate::{column, container, rich_text, row, scrollable, span, text};
+use crate::{
+    column, container, horizontal_rule, rich_text, row, rule, scrollable, span,
+    text, vertical_rule,
+};
 
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
@@ -208,6 +211,10 @@ pub enum Item {
         /// The alternative text of the image.
         alt: Text,
     },
+    /// A quote.
+    Quote(Vec<Item>),
+    /// A horizontal separator.
+    Rule,
 }
 
 /// A bunch of parsed Markdown text.
@@ -339,8 +346,8 @@ impl Span {
 ///
 ///     fn view(&self) -> Element<'_, Message> {
 ///         markdown::view(&self.markdown, Theme::TokyoNight)
-///            .map(Message::LinkClicked)
-///            .into()
+///             .map(Message::LinkClicked)
+///             .into()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -454,6 +461,7 @@ fn parse_with<'a>(
 ) -> impl Iterator<Item = (Item, &'a str, HashSet<String>)> + 'a {
     enum Scope {
         List(List),
+        Quote(Vec<Item>),
     }
 
     struct List {
@@ -523,6 +531,9 @@ fn parse_with<'a>(
             match scope {
                 Scope::List(list) => {
                     list.items.last_mut().expect("item context").push(item);
+                }
+                Scope::Quote(items) => {
+                    items.push(item);
                 }
             }
 
@@ -604,6 +615,22 @@ fn parse_with<'a>(
                 }
 
                 None
+            }
+            pulldown_cmark::Tag::BlockQuote(_kind) if !metadata && !table => {
+                let prev = if spans.is_empty() {
+                    None
+                } else {
+                    produce(
+                        state.borrow_mut(),
+                        &mut stack,
+                        Item::Paragraph(Text::new(spans.drain(..).collect())),
+                        source,
+                    )
+                };
+
+                stack.push(Scope::Quote(Vec::new()));
+
+                prev
             }
             pulldown_cmark::Tag::CodeBlock(
                 pulldown_cmark::CodeBlockKind::Fenced(language),
@@ -703,7 +730,9 @@ fn parse_with<'a>(
             pulldown_cmark::TagEnd::List(_) if !metadata && !table => {
                 let scope = stack.pop()?;
 
-                let Scope::List(list) = scope;
+                let Scope::List(list) = scope else {
+                    return None;
+                };
 
                 produce(
                     state.borrow_mut(),
@@ -712,6 +741,22 @@ fn parse_with<'a>(
                         start: list.start,
                         items: list.items,
                     },
+                    source,
+                )
+            }
+            pulldown_cmark::TagEnd::BlockQuote(_kind)
+                if !metadata && !table =>
+            {
+                let scope = stack.pop()?;
+
+                let Scope::Quote(quote) = scope else {
+                    return None;
+                };
+
+                produce(
+                    state.borrow_mut(),
+                    &mut stack,
+                    Item::Quote(quote),
                     source,
                 )
             }
@@ -833,6 +878,9 @@ fn parse_with<'a>(
                 code: false,
             });
             None
+        }
+        pulldown_cmark::Event::Rule => {
+            produce(state.borrow_mut(), &mut stack, Item::Rule, source)
         }
         _ => None,
     })
@@ -1063,6 +1111,8 @@ where
             start: Some(start),
             items,
         } => viewer.ordered_list(settings, *start, items),
+        Item::Quote(quote) => viewer.quote(settings, quote),
+        Item::Rule => viewer.rule(settings),
     }
 }
 
@@ -1226,7 +1276,44 @@ where
     .into()
 }
 
-/// A view strategy to display a Markdown [`Item`].j
+/// Displays a quote using the default look.
+pub fn quote<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
+    settings: Settings,
+    contents: &'a [Item],
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    row![
+        vertical_rule(4),
+        column(
+            contents
+                .iter()
+                .enumerate()
+                .map(|(i, content)| item(viewer, settings, content, i)),
+        )
+        .spacing(settings.spacing.0),
+    ]
+    .height(Length::Shrink)
+    .spacing(settings.spacing.0)
+    .into()
+}
+
+/// Displays a rule using the default look.
+pub fn rule<'a, Message, Theme, Renderer>()
+-> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    horizontal_rule(2).into()
+}
+
+/// A view strategy to display a Markdown [`Item`].
 pub trait Viewer<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Self: Sized + 'a,
@@ -1321,6 +1408,27 @@ where
     ) -> Element<'a, Message, Theme, Renderer> {
         ordered_list(self, settings, start, items)
     }
+
+    /// Displays a quote.
+    ///
+    /// By default, it calls [`quote`].
+    fn quote(
+        &self,
+        settings: Settings,
+        contents: &'a [Item],
+    ) -> Element<'a, Message, Theme, Renderer> {
+        quote(self, settings, contents)
+    }
+
+    /// Displays a rule.
+    ///
+    /// By default, it calls [`rule`](self::rule()).
+    fn rule(
+        &self,
+        _settings: Settings,
+    ) -> Element<'a, Message, Theme, Renderer> {
+        rule()
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1338,7 +1446,7 @@ where
 
 /// The theme catalog of Markdown items.
 pub trait Catalog:
-    container::Catalog + scrollable::Catalog + text::Catalog
+    container::Catalog + scrollable::Catalog + rule::Catalog + text::Catalog
 {
     /// The styling class of a Markdown code block.
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a>;

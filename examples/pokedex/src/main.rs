@@ -63,7 +63,7 @@ impl Pokedex {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let content: Element<_> = match self {
             Pokedex::Loading => {
                 text("Searching for Pokémon...").size(40).into()
@@ -100,7 +100,7 @@ struct Pokemon {
 impl Pokemon {
     const TOTAL: u16 = 807;
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         row![
             image::viewer(self.image.clone()),
             column![

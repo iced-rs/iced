@@ -61,7 +61,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let downloads =
             Column::with_children(self.downloads.iter().map(Download::view))
                 .push(
@@ -152,7 +152,7 @@ impl Download {
         }
     }
 
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<'_, Message> {
         let current_progress = match &self.state {
             State::Idle => 0.0,
             State::Downloading { progress, .. } => *progress,

@@ -134,9 +134,7 @@ where
         let style = theme.style(&self.class);
 
         let bounds = if self.is_horizontal {
-            let line_y = (bounds.y + (bounds.height / 2.0)
-                - (style.width as f32 / 2.0))
-                .round();
+            let line_y = (bounds.y + (bounds.height / 2.0)).round();
 
             let (offset, line_width) = style.fill_mode.fill(bounds.width);
             let line_x = bounds.x + offset;
@@ -145,12 +143,10 @@ where
                 x: line_x,
                 y: line_y,
                 width: line_width,
-                height: style.width as f32,
+                height: bounds.height,
             }
         } else {
-            let line_x = (bounds.x + (bounds.width / 2.0)
-                - (style.width as f32 / 2.0))
-                .round();
+            let line_x = (bounds.x + (bounds.width / 2.0)).round();
 
             let (offset, line_height) = style.fill_mode.fill(bounds.height);
             let line_y = bounds.y + offset;
@@ -158,7 +154,7 @@ where
             Rectangle {
                 x: line_x,
                 y: line_y,
-                width: style.width as f32,
+                width: bounds.width,
                 height: line_height,
             }
         };
@@ -192,8 +188,6 @@ where
 pub struct Style {
     /// The color of the rule.
     pub color: Color,
-    /// The width (thickness) of the rule line.
-    pub width: u16,
     /// The radius of the line corners.
     pub radius: border::Radius,
     /// The [`FillMode`] of the rule.
@@ -301,7 +295,6 @@ pub fn default(theme: &Theme) -> Style {
 
     Style {
         color: palette.background.strong.color,
-        width: 1,
         radius: 0.0.into(),
         fill_mode: FillMode::Full,
         snap: true,
