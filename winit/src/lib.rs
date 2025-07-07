@@ -108,7 +108,7 @@ where
     let task = if let Some(window_settings) = window_settings {
         let mut task = Some(task);
 
-        let (_id, open) = runtime::window::open(window_settings);
+        let open = runtime::window::open(window_settings);
 
         open.then(move |_| task.take().unwrap_or(Task::none()))
     } else {
@@ -1121,7 +1121,8 @@ fn run_action<'a, P, C>(
             }
         },
         Action::Window(action) => match action {
-            window::Action::Open(id, settings, channel) => {
+            window::Action::Open(settings, channel) => {
+                let id = core::window::Id::unique();
                 let monitor = window_manager.last_monitor();
 
                 control_sender

@@ -42,13 +42,12 @@ enum Message {
 
 impl Example {
     fn new() -> (Self, Task<Message>) {
-        let (_id, open) = window::open(window::Settings::default());
-
         (
             Self {
                 windows: BTreeMap::new(),
             },
-            open.map(Message::WindowOpened),
+            window::open(window::Settings::default())
+                .map(Message::WindowOpened),
         )
     }
 
@@ -77,12 +76,10 @@ impl Example {
                             },
                         );
 
-                        let (_id, open) = window::open(window::Settings {
+                        window::open(window::Settings {
                             position,
                             ..window::Settings::default()
-                        });
-
-                        open
+                        })
                     })
                     .map(Message::WindowOpened)
             }
