@@ -93,7 +93,7 @@ impl WebSocket {
         ])
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let message_log: Element<_> = if self.messages.is_empty() {
             center(
                 text("Your messages will appear here...")

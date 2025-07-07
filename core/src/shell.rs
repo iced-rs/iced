@@ -32,6 +32,7 @@ impl<'a, Message> Shell<'a, Message> {
     }
 
     /// Returns true if the [`Shell`] contains no published messages
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.messages.is_empty()
     }
@@ -50,11 +51,13 @@ impl<'a, Message> Shell<'a, Message> {
     }
 
     /// Returns the current [`event::Status`] of the [`Shell`].
+    #[must_use]
     pub fn event_status(&self) -> event::Status {
         self.event_status
     }
 
     /// Returns whether the current event has been captured.
+    #[must_use]
     pub fn is_event_captured(&self) -> bool {
         self.event_status == event::Status::Captured
     }
@@ -73,6 +76,7 @@ impl<'a, Message> Shell<'a, Message> {
     }
 
     /// Returns the request a redraw should happen, if any.
+    #[must_use]
     pub fn redraw_request(&self) -> window::RedrawRequest {
         self.redraw_request
     }
@@ -101,16 +105,19 @@ impl<'a, Message> Shell<'a, Message> {
     }
 
     /// Returns the current [`InputMethod`] strategy.
+    #[must_use]
     pub fn input_method(&self) -> &InputMethod {
         &self.input_method
     }
 
     /// Returns the current [`InputMethod`] strategy.
+    #[must_use]
     pub fn input_method_mut(&mut self) -> &mut InputMethod {
         &mut self.input_method
     }
 
     /// Returns whether the current layout is invalid or not.
+    #[must_use]
     pub fn is_layout_invalid(&self) -> bool {
         self.is_layout_invalid
     }
@@ -134,6 +141,7 @@ impl<'a, Message> Shell<'a, Message> {
 
     /// Returns whether the widgets of the current application have been
     /// invalidated.
+    #[must_use]
     pub fn are_widgets_invalid(&self) -> bool {
         self.are_widgets_invalid
     }

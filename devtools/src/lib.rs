@@ -397,13 +397,16 @@ where
         }
         .map(|mode| Element::from(mode).map(Event::Message));
 
-        let notification = self.show_notification.then(|| {
-            bottom_right(opaque(
-                container(text("Press F12 to open developer tools"))
-                    .padding(10)
-                    .style(container::dark),
-            ))
-        });
+        let notification = self
+            .show_notification
+            .then(|| text("Press F12 to open debug metrics"))
+            .or_else(|| {
+                debug::is_stale().then(|| {
+                    text(
+                        "Types have changed. Restart to re-enable hotpatching.",
+                    )
+                })
+            });
 
         let sidebar = if let Mode::Open { tester } = &self.mode {
             let title = monospace("Developer Tools");
@@ -429,7 +432,13 @@ where
             stack![content]
                 .height(Fill)
                 .push_maybe(setup.map(opaque))
-                .push_maybe(notification),
+                .push_maybe(notification.map(|notification| {
+                    bottom_right(opaque(
+                        container(notification)
+                            .padding(10)
+                            .style(container::dark),
+                    ))
+                })),
         )
         .into()
     }

@@ -400,9 +400,9 @@ where
     Renderer: core::Renderer + 'a,
 {
     fn from(
-        column: Container<'a, Message, Theme, Renderer>,
+        container: Container<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(column)
+        Element::new(container)
     }
 }
 

@@ -41,10 +41,12 @@ qr_code = ["iced_widget/qr_code"]
 markdown = ["iced_widget/markdown"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
-# Enables a debug view in native platforms (press F12)
+# Enables debug metrics in native platforms (press F12)
 debug = ["iced_winit/debug", "iced_devtools"]
 # Enables time-travel debugging (very experimental!)
 time-travel = ["debug", "iced_devtools/time-travel"]
+# Enables hot reloading (very experimental!)
+hot = ["debug", "iced_debug/hot"]
 # Enables the tester developer tool for recording and playing tests (press F12)
 tester = ["debug", "test", "iced_devtools/tester"]
 # Enables testing features (e.g. application presets)
@@ -171,6 +173,7 @@ bincode = "1.3"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
+cargo-hot = { package = "cargo-hot-protocol", git = "https://github.com/hecrj/cargo-hot.git", rev = "b8dc518b8640928178a501257e353b73bc06cf47" }
 cosmic-text = "0.14"
 dark-light = "2.0"
 futures = { version = "0.3", default-features = false }

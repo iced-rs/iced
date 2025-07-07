@@ -30,7 +30,7 @@ impl Progress {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let bar = progress_bar(0.0..=100.0, self.value);
 
         column![

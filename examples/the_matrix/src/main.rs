@@ -34,7 +34,7 @@ impl TheMatrix {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         canvas(self).width(Fill).height(Fill).into()
     }
 

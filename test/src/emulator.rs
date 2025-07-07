@@ -153,6 +153,9 @@ impl<P: Program + 'static> Emulator<P> {
             Action::Exit => {
                 // TODO
             }
+            Action::Reload => {
+                // TODO
+            }
         }
     }
 

@@ -24,7 +24,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let pick_list = pick_list(
             &Language::ALL[..],
             self.selected_language,
