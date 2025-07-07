@@ -10,7 +10,6 @@ use crate::core::border;
 use crate::core::window;
 use crate::core::{Element, Event, Font, Size, Theme};
 use crate::executor;
-use crate::futures::Subscription;
 use crate::futures::futures::channel::mpsc;
 use crate::icon;
 use crate::program;
@@ -36,10 +35,11 @@ pub struct Tester<P: Program> {
 enum State<P: Program> {
     Idle,
     Recording {
-        state: P::State,
+        emulator: Emulator<P>,
     },
     Ready {
         state: P::State,
+        window: window::Id,
     },
     Playing {
         emulator: Emulator<P>,
@@ -98,10 +98,6 @@ impl<P: Program + 'static> Tester<P> {
         }
     }
 
-    pub fn is_idle(&self) -> bool {
-        matches!(self.state, State::Idle)
-    }
-
     pub fn is_busy(&self) -> bool {
         matches!(
             self.state,
@@ -134,24 +130,30 @@ impl<P: Program + 'static> Tester<P> {
                 self.edit = None;
                 self.instructions.clear();
 
-                let (state, task) = if let Some(preset) = self.preset(program) {
-                    preset.boot()
-                } else {
-                    program.boot()
-                };
+                let (sender, receiver) = mpsc::channel(1);
 
-                self.state = State::Recording { state };
+                let emulator = Emulator::with_preset(
+                    sender,
+                    program,
+                    self.mode,
+                    self.viewport,
+                    self.preset(program),
+                );
 
-                task.map(Tick::Program)
+                self.state = State::Recording { emulator };
+
+                Task::run(receiver, Tick::Emulator)
             }
             Message::Stop => {
-                let State::Recording { state } =
+                let State::Recording { emulator } =
                     std::mem::replace(&mut self.state, State::Idle)
                 else {
                     return Task::none();
                 };
 
-                self.state = State::Ready { state };
+                let (state, window) = emulator.into_state();
+
+                self.state = State::Ready { state, window };
 
                 Task::none()
             }
@@ -301,11 +303,13 @@ impl<P: Program + 'static> Tester<P> {
         match tick {
             Tick::Tester(message) => self.update(program, message),
             Tick::Program(message) => {
-                let State::Recording { state } = &mut self.state else {
+                let State::Recording { emulator } = &mut self.state else {
                     return Task::none();
                 };
 
-                program.update(state, message).map(Tick::Program)
+                emulator.update(program, message);
+
+                Task::none()
             }
             Tick::Recorder(event) => {
                 let mut interaction =
@@ -337,35 +341,38 @@ impl<P: Program + 'static> Tester<P> {
                 Task::none()
             }
             Tick::Emulator(event) => {
-                let State::Playing {
-                    emulator,
-                    current,
-                    outcome,
-                } = &mut self.state
-                else {
-                    return Task::none();
-                };
-
-                match event {
-                    emulator::Event::Action(action) => {
-                        emulator.perform(program, action);
-                    }
-                    emulator::Event::Failed => {
-                        *outcome = Outcome::Failed;
-                    }
-                    emulator::Event::Ready => {
-                        *current += 1;
-
-                        if let Some(instruction) =
-                            self.instructions.get(*current - 1).cloned()
-                        {
-                            emulator.run(program, instruction);
-                        }
-
-                        if *current >= self.instructions.len() {
-                            *outcome = Outcome::Success;
+                match &mut self.state {
+                    State::Recording { emulator } => {
+                        if let emulator::Event::Action(action) = event {
+                            emulator.perform(program, action);
                         }
                     }
+                    State::Playing {
+                        emulator,
+                        current,
+                        outcome,
+                    } => match event {
+                        emulator::Event::Action(action) => {
+                            emulator.perform(program, action);
+                        }
+                        emulator::Event::Failed => {
+                            *outcome = Outcome::Failed;
+                        }
+                        emulator::Event::Ready => {
+                            *current += 1;
+
+                            if let Some(instruction) =
+                                self.instructions.get(*current - 1).cloned()
+                            {
+                                emulator.run(program, instruction);
+                            }
+
+                            if *current >= self.instructions.len() {
+                                *outcome = Outcome::Success;
+                            }
+                        }
+                    },
+                    State::Idle | State::Ready { .. } => {}
                 }
 
                 Task::none()
@@ -373,21 +380,9 @@ impl<P: Program + 'static> Tester<P> {
         }
     }
 
-    pub fn subscription(&self, program: &P) -> Subscription<Tick<P>> {
-        match &self.state {
-            State::Idle | State::Playing { .. } | State::Ready { .. } => {
-                Subscription::none()
-            }
-            State::Recording { state } => {
-                program.subscription(state).map(Tick::Program)
-            }
-        }
-    }
-
     pub fn view<'a, T: 'static>(
         &'a self,
         program: &P,
-        window: window::Id,
         current: impl FnOnce() -> Element<'a, T, Theme, P::Renderer>,
         emulate: impl Fn(Tick<P>) -> T + 'a,
     ) -> Element<'a, T, Theme, P::Renderer> {
@@ -435,10 +430,9 @@ impl<P: Program + 'static> Tester<P> {
             scrollable(
                 container(match &self.state {
                     State::Idle => current(),
-                    State::Recording { state } => {
-                        let theme = program.theme(state, window);
-                        let view =
-                            program.view(state, window).map(Tick::Program);
+                    State::Recording { emulator } => {
+                        let theme = emulator.theme(program);
+                        let view = emulator.view(program).map(Tick::Program);
 
                         Element::from(
                             recorder(themer(theme, view))
@@ -446,10 +440,10 @@ impl<P: Program + 'static> Tester<P> {
                         )
                         .map(emulate)
                     }
-                    State::Ready { state } => {
-                        let theme = program.theme(state, window);
+                    State::Ready { state, window } => {
+                        let theme = program.theme(state, *window);
                         let view =
-                            program.view(state, window).map(Tick::Program);
+                            program.view(state, *window).map(Tick::Program);
 
                         Element::from(themer(theme, view)).map(emulate)
                     }

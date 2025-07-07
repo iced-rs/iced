@@ -3,8 +3,7 @@ use crate::core;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget;
-use crate::core::window;
-use crate::core::{Element, Size};
+use crate::core::{Element, Point, Size};
 use crate::instruction;
 use crate::program;
 use crate::program::Program;
@@ -15,6 +14,7 @@ use crate::runtime::futures::subscription;
 use crate::runtime::futures::{Executor, Runtime};
 use crate::runtime::task;
 use crate::runtime::user_interface;
+use crate::runtime::window;
 use crate::runtime::{Action, Task, UserInterface};
 
 use std::fmt;
@@ -26,7 +26,7 @@ pub struct Emulator<P: Program> {
     renderer: P::Renderer,
     mode: Mode,
     size: Size,
-    window: window::Id,
+    window: core::window::Id,
     cursor: mouse::Cursor,
     clipboard: Clipboard,
     cache: Option<user_interface::Cache>,
@@ -87,7 +87,7 @@ impl<P: Program + 'static> Emulator<P> {
             size,
             clipboard: Clipboard { content: None },
             cursor: mouse::Cursor::Unavailable,
-            window: window::Id::unique(),
+            window: core::window::Id::unique(),
             cache: Some(user_interface::Cache::default()),
         };
 
@@ -143,9 +143,50 @@ impl<P: Program + 'static> Emulator<P> {
                 // TODO
                 dbg!(action);
             }
-            Action::Window(_action) => {
-                // TODO
-            }
+            Action::Window(action) => match action {
+                window::Action::Open(_settings, sender) => {
+                    self.window = core::window::Id::unique();
+
+                    let _ = sender.send(self.window);
+                }
+                window::Action::GetOldest(sender)
+                | window::Action::GetLatest(sender) => {
+                    let _ = sender.send(Some(self.window));
+                }
+                window::Action::GetSize(id, sender) => {
+                    if id == self.window {
+                        let _ = sender.send(self.size);
+                    }
+                }
+                window::Action::GetMaximized(id, sender) => {
+                    if id == self.window {
+                        let _ = sender.send(false);
+                    }
+                }
+                window::Action::GetMinimized(id, sender) => {
+                    if id == self.window {
+                        let _ = sender.send(None);
+                    }
+                }
+                window::Action::GetPosition(id, sender) => {
+                    if id == self.window {
+                        let _ = sender.send(Some(Point::ORIGIN));
+                    }
+                }
+                window::Action::GetScaleFactor(id, sender) => {
+                    if id == self.window {
+                        let _ = sender.send(1.0);
+                    }
+                }
+                window::Action::GetMode(id, sender) => {
+                    if id == self.window {
+                        let _ = sender.send(core::window::Mode::Windowed);
+                    }
+                }
+                _ => {
+                    // Ignored
+                }
+            },
             Action::System(action) => {
                 // TODO
                 dbg!(action);
@@ -264,6 +305,10 @@ impl<P: Program + 'static> Emulator<P> {
 
     pub fn theme(&self, program: &P) -> P::Theme {
         program.theme(&self.state, self.window)
+    }
+
+    pub fn into_state(self) -> (P::State, core::window::Id) {
+        (self.state, self.window)
     }
 }
 

@@ -361,7 +361,7 @@ where
 
             match &self.mode {
                 Mode::Open { tester } => {
-                    tester.view(program, window, view, Event::Tester)
+                    tester.view(program, view, Event::Tester)
                 }
                 _ => view(),
             }
@@ -444,19 +444,9 @@ where
     }
 
     pub fn subscription(&self, program: &P) -> Subscription<Event<P>> {
-        let subscription = match &self.mode {
-            Mode::Open { tester } if !tester.is_idle() => {
-                tester.subscription(program).map(Event::Tester)
-            }
-            _ => {
-                let subscription =
-                    program.subscription(&self.state).map(Event::Program);
-
-                debug::subscriptions_tracked(subscription.units());
-
-                subscription
-            }
-        };
+        let subscription =
+            program.subscription(&self.state).map(Event::Program);
+        debug::subscriptions_tracked(subscription.units());
 
         let hotkeys =
             futures::keyboard::on_key_press(|key, _modifiers| match key {
