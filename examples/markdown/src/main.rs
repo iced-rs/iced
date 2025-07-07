@@ -12,6 +12,7 @@ use iced::window;
 use iced::{
     Animation, Element, Fill, Font, Function, Subscription, Task, Theme,
 };
+use reqwest::Url;
 
 use std::collections::HashMap;
 use std::io;
@@ -100,7 +101,7 @@ impl Markdown {
             }
             Message::Copy(content) => clipboard::write(content),
             Message::LinkClicked(link) => {
-                let _ = open::that_in_background(link.to_string());
+                let _ = open::that_in_background(link);
 
                 Task::none()
             }
@@ -306,13 +307,20 @@ async fn download_image(url: markdown::Url) -> Result<image::Handle, Error> {
 
     let client = reqwest::Client::new();
 
-    let bytes = client
-        .get(url)
-        .send()
-        .await?
-        .error_for_status()?
-        .bytes()
-        .await?;
+    let bytes = match Url::parse(&url) {
+        Ok(url) => client
+            .get(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .bytes()
+            .await?
+            .to_vec(),
+        Err(_e) => {
+            // We try to get from a local path
+            std::fs::read(url)?
+        }
+    };
 
     let image = task::spawn_blocking(move || {
         Ok::<_, Error>(
