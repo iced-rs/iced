@@ -907,11 +907,11 @@ where
                 if !is_visible {
                     Shell::replace_redraw_request(shell, redraw_request);
                 }
-            };
 
-            if shell.is_event_captured() {
-                return;
-            }
+                if shell.is_event_captured() {
+                    return;
+                }
+            };
 
             self.base.as_widget_mut().update(
                 base_tree,
