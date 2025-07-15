@@ -51,8 +51,8 @@ where
     cells: Vec<Element<'a, Message, Theme, Renderer>>,
     width: Length,
     height: Length,
-    spacing_x: f32,
-    spacing_y: f32,
+    padding_x: f32,
+    padding_y: f32,
     separator_x: f32,
     separator_y: f32,
     class: Theme::Class<'a>,
@@ -105,8 +105,8 @@ where
             cells,
             width,
             height,
-            spacing_x: 10.0,
-            spacing_y: 10.0,
+            padding_x: 10.0,
+            padding_y: 10.0,
             separator_x: 1.0,
             separator_y: 1.0,
             class: Theme::default(),
@@ -118,26 +118,26 @@ where
         self
     }
 
-    pub fn spacing(self, spacing: impl Into<Pixels>) -> Self {
-        let spacing = spacing.into();
+    pub fn padding(self, padding: impl Into<Pixels>) -> Self {
+        let padding = padding.into();
 
-        self.spacing_x(spacing).spacing_y(spacing)
+        self.padding_x(padding).padding_y(padding)
     }
 
-    pub fn spacing_x(mut self, spacing: impl Into<Pixels>) -> Self {
-        self.spacing_x = spacing.into().0;
+    pub fn padding_x(mut self, padding: impl Into<Pixels>) -> Self {
+        self.padding_x = padding.into().0;
         self
     }
 
-    pub fn spacing_y(mut self, spacing: impl Into<Pixels>) -> Self {
-        self.spacing_y = spacing.into().0;
+    pub fn padding_y(mut self, padding: impl Into<Pixels>) -> Self {
+        self.padding_y = padding.into().0;
         self
     }
 }
 
 pub struct Metrics {
-    column_widths: Vec<f32>,
-    row_heights: Vec<f32>,
+    columns: Vec<f32>,
+    rows: Vec<f32>,
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -159,8 +159,8 @@ where
 
     fn state(&self) -> widget::tree::State {
         widget::tree::State::new(Metrics {
-            column_widths: Vec::new(),
-            row_heights: Vec::new(),
+            columns: Vec::new(),
+            rows: Vec::new(),
         })
     }
 
@@ -189,19 +189,19 @@ where
         let mut cells = Vec::with_capacity(self.cells.len());
         cells.resize(self.cells.len(), layout::Node::default());
 
-        metrics.column_widths = vec![0.0; self.columns.len()];
-        metrics.row_heights = vec![0.0; rows];
+        metrics.columns = vec![0.0; self.columns.len()];
+        metrics.rows = vec![0.0; rows];
 
         let mut column_factors = vec![0; self.columns.len()];
         let mut row_factors = vec![0; rows];
 
-        let spacing_x = self.spacing_x * 2.0 + self.separator_x;
-        let spacing_y = self.spacing_y * 2.0 + self.separator_y;
+        let spacing_x = self.padding_x * 2.0 + self.separator_x;
+        let spacing_y = self.padding_y * 2.0 + self.separator_y;
 
         // FIRST PASS
         // Lay out non-fluid cells
-        let mut x = self.spacing_x;
-        let mut y = self.spacing_y;
+        let mut x = self.padding_x;
+        let mut y = self.padding_y;
 
         for (i, (cell, state)) in
             self.cells.iter().zip(&mut tree.children).enumerate()
@@ -229,17 +229,15 @@ where
             let layout = cell.as_widget().layout(state, renderer, &limits);
             let size = layout.size();
 
-            metrics.column_widths[column] =
-                metrics.column_widths[column].max(size.width);
-            metrics.row_heights[row] =
-                metrics.row_heights[row].max(size.height);
+            metrics.columns[column] = metrics.columns[column].max(size.width);
+            metrics.rows[row] = metrics.rows[row].max(size.height);
             cells[i] = layout;
 
             if row == 0 {
-                y = self.spacing_y;
+                y = self.padding_y;
 
                 if column > 0 {
-                    x += metrics.column_widths[column - 1] + spacing_x;
+                    x += metrics.columns[column - 1] + spacing_x;
                 }
             } else {
                 y += size.height + spacing_y;
@@ -251,7 +249,7 @@ where
         let left = Size::new(
             available.width
                 - metrics
-                    .column_widths
+                    .columns
                     .iter()
                     .enumerate()
                     .filter(|(i, _)| column_factors[*i] == 0)
@@ -259,7 +257,7 @@ where
                     .sum::<f32>(),
             available.height
                 - metrics
-                    .row_heights
+                    .rows
                     .iter()
                     .enumerate()
                     .filter(|(i, _)| row_factors[*i] == 0)
@@ -269,16 +267,16 @@ where
 
         let width_unit = (left.width
             - spacing_x * self.columns.len().saturating_sub(1) as f32
-            - self.spacing_x * 2.0)
+            - self.padding_x * 2.0)
             / column_factors.iter().sum::<u16>() as f32;
 
         let height_unit = (left.height
             - spacing_y * rows.saturating_sub(1) as f32
-            - self.spacing_y * 2.0)
+            - self.padding_y * 2.0)
             / row_factors.iter().sum::<u16>() as f32;
 
-        let mut x = self.spacing_x;
-        let mut y = self.spacing_y;
+        let mut x = self.padding_x;
+        let mut y = self.padding_y;
 
         for (i, (cell, state)) in
             self.cells.iter().zip(&mut tree.children).enumerate()
@@ -312,18 +310,17 @@ where
                 let layout = cell.as_widget().layout(state, renderer, &limits);
                 let size = layout.size();
 
-                metrics.column_widths[column] =
-                    metrics.column_widths[column].max(size.width);
-                metrics.row_heights[row] =
-                    metrics.row_heights[row].max(size.height);
+                metrics.columns[column] =
+                    metrics.columns[column].max(size.width);
+                metrics.rows[row] = metrics.rows[row].max(size.height);
                 cells[i] = layout;
             }
 
             if row == 0 {
-                y = self.spacing_y;
+                y = self.padding_y;
 
                 if column > 0 {
-                    x += metrics.column_widths[column - 1] + spacing_x;
+                    x += metrics.columns[column - 1] + spacing_x;
                 }
             } else {
                 y += cells[i].size().height + spacing_y;
@@ -332,24 +329,24 @@ where
 
         // THIRD PASS
         // Position each cell
-        let mut x = self.spacing_x;
-        let mut y = self.spacing_y;
+        let mut x = self.padding_x;
+        let mut y = self.padding_y;
 
         for (i, cell) in cells.iter_mut().enumerate() {
             let column = i / rows;
             let row = i % rows;
 
             if row == 0 {
-                y = self.spacing_y;
+                y = self.padding_y;
 
                 if column > 0 {
-                    x += metrics.column_widths[column - 1] + spacing_x;
+                    x += metrics.columns[column - 1] + spacing_x;
                 }
             }
 
             cell.move_to_mut((x, y));
 
-            y += metrics.row_heights[row] + spacing_y;
+            y += metrics.rows[row] + spacing_y;
         }
 
         let intrinsic = limits.resolve(
@@ -357,12 +354,12 @@ where
             self.height,
             Size::new(
                 x + metrics
-                    .column_widths
+                    .columns
                     .last()
                     .copied()
-                    .map(|width| width + self.spacing_x)
+                    .map(|width| width + self.padding_x)
                     .unwrap_or_default(),
-                y - spacing_y + self.spacing_y,
+                y - spacing_y + self.padding_y,
             ),
         );
 
@@ -391,12 +388,12 @@ where
         let style = theme.style(&self.class);
 
         if self.separator_x > 0.0 {
-            let mut x = self.spacing_x;
+            let mut x = self.padding_x;
 
-            for width in &metrics.column_widths
-                [..metrics.column_widths.len().saturating_sub(1)]
+            for width in
+                &metrics.columns[..metrics.columns.len().saturating_sub(1)]
             {
-                x += width + self.spacing_x;
+                x += width + self.padding_x;
 
                 renderer.fill_quad(
                     renderer::Quad {
@@ -412,17 +409,16 @@ where
                     style.separator_x,
                 );
 
-                x += self.separator_x + self.spacing_x;
+                x += self.separator_x + self.padding_x;
             }
         }
 
         if self.separator_y > 0.0 {
-            let mut y = self.spacing_y;
+            let mut y = self.padding_y;
 
-            for height in &metrics.row_heights
-                [..metrics.row_heights.len().saturating_sub(1)]
+            for height in &metrics.rows[..metrics.rows.len().saturating_sub(1)]
             {
-                y += height + self.spacing_y;
+                y += height + self.padding_y;
 
                 renderer.fill_quad(
                     renderer::Quad {
@@ -438,7 +434,7 @@ where
                     style.separator_y,
                 );
 
-                y += self.separator_y + self.spacing_y;
+                y += self.separator_y + self.padding_y;
             }
         }
     }

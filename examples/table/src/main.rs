@@ -42,7 +42,7 @@ impl Table {
                 .column(bold("Price"), |event| text!("{:.2}", event.price))
                 .column(bold("Rating"), |event| text!("{:.2}", event.rating));
 
-            table(columns, &self.events).width(640).spacing_y(5)
+            table(columns, &self.events).width(640).padding_y(5)
         };
 
         center(scrollable(table).spacing(10)).padding(10).into()
