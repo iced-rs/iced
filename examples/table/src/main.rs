@@ -1,7 +1,10 @@
 use iced::font;
 use iced::time::{Duration, hours, minutes};
-use iced::widget::{center, scrollable, table, text};
-use iced::{Element, Fill, Font};
+use iced::widget::{
+    center, center_x, column, container, row, scrollable, slider, table, text,
+    tooltip,
+};
+use iced::{Center, Element, Fill, Font};
 
 pub fn main() -> iced::Result {
     iced::application(Table::new, Table::update, Table::view).run()
@@ -9,20 +12,30 @@ pub fn main() -> iced::Result {
 
 struct Table {
     events: Vec<Event>,
+    padding: (f32, f32),
+    separator: (f32, f32),
 }
 
 #[derive(Debug, Clone)]
-enum Message {}
+enum Message {
+    PaddingChanged(f32, f32),
+    SeparatorChanged(f32, f32),
+}
 
 impl Table {
     fn new() -> Self {
         Self {
             events: Event::list(),
+            padding: (10.0, 5.0),
+            separator: (1.0, 1.0),
         }
     }
 
     fn update(&mut self, message: Message) {
-        match message {}
+        match message {
+            Message::PaddingChanged(x, y) => self.padding = (x, y),
+            Message::SeparatorChanged(x, y) => self.separator = (x, y),
+        }
     }
 
     fn view(&self) -> Element<'_, Message> {
@@ -34,18 +47,79 @@ impl Table {
                 })
             };
 
-            let columns = table::definition()
-                .column(bold("Name"), |event: &Event| {
+            let columns = [
+                table::column(bold("Name"), |event: &Event| {
                     text(&event.name).width(Fill)
-                })
-                .column(bold("Time"), |event| text!("{:?}", event.duration))
-                .column(bold("Price"), |event| text!("{:.2}", event.price))
-                .column(bold("Rating"), |event| text!("{:.2}", event.rating));
+                }),
+                table::column(bold("Time"), |event: &Event| {
+                    text!("{} min", event.duration.as_secs() / 60)
+                }),
+                table::column(bold("Price"), |event: &Event| {
+                    if event.price > 0.0 {
+                        text!("${:.2}", event.price)
+                    } else {
+                        text("Free")
+                    }
+                }),
+                table::column(bold("Rating"), |event: &Event| {
+                    text!("{:.2}", event.rating)
+                }),
+            ];
 
-            table(columns, &self.events).width(640).padding_y(5)
+            table(columns, &self.events)
+                .width(640)
+                .padding_x(self.padding.0)
+                .padding_y(self.padding.1)
+                .separator_x(self.separator.0)
+                .separator_y(self.separator.1)
         };
 
-        center(scrollable(table).spacing(10)).padding(10).into()
+        let controls = {
+            let labeled_slider =
+                |label,
+                 range: std::ops::RangeInclusive<f32>,
+                 (x, y),
+                 on_change: fn(f32, f32) -> Message| {
+                    row![
+                        text(label).font(Font::MONOSPACE).size(14).width(200),
+                        tooltip(
+                            slider(range.clone(), x, move |x| on_change(x, y)),
+                            text!("{x:.0}px").font(Font::MONOSPACE).size(10),
+                            tooltip::Position::Left
+                        ),
+                        tooltip(
+                            slider(range, y, move |y| on_change(x, y)),
+                            text!("{y:.0}px").font(Font::MONOSPACE).size(10),
+                            tooltip::Position::Right
+                        ),
+                    ]
+                    .spacing(10)
+                    .align_y(Center)
+                };
+
+            column![
+                labeled_slider(
+                    "Padding",
+                    0.0..=30.0,
+                    self.padding,
+                    Message::PaddingChanged
+                ),
+                labeled_slider(
+                    "Separator",
+                    0.0..=5.0,
+                    self.separator,
+                    Message::SeparatorChanged
+                )
+            ]
+            .spacing(10)
+            .width(640)
+        };
+
+        column![
+            center(scrollable(table).spacing(10)).padding(10),
+            center_x(controls).padding(10).style(container::dark)
+        ]
+        .into()
     }
 }
 

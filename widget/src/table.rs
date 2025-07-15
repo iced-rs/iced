@@ -21,13 +21,6 @@ where
     Table::new(columns, rows)
 }
 
-pub fn definition<'a, T, Message, Theme, Renderer>()
--> Definition<'a, T, Message, Theme, Renderer> {
-    Definition {
-        columns: Vec::new(),
-    }
-}
-
 pub fn column<'a, T, E, Message, Theme, Renderer>(
     header: impl Into<Element<'a, Message, Theme, Renderer>>,
     view: impl Fn(T) -> E + 'a,
@@ -131,6 +124,22 @@ where
 
     pub fn padding_y(mut self, padding: impl Into<Pixels>) -> Self {
         self.padding_y = padding.into().0;
+        self
+    }
+
+    pub fn separator(self, separator: impl Into<Pixels>) -> Self {
+        let separator = separator.into();
+
+        self.separator_x(separator).separator_y(separator)
+    }
+
+    pub fn separator_x(mut self, separator: impl Into<Pixels>) -> Self {
+        self.separator_x = separator.into().0;
+        self
+    }
+
+    pub fn separator_y(mut self, separator: impl Into<Pixels>) -> Self {
+        self.separator_y = separator.into().0;
         self
     }
 }
@@ -449,44 +458,6 @@ where
 {
     fn from(table: Table<'a, Message, Theme, Renderer>) -> Self {
         Element::new(table)
-    }
-}
-
-pub struct Definition<
-    'a,
-    T,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> {
-    columns: Vec<Column<'a, T, Message, Theme, Renderer>>,
-}
-
-impl<'a, T, Message, Theme, Renderer>
-    Definition<'a, T, Message, Theme, Renderer>
-{
-    pub fn column<E>(
-        mut self,
-        header: impl Into<Element<'a, Message, Theme, Renderer>>,
-        view: impl Fn(T) -> E + 'a,
-    ) -> Self
-    where
-        T: 'a,
-        E: Into<Element<'a, Message, Theme, Renderer>>,
-    {
-        self.columns.push(column(header, view));
-        self
-    }
-}
-
-impl<'a, T, Message, Theme, Renderer> IntoIterator
-    for Definition<'a, T, Message, Theme, Renderer>
-{
-    type Item = Column<'a, T, Message, Theme, Renderer>;
-    type IntoIter = ::std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.columns.into_iter()
     }
 }
 
