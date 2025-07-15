@@ -30,6 +30,8 @@ use crate::{Column, Grid, MouseArea, Pin, Pop, Row, Space, Stack, Themer};
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
 
+pub use crate::table::table;
+
 /// Creates a [`Column`] with the given children.
 ///
 /// Columns distribute their children vertically.

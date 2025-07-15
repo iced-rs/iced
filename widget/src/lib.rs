@@ -33,6 +33,7 @@ pub mod row;
 pub mod rule;
 pub mod scrollable;
 pub mod slider;
+pub mod table;
 pub mod text;
 pub mod text_editor;
 pub mod text_input;
