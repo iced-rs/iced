@@ -4,7 +4,7 @@ use iced::widget::{
     center_x, center_y, column, container, row, scrollable, slider, table,
     text, tooltip,
 };
-use iced::{Center, Element, Font, Theme};
+use iced::{Center, Element, Fill, Font, Right, Theme};
 
 pub fn main() -> iced::Result {
     iced::application(Table::new, Table::update, Table::view)
@@ -59,7 +59,9 @@ impl Table {
                     } else {
                         text::default
                     })
-                }),
+                })
+                .align_x(Right)
+                .align_y(Center),
                 table::column(bold("Price"), |event: &Event| {
                     if event.price > 0.0 {
                         text!("${:.2}", event.price).style(
@@ -70,9 +72,11 @@ impl Table {
                             },
                         )
                     } else {
-                        text("Free").style(text::success)
+                        text("Free").style(text::success).width(Fill).center()
                     }
-                }),
+                })
+                .align_x(Right)
+                .align_y(Center),
                 table::column(bold("Rating"), |event: &Event| {
                     text!("{:.2}", event.rating).style(if event.rating > 4.7 {
                         text::success
@@ -81,7 +85,9 @@ impl Table {
                     } else {
                         text::default
                     })
-                }),
+                })
+                .align_x(Right)
+                .align_y(Center),
             ];
 
             table(columns, &self.events)

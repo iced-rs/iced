@@ -1,11 +1,13 @@
 #![allow(missing_docs, missing_debug_implementations)]
 use crate::core;
+use crate::core::alignment;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
-    Background, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
+    Alignment, Background, Element, Layout, Length, Pixels, Rectangle, Size,
+    Widget,
 };
 
 pub fn table<'a, R, T, Message, Theme, Renderer>(
@@ -33,6 +35,8 @@ where
         header: header.into(),
         view: Box::new(move |data| view(data).into()),
         width: Length::Shrink,
+        align_x: alignment::Horizontal::Left,
+        align_y: alignment::Vertical::Top,
     }
 }
 
@@ -40,7 +44,7 @@ pub struct Table<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
 {
-    columns: Vec<Length>,
+    columns: Vec<Column_>,
     cells: Vec<Element<'a, Message, Theme, Renderer>>,
     width: Length,
     height: Length,
@@ -49,6 +53,12 @@ where
     separator_x: f32,
     separator_y: f32,
     class: Theme::Class<'a>,
+}
+
+struct Column_ {
+    width: Length,
+    align_x: alignment::Horizontal,
+    align_y: alignment::Vertical,
 }
 
 impl<'a, Message, Theme, Renderer> Table<'a, Message, Theme, Renderer>
@@ -88,13 +98,17 @@ where
 
                 width = width.enclose(column.width);
 
-                column.width
+                Column_ {
+                    width: column.width,
+                    align_x: column.align_x,
+                    align_y: column.align_y,
+                }
             })
             .collect();
 
         if width == Length::Shrink {
             if let Some(first) = columns.first_mut() {
-                *first = Length::Fill;
+                first.width = Length::Fill;
             }
         }
 
@@ -225,7 +239,7 @@ where
             let column = i / rows;
             let row = i % rows;
 
-            let width = self.columns[column];
+            let width = self.columns[column].width;
             let size = cell.as_widget().size();
 
             if row == 0 {
@@ -307,7 +321,7 @@ where
 
             let size = cell.as_widget().size();
 
-            let width = self.columns[column];
+            let width = self.columns[column].width;
             let width_factor = width.fill_factor();
 
             if row == 0 {
@@ -387,7 +401,16 @@ where
                 }
             }
 
+            let Column_ {
+                align_x, align_y, ..
+            } = &self.columns[column];
+
             cell.move_to_mut((x, y));
+            cell.align_mut(
+                Alignment::from(*align_x),
+                Alignment::from(*align_y),
+                Size::new(metrics.columns[column], metrics.rows[row]),
+            );
 
             y += metrics.rows[row] + spacing_y;
         }
@@ -505,11 +528,31 @@ pub struct Column<
     header: Element<'a, Message, Theme, Renderer>,
     view: Box<dyn Fn(T) -> Element<'a, Message, Theme, Renderer> + 'a>,
     width: Length,
+    align_x: alignment::Horizontal,
+    align_y: alignment::Vertical,
 }
 
 impl<'a, T, Message, Theme, Renderer> Column<'a, T, Message, Theme, Renderer> {
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
+        self
+    }
+
+    /// Sets the alignment for the horizontal axis of the [`Column`].
+    pub fn align_x(
+        mut self,
+        alignment: impl Into<alignment::Horizontal>,
+    ) -> Self {
+        self.align_x = alignment.into();
+        self
+    }
+
+    /// Sets the alignment for the vertical axis of the [`Column`].
+    pub fn align_y(
+        mut self,
+        alignment: impl Into<alignment::Vertical>,
+    ) -> Self {
+        self.align_y = alignment.into();
         self
     }
 }
