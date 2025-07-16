@@ -452,6 +452,13 @@ pub fn success(theme: &Theme) -> Style {
     }
 }
 
+/// Text conveying some mildly negative information, like a warning.
+pub fn warning(theme: &Theme) -> Style {
+    Style {
+        color: Some(theme.palette().warning),
+    }
+}
+
 /// Text conveying some negative information, like an error.
 pub fn danger(theme: &Theme) -> Style {
     Style {

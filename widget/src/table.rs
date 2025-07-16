@@ -73,28 +73,33 @@ where
             columns.size_hint().0 * (1 + rows.size_hint().0),
         );
 
+        let mut columns: Vec<_> = columns
+            .into_iter()
+            .map(|column| {
+                cells.push(column.header);
+                cells.extend(rows.clone().map(|row| {
+                    let cell = (column.view)(row);
+                    let size_hint = cell.as_widget().size_hint();
+
+                    height = height.enclose(size_hint.height);
+
+                    cell
+                }));
+
+                width = width.enclose(column.width);
+
+                column.width
+            })
+            .collect();
+
+        if width == Length::Shrink {
+            if let Some(first) = columns.first_mut() {
+                *first = Length::Fill;
+            }
+        }
+
         Self {
-            columns: columns
-                .into_iter()
-                .map(|column| {
-                    let mut column_width = column.width;
-
-                    cells.push(column.header);
-                    cells.extend(rows.clone().map(|row| {
-                        let cell = (column.view)(row);
-                        let size_hint = cell.as_widget().size_hint();
-
-                        column_width = column_width.enclose(size_hint.width);
-                        height = height.enclose(size_hint.height);
-
-                        cell
-                    }));
-
-                    width = width.enclose(column_width);
-
-                    column_width
-                })
-                .collect(),
+            columns,
             cells,
             width,
             height,
@@ -191,9 +196,11 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let metrics = tree.state.downcast_mut::<Metrics>();
-        let limits = limits.width(self.width).height(self.height);
         let rows = self.cells.len() / self.columns.len();
+
+        let limits = limits.width(self.width).height(self.height);
         let available = limits.max();
+        let table_fluid = self.width.fluid();
 
         let mut cells = Vec::with_capacity(self.cells.len());
         cells.resize(self.cells.len(), layout::Node::default());
@@ -217,14 +224,27 @@ where
         {
             let column = i / rows;
             let row = i % rows;
+
+            let width = self.columns[column];
             let size = cell.as_widget().size();
 
-            if size.width.fill_factor() != 0 || size.height.fill_factor() != 0 {
-                column_factors[column] =
-                    column_factors[column].max(size.width.fill_factor());
+            if row == 0 {
+                y = self.padding_y;
 
-                row_factors[row] =
-                    row_factors[row].max(size.height.fill_factor());
+                if column > 0 {
+                    x += metrics.columns[column - 1] + spacing_x;
+                }
+            }
+
+            let width_factor =
+                width.fill_factor().max(size.width.fill_factor());
+            let height_factor = size.height.fill_factor();
+
+            if width_factor != 0 || height_factor != 0 {
+                column_factors[column] =
+                    column_factors[column].max(width_factor);
+
+                row_factors[row] = row_factors[row].max(height_factor);
 
                 continue;
             }
@@ -233,24 +253,16 @@ where
                 Size::ZERO,
                 Size::new(available.width - x, available.height - y),
             )
-            .width(self.columns[i / rows]);
+            .width(width);
 
             let layout = cell.as_widget().layout(state, renderer, &limits);
-            let size = layout.size();
+            let size = limits.resolve(width, Length::Shrink, layout.size());
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
             metrics.rows[row] = metrics.rows[row].max(size.height);
             cells[i] = layout;
 
-            if row == 0 {
-                y = self.padding_y;
-
-                if column > 0 {
-                    x += metrics.columns[column - 1] + spacing_x;
-                }
-            } else {
-                y += size.height + spacing_y;
-            }
+            y += size.height + spacing_y;
         }
 
         // SECOND PASS
@@ -292,20 +304,42 @@ where
         {
             let column = i / rows;
             let row = i % rows;
+
             let size = cell.as_widget().size();
 
-            if size.width.fill_factor() != 0 || size.height.fill_factor() != 0 {
-                let column_factor = column_factors[column];
+            let width = self.columns[column];
+            let width_factor = width.fill_factor();
+
+            if row == 0 {
+                y = self.padding_y;
+
+                if column > 0 {
+                    x += metrics.columns[column - 1] + spacing_x;
+                }
+            }
+
+            if width_factor != 0
+                || size.width.fill_factor() != 0
+                || size.height.fill_factor() != 0
+            {
                 let row_factor = row_factors[row];
 
-                let max_width = if column_factor == 0 {
-                    (available.width - x).max(0.0)
+                let max_width = if width_factor == 0 {
+                    if size.width.is_fill() {
+                        metrics.columns[column]
+                    } else {
+                        (available.width - x).max(0.0)
+                    }
                 } else {
-                    width_unit * column_factor as f32
+                    width_unit * width_factor as f32
                 };
 
                 let max_height = if row_factor == 0 {
-                    (available.height - y).max(0.0)
+                    if size.height.is_fill() {
+                        metrics.rows[row]
+                    } else {
+                        (available.height - y).max(0.0)
+                    }
                 } else {
                     height_unit * row_factor as f32
                 };
@@ -314,25 +348,25 @@ where
                     Size::ZERO,
                     Size::new(max_width, max_height),
                 )
-                .width(self.columns[i / rows]);
+                .width(width);
 
                 let layout = cell.as_widget().layout(state, renderer, &limits);
-                let size = layout.size();
+                let size = limits.resolve(
+                    if let Length::Fixed(_) = width {
+                        width
+                    } else {
+                        table_fluid
+                    },
+                    Length::Shrink,
+                    layout.size(),
+                );
 
                 metrics.columns[column] =
                     metrics.columns[column].max(size.width);
                 metrics.rows[row] = metrics.rows[row].max(size.height);
                 cells[i] = layout;
-            }
 
-            if row == 0 {
-                y = self.padding_y;
-
-                if column > 0 {
-                    x += metrics.columns[column - 1] + spacing_x;
-                }
-            } else {
-                y += cells[i].size().height + spacing_y;
+                y += size.height + spacing_y;
             }
         }
 

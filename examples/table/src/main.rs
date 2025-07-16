@@ -1,13 +1,15 @@
 use iced::font;
 use iced::time::{Duration, hours, minutes};
 use iced::widget::{
-    center, center_x, column, container, row, scrollable, slider, table, text,
-    tooltip,
+    center_x, center_y, column, container, row, scrollable, slider, table,
+    text, tooltip,
 };
-use iced::{Center, Element, Fill, Font};
+use iced::{Center, Element, Font, Theme};
 
 pub fn main() -> iced::Result {
-    iced::application(Table::new, Table::update, Table::view).run()
+    iced::application(Table::new, Table::update, Table::view)
+        .theme(|_| Theme::CatppuccinMocha)
+        .run()
 }
 
 struct Table {
@@ -48,26 +50,41 @@ impl Table {
             };
 
             let columns = [
-                table::column(bold("Name"), |event: &Event| {
-                    text(&event.name).width(Fill)
-                }),
+                table::column(bold("Name"), |event: &Event| text(&event.name)),
                 table::column(bold("Time"), |event: &Event| {
-                    text!("{} min", event.duration.as_secs() / 60)
+                    let minutes = event.duration.as_secs() / 60;
+
+                    text!("{minutes} min").style(if minutes > 90 {
+                        text::warning
+                    } else {
+                        text::default
+                    })
                 }),
                 table::column(bold("Price"), |event: &Event| {
                     if event.price > 0.0 {
-                        text!("${:.2}", event.price)
+                        text!("${:.2}", event.price).style(
+                            if event.price > 100.0 {
+                                text::warning
+                            } else {
+                                text::default
+                            },
+                        )
                     } else {
-                        text("Free")
+                        text("Free").style(text::success)
                     }
                 }),
                 table::column(bold("Rating"), |event: &Event| {
-                    text!("{:.2}", event.rating)
+                    text!("{:.2}", event.rating).style(if event.rating > 4.7 {
+                        text::success
+                    } else if event.rating < 2.0 {
+                        text::danger
+                    } else {
+                        text::default
+                    })
                 }),
             ];
 
             table(columns, &self.events)
-                .width(640)
                 .padding_x(self.padding.0)
                 .padding_y(self.padding.1)
                 .separator_x(self.separator.0)
@@ -81,7 +98,7 @@ impl Table {
                  (x, y),
                  on_change: fn(f32, f32) -> Message| {
                     row![
-                        text(label).font(Font::MONOSPACE).size(14).width(200),
+                        text(label).font(Font::MONOSPACE).size(14).width(100),
                         tooltip(
                             slider(range.clone(), x, move |x| on_change(x, y)),
                             text!("{x:.0}px").font(Font::MONOSPACE).size(10),
@@ -112,11 +129,11 @@ impl Table {
                 )
             ]
             .spacing(10)
-            .width(640)
+            .width(400)
         };
 
         column![
-            center(scrollable(table).spacing(10)).padding(10),
+            center_y(scrollable(center_x(table)).spacing(10)).padding(10),
             center_x(controls).padding(10).style(container::dark)
         ]
         .into()
