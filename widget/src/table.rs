@@ -10,13 +10,12 @@ use crate::core::{
     Widget,
 };
 
-pub fn table<'a, R, T, Message, Theme, Renderer>(
+pub fn table<'a, T, Message, Theme, Renderer>(
     columns: impl IntoIterator<Item = Column<'a, T, Message, Theme, Renderer>>,
-    rows: R,
+    rows: impl IntoIterator<Item = T>,
 ) -> Table<'a, Message, Theme, Renderer>
 where
-    R: IntoIterator<Item = T>,
-    R::IntoIter: Clone,
+    T: Clone,
     Theme: Catalog,
     Renderer: core::Renderer,
 {
@@ -66,45 +65,50 @@ where
     Theme: Catalog,
     Renderer: core::Renderer,
 {
-    pub fn new<R, T>(
+    pub fn new<T>(
         columns: impl IntoIterator<Item = Column<'a, T, Message, Theme, Renderer>>,
-        rows: R,
+        rows: impl IntoIterator<Item = T>,
     ) -> Self
     where
-        R: IntoIterator<Item = T>,
-        R::IntoIter: Clone,
+        T: Clone,
     {
         let columns = columns.into_iter();
         let rows = rows.into_iter();
 
         let mut width = Length::Shrink;
         let mut height = Length::Shrink;
+
         let mut cells = Vec::with_capacity(
             columns.size_hint().0 * (1 + rows.size_hint().0),
         );
 
-        let mut columns: Vec<_> = columns
-            .into_iter()
+        let (mut columns, views): (Vec<_>, Vec<_>) = columns
             .map(|column| {
-                cells.push(column.header);
-                cells.extend(rows.clone().map(|row| {
-                    let cell = (column.view)(row);
-                    let size_hint = cell.as_widget().size_hint();
-
-                    height = height.enclose(size_hint.height);
-
-                    cell
-                }));
-
                 width = width.enclose(column.width);
 
-                Column_ {
-                    width: column.width,
-                    align_x: column.align_x,
-                    align_y: column.align_y,
-                }
+                cells.push(column.header);
+
+                (
+                    Column_ {
+                        width: column.width,
+                        align_x: column.align_x,
+                        align_y: column.align_y,
+                    },
+                    column.view,
+                )
             })
             .collect();
+
+        for row in rows {
+            for view in &views {
+                let cell = view(row.clone());
+                let size_hint = cell.as_widget().size_hint();
+
+                height = height.enclose(size_hint.height);
+
+                cells.push(cell);
+            }
+        }
 
         if width == Length::Shrink {
             if let Some(first) = columns.first_mut() {
@@ -163,7 +167,7 @@ where
     }
 }
 
-pub struct Metrics {
+struct Metrics {
     columns: Vec<f32>,
     rows: Vec<f32>,
 }
@@ -210,7 +214,8 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let metrics = tree.state.downcast_mut::<Metrics>();
-        let rows = self.cells.len() / self.columns.len();
+        let columns = self.columns.len();
+        let rows = self.cells.len() / columns;
 
         let limits = limits.width(self.width).height(self.height);
         let available = limits.max();
@@ -223,7 +228,9 @@ where
         metrics.rows = vec![0.0; rows];
 
         let mut column_factors = vec![0; self.columns.len()];
-        let mut row_factors = vec![0; rows];
+        let mut total_row_factors = 0;
+        let mut total_fluid_height = 0.0;
+        let mut row_factor = 0;
 
         let spacing_x = self.padding_x * 2.0 + self.separator_x;
         let spacing_y = self.padding_y * 2.0 + self.separator_y;
@@ -236,17 +243,24 @@ where
         for (i, (cell, state)) in
             self.cells.iter().zip(&mut tree.children).enumerate()
         {
-            let column = i / rows;
-            let row = i % rows;
+            let row = i / columns;
+            let column = i % columns;
 
             let width = self.columns[column].width;
             let size = cell.as_widget().size();
 
-            if row == 0 {
-                y = self.padding_y;
+            if column == 0 {
+                x = self.padding_x;
 
-                if column > 0 {
-                    x += metrics.columns[column - 1] + spacing_x;
+                if row > 0 {
+                    y += metrics.rows[row - 1] + spacing_y;
+
+                    if row_factor != 0 {
+                        total_fluid_height += metrics.rows[row - 1];
+                        total_row_factors += row_factor;
+
+                        row_factor = 0;
+                    }
                 }
             }
 
@@ -257,7 +271,7 @@ where
                 column_factors[column] =
                     column_factors[column].max(width_factor);
 
-                row_factors[row] = row_factors[row].max(height_factor);
+                row_factor = row_factor.max(height_factor);
 
                 continue;
             }
@@ -275,7 +289,7 @@ where
             metrics.rows[row] = metrics.rows[row].max(size.height);
             cells[i] = layout;
 
-            y += size.height + spacing_y;
+            x += size.width + spacing_x;
         }
 
         // SECOND PASS
@@ -289,14 +303,7 @@ where
                     .filter(|(i, _)| column_factors[*i] == 0)
                     .map(|(_, width)| width)
                     .sum::<f32>(),
-            available.height
-                - metrics
-                    .rows
-                    .iter()
-                    .enumerate()
-                    .filter(|(i, _)| row_factors[*i] == 0)
-                    .map(|(_, height)| height)
-                    .sum::<f32>(),
+            available.height - total_fluid_height,
         );
 
         let width_unit = (left.width
@@ -307,7 +314,7 @@ where
         let height_unit = (left.height
             - spacing_y * rows.saturating_sub(1) as f32
             - self.padding_y * 2.0)
-            / row_factors.iter().sum::<u16>() as f32;
+            / total_row_factors as f32;
 
         let mut x = self.padding_x;
         let mut y = self.padding_y;
@@ -315,19 +322,20 @@ where
         for (i, (cell, state)) in
             self.cells.iter().zip(&mut tree.children).enumerate()
         {
-            let column = i / rows;
-            let row = i % rows;
+            let row = i / columns;
+            let column = i % columns;
 
             let size = cell.as_widget().size();
 
             let width = self.columns[column].width;
             let width_factor = width.fill_factor();
+            let height_factor = size.height.fill_factor();
 
-            if row == 0 {
-                y = self.padding_y;
+            if column == 0 {
+                x = self.padding_x;
 
-                if column > 0 {
-                    x += metrics.columns[column - 1] + spacing_x;
+                if row > 0 {
+                    y += metrics.rows[row - 1] + spacing_y;
                 }
             }
 
@@ -337,8 +345,6 @@ where
             {
                 continue;
             }
-
-            let row_factor = row_factors[row];
 
             let max_width = if width_factor == 0 {
                 if size.width.is_fill() {
@@ -350,14 +356,14 @@ where
                 width_unit * width_factor as f32
             };
 
-            let max_height = if row_factor == 0 {
+            let max_height = if height_factor == 0 {
                 if size.height.is_fill() {
                     metrics.rows[row]
                 } else {
                     (available.height - y).max(0.0)
                 }
             } else {
-                height_unit * row_factor as f32
+                height_unit * height_factor as f32
             };
 
             let limits = layout::Limits::new(
@@ -381,7 +387,7 @@ where
             metrics.rows[row] = metrics.rows[row].max(size.height);
             cells[i] = layout;
 
-            y += size.height + spacing_y;
+            x += size.width + spacing_x;
         }
 
         // THIRD PASS
@@ -390,14 +396,14 @@ where
         let mut y = self.padding_y;
 
         for (i, cell) in cells.iter_mut().enumerate() {
-            let column = i / rows;
-            let row = i % rows;
+            let row = i / columns;
+            let column = i % columns;
 
-            if row == 0 {
-                y = self.padding_y;
+            if column == 0 {
+                x = self.padding_x;
 
-                if column > 0 {
-                    x += metrics.columns[column - 1] + spacing_x;
+                if row > 0 {
+                    y += metrics.rows[row - 1] + spacing_y;
                 }
             }
 
@@ -412,20 +418,20 @@ where
                 Size::new(metrics.columns[column], metrics.rows[row]),
             );
 
-            y += metrics.rows[row] + spacing_y;
+            x += metrics.columns[column] + spacing_x;
         }
 
         let intrinsic = limits.resolve(
             self.width,
             self.height,
             Size::new(
-                x + metrics
-                    .columns
+                x - spacing_x + self.padding_x,
+                y + metrics
+                    .rows
                     .last()
                     .copied()
-                    .map(|width| width + self.padding_x)
+                    .map(|height| height + self.padding_y)
                     .unwrap_or_default(),
-                y - spacing_y + self.padding_y,
             ),
         );
 
@@ -599,9 +605,10 @@ impl Catalog for crate::Theme {
 /// The default style of a [`Table`].
 pub fn default(theme: &crate::Theme) -> Style {
     let palette = theme.extended_palette();
+    let separator = palette.background.strong.color.into();
 
     Style {
-        separator_x: palette.background.strong.color.into(),
-        separator_y: palette.background.strong.color.into(),
+        separator_x: separator,
+        separator_y: separator,
     }
 }
