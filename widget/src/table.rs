@@ -10,8 +10,8 @@ use crate::core::{
     Widget,
 };
 
-pub fn table<'a, T, Message, Theme, Renderer>(
-    columns: impl IntoIterator<Item = Column<'a, T, Message, Theme, Renderer>>,
+pub fn table<'a, 'b, T, Message, Theme, Renderer>(
+    columns: impl IntoIterator<Item = Column<'a, 'b, T, Message, Theme, Renderer>>,
     rows: impl IntoIterator<Item = T>,
 ) -> Table<'a, Message, Theme, Renderer>
 where
@@ -22,10 +22,10 @@ where
     Table::new(columns, rows)
 }
 
-pub fn column<'a, T, E, Message, Theme, Renderer>(
+pub fn column<'a, 'b, T, E, Message, Theme, Renderer>(
     header: impl Into<Element<'a, Message, Theme, Renderer>>,
-    view: impl Fn(T) -> E + 'a,
-) -> Column<'a, T, Message, Theme, Renderer>
+    view: impl Fn(T) -> E + 'b,
+) -> Column<'a, 'b, T, Message, Theme, Renderer>
 where
     T: 'a,
     E: Into<Element<'a, Message, Theme, Renderer>>,
@@ -65,8 +65,10 @@ where
     Theme: Catalog,
     Renderer: core::Renderer,
 {
-    pub fn new<T>(
-        columns: impl IntoIterator<Item = Column<'a, T, Message, Theme, Renderer>>,
+    pub fn new<'b, T>(
+        columns: impl IntoIterator<
+            Item = Column<'a, 'b, T, Message, Theme, Renderer>,
+        >,
         rows: impl IntoIterator<Item = T>,
     ) -> Self
     where
@@ -122,7 +124,7 @@ where
             width,
             height,
             padding_x: 10.0,
-            padding_y: 10.0,
+            padding_y: 5.0,
             separator_x: 1.0,
             separator_y: 1.0,
             class: Theme::default(),
@@ -526,19 +528,22 @@ where
 
 pub struct Column<
     'a,
+    'b,
     T,
     Message,
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > {
     header: Element<'a, Message, Theme, Renderer>,
-    view: Box<dyn Fn(T) -> Element<'a, Message, Theme, Renderer> + 'a>,
+    view: Box<dyn Fn(T) -> Element<'a, Message, Theme, Renderer> + 'b>,
     width: Length,
     align_x: alignment::Horizontal,
     align_y: alignment::Vertical,
 }
 
-impl<'a, T, Message, Theme, Renderer> Column<'a, T, Message, Theme, Renderer> {
+impl<'a, 'b, T, Message, Theme, Renderer>
+    Column<'a, 'b, T, Message, Theme, Renderer>
+{
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
         self
