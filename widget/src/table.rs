@@ -1,4 +1,4 @@
-#![allow(missing_docs, missing_debug_implementations)]
+//! Display tables.
 use crate::core;
 use crate::core::alignment;
 use crate::core::layout;
@@ -10,6 +10,10 @@ use crate::core::{
     Widget,
 };
 
+/// Creates a new [`Table`] with the given columns and rows.
+///
+/// Columns can be created using the [`column`] function, while rows can be any
+/// iterator over some data type `T`.
 pub fn table<'a, 'b, T, Message, Theme, Renderer>(
     columns: impl IntoIterator<Item = Column<'a, 'b, T, Message, Theme, Renderer>>,
     rows: impl IntoIterator<Item = T>,
@@ -22,6 +26,10 @@ where
     Table::new(columns, rows)
 }
 
+/// Creates a new [`Column`] with the given header and view function.
+///
+/// The view function will be called for each row in a [`Table`] and it must
+/// produce the resulting contents of a cell.
 pub fn column<'a, 'b, T, E, Message, Theme, Renderer>(
     header: impl Into<Element<'a, Message, Theme, Renderer>>,
     view: impl Fn(T) -> E + 'b,
@@ -39,6 +47,8 @@ where
     }
 }
 
+/// A grid-like visual representation of data of columns and rows.
+#[allow(missing_debug_implementations)]
 pub struct Table<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
@@ -65,6 +75,10 @@ where
     Theme: Catalog,
     Renderer: core::Renderer,
 {
+    /// Creates a new [`Table`] with the given columns and rows.
+    ///
+    /// Columns can be created using the [`column`] function, while rows can be any
+    /// iterator over some data type `T`.
     pub fn new<'b, T>(
         columns: impl IntoIterator<
             Item = Column<'a, 'b, T, Message, Theme, Renderer>,
@@ -131,38 +145,45 @@ where
         }
     }
 
+    /// Sets the width of the [`Table`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
         self
     }
 
+    /// Sets the padding of the cells of the [`Table`].
     pub fn padding(self, padding: impl Into<Pixels>) -> Self {
         let padding = padding.into();
 
         self.padding_x(padding).padding_y(padding)
     }
 
+    /// Sets the horizontal padding of the cells of the [`Table`].
     pub fn padding_x(mut self, padding: impl Into<Pixels>) -> Self {
         self.padding_x = padding.into().0;
         self
     }
 
+    /// Sets the vertical padding of the cells of the [`Table`].
     pub fn padding_y(mut self, padding: impl Into<Pixels>) -> Self {
         self.padding_y = padding.into().0;
         self
     }
 
+    /// Sets the thickness of the line separator between the cells of the [`Table`].
     pub fn separator(self, separator: impl Into<Pixels>) -> Self {
         let separator = separator.into();
 
         self.separator_x(separator).separator_y(separator)
     }
 
+    /// Sets the thickness of the horizontal line separator between the cells of the [`Table`].
     pub fn separator_x(mut self, separator: impl Into<Pixels>) -> Self {
         self.separator_x = separator.into().0;
         self
     }
 
+    /// Sets the thickness of the vertical line separator between the cells of the [`Table`].
     pub fn separator_y(mut self, separator: impl Into<Pixels>) -> Self {
         self.separator_y = separator.into().0;
         self
@@ -526,6 +547,8 @@ where
     }
 }
 
+/// A vertical visualization of some data with a header.
+#[allow(missing_debug_implementations)]
 pub struct Column<
     'a,
     'b,
@@ -544,6 +567,7 @@ pub struct Column<
 impl<'a, 'b, T, Message, Theme, Renderer>
     Column<'a, 'b, T, Message, Theme, Renderer>
 {
+    /// Sets the width of the [`Column`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
         self
@@ -568,9 +592,12 @@ impl<'a, 'b, T, Message, Theme, Renderer>
     }
 }
 
+/// The appearance of a [`Table`].
 #[derive(Debug, Clone, Copy)]
 pub struct Style {
+    /// The background color of the horizontal line separator between cells.
     pub separator_x: Background,
+    /// The background color of the vertical line separator between cells.
     pub separator_y: Background,
 }
 
