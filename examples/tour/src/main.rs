@@ -142,17 +142,17 @@ impl Tour {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let controls =
-            row![]
-                .push_maybe(self.screen.previous().is_some().then(|| {
-                    padded_button("Back")
-                        .on_press(Message::BackPressed)
-                        .style(button::secondary)
-                }))
-                .push(horizontal_space())
-                .push_maybe(self.can_continue().then(|| {
-                    padded_button("Next").on_press(Message::NextPressed)
-                }));
+        let controls = row![
+            self.screen.previous().is_some().then(|| {
+                padded_button("Back")
+                    .on_press(Message::BackPressed)
+                    .style(button::secondary)
+            }),
+            horizontal_space(),
+            self.can_continue().then(|| {
+                padded_button("Next").on_press(Message::NextPressed)
+            })
+        ];
 
         let screen = match self.screen {
             Screen::Welcome => self.welcome(),
