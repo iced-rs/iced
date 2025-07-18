@@ -12,7 +12,7 @@ use crate::core::{
 
 /// Creates a new [`Table`] with the given columns and rows.
 ///
-/// Columns can be created using the [`column`] function, while rows can be any
+/// Columns can be created using the [`column()`] function, while rows can be any
 /// iterator over some data type `T`.
 pub fn table<'a, 'b, T, Message, Theme, Renderer>(
     columns: impl IntoIterator<Item = Column<'a, 'b, T, Message, Theme, Renderer>>,
@@ -47,7 +47,7 @@ where
     }
 }
 
-/// A grid-like visual representation of data of columns and rows.
+/// A grid-like visual representation of data distributed in columns and rows.
 #[allow(missing_debug_implementations)]
 pub struct Table<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
@@ -77,7 +77,7 @@ where
 {
     /// Creates a new [`Table`] with the given columns and rows.
     ///
-    /// Columns can be created using the [`column`] function, while rows can be any
+    /// Columns can be created using the [`column()`] function, while rows can be any
     /// iterator over some data type `T`.
     pub fn new<'b, T>(
         columns: impl IntoIterator<
