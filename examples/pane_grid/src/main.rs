@@ -276,13 +276,13 @@ fn view_content<'a>(
         button(
             "Split vertically",
             Message::Split(pane_grid::Axis::Vertical, pane),
-        )
+        ),
+        if total_panes > 1 && !is_pinned {
+            Some(button("Close", Message::Close(pane)).style(button::danger))
+        } else {
+            None
+        }
     ]
-    .push_maybe(if total_panes > 1 && !is_pinned {
-        Some(button("Close", Message::Close(pane)).style(button::danger))
-    } else {
-        None
-    })
     .spacing(5)
     .max_width(160);
 
@@ -300,7 +300,7 @@ fn view_controls<'a>(
     is_pinned: bool,
     is_maximized: bool,
 ) -> Element<'a, Message> {
-    let row = row![].spacing(5).push_maybe(if total_panes > 1 {
+    let maximize = if total_panes > 1 {
         let (content, message) = if is_maximized {
             ("Restore", Message::Restore)
         } else {
@@ -315,7 +315,7 @@ fn view_controls<'a>(
         )
     } else {
         None
-    });
+    };
 
     let close = button(text("Close").size(14))
         .style(button::danger)
@@ -326,7 +326,7 @@ fn view_controls<'a>(
             None
         });
 
-    row.push(close).into()
+    row![maximize, close].spacing(5).into()
 }
 
 mod style {

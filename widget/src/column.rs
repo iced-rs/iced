@@ -145,23 +145,13 @@ where
         let child = child.into();
         let child_size = child.as_widget().size_hint();
 
-        self.width = self.width.enclose(child_size.width);
-        self.height = self.height.enclose(child_size.height);
-
-        self.children.push(child);
-        self
-    }
-
-    /// Adds an element to the [`Column`], if `Some`.
-    pub fn push_maybe(
-        self,
-        child: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    ) -> Self {
-        if let Some(child) = child {
-            self.push(child)
-        } else {
-            self
+        if !child_size.is_void() {
+            self.width = self.width.enclose(child_size.width);
+            self.height = self.height.enclose(child_size.height);
+            self.children.push(child);
         }
+
+        self
     }
 
     /// Extends the [`Column`] with the given children.
