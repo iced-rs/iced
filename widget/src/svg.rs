@@ -20,9 +20,10 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::svg;
 use crate::core::widget::Tree;
+use crate::core::window;
 use crate::core::{
-    Color, ContentFit, Element, Layout, Length, Point, Rectangle, Rotation,
-    Size, Theme, Vector, Widget,
+    Clipboard, Color, ContentFit, Element, Event, Layout, Length, Point,
+    Rectangle, Rotation, Shell, Size, Theme, Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -63,6 +64,7 @@ where
     class: Theme::Class<'a>,
     rotation: Rotation,
     opacity: f32,
+    status: Option<Status>,
 }
 
 impl<'a, Theme> Svg<'a, Theme>
@@ -79,6 +81,7 @@ where
             class: Theme::default(),
             rotation: Rotation::default(),
             opacity: 1.0,
+            status: None,
         }
     }
 
@@ -195,6 +198,30 @@ where
         layout::Node::new(final_size)
     }
 
+    fn update(
+        &mut self,
+        _state: &mut Tree,
+        event: &Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        _renderer: &Renderer,
+        _clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
+    ) {
+        let current_status = if cursor.is_over(layout.bounds()) {
+            Status::Hovered
+        } else {
+            Status::Idle
+        };
+
+        if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            self.status = Some(current_status);
+        } else if self.status.is_some_and(|status| status != current_status) {
+            shell.request_redraw();
+        }
+    }
+
     fn draw(
         &self,
         _state: &Tree,
@@ -202,7 +229,7 @@ where
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let Size { width, height } = renderer.measure_svg(&self.handle);
@@ -231,15 +258,8 @@ where
 
         let drawing_bounds = Rectangle::new(position, final_size);
 
-        let is_mouse_over = cursor.is_over(bounds);
-
-        let status = if is_mouse_over {
-            Status::Hovered
-        } else {
-            Status::Idle
-        };
-
-        let style = theme.style(&self.class, status);
+        let style =
+            theme.style(&self.class, self.status.unwrap_or(Status::Idle));
 
         let render = |renderer: &mut Renderer| {
             renderer.draw_svg(
