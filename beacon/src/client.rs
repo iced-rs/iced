@@ -15,8 +15,6 @@ use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool};
 use std::thread;
 
-pub const SERVER_ADDRESS: &str = "127.0.0.1:9167";
-
 #[derive(Debug, Clone)]
 pub struct Client {
     sender: mpsc::Sender<Action>,
@@ -224,7 +222,8 @@ async fn run(
 
 async fn _connect() -> Result<net::TcpStream, io::Error> {
     log::debug!("Attempting to connect to server...");
-    let stream = net::TcpStream::connect(SERVER_ADDRESS).await?;
+    let addr = crate::server_address_from_env();
+    let stream = net::TcpStream::connect(&addr).await?;
 
     stream.set_nodelay(true)?;
     stream.writable().await?;
