@@ -12,7 +12,36 @@ use crate::task::{self, Task};
 
 pub use raw_window_handle;
 
-use raw_window_handle::WindowHandle;
+use raw_window_handle::{DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, WindowHandle};
+
+/// Represents a window with handles for display and window operations.
+#[derive(Debug)]
+pub struct WindowHandles<'a> {
+    window_handle: WindowHandle<'a>,
+    display_handle: DisplayHandle<'a>,
+}
+
+impl HasWindowHandle for WindowHandles<'_> {
+    fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
+        Ok(self.window_handle)
+    }
+}
+
+impl HasDisplayHandle for WindowHandles<'_> {
+    fn display_handle(&self) -> Result<DisplayHandle<'_>, HandleError> {
+        Ok(self.display_handle)
+    }
+}
+
+impl<'a> WindowHandles<'a> {
+    /// Creates a new instance of `WindowHandles`.
+    pub fn new(window_handle: WindowHandle<'a>, display_handle: DisplayHandle<'a>) -> Self {
+        Self {
+            window_handle,
+            display_handle,
+        }
+    }
+}
 
 /// An operation to be performed on some window.
 #[allow(missing_debug_implementations)]
@@ -148,6 +177,9 @@ pub enum Action {
 
     /// Runs the closure with the native window handle of the window with the given [`Id`].
     RunWithHandle(Id, Box<dyn FnOnce(WindowHandle<'_>) + Send>),
+
+    /// Runs the closure with the native window and display handles of the window with the given [`Id`].
+    RunWithWindowHandles(Id, Box<dyn FnOnce(WindowHandles<'_>) + Send>),
 
     /// Screenshot the viewport of the window.
     Screenshot(Id, oneshot::Sender<Screenshot>),
@@ -452,6 +484,26 @@ where
             id,
             Box::new(move |handle| {
                 let _ = channel.send(f(handle));
+            }),
+        ))
+    })
+}
+
+/// Runs the given callback with the native window and display handles of the window with the given [`Id`].
+///
+/// Note that if the window closes before this call is processed the callback will not be run.
+pub fn run_with_window_handles<T>(
+    id: Id,
+    f: impl FnOnce(WindowHandles<'_>) -> T + Send + 'static,
+) -> Task<T>
+where
+    T: Send + 'static,
+{
+    task::oneshot(move |channel| {
+        crate::Action::Window(Action::RunWithWindowHandles(
+            id,
+            Box::new(move |w| {
+                let _ = channel.send(f(w));
             }),
         ))
     })
