@@ -1,7 +1,20 @@
 //! Configure your application.
+
+#[cfg(target_os = "macos")]
+#[path = "settings/macos.rs"]
+mod platform;
+
+#[cfg(not(target_os = "macos"))]
+#[path = "settings/other.rs"]
+mod platform;
+
 use crate::{Font, Pixels};
 
 use std::borrow::Cow;
+
+#[cfg(target_os = "macos")]
+pub use platform::ActivationPolicy;
+pub use platform::PlatformSpecific;
 
 /// The settings of an iced program.
 #[derive(Debug, Clone)]
@@ -33,6 +46,9 @@ pub struct Settings {
     ///
     /// By default, it is enabled.
     pub antialiasing: bool,
+
+    /// Platform specific settings.
+    pub platform_specific: PlatformSpecific,
 }
 
 impl Default for Settings {
@@ -43,6 +59,8 @@ impl Default for Settings {
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: true,
+            #[allow(clippy::default_constructed_unit_structs)]
+            platform_specific: PlatformSpecific::default(),
         }
     }
 }
