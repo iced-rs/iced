@@ -15,6 +15,9 @@ use crate::core::{
 /// will be displayed as the base layer. Every consecutive [`Element`] will be
 /// renderer on top; on its own layer.
 ///
+/// The [`Element`] to be used to determine the intrinsic [`Size`] of the [`Stack`]
+/// can be overwritten using [`Stack::reference_layer`].
+///
 /// Keep in mind that too much layering will normally produce bad UX as well as
 /// introduce certain rendering overhead. Use this widget sparingly!
 #[allow(missing_debug_implementations)]
@@ -22,6 +25,7 @@ pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 {
     width: Length,
     height: Length,
+    layout_ref_child: usize,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
 }
 
@@ -61,6 +65,7 @@ where
         Self {
             width: Length::Shrink,
             height: Length::Shrink,
+            layout_ref_child: 0,
             children,
         }
     }
@@ -105,6 +110,16 @@ where
         } else {
             self
         }
+    }
+
+    /// Set the [`Element`] at the given index to be
+    /// used as the new reference for the stacks intrinsic size.
+    ///
+    /// panics if `index >= children.len()`.
+    pub fn reference_layer(mut self, index: usize) -> Self {
+        assert!(self.children.len() > index);
+        self.layout_ref_child = index;
+        self
     }
 
     /// Extends the [`Stack`] with the given children.
@@ -170,13 +185,27 @@ where
         let size = limits.resolve(self.width, self.height, base.size());
         let limits = layout::Limits::new(Size::ZERO, size);
 
-        let nodes = std::iter::once(base)
-            .chain(self.children[1..].iter().zip(&mut tree.children[1..]).map(
-                |(layer, tree)| {
-                    layer.as_widget().layout(tree, renderer, &limits)
-                },
-            ))
-            .collect();
+        let mut nodes = Vec::with_capacity(self.children.len());
+
+        let build_node = |(layer, tree): (&Element<'_, _, _, _>, &mut Tree)| {
+            layer.as_widget().layout(tree, renderer, &limits)
+        };
+        let r_i = self.layout_ref_child;
+        if r_i != 0 {
+            nodes.extend(
+                self.children[0..r_i]
+                    .iter()
+                    .zip(&mut tree.children[0..r_i])
+                    .map(build_node),
+            );
+        }
+        nodes.push(base);
+        nodes.extend(
+            self.children[r_i + 1..]
+                .iter()
+                .zip(&mut tree.children[r_i + 1..])
+                .map(build_node),
+        );
 
         layout::Node::with_children(size, nodes)
     }
