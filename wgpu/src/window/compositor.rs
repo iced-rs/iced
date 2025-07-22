@@ -93,10 +93,10 @@ impl Compositor {
             force_fallback_adapter: false,
         };
 
-        let adapter = instance
-            .request_adapter(&adapter_options)
-            .await
-            .ok_or(Error::NoAdapterFound(format!("{adapter_options:?}")))?;
+        let adapter =
+            instance.request_adapter(&adapter_options).await.map_err(
+                |_error| Error::NoAdapterFound(format!("{adapter_options:?}")),
+            )?;
 
         log::info!("Selected: {:#?}", adapter.get_info());
 
@@ -162,17 +162,15 @@ impl Compositor {
 
         for required_limits in limits {
             let result = adapter
-                .request_device(
-                    &wgpu::DeviceDescriptor {
-                        label: Some(
-                            "iced_wgpu::window::compositor device descriptor",
-                        ),
-                        required_features: wgpu::Features::empty(),
-                        required_limits: required_limits.clone(),
-                        memory_hints: wgpu::MemoryHints::MemoryUsage,
-                    },
-                    None,
-                )
+                .request_device(&wgpu::DeviceDescriptor {
+                    label: Some(
+                        "iced_wgpu::window::compositor device descriptor",
+                    ),
+                    required_features: wgpu::Features::empty(),
+                    required_limits: required_limits.clone(),
+                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+                    trace: wgpu::Trace::Off,
+                })
                 .await;
 
             match result {

@@ -174,7 +174,7 @@ cosmic-text = "0.14"
 dark-light = "2.0"
 futures = { version = "0.3", default-features = false }
 glam = "0.25"
-cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "a456d1c17bbcf33afcca41d9e5e299f9f1193819" }
+cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "453cedec0d2ec563bd7fa87e84a2319bcebb1ba3" }
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.25", default-features = false }
@@ -211,7 +211,7 @@ wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.1"
 web-sys = "0.3.69"
 web-time = "1.1"
-wgpu = "24.0"
+wgpu = "26.0"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b" }
 
