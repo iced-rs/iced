@@ -41,14 +41,15 @@ mod rainbow {
             &mut self,
             _state: &mut widget::Tree,
             _event: &iced::Event,
-            _layout: Layout<'_>,
+            layout: Layout<'_>,
             cursor: iced::advanced::mouse::Cursor,
             _renderer: &Renderer,
             _clipboard: &mut dyn iced::advanced::Clipboard,
             shell: &mut iced::advanced::Shell<'_, Message>,
-            viewport: &Rectangle,
+            _viewport: &Rectangle,
         ) {
-            if cursor.is_over(*viewport) {
+            let bounds = layout.bounds();
+            if cursor.is_over(bounds) {
                 shell.request_redraw();
             }
         }
