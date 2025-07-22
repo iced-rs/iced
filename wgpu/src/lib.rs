@@ -284,7 +284,7 @@ impl Renderer {
         let _ = self
             .engine
             .device
-            .poll(wgpu::Maintain::WaitForSubmissionIndex(index));
+            .poll(wgpu::PollType::WaitForSubmissionIndex(index));
 
         let mapped_buffer = slice.get_mapped_range();
 
@@ -426,6 +426,7 @@ impl Renderer {
                 label: Some("iced_wgpu render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: frame,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: match clear_color {
@@ -514,6 +515,7 @@ impl Renderer {
                         color_attachments: &[Some(
                             wgpu::RenderPassColorAttachment {
                                 view: frame,
+                                depth_slice: None,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
                                     load: wgpu::LoadOp::Load,
@@ -560,6 +562,7 @@ impl Renderer {
                         color_attachments: &[Some(
                             wgpu::RenderPassColorAttachment {
                                 view: frame,
+                                depth_slice: None,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
                                     load: wgpu::LoadOp::Load,
@@ -831,21 +834,20 @@ impl renderer::Headless for Renderer {
                 force_fallback_adapter: false,
                 compatible_surface: None,
             })
-            .await?;
+            .await
+            .ok()?;
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: Some("iced_wgpu [headless]"),
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits {
-                        max_bind_groups: 2,
-                        ..wgpu::Limits::default()
-                    },
-                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("iced_wgpu [headless]"),
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits {
+                    max_bind_groups: 2,
+                    ..wgpu::Limits::default()
                 },
-                None,
-            )
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                trace: wgpu::Trace::Off,
+            })
             .await
             .ok()?;
 
