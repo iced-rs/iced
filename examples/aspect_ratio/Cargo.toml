@@ -1,0 +1,10 @@
+[package]
+name = "aspect_ratio"
+version = "0.1.0"
+authors = ["tigerros"]
+edition = "2024"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["lazy"]
