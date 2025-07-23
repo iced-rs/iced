@@ -508,6 +508,7 @@ mod error;
 pub mod application;
 pub mod daemon;
 pub mod time;
+pub mod tray_icon;
 pub mod window;
 
 #[cfg(feature = "advanced")]

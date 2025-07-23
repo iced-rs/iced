@@ -15,6 +15,7 @@ mod user_attention;
 pub use direction::Direction;
 pub use event::Event;
 pub use icon::Icon;
+pub use id::GLOBAL;
 pub use id::Id;
 pub use level::Level;
 pub use mode::Mode;

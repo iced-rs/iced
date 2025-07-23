@@ -17,6 +17,7 @@ workspace = true
 auto-detect-theme = ["dep:dark-light"]
 advanced = []
 crisp = []
+tray-icon = ["dep:tray-icon"]
 
 [dependencies]
 bitflags.workspace = true
@@ -36,3 +37,6 @@ dark-light.optional = true
 serde.workspace = true
 serde.optional = true
 serde.features = ["derive"]
+
+tray-icon.workspace = true
+tray-icon.optional = true

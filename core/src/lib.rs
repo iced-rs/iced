@@ -29,6 +29,7 @@ pub mod text;
 pub mod theme;
 pub mod time;
 pub mod touch;
+pub mod tray_icon;
 pub mod widget;
 pub mod window;
 

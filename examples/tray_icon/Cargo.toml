@@ -1,0 +1,10 @@
+[package]
+name = "tray_icon"
+version = "0.1.0"
+authors = ["nate-trojian"]
+edition = "2024"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["tray-icon"]
