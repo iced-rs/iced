@@ -1321,9 +1321,14 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
+    let digits = ((start + items.len() as u64).max(1) as f32).log10().ceil();
+
     column(items.iter().enumerate().map(|(i, items)| {
         row![
-            text!("{}.", i as u64 + start).size(settings.text_size),
+            text!("{}.", i as u64 + start)
+                .size(settings.text_size)
+                .align_x(alignment::Horizontal::Right)
+                .width(settings.text_size * ((digits / 2.0).ceil() + 1.0)),
             view_with(
                 items,
                 Settings {
@@ -1337,7 +1342,6 @@ where
         .into()
     }))
     .spacing(settings.spacing * 0.75)
-    .padding([0.0, settings.spacing.0])
     .into()
 }
 
