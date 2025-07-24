@@ -3,6 +3,7 @@ use crate::input_method;
 use crate::keyboard;
 use crate::mouse;
 use crate::touch;
+use crate::tray_icon;
 use crate::window;
 
 /// A user interface event.
@@ -27,6 +28,9 @@ pub enum Event {
 
     /// An input method event
     InputMethod(input_method::Event),
+
+    /// A tray icon event
+    TrayIcon(tray_icon::Event),
 }
 
 /// The status of an [`Event`] after being processed.

@@ -143,6 +143,7 @@ where
         },
         settings: Settings::default(),
         window: window::Settings::default(),
+        tray_icon: None,
     }
 }
 
