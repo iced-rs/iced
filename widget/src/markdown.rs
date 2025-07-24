@@ -51,7 +51,9 @@ use crate::core::theme;
 use crate::core::{
     self, Color, Element, Length, Padding, Pixels, Theme, color,
 };
-use crate::{column, container, rich_text, row, rule, scrollable, span, text};
+use crate::{
+    checkbox, column, container, rich_text, row, rule, scrollable, span, text,
+};
 
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
@@ -208,7 +210,7 @@ pub enum Item {
         /// The first number of the list, if it is ordered.
         start: Option<u64>,
         /// The items of the list.
-        items: Vec<Vec<Item>>,
+        items: Vec<ListItem>,
     },
     /// An image.
     Image {
@@ -347,6 +349,19 @@ impl Span {
                 span(text.clone()).color_maybe(*color).font_maybe(*font)
             }
         }
+    }
+}
+
+/// The item of a list.
+#[derive(Debug, Clone)]
+pub struct ListItem {
+    checked: Option<bool>,
+    items: Vec<Item>,
+}
+
+impl ListItem {
+    fn push(&mut self, item: Item) {
+        self.items.push(item);
     }
 }
 
@@ -503,7 +518,7 @@ fn parse_with<'a>(
 
     struct List {
         start: Option<u64>,
-        items: Vec<Vec<Item>>,
+        items: Vec<ListItem>,
     }
 
     let broken_links = Rc::new(RefCell::new(HashSet::new()));
@@ -529,7 +544,8 @@ fn parse_with<'a>(
         pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
             | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
             | pulldown_cmark::Options::ENABLE_TABLES
-            | pulldown_cmark::Options::ENABLE_STRIKETHROUGH,
+            | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
+            | pulldown_cmark::Options::ENABLE_TASKLISTS,
         {
             let references = state.borrow().references.clone();
             let broken_links = broken_links.clone();
@@ -637,7 +653,10 @@ fn parse_with<'a>(
             }
             pulldown_cmark::Tag::Item => {
                 if let Some(Scope::List(list)) = stack.last_mut() {
-                    list.items.push(Vec::new());
+                    list.items.push(ListItem {
+                        checked: None,
+                        items: Vec::new(),
+                    });
                 }
 
                 None
@@ -970,6 +989,15 @@ fn parse_with<'a>(
         pulldown_cmark::Event::Rule => {
             produce(state.borrow_mut(), &mut stack, Item::Rule, source)
         }
+        pulldown_cmark::Event::TaskListMarker(checked) => {
+            if let Some(Scope::List(list)) = stack.last_mut()
+                && let Some(item) = list.items.last_mut()
+            {
+                item.checked = Some(checked);
+            }
+
+            None
+        }
         _ => None,
     })
 }
@@ -1280,18 +1308,28 @@ where
 pub fn unordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    items: &'a [Vec<Item>],
+    items: &'a [ListItem],
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    column(items.iter().map(|items| {
+    column(items.iter().map(|list_item| {
         row![
-            text("•").size(settings.text_size),
+            list_item
+                .checked
+                .map(|is_checked| Element::from(
+                    checkbox(is_checked).text_size(settings.text_size)
+                ))
+                .unwrap_or_else(|| Element::from(
+                    text("•")
+                        .width(settings.text_size)
+                        .center()
+                        .size(settings.text_size)
+                )),
             view_with(
-                items,
+                &list_item.items,
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
@@ -1313,7 +1351,7 @@ pub fn ordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     start: u64,
-    items: &'a [Vec<Item>],
+    items: &'a [ListItem],
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1322,14 +1360,30 @@ where
 {
     let digits = ((start + items.len() as u64).max(1) as f32).log10().ceil();
 
-    column(items.iter().enumerate().map(|(i, items)| {
+    column(items.iter().enumerate().map(|(i, list_item)| {
         row![
-            text!("{}.", i as u64 + start)
-                .size(settings.text_size)
-                .align_x(alignment::Horizontal::Right)
-                .width(settings.text_size * ((digits / 2.0).ceil() + 1.0)),
+            list_item
+                .checked
+                .map(|is_checked| {
+                    Element::from(
+                        container(
+                            checkbox(is_checked).text_size(settings.text_size),
+                        )
+                        .align_right(
+                            settings.text_size * ((digits / 2.0).ceil() + 1.0),
+                        ),
+                    )
+                })
+                .unwrap_or_else(|| Element::from(
+                    text!("{}.", i as u64 + start)
+                        .size(settings.text_size)
+                        .align_x(alignment::Horizontal::Right)
+                        .width(
+                            settings.text_size * ((digits / 2.0).ceil() + 1.0)
+                        ),
+                )),
             view_with(
-                items,
+                &list_item.items,
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
@@ -1568,7 +1622,7 @@ where
     fn unordered_list(
         &self,
         settings: Settings,
-        items: &'a [Vec<Item>],
+        items: &'a [ListItem],
     ) -> Element<'a, Message, Theme, Renderer> {
         unordered_list(self, settings, items)
     }
@@ -1580,7 +1634,7 @@ where
         &self,
         settings: Settings,
         start: u64,
-        items: &'a [Vec<Item>],
+        items: &'a [ListItem],
     ) -> Element<'a, Message, Theme, Renderer> {
         ordered_list(self, settings, start, items)
     }
@@ -1638,6 +1692,7 @@ pub trait Catalog:
     + scrollable::Catalog
     + text::Catalog
     + crate::rule::Catalog
+    + checkbox::Catalog
     + crate::table::Catalog
 {
     /// The styling class of a Markdown code block.
