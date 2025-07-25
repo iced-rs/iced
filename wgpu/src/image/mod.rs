@@ -15,7 +15,6 @@ use crate::core::{Rectangle, Size, Transformation};
 use bytemuck::{Pod, Zeroable};
 
 use std::mem;
-use std::sync::Arc;
 
 pub use crate::graphics::Image;
 
@@ -27,7 +26,7 @@ pub struct Pipeline {
     backend: wgpu::Backend,
     nearest_sampler: wgpu::Sampler,
     linear_sampler: wgpu::Sampler,
-    texture_layout: Arc<wgpu::BindGroupLayout>,
+    texture_layout: wgpu::BindGroupLayout,
     constant_layout: wgpu::BindGroupLayout,
 }
 
@@ -196,7 +195,7 @@ impl Pipeline {
             backend,
             nearest_sampler,
             linear_sampler,
-            texture_layout: Arc::new(texture_layout),
+            texture_layout,
             constant_layout,
         }
     }
