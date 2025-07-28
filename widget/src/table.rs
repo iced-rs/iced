@@ -3,6 +3,7 @@ use crate::core;
 use crate::core::alignment;
 use crate::core::layout;
 use crate::core::mouse;
+use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
@@ -461,6 +462,30 @@ where
         layout::Node::with_children(intrinsic, cells)
     }
 
+    fn update(
+        &mut self,
+        tree: &mut widget::Tree,
+        event: &core::Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        clipboard: &mut dyn core::Clipboard,
+        shell: &mut core::Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
+        for ((cell, state), layout) in self
+            .cells
+            .iter_mut()
+            .zip(&mut tree.children)
+            .zip(layout.children())
+        {
+            cell.as_widget_mut().update(
+                state, event, layout, cursor, renderer, clipboard, shell,
+                viewport,
+            );
+        }
+    }
+
     fn draw(
         &self,
         tree: &widget::Tree,
@@ -532,6 +557,62 @@ where
                 y += self.separator_y + self.padding_y;
             }
         }
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &widget::Tree,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.cells
+            .iter()
+            .zip(&tree.children)
+            .zip(layout.children())
+            .map(|((cell, state), layout)| {
+                cell.as_widget().mouse_interaction(
+                    state, layout, cursor, viewport, renderer,
+                )
+            })
+            .max()
+            .unwrap_or_default()
+    }
+
+    fn operate(
+        &self,
+        tree: &mut widget::Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        for ((cell, state), layout) in self
+            .cells
+            .iter()
+            .zip(&mut tree.children)
+            .zip(layout.children())
+        {
+            cell.as_widget().operate(state, layout, renderer, operation);
+        }
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        state: &'b mut widget::Tree,
+        layout: Layout<'b>,
+        renderer: &Renderer,
+        viewport: &Rectangle,
+        translation: core::Vector,
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        overlay::from_children(
+            &mut self.cells,
+            state,
+            layout,
+            renderer,
+            viewport,
+            translation,
+        )
     }
 }
 
