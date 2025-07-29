@@ -394,9 +394,6 @@ where
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        /// Makes sure that the border radius of the toggler looks good at every size.
-        const BORDER_RADIUS_RATIO: f32 = 32.0 / 13.0;
-
         /// The space ratio between the background Quad and the Toggler bounds, and
         /// between the background Quad and foreground Quad.
         const SPACE_RATIO: f32 = 0.05;
@@ -423,7 +420,7 @@ where
         let style = theme
             .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
-        let border_radius = bounds.height / BORDER_RADIUS_RATIO;
+        let border_radius = bounds.height / 2.0;
         let space = (SPACE_RATIO * bounds.height).round();
 
         let toggler_background_bounds = Rectangle {
