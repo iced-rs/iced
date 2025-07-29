@@ -62,6 +62,21 @@ pub struct Settings {
     /// Whether the window should be transparent.
     pub transparent: bool,
 
+    /// Whether the window should have a blurred background.
+    ///
+    /// Note that the blurry effect is only applied to transparent windows. You need to enable
+    /// [`Settings::transparent`] and set a proper opacity value to the background color with
+    /// `Application::style`.
+    ///
+    /// On Windows, it sets the [backdrop][winit_backdrop] to `TransientWindow`, making the window [acrylic][acrylic].
+    ///
+    /// On MacOS and Linux, it uses `set_blur`. For more details, please refer to the [winit documentation][winit_set_blur].
+    ///
+    /// [winit_backdrop]: https://docs.rs/winit/latest/winit/platform/windows/enum.BackdropType.html
+    /// [winit_set_blur]: https://docs.rs/winit/latest/winit/window/struct.Window.html#method.set_blur
+    /// [acrylic]: https://learn.microsoft.com/en-us/windows/apps/design/style/acrylic
+    pub blur: bool,
+
     /// The window [`Level`].
     pub level: Level,
 
@@ -95,6 +110,7 @@ impl Default for Settings {
             resizable: true,
             decorations: true,
             transparent: false,
+            blur: false,
             level: Level::default(),
             icon: None,
             exit_on_close_request: true,
