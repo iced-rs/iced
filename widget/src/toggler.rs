@@ -557,9 +557,9 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let background = match status {
         Status::Active { is_toggled } | Status::Hovered { is_toggled } => {
             if is_toggled {
-                palette.primary.strong.color
+                palette.primary.base.color
             } else {
-                palette.background.strong.color
+                palette.background.strongest.color
             }
         }
         Status::Disabled => palette.background.weak.color,
@@ -568,7 +568,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let foreground = match status {
         Status::Active { is_toggled } => {
             if is_toggled {
-                palette.primary.strong.text
+                palette.primary.base.text
             } else {
                 palette.background.base.color
             }
@@ -577,7 +577,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             if is_toggled {
                 Color {
                     a: 0.5,
-                    ..palette.primary.strong.text
+                    ..palette.primary.base.text
                 }
             } else {
                 palette.background.weak.color

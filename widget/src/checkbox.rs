@@ -556,21 +556,18 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.primary.strong.text,
             palette.background.strongest.color,
             palette.background.base,
             palette.primary.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.primary.strong.text,
             palette.background.strongest.color,
             palette.background.weak,
             palette.primary.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
-            palette.primary.strong.text,
             palette.background.weak.color,
             palette.background.weak,
             palette.background.strong,
@@ -585,21 +582,18 @@ pub fn secondary(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.background.base.text,
             palette.background.strongest.color,
             palette.background.base,
             palette.background.strong,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.background.base.text,
             palette.background.strongest.color,
             palette.background.weak,
             palette.background.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
-            palette.background.strong.color,
             palette.background.weak.color,
             palette.background.weak,
             palette.background.weak,
@@ -614,21 +608,18 @@ pub fn success(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.success.base.text,
             palette.background.weak.color,
             palette.background.base,
             palette.success.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.success.base.text,
             palette.background.strongest.color,
             palette.background.weak,
             palette.success.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
-            palette.success.base.text,
             palette.background.weak.color,
             palette.background.weak,
             palette.success.weak,
@@ -643,21 +634,18 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.danger.base.text,
             palette.background.strongest.color,
             palette.background.base,
             palette.danger.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.danger.base.text,
             palette.background.strongest.color,
             palette.background.weak,
             palette.danger.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
-            palette.danger.base.text,
             palette.background.weak.color,
             palette.background.weak,
             palette.danger.weak,
@@ -667,27 +655,24 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
 }
 
 fn styled(
-    icon_color: Color,
     border_color: Color,
     base: palette::Pair,
     accent: palette::Pair,
     is_checked: bool,
 ) -> Style {
+    let (background, border) = if is_checked {
+        (accent, accent.color)
+    } else {
+        (base, border_color)
+    };
+
     Style {
-        background: Background::Color(if is_checked {
-            accent.color
-        } else {
-            base.color
-        }),
-        icon_color,
+        background: Background::Color(background.color),
+        icon_color: background.text,
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
-            color: if is_checked {
-                accent.color
-            } else {
-                border_color
-            },
+            color: border,
         },
         text_color: None,
     }
