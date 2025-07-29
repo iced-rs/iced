@@ -22,6 +22,8 @@ x11 = ["winit/x11"]
 wayland = ["winit/wayland"]
 wayland-dlopen = ["winit/wayland-dlopen"]
 wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
+android-native-activity = ["winit/android-native-activity"]
+android-game-activity = ["winit/android-game-activity"]
 unconditional-rendering = []
 
 [dependencies]
