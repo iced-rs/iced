@@ -23,6 +23,7 @@ wayland = ["winit/wayland"]
 wayland-dlopen = ["winit/wayland-dlopen"]
 wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 unconditional-rendering = []
+tray-icon = ["dep:tray-icon"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -37,6 +38,9 @@ winit.workspace = true
 
 sysinfo.workspace = true
 sysinfo.optional = true
+
+tray-icon.workspace = true
+tray-icon.optional = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys.workspace = true
