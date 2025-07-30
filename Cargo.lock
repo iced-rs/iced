@@ -6551,6 +6551,7 @@ name = "tray_icon"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "image",
 ]
 
 [[package]]

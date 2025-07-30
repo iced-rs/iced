@@ -1,6 +1,11 @@
+use std::path::Path;
+
 use iced::{
-    Element, Event, Subscription, Task, event, keyboard, tray_icon,
-    widget::text,
+    Alignment::Center,
+    Element, Event,
+    Length::{Fill, Fixed},
+    Subscription, Task, Theme, border, event, keyboard, tray_icon,
+    widget::{center, column, container, scrollable, text},
 };
 
 pub fn main() -> iced::Result {
@@ -8,7 +13,10 @@ pub fn main() -> iced::Result {
         .subscription(App::subscription)
         .tray_icon(tray_icon::Settings {
             title: Some("Iced".into()),
-            icon: None,
+            icon: Some(load_icon(Path::new(&format!(
+                "{}/logo.png",
+                env!("CARGO_MANIFEST_DIR")
+            )))),
             tooltip: Some("Iced".to_string()),
             menu_items: Some(vec![
                 tray_icon::MenuItem::Text {
@@ -42,13 +50,13 @@ enum Message {
 }
 
 struct App {
-    last_menu_clicked_id: String,
+    menu_events: Vec<String>,
 }
 
 impl App {
     fn new() -> Self {
         Self {
-            last_menu_clicked_id: "".into(),
+            menu_events: Vec::new(),
         }
     }
 
@@ -56,7 +64,13 @@ impl App {
         match message {
             Message::Event(Event::TrayIcon(event)) => match event {
                 tray_icon::Event::MenuItemClicked { id } => {
-                    self.last_menu_clicked_id = id;
+                    self.menu_events.push(format!("Menu Item Clicked: {}", id));
+                }
+                tray_icon::Event::MouseEntered { .. } => {
+                    self.menu_events.push("Mouse Entered".into());
+                }
+                tray_icon::Event::MouseExited { .. } => {
+                    self.menu_events.push("Mouse Exited".into());
                 }
                 _ => {}
             },
@@ -66,7 +80,24 @@ impl App {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        text(self.last_menu_clicked_id.clone()).into()
+        let events =
+            container(column(self.menu_events.iter().map(|e| text(e).into())))
+                .style(|theme: &Theme| {
+                    let palette = theme.extended_palette();
+
+                    container::Style::default().border(
+                        border::color(palette.background.strong.color).width(4),
+                    )
+                })
+                .padding(4);
+        let content = column![
+            text("Tray Icon Events"),
+            scrollable(events).height(Fill).width(Fixed(400.0))
+        ]
+        .width(Fill)
+        .align_x(Center)
+        .spacing(10);
+        center(content).into()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -77,5 +108,21 @@ impl App {
 impl Default for App {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+fn load_icon(path: &Path) -> iced::tray_icon::Icon {
+    println!("{:?}", path);
+    let (icon_rgba, icon_size) = {
+        let image = image::open(path)
+            .expect("Failed to open icon path")
+            .into_rgba8();
+        let (width, height) = image.dimensions();
+        let rgba = image.into_raw();
+        (rgba, (width, height))
+    };
+    iced::tray_icon::Icon {
+        rgba: icon_rgba,
+        size: icon_size.into(),
     }
 }
