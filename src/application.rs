@@ -192,7 +192,12 @@ impl<P: Program> Application<P> {
         #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
         let program = self.raw;
 
-        Ok(shell::run(program, self.settings, Some(self.window), self.tray_icon)?)
+        Ok(shell::run(
+            program,
+            self.settings,
+            Some(self.window),
+            self.tray_icon,
+        )?)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Application`].

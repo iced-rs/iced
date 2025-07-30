@@ -4,8 +4,8 @@ mod errors;
 mod event;
 mod settings;
 
-use std::fmt::{Debug, Formatter};
 use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
 
 pub use errors::Error;
 pub use event::Event;
@@ -44,8 +44,7 @@ impl TrayIcon {
             attrs.tooltip = Some(tooltip.clone());
         }
         let id_map = if let Some(menu_items) = settings.menu_items {
-            let mut id_map =
-                HashMap::with_capacity(menu_items.len());
+            let mut id_map = HashMap::with_capacity(menu_items.len());
             let menu = tray_icon::menu::Menu::new();
             for menu_item in menu_items {
                 Self::build_menu_item(&mut id_map, &menu, menu_item)?;
@@ -71,22 +70,21 @@ impl TrayIcon {
         menu_item: MenuItem,
     ) -> Result<(), Error> {
         let menu_id = menu_item.id();
-        let add_to_menu =
-            |item: &dyn tray_icon::menu::IsMenuItem,
-             id_map: &mut HashMap<String, String>|
-             -> Result<(), Error> {
-                if let Some(menu) = menu.as_menu() {
-                    let _ = id_map.insert(item.id().0.clone(), menu_id);
-                    menu.append(item).map_err(Error::from)
-                } else if let Some(submenu) = menu.as_submenu() {
-                    let _ = id_map.insert(item.id().0.clone(), menu_id);
-                    submenu.append(item).map_err(Error::from)
-                } else {
-                    Err(Error::MenuError(
-                        tray_icon::menu::Error::NotAChildOfThisMenu,
-                    ))
-                }
-            };
+        let add_to_menu = |item: &dyn tray_icon::menu::IsMenuItem,
+                           id_map: &mut HashMap<String, String>|
+         -> Result<(), Error> {
+            if let Some(menu) = menu.as_menu() {
+                let _ = id_map.insert(item.id().0.clone(), menu_id);
+                menu.append(item).map_err(Error::from)
+            } else if let Some(submenu) = menu.as_submenu() {
+                let _ = id_map.insert(item.id().0.clone(), menu_id);
+                submenu.append(item).map_err(Error::from)
+            } else {
+                Err(Error::MenuError(
+                    tray_icon::menu::Error::NotAChildOfThisMenu,
+                ))
+            }
+        };
         match menu_item {
             MenuItem::Submenu {
                 text, menu_items, ..
@@ -267,7 +265,6 @@ impl TrayIcon {
         self.id_map.clone()
     }
 }
-
 
 impl Debug for TrayIcon {
     #[cfg(feature = "tray-icon")]

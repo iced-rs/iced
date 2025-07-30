@@ -111,7 +111,9 @@ where
             }
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
-            Action::TrayIcon(action) => write!(f, "Action::TrayIcon({action:?})"),
+            Action::TrayIcon(action) => {
+                write!(f, "Action::TrayIcon({action:?})")
+            }
             Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),
         }

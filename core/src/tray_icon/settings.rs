@@ -224,7 +224,9 @@ impl MenuItem {
             Self::Text { id, .. } => id.clone(),
             Self::Check { id, .. } => id.clone(),
             Self::Icon { id, .. } => id.clone(),
-            Self::Predefined { predefined_type, .. } => predefined_type.to_string(),
+            Self::Predefined {
+                predefined_type, ..
+            } => predefined_type.to_string(),
         }
     }
 }

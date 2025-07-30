@@ -22,5 +22,5 @@ pub enum Error {
     ///Failed to create menu icon
     #[cfg(feature = "tray-icon")]
     #[error("accelerator could not be parsed")]
-    BadAccelerator(#[from] tray_icon::menu::AcceleratorParseError)
+    BadAccelerator(#[from] tray_icon::menu::AcceleratorParseError),
 }
