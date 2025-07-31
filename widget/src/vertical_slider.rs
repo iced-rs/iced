@@ -335,7 +335,10 @@ where
         };
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            Event::Mouse(mouse::Event::ButtonPressed {
+                button: mouse::Button::Left,
+                ..
+            })
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if let Some(cursor_position) =
                     cursor.position_over(layout.bounds())
@@ -353,7 +356,10 @@ where
                     shell.capture_event();
                 }
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+            Event::Mouse(mouse::Event::ButtonReleased {
+                button: mouse::Button::Left,
+                ..
+            })
             | Event::Touch(touch::Event::FingerLifted { .. })
             | Event::Touch(touch::Event::FingerLost { .. }) => {
                 if is_dragging {
@@ -373,7 +379,7 @@ where
                     shell.capture_event();
                 }
             }
-            Event::Mouse(mouse::Event::WheelScrolled { delta })
+            Event::Mouse(mouse::Event::WheelScrolled { delta, .. })
                 if state.keyboard_modifiers.control() =>
             {
                 if cursor.is_over(layout.bounds()) {
