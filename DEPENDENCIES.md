@@ -27,6 +27,7 @@ pkgs.mkShell rec {
     xorg.libXrandr
     wayland
     libxkbcommon
+    vulkan-loader
   ];
 
   LD_LIBRARY_PATH =
@@ -67,6 +68,7 @@ Alternatively, you can use this `flake.nix` to create a dev shell, activated by 
           xorg.libXrandr
           wayland
           libxkbcommon
+          vulkan-loader
         ];
       in {
         devShells.default = pkgs.mkShell {
