@@ -15,9 +15,11 @@ pub mod keyboard;
 pub mod overlay;
 pub mod system;
 pub mod task;
-pub mod tray_icon;
 pub mod user_interface;
 pub mod window;
+
+#[cfg(feature = "tray-icon")]
+pub mod tray_icon;
 
 pub use iced_core as core;
 pub use iced_debug as debug;
@@ -57,6 +59,7 @@ pub enum Action<T> {
     /// Run a system action.
     System(system::Action),
 
+    #[cfg(feature = "tray-icon")]
     /// Pass through a Tray Icon Event
     TrayIcon(tray_icon::Event),
 
@@ -86,6 +89,7 @@ impl<T> Action<T> {
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
+            #[cfg(feature = "tray-icon")]
             Action::TrayIcon(action) => Err(Action::TrayIcon(action)),
             Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
@@ -111,6 +115,7 @@ where
             }
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
+            #[cfg(feature = "tray-icon")]
             Action::TrayIcon(action) => {
                 write!(f, "Action::TrayIcon({action:?})")
             }

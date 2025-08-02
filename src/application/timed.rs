@@ -143,6 +143,7 @@ where
         },
         settings: Settings::default(),
         window: window::Settings::default(),
+        #[cfg(feature = "tray-icon")]
         tray_icon: None,
     }
 }

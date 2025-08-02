@@ -2,7 +2,6 @@
 
 use std::fmt::{self, Debug, Display};
 
-#[cfg(feature = "tray-icon")]
 use crate::tray_icon::Error;
 
 use crate::{
@@ -28,7 +27,6 @@ pub struct Settings {
 #[derive(Debug)]
 pub struct Accelerator(pub Code, pub Modifiers);
 
-#[cfg(feature = "tray-icon")]
 impl TryFrom<Accelerator> for tray_icon::menu::accelerator::Accelerator {
     type Error = Error;
 
@@ -83,7 +81,6 @@ pub struct AboutMetadata {
     pub icon: Option<Icon>,
 }
 
-#[cfg(feature = "tray-icon")]
 impl TryFrom<AboutMetadata> for tray_icon::menu::AboutMetadata {
     type Error = Error;
 
@@ -233,7 +230,6 @@ impl MenuItem {
 
 /// Icon data
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct Icon {
     /// RGBA byte data of icon image
     pub rgba: Vec<u8>,
@@ -241,7 +237,6 @@ pub struct Icon {
     pub size: Size<u32>,
 }
 
-#[cfg(feature = "tray-icon")]
 impl TryFrom<Icon> for tray_icon::Icon {
     type Error = Error;
     fn try_from(value: Icon) -> Result<Self, Self::Error> {
@@ -250,7 +245,6 @@ impl TryFrom<Icon> for tray_icon::Icon {
     }
 }
 
-#[cfg(feature = "tray-icon")]
 impl TryFrom<Icon> for tray_icon::menu::Icon {
     type Error = Error;
     fn try_from(value: Icon) -> Result<Self, Self::Error> {
@@ -259,7 +253,6 @@ impl TryFrom<Icon> for tray_icon::menu::Icon {
     }
 }
 
-#[allow(unused_macros)]
 /// Macro rule for easing enum conversion boilerplate even just a little
 macro_rules! convert_enum {
     ($src: ident, $dst: path, [$($src_variant: ident, $dst_variant: ident,)*], $($variant: ident,)*) => {
@@ -274,7 +267,6 @@ macro_rules! convert_enum {
     };
 }
 
-#[cfg(feature = "tray-icon")]
 convert_enum!(
     Code,
     tray_icon::menu::accelerator::Code,

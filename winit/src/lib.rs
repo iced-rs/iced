@@ -69,7 +69,9 @@ pub fn run<P>(
     program: P,
     settings: Settings,
     window_settings: Option<window::Settings>,
-    tray_icon_settings: Option<runtime::tray_icon::Settings>,
+    #[cfg(feature = "tray-icon")] tray_icon_settings: Option<
+        runtime::tray_icon::Settings,
+    >,
 ) -> Result<(), Error>
 where
     P: Program + 'static,
@@ -84,7 +86,8 @@ where
         .build()
         .expect("Create event loop");
 
-    #[allow(unused_variables)]
+    #[cfg(feature = "tray-icon")]
+    // Icon must exist outside of the anonymous scope in order to not be dropped
     let icon = build_tray_icon(tray_icon_settings)?;
 
     #[cfg(feature = "tray-icon")]
@@ -1071,6 +1074,7 @@ async fn run_instance<P>(
     let _ = ManuallyDrop::into_inner(user_interfaces);
 }
 
+#[cfg(feature = "tray-icon")]
 /// Build the tray icon for if it exists
 fn build_tray_icon(
     settings: Option<runtime::tray_icon::Settings>,
@@ -1147,10 +1151,12 @@ fn run_action<'a, P, C>(
     C: Compositor<Renderer = P::Renderer> + 'static,
     P::Theme: theme::Base,
 {
-    use crate::core::window::GLOBAL;
     use crate::runtime::clipboard;
     use crate::runtime::system;
     use crate::runtime::window;
+
+    #[cfg(feature = "tray-icon")]
+    use crate::core::window::GLOBAL;
 
     match action {
         Action::Output(message) => {
@@ -1463,6 +1469,7 @@ fn run_action<'a, P, C>(
                 }
             }
         },
+        #[cfg(feature = "tray-icon")]
         Action::TrayIcon(event) => {
             events.push((GLOBAL, core::Event::TrayIcon(event)))
         }

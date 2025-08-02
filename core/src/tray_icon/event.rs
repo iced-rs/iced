@@ -1,9 +1,8 @@
 //! Tray icon events
 
-#[cfg(feature = "tray-icon")]
-use tray_icon::{TrayIconEvent, menu::MenuEvent};
-
 use crate::{Point, Rectangle, mouse::Button};
+
+use tray_icon::{TrayIconEvent, menu::MenuEvent};
 
 /// A tray icon interaction
 #[derive(Debug, Clone, PartialEq)]
@@ -75,14 +74,12 @@ pub enum Event {
     },
 }
 
-#[cfg(feature = "tray-icon")]
 impl From<MenuEvent> for Event {
     fn from(value: MenuEvent) -> Self {
         Self::MenuItemClicked { id: value.id.0 }
     }
 }
 
-#[cfg(feature = "tray-icon")]
 impl From<TrayIconEvent> for Event {
     fn from(value: TrayIconEvent) -> Self {
         match value {

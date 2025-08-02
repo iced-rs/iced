@@ -3,8 +3,10 @@ use crate::input_method;
 use crate::keyboard;
 use crate::mouse;
 use crate::touch;
-use crate::tray_icon;
 use crate::window;
+
+#[cfg(feature = "tray-icon")]
+use crate::tray_icon;
 
 /// A user interface event.
 ///
@@ -29,6 +31,7 @@ pub enum Event {
     /// An input method event
     InputMethod(input_method::Event),
 
+    #[cfg(feature = "tray-icon")]
     /// A tray icon event
     TrayIcon(tray_icon::Event),
 }

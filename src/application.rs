@@ -33,11 +33,13 @@
 use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
-use crate::tray_icon;
 use crate::window;
 use crate::{
     Element, Executor, Font, Result, Settings, Size, Subscription, Task,
 };
+
+#[cfg(feature = "tray-icon")]
+use crate::tray_icon;
 
 use iced_debug as debug;
 
@@ -153,6 +155,7 @@ where
         },
         settings: Settings::default(),
         window: window::Settings::default(),
+        #[cfg(feature = "tray-icon")]
         tray_icon: None,
     }
 }
@@ -169,6 +172,7 @@ pub struct Application<P: Program> {
     raw: P,
     settings: Settings,
     window: window::Settings,
+    #[cfg(feature = "tray-icon")]
     tray_icon: Option<tray_icon::Settings>,
 }
 
@@ -196,6 +200,7 @@ impl<P: Program> Application<P> {
             program,
             self.settings,
             Some(self.window),
+            #[cfg(feature = "tray-icon")]
             self.tray_icon,
         )?)
     }
@@ -352,6 +357,7 @@ impl<P: Program> Application<P> {
             }),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "tray-icon")]
             tray_icon: self.tray_icon,
         }
     }
@@ -369,6 +375,7 @@ impl<P: Program> Application<P> {
             }),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "tray-icon")]
             tray_icon: self.tray_icon,
         }
     }
@@ -386,6 +393,7 @@ impl<P: Program> Application<P> {
             }),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "tray-icon")]
             tray_icon: self.tray_icon,
         }
     }
@@ -403,6 +411,7 @@ impl<P: Program> Application<P> {
             }),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "tray-icon")]
             tray_icon: self.tray_icon,
         }
     }
@@ -420,6 +429,7 @@ impl<P: Program> Application<P> {
             }),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "tray-icon")]
             tray_icon: self.tray_icon,
         }
     }
@@ -437,6 +447,7 @@ impl<P: Program> Application<P> {
             raw: program::with_executor::<P, E>(self.raw),
             settings: self.settings,
             window: self.window,
+            #[cfg(feature = "tray-icon")]
             tray_icon: self.tray_icon,
         }
     }

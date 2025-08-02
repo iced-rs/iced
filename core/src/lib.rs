@@ -29,9 +29,11 @@ pub mod text;
 pub mod theme;
 pub mod time;
 pub mod touch;
-pub mod tray_icon;
 pub mod widget;
 pub mod window;
+
+#[cfg(feature = "tray-icon")]
+pub mod tray_icon;
 
 mod angle;
 mod background;

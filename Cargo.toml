@@ -76,7 +76,7 @@ unconditional-rendering = ["iced_winit/unconditional-rendering"]
 # Enables support for the `sipper` library
 sipper = ["iced_runtime/sipper"]
 # Enables tray icon settings
-tray-icon = ["iced_core/tray-icon", "iced_winit/tray-icon"]
+tray-icon = ["iced_core/tray-icon", "iced_runtime/tray-icon", "iced_winit/tray-icon"]
 
 [dependencies]
 iced_debug.workspace = true

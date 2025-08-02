@@ -508,8 +508,10 @@ mod error;
 pub mod application;
 pub mod daemon;
 pub mod time;
-pub mod tray_icon;
 pub mod window;
+
+#[cfg(feature = "tray-icon")]
+pub mod tray_icon;
 
 #[cfg(feature = "advanced")]
 pub mod advanced;

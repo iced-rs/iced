@@ -14,22 +14,12 @@ pub use settings::*;
 /// Wrapper type for tray_icon
 #[derive(Clone)]
 pub struct TrayIcon {
-    #[cfg(feature = "tray-icon")]
     icon: tray_icon::TrayIcon,
     /// Mapping of MenuItem id and tray_icon MenuId
     id_map: HashMap<String, String>,
 }
 
 impl TrayIcon {
-    #[cfg(not(feature = "tray-icon"))]
-    /// Create new TrayIcon from Settings
-    pub fn new(_settings: Settings) -> Result<Self, Error> {
-        Ok(Self {
-            id_map: HashMap::new(),
-        })
-    }
-
-    #[cfg(feature = "tray-icon")]
     /// Create new TrayIcon from Settings
     pub fn new(settings: Settings) -> Result<Self, Error> {
         let mut attrs = tray_icon::TrayIconAttributes::default();
@@ -63,7 +53,6 @@ impl TrayIcon {
         Ok(this)
     }
 
-    #[cfg(feature = "tray-icon")]
     fn build_menu_item(
         id_map: &mut HashMap<String, String>,
         menu: &impl tray_icon::menu::ContextMenu,
@@ -267,17 +256,9 @@ impl TrayIcon {
 }
 
 impl Debug for TrayIcon {
-    #[cfg(feature = "tray-icon")]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TrayIcon")
             .field("icon", &self.icon.id())
-            .field("id_map", &self.id_map)
-            .finish()
-    }
-
-    #[cfg(not(feature = "tray-icon"))]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TrayIcon")
             .field("id_map", &self.id_map)
             .finish()
     }
