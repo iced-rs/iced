@@ -215,7 +215,16 @@ where
 
             let distance = top_left_distance.min(bottom_right_distance);
 
-            if state.has_popped_in {
+            if self.on_show.is_none() {
+                if let Some(on_resize) = &self.on_resize {
+                    let size = bounds.size();
+
+                    if Some(size) != state.last_size {
+                        state.last_size = Some(size);
+                        shell.publish(on_resize(size));
+                    }
+                }
+            } else if state.has_popped_in {
                 if distance <= self.anticipate.0 {
                     if let Some(on_resize) = &self.on_resize {
                         let size = bounds.size();
@@ -229,7 +238,7 @@ where
                     state.has_popped_in = false;
                     state.should_notify_at = Some((false, *now + self.delay));
                 }
-            } else if self.on_show.is_some() && distance <= self.anticipate.0 {
+            } else if distance <= self.anticipate.0 {
                 let size = bounds.size();
 
                 state.has_popped_in = true;
