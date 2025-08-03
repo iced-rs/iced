@@ -688,7 +688,28 @@ pub fn text(theme: &Theme, status: Status) -> Style {
     }
 }
 
-/// A subtle button using background shades.
+/// A button using background shades.
+pub fn background(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
+    let base = styled(palette.background.base);
+
+    match status {
+        Status::Active => base,
+        Status::Pressed => Style {
+            background: Some(Background::Color(
+                palette.background.strong.color,
+            )),
+            ..base
+        },
+        Status::Hovered => Style {
+            background: Some(Background::Color(palette.background.weak.color)),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
+/// A subtle button using weak background shades.
 pub fn subtle(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let base = styled(palette.background.weakest);

@@ -712,7 +712,7 @@ pub fn bordered_box(theme: &Theme) -> Style {
         border: Border {
             width: 1.0,
             radius: 5.0.into(),
-            color: palette.background.strong.color,
+            color: palette.background.weak.color,
         },
         ..Style::default()
     }
