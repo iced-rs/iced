@@ -1430,7 +1430,7 @@ where
 {
     use crate::table;
 
-    table(
+    let table = table(
         columns.iter().enumerate().map(move |(i, column)| {
             table::column(
                 items(viewer, settings, &column.header),
@@ -1459,8 +1459,14 @@ where
     )
     .padding_x(settings.spacing.0)
     .padding_y(settings.spacing.0 / 2.0)
-    .separator_x(0)
-    .into()
+    .separator_x(0);
+
+    scrollable(table)
+        .direction(scrollable::Direction::Horizontal(
+            scrollable::Scrollbar::default(),
+        ))
+        .spacing(settings.spacing.0 / 2.0)
+        .into()
 }
 
 /// Displays a column of items with the default look.
