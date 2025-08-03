@@ -1072,8 +1072,8 @@ impl Style {
         Self {
             inline_code_padding: padding::left(1).right(1),
             inline_code_highlight: Highlight {
-                background: color!(0x111).into(),
-                border: border::rounded(2),
+                background: color!(0x111111).into(),
+                border: border::rounded(4),
             },
             inline_code_color: Color::WHITE,
             link_color: palette.primary,
