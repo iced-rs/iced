@@ -1423,7 +1423,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             color: palette.background.strong.color,
         },
         icon: palette.background.weak.text,
-        placeholder: palette.background.strong.color,
+        placeholder: palette.secondary.base.color,
         value: palette.background.base.text,
         selection: palette.primary.weak.color,
     };
@@ -1447,6 +1447,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Disabled => Style {
             background: Background::Color(palette.background.weak.color),
             value: active.placeholder,
+            placeholder: palette.background.strongest.color,
             ..active
         },
     }

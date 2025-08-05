@@ -90,12 +90,12 @@ impl Color {
             }
         }
 
-        Self {
-            r: gamma_component(r),
-            g: gamma_component(g),
-            b: gamma_component(b),
+        Self::new(
+            gamma_component(r),
+            gamma_component(g),
+            gamma_component(b),
             a,
-        }
+        )
     }
 
     /// Parses a [`Color`] from a hex string.

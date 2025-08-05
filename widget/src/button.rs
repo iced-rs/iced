@@ -718,13 +718,13 @@ pub fn subtle(theme: &Theme, status: Status) -> Style {
         Status::Active => base,
         Status::Pressed => Style {
             background: Some(Background::Color(
-                palette.background.strongest.color,
+                palette.background.strong.color,
             )),
             ..base
         },
         Status::Hovered => Style {
             background: Some(Background::Color(
-                palette.background.strong.color,
+                palette.background.weaker.color,
             )),
             ..base
         },
