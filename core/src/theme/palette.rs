@@ -623,7 +623,10 @@ fn darken(color: Color, amount: f32) -> Color {
     let mut oklch = to_oklch(color);
 
     // We try to bump the chroma a bit for more colorful palettes
-    oklch.c *= 1.0 + 2.0 * amount / oklch.l.max(0.05);
+    if oklch.c > 0.0 {
+        // Formula empirically and cluelessly derived
+        oklch.c *= 1.0 + (0.3 / oklch.c).min(100.0) * amount;
+    }
 
     oklch.l = if oklch.l - amount < 0.0 {
         0.0
@@ -638,6 +641,7 @@ fn lighten(color: Color, amount: f32) -> Color {
     let mut oklch = to_oklch(color);
 
     // We try to bump the chroma a bit for more colorful palettes
+    // Formula empirically and cluelessly derived
     oklch.c *= 1.0 + 2.0 * amount / oklch.l.max(0.05);
 
     oklch.l = if oklch.l + amount > 1.0 {

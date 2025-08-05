@@ -1374,8 +1374,6 @@ pub struct Style {
     pub background: Background,
     /// The [`Border`] of the text input.
     pub border: Border,
-    /// The [`Color`] of the icon of the text input.
-    pub icon: Color,
     /// The [`Color`] of the placeholder of the text input.
     pub placeholder: Color,
     /// The [`Color`] of the value of the text input.
@@ -1422,7 +1420,6 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             width: 1.0,
             color: palette.background.strong.color,
         },
-        icon: palette.background.weak.text,
         placeholder: palette.secondary.base.color,
         value: palette.background.base.text,
         selection: palette.primary.weak.color,
