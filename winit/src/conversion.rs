@@ -289,7 +289,7 @@ pub fn window_event(
             Ime::Enabled => input_method::Event::Opened,
             Ime::Preedit(content, size) => input_method::Event::Preedit(
                 content,
-                size.map(|(start, end)| (start..end)),
+                size.map(|(start, end)| start..end),
             ),
             Ime::Commit(content) => input_method::Event::Commit(content),
             Ime::Disabled => input_method::Event::Closed,
