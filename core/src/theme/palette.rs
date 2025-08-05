@@ -525,11 +525,9 @@ pub struct Secondary {
 impl Secondary {
     /// Generates a set of [`Secondary`] colors from the base and text colors.
     pub fn generate(base: Color, text: Color) -> Self {
-        let bump = if is_dark(base) { 0.0 } else { 0.01 };
-
-        let weak = mix(deviate(base, 0.1 + bump), text, 0.4);
-        let base = mix(deviate(base, 0.3 + bump), text, 0.4);
-        let strong = mix(deviate(base, 0.5 + bump), text, 0.4);
+        let weak = mix(deviate(base, 0.1), text, 0.4);
+        let base = mix(deviate(base, 0.3), text, 0.4);
+        let strong = mix(deviate(base, 0.5), text, 0.4);
 
         Self {
             base: Pair::new(base, text),
