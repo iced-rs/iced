@@ -571,7 +571,7 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
         ),
         Status::Disabled { is_checked } => styled(
             palette.background.weak.color,
-            palette.background.weak,
+            palette.background.weaker,
             palette.primary.base.text,
             palette.background.strong,
             is_checked,

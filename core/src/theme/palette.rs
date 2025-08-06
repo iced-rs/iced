@@ -530,8 +530,8 @@ impl Secondary {
     /// Generates a set of [`Secondary`] colors from the base and text colors.
     pub fn generate(base: Color, text: Color) -> Self {
         let weak = mix(deviate(base, 0.1), text, 0.2);
-        let base = mix(deviate(base, 0.3), text, 0.3);
-        let strong = mix(deviate(base, 0.5), text, 0.4);
+        let strong = mix(deviate(base, 0.3), text, 0.2);
+        let base = mix(deviate(base, 0.2), text, 0.2);
 
         Self {
             base: Pair::new(base, text),

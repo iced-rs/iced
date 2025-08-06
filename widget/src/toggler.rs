@@ -580,7 +580,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 palette.background.weak.color
             }
         }
-        Status::Disabled => palette.background.base.color,
+        Status::Disabled => palette.background.weakest.color,
     };
 
     Style {
