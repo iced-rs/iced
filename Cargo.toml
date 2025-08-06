@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "web-colors", "auto-detect-theme", "thread-pool"]
+default = ["wgpu", "tiny-skia", "crisp", "web-colors", "auto-detect-theme", "thread-pool"]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer backend

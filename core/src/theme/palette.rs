@@ -28,7 +28,7 @@ impl Palette {
         text: Color::BLACK,
         primary: color!(0x5865F2),
         success: color!(0x12664f),
-        warning: color!(0xffc14e),
+        warning: color!(0xb77e33),
         danger: color!(0xc3423f),
     };
 
@@ -453,9 +453,13 @@ pub struct Background {
     /// The weakest version of the base background color.
     pub weakest: Pair,
     /// A weaker version of the base background color.
+    pub weaker: Pair,
+    /// A weak version of the base background color.
     pub weak: Pair,
-    /// A stronger version of the base background color.
+    /// A strong version of the base background color.
     pub strong: Pair,
+    /// A stronger version of the base background color.
+    pub stronger: Pair,
     /// The strongest version of the base background color.
     pub strongest: Pair,
 }
@@ -464,15 +468,19 @@ impl Background {
     /// Generates a set of [`Background`] colors from the base and text colors.
     pub fn new(base: Color, text: Color) -> Self {
         let weakest = deviate(base, 0.03);
-        let weak = muted(deviate(base, 0.1));
-        let strong = muted(deviate(base, 0.2));
-        let strongest = muted(deviate(base, 0.3));
+        let weaker = deviate(base, 0.07);
+        let weak = deviate(base, 0.1);
+        let strong = deviate(base, 0.15);
+        let stronger = deviate(base, 0.175);
+        let strongest = deviate(base, 0.20);
 
         Self {
             base: Pair::new(base, text),
             weakest: Pair::new(weakest, text),
+            weaker: Pair::new(weaker, text),
             weak: Pair::new(weak, text),
             strong: Pair::new(strong, text),
+            stronger: Pair::new(stronger, text),
             strongest: Pair::new(strongest, text),
         }
     }
@@ -517,9 +525,9 @@ pub struct Secondary {
 impl Secondary {
     /// Generates a set of [`Secondary`] colors from the base and text colors.
     pub fn generate(base: Color, text: Color) -> Self {
-        let base = mix(base, text, 0.2);
-        let weak = mix(base, text, 0.1);
-        let strong = mix(base, text, 0.3);
+        let weak = mix(deviate(base, 0.1), text, 0.4);
+        let base = mix(deviate(base, 0.3), text, 0.4);
+        let strong = mix(deviate(base, 0.5), text, 0.4);
 
         Self {
             base: Pair::new(base, text),
@@ -604,51 +612,53 @@ impl Danger {
     }
 }
 
-struct Hsl {
-    h: f32,
-    s: f32,
+struct Oklch {
     l: f32,
+    c: f32,
+    h: f32,
     a: f32,
 }
 
 fn darken(color: Color, amount: f32) -> Color {
-    let mut hsl = to_hsl(color);
+    let mut oklch = to_oklch(color);
 
-    hsl.l = if hsl.l - amount < 0.0 {
+    // We try to bump the chroma a bit for more colorful palettes
+    if oklch.c > 0.0 && oklch.c < (1.0 - oklch.l) / 2.0 {
+        // Formula empirically and cluelessly derived
+        oklch.c *= 1.0 + (0.2 / oklch.c).min(100.0) * amount;
+    }
+
+    oklch.l = if oklch.l - amount < 0.0 {
         0.0
     } else {
-        hsl.l - amount
+        oklch.l - amount
     };
 
-    from_hsl(hsl)
+    from_oklch(oklch)
 }
 
 fn lighten(color: Color, amount: f32) -> Color {
-    let mut hsl = to_hsl(color);
+    let mut oklch = to_oklch(color);
 
-    hsl.l = if hsl.l + amount > 1.0 {
+    // We try to bump the chroma a bit for more colorful palettes
+    // Formula empirically and cluelessly derived
+    oklch.c *= 1.0 + 2.0 * amount / oklch.l.max(0.05);
+
+    oklch.l = if oklch.l + amount > 1.0 {
         1.0
     } else {
-        hsl.l + amount
+        oklch.l + amount
     };
 
-    from_hsl(hsl)
+    from_oklch(oklch)
 }
 
 fn deviate(color: Color, amount: f32) -> Color {
     if is_dark(color) {
         lighten(color, amount)
     } else {
-        darken(color, amount * 0.8)
+        darken(color, amount)
     }
-}
-
-fn muted(color: Color) -> Color {
-    let mut hsl = to_hsl(color);
-
-    hsl.s = hsl.s.min(0.5);
-
-    from_hsl(hsl)
 }
 
 fn mix(a: Color, b: Color, factor: f32) -> Color {
@@ -680,6 +690,12 @@ fn readable(background: Color, text: Color) -> Color {
         return candidate;
     }
 
+    let candidate = improve(text, 0.2);
+
+    if is_readable(background, candidate) {
+        return candidate;
+    }
+
     let white_contrast = relative_contrast(background, Color::WHITE);
     let black_contrast = relative_contrast(background, Color::BLACK);
 
@@ -691,11 +707,11 @@ fn readable(background: Color, text: Color) -> Color {
 }
 
 fn is_dark(color: Color) -> bool {
-    to_hsl(color).l < 0.6
+    to_oklch(color).l < 0.6
 }
 
 fn is_readable(a: Color, b: Color) -> bool {
-    relative_contrast(a, b) >= 7.0
+    relative_contrast(a, b) >= 6.0
 }
 
 // https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
@@ -711,65 +727,57 @@ fn relative_luminance(color: Color) -> f32 {
     0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 }
 
-// https://en.wikipedia.org/wiki/HSL_and_HSV#From_RGB
-fn to_hsl(color: Color) -> Hsl {
-    let x_max = color.r.max(color.g).max(color.b);
-    let x_min = color.r.min(color.g).min(color.b);
-    let c = x_max - x_min;
-    let l = x_max.midpoint(x_min);
+// https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces
+fn to_oklch(color: Color) -> Oklch {
+    let [r, g, b, alpha] = color.into_linear();
 
-    let h = if c == 0.0 {
-        0.0
-    } else if x_max == color.r {
-        60.0 * ((color.g - color.b) / c).rem_euclid(6.0)
-    } else if x_max == color.g {
-        60.0 * (((color.b - color.r) / c) + 2.0)
-    } else {
-        // x_max == color.b
-        60.0 * (((color.r - color.g) / c) + 4.0)
-    };
+    // linear RGB → LMS
+    let l = 0.41222146 * r + 0.53633255 * g + 0.051445995 * b;
+    let m = 0.2119035 * r + 0.6806995 * g + 0.10739696 * b;
+    let s = 0.08830246 * r + 0.28171885 * g + 0.6299787 * b;
 
-    let s = if l == 0.0 || l == 1.0 {
-        0.0
-    } else {
-        (x_max - l) / l.min(1.0 - l)
-    };
+    // Nonlinear transform (cube root)
+    let l_ = l.cbrt();
+    let m_ = m.cbrt();
+    let s_ = s.cbrt();
 
-    Hsl {
-        h,
-        s,
-        l,
-        a: color.a,
-    }
+    // LMS → Oklab
+    let l = 0.21045426 * l_ + 0.7936178 * m_ - 0.004072047 * s_;
+    let a = 1.9779985 * l_ - 2.4285922 * m_ + 0.4505937 * s_;
+    let b = 0.025904037 * l_ + 0.78277177 * m_ - 0.80867577 * s_;
+
+    // Oklab → Oklch
+    let c = (a * a + b * b).sqrt();
+    let h = b.atan2(a); // radians
+
+    Oklch { l, c, h, a: alpha }
 }
 
-// https://en.wikipedia.org/wiki/HSL_and_HSV#HSL_to_RGB
-fn from_hsl(hsl: Hsl) -> Color {
-    let c = (1.0 - (2.0 * hsl.l - 1.0).abs()) * hsl.s;
-    let h = hsl.h / 60.0;
-    let x = c * (1.0 - (h.rem_euclid(2.0) - 1.0).abs());
+// https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces
+fn from_oklch(oklch: Oklch) -> Color {
+    let Oklch { l, c, h, a: alpha } = oklch;
 
-    let (r1, g1, b1) = if h < 1.0 {
-        (c, x, 0.0)
-    } else if h < 2.0 {
-        (x, c, 0.0)
-    } else if h < 3.0 {
-        (0.0, c, x)
-    } else if h < 4.0 {
-        (0.0, x, c)
-    } else if h < 5.0 {
-        (x, 0.0, c)
-    } else {
-        // h < 6.0
-        (c, 0.0, x)
-    };
+    let a = c * h.cos();
+    let b = c * h.sin();
 
-    let m = hsl.l - (c / 2.0);
+    // Oklab → LMS (nonlinear)
+    let l_ = l + 0.39633778 * a + 0.21580376 * b;
+    let m_ = l - 0.105561346 * a - 0.06385417 * b;
+    let s_ = l - 0.08948418 * a - 1.2914855 * b;
 
-    Color {
-        r: r1 + m,
-        g: g1 + m,
-        b: b1 + m,
-        a: hsl.a,
-    }
+    // Cubing back
+    let l = l_ * l_ * l_;
+    let m = m_ * m_ * m_;
+    let s = s_ * s_ * s_;
+
+    let r = 4.0767417 * l - 3.3077116 * m + 0.23096994 * s;
+    let g = -1.268438 * l + 2.6097574 * m - 0.34131938 * s;
+    let b = -0.0041960863 * l - 0.7034186 * m + 1.7076147 * s;
+
+    Color::from_linear_rgba(
+        r.clamp(0.0, 1.0),
+        g.clamp(0.0, 1.0),
+        b.clamp(0.0, 1.0),
+        alpha,
+    )
 }

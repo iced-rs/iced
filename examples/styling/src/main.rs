@@ -1,8 +1,8 @@
 use iced::keyboard;
 use iced::widget::{
-    button, center, checkbox, column, container, horizontal_rule, pick_list,
-    progress_bar, row, scrollable, slider, text, text_input, toggler,
-    vertical_rule, vertical_space,
+    button, center_x, center_y, checkbox, column, container, horizontal_rule,
+    pick_list, progress_bar, row, scrollable, slider, text, text_input,
+    toggler, vertical_rule, vertical_space,
 };
 use iced::{Center, Element, Fill, Subscription, Theme};
 
@@ -94,7 +94,7 @@ impl Styling {
 
         let progress_bar = || progress_bar(0.0..=100.0, self.slider_value);
 
-        let scrollable = scrollable(column![
+        let scroll_me = scrollable(column![
             "Scroll me!",
             vertical_space().height(800),
             "You did it!"
@@ -134,7 +134,7 @@ impl Styling {
             slider(),
             progress_bar(),
             row![
-                scrollable,
+                scroll_me,
                 row![vertical_rule(1), column![checkbox, toggler].spacing(20)]
                     .spacing(20)
             ]
@@ -147,7 +147,9 @@ impl Styling {
         .padding(20)
         .max_width(600);
 
-        center(content).into()
+        center_y(scrollable(center_x(content)).spacing(10))
+            .padding(10)
+            .into()
     }
 
     fn subscription(&self) -> Subscription<Message> {

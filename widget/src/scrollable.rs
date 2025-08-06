@@ -2069,7 +2069,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         background: Some(palette.background.weak.color.into()),
         border: border::rounded(2),
         scroller: Scroller {
-            color: palette.background.strong.color,
+            color: palette.background.strongest.color,
             border: border::rounded(2),
         },
     };
