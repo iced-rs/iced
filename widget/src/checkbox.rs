@@ -556,20 +556,23 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.base,
+            palette.primary.base.text,
             palette.primary.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.weak,
+            palette.primary.base.text,
             palette.primary.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
             palette.background.weak.color,
             palette.background.weak,
+            palette.primary.base.text,
             palette.background.strong,
             is_checked,
         ),
@@ -582,20 +585,23 @@ pub fn secondary(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.base,
+            palette.background.base.text,
             palette.background.strong,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.weak,
+            palette.background.base.text,
             palette.background.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
             palette.background.weak.color,
             palette.background.weak,
+            palette.background.base.text,
             palette.background.weak,
             is_checked,
         ),
@@ -610,18 +616,21 @@ pub fn success(theme: &Theme, status: Status) -> Style {
         Status::Active { is_checked } => styled(
             palette.background.weak.color,
             palette.background.base,
+            palette.success.base.text,
             palette.success.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.weak,
+            palette.success.base.text,
             palette.success.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
             palette.background.weak.color,
             palette.background.weak,
+            palette.success.base.text,
             palette.success.weak,
             is_checked,
         ),
@@ -634,20 +643,23 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.base,
+            palette.danger.base.text,
             palette.danger.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.weak,
+            palette.danger.base.text,
             palette.danger.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
             palette.background.weak.color,
             palette.background.weak,
+            palette.danger.base.text,
             palette.danger.weak,
             is_checked,
         ),
@@ -657,6 +669,7 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
 fn styled(
     border_color: Color,
     base: palette::Pair,
+    icon_color: Color,
     accent: palette::Pair,
     is_checked: bool,
 ) -> Style {
@@ -668,7 +681,7 @@ fn styled(
 
     Style {
         background: Background::Color(background.color),
-        icon_color: background.text,
+        icon_color,
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
