@@ -195,6 +195,13 @@ impl Color {
             ..self
         }
     }
+
+    /// Returns the relative luminance of the [`Color`].
+    /// https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
+    pub fn relative_luminance(self) -> f32 {
+        let linear = self.into_linear();
+        0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+    }
 }
 
 impl From<[f32; 3]> for Color {

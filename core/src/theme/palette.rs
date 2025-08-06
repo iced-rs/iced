@@ -716,15 +716,9 @@ fn is_readable(a: Color, b: Color) -> bool {
 
 // https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
 fn relative_contrast(a: Color, b: Color) -> f32 {
-    let lum_a = relative_luminance(a);
-    let lum_b = relative_luminance(b);
+    let lum_a = a.relative_luminance();
+    let lum_b = b.relative_luminance();
     (lum_a.max(lum_b) + 0.05) / (lum_a.min(lum_b) + 0.05)
-}
-
-// https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
-fn relative_luminance(color: Color) -> f32 {
-    let linear = color.into_linear();
-    0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 }
 
 // https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces
