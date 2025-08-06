@@ -68,6 +68,7 @@ use crate::core::{
     Vector,
 };
 use crate::overlay::menu;
+use crate::runtime::keyboard::Modifiers;
 use crate::text::LineHeight;
 use crate::text_input::{self, TextInput};
 
@@ -741,9 +742,10 @@ where
                 let mut local_shell = Shell::new(&mut local_messages);
                 self.text_input.update(
                     &mut tree.children[0],
-                    &Event::Mouse(mouse::Event::ButtonPressed(
-                        mouse::Button::Left,
-                    )),
+                    &Event::Mouse(mouse::Event::ButtonPressed {
+                        button: mouse::Button::Left,
+                        modifiers: Modifiers::empty(),
+                    }),
                     layout,
                     mouse::Cursor::Unavailable,
                     renderer,
