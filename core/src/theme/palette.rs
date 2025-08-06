@@ -456,6 +456,8 @@ pub struct Background {
     pub weaker: Pair,
     /// A weak version of the base background color.
     pub weak: Pair,
+    /// A neutral version of the base background color, between weak and strong.
+    pub neutral: Pair,
     /// A strong version of the base background color.
     pub strong: Pair,
     /// A stronger version of the base background color.
@@ -470,6 +472,7 @@ impl Background {
         let weakest = deviate(base, 0.03);
         let weaker = deviate(base, 0.07);
         let weak = deviate(base, 0.1);
+        let neutral = deviate(base, 0.125);
         let strong = deviate(base, 0.15);
         let stronger = deviate(base, 0.175);
         let strongest = deviate(base, 0.20);
@@ -479,6 +482,7 @@ impl Background {
             weakest: Pair::new(weakest, text),
             weaker: Pair::new(weaker, text),
             weak: Pair::new(weak, text),
+            neutral: Pair::new(neutral, text),
             strong: Pair::new(strong, text),
             stronger: Pair::new(stronger, text),
             strongest: Pair::new(strongest, text),
