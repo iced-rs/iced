@@ -953,6 +953,69 @@ where
                 }
                 _ => {}
             }
+
+            match event {
+                Event::Mouse(mouse::Event::ButtonPressed(
+                    mouse::Button::Middle,
+                )) => {
+                    if let Some(pos) = cursor_over_scrollable {
+                        state.autoscroll = Some(AutoScroll {
+                            origin: pos,
+                            last_cursor: pos,
+                        });
+                        shell.request_redraw();
+                        shell.capture_event();
+                    }
+                }
+                Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                    if let Some(active) = state.autoscroll {
+                        if let Some(current) = cursor.position() {
+                            state.autoscroll = Some(AutoScroll {
+                                origin: active.origin,
+                                last_cursor: current,
+                            });
+                            shell.request_redraw();
+                            shell.capture_event();
+                        }
+                    }
+                }
+                Event::Mouse(mouse::Event::ButtonPressed(_))
+                | Event::Keyboard(_)
+                | Event::Touch(_) => {
+                    if state.autoscroll.is_some() {
+                        state.autoscroll = None;
+                        shell.capture_event();
+                    }
+                }
+                Event::Window(window::Event::RedrawRequested(_)) => {
+                    if let Some(active) = state.autoscroll {
+                        let delta = active.last_cursor - active.origin;
+                        let threshold = 20.0; // px deadzone
+                        if delta.x.abs() > threshold
+                            || delta.y.abs() > threshold
+                        {
+                            let scroll_factor = 0.25; // Lower is slower
+                            state.scroll(
+                                self.direction.align(Vector::new(
+                                    delta.x * scroll_factor,
+                                    delta.y * scroll_factor,
+                                )),
+                                bounds,
+                                content_bounds,
+                            );
+                            let _ = notify_scroll(
+                                state,
+                                &self.on_scroll,
+                                bounds,
+                                content_bounds,
+                                shell,
+                            );
+                            shell.request_redraw();
+                        }
+                    }
+                }
+                _ => {}
+            }
         };
 
         update();
@@ -1197,6 +1260,8 @@ where
             || state.scrollers_grabbed()
         {
             mouse::Interaction::None
+        } else if state.autoscroll.is_some() {
+            mouse::Interaction::Grabbing
         } else {
             let translation =
                 state.translation(self.direction, bounds, content_bounds);
@@ -1394,6 +1459,12 @@ fn notify_viewport<Message>(
 }
 
 #[derive(Debug, Clone, Copy)]
+struct AutoScroll {
+    origin: Point,
+    last_cursor: Point,
+}
+
+#[derive(Debug, Clone, Copy)]
 struct State {
     scroll_area_touched_at: Option<Point>,
     offset_y: Offset,
@@ -1404,6 +1475,7 @@ struct State {
     last_notified: Option<Viewport>,
     last_scrolled: Option<Instant>,
     is_scrollbar_visible: bool,
+    autoscroll: Option<AutoScroll>,
 }
 
 impl Default for State {
@@ -1418,6 +1490,7 @@ impl Default for State {
             last_notified: None,
             last_scrolled: None,
             is_scrollbar_visible: true,
+            autoscroll: None,
         }
     }
 }
