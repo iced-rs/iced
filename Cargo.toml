@@ -145,7 +145,7 @@ repository = "https://github.com/iced-rs/iced"
 homepage = "https://iced.rs"
 categories = ["gui"]
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-rust-version = "1.85"
+rust-version = "1.88"
 
 [workspace.dependencies]
 iced = { version = "0.14.0-dev", path = "." }

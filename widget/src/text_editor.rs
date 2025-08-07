@@ -689,22 +689,20 @@ where
                 }
             }
             Event::Window(window::Event::RedrawRequested(now)) => {
-                if let Some(focus) = &mut state.focus {
-                    if focus.is_window_focused {
-                        focus.now = *now;
+                if let Some(focus) = &mut state.focus
+                    && focus.is_window_focused
+                {
+                    focus.now = *now;
 
-                        let millis_until_redraw =
-                            Focus::CURSOR_BLINK_INTERVAL_MILLIS
-                                - (focus.now - focus.updated_at).as_millis()
-                                    % Focus::CURSOR_BLINK_INTERVAL_MILLIS;
+                    let millis_until_redraw =
+                        Focus::CURSOR_BLINK_INTERVAL_MILLIS
+                            - (focus.now - focus.updated_at).as_millis()
+                                % Focus::CURSOR_BLINK_INTERVAL_MILLIS;
 
-                        shell.request_redraw_at(
-                            focus.now
-                                + Duration::from_millis(
-                                    millis_until_redraw as u64,
-                                ),
-                        );
-                    }
+                    shell.request_redraw_at(
+                        focus.now
+                            + Duration::from_millis(millis_until_redraw as u64),
+                    );
                 }
             }
             _ => {}

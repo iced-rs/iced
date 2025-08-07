@@ -798,12 +798,11 @@ where
                     },
                 );
 
-                if !had_input_method {
-                    if let InputMethod::Enabled { position, .. } =
+                if !had_input_method
+                    && let InputMethod::Enabled { position, .. } =
                         shell.input_method_mut()
-                    {
-                        *position = *position - translation;
-                    }
+                {
+                    *position = *position - translation;
                 }
             };
 
@@ -1091,23 +1090,22 @@ where
                         );
                     }
 
-                    if let Some(scroller) = scrollbar.scroller {
-                        if scroller.bounds.width > 0.0
-                            && scroller.bounds.height > 0.0
-                            && (style.scroller.color != Color::TRANSPARENT
-                                || (style.scroller.border.color
-                                    != Color::TRANSPARENT
-                                    && style.scroller.border.width > 0.0))
-                        {
-                            renderer.fill_quad(
-                                renderer::Quad {
-                                    bounds: scroller.bounds,
-                                    border: style.scroller.border,
-                                    ..renderer::Quad::default()
-                                },
-                                style.scroller.color,
-                            );
-                        }
+                    if let Some(scroller) = scrollbar.scroller
+                        && scroller.bounds.width > 0.0
+                        && scroller.bounds.height > 0.0
+                        && (style.scroller.color != Color::TRANSPARENT
+                            || (style.scroller.border.color
+                                != Color::TRANSPARENT
+                                && style.scroller.border.width > 0.0))
+                    {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: scroller.bounds,
+                                border: style.scroller.border,
+                                ..renderer::Quad::default()
+                            },
+                            style.scroller.color,
+                        );
                     }
                 };
 

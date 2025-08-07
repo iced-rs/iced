@@ -377,24 +377,24 @@ fn update<Message: Clone, Theme, Renderer>(
                 shell.capture_event();
             }
 
-            if let Some(position) = cursor_position {
-                if let Some(message) = widget.on_double_click.as_ref() {
-                    let new_click = mouse::Click::new(
-                        position,
-                        mouse::Button::Left,
-                        state.previous_click,
-                    );
+            if let Some(position) = cursor_position
+                && let Some(message) = widget.on_double_click.as_ref()
+            {
+                let new_click = mouse::Click::new(
+                    position,
+                    mouse::Button::Left,
+                    state.previous_click,
+                );
 
-                    if new_click.kind() == mouse::click::Kind::Double {
-                        shell.publish(message.clone());
-                    }
-
-                    state.previous_click = Some(new_click);
-
-                    // Even if this is not a double click, but the press is nevertheless
-                    // processed by us and should not be popup to parent widgets.
-                    shell.capture_event();
+                if new_click.kind() == mouse::click::Kind::Double {
+                    shell.publish(message.clone());
                 }
+
+                state.previous_click = Some(new_click);
+
+                // Even if this is not a double click, but the press is nevertheless
+                // processed by us and should not be popup to parent widgets.
+                shell.capture_event();
             }
         }
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))

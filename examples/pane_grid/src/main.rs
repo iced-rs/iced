@@ -71,11 +71,10 @@ impl Example {
                 }
             }
             Message::FocusAdjacent(direction) => {
-                if let Some(pane) = self.focus {
-                    if let Some(adjacent) = self.panes.adjacent(pane, direction)
-                    {
-                        self.focus = Some(adjacent);
-                    }
+                if let Some(pane) = self.focus
+                    && let Some(adjacent) = self.panes.adjacent(pane, direction)
+                {
+                    self.focus = Some(adjacent);
                 }
             }
             Message::Clicked(pane) => {
@@ -106,14 +105,12 @@ impl Example {
                 }
             }
             Message::CloseFocused => {
-                if let Some(pane) = self.focus {
-                    if let Some(Pane { is_pinned, .. }) = self.panes.get(pane) {
-                        if !is_pinned {
-                            if let Some((_, sibling)) = self.panes.close(pane) {
-                                self.focus = Some(sibling);
-                            }
-                        }
-                    }
+                if let Some(pane) = self.focus
+                    && let Some(Pane { is_pinned, .. }) = self.panes.get(pane)
+                    && !is_pinned
+                    && let Some((_, sibling)) = self.panes.close(pane)
+                {
+                    self.focus = Some(sibling);
                 }
             }
         }
