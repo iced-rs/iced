@@ -62,6 +62,7 @@ use window::WindowManager;
 use rustc_hash::FxHashMap;
 use std::borrow::Cow;
 use std::mem::ManuallyDrop;
+use std::slice;
 use std::sync::Arc;
 
 /// Runs a [`Program`] with the provided settings.
@@ -652,11 +653,11 @@ async fn run_instance<P>(
                         let now = Instant::now();
 
                         for (_id, window) in window_manager.iter_mut() {
-                            if let Some(redraw_at) = window.redraw_at {
-                                if redraw_at <= now {
-                                    window.raw.request_redraw();
-                                    window.redraw_at = None;
-                                }
+                            if let Some(redraw_at) = window.redraw_at
+                                && redraw_at <= now
+                            {
+                                window.raw.request_redraw();
+                                window.redraw_at = None;
                             }
                         }
 
@@ -760,7 +761,7 @@ async fn run_instance<P>(
 
                         let draw_span = debug::draw(id);
                         let (ui_state, _) = ui.update(
-                            &[redraw_event.clone()],
+                            slice::from_ref(&redraw_event),
                             cursor,
                             &mut window.renderer,
                             &mut clipboard,
@@ -1346,17 +1347,14 @@ fn run_action<'a, P, C>(
                 }
             }
             window::Action::ShowSystemMenu(id) => {
-                if let Some(window) = window_manager.get_mut(id) {
-                    if let mouse::Cursor::Available(point) =
+                if let Some(window) = window_manager.get_mut(id)
+                    && let mouse::Cursor::Available(point) =
                         window.state.cursor()
-                    {
-                        window.raw.show_window_menu(
-                            winit::dpi::LogicalPosition {
-                                x: point.x,
-                                y: point.y,
-                            },
-                        );
-                    }
+                {
+                    window.raw.show_window_menu(winit::dpi::LogicalPosition {
+                        x: point.x,
+                        y: point.y,
+                    });
                 }
             }
             window::Action::GetRawId(id, channel) => {
@@ -1375,20 +1373,20 @@ fn run_action<'a, P, C>(
                 }
             }
             window::Action::Screenshot(id, channel) => {
-                if let Some(window) = window_manager.get_mut(id) {
-                    if let Some(compositor) = compositor {
-                        let bytes = compositor.screenshot(
-                            &mut window.renderer,
-                            window.state.viewport(),
-                            window.state.background_color(),
-                        );
+                if let Some(window) = window_manager.get_mut(id)
+                    && let Some(compositor) = compositor
+                {
+                    let bytes = compositor.screenshot(
+                        &mut window.renderer,
+                        window.state.viewport(),
+                        window.state.background_color(),
+                    );
 
-                        let _ = channel.send(core::window::Screenshot::new(
-                            bytes,
-                            window.state.physical_size(),
-                            window.state.viewport().scale_factor(),
-                        ));
-                    }
+                    let _ = channel.send(core::window::Screenshot::new(
+                        bytes,
+                        window.state.physical_size(),
+                        window.state.viewport().scale_factor(),
+                    ));
                 }
             }
             window::Action::EnableMousePassthrough(id) => {

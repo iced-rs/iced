@@ -174,38 +174,28 @@ where
         let title_layout = children.next().unwrap();
         let mut show_title = true;
 
-        if let Some(controls) = &self.controls {
-            if show_controls || self.always_show_controls {
-                let controls_layout = children.next().unwrap();
-                if title_layout.bounds().width + controls_layout.bounds().width
-                    > padded.bounds().width
-                {
-                    if let Some(compact) = controls.compact.as_ref() {
-                        let compact_layout = children.next().unwrap();
+        if let Some(controls) = &self.controls
+            && (show_controls || self.always_show_controls)
+        {
+            let controls_layout = children.next().unwrap();
+            if title_layout.bounds().width + controls_layout.bounds().width
+                > padded.bounds().width
+            {
+                if let Some(compact) = controls.compact.as_ref() {
+                    let compact_layout = children.next().unwrap();
 
-                        compact.as_widget().draw(
-                            &tree.children[2],
-                            renderer,
-                            theme,
-                            &inherited_style,
-                            compact_layout,
-                            cursor,
-                            viewport,
-                        );
-                    } else {
-                        show_title = false;
-
-                        controls.full.as_widget().draw(
-                            &tree.children[1],
-                            renderer,
-                            theme,
-                            &inherited_style,
-                            controls_layout,
-                            cursor,
-                            viewport,
-                        );
-                    }
+                    compact.as_widget().draw(
+                        &tree.children[2],
+                        renderer,
+                        theme,
+                        &inherited_style,
+                        compact_layout,
+                        cursor,
+                        viewport,
+                    );
                 } else {
+                    show_title = false;
+
                     controls.full.as_widget().draw(
                         &tree.children[1],
                         renderer,
@@ -216,6 +206,16 @@ where
                         viewport,
                     );
                 }
+            } else {
+                controls.full.as_widget().draw(
+                    &tree.children[1],
+                    renderer,
+                    theme,
+                    &inherited_style,
+                    controls_layout,
+                    cursor,
+                    viewport,
+                );
             }
         }
 

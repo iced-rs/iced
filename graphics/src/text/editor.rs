@@ -321,10 +321,11 @@ impl editor::Editor for Editor {
                 );
 
                 // Deselect if selection matches cursor position
-                if let Some((start, end)) = editor.selection_bounds() {
-                    if start.line == end.line && start.index == end.index {
-                        editor.set_selection(cosmic_text::Selection::None);
-                    }
+                if let Some((start, end)) = editor.selection_bounds()
+                    && start.line == end.line
+                    && start.index == end.index
+                {
+                    editor.set_selection(cosmic_text::Selection::None);
                 }
             }
             Action::SelectWord => {
@@ -438,10 +439,11 @@ impl editor::Editor for Editor {
                 );
 
                 // Deselect if selection matches cursor position
-                if let Some((start, end)) = editor.selection_bounds() {
-                    if start.line == end.line && start.index == end.index {
-                        editor.set_selection(cosmic_text::Selection::None);
-                    }
+                if let Some((start, end)) = editor.selection_bounds()
+                    && start.line == end.line
+                    && start.index == end.index
+                {
+                    editor.set_selection(cosmic_text::Selection::None);
                 }
             }
             Action::Scroll { lines } => {
