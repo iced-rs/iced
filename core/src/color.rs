@@ -90,12 +90,12 @@ impl Color {
             }
         }
 
-        Self {
-            r: gamma_component(r),
-            g: gamma_component(g),
-            b: gamma_component(b),
+        Self::new(
+            gamma_component(r),
+            gamma_component(g),
+            gamma_component(b),
             a,
-        }
+        )
     }
 
     /// Parses a [`Color`] from a hex string.
@@ -194,6 +194,13 @@ impl Color {
             a: self.a * factor,
             ..self
         }
+    }
+
+    /// Returns the relative luminance of the [`Color`].
+    /// https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
+    pub fn relative_luminance(self) -> f32 {
+        let linear = self.into_linear();
+        0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
     }
 }
 

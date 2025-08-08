@@ -116,11 +116,11 @@ impl WebSocket {
             let mut button = button(text("Send").height(40).align_y(Center))
                 .padding([0, 20]);
 
-            if matches!(self.state, State::Connected(_)) {
-                if let Some(message) = echo::Message::new(&self.new_message) {
-                    input = input.on_submit(Message::Send(message.clone()));
-                    button = button.on_press(Message::Send(message));
-                }
+            if matches!(self.state, State::Connected(_))
+                && let Some(message) = echo::Message::new(&self.new_message)
+            {
+                input = input.on_submit(Message::Send(message.clone()));
+                button = button.on_press(Message::Send(message));
             }
 
             row![input, button].spacing(10).align_y(Center)

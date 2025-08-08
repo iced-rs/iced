@@ -219,14 +219,14 @@ impl<T> State<T> {
         pane: Pane,
         swap: bool,
     ) {
-        if let Some((state, _)) = self.close(pane) {
-            if let Some((new_pane, _)) = self.split(axis, target, state) {
-                // Ensure new node corresponds to original closed `Pane` for state continuity
-                self.relabel(new_pane, pane);
+        if let Some((state, _)) = self.close(pane)
+            && let Some((new_pane, _)) = self.split(axis, target, state)
+        {
+            // Ensure new node corresponds to original closed `Pane` for state continuity
+            self.relabel(new_pane, pane);
 
-                if swap {
-                    self.swap(target, pane);
-                }
+            if swap {
+                self.swap(target, pane);
             }
         }
     }
@@ -257,13 +257,12 @@ impl<T> State<T> {
         pane: Pane,
         inverse: bool,
     ) {
-        if let Some((state, _)) = self.close(pane) {
-            if let Some((new_pane, _)) =
+        if let Some((state, _)) = self.close(pane)
+            && let Some((new_pane, _)) =
                 self.split_node(axis, None, state, inverse)
-            {
-                // Ensure new node corresponds to original closed `Pane` for state continuity
-                self.relabel(new_pane, pane);
-            }
+        {
+            // Ensure new node corresponds to original closed `Pane` for state continuity
+            self.relabel(new_pane, pane);
         }
     }
 

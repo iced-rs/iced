@@ -127,10 +127,10 @@ where
             }
         }
 
-        if width == Length::Shrink {
-            if let Some(first) = columns.first_mut() {
-                first.width = Length::Fill;
-            }
+        if width == Length::Shrink
+            && let Some(first) = columns.first_mut()
+        {
+            first.width = Length::Fill;
         }
 
         Self {

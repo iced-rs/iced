@@ -119,10 +119,10 @@ impl Editor {
 
                     let mut text = self.content.text();
 
-                    if let Some(ending) = self.content.line_ending() {
-                        if !text.ends_with(ending.as_str()) {
-                            text.push_str(ending.as_str());
-                        }
+                    if let Some(ending) = self.content.line_ending()
+                        && !text.ends_with(ending.as_str())
+                    {
+                        text.push_str(ending.as_str());
                     }
 
                     Task::perform(
