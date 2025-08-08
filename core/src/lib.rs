@@ -32,6 +32,9 @@ pub mod touch;
 pub mod widget;
 pub mod window;
 
+#[cfg(feature = "tray-icon")]
+pub mod tray_icon;
+
 mod angle;
 mod background;
 mod color;

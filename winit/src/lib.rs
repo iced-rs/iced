@@ -70,6 +70,9 @@ pub fn run<P>(
     program: P,
     settings: Settings,
     window_settings: Option<window::Settings>,
+    #[cfg(feature = "tray-icon")] tray_icon_settings: Option<
+        runtime::tray_icon::Settings,
+    >,
 ) -> Result<(), Error>
 where
     P: Program + 'static,
@@ -83,6 +86,36 @@ where
     let event_loop = EventLoop::with_user_event()
         .build()
         .expect("Create event loop");
+
+    #[cfg(feature = "tray-icon")]
+    // Icon must exist outside of the anonymous scope in order to not be dropped
+    let icon = build_tray_icon(tray_icon_settings)?;
+
+    #[cfg(feature = "tray-icon")]
+    {
+        use tray_icon::{TrayIconEvent, menu::MenuEvent};
+
+        let icon = icon.clone();
+
+        if let Some(icon) = icon {
+            let id_map = icon.id_map();
+
+            let event_loop_proxy = event_loop.create_proxy();
+            TrayIconEvent::set_event_handler(Some(move |e| {
+                let _ = event_loop_proxy.send_event(Action::TrayIcon(
+                    runtime::tray_icon::Event::from(e),
+                ));
+            }));
+            let event_loop_proxy = event_loop.create_proxy();
+            MenuEvent::set_event_handler(Some(move |e: MenuEvent| {
+                let _ = event_loop_proxy.send_event(Action::TrayIcon(
+                    runtime::tray_icon::Event::MenuItemClicked {
+                        id: id_map.get(&e.id.0).unwrap().clone(),
+                    },
+                ));
+            }));
+        }
+    }
 
     let (proxy, worker) = Proxy::new(event_loop.create_proxy());
 
@@ -1042,6 +1075,20 @@ async fn run_instance<P>(
     let _ = ManuallyDrop::into_inner(user_interfaces);
 }
 
+#[cfg(feature = "tray-icon")]
+/// Build the tray icon for if it exists
+fn build_tray_icon(
+    settings: Option<runtime::tray_icon::Settings>,
+) -> Result<Option<runtime::tray_icon::TrayIcon>, Error> {
+    match settings {
+        Some(settings) => {
+            let icon = runtime::tray_icon::TrayIcon::new(settings)?;
+            Ok(Some(icon))
+        }
+        None => Ok(None),
+    }
+}
+
 /// Builds a window's [`UserInterface`] for the [`Program`].
 fn build_user_interface<'a, P: Program>(
     program: &'a program::Instance<P>,
@@ -1108,6 +1155,9 @@ fn run_action<'a, P, C>(
     use crate::runtime::clipboard;
     use crate::runtime::system;
     use crate::runtime::window;
+
+    #[cfg(feature = "tray-icon")]
+    use crate::core::window::GLOBAL;
 
     match action {
         Action::Output(message) => {
@@ -1417,6 +1467,10 @@ fn run_action<'a, P, C>(
                 }
             }
         },
+        #[cfg(feature = "tray-icon")]
+        Action::TrayIcon(event) => {
+            events.push((GLOBAL, core::Event::TrayIcon(event)))
+        }
         Action::Widget(operation) => {
             let mut current_operation = Some(operation);
 
