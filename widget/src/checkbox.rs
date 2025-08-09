@@ -113,9 +113,6 @@ where
     /// The default size of a [`Checkbox`].
     const DEFAULT_SIZE: f32 = 16.0;
 
-    /// The default spacing of a [`Checkbox`].
-    const DEFAULT_SPACING: f32 = 8.0;
-
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
@@ -127,7 +124,7 @@ where
             label: None,
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
-            spacing: Self::DEFAULT_SPACING,
+            spacing: Self::DEFAULT_SIZE / 2.0,
             text_size: None,
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::default(),
@@ -283,7 +280,11 @@ where
     ) -> layout::Node {
         layout::next_to_each_other(
             &limits.width(self.width),
-            self.spacing,
+            if self.label.is_some() {
+                self.spacing
+            } else {
+                0.0
+            },
             |_| layout::Node::new(Size::new(self.size, self.size)),
             |limits| {
                 if let Some(label) = self.label.as_deref() {
