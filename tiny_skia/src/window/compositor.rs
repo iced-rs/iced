@@ -227,8 +227,29 @@ pub fn present(
         background_color,
     );
 
+    let frame_damage = damage::group(
+        frame_damage,
+        Rectangle::with_size(viewport.logical_size()),
+    )
+    .into_iter()
+    .map(|rect| rect * viewport.scale_factor() as f32)
+    .filter_map(|rect| {
+        let width = (rect.x - rect.x.floor() + rect.width).ceil() as u32;
+        let height = (rect.y - rect.y.floor() + rect.height).ceil() as u32;
+
+        Some(softbuffer::Rect {
+            x: rect.x.floor() as u32,
+            y: rect.y.floor() as u32,
+            width: width.try_into().ok()?,
+            height: height.try_into().ok()?,
+        })
+    })
+    .collect::<Vec<_>>();
+
     on_pre_present();
-    buffer.present().map_err(|_| compositor::SurfaceError::Lost)
+    buffer
+        .present_with_damage(&frame_damage)
+        .map_err(|_| compositor::SurfaceError::Lost)
 }
 
 pub fn screenshot(
