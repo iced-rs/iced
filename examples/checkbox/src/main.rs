@@ -38,7 +38,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let default_checkbox = checkbox(self.default)
             .label("Default")
             .on_toggle(Message::DefaultToggled);
