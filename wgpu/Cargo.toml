@@ -26,6 +26,7 @@ webgl = ["wgpu/webgl"]
 strict-assertions = []
 
 [dependencies]
+iced_debug.workspace = true
 iced_graphics.workspace = true
 
 bitflags.workspace = true

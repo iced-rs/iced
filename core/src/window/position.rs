@@ -1,7 +1,7 @@
 use crate::{Point, Size};
 
 /// The position of a window in a given screen.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub enum Position {
     /// The platform-specific default position for a new window.
     Default,

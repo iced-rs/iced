@@ -31,7 +31,7 @@ pub struct Settings {
     /// Enabling it can produce a smoother result in some widgets, like the
     /// `canvas` widget, at a performance cost.
     ///
-    /// By default, it is disabled.
+    /// By default, it is enabled.
     pub antialiasing: bool,
 }
 
@@ -42,7 +42,7 @@ impl Default for Settings {
             fonts: Vec::new(),
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
-            antialiasing: false,
+            antialiasing: true,
         }
     }
 }

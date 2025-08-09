@@ -5,7 +5,7 @@ use iced::widget::{
 };
 
 pub fn main() -> iced::Result {
-    iced::run("Progress Bar - Iced", Progress::update, Progress::view)
+    iced::run(Progress::update, Progress::view)
 }
 
 #[derive(Default)]
@@ -30,7 +30,7 @@ impl Progress {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let bar = progress_bar(0.0..=100.0, self.value);
 
         column![

@@ -2,12 +2,7 @@ use iced::widget::{button, center, column, text};
 use iced::{Element, Task, system};
 
 pub fn main() -> iced::Result {
-    iced::application(
-        "System Information - Iced",
-        Example::update,
-        Example::view,
-    )
-    .run_with(Example::new)
+    iced::application(Example::new, Example::update, Example::view).run()
 }
 
 #[derive(Default)]
@@ -52,7 +47,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         use bytesize::ByteSize;
 
         let content: Element<_> = match self {

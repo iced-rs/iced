@@ -7,9 +7,9 @@ use iced::{Center, Element, Fill, Subscription, Task, color};
 use std::sync::LazyLock;
 
 pub fn main() -> iced::Result {
-    iced::application("WebSocket - Iced", WebSocket::update, WebSocket::view)
+    iced::application(WebSocket::new, WebSocket::update, WebSocket::view)
         .subscription(WebSocket::subscription)
-        .run_with(WebSocket::new)
+        .run()
 }
 
 struct WebSocket {
@@ -90,7 +90,7 @@ impl WebSocket {
         Subscription::run(echo::connect).map(Message::Echo)
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let message_log: Element<_> = if self.messages.is_empty() {
             center(
                 text("Your messages will appear here...")
@@ -104,6 +104,7 @@ impl WebSocket {
             )
             .id(MESSAGE_LOG.clone())
             .height(Fill)
+            .spacing(10)
             .into()
         };
 
@@ -115,11 +116,11 @@ impl WebSocket {
             let mut button = button(text("Send").height(40).align_y(Center))
                 .padding([0, 20]);
 
-            if matches!(self.state, State::Connected(_)) {
-                if let Some(message) = echo::Message::new(&self.new_message) {
-                    input = input.on_submit(Message::Send(message.clone()));
-                    button = button.on_press(Message::Send(message));
-                }
+            if matches!(self.state, State::Connected(_))
+                && let Some(message) = echo::Message::new(&self.new_message)
+            {
+                input = input.on_submit(Message::Send(message.clone()));
+                button = button.on_press(Message::Send(message));
             }
 
             row![input, button].spacing(10).align_y(Center)

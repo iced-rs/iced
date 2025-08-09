@@ -1,13 +1,16 @@
 //! Create and run daemons that run in the background.
 use crate::application;
 use crate::program::{self, Program};
+use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
 
+use iced_debug as debug;
+
 use std::borrow::Cow;
 
-/// Creates an iced [`Daemon`] given its title, update, and view logic.
+/// Creates an iced [`Daemon`] given its boot, update, and view logic.
 ///
 /// A [`Daemon`] will not open a window by default, but will run silently
 /// instead until a [`Task`] from [`window::open`] is returned by its update logic.
@@ -18,19 +21,20 @@ use std::borrow::Cow;
 ///
 /// [`exit`]: crate::exit
 pub fn daemon<State, Message, Theme, Renderer>(
-    title: impl Title<State>,
+    boot: impl application::Boot<State, Message>,
     update: impl application::Update<State, Message>,
-    view: impl for<'a> self::View<'a, State, Message, Theme, Renderer>,
+    view: impl for<'a> View<'a, State, Message, Theme, Renderer>,
 ) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
-    Message: Send + std::fmt::Debug + 'static,
+    Message: program::Message + 'static,
     Theme: Default + theme::Base,
     Renderer: program::Renderer,
 {
     use std::marker::PhantomData;
 
-    struct Instance<State, Message, Theme, Renderer, Update, View> {
+    struct Instance<State, Message, Theme, Renderer, Boot, Update, View> {
+        boot: Boot,
         update: Update,
         view: View,
         _state: PhantomData<State>,
@@ -39,12 +43,13 @@ where
         _renderer: PhantomData<Renderer>,
     }
 
-    impl<State, Message, Theme, Renderer, Update, View> Program
-        for Instance<State, Message, Theme, Renderer, Update, View>
+    impl<State, Message, Theme, Renderer, Boot, Update, View> Program
+        for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
-        Message: Send + std::fmt::Debug + 'static,
+        Message: program::Message + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
+        Boot: application::Boot<State, Message>,
         Update: application::Update<State, Message>,
         View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
     {
@@ -54,12 +59,22 @@ where
         type Renderer = Renderer;
         type Executor = iced_futures::backend::default::Executor;
 
+        fn name() -> &'static str {
+            let name = std::any::type_name::<State>();
+
+            name.split("::").next().unwrap_or("a_cool_daemon")
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.boot.boot()
+        }
+
         fn update(
             &self,
             state: &mut Self::State,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.update.update(state, message).into()
+            debug::hot(|| self.update.update(state, message))
         }
 
         fn view<'a>(
@@ -67,12 +82,13 @@ where
             state: &'a Self::State,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.view.view(state, window).into()
+            debug::hot(|| self.view.view(state, window))
         }
     }
 
     Daemon {
         raw: Instance {
+            boot,
             update,
             view,
             _state: PhantomData,
@@ -82,7 +98,6 @@ where
         },
         settings: Settings::default(),
     }
-    .title(title)
 }
 
 /// The underlying definition and configuration of an iced daemon.
@@ -100,27 +115,25 @@ pub struct Daemon<P: Program> {
 
 impl<P: Program> Daemon<P> {
     /// Runs the [`Daemon`].
-    ///
-    /// The state of the [`Daemon`] must implement [`Default`].
-    /// If your state does not implement [`Default`], use [`run_with`]
-    /// instead.
-    ///
-    /// [`run_with`]: Self::run_with
     pub fn run(self) -> Result
     where
         Self: 'static,
-        P::State: Default,
     {
-        self.raw.run(self.settings, None)
-    }
+        #[cfg(all(feature = "debug", not(target_arch = "wasm32")))]
+        let program = {
+            iced_debug::init(iced_debug::Metadata {
+                name: P::name(),
+                theme: None,
+                can_time_travel: cfg!(feature = "time-travel"),
+            });
 
-    /// Runs the [`Daemon`] with a closure that creates the initial state.
-    pub fn run_with<I>(self, initialize: I) -> Result
-    where
-        Self: 'static,
-        I: FnOnce() -> (P::State, Task<P::Message>) + 'static,
-    {
-        self.raw.run_with(self.settings, None, initialize)
+            iced_devtools::attach(self.raw)
+        };
+
+        #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
+        let program = self.raw;
+
+        Ok(shell::run(program, self.settings, None)?)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Daemon`].
@@ -157,7 +170,7 @@ impl<P: Program> Daemon<P> {
     }
 
     /// Sets the [`Title`] of the [`Daemon`].
-    pub(crate) fn title(
+    pub fn title(
         self,
         title: impl Title<P::State>,
     ) -> Daemon<
@@ -165,7 +178,7 @@ impl<P: Program> Daemon<P> {
     > {
         Daemon {
             raw: program::with_title(self.raw, move |state, window| {
-                title.title(state, window)
+                debug::hot(|| title.title(state, window))
             }),
             settings: self.settings,
         }
@@ -179,7 +192,9 @@ impl<P: Program> Daemon<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
-            raw: program::with_subscription(self.raw, f),
+            raw: program::with_subscription(self.raw, move |state| {
+                debug::hot(|| f(state))
+            }),
             settings: self.settings,
         }
     }
@@ -192,7 +207,9 @@ impl<P: Program> Daemon<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
-            raw: program::with_theme(self.raw, f),
+            raw: program::with_theme(self.raw, move |state, window| {
+                debug::hot(|| f(state, window))
+            }),
             settings: self.settings,
         }
     }
@@ -205,7 +222,9 @@ impl<P: Program> Daemon<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
-            raw: program::with_style(self.raw, f),
+            raw: program::with_style(self.raw, move |state, theme| {
+                debug::hot(|| f(state, theme))
+            }),
             settings: self.settings,
         }
     }
@@ -218,7 +237,9 @@ impl<P: Program> Daemon<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
-            raw: program::with_scale_factor(self.raw, f),
+            raw: program::with_scale_factor(self.raw, move |state, window| {
+                debug::hot(|| f(state, window))
+            }),
             settings: self.settings,
         }
     }
@@ -275,7 +296,7 @@ pub trait View<'a, State, Message, Theme, Renderer> {
         &self,
         state: &'a State,
         window: window::Id,
-    ) -> impl Into<Element<'a, Message, Theme, Renderer>>;
+    ) -> Element<'a, Message, Theme, Renderer>;
 }
 
 impl<'a, T, State, Message, Theme, Renderer, Widget>
@@ -289,7 +310,7 @@ where
         &self,
         state: &'a State,
         window: window::Id,
-    ) -> impl Into<Element<'a, Message, Theme, Renderer>> {
-        self(state, window)
+    ) -> Element<'a, Message, Theme, Renderer> {
+        self(state, window).into()
     }
 }

@@ -4,7 +4,7 @@ use iced::widget::{
 use iced::{Center, Element, Fill};
 
 pub fn main() -> iced::Result {
-    iced::run("Combo Box - Iced", Example::update, Example::view)
+    iced::run(Example::update, Example::view)
 }
 
 struct Example {
@@ -47,7 +47,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let combo_box = combo_box(
             &self.languages,
             "Type a language...",

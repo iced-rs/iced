@@ -52,22 +52,22 @@ impl Node {
     /// Aligns the [`Node`] in the given space.
     pub fn align(
         mut self,
-        horizontal_alignment: Alignment,
-        vertical_alignment: Alignment,
+        align_x: Alignment,
+        align_y: Alignment,
         space: Size,
     ) -> Self {
-        self.align_mut(horizontal_alignment, vertical_alignment, space);
+        self.align_mut(align_x, align_y, space);
         self
     }
 
     /// Mutable reference version of [`Self::align`].
     pub fn align_mut(
         &mut self,
-        horizontal_alignment: Alignment,
-        vertical_alignment: Alignment,
+        align_x: Alignment,
+        align_y: Alignment,
         space: Size,
     ) {
-        match horizontal_alignment {
+        match align_x {
             Alignment::Start => {}
             Alignment::Center => {
                 self.bounds.x += (space.width - self.bounds.width) / 2.0;
@@ -77,7 +77,7 @@ impl Node {
             }
         }
 
-        match vertical_alignment {
+        match align_y {
             Alignment::Start => {}
             Alignment::Center => {
                 self.bounds.y += (space.height - self.bounds.height) / 2.0;

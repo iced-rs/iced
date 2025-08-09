@@ -3,9 +3,8 @@ use iced::widget::{button, container, horizontal_space, hover, right};
 use iced::{Element, Theme};
 
 pub fn main() -> iced::Result {
-    iced::application("Bezier Tool - Iced", Example::update, Example::view)
+    iced::application(Example::default, Example::update, Example::view)
         .theme(|_| Theme::CatppuccinMocha)
-        .antialiasing(true)
         .run()
 }
 
@@ -35,7 +34,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         container(hover(
             self.bezier.view(&self.curves).map(Message::AddCurve),
             if self.curves.is_empty() {

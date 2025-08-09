@@ -5,6 +5,7 @@ pub use palette::Palette;
 
 use crate::Color;
 
+use std::borrow::Cow;
 use std::fmt;
 use std::sync::Arc;
 
@@ -87,14 +88,17 @@ impl Theme {
     ];
 
     /// Creates a new custom [`Theme`] from the given [`Palette`].
-    pub fn custom(name: String, palette: Palette) -> Self {
+    pub fn custom(
+        name: impl Into<Cow<'static, str>>,
+        palette: Palette,
+    ) -> Self {
         Self::custom_with_fn(name, palette, palette::Extended::generate)
     }
 
     /// Creates a new custom [`Theme`] from the given [`Palette`], with
     /// a custom generator of a [`palette::Extended`].
     pub fn custom_with_fn(
-        name: String,
+        name: impl Into<Cow<'static, str>>,
         palette: Palette,
         generate: impl FnOnce(Palette) -> palette::Extended,
     ) -> Self {
@@ -220,7 +224,7 @@ impl fmt::Display for Theme {
 /// A [`Theme`] with a customized [`Palette`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct Custom {
-    name: String,
+    name: Cow<'static, str>,
     palette: Palette,
     extended: palette::Extended,
 }
@@ -234,12 +238,12 @@ impl Custom {
     /// Creates a [`Custom`] theme from the given [`Palette`] with
     /// a custom generator of a [`palette::Extended`].
     pub fn with_fn(
-        name: String,
+        name: impl Into<Cow<'static, str>>,
         palette: Palette,
         generate: impl FnOnce(Palette) -> palette::Extended,
     ) -> Self {
         Self {
-            name,
+            name: name.into(),
             palette,
             extended: generate(palette),
         }
@@ -252,7 +256,7 @@ impl fmt::Display for Custom {
     }
 }
 
-/// The base style of a [`Theme`].
+/// The base style of a theme.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The background [`Color`] of the application.
@@ -262,15 +266,26 @@ pub struct Style {
     pub text_color: Color,
 }
 
-/// The default blank style of a [`Theme`].
+/// The default blank style of a theme.
 pub trait Base {
-    /// Returns the default base [`Style`] of a [`Theme`].
+    /// Returns the default base [`Style`] of a theme.
     fn base(&self) -> Style;
+
+    /// Returns the color [`Palette`] of the theme.
+    ///
+    /// This [`Palette`] may be used by the runtime for
+    /// debugging purposes; like displaying performance
+    /// metrics or devtools.
+    fn palette(&self) -> Option<Palette>;
 }
 
 impl Base for Theme {
     fn base(&self) -> Style {
         default(self)
+    }
+
+    fn palette(&self) -> Option<Palette> {
+        Some(self.palette())
     }
 }
 

@@ -11,7 +11,7 @@ static SCROLLABLE_ID: LazyLock<scrollable::Id> =
 
 pub fn main() -> iced::Result {
     iced::application(
-        "Scrollable - Iced",
+        ScrollableDemo::default,
         ScrollableDemo::update,
         ScrollableDemo::view,
     )
@@ -118,7 +118,7 @@ impl ScrollableDemo {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let scrollbar_width_slider = slider(
             0..=15,
             self.scrollbar_width,

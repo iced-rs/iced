@@ -308,16 +308,18 @@ where
                     state,
                     renderer,
                     limits,
-                    self.width,
-                    Length::Shrink,
                     &self.label,
-                    self.text_line_height,
-                    self.text_size,
-                    self.font,
-                    text::Alignment::Default,
-                    alignment::Vertical::Top,
-                    self.text_shaping,
-                    self.text_wrapping,
+                    widget::text::Format {
+                        width: self.width,
+                        height: Length::Shrink,
+                        line_height: self.text_line_height,
+                        size: self.text_size,
+                        font: self.font,
+                        align_x: text::Alignment::Default,
+                        align_y: alignment::Vertical::Top,
+                        shaping: self.text_shaping,
+                        wrapping: self.text_wrapping,
+                    },
                 )
             },
         )
@@ -445,8 +447,8 @@ where
             crate::text::draw(
                 renderer,
                 defaults,
-                label_layout,
-                state.0.raw(),
+                label_layout.bounds(),
+                state.raw(),
                 crate::text::Style {
                     color: style.text_color,
                 },

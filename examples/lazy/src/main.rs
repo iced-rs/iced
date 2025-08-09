@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::hash::Hash;
 
 pub fn main() -> iced::Result {
-    iced::run("Lazy - Iced", App::update, App::view)
+    iced::run(App::update, App::view)
 }
 
 struct App {
@@ -154,7 +154,7 @@ impl App {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let options = lazy(self.version, |_| {
             let mut items: Vec<_> = self.items.iter().cloned().collect();
 

@@ -12,11 +12,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub fn main() -> iced::Result {
-    iced::application("Editor - Iced", Editor::update, Editor::view)
+    iced::application(Editor::new, Editor::update, Editor::view)
         .theme(Editor::theme)
         .font(include_bytes!("../fonts/icons.ttf").as_slice())
         .default_font(Font::MONOSPACE)
-        .run_with(Editor::new)
+        .run()
 }
 
 struct Editor {
@@ -119,10 +119,10 @@ impl Editor {
 
                     let mut text = self.content.text();
 
-                    if let Some(ending) = self.content.line_ending() {
-                        if !text.ends_with(ending.as_str()) {
-                            text.push_str(ending.as_str());
-                        }
+                    if let Some(ending) = self.content.line_ending()
+                        && !text.ends_with(ending.as_str())
+                    {
+                        text.push_str(ending.as_str());
                     }
 
                     Task::perform(
@@ -144,7 +144,7 @@ impl Editor {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let controls = row![
             action(new_icon(), "New file", Some(Message::NewFile)),
             action(

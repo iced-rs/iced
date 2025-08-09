@@ -384,6 +384,7 @@ where
                     bounds,
                     border: style.border,
                     shadow: style.shadow,
+                    snap: style.snap,
                 },
                 style
                     .background
@@ -430,14 +431,16 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
+            viewport,
             translation,
         )
     }
@@ -490,6 +493,8 @@ pub struct Style {
     pub border: Border,
     /// The [`Shadow`] of the button.
     pub shadow: Shadow,
+    /// Whether the button should be snapped to the pixel grid.
+    pub snap: bool,
 }
 
 impl Style {
@@ -509,6 +514,7 @@ impl Default for Style {
             text_color: Color::BLACK,
             border: Border::default(),
             shadow: Shadow::default(),
+            snap: cfg!(feature = "crisp"),
         }
     }
 }
@@ -676,6 +682,50 @@ pub fn text(theme: &Theme, status: Status) -> Style {
         Status::Active | Status::Pressed => base,
         Status::Hovered => Style {
             text_color: palette.background.base.text.scale_alpha(0.8),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
+/// A button using background shades.
+pub fn background(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
+    let base = styled(palette.background.base);
+
+    match status {
+        Status::Active => base,
+        Status::Pressed => Style {
+            background: Some(Background::Color(
+                palette.background.strong.color,
+            )),
+            ..base
+        },
+        Status::Hovered => Style {
+            background: Some(Background::Color(palette.background.weak.color)),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
+/// A subtle button using weak background shades.
+pub fn subtle(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
+    let base = styled(palette.background.weakest);
+
+    match status {
+        Status::Active => base,
+        Status::Pressed => Style {
+            background: Some(Background::Color(
+                palette.background.strong.color,
+            )),
+            ..base
+        },
+        Status::Hovered => Style {
+            background: Some(Background::Color(
+                palette.background.weaker.color,
+            )),
             ..base
         },
         Status::Disabled => disabled(base),

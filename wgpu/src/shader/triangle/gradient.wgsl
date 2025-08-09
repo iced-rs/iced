@@ -87,14 +87,14 @@ fn gradient(
 @fragment
 fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let colors = array<vec4<f32>, 8>(
-        unpack_u32(input.colors_1.xy),
-        unpack_u32(input.colors_1.zw),
-        unpack_u32(input.colors_2.xy),
-        unpack_u32(input.colors_2.zw),
-        unpack_u32(input.colors_3.xy),
-        unpack_u32(input.colors_3.zw),
-        unpack_u32(input.colors_4.xy),
-        unpack_u32(input.colors_4.zw),
+        unpack_color(input.colors_1.xy),
+        unpack_color(input.colors_1.zw),
+        unpack_color(input.colors_2.xy),
+        unpack_color(input.colors_2.zw),
+        unpack_color(input.colors_3.xy),
+        unpack_color(input.colors_3.zw),
+        unpack_color(input.colors_4.xy),
+        unpack_color(input.colors_4.zw),
     );
 
     let offsets_1: vec4<f32> = unpack_u32(input.offsets.xy);
@@ -120,13 +120,6 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     }
 
     return gradient(input.raw_position, input.direction, colors, offsets, last_index);
-}
-
-fn unpack_u32(color: vec2<u32>) -> vec4<f32> {
-    let rg: vec2<f32> = unpack2x16float(color.x);
-    let ba: vec2<f32> = unpack2x16float(color.y);
-
-    return vec4<f32>(rg.y, rg.x, ba.y, ba.x);
 }
 
 fn random(coords: vec2<f32>) -> f32 {

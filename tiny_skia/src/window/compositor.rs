@@ -107,13 +107,12 @@ impl crate::graphics::Compositor for Compositor {
         }
     }
 
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
         on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
         present(
@@ -121,19 +120,17 @@ impl crate::graphics::Compositor for Compositor {
             surface,
             viewport,
             background_color,
-            overlay,
             on_pre_present,
         )
     }
 
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8> {
-        screenshot(renderer, viewport, background_color, overlay)
+        screenshot(renderer, viewport, background_color)
     }
 }
 
@@ -148,12 +145,11 @@ pub fn new<W: compositor::Window>(
     Compositor { context, settings }
 }
 
-pub fn present<T: AsRef<str>>(
+pub fn present(
     renderer: &mut Renderer,
     surface: &mut Surface,
     viewport: &Viewport,
     background_color: Color,
-    overlay: &[T],
     on_pre_present: impl FnOnce(),
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
@@ -212,18 +208,16 @@ pub fn present<T: AsRef<str>>(
         viewport,
         &damage,
         background_color,
-        overlay,
     );
 
     on_pre_present();
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
 }
 
-pub fn screenshot<T: AsRef<str>>(
+pub fn screenshot(
     renderer: &mut Renderer,
     viewport: &Viewport,
     background_color: Color,
-    overlay: &[T],
 ) -> Vec<u8> {
     let size = viewport.physical_size();
 
@@ -247,7 +241,6 @@ pub fn screenshot<T: AsRef<str>>(
             size.height as f32,
         ))],
         background_color,
-        overlay,
     );
 
     offscreen_buffer.iter().fold(

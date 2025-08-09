@@ -271,8 +271,9 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
@@ -283,6 +284,7 @@ where
             children.next().unwrap(),
             layout,
             renderer,
+            viewport,
             translation,
         );
 
@@ -386,9 +388,11 @@ where
             renderer,
             &layout::Limits::new(
                 Size::ZERO,
-                self.snap_within_viewport
-                    .then(|| viewport.size())
-                    .unwrap_or(Size::INFINITY),
+                if self.snap_within_viewport {
+                    viewport.size()
+                } else {
+                    Size::INFINITY
+                },
             )
             .shrink(Padding::new(self.padding)),
         );
@@ -503,14 +507,5 @@ where
             cursor_position,
             &Rectangle::with_size(Size::INFINITY),
         );
-    }
-
-    fn is_over(
-        &self,
-        _layout: Layout<'_>,
-        _renderer: &Renderer,
-        _cursor_position: Point,
-    ) -> bool {
-        false
     }
 }

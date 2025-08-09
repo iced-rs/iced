@@ -34,7 +34,7 @@ Now, let's show the actual counter by putting it all together in our __view logi
 use iced::widget::{button, column, text, Column};
 
 impl Counter {
-    pub fn view(&self) -> Column<Message> {
+    pub fn view(&self) -> Column<'_, Message> {
         // We use a column: a simple vertical layout
         column![
             // The increment button. We tell it to produce an

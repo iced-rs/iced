@@ -12,9 +12,9 @@ use iced::{Center, Element, Fill, FillPortion, Font, Task, Theme};
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application("Changelog Generator", Generator::update, Generator::view)
+    iced::application(Generator::new, Generator::update, Generator::view)
         .theme(Generator::theme)
-        .run_with(Generator::new)
+        .run()
 }
 
 enum Generator {
@@ -217,7 +217,7 @@ impl Generator {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         match self {
             Self::Loading => center("Loading...").into(),
             Self::Done => center(

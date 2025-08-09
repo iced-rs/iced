@@ -10,7 +10,7 @@ use iced::{
 };
 
 pub fn main() -> iced::Result {
-    iced::application("Visible Bounds - Iced", Example::update, Example::view)
+    iced::application(Example::default, Example::update, Example::view)
         .subscription(Example::subscription)
         .theme(|_| Theme::Dark)
         .run()
@@ -59,7 +59,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let data_row = |label, value, color| {
             row![
                 text(label),

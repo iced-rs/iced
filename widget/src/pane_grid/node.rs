@@ -29,6 +29,33 @@ pub enum Node {
     Pane(Pane),
 }
 
+#[derive(Debug)]
+enum Count {
+    Split {
+        horizontal: usize,
+        vertical: usize,
+        a: Box<Count>,
+        b: Box<Count>,
+    },
+    Pane,
+}
+
+impl Count {
+    fn horizontal(&self) -> usize {
+        match self {
+            Count::Split { horizontal, .. } => *horizontal,
+            Count::Pane => 0,
+        }
+    }
+
+    fn vertical(&self) -> usize {
+        match self {
+            Count::Split { vertical, .. } => *vertical,
+            Count::Pane => 0,
+        }
+    }
+}
+
 impl Node {
     /// Returns an iterator over each [`Split`] in this [`Node`].
     pub fn splits(&self) -> impl Iterator<Item = &Split> {
@@ -48,23 +75,55 @@ impl Node {
         })
     }
 
+    fn count(&self) -> Count {
+        match self {
+            Node::Split { a, b, axis, .. } => {
+                let a = a.count();
+                let b = b.count();
+
+                let (horizontal, vertical) = match axis {
+                    Axis::Horizontal => (
+                        1 + a.horizontal() + b.horizontal(),
+                        a.vertical().max(b.vertical()),
+                    ),
+                    Axis::Vertical => (
+                        a.horizontal().max(b.horizontal()),
+                        1 + a.vertical() + b.vertical(),
+                    ),
+                };
+
+                Count::Split {
+                    horizontal,
+                    vertical,
+                    a: Box::new(a),
+                    b: Box::new(b),
+                }
+            }
+            Node::Pane(_) => Count::Pane,
+        }
+    }
+
     /// Returns the rectangular region for each [`Pane`] in the [`Node`] given
     /// the spacing between panes and the total available space.
     pub fn pane_regions(
         &self,
         spacing: f32,
-        size: Size,
+        min_size: f32,
+        bounds: Size,
     ) -> BTreeMap<Pane, Rectangle> {
         let mut regions = BTreeMap::new();
+        let count = self.count();
 
         self.compute_regions(
             spacing,
+            min_size,
             &Rectangle {
                 x: 0.0,
                 y: 0.0,
-                width: size.width,
-                height: size.height,
+                width: bounds.width,
+                height: bounds.height,
             },
+            &count,
             &mut regions,
         );
 
@@ -77,18 +136,22 @@ impl Node {
     pub fn split_regions(
         &self,
         spacing: f32,
-        size: Size,
+        min_size: f32,
+        bounds: Size,
     ) -> BTreeMap<Split, (Axis, Rectangle, f32)> {
         let mut splits = BTreeMap::new();
+        let count = self.count();
 
         self.compute_splits(
             spacing,
+            min_size,
             &Rectangle {
                 x: 0.0,
                 y: 0.0,
-                width: size.width,
-                height: size.height,
+                width: bounds.width,
+                height: bounds.height,
             },
+            &count,
             &mut splits,
         );
 
@@ -192,20 +255,51 @@ impl Node {
     fn compute_regions(
         &self,
         spacing: f32,
+        min_size: f32,
         current: &Rectangle,
+        count: &Count,
         regions: &mut BTreeMap<Pane, Rectangle>,
     ) {
-        match self {
-            Node::Split {
-                axis, ratio, a, b, ..
-            } => {
-                let (region_a, region_b) = axis.split(current, *ratio, spacing);
+        match (self, count) {
+            (
+                Node::Split {
+                    axis, ratio, a, b, ..
+                },
+                Count::Split {
+                    a: count_a,
+                    b: count_b,
+                    ..
+                },
+            ) => {
+                let (a_factor, b_factor) = match axis {
+                    Axis::Horizontal => {
+                        (count_a.horizontal(), count_b.horizontal())
+                    }
+                    Axis::Vertical => (count_a.vertical(), count_b.vertical()),
+                };
 
-                a.compute_regions(spacing, &region_a, regions);
-                b.compute_regions(spacing, &region_b, regions);
+                let (region_a, region_b, _ratio) = axis.split(
+                    current,
+                    *ratio,
+                    spacing,
+                    min_size * (a_factor + 1) as f32
+                        + spacing * a_factor as f32,
+                    min_size * (b_factor + 1) as f32
+                        + spacing * b_factor as f32,
+                );
+
+                a.compute_regions(
+                    spacing, min_size, &region_a, count_a, regions,
+                );
+                b.compute_regions(
+                    spacing, min_size, &region_b, count_b, regions,
+                );
             }
-            Node::Pane(pane) => {
+            (Node::Pane(pane), Count::Pane) => {
                 let _ = regions.insert(*pane, *current);
+            }
+            _ => {
+                unreachable!("Node configuration and count do not match")
             }
         }
     }
@@ -213,25 +307,52 @@ impl Node {
     fn compute_splits(
         &self,
         spacing: f32,
+        min_size: f32,
         current: &Rectangle,
+        count: &Count,
         splits: &mut BTreeMap<Split, (Axis, Rectangle, f32)>,
     ) {
-        match self {
-            Node::Split {
-                axis,
-                ratio,
-                a,
-                b,
-                id,
-            } => {
-                let (region_a, region_b) = axis.split(current, *ratio, spacing);
+        match (self, count) {
+            (
+                Node::Split {
+                    axis,
+                    ratio,
+                    a,
+                    b,
+                    id,
+                },
+                Count::Split {
+                    a: count_a,
+                    b: count_b,
+                    ..
+                },
+            ) => {
+                let (a_factor, b_factor) = match axis {
+                    Axis::Horizontal => {
+                        (count_a.horizontal(), count_b.horizontal())
+                    }
+                    Axis::Vertical => (count_a.vertical(), count_b.vertical()),
+                };
 
-                let _ = splits.insert(*id, (*axis, *current, *ratio));
+                let (region_a, region_b, ratio) = axis.split(
+                    current,
+                    *ratio,
+                    spacing,
+                    min_size * (a_factor + 1) as f32
+                        + spacing * a_factor as f32,
+                    min_size * (b_factor + 1) as f32
+                        + spacing * b_factor as f32,
+                );
 
-                a.compute_splits(spacing, &region_a, splits);
-                b.compute_splits(spacing, &region_b, splits);
+                let _ = splits.insert(*id, (*axis, *current, ratio));
+
+                a.compute_splits(spacing, min_size, &region_a, count_a, splits);
+                b.compute_splits(spacing, min_size, &region_b, count_b, splits);
             }
-            Node::Pane(_) => {}
+            (Node::Pane(_), Count::Pane) => {}
+            _ => {
+                unreachable!("Node configuration and split count do not match")
+            }
         }
     }
 }

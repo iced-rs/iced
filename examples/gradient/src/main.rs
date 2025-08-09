@@ -8,7 +8,7 @@ use iced::{Center, Color, Element, Fill, Radians, Theme, color};
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application("Gradient - Iced", Gradient::update, Gradient::view)
+    iced::application(Gradient::default, Gradient::update, Gradient::view)
         .style(Gradient::style)
         .transparent(true)
         .run()
@@ -51,7 +51,7 @@ impl Gradient {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let Self {
             start,
             end,

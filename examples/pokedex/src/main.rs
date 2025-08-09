@@ -3,8 +3,9 @@ use iced::widget::{self, center, column, image, row, text};
 use iced::{Center, Element, Fill, Right, Task};
 
 pub fn main() -> iced::Result {
-    iced::application(Pokedex::title, Pokedex::update, Pokedex::view)
-        .run_with(Pokedex::new)
+    iced::application(Pokedex::new, Pokedex::update, Pokedex::view)
+        .title(Pokedex::title)
+        .run()
 }
 
 #[derive(Debug)]
@@ -33,7 +34,7 @@ impl Pokedex {
         let subtitle = match self {
             Pokedex::Loading => "Loading",
             Pokedex::Loaded { pokemon, .. } => &pokemon.name,
-            Pokedex::Errored { .. } => "Whoops!",
+            Pokedex::Errored => "Whoops!",
         };
 
         format!("{subtitle} - Pokédex")
@@ -62,7 +63,7 @@ impl Pokedex {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let content: Element<_> = match self {
             Pokedex::Loading => {
                 text("Searching for Pokémon...").size(40).into()
@@ -99,7 +100,7 @@ struct Pokemon {
 impl Pokemon {
     const TOTAL: u16 = 807;
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         row![
             image::viewer(self.image.clone()),
             column![

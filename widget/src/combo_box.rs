@@ -509,6 +509,10 @@ where
         vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _, _>)]
     }
 
+    fn diff(&self, _tree: &mut widget::Tree) {
+        // do nothing so the children don't get cleared
+    }
+
     fn update(
         &mut self,
         tree: &mut widget::Tree,
@@ -595,17 +599,16 @@ where
 
         if is_focused {
             self.state.with_inner(|state| {
-                if !started_focused {
-                    if let Some(on_option_hovered) = &mut self.on_option_hovered
-                    {
-                        let hovered_option = menu.hovered_option.unwrap_or(0);
+                if !started_focused
+                    && let Some(on_option_hovered) = &mut self.on_option_hovered
+                {
+                    let hovered_option = menu.hovered_option.unwrap_or(0);
 
-                        if let Some(option) =
-                            state.filtered_options.options.get(hovered_option)
-                        {
-                            shell.publish(on_option_hovered(option.clone()));
-                            published_message_to_shell = true;
-                        }
+                    if let Some(option) =
+                        state.filtered_options.options.get(hovered_option)
+                    {
+                        shell.publish(on_option_hovered(option.clone()));
+                        published_message_to_shell = true;
                     }
                 }
 
@@ -618,12 +621,11 @@ where
                     let shift_modifier = modifiers.shift();
                     match (named_key, shift_modifier) {
                         (key::Named::Enter, _) => {
-                            if let Some(index) = &menu.hovered_option {
-                                if let Some(option) =
+                            if let Some(index) = &menu.hovered_option
+                                && let Some(option) =
                                     state.filtered_options.options.get(*index)
-                                {
-                                    menu.new_selection = Some(option.clone());
-                                }
+                            {
+                                menu.new_selection = Some(option.clone());
                             }
 
                             shell.capture_event();
@@ -646,21 +648,19 @@ where
 
                             if let Some(on_option_hovered) =
                                 &mut self.on_option_hovered
-                            {
-                                if let Some(option) =
+                                && let Some(option) =
                                     menu.hovered_option.and_then(|index| {
                                         state
                                             .filtered_options
                                             .options
                                             .get(index)
                                     })
-                                {
-                                    // Notify the selection
-                                    shell.publish((on_option_hovered)(
-                                        option.clone(),
-                                    ));
-                                    published_message_to_shell = true;
-                                }
+                            {
+                                // Notify the selection
+                                shell.publish((on_option_hovered)(
+                                    option.clone(),
+                                ));
+                                published_message_to_shell = true;
                             }
 
                             shell.capture_event();
@@ -694,21 +694,19 @@ where
 
                             if let Some(on_option_hovered) =
                                 &mut self.on_option_hovered
-                            {
-                                if let Some(option) =
+                                && let Some(option) =
                                     menu.hovered_option.and_then(|index| {
                                         state
                                             .filtered_options
                                             .options
                                             .get(index)
                                     })
-                                {
-                                    // Notify the selection
-                                    shell.publish((on_option_hovered)(
-                                        option.clone(),
-                                    ));
-                                    published_message_to_shell = true;
-                                }
+                            {
+                                // Notify the selection
+                                shell.publish((on_option_hovered)(
+                                    option.clone(),
+                                ));
+                                published_message_to_shell = true;
                             }
 
                             shell.capture_event();
@@ -832,6 +830,7 @@ where
         tree: &'b mut widget::Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let is_focused = {
@@ -884,12 +883,11 @@ where
                     menu = menu.text_size(size);
                 }
 
-                Some(
-                    menu.overlay(
-                        layout.position() + translation,
-                        bounds.height,
-                    ),
-                )
+                Some(menu.overlay(
+                    layout.position() + translation,
+                    *viewport,
+                    bounds.height,
+                ))
             }
         } else {
             None

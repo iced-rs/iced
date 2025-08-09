@@ -264,7 +264,7 @@ where
         let locate = |cursor_position: Point| -> Option<T> {
             let bounds = layout.bounds();
 
-            let new_value = if cursor_position.y >= bounds.y + bounds.height {
+            if cursor_position.y >= bounds.y + bounds.height {
                 Some(*self.range.start())
             } else if cursor_position.y <= bounds.y {
                 Some(*self.range.end())
@@ -287,9 +287,7 @@ where
                 let value = steps * step + start;
 
                 T::from_f64(value.min(end))
-            };
-
-            new_value
+            }
         };
 
         let increment = |value: T| -> Option<T> {

@@ -7,12 +7,11 @@ use iced::{Center, Element, Fill, Point, Rectangle, Renderer, Theme, Vector};
 
 pub fn main() -> iced::Result {
     iced::application(
-        "Vectorial Text - Iced",
+        VectorialText::default,
         VectorialText::update,
         VectorialText::view,
     )
     .theme(|_| Theme::Dark)
-    .antialiasing(true)
     .run()
 }
 
@@ -49,7 +48,7 @@ impl VectorialText {
         self.state.cache.clear();
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let slider_with_label = |label, range, value, message: fn(f32) -> _| {
             column![
                 row![text(label), horizontal_space(), text!("{:.2}", value)],
@@ -143,7 +142,7 @@ impl<Message> canvas::Program<Message> for State {
                 } else {
                     "Vectorial Text! 🎉"
                 }),
-                align_x: alignment::Horizontal::Center,
+                align_x: text::Alignment::Center,
                 align_y: alignment::Vertical::Center,
                 shaping: text::Shaping::Advanced,
                 ..canvas::Text::default()

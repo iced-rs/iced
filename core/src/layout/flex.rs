@@ -137,16 +137,24 @@ where
     //
     // We use the maximum cross length obtained in the first pass as the maximum
     // cross limit.
+    //
+    // We can defer the layout of any elements that have a fixed size in the main axis,
+    // allowing them to use the cross calculations of the next pass.
     if cross_compress && some_fill_cross {
         for (i, (child, tree)) in items.iter().zip(trees.iter_mut()).enumerate()
         {
-            let (fill_main_factor, fill_cross_factor) = {
+            let (main_size, cross_size) = {
                 let size = child.as_widget().size();
 
-                axis.pack(size.width.fill_factor(), size.height.fill_factor())
+                axis.pack(size.width, size.height)
             };
 
-            if fill_main_factor == 0 && fill_cross_factor != 0 {
+            if main_size.fill_factor() == 0 && cross_size.fill_factor() != 0 {
+                if let Length::Fixed(main) = main_size {
+                    available -= main;
+                    continue;
+                }
+
                 let (max_width, max_height) = axis.pack(available, cross);
 
                 let child_limits =
@@ -176,9 +184,9 @@ where
     };
 
     // THIRD PASS
-    // We only have the elements that are fluid in the main axis left.
+    // We lay out the elements that are fluid in the main axis.
     // We use the remaining space to evenly allocate space based on fill factors.
-    for (i, (child, tree)) in items.iter().zip(trees).enumerate() {
+    for (i, (child, tree)) in items.iter().zip(trees.iter_mut()).enumerate() {
         let (fill_main_factor, fill_cross_factor) = {
             let size = child.as_widget().size();
 
@@ -224,10 +232,43 @@ where
         }
     }
 
+    // FOURTH PASS (conditional)
+    // We lay out any elements that were deferred in the second pass.
+    // These are elements that must be compressed in their cross axis and have
+    // a fixed length in the main axis.
+    if cross_compress && some_fill_cross {
+        for (i, (child, tree)) in items.iter().zip(trees).enumerate() {
+            let (main_size, cross_size) = {
+                let size = child.as_widget().size();
+
+                axis.pack(size.width, size.height)
+            };
+
+            if cross_size.fill_factor() != 0 {
+                let Length::Fixed(main) = main_size else {
+                    continue;
+                };
+
+                let (max_width, max_height) = axis.pack(main, cross);
+
+                let child_limits =
+                    Limits::new(Size::ZERO, Size::new(max_width, max_height));
+
+                let layout =
+                    child.as_widget().layout(tree, renderer, &child_limits);
+                let size = layout.size();
+
+                cross = cross.max(axis.cross(size));
+
+                nodes[i] = layout;
+            }
+        }
+    }
+
     let pad = axis.pack(padding.left, padding.top);
     let mut main = pad.0;
 
-    // FOURTH PASS
+    // FIFTH PASS
     // We align all the laid out nodes in the cross axis, if needed.
     for (i, node) in nodes.iter_mut().enumerate() {
         if i > 0 {

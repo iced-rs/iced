@@ -97,10 +97,11 @@ impl<T> State<T> {
     /// Returns the adjacent [`Pane`] of another [`Pane`] in the given
     /// direction, if there is one.
     pub fn adjacent(&self, pane: Pane, direction: Direction) -> Option<Pane> {
-        let regions = self
-            .internal
-            .layout
-            .pane_regions(0.0, Size::new(4096.0, 4096.0));
+        let regions = self.internal.layout.pane_regions(
+            0.0,
+            0.0,
+            Size::new(4096.0, 4096.0),
+        );
 
         let current_region = regions.get(&pane)?;
 
@@ -218,14 +219,14 @@ impl<T> State<T> {
         pane: Pane,
         swap: bool,
     ) {
-        if let Some((state, _)) = self.close(pane) {
-            if let Some((new_pane, _)) = self.split(axis, target, state) {
-                // Ensure new node corresponds to original closed `Pane` for state continuity
-                self.relabel(new_pane, pane);
+        if let Some((state, _)) = self.close(pane)
+            && let Some((new_pane, _)) = self.split(axis, target, state)
+        {
+            // Ensure new node corresponds to original closed `Pane` for state continuity
+            self.relabel(new_pane, pane);
 
-                if swap {
-                    self.swap(target, pane);
-                }
+            if swap {
+                self.swap(target, pane);
             }
         }
     }
@@ -256,13 +257,12 @@ impl<T> State<T> {
         pane: Pane,
         inverse: bool,
     ) {
-        if let Some((state, _)) = self.close(pane) {
-            if let Some((new_pane, _)) =
+        if let Some((state, _)) = self.close(pane)
+            && let Some((new_pane, _)) =
                 self.split_node(axis, None, state, inverse)
-            {
-                // Ensure new node corresponds to original closed `Pane` for state continuity
-                self.relabel(new_pane, pane);
-            }
+        {
+            // Ensure new node corresponds to original closed `Pane` for state continuity
+            self.relabel(new_pane, pane);
         }
     }
 

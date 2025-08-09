@@ -27,6 +27,16 @@ pub struct Layer {
 }
 
 impl Layer {
+    pub fn is_empty(&self) -> bool {
+        self.quads.is_empty()
+            && self.triangles.is_empty()
+            && self.primitives.is_empty()
+            && self.images.is_empty()
+            && self.text.is_empty()
+            && self.pending_meshes.is_empty()
+            && self.pending_text.is_empty()
+    }
+
     pub fn draw_quad(
         &mut self,
         quad: renderer::Quad,
@@ -44,6 +54,7 @@ impl Layer {
             shadow_color: color::pack(quad.shadow.color),
             shadow_offset: quad.shadow.offset.into(),
             shadow_blur_radius: quad.shadow.blur_radius,
+            snap: quad.snap as u32,
         };
 
         self.quads.add(quad, &background);

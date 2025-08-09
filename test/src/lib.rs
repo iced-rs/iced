@@ -109,6 +109,7 @@ use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
 
 use std::borrow::Cow;
+use std::env;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -186,8 +187,16 @@ where
             load_font(font).expect("Font must be valid");
         }
 
-        let mut renderer =
-            Renderer::new(default_font, settings.default_text_size);
+        let mut renderer = {
+            let backend = env::var("ICED_TEST_BACKEND").ok();
+
+            iced_runtime::futures::futures::executor::block_on(Renderer::new(
+                default_font,
+                settings.default_text_size,
+                backend.as_deref(),
+            ))
+            .expect("Create new headless renderer")
+        };
 
         let raw = UserInterface::build(
             element,
@@ -427,7 +436,7 @@ where
             &mut self.messages,
         );
 
-        let _ = self.raw.draw(
+        self.raw.draw(
             &mut self.renderer,
             theme,
             &core::renderer::Style {
@@ -455,6 +464,7 @@ where
                 physical_size,
                 f64::from(scale_factor),
             ),
+            renderer: self.renderer.name(),
         })
     }
 
@@ -470,6 +480,7 @@ where
 #[derive(Debug, Clone)]
 pub struct Snapshot {
     screenshot: window::Screenshot,
+    renderer: String,
 }
 
 impl Snapshot {
@@ -479,7 +490,7 @@ impl Snapshot {
     /// If the PNG image does not exist, it will be created by the [`Snapshot`] for future
     /// testing and `true` will be returned.
     pub fn matches_image(&self, path: impl AsRef<Path>) -> Result<bool, Error> {
-        let path = snapshot_path(path, "png");
+        let path = self.path(path, "png");
 
         if path.exists() {
             let file = fs::File::open(&path)?;
@@ -520,7 +531,7 @@ impl Snapshot {
     pub fn matches_hash(&self, path: impl AsRef<Path>) -> Result<bool, Error> {
         use sha2::{Digest, Sha256};
 
-        let path = snapshot_path(path, "sha256");
+        let path = self.path(path, "sha256");
 
         let hash = {
             let mut hasher = Sha256::new();
@@ -540,6 +551,20 @@ impl Snapshot {
             fs::write(path, hash)?;
             Ok(true)
         }
+    }
+
+    fn path(&self, path: impl AsRef<Path>, extension: &str) -> PathBuf {
+        let path = path.as_ref();
+
+        path.with_file_name(format!(
+            "{name}-{renderer}",
+            name = path
+                .file_stem()
+                .map(std::ffi::OsStr::to_string_lossy)
+                .unwrap_or_default(),
+            renderer = self.renderer
+        ))
+        .with_extension(extension)
     }
 }
 
@@ -632,8 +657,4 @@ fn load_font(font: impl Into<Cow<'static, [u8]>>) -> Result<(), Error> {
         .load_font(font.into());
 
     Ok(())
-}
-
-fn snapshot_path(path: impl AsRef<Path>, extension: &str) -> PathBuf {
-    path.as_ref().with_extension(extension)
 }

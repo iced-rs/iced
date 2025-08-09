@@ -3,7 +3,7 @@ use iced::window;
 use iced::{Center, Element, Task};
 
 pub fn main() -> iced::Result {
-    iced::application("Exit - Iced", Exit::update, Exit::view).run()
+    iced::run(Exit::update, Exit::view)
 }
 
 #[derive(Default)]
@@ -29,7 +29,7 @@ impl Exit {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let content = if self.show_confirm {
             column![
                 "Are you sure you want to exit?",

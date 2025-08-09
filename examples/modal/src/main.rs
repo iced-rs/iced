@@ -10,7 +10,7 @@ use iced::{Bottom, Color, Element, Fill, Subscription, Task};
 use std::fmt;
 
 pub fn main() -> iced::Result {
-    iced::application("Modal - Iced", App::update, App::view)
+    iced::application(App::default, App::update, App::view)
         .subscription(App::subscription)
         .run()
 }
@@ -92,7 +92,7 @@ impl App {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let content = container(
             column![
                 row![text("Top Left"), horizontal_space(), text("Top Right")]

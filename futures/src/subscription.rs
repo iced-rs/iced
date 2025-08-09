@@ -285,6 +285,11 @@ impl<T> Subscription<T> {
                 .collect(),
         }
     }
+
+    /// Returns the amount of recipe units in this [`Subscription`].
+    pub fn units(&self) -> usize {
+        self.recipes.len()
+    }
 }
 
 /// Creates a [`Subscription`] from a [`Recipe`] describing it.

@@ -2,7 +2,7 @@ use iced::widget::{center, center_x, checkbox, column, svg};
 use iced::{Element, Fill, color};
 
 pub fn main() -> iced::Result {
-    iced::run("SVG - Iced", Tiger::update, Tiger::view)
+    iced::run(Tiger::update, Tiger::view)
 }
 
 #[derive(Debug, Default)]
@@ -24,7 +24,7 @@ impl Tiger {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let handle = svg::Handle::from_path(format!(
             "{}/resources/tiger.svg",
             env!("CARGO_MANIFEST_DIR")

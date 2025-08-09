@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["tokio", "image", "web-colors", "debug"]
+iced.features = ["tokio", "sipper", "image", "debug"]
 
 reqwest.version = "0.12"
 reqwest.features = ["json"]

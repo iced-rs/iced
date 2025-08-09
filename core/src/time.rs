@@ -2,6 +2,7 @@
 
 pub use web_time::Duration;
 pub use web_time::Instant;
+pub use web_time::SystemTime;
 
 /// Creates a [`Duration`] representing the given amount of milliseconds.
 pub fn milliseconds(milliseconds: u64) -> Duration {
