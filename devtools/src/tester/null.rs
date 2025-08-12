@@ -47,7 +47,6 @@ impl<P: Program> Tester<P> {
     pub fn view<'a, T: 'static>(
         &'a self,
         _program: &P,
-        _window: window::Id,
         _current: impl FnOnce() -> Element<'a, T, Theme, P::Renderer>,
         _emulate: impl Fn(Tick<P>) -> T + 'a,
     ) -> Element<'a, T, Theme, P::Renderer> {
