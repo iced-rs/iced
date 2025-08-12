@@ -29,7 +29,7 @@ impl Image {
             .get("https://civitai.com/api/v1/images")
             .query(&[
                 ("sort", "Most Reactions"),
-                ("period", "Week"),
+                ("period", "Month"),
                 ("nsfw", "None"),
                 ("limit", &Image::LIMIT.to_string()),
             ])

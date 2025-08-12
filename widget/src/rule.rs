@@ -134,7 +134,7 @@ where
         let style = theme.style(&self.class);
 
         let bounds = if self.is_horizontal {
-            let line_y = (bounds.y + (bounds.height / 2.0)).round();
+            let line_y = bounds.y.round();
 
             let (offset, line_width) = style.fill_mode.fill(bounds.width);
             let line_x = bounds.x + offset;
@@ -146,7 +146,7 @@ where
                 height: bounds.height,
             }
         } else {
-            let line_x = (bounds.x + (bounds.width / 2.0)).round();
+            let line_x = bounds.x.round();
 
             let (offset, line_height) = style.fill_mode.fill(bounds.height);
             let line_y = bounds.y + offset;
@@ -295,6 +295,18 @@ pub fn default(theme: &Theme) -> Style {
 
     Style {
         color: palette.background.strong.color,
+        radius: 0.0.into(),
+        fill_mode: FillMode::Full,
+        snap: true,
+    }
+}
+
+/// A [`Rule`] styling using the weak background color.
+pub fn weak(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    Style {
+        color: palette.background.weak.color,
         radius: 0.0.into(),
         fill_mode: FillMode::Full,
         snap: true,

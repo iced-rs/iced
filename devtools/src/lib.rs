@@ -425,7 +425,7 @@ where
             None
         };
 
-        let content = row![view].push_maybe(sidebar);
+        let content = row![view, sidebar];
 
         themer(
             theme,

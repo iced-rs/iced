@@ -10,7 +10,7 @@ use iced::animation;
 use iced::time::{Instant, milliseconds};
 use iced::widget::{
     button, container, float, grid, horizontal_space, image, mouse_area,
-    opaque, pop, scrollable, stack,
+    opaque, scrollable, sensor, stack,
 };
 use iced::window;
 use iced::{
@@ -257,7 +257,7 @@ fn card<'a>(
             .style(button::text)
             .into()
     } else {
-        pop(card)
+        sensor(card)
             .on_show(|_| Message::ImagePoppedIn(metadata.id))
             .into()
     }

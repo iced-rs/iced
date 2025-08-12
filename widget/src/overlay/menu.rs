@@ -407,13 +407,12 @@ where
     ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if cursor.is_over(layout.bounds()) {
-                    if let Some(index) = *self.hovered_option {
-                        if let Some(option) = self.options.get(index) {
-                            shell.publish((self.on_selected)(option.clone()));
-                            shell.capture_event();
-                        }
-                    }
+                if cursor.is_over(layout.bounds())
+                    && let Some(index) = *self.hovered_option
+                    && let Some(option) = self.options.get(index)
+                {
+                    shell.publish((self.on_selected)(option.clone()));
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
@@ -431,19 +430,16 @@ where
                     let new_hovered_option =
                         (cursor_position.y / option_height) as usize;
 
-                    if *self.hovered_option != Some(new_hovered_option) {
-                        if let Some(option) =
+                    if *self.hovered_option != Some(new_hovered_option)
+                        && let Some(option) =
                             self.options.get(new_hovered_option)
+                    {
+                        if let Some(on_option_hovered) = self.on_option_hovered
                         {
-                            if let Some(on_option_hovered) =
-                                self.on_option_hovered
-                            {
-                                shell
-                                    .publish(on_option_hovered(option.clone()));
-                            }
-
-                            shell.request_redraw();
+                            shell.publish(on_option_hovered(option.clone()));
                         }
+
+                        shell.request_redraw();
                     }
 
                     *self.hovered_option = Some(new_hovered_option);
@@ -464,11 +460,11 @@ where
                     *self.hovered_option =
                         Some((cursor_position.y / option_height) as usize);
 
-                    if let Some(index) = *self.hovered_option {
-                        if let Some(option) = self.options.get(index) {
-                            shell.publish((self.on_selected)(option.clone()));
-                            shell.capture_event();
-                        }
+                    if let Some(index) = *self.hovered_option
+                        && let Some(option) = self.options.get(index)
+                    {
+                        shell.publish((self.on_selected)(option.clone()));
+                        shell.capture_event();
                     }
                 }
             }

@@ -593,56 +593,47 @@ where
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. })
             | Event::Touch(touch::Event::FingerLost { .. }) => {
-                if let Some((pane, origin)) = action.picked_pane() {
-                    if let Some(on_drag) = on_drag {
-                        if let Some(cursor_position) = cursor.position() {
-                            if cursor_position.distance(origin)
-                                > DRAG_DEADBAND_DISTANCE
-                            {
-                                let event = if let Some(edge) =
-                                    in_edge(layout, cursor_position)
+                if let Some((pane, origin)) = action.picked_pane()
+                    && let Some(on_drag) = on_drag
+                    && let Some(cursor_position) = cursor.position()
+                {
+                    if cursor_position.distance(origin) > DRAG_DEADBAND_DISTANCE
+                    {
+                        let event = if let Some(edge) =
+                            in_edge(layout, cursor_position)
+                        {
+                            DragEvent::Dropped {
+                                pane,
+                                target: Target::Edge(edge),
+                            }
+                        } else {
+                            let dropped_region = self
+                                .panes
+                                .iter()
+                                .copied()
+                                .zip(&self.contents)
+                                .zip(layout.children())
+                                .find_map(|(target, layout)| {
+                                    layout_region(layout, cursor_position)
+                                        .map(|region| (target, region))
+                                });
+
+                            match dropped_region {
+                                Some(((target, _), region))
+                                    if pane != target =>
                                 {
                                     DragEvent::Dropped {
                                         pane,
-                                        target: Target::Edge(edge),
+                                        target: Target::Pane(target, region),
                                     }
-                                } else {
-                                    let dropped_region = self
-                                        .panes
-                                        .iter()
-                                        .copied()
-                                        .zip(&self.contents)
-                                        .zip(layout.children())
-                                        .find_map(|(target, layout)| {
-                                            layout_region(
-                                                layout,
-                                                cursor_position,
-                                            )
-                                            .map(|region| (target, region))
-                                        });
-
-                                    match dropped_region {
-                                        Some(((target, _), region))
-                                            if pane != target =>
-                                        {
-                                            DragEvent::Dropped {
-                                                pane,
-                                                target: Target::Pane(
-                                                    target, region,
-                                                ),
-                                            }
-                                        }
-                                        _ => DragEvent::Canceled { pane },
-                                    }
-                                };
-
-                                shell.publish(on_drag(event));
-                            } else {
-                                shell.publish(on_drag(DragEvent::Canceled {
-                                    pane,
-                                }));
+                                }
+                                _ => DragEvent::Canceled { pane },
                             }
-                        }
+                        };
+
+                        shell.publish(on_drag(event));
+                    } else {
+                        shell.publish(on_drag(DragEvent::Canceled { pane }));
                     }
                 }
 
@@ -660,34 +651,33 @@ where
                             bounds.size(),
                         );
 
-                        if let Some((axis, rectangle, _)) = splits.get(&split) {
-                            if let Some(cursor_position) = cursor.position() {
-                                let ratio = match axis {
-                                    Axis::Horizontal => {
-                                        let position = cursor_position.y
-                                            - bounds.y
-                                            - rectangle.y;
+                        if let Some((axis, rectangle, _)) = splits.get(&split)
+                            && let Some(cursor_position) = cursor.position()
+                        {
+                            let ratio = match axis {
+                                Axis::Horizontal => {
+                                    let position = cursor_position.y
+                                        - bounds.y
+                                        - rectangle.y;
 
-                                        (position / rectangle.height)
-                                            .clamp(0.0, 1.0)
-                                    }
-                                    Axis::Vertical => {
-                                        let position = cursor_position.x
-                                            - bounds.x
-                                            - rectangle.x;
+                                    (position / rectangle.height)
+                                        .clamp(0.0, 1.0)
+                                }
+                                Axis::Vertical => {
+                                    let position = cursor_position.x
+                                        - bounds.x
+                                        - rectangle.x;
 
-                                        (position / rectangle.width)
-                                            .clamp(0.0, 1.0)
-                                    }
-                                };
+                                    (position / rectangle.width).clamp(0.0, 1.0)
+                                }
+                            };
 
-                                shell.publish(on_resize(ResizeEvent {
-                                    split,
-                                    ratio,
-                                }));
+                            shell.publish(on_resize(ResizeEvent {
+                                split,
+                                ratio,
+                            }));
 
-                                shell.capture_event();
-                            }
+                            shell.capture_event();
                         }
                     } else if action.picked_pane().is_some() {
                         shell.request_redraw();
@@ -889,24 +879,23 @@ where
                         viewport,
                     );
 
-                    if picked_pane.is_some() && pane_in_edge.is_none() {
-                        if let Some(region) =
+                    if picked_pane.is_some()
+                        && pane_in_edge.is_none()
+                        && let Some(region) =
                             cursor.position().and_then(|cursor_position| {
                                 layout_region(pane_layout, cursor_position)
                             })
-                        {
-                            let bounds =
-                                layout_region_bounds(pane_layout, region);
+                    {
+                        let bounds = layout_region_bounds(pane_layout, region);
 
-                            renderer.fill_quad(
-                                renderer::Quad {
-                                    bounds,
-                                    border: style.hovered_region.border,
-                                    ..renderer::Quad::default()
-                                },
-                                style.hovered_region.background,
-                            );
-                        }
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds,
+                                border: style.hovered_region.border,
+                                ..renderer::Quad::default()
+                            },
+                            style.hovered_region.background,
+                        );
                     }
                 }
                 _ => {
@@ -937,64 +926,62 @@ where
         }
 
         // Render picked pane last
-        if let Some(((content, tree), origin, layout)) = render_picked_pane {
-            if let Some(cursor_position) = cursor.position() {
-                let bounds = layout.bounds();
+        if let Some(((content, tree), origin, layout)) = render_picked_pane
+            && let Some(cursor_position) = cursor.position()
+        {
+            let bounds = layout.bounds();
 
-                let translation =
-                    cursor_position - Point::new(origin.x, origin.y);
+            let translation = cursor_position - Point::new(origin.x, origin.y);
 
-                renderer.with_translation(translation, |renderer| {
-                    renderer.with_layer(bounds, |renderer| {
-                        content.draw(
-                            tree,
-                            renderer,
-                            theme,
-                            defaults,
-                            layout,
-                            pane_cursor,
-                            viewport,
-                        );
-                    });
+            renderer.with_translation(translation, |renderer| {
+                renderer.with_layer(bounds, |renderer| {
+                    content.draw(
+                        tree,
+                        renderer,
+                        theme,
+                        defaults,
+                        layout,
+                        pane_cursor,
+                        viewport,
+                    );
                 });
-            }
+            });
         }
 
-        if picked_pane.is_none() {
-            if let Some((axis, split_region, is_picked)) = picked_split {
-                let highlight = if is_picked {
-                    style.picked_split
-                } else {
-                    style.hovered_split
-                };
+        if picked_pane.is_none()
+            && let Some((axis, split_region, is_picked)) = picked_split
+        {
+            let highlight = if is_picked {
+                style.picked_split
+            } else {
+                style.hovered_split
+            };
 
-                renderer.fill_quad(
-                    renderer::Quad {
-                        bounds: match axis {
-                            Axis::Horizontal => Rectangle {
-                                x: split_region.x,
-                                y: (split_region.y
-                                    + (split_region.height - highlight.width)
-                                        / 2.0)
-                                    .round(),
-                                width: split_region.width,
-                                height: highlight.width,
-                            },
-                            Axis::Vertical => Rectangle {
-                                x: (split_region.x
-                                    + (split_region.width - highlight.width)
-                                        / 2.0)
-                                    .round(),
-                                y: split_region.y,
-                                width: highlight.width,
-                                height: split_region.height,
-                            },
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: match axis {
+                        Axis::Horizontal => Rectangle {
+                            x: split_region.x,
+                            y: (split_region.y
+                                + (split_region.height - highlight.width)
+                                    / 2.0)
+                                .round(),
+                            width: split_region.width,
+                            height: highlight.width,
                         },
-                        ..renderer::Quad::default()
+                        Axis::Vertical => Rectangle {
+                            x: (split_region.x
+                                + (split_region.width - highlight.width) / 2.0)
+                                .round(),
+                            y: split_region.y,
+                            width: highlight.width,
+                            height: split_region.height,
+                        },
                     },
-                    highlight.color,
-                );
-            }
+                    ..renderer::Quad::default()
+                },
+                highlight.color,
+            );
         }
     }
 
@@ -1086,15 +1073,15 @@ fn click_pane<'a, Message, T>(
             shell.publish(on_click(pane));
         }
 
-        if let Some(on_drag) = &on_drag {
-            if content.can_be_dragged_at(layout, cursor_position) {
-                *action = state::Action::Dragging {
-                    pane,
-                    origin: cursor_position,
-                };
+        if let Some(on_drag) = &on_drag
+            && content.can_be_dragged_at(layout, cursor_position)
+        {
+            *action = state::Action::Dragging {
+                pane,
+                origin: cursor_position,
+            };
 
-                shell.publish(on_drag(DragEvent::Picked { pane }));
-            }
+            shell.publish(on_drag(DragEvent::Picked { pane }));
         }
     }
 }
