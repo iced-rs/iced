@@ -81,7 +81,6 @@ where
     padding: Padding,
     clip: bool,
     class: Theme::Class<'a>,
-    status: Option<Status>,
 }
 
 enum OnPress<'a, Message> {
@@ -118,7 +117,6 @@ where
             padding: DEFAULT_PADDING,
             clip: false,
             class: Theme::default(),
-            status: None,
         }
     }
 
@@ -202,6 +200,7 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct State {
     is_pressed: bool,
+    status: Option<Status>,
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -353,9 +352,10 @@ where
             Status::Active
         };
 
+        let state = tree.state.downcast_mut::<State>();
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
-            self.status = Some(current_status);
-        } else if self.status.is_some_and(|status| status != current_status) {
+            state.status = Some(current_status);
+        } else if state.status.is_some_and(|status| status != current_status) {
             shell.request_redraw();
         }
     }
@@ -372,8 +372,9 @@ where
     ) {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
+        let state = tree.state.downcast_ref::<State>();
         let style =
-            theme.style(&self.class, self.status.unwrap_or(Status::Disabled));
+            theme.style(&self.class, state.status.unwrap_or(Status::Disabled));
 
         if style.background.is_some()
             || style.border.width > 0.0
