@@ -15,8 +15,9 @@ use crate::icon;
 use crate::program;
 use crate::runtime::Task;
 use crate::test::emulator;
+use crate::test::ice;
 use crate::test::instruction;
-use crate::test::{Emulator, Instruction};
+use crate::test::{Emulator, Ice, Instruction};
 use crate::widget::{
     button, center, column, combo_box, container, horizontal_space, monospace,
     pick_list, row, scrollable, text, text_editor, text_input, themer,
@@ -64,7 +65,7 @@ pub enum Message {
     Play,
     Import,
     Export,
-    Imported(Option<String>),
+    Imported(Result<Ice, ice::ParseError>),
     Edit,
     Edited(text_editor::Action),
     Confirm,
@@ -188,8 +189,10 @@ impl<P: Program + 'static> Tester<P> {
                 Task::future(import)
                     .and_then(|file| {
                         executor::spawn_blocking(move |mut sender| {
-                            let _ = sender
-                                .try_send(fs::read_to_string(file.path()).ok());
+                            let _ = sender.try_send(Ice::parse(
+                                &fs::read_to_string(file.path())
+                                    .unwrap_or_default(),
+                            ));
                         })
                     })
                     .map(Message::Imported)
@@ -201,11 +204,15 @@ impl<P: Program + 'static> Tester<P> {
 
                 self.confirm();
 
-                let test: Vec<_> = self
-                    .instructions
-                    .iter()
-                    .map(Instruction::to_string)
-                    .collect();
+                let ice = Ice {
+                    viewport: Size::new(
+                        self.viewport.width as u32,
+                        self.viewport.height as u32,
+                    ),
+                    mode: self.mode,
+                    preset: self.preset.clone(),
+                    instructions: self.instructions.clone(),
+                };
 
                 let export = rfd::AsyncFileDialog::new()
                     .add_filter("ice", &["ice"])
@@ -217,28 +224,21 @@ impl<P: Program + 'static> Tester<P> {
                     };
 
                     let _ = thread::spawn(move || {
-                        fs::write(file.path(), test.join("\n"))
+                        fs::write(file.path(), ice.to_string())
                     });
                 })
                 .discard()
             }
-            Message::Imported(instructions) => {
-                let Some(instructions) = instructions else {
-                    return Task::none();
-                };
-
-                let instructions: Result<Vec<_>, _> =
-                    instructions.lines().map(Instruction::parse).collect();
-
-                match instructions {
-                    Ok(instructions) => {
-                        self.instructions = instructions;
-                        self.edit = None;
-                    }
-                    Err(error) => {
-                        log::error!("{error}");
-                    }
-                }
+            Message::Imported(Ok(ice)) => {
+                self.viewport = Size::new(
+                    ice.viewport.width as f32,
+                    ice.viewport.height as f32,
+                );
+                self.mode = ice.mode;
+                self.preset = ice.preset;
+                self.instructions = ice.instructions;
+                self.edit = None;
+                self.state = State::Idle;
 
                 Task::none()
             }
@@ -267,6 +267,11 @@ impl<P: Program + 'static> Tester<P> {
             }
             Message::Confirm => {
                 self.confirm();
+
+                Task::none()
+            }
+            Message::Imported(Err(error)) => {
+                log::error!("{error}");
 
                 Task::none()
             }

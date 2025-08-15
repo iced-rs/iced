@@ -7,7 +7,7 @@ use crate::simulator;
 
 use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Instruction {
     Interact(Interaction),
     Expect(Expectation),
@@ -28,7 +28,7 @@ impl fmt::Display for Instruction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Interaction {
     Mouse(Mouse),
     Keyboard(Keyboard),
@@ -239,7 +239,7 @@ impl fmt::Display for Interaction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Mouse {
     Move(Point),
     Press {
@@ -275,7 +275,7 @@ impl fmt::Display for Mouse {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Keyboard {
     Press(Key),
     Release(Key),
@@ -357,7 +357,7 @@ mod format {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expectation {
     Presence(Selector),
 }

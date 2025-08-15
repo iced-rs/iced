@@ -90,6 +90,7 @@ use iced_runtime as runtime;
 use iced_runtime::core;
 
 pub mod emulator;
+pub mod ice;
 pub mod instruction;
 pub mod selector;
 pub mod simulator;
@@ -98,6 +99,7 @@ mod error;
 
 pub use emulator::Emulator;
 pub use error::Error;
+pub use ice::Ice;
 pub use instruction::Instruction;
 pub use selector::Selector;
 pub use simulator::{Simulator, simulator};

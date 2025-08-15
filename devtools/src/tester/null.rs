@@ -1,7 +1,5 @@
 use crate::Program;
-use crate::core::window;
 use crate::core::{Element, Theme};
-use crate::futures::Subscription;
 use crate::runtime::Task;
 use crate::widget::horizontal_space;
 
@@ -24,10 +22,6 @@ impl<P: Program> Tester<P> {
         Self { _type: PhantomData }
     }
 
-    pub fn is_idle(&self) -> bool {
-        true
-    }
-
     pub fn is_busy(&self) -> bool {
         false
     }
@@ -38,10 +32,6 @@ impl<P: Program> Tester<P> {
 
     pub fn tick(&mut self, _program: &P, _tick: Tick<P>) -> Task<Tick<P>> {
         Task::none()
-    }
-
-    pub fn subscription(&self, _program: &P) -> Subscription<Tick<P>> {
-        Subscription::none()
     }
 
     pub fn view<'a, T: 'static>(
