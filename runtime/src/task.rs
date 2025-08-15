@@ -385,7 +385,7 @@ impl<T, E> Task<Result<T, E>> {
 
 impl<T> Default for Task<T> {
     fn default() -> Self {
-        Task::none()
+        Self::none()
     }
 }
 
