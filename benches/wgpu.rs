@@ -32,16 +32,15 @@ pub fn wgpu_benchmark(c: &mut Criterion) {
     ))
     .expect("request adapter");
 
-    let (device, queue) = executor::block_on(adapter.request_device(
-        &wgpu::DeviceDescriptor {
+    let (device, queue) =
+        executor::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: None,
             required_features: wgpu::Features::empty(),
             required_limits: wgpu::Limits::default(),
             memory_hints: wgpu::MemoryHints::MemoryUsage,
-        },
-        None,
-    ))
-    .expect("request device");
+            trace: wgpu::Trace::Off,
+        }))
+        .expect("request device");
 
     c.bench_function("wgpu — canvas (light)", |b| {
         benchmark(b, &adapter, &device, &queue, |_| scene(10));
@@ -122,7 +121,7 @@ fn benchmark<'a>(
             &mut renderer,
         );
 
-        let _ = user_interface.draw(
+        user_interface.draw(
             &mut renderer,
             &Theme::Dark,
             &core::renderer::Style {
@@ -140,7 +139,7 @@ fn benchmark<'a>(
             &viewport,
         );
 
-        let _ = device.poll(wgpu::Maintain::WaitForSubmissionIndex(submission));
+        let _ = device.poll(wgpu::PollType::WaitForSubmissionIndex(submission));
 
         i += 1;
     });
@@ -179,9 +178,10 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
                         size: Pixels::from(16),
                         line_height: text::LineHeight::default(),
                         font: Font::DEFAULT,
-                        align_x: alignment::Horizontal::Left,
+                        align_x: text::Alignment::Left,
                         align_y: alignment::Vertical::Top,
                         shaping: text::Shaping::Basic,
+                        max_width: f32::INFINITY,
                     });
                 }
             })]

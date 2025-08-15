@@ -1,5 +1,6 @@
+use crate::core;
 use crate::core::alignment;
-use crate::core::text::{LineHeight, Shaping};
+use crate::core::text::{Alignment, LineHeight, Paragraph, Shaping, Wrapping};
 use crate::core::{Color, Font, Pixels, Point, Size, Vector};
 use crate::geometry::Path;
 use crate::text;
@@ -21,6 +22,10 @@ pub struct Text {
     /// For example, when the horizontal_alignment and vertical_alignment are set to Center, the
     /// center of the text will be placed at the given position NOT the top-left coordinate.
     pub position: Point,
+    /// The maximum horizontal space available for this [`Text`].
+    ///
+    /// Text will break into new lines when the width is reached.
+    pub max_width: f32,
     /// The color of the text
     pub color: Color,
     /// The size of the text
@@ -30,7 +35,7 @@ pub struct Text {
     /// The font of the text
     pub font: Font,
     /// The horizontal alignment of the text
-    pub align_x: alignment::Horizontal,
+    pub align_x: Alignment,
     /// The vertical alignment of the text
     pub align_y: alignment::Vertical,
     /// The shaping strategy of the text.
@@ -41,62 +46,50 @@ impl Text {
     /// Computes the [`Path`]s of the [`Text`] and draws them using
     /// the given closure.
     pub fn draw_with(&self, mut f: impl FnMut(Path, Color)) {
-        let mut font_system =
-            text::font_system().write().expect("Write font system");
-
-        let mut buffer = cosmic_text::BufferLine::new(
-            &self.content,
-            cosmic_text::LineEnding::default(),
-            cosmic_text::AttrsList::new(text::to_attributes(self.font)),
-            text::to_shaping(self.shaping),
-        );
-
-        let layout = buffer.layout(
-            font_system.raw(),
-            self.size.0,
-            None,
-            cosmic_text::Wrap::None,
-            None,
-            4,
-        );
+        let paragraph = text::Paragraph::with_text(core::text::Text {
+            content: &self.content,
+            bounds: Size::new(self.max_width, f32::INFINITY),
+            size: self.size,
+            line_height: self.line_height,
+            font: self.font,
+            align_x: self.align_x,
+            align_y: self.align_y,
+            shaping: self.shaping,
+            wrapping: Wrapping::default(),
+        });
 
         let translation_x = match self.align_x {
-            alignment::Horizontal::Left => self.position.x,
-            alignment::Horizontal::Center | alignment::Horizontal::Right => {
-                let mut line_width = 0.0f32;
-
-                for line in layout.iter() {
-                    line_width = line_width.max(line.w);
-                }
-
-                if self.align_x == alignment::Horizontal::Center {
-                    self.position.x - line_width / 2.0
-                } else {
-                    self.position.x - line_width
-                }
+            Alignment::Default | Alignment::Left | Alignment::Justified => {
+                self.position.x
             }
+            Alignment::Center => self.position.x - paragraph.min_width() / 2.0,
+            Alignment::Right => self.position.x - paragraph.min_width(),
         };
 
         let translation_y = {
-            let line_height = self.line_height.to_absolute(self.size);
-
             match self.align_y {
                 alignment::Vertical::Top => self.position.y,
                 alignment::Vertical::Center => {
-                    self.position.y - line_height.0 / 2.0
+                    self.position.y - paragraph.min_height() / 2.0
                 }
-                alignment::Vertical::Bottom => self.position.y - line_height.0,
+                alignment::Vertical::Bottom => {
+                    self.position.y - paragraph.min_height()
+                }
             }
         };
 
+        let buffer = paragraph.buffer();
         let mut swash_cache = cosmic_text::SwashCache::new();
 
-        for run in layout.iter() {
+        let mut font_system =
+            text::font_system().write().expect("Write font system");
+
+        for run in buffer.layout_runs() {
             for glyph in run.glyphs.iter() {
                 let physical_glyph = glyph.physical((0.0, 0.0), 1.0);
 
                 let start_x = translation_x + glyph.x + glyph.x_offset;
-                let start_y = translation_y + glyph.y_offset + self.size.0;
+                let start_y = translation_y + glyph.y_offset + run.line_y;
                 let offset = Vector::new(start_x, start_y);
 
                 if let Some(commands) = swash_cache.get_outline_commands(
@@ -176,11 +169,12 @@ impl Default for Text {
         Text {
             content: String::new(),
             position: Point::ORIGIN,
+            max_width: f32::INFINITY,
             color: Color::BLACK,
             size: Pixels(16.0),
             line_height: LineHeight::Relative(1.2),
             font: Font::default(),
-            align_x: alignment::Horizontal::Left,
+            align_x: Alignment::Default,
             align_y: alignment::Vertical::Top,
             shaping: Shaping::Basic,
         }

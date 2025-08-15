@@ -63,7 +63,7 @@ impl QRGenerator {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let title = text("QR Code Generator").size(70);
 
         let input =
@@ -88,18 +88,18 @@ impl QRGenerator {
             input,
             row![toggle_total_size, choose_theme]
                 .spacing(20)
-                .align_y(Center)
+                .align_y(Center),
+            self.total_size.map(|total_size| {
+                slider(Self::SIZE_RANGE, total_size, Message::TotalSizeChanged)
+            }),
+            self.qr_code.as_ref().map(|data| {
+                if let Some(total_size) = self.total_size {
+                    qr_code(data).total_size(total_size)
+                } else {
+                    qr_code(data).cell_size(10.0)
+                }
+            })
         ]
-        .push_maybe(self.total_size.map(|total_size| {
-            slider(Self::SIZE_RANGE, total_size, Message::TotalSizeChanged)
-        }))
-        .push_maybe(self.qr_code.as_ref().map(|data| {
-            if let Some(total_size) = self.total_size {
-                qr_code(data).total_size(total_size)
-            } else {
-                qr_code(data).cell_size(10.0)
-            }
-        }))
         .width(700)
         .spacing(20)
         .align_x(Center);

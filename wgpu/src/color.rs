@@ -22,11 +22,18 @@ pub fn convert(
     struct Ratio {
         u: f32,
         v: f32,
+        // Padding field for 16-byte alignment.
+        // See https://docs.rs/wgpu/latest/wgpu/struct.DownlevelFlags.html#associatedconstant.BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED
+        _padding: [f32; 2],
     }
 
     let ratio = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("iced-wgpu::triangle::msaa ratio"),
-        contents: bytemuck::bytes_of(&Ratio { u: 1.0, v: 1.0 }),
+        contents: bytemuck::bytes_of(&Ratio {
+            u: 1.0,
+            v: 1.0,
+            _padding: [0.0; 2],
+        }),
         usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
     });
 
@@ -177,6 +184,7 @@ pub fn convert(
         label: Some("iced_wgpu.offscreen.blit.render_pass"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
             view,
+            depth_slice: None,
             resolve_target: None,
             ops: wgpu::Operations {
                 load: wgpu::LoadOp::Load,

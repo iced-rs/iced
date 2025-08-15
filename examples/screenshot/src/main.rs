@@ -158,15 +158,15 @@ impl Example {
         .spacing(10)
         .align_y(Center);
 
-        let crop_controls =
-            column![crop_origin_controls, crop_dimension_controls]
-                .push_maybe(
-                    self.crop_error
-                        .as_ref()
-                        .map(|error| text!("Crop error! \n{error}")),
-                )
-                .spacing(10)
-                .align_x(Center);
+        let crop_controls = column![
+            crop_origin_controls,
+            crop_dimension_controls,
+            self.crop_error
+                .as_ref()
+                .map(|error| text!("Crop error! \n{error}")),
+        ]
+        .spacing(10)
+        .align_x(Center);
 
         let controls = {
             let save_result =
@@ -174,7 +174,7 @@ impl Example {
                     |png_result| match png_result {
                         Ok(path) => format!("Png saved as: {path:?}!"),
                         Err(PngError(error)) => {
-                            format!("Png could not be saved due to:\n{}", error)
+                            format!("Png could not be saved due to:\n{error}")
                         }
                     },
                 );
@@ -208,8 +208,8 @@ impl Example {
                 ]
                 .spacing(10)
                 .align_x(Center),
+                save_result.map(text)
             ]
-            .push_maybe(save_result.map(text))
             .spacing(40)
         };
 

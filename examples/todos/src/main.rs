@@ -182,7 +182,7 @@ impl Todos {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         match self {
             Todos::Loading => loading_message(),
             Todos::Loaded(State {
@@ -334,7 +334,7 @@ impl Task {
         }
     }
 
-    fn view(&self, i: usize) -> Element<TaskMessage> {
+    fn view(&self, i: usize) -> Element<'_, TaskMessage> {
         match &self.state {
             TaskState::Idle => {
                 let checkbox = checkbox(&self.description, self.completed)
@@ -381,7 +381,10 @@ impl Task {
     }
 }
 
-fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
+fn view_controls(
+    tasks: &[Task],
+    current_filter: Filter,
+) -> Element<'_, Message> {
     let tasks_left = tasks.iter().filter(|task| !task.completed).count();
 
     let filter_button = |label, filter, current_filter| {
@@ -577,10 +580,10 @@ mod tests {
     use super::*;
 
     use iced::{Settings, Theme};
-    use iced_test::selector::text;
+    use iced_test::selector::id;
     use iced_test::{Error, Simulator};
 
-    fn simulator(todos: &Todos) -> Simulator<Message> {
+    fn simulator(todos: &Todos) -> Simulator<'_, Message> {
         Simulator::with_settings(
             Settings {
                 fonts: vec![Todos::ICON_FONT.into()],
@@ -596,7 +599,7 @@ mod tests {
         let _command = todos.update(Message::Loaded(Err(LoadError::File)));
 
         let mut ui = simulator(&todos);
-        let _input = ui.click("new-task")?;
+        let _input = ui.click(id("new-task"))?;
 
         let _ = ui.typewrite("Create the universe");
         let _ = ui.tap_key(keyboard::key::Named::Enter);
@@ -606,7 +609,7 @@ mod tests {
         }
 
         let mut ui = simulator(&todos);
-        let _ = ui.find(text("Create the universe"))?;
+        let _ = ui.find("Create the universe")?;
 
         let snapshot = ui.snapshot(&Theme::Dark)?;
         assert!(

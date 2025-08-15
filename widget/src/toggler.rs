@@ -279,7 +279,11 @@ where
 
         layout::next_to_each_other(
             &limits,
-            self.spacing,
+            if self.label.is_some() {
+                self.spacing
+            } else {
+                0.0
+            },
             |_| layout::Node::new(Size::new(2.0 * self.size, self.size)),
             |limits| {
                 if let Some(label) = self.label.as_deref() {
@@ -291,16 +295,18 @@ where
                         state,
                         renderer,
                         limits,
-                        self.width,
-                        Length::Shrink,
                         label,
-                        self.text_line_height,
-                        self.text_size,
-                        self.font,
-                        self.text_alignment,
-                        alignment::Vertical::Top,
-                        self.text_shaping,
-                        self.text_wrapping,
+                        widget::text::Format {
+                            width: self.width,
+                            height: Length::Shrink,
+                            line_height: self.text_line_height,
+                            size: self.text_size,
+                            font: self.font,
+                            align_x: self.text_alignment,
+                            align_y: alignment::Vertical::Top,
+                            shaping: self.text_shaping,
+                            wrapping: self.text_wrapping,
+                        },
                     )
                 } else {
                     layout::Node::new(Size::ZERO)
@@ -388,9 +394,6 @@ where
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        /// Makes sure that the border radius of the toggler looks good at every size.
-        const BORDER_RADIUS_RATIO: f32 = 32.0 / 13.0;
-
         /// The space ratio between the background Quad and the Toggler bounds, and
         /// between the background Quad and foreground Quad.
         const SPACE_RATIO: f32 = 0.05;
@@ -406,8 +409,8 @@ where
             crate::text::draw(
                 renderer,
                 style,
-                label_layout,
-                state.0.raw(),
+                label_layout.bounds(),
+                state.raw(),
                 crate::text::Style::default(),
                 viewport,
             );
@@ -417,8 +420,8 @@ where
         let style = theme
             .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
-        let border_radius = bounds.height / BORDER_RADIUS_RATIO;
-        let space = SPACE_RATIO * bounds.height;
+        let border_radius = bounds.height / 2.0;
+        let space = (SPACE_RATIO * bounds.height).round();
 
         let toggler_background_bounds = Rectangle {
             x: bounds.x + space,
@@ -551,7 +554,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let background = match status {
         Status::Active { is_toggled } | Status::Hovered { is_toggled } => {
             if is_toggled {
-                palette.primary.strong.color
+                palette.primary.base.color
             } else {
                 palette.background.strong.color
             }
@@ -562,7 +565,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let foreground = match status {
         Status::Active { is_toggled } => {
             if is_toggled {
-                palette.primary.strong.text
+                palette.primary.base.text
             } else {
                 palette.background.base.color
             }
@@ -571,13 +574,13 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             if is_toggled {
                 Color {
                     a: 0.5,
-                    ..palette.primary.strong.text
+                    ..palette.primary.base.text
                 }
             } else {
                 palette.background.weak.color
             }
         }
-        Status::Disabled => palette.background.base.color,
+        Status::Disabled => palette.background.weakest.color,
     };
 
     Style {

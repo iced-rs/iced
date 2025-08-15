@@ -287,16 +287,18 @@ where
                     state,
                     renderer,
                     limits,
-                    self.width,
-                    Length::Shrink,
                     &self.label,
-                    self.text_line_height,
-                    self.text_size,
-                    self.font,
-                    text::Alignment::Default,
-                    alignment::Vertical::Top,
-                    self.text_shaping,
-                    self.text_wrapping,
+                    widget::text::Format {
+                        width: self.width,
+                        height: Length::Shrink,
+                        line_height: self.text_line_height,
+                        size: self.text_size,
+                        font: self.font,
+                        align_x: text::Alignment::Default,
+                        align_y: alignment::Vertical::Top,
+                        shaping: self.text_shaping,
+                        wrapping: self.text_wrapping,
+                    },
                 )
             },
         )
@@ -318,11 +320,9 @@ where
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let mouse_over = cursor.is_over(layout.bounds());
 
-                if mouse_over {
-                    if let Some(on_toggle) = &self.on_toggle {
-                        shell.publish((on_toggle)(!self.is_checked));
-                        shell.capture_event();
-                    }
+                if mouse_over && let Some(on_toggle) = &self.on_toggle {
+                    shell.publish((on_toggle)(!self.is_checked));
+                    shell.capture_event();
                 }
             }
             _ => {}
@@ -436,8 +436,8 @@ where
             crate::text::draw(
                 renderer,
                 defaults,
-                label_layout,
-                state.0.raw(),
+                label_layout.bounds(),
+                state.raw(),
                 crate::text::Style {
                     color: style.text_color,
                 },
@@ -554,23 +554,23 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.primary.strong.text,
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.base,
+            palette.primary.base.text,
             palette.primary.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.primary.strong.text,
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.weak,
+            palette.primary.base.text,
             palette.primary.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
-            palette.primary.strong.text,
             palette.background.weak.color,
-            palette.background.weak,
+            palette.background.weaker,
+            palette.primary.base.text,
             palette.background.strong,
             is_checked,
         ),
@@ -583,23 +583,23 @@ pub fn secondary(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.background.base.text,
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.base,
+            palette.background.base.text,
             palette.background.strong,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.background.base.text,
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.weak,
+            palette.background.base.text,
             palette.background.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
-            palette.background.strong.color,
             palette.background.weak.color,
             palette.background.weak,
+            palette.background.base.text,
             palette.background.weak,
             is_checked,
         ),
@@ -612,23 +612,23 @@ pub fn success(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.success.base.text,
             palette.background.weak.color,
             palette.background.base,
+            palette.success.base.text,
             palette.success.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.success.base.text,
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.weak,
+            palette.success.base.text,
             palette.success.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
-            palette.success.base.text,
             palette.background.weak.color,
             palette.background.weak,
+            palette.success.base.text,
             palette.success.weak,
             is_checked,
         ),
@@ -641,23 +641,23 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active { is_checked } => styled(
-            palette.danger.base.text,
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.base,
+            palette.danger.base.text,
             palette.danger.base,
             is_checked,
         ),
         Status::Hovered { is_checked } => styled(
-            palette.danger.base.text,
-            palette.background.strongest.color,
+            palette.background.strong.color,
             palette.background.weak,
+            palette.danger.base.text,
             palette.danger.strong,
             is_checked,
         ),
         Status::Disabled { is_checked } => styled(
-            palette.danger.base.text,
             palette.background.weak.color,
             palette.background.weak,
+            palette.danger.base.text,
             palette.danger.weak,
             is_checked,
         ),
@@ -665,27 +665,25 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
 }
 
 fn styled(
-    icon_color: Color,
     border_color: Color,
     base: palette::Pair,
+    icon_color: Color,
     accent: palette::Pair,
     is_checked: bool,
 ) -> Style {
+    let (background, border) = if is_checked {
+        (accent, accent.color)
+    } else {
+        (base, border_color)
+    };
+
     Style {
-        background: Background::Color(if is_checked {
-            accent.color
-        } else {
-            base.color
-        }),
+        background: Background::Color(background.color),
         icon_color,
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
-            color: if is_checked {
-                accent.color
-            } else {
-                border_color
-            },
+            color: border,
         },
         text_color: None,
     }

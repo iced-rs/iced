@@ -17,6 +17,7 @@ mod vector;
 #[cfg(feature = "geometry")]
 pub mod geometry;
 
+use iced_debug as debug;
 pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 
@@ -112,62 +113,84 @@ impl Renderer {
 
                 engine::adjust_clip_mask(clip_mask, clip_bounds);
 
-                for (quad, background) in &layer.quads {
-                    self.engine.draw_quad(
-                        quad,
-                        background,
-                        Transformation::scale(scale_factor),
-                        pixels,
-                        clip_mask,
-                        clip_bounds,
-                    );
+                if !layer.quads.is_empty() {
+                    let render_span = debug::render(debug::Primitive::Quad);
+                    for (quad, background) in &layer.quads {
+                        self.engine.draw_quad(
+                            quad,
+                            background,
+                            Transformation::scale(scale_factor),
+                            pixels,
+                            clip_mask,
+                            clip_bounds,
+                        );
+                    }
+                    render_span.finish();
                 }
 
-                for group in &layer.primitives {
-                    let Some(new_clip_bounds) = (group.clip_bounds()
-                        * scale_factor)
-                        .intersection(&clip_bounds)
-                    else {
-                        continue;
-                    };
+                if !layer.primitives.is_empty() {
+                    let render_span = debug::render(debug::Primitive::Triangle);
 
-                    engine::adjust_clip_mask(clip_mask, new_clip_bounds);
+                    for group in &layer.primitives {
+                        let Some(new_clip_bounds) = (group.clip_bounds()
+                            * scale_factor)
+                            .intersection(&clip_bounds)
+                        else {
+                            continue;
+                        };
 
-                    for primitive in group.as_slice() {
-                        self.engine.draw_primitive(
-                            primitive,
-                            group.transformation()
-                                * Transformation::scale(scale_factor),
+                        engine::adjust_clip_mask(clip_mask, new_clip_bounds);
+
+                        for primitive in group.as_slice() {
+                            self.engine.draw_primitive(
+                                primitive,
+                                group.transformation()
+                                    * Transformation::scale(scale_factor),
+                                pixels,
+                                clip_mask,
+                                clip_bounds,
+                            );
+                        }
+
+                        engine::adjust_clip_mask(clip_mask, clip_bounds);
+                    }
+
+                    render_span.finish();
+                }
+
+                if !layer.images.is_empty() {
+                    let render_span = debug::render(debug::Primitive::Image);
+
+                    for image in &layer.images {
+                        self.engine.draw_image(
+                            image,
+                            Transformation::scale(scale_factor),
                             pixels,
                             clip_mask,
                             clip_bounds,
                         );
                     }
 
-                    engine::adjust_clip_mask(clip_mask, clip_bounds);
+                    render_span.finish();
                 }
 
-                for image in &layer.images {
-                    self.engine.draw_image(
-                        image,
-                        Transformation::scale(scale_factor),
-                        pixels,
-                        clip_mask,
-                        clip_bounds,
-                    );
-                }
+                if !layer.text.is_empty() {
+                    let render_span = debug::render(debug::Primitive::Image);
 
-                for group in &layer.text {
-                    for text in group.as_slice() {
-                        self.engine.draw_text(
-                            text,
-                            group.transformation()
-                                * Transformation::scale(scale_factor),
-                            pixels,
-                            clip_mask,
-                            clip_bounds,
-                        );
+                    for group in &layer.text {
+                        for text in group.as_slice() {
+                            self.engine.draw_text(
+                                text,
+                                group.transformation()
+                                    * Transformation::scale(scale_factor),
+                                pixels,
+                                clip_mask,
+                                clip_bounds,
+                            );
+                        }
                     }
+
+                    render_span.finish();
                 }
             }
         }
@@ -212,6 +235,7 @@ impl core::text::Renderer for Renderer {
     type Paragraph = Paragraph;
     type Editor = Editor;
 
+    const MONOSPACE_FONT: Font = Font::MONOSPACE;
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
     const ARROW_DOWN_ICON: char = '\u{e800}';

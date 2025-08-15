@@ -167,6 +167,7 @@ impl Pipeline {
             label: Some("iced_wgpu.triangle.render_pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &targets.attachment,
+                depth_slice: None,
                 resolve_target: Some(&targets.resolve),
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
@@ -254,6 +255,9 @@ impl Targets {
 struct Ratio {
     u: f32,
     v: f32,
+    // Padding field for 16-byte alignment.
+    // See https://docs.rs/wgpu/latest/wgpu/struct.DownlevelFlags.html#associatedconstant.BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED
+    _padding: [f32; 2],
 }
 
 pub struct State {
@@ -306,6 +310,7 @@ impl State {
         let ratio = Ratio {
             u: region_size.width as f32 / targets.size.width as f32,
             v: region_size.height as f32 / targets.size.height as f32,
+            _padding: [0.0; 2],
         };
 
         if Some(ratio) != self.last_ratio {
@@ -336,6 +341,7 @@ impl State {
                 label: Some("iced_wgpu::triangle::msaa render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: target,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,

@@ -34,7 +34,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         container(hover(
             self.bezier.view(&self.curves).map(Message::AddCurve),
             if self.curves.is_empty() {

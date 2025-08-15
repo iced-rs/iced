@@ -106,6 +106,10 @@ pub enum Edit {
     Paste(Arc<String>),
     /// Break the current line.
     Enter,
+    /// Indent the current line.
+    Indent,
+    /// Unindent the current line.
+    Unindent,
     /// Delete the previous character.
     Backspace,
     /// Delete the next character.

@@ -55,7 +55,7 @@ impl Events {
         event::listen().map(Message::EventOccurred)
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let events = Column::with_children(
             self.last
                 .iter()

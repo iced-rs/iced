@@ -10,9 +10,12 @@ categories.workspace = true
 keywords.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
+[features]
+time-travel = []
+
 [dependencies]
 iced_graphics.workspace = true
 iced_runtime.workspace = true
-
-[lints]
-workspace = true

@@ -83,7 +83,7 @@ impl Stopwatch {
         Subscription::batch(vec![tick, keyboard::on_key_press(handle_hotkey)])
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         const MINUTE: u64 = 60;
         const HOUR: u64 = 60 * MINUTE;
 

@@ -47,6 +47,7 @@ mod image;
 
 use buffer::Buffer;
 
+use iced_debug as debug;
 pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 
@@ -288,7 +289,7 @@ impl Renderer {
         let _ = self
             .engine
             .device
-            .poll(wgpu::Maintain::WaitForSubmissionIndex(index));
+            .poll(wgpu::PollType::WaitForSubmissionIndex(index));
 
         let mapped_buffer = slice.get_mapped_range();
 
@@ -325,6 +326,8 @@ impl Renderer {
             }
 
             if !layer.quads.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Quad);
+
                 self.quad.prepare(
                     &self.engine.quad_pipeline,
                     &self.engine.device,
@@ -334,9 +337,13 @@ impl Renderer {
                     viewport.projection(),
                     scale_factor,
                 );
+
+                prepare_span.finish();
             }
 
             if !layer.triangles.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Triangle);
+
                 self.triangle.prepare(
                     &self.engine.triangle_pipeline,
                     &self.engine.device,
@@ -346,9 +353,13 @@ impl Renderer {
                     Transformation::scale(scale_factor),
                     viewport.physical_size(),
                 );
+
+                prepare_span.finish();
             }
 
             if !layer.primitives.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Shader);
+
                 let mut primitive_storage = self
                     .engine
                     .primitive_storage
@@ -365,10 +376,14 @@ impl Renderer {
                         viewport,
                     );
                 }
+
+                prepare_span.finish();
             }
 
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Image);
+
                 self.image.prepare(
                     &self.engine.image_pipeline,
                     &self.engine.device,
@@ -379,9 +394,13 @@ impl Renderer {
                     viewport.projection(),
                     scale_factor,
                 );
+
+                prepare_span.finish();
             }
 
             if !layer.text.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Text);
+
                 self.text.prepare(
                     &self.engine.text_pipeline,
                     &self.engine.device,
@@ -392,6 +411,8 @@ impl Renderer {
                     layer.bounds,
                     Transformation::scale(scale_factor),
                 );
+
+                prepare_span.finish();
             }
         }
     }
@@ -410,6 +431,7 @@ impl Renderer {
                 label: Some("iced_wgpu render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: frame,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: match clear_color {
@@ -464,6 +486,7 @@ impl Renderer {
             };
 
             if !layer.quads.is_empty() {
+                let render_span = debug::render(debug::Primitive::Quad);
                 self.quad.render(
                     &self.engine.quad_pipeline,
                     quad_layer,
@@ -471,6 +494,7 @@ impl Renderer {
                     &layer.quads,
                     &mut render_pass,
                 );
+                render_span.finish();
 
                 quad_layer += 1;
             }
@@ -478,6 +502,7 @@ impl Renderer {
             if !layer.triangles.is_empty() {
                 let _ = ManuallyDrop::into_inner(render_pass);
 
+                let render_span = debug::render(debug::Primitive::Triangle);
                 mesh_layer += self.triangle.render(
                     &self.engine.triangle_pipeline,
                     encoder,
@@ -487,6 +512,7 @@ impl Renderer {
                     physical_bounds,
                     scale,
                 );
+                render_span.finish();
 
                 render_pass = ManuallyDrop::new(encoder.begin_render_pass(
                     &wgpu::RenderPassDescriptor {
@@ -494,6 +520,7 @@ impl Renderer {
                         color_attachments: &[Some(
                             wgpu::RenderPassColorAttachment {
                                 view: frame,
+                                depth_slice: None,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
                                     load: wgpu::LoadOp::Load,
@@ -509,6 +536,7 @@ impl Renderer {
             }
 
             if !layer.primitives.is_empty() {
+                let render_span = debug::render(debug::Primitive::Shader);
                 let _ = ManuallyDrop::into_inner(render_pass);
 
                 let primitive_storage = self
@@ -531,12 +559,15 @@ impl Renderer {
                     }
                 }
 
+                render_span.finish();
+
                 render_pass = ManuallyDrop::new(encoder.begin_render_pass(
                     &wgpu::RenderPassDescriptor {
                         label: Some("iced_wgpu render pass"),
                         color_attachments: &[Some(
                             wgpu::RenderPassColorAttachment {
                                 view: frame,
+                                depth_slice: None,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
                                     load: wgpu::LoadOp::Load,
@@ -553,6 +584,7 @@ impl Renderer {
 
             #[cfg(any(feature = "svg", feature = "image"))]
             if !layer.images.is_empty() {
+                let render_span = debug::render(debug::Primitive::Image);
                 self.image.render(
                     &self.engine.image_pipeline,
                     &image_cache,
@@ -560,11 +592,13 @@ impl Renderer {
                     scissor_rect,
                     &mut render_pass,
                 );
+                render_span.finish();
 
                 image_layer += 1;
             }
 
             if !layer.text.is_empty() {
+                let render_span = debug::render(debug::Primitive::Text);
                 text_layer += self.text.render(
                     &self.engine.text_pipeline,
                     &self.text_viewport,
@@ -573,10 +607,23 @@ impl Renderer {
                     scissor_rect,
                     &mut render_pass,
                 );
+                render_span.finish();
             }
         }
 
         let _ = ManuallyDrop::into_inner(render_pass);
+
+        debug::layers_rendered(|| {
+            self.layers
+                .iter()
+                .filter(|layer| {
+                    !layer.is_empty()
+                        && physical_bounds
+                            .intersection(&(layer.bounds * scale_factor))
+                            .is_some_and(|viewport| viewport.snap().is_some())
+                })
+                .count()
+        });
     }
 }
 
@@ -616,6 +663,7 @@ impl core::text::Renderer for Renderer {
     type Paragraph = Paragraph;
     type Editor = Editor;
 
+    const MONOSPACE_FONT: Font = Font::MONOSPACE;
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
     const ARROW_DOWN_ICON: char = '\u{e800}';
@@ -791,21 +839,20 @@ impl renderer::Headless for Renderer {
                 force_fallback_adapter: false,
                 compatible_surface: None,
             })
-            .await?;
+            .await
+            .ok()?;
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: Some("iced_wgpu [headless]"),
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits {
-                        max_bind_groups: 2,
-                        ..wgpu::Limits::default()
-                    },
-                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("iced_wgpu [headless]"),
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits {
+                    max_bind_groups: 2,
+                    ..wgpu::Limits::default()
                 },
-                None,
-            )
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                trace: wgpu::Trace::Off,
+            })
             .await
             .ok()?;
 

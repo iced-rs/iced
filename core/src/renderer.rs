@@ -75,6 +75,9 @@ pub struct Quad {
 
     /// The [`Shadow`] of the [`Quad`].
     pub shadow: Shadow,
+
+    /// Whether the [`Quad`] should be snapped to the pixel grid.
+    pub snap: bool,
 }
 
 impl Default for Quad {
@@ -83,6 +86,7 @@ impl Default for Quad {
             bounds: Rectangle::with_size(Size::ZERO),
             border: Border::default(),
             shadow: Shadow::default(),
+            snap: cfg!(feature = "crisp"),
         }
     }
 }

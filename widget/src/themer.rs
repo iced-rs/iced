@@ -6,8 +6,8 @@ use crate::core::renderer;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Clipboard, Color, Element, Event, Layout, Length, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 use std::marker::PhantomData;
@@ -178,8 +178,9 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         struct Overlay<'a, Message, Theme, NewTheme, Renderer> {
@@ -198,7 +199,7 @@ where
                 renderer: &Renderer,
                 bounds: Size,
             ) -> layout::Node {
-                self.content.layout(renderer, bounds)
+                self.content.as_overlay_mut().layout(renderer, bounds)
             }
 
             fn draw(
@@ -209,7 +210,7 @@ where
                 layout: Layout<'_>,
                 cursor: mouse::Cursor,
             ) {
-                self.content.draw(
+                self.content.as_overlay().draw(
                     renderer,
                     &(self.to_theme)(theme),
                     style,
@@ -228,6 +229,7 @@ where
                 shell: &mut Shell<'_, Message>,
             ) {
                 self.content
+                    .as_overlay_mut()
                     .update(event, layout, cursor, renderer, clipboard, shell);
             }
 
@@ -237,36 +239,30 @@ where
                 renderer: &Renderer,
                 operation: &mut dyn Operation,
             ) {
-                self.content.operate(layout, renderer, operation);
+                self.content
+                    .as_overlay_mut()
+                    .operate(layout, renderer, operation);
             }
 
             fn mouse_interaction(
                 &self,
                 layout: Layout<'_>,
                 cursor: mouse::Cursor,
-                viewport: &Rectangle,
                 renderer: &Renderer,
             ) -> mouse::Interaction {
                 self.content
-                    .mouse_interaction(layout, cursor, viewport, renderer)
-            }
-
-            fn is_over(
-                &self,
-                layout: Layout<'_>,
-                renderer: &Renderer,
-                cursor_position: Point,
-            ) -> bool {
-                self.content.is_over(layout, renderer, cursor_position)
+                    .as_overlay()
+                    .mouse_interaction(layout, cursor, renderer)
             }
 
             fn overlay<'b>(
                 &'b mut self,
-                layout: Layout<'_>,
+                layout: Layout<'b>,
                 renderer: &Renderer,
             ) -> Option<overlay::Element<'b, Message, Theme, Renderer>>
             {
                 self.content
+                    .as_overlay_mut()
                     .overlay(layout, renderer)
                     .map(|content| Overlay {
                         to_theme: &self.to_theme,
@@ -278,7 +274,7 @@ where
 
         self.content
             .as_widget_mut()
-            .overlay(tree, layout, renderer, translation)
+            .overlay(tree, layout, renderer, viewport, translation)
             .map(|content| Overlay {
                 to_theme: &self.to_theme,
                 content,

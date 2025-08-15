@@ -111,7 +111,7 @@ impl GameOfLife {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let version = self.version;
         let selected_speed = self.next_speed.unwrap_or(self.speed);
         let controls = view_controls(
@@ -187,6 +187,7 @@ mod grid {
     use iced::widget::canvas::{
         Cache, Canvas, Event, Frame, Geometry, Path, Text,
     };
+    use iced::widget::text;
     use iced::{
         Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
@@ -319,7 +320,7 @@ mod grid {
             }
         }
 
-        pub fn view(&self) -> Element<Message> {
+        pub fn view(&self) -> Element<'_, Message> {
             Canvas::new(self).width(Fill).height(Fill).into()
         }
 
@@ -575,7 +576,7 @@ mod grid {
                     color: Color::WHITE,
                     size: 14.0.into(),
                     position: Point::new(frame.width(), frame.height()),
-                    align_x: alignment::Horizontal::Right,
+                    align_x: text::Alignment::Right,
                     align_y: alignment::Vertical::Bottom,
                     ..Text::default()
                 };

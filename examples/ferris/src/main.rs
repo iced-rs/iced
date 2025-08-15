@@ -91,7 +91,7 @@ impl Image {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let i_am_ferris = column![
             "Hello!",
             Element::from(

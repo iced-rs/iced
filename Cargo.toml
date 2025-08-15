@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "web-colors", "auto-detect-theme", "thread-pool"]
+default = ["wgpu", "tiny-skia", "crisp", "web-colors", "auto-detect-theme", "thread-pool"]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer backend
@@ -41,8 +41,12 @@ qr_code = ["iced_widget/qr_code"]
 markdown = ["iced_widget/markdown"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
-# Enables a debug view in native platforms (press F12)
+# Enables debug metrics in native platforms (press F12)
 debug = ["iced_winit/debug", "iced_devtools"]
+# Enables time-travel debugging (very experimental!)
+time-travel = ["debug", "iced_devtools/time-travel"]
+# Enables hot reloading (very experimental!)
+hot = ["debug", "iced_debug/hot"]
 # Enables the `thread-pool` futures executor as the `executor::Default` on native platforms
 thread-pool = ["iced_futures/thread-pool"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -53,6 +57,8 @@ smol = ["iced_futures/smol"]
 system = ["iced_winit/system"]
 # Enables broken "sRGB linear" blending to reproduce color management of the Web
 web-colors = ["iced_renderer/web-colors"]
+# Enables pixel snapping for crisp edges by default (can cause jitter!)
+crisp = ["iced_core/crisp", "iced_widget/crisp"]
 # Enables the WebGL backend
 webgl = ["iced_renderer/webgl"]
 # Enables syntax highligthing
@@ -139,7 +145,7 @@ repository = "https://github.com/iced-rs/iced"
 homepage = "https://iced.rs"
 categories = ["gui"]
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-rust-version = "1.85"
+rust-version = "1.88"
 
 [workspace.dependencies]
 iced = { version = "0.14.0-dev", path = "." }
@@ -163,11 +169,12 @@ bincode = "1.3"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
-cosmic-text = "0.13"
+cargo-hot = { package = "cargo-hot-protocol", git = "https://github.com/hecrj/cargo-hot.git", rev = "b8dc518b8640928178a501257e353b73bc06cf47" }
+cosmic-text = "0.14"
 dark-light = "2.0"
 futures = { version = "0.3", default-features = false }
 glam = "0.25"
-cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "be2defe4a13fd7c97c6f4c81e8e085463eb578dc" }
+cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "453cedec0d2ec563bd7fa87e84a2319bcebb1ba3" }
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.25", default-features = false }
@@ -204,7 +211,7 @@ wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.1"
 web-sys = "0.3.69"
 web-time = "1.1"
-wgpu = "24.0"
+wgpu = "26.0"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b" }
 
@@ -218,6 +225,8 @@ unused_results = "deny"
 [workspace.lints.clippy]
 type-complexity = "allow"
 map-entry = "allow"
+large-enum-variant = "allow"
+result_large_err = "allow"
 semicolon_if_nothing_returned = "deny"
 trivially-copy-pass-by-ref = "deny"
 default_trait_access = "deny"

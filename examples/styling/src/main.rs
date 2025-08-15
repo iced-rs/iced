@@ -1,10 +1,10 @@
 use iced::keyboard;
 use iced::widget::{
-    button, center, checkbox, column, container, horizontal_rule, pick_list,
-    progress_bar, row, scrollable, slider, text, text_input, toggler,
-    vertical_rule, vertical_space,
+    button, center_x, center_y, checkbox, column, container, horizontal_rule,
+    pick_list, progress_bar, row, scrollable, slider, text, text_input,
+    toggler, vertical_rule, vertical_space,
 };
-use iced::{Center, Element, Fill, Subscription, Theme};
+use iced::{Center, Element, Fill, Shrink, Subscription, Theme};
 
 pub fn main() -> iced::Result {
     iced::application(Styling::default, Styling::update, Styling::view)
@@ -65,7 +65,7 @@ impl Styling {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let choose_theme = column![
             text("Theme:"),
             pick_list(Theme::ALL, Some(&self.theme), Message::ThemeChanged)
@@ -78,37 +78,63 @@ impl Styling {
             .padding(10)
             .size(20);
 
-        let styled_button = |label| {
-            button(text(label).width(Fill).center())
-                .padding(10)
-                .on_press(Message::ButtonPressed)
-        };
+        let buttons = {
+            let styles = [
+                ("Primary", button::primary as fn(&Theme, _) -> _),
+                ("Secondary", button::secondary),
+                ("Success", button::success),
+                ("Warning", button::warning),
+                ("Danger", button::danger),
+            ];
 
-        let primary = styled_button("Primary");
-        let success = styled_button("Success").style(button::success);
-        let warning = styled_button("Warning").style(button::warning);
-        let danger = styled_button("Danger").style(button::danger);
+            let styled_button =
+                |label| button(text(label).width(Fill).center()).padding(10);
+
+            column![
+                row(styles.into_iter().map(|(name, style)| styled_button(
+                    name
+                )
+                .on_press(Message::ButtonPressed)
+                .style(style)
+                .into()))
+                .spacing(10)
+                .align_y(Center),
+                row(styles.into_iter().map(|(name, style)| styled_button(
+                    name
+                )
+                .style(style)
+                .into()))
+                .spacing(10)
+                .align_y(Center),
+            ]
+            .spacing(10)
+        };
 
         let slider =
             || slider(0.0..=100.0, self.slider_value, Message::SliderChanged);
 
         let progress_bar = || progress_bar(0.0..=100.0, self.slider_value);
 
-        let scrollable = scrollable(column![
+        let scroll_me = scrollable(column![
             "Scroll me!",
             vertical_space().height(800),
             "You did it!"
         ])
         .width(Fill)
-        .height(100);
+        .height(Fill);
 
-        let checkbox = checkbox("Check me!", self.checkbox_value)
+        let check = checkbox("Check me!", self.checkbox_value)
             .on_toggle(Message::CheckboxToggled);
 
-        let toggler = toggler(self.toggler_value)
+        let check_disabled = checkbox("Disabled", self.checkbox_value);
+
+        let toggle = toggler(self.toggler_value)
             .label("Toggle me!")
             .on_toggle(Message::TogglerToggled)
             .spacing(10);
+
+        let disabled_toggle =
+            toggler(self.toggler_value).label("Disabled").spacing(10);
 
         let card = {
             container(
@@ -126,20 +152,19 @@ impl Styling {
 
         let content = column![
             choose_theme,
-            horizontal_rule(38),
+            horizontal_rule(1),
             text_input,
-            row![primary, success, warning, danger]
-                .spacing(10)
-                .align_y(Center),
+            buttons,
             slider(),
             progress_bar(),
             row![
-                scrollable,
-                vertical_rule(38),
-                column![checkbox, toggler].spacing(20)
+                scroll_me,
+                vertical_rule(1),
+                column![check, check_disabled, toggle, disabled_toggle]
+                    .spacing(10)
             ]
             .spacing(10)
-            .height(100)
+            .height(Shrink)
             .align_y(Center),
             card
         ]
@@ -147,7 +172,9 @@ impl Styling {
         .padding(20)
         .max_width(600);
 
-        center(content).into()
+        center_y(scrollable(center_x(content)).spacing(10))
+            .padding(10)
+            .into()
     }
 
     fn subscription(&self) -> Subscription<Message> {

@@ -364,8 +364,9 @@ where
     pub(crate) fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
@@ -380,6 +381,7 @@ where
                 title_bar_state,
                 title_bar_layout,
                 renderer,
+                viewport,
                 translation,
             ) {
                 Some(overlay) => Some(overlay),
@@ -387,6 +389,7 @@ where
                     body_state,
                     children.next()?,
                     renderer,
+                    viewport,
                     translation,
                 ),
             }
@@ -395,6 +398,7 @@ where
                 &mut tree.children[0],
                 layout,
                 renderer,
+                viewport,
                 translation,
             )
         }

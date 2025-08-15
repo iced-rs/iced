@@ -246,6 +246,15 @@ where
         }
     }
 
+    pub fn update_mouse(&mut self, interaction: mouse::Interaction) {
+        if interaction != self.mouse_interaction {
+            self.raw
+                .set_cursor(conversion::mouse_interaction(interaction));
+
+            self.mouse_interaction = interaction;
+        }
+    }
+
     pub fn draw_preedit(&mut self) {
         if let Some(preedit) = &self.preedit {
             preedit.draw(

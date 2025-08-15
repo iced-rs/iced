@@ -3,7 +3,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Event, Layout, Overlay, Point, Rectangle, Shell, Size};
+use crate::{Clipboard, Event, Layout, Overlay, Shell, Size};
 
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.
@@ -25,18 +25,18 @@ where
 
     /// Creates a [`Group`] with the given elements.
     pub fn with_children(
-        children: Vec<overlay::Element<'a, Message, Theme, Renderer>>,
+        mut children: Vec<overlay::Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
-        Group { children }
-    }
+        use std::cmp;
 
-    /// Adds an [`overlay::Element`] to the [`Group`].
-    pub fn push(
-        mut self,
-        child: impl Into<overlay::Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
-        self.children.push(child.into());
-        self
+        children.sort_unstable_by(|a, b| {
+            a.as_overlay()
+                .index()
+                .partial_cmp(&b.as_overlay().index())
+                .unwrap_or(cmp::Ordering::Equal)
+        });
+
+        Group { children }
     }
 
     /// Turns the [`Group`] into an overlay [`overlay::Element`].
@@ -67,7 +67,7 @@ where
             bounds,
             self.children
                 .iter_mut()
-                .map(|child| child.layout(renderer, bounds))
+                .map(|child| child.as_overlay_mut().layout(renderer, bounds))
                 .collect(),
         )
     }
@@ -82,7 +82,9 @@ where
         shell: &mut Shell<'_, Message>,
     ) {
         for (child, layout) in self.children.iter_mut().zip(layout.children()) {
-            child.update(event, layout, cursor, renderer, clipboard, shell);
+            child
+                .as_overlay_mut()
+                .update(event, layout, cursor, renderer, clipboard, shell);
         }
     }
 
@@ -95,7 +97,9 @@ where
         cursor: mouse::Cursor,
     ) {
         for (child, layout) in self.children.iter().zip(layout.children()) {
-            child.draw(renderer, theme, style, layout, cursor);
+            child
+                .as_overlay()
+                .draw(renderer, theme, style, layout, cursor);
         }
     }
 
@@ -103,14 +107,15 @@ where
         &self,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.children
             .iter()
             .zip(layout.children())
             .map(|(child, layout)| {
-                child.mouse_interaction(layout, cursor, viewport, renderer)
+                child
+                    .as_overlay()
+                    .mouse_interaction(layout, cursor, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -125,39 +130,34 @@ where
         operation.container(None, layout.bounds(), &mut |operation| {
             self.children.iter_mut().zip(layout.children()).for_each(
                 |(child, layout)| {
-                    child.operate(layout, renderer, operation);
+                    child.as_overlay_mut().operate(layout, renderer, operation);
                 },
             );
         });
     }
 
-    fn is_over(
-        &self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        cursor_position: Point,
-    ) -> bool {
-        self.children
-            .iter()
-            .zip(layout.children())
-            .any(|(child, layout)| {
-                child.is_over(layout, renderer, cursor_position)
-            })
-    }
-
     fn overlay<'a>(
         &'a mut self,
-        layout: Layout<'_>,
+        layout: Layout<'a>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         let children = self
             .children
             .iter_mut()
             .zip(layout.children())
-            .filter_map(|(child, layout)| child.overlay(layout, renderer))
+            .filter_map(|(child, layout)| {
+                child.as_overlay_mut().overlay(layout, renderer)
+            })
             .collect::<Vec<_>>();
 
         (!children.is_empty()).then(|| Group::with_children(children).overlay())
+    }
+
+    fn index(&self) -> f32 {
+        self.children
+            .first()
+            .map(|child| child.as_overlay().index())
+            .unwrap_or(1.0)
     }
 }
 

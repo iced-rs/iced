@@ -17,7 +17,6 @@ pub use sipper::{Never, Sender, Sipper, Straw, sipper, stream};
 /// A set of concurrent actions to be performed by the iced runtime.
 ///
 /// A [`Task`] _may_ produce a bunch of values of type `T`.
-#[allow(missing_debug_implementations)]
 #[must_use = "`Task` must be returned to the runtime to take effect; normally in your `update` or `new` functions."]
 pub struct Task<T> {
     stream: Option<BoxStream<Action<T>>>,
@@ -89,11 +88,16 @@ impl<T> Task<T> {
     where
         T: 'static,
     {
-        let select_all = stream::select_all(
-            tasks.into_iter().filter_map(|task| task.stream),
-        );
+        let mut select_all = stream::SelectAll::new();
+        let mut units = 0;
 
-        let units = select_all.len();
+        for task in tasks.into_iter() {
+            if let Some(stream) = task.stream {
+                select_all.push(stream);
+            }
+
+            units += task.units;
+        }
 
         Self {
             stream: Some(boxed_stream(select_all)),
@@ -270,6 +274,14 @@ impl<T> Task<T> {
     /// Returns the amount of work "units" of the [`Task`].
     pub fn units(&self) -> usize {
         self.units
+    }
+}
+
+impl<T> std::fmt::Debug for Task<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(&format!("Task<{}>", std::any::type_name::<T>()))
+            .field("units", &self.units)
+            .finish()
     }
 }
 

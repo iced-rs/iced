@@ -127,10 +127,12 @@ where
     pub fn overlay(
         self,
         position: Point,
+        viewport: Rectangle,
         target_height: f32,
     ) -> overlay::Element<'a, Message, Theme, Renderer> {
         overlay::Element::new(Box::new(Overlay::new(
             position,
+            viewport,
             self,
             target_height,
         )))
@@ -164,6 +166,7 @@ where
     Renderer: crate::core::Renderer,
 {
     position: Point,
+    viewport: Rectangle,
     state: &'a mut Tree,
     list: Scrollable<'a, Message, Theme, Renderer>,
     width: f32,
@@ -180,6 +183,7 @@ where
 {
     pub fn new<T>(
         position: Point,
+        viewport: Rectangle,
         menu: Menu<'a, 'b, T, Message, Theme, Renderer>,
         target_height: f32,
     ) -> Self
@@ -218,6 +222,7 @@ where
 
         Self {
             position,
+            viewport,
             state: &mut state.tree,
             list,
             width,
@@ -282,11 +287,15 @@ where
         &self,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.list
-            .mouse_interaction(self.state, layout, cursor, viewport, renderer)
+        self.list.mouse_interaction(
+            self.state,
+            layout,
+            cursor,
+            &self.viewport,
+            renderer,
+        )
     }
 
     fn draw(
@@ -398,13 +407,12 @@ where
     ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if cursor.is_over(layout.bounds()) {
-                    if let Some(index) = *self.hovered_option {
-                        if let Some(option) = self.options.get(index) {
-                            shell.publish((self.on_selected)(option.clone()));
-                            shell.capture_event();
-                        }
-                    }
+                if cursor.is_over(layout.bounds())
+                    && let Some(index) = *self.hovered_option
+                    && let Some(option) = self.options.get(index)
+                {
+                    shell.publish((self.on_selected)(option.clone()));
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
@@ -422,19 +430,16 @@ where
                     let new_hovered_option =
                         (cursor_position.y / option_height) as usize;
 
-                    if *self.hovered_option != Some(new_hovered_option) {
-                        if let Some(option) =
+                    if *self.hovered_option != Some(new_hovered_option)
+                        && let Some(option) =
                             self.options.get(new_hovered_option)
+                    {
+                        if let Some(on_option_hovered) = self.on_option_hovered
                         {
-                            if let Some(on_option_hovered) =
-                                self.on_option_hovered
-                            {
-                                shell
-                                    .publish(on_option_hovered(option.clone()));
-                            }
-
-                            shell.request_redraw();
+                            shell.publish(on_option_hovered(option.clone()));
                         }
+
+                        shell.request_redraw();
                     }
 
                     *self.hovered_option = Some(new_hovered_option);
@@ -455,11 +460,11 @@ where
                     *self.hovered_option =
                         Some((cursor_position.y / option_height) as usize);
 
-                    if let Some(index) = *self.hovered_option {
-                        if let Some(option) = self.options.get(index) {
-                            shell.publish((self.on_selected)(option.clone()));
-                            shell.capture_event();
-                        }
+                    if let Some(index) = *self.hovered_option
+                        && let Some(option) = self.options.get(index)
+                    {
+                        shell.publish((self.on_selected)(option.clone()));
+                        shell.capture_event();
                     }
                 }
             }

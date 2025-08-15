@@ -10,7 +10,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;
-use crate::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size, Vector};
+use crate::{Clipboard, Event, Layout, Rectangle, Shell, Size, Vector};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Theme, Renderer>
@@ -69,37 +69,33 @@ where
 
     /// Returns the current [`mouse::Interaction`] of the [`Overlay`].
     ///
-    /// By default, it returns [`mouse::Interaction::Idle`].
+    /// By default, it returns [`mouse::Interaction::None`].
     fn mouse_interaction(
         &self,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
-        _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         mouse::Interaction::None
     }
 
-    /// Returns true if the cursor is over the [`Overlay`].
-    ///
-    /// By default, it returns true if the bounds of the `layout` contain
-    /// the `cursor_position`.
-    fn is_over(
-        &self,
-        layout: Layout<'_>,
-        _renderer: &Renderer,
-        cursor_position: Point,
-    ) -> bool {
-        layout.bounds().contains(cursor_position)
-    }
-
     /// Returns the nested overlay of the [`Overlay`], if there is any.
     fn overlay<'a>(
         &'a mut self,
-        _layout: Layout<'_>,
+        _layout: Layout<'a>,
         _renderer: &Renderer,
     ) -> Option<Element<'a, Message, Theme, Renderer>> {
         None
+    }
+
+    /// The index of the overlay.
+    ///
+    /// Overlays with a higher index will be rendered on top of overlays with
+    /// a lower index.
+    ///
+    /// By default, it returns `1.0`.
+    fn index(&self) -> f32 {
+        1.0
     }
 }
 
@@ -110,8 +106,9 @@ where
 pub fn from_children<'a, Message, Theme, Renderer>(
     children: &'a mut [crate::Element<'_, Message, Theme, Renderer>],
     tree: &'a mut Tree,
-    layout: Layout<'_>,
+    layout: Layout<'a>,
     renderer: &Renderer,
+    viewport: &Rectangle,
     translation: Vector,
 ) -> Option<Element<'a, Message, Theme, Renderer>>
 where
@@ -122,9 +119,13 @@ where
         .zip(&mut tree.children)
         .zip(layout.children())
         .filter_map(|((child, state), layout)| {
-            child
-                .as_widget_mut()
-                .overlay(state, layout, renderer, translation)
+            child.as_widget_mut().overlay(
+                state,
+                layout,
+                renderer,
+                viewport,
+                translation,
+            )
         })
         .collect::<Vec<_>>();
 
