@@ -7,6 +7,9 @@ use std::sync::atomic::{self, AtomicU64};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Id(u64);
 
+/// Id of the "Global" window. Will never match a window Id,
+/// which means any message sent to it will automatically be marked as Status::Ignored
+pub const GLOBAL: Id = Id(0);
 static COUNT: AtomicU64 = AtomicU64::new(1);
 
 impl Id {

@@ -6,6 +6,9 @@ use crate::theme;
 use crate::window;
 use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
 
+#[cfg(feature = "tray-icon")]
+use crate::tray_icon;
+
 use iced_debug as debug;
 
 use std::borrow::Cow;
@@ -97,6 +100,8 @@ where
             _renderer: PhantomData,
         },
         settings: Settings::default(),
+        #[cfg(feature = "tray-icon")]
+        tray_icon: None,
     }
 }
 
@@ -111,6 +116,8 @@ where
 pub struct Daemon<P: Program> {
     raw: P,
     settings: Settings,
+    #[cfg(feature = "tray-icon")]
+    tray_icon: Option<tray_icon::Settings>,
 }
 
 impl<P: Program> Daemon<P> {
@@ -133,7 +140,13 @@ impl<P: Program> Daemon<P> {
         #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
         let program = self.raw;
 
-        Ok(shell::run(program, self.settings, None)?)
+        Ok(shell::run(
+            program,
+            self.settings,
+            None,
+            #[cfg(feature = "tray-icon")]
+            self.tray_icon,
+        )?)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Daemon`].
@@ -169,6 +182,17 @@ impl<P: Program> Daemon<P> {
         self
     }
 
+    #[cfg(feature = "tray-icon")]
+    /// Sets the [`tray_icon::Settings`] of the [`Daemon`].
+    ///
+    /// Overwrites any previous [`tray_icon::Settings`].
+    pub fn tray_icon(self, tray_icon_settings: tray_icon::Settings) -> Self {
+        Self {
+            tray_icon: Some(tray_icon_settings),
+            ..self
+        }
+    }
+
     /// Sets the [`Title`] of the [`Daemon`].
     pub fn title(
         self,
@@ -181,6 +205,8 @@ impl<P: Program> Daemon<P> {
                 debug::hot(|| title.title(state, window))
             }),
             settings: self.settings,
+            #[cfg(feature = "tray-icon")]
+            tray_icon: self.tray_icon,
         }
     }
 
@@ -196,6 +222,8 @@ impl<P: Program> Daemon<P> {
                 debug::hot(|| f(state))
             }),
             settings: self.settings,
+            #[cfg(feature = "tray-icon")]
+            tray_icon: self.tray_icon,
         }
     }
 
@@ -211,6 +239,8 @@ impl<P: Program> Daemon<P> {
                 debug::hot(|| f(state, window))
             }),
             settings: self.settings,
+            #[cfg(feature = "tray-icon")]
+            tray_icon: self.tray_icon,
         }
     }
 
@@ -226,6 +256,8 @@ impl<P: Program> Daemon<P> {
                 debug::hot(|| f(state, theme))
             }),
             settings: self.settings,
+            #[cfg(feature = "tray-icon")]
+            tray_icon: self.tray_icon,
         }
     }
 
@@ -241,6 +273,8 @@ impl<P: Program> Daemon<P> {
                 debug::hot(|| f(state, window))
             }),
             settings: self.settings,
+            #[cfg(feature = "tray-icon")]
+            tray_icon: self.tray_icon,
         }
     }
 
@@ -256,6 +290,8 @@ impl<P: Program> Daemon<P> {
         Daemon {
             raw: program::with_executor::<P, E>(self.raw),
             settings: self.settings,
+            #[cfg(feature = "tray-icon")]
+            tray_icon: self.tray_icon,
         }
     }
 }

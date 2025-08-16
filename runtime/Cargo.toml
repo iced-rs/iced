@@ -13,6 +13,9 @@ keywords.workspace = true
 [lints]
 workspace = true
 
+[features]
+tray-icon = []
+
 [dependencies]
 bytes.workspace = true
 iced_core.workspace = true
