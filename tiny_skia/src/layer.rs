@@ -316,7 +316,11 @@ impl graphics::Layer for Layer {
             return 2;
         }
 
-        return 3;
+        if !self.text.is_empty() {
+            return 3;
+        }
+
+        0
     }
 
     fn end(&self) -> usize {
