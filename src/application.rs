@@ -256,9 +256,25 @@ impl<P: Program> Application<P> {
 
     /// Sets the [`window::Settings::size`] of the [`Application`].
     pub fn window_size(self, size: impl Into<Size>) -> Self {
+        #[cfg(not(target_os = "macos"))]
+        let size = size.into();
+
+        #[cfg(target_os = "macos")]
+        let mut size = size.into();
+
+        #[cfg(target_os = "macos")]
+        {
+            if size.height > 10_000. {
+                size.height = 10_000.;
+            }
+            if size.width > 10_000. {
+                size.width = 10_000.;
+            }
+        }
+
         Self {
             window: window::Settings {
-                size: size.into(),
+                size,
                 ..self.window
             },
             ..self
