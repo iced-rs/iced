@@ -60,8 +60,8 @@ pub trait Renderer {
     /// Fills a [`Quad`] with the provided [`Background`].
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
 
-    /// Clears all of the recorded primitives in the [`Renderer`].
-    fn clear(&mut self);
+    /// Resets the [`Renderer`] to start drawing in the `new_bounds` from scratch.
+    fn reset(&mut self, new_bounds: Rectangle);
 }
 
 /// A polygon with four sides.

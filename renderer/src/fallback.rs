@@ -46,8 +46,8 @@ where
         delegate!(self, renderer, renderer.fill_quad(quad, background.into()));
     }
 
-    fn clear(&mut self) {
-        delegate!(self, renderer, renderer.clear());
+    fn reset(&mut self, new_bounds: Rectangle) {
+        delegate!(self, renderer, renderer.reset(new_bounds));
     }
 
     fn start_layer(&mut self, bounds: Rectangle) {

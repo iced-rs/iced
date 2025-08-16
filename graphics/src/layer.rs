@@ -158,12 +158,15 @@ impl<T: Layer> Stack<T> {
 
     /// Clears the layers of the [`Stack`], allowing reuse.
     ///
+    /// It resizes the base layer bounds to the `new_bounds`.
+    ///
     /// This will normally keep layer allocations for future drawing operations.
-    pub fn clear(&mut self) {
+    pub fn reset(&mut self, new_bounds: Rectangle) {
         for layer in self.layers[..self.active_count].iter_mut() {
             layer.reset();
         }
 
+        self.layers[0].resize(new_bounds);
         self.current = 0;
         self.active_count = 1;
         self.previous.clear();
