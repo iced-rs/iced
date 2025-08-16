@@ -9,6 +9,9 @@ pub trait Layer: Default {
     /// Creates a new [`Layer`] with the given bounds.
     fn with_bounds(bounds: Rectangle) -> Self;
 
+    /// Returns the current bounds of the [`Layer`].
+    fn bounds(&self) -> Rectangle;
+
     /// Flushes and settles any pending group of primitives in the [`Layer`].
     ///
     /// This will be called when a [`Layer`] is finished. It allows layers to efficiently
@@ -20,6 +23,21 @@ pub trait Layer: Default {
 
     /// Clears all the layers contents and resets its bounds.
     fn reset(&mut self);
+
+    /// Returns the level of the [`Layer`].
+    ///
+    /// The level is the lowest "sublayer" index inside of a [`Layer`].
+    ///
+    /// A [`Layer`] may draw multiple primitive types in a certain order.
+    /// The level represents the lowest index of the primitive types it
+    /// contains.
+    ///
+    /// Two layers A and B can therefore be merged if they have the same bounds,
+    /// and the level of A is lower or equal than the level of B.
+    fn level(&self) -> usize;
+
+    /// Merges a [`Layer`] with the current one.
+    fn merge(&mut self, _layer: &mut Self);
 }
 
 /// A stack of layers used for drawing.
@@ -82,7 +100,19 @@ impl<T: Layer> Stack<T> {
     pub fn pop_clip(&mut self) {
         self.flush();
 
-        self.current = self.previous.pop().unwrap();
+        let previous = self.previous.pop().unwrap();
+
+        let (head, tail) = self.layers.split_at_mut(previous + 1);
+        let previous_layer = &mut head[previous];
+        let current_layer = &mut tail[self.current - previous - 1];
+
+        if previous_layer.level() <= current_layer.level()
+            && previous_layer.bounds() == current_layer.bounds()
+        {
+            previous_layer.merge(current_layer);
+        }
+
+        self.current = previous;
     }
 
     /// Pushes a new [`Transformation`] in the [`Stack`].

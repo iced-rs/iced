@@ -11,4 +11,6 @@ impl Batch {
     pub fn is_empty(&self) -> bool {
         true
     }
+
+    pub fn append(&mut self, _batch: &mut Self) {}
 }
