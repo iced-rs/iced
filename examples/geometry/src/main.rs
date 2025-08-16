@@ -37,6 +37,23 @@ mod rainbow {
             layout::Node::new(Size::new(width, width))
         }
 
+        fn update(
+            &mut self,
+            _state: &mut widget::Tree,
+            _event: &iced::Event,
+            layout: Layout<'_>,
+            cursor: iced::advanced::mouse::Cursor,
+            _renderer: &Renderer,
+            _clipboard: &mut dyn iced::advanced::Clipboard,
+            shell: &mut iced::advanced::Shell<'_, Message>,
+            _viewport: &Rectangle,
+        ) {
+            let bounds = layout.bounds();
+            if cursor.is_over(bounds) {
+                shell.request_redraw();
+            }
+        }
+
         fn draw(
             &self,
             _tree: &widget::Tree,
