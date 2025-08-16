@@ -24,17 +24,20 @@ pub trait Layer: Default {
     /// Clears all the layers contents and resets its bounds.
     fn reset(&mut self);
 
-    /// Returns the level of the [`Layer`].
+    /// Returns the start level of the [`Layer`].
     ///
-    /// The level is the lowest "sublayer" index inside of a [`Layer`].
+    /// A level is a "sublayer" index inside of a [`Layer`].
     ///
     /// A [`Layer`] may draw multiple primitive types in a certain order.
     /// The level represents the lowest index of the primitive types it
     /// contains.
     ///
     /// Two layers A and B can therefore be merged if they have the same bounds,
-    /// and the level of A is lower or equal than the level of B.
-    fn level(&self) -> usize;
+    /// and the end level of A is lower or equal than the start level of B.
+    fn start(&self) -> usize;
+
+    /// Returns the end level of the [`Layer`].
+    fn end(&self) -> usize;
 
     /// Merges a [`Layer`] with the current one.
     fn merge(&mut self, _layer: &mut Self);
@@ -106,7 +109,7 @@ impl<T: Layer> Stack<T> {
         let previous_layer = &mut head[previous];
         let current_layer = &mut tail[self.current - previous - 1];
 
-        if previous_layer.level() <= current_layer.level()
+        if previous_layer.end() <= current_layer.start()
             && previous_layer.bounds() == current_layer.bounds()
         {
             previous_layer.merge(current_layer);

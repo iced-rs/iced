@@ -293,7 +293,27 @@ impl graphics::Layer for Layer {
         self.pending_text.clear();
     }
 
-    fn level(&self) -> usize {
+    fn start(&self) -> usize {
+        if !self.quads.is_empty() {
+            return 0;
+        }
+
+        if !self.triangles.is_empty() {
+            return 1;
+        }
+
+        if !self.primitives.is_empty() {
+            return 2;
+        }
+
+        if !self.images.is_empty() {
+            return 3;
+        }
+
+        4
+    }
+
+    fn end(&self) -> usize {
         if !self.text.is_empty() {
             return 4;
         }
