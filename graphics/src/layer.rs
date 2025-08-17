@@ -105,14 +105,18 @@ impl<T: Layer> Stack<T> {
 
         let previous = self.previous.pop().unwrap();
 
-        let (head, tail) = self.layers.split_at_mut(previous + 1);
-        let previous_layer = &mut head[previous];
-        let current_layer = &mut tail[self.current - previous - 1];
+        // Try to merge contiguous layers
+        if previous + 1 == self.current {
+            let (head, tail) = self.layers.split_at_mut(previous + 1);
+            let previous_layer = &mut head[previous];
+            let current_layer = &mut tail[0];
 
-        if previous_layer.end() <= current_layer.start()
-            && previous_layer.bounds() == current_layer.bounds()
-        {
-            previous_layer.merge(current_layer);
+            if previous_layer.end() <= current_layer.start()
+                && previous_layer.bounds() == current_layer.bounds()
+            {
+                previous_layer.merge(current_layer);
+                self.active_count -= 1;
+            }
         }
 
         self.current = previous;
