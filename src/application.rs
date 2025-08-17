@@ -259,6 +259,7 @@ impl<P: Program> Application<P> {
         #[cfg(not(target_os = "macos"))]
         let size = size.into();
 
+        // https://developer.apple.com/documentation/appkit/nswindow/init(contentrect:stylemask:backing:defer:)#parameters
         #[cfg(target_os = "macos")]
         let mut size = size.into();
 
