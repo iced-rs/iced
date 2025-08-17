@@ -9,6 +9,9 @@ pub trait Layer: Default {
     /// Creates a new [`Layer`] with the given bounds.
     fn with_bounds(bounds: Rectangle) -> Self;
 
+    /// Returns the current bounds of the [`Layer`].
+    fn bounds(&self) -> Rectangle;
+
     /// Flushes and settles any pending group of primitives in the [`Layer`].
     ///
     /// This will be called when a [`Layer`] is finished. It allows layers to efficiently
@@ -20,6 +23,24 @@ pub trait Layer: Default {
 
     /// Clears all the layers contents and resets its bounds.
     fn reset(&mut self);
+
+    /// Returns the start level of the [`Layer`].
+    ///
+    /// A level is a "sublayer" index inside of a [`Layer`].
+    ///
+    /// A [`Layer`] may draw multiple primitive types in a certain order.
+    /// The level represents the lowest index of the primitive types it
+    /// contains.
+    ///
+    /// Two layers A and B can therefore be merged if they have the same bounds,
+    /// and the end level of A is lower or equal than the start level of B.
+    fn start(&self) -> usize;
+
+    /// Returns the end level of the [`Layer`].
+    fn end(&self) -> usize;
+
+    /// Merges a [`Layer`] with the current one.
+    fn merge(&mut self, _layer: &mut Self);
 }
 
 /// A stack of layers used for drawing.
@@ -82,7 +103,19 @@ impl<T: Layer> Stack<T> {
     pub fn pop_clip(&mut self) {
         self.flush();
 
-        self.current = self.previous.pop().unwrap();
+        let previous = self.previous.pop().unwrap();
+
+        let (head, tail) = self.layers.split_at_mut(previous + 1);
+        let previous_layer = &mut head[previous];
+        let current_layer = &mut tail[self.current - previous - 1];
+
+        if previous_layer.end() <= current_layer.start()
+            && previous_layer.bounds() == current_layer.bounds()
+        {
+            previous_layer.merge(current_layer);
+        }
+
+        self.current = previous;
     }
 
     /// Pushes a new [`Transformation`] in the [`Stack`].
@@ -125,12 +158,15 @@ impl<T: Layer> Stack<T> {
 
     /// Clears the layers of the [`Stack`], allowing reuse.
     ///
+    /// It resizes the base layer bounds to the `new_bounds`.
+    ///
     /// This will normally keep layer allocations for future drawing operations.
-    pub fn clear(&mut self) {
+    pub fn reset(&mut self, new_bounds: Rectangle) {
         for layer in self.layers[..self.active_count].iter_mut() {
             layer.reset();
         }
 
+        self.layers[0].resize(new_bounds);
         self.current = 0;
         self.active_count = 1;
         self.previous.clear();

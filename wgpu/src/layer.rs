@@ -268,6 +268,10 @@ impl graphics::Layer for Layer {
         }
     }
 
+    fn bounds(&self) -> Rectangle {
+        self.bounds
+    }
+
     fn flush(&mut self) {
         self.flush_meshes();
         self.flush_text();
@@ -287,6 +291,58 @@ impl graphics::Layer for Layer {
         self.images.clear();
         self.pending_meshes.clear();
         self.pending_text.clear();
+    }
+
+    fn start(&self) -> usize {
+        if !self.quads.is_empty() {
+            return 0;
+        }
+
+        if !self.triangles.is_empty() {
+            return 1;
+        }
+
+        if !self.primitives.is_empty() {
+            return 2;
+        }
+
+        if !self.images.is_empty() {
+            return 3;
+        }
+
+        if !self.text.is_empty() {
+            return 4;
+        }
+
+        0
+    }
+
+    fn end(&self) -> usize {
+        if !self.text.is_empty() {
+            return 4;
+        }
+
+        if !self.images.is_empty() {
+            return 3;
+        }
+
+        if !self.primitives.is_empty() {
+            return 2;
+        }
+
+        if !self.triangles.is_empty() {
+            return 1;
+        }
+
+        0
+    }
+
+    fn merge(&mut self, layer: &mut Self) {
+        self.quads.append(&mut layer.quads);
+        self.triangles.append(&mut layer.triangles);
+        self.primitives.append(&mut layer.primitives);
+        self.images.append(&mut layer.images);
+        self.text.append(&mut layer.text);
     }
 }
 

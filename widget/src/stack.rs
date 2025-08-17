@@ -23,6 +23,7 @@ pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
     width: Length,
     height: Length,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
+    clip: bool,
 }
 
 impl<'a, Message, Theme, Renderer> Stack<'a, Message, Theme, Renderer>
@@ -62,6 +63,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             children,
+            clip: false,
         }
     }
 
@@ -113,6 +115,16 @@ where
         children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         children.into_iter().fold(self, Self::push)
+    }
+
+    /// Sets whether the [`Stack`] should clip overflowing content.
+    ///
+    /// It has a slight performance overhead during presentation.
+    ///
+    /// By default, it is set to `false`.
+    pub fn clip(mut self, clip: bool) -> Self {
+        self.clip = clip;
+        self
     }
 }
 
@@ -277,6 +289,12 @@ where
         viewport: &Rectangle,
     ) {
         if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
+            let viewport = if self.clip {
+                &clipped_viewport
+            } else {
+                viewport
+            };
+
             let layers_below = if cursor.is_over(layout.bounds()) {
                 self.children
                     .iter()
@@ -312,26 +330,16 @@ where
                  layout,
                  cursor| {
                     if i > 0 {
-                        renderer.with_layer(clipped_viewport, |renderer| {
+                        renderer.with_layer(*viewport, |renderer| {
                             layer.as_widget().draw(
-                                state,
-                                renderer,
-                                theme,
-                                style,
-                                layout,
-                                cursor,
-                                &clipped_viewport,
+                                state, renderer, theme, style, layout, cursor,
+                                viewport,
                             );
                         });
                     } else {
                         layer.as_widget().draw(
-                            state,
-                            renderer,
-                            theme,
-                            style,
-                            layout,
-                            cursor,
-                            &clipped_viewport,
+                            state, renderer, theme, style, layout, cursor,
+                            viewport,
                         );
                     }
                 };
