@@ -190,7 +190,7 @@ where
 
     // The size to be available to the widget prior to `Shrink`ing
     let bounds = if expand {
-        limits.max()
+        limits.width(width).height(height).max()
     } else {
         limits.resolve(width, height, rotated_size)
     };
