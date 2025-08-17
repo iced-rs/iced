@@ -294,8 +294,8 @@ impl graphics::geometry::Renderer for Renderer {
     type Geometry = Geometry;
     type Frame = geometry::Frame;
 
-    fn new_frame(&self, size: core::Size) -> Self::Frame {
-        geometry::Frame::new(size)
+    fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
+        geometry::Frame::new(bounds)
     }
 
     fn draw_geometry(&mut self, geometry: Self::Geometry) {

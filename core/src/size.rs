@@ -24,7 +24,7 @@ impl Size {
     pub const UNIT: Size = Size::new(1., 1.);
 
     /// A [`Size`] with infinite width and height.
-    pub const INFINITY: Size = Size::new(f32::INFINITY, f32::INFINITY);
+    pub const INFINITE: Size = Size::new(f32::INFINITY, f32::INFINITY);
 
     /// Returns the minimum of each component of this size and another.
     pub fn min(self, other: Self) -> Self {

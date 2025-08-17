@@ -1,5 +1,5 @@
 use crate::cache::{self, Cached};
-use crate::core::Size;
+use crate::core::{Rectangle, Size};
 use crate::geometry::{self, Frame};
 
 pub use cache::Group;
@@ -17,7 +17,7 @@ where
 
 #[derive(Debug, Clone)]
 struct Data<T> {
-    bounds: Size,
+    bounds: Rectangle,
     geometry: T,
 }
 
@@ -53,7 +53,7 @@ where
     /// [`Cache`].
     ///
     /// The closure will only be called when
-    /// - the bounds have changed since the previous draw call.
+    /// - the size has changed since the previous draw call.
     /// - the [`Cache`] is empty or has been explicitly cleared.
     ///
     /// Otherwise, the previously stored geometry will be returned. The
@@ -62,7 +62,21 @@ where
     pub fn draw(
         &self,
         renderer: &Renderer,
-        bounds: Size,
+        size: Size,
+        draw_fn: impl FnOnce(&mut Frame<Renderer>),
+    ) -> Renderer::Geometry {
+        self.draw_with_bounds(renderer, Rectangle::with_size(size), draw_fn)
+    }
+
+    /// Draws geometry using the provided closure and stores it in the
+    /// [`Cache`].
+    ///
+    /// Analogous to [`draw`](Self::draw), but takes a clipping [`Rectangle`] instead of
+    /// a [`Size`].
+    pub fn draw_with_bounds(
+        &self,
+        renderer: &Renderer,
+        bounds: Rectangle,
         draw_fn: impl FnOnce(&mut Frame<Renderer>),
     ) -> Renderer::Geometry {
         use std::ops::Deref;
@@ -82,7 +96,7 @@ where
             }
         };
 
-        let mut frame = Frame::new(renderer, bounds);
+        let mut frame = Frame::with_bounds(renderer, bounds);
         draw_fn(&mut frame);
 
         let geometry = frame.into_geometry().cache(self.raw.group(), previous);
