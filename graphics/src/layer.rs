@@ -115,7 +115,11 @@ impl<T: Layer> Stack<T> {
                 && previous_layer.bounds() == current_layer.bounds()
             {
                 previous_layer.merge(current_layer);
-                self.active_count -= 1;
+
+                // We can reuse the last layer
+                if self.current + 1 == self.active_count {
+                    self.active_count -= 1;
+                }
             }
         }
 
