@@ -409,13 +409,13 @@ mod geometry {
         type Geometry = Geometry<A::Geometry, B::Geometry>;
         type Frame = Frame<A::Frame, B::Frame>;
 
-        fn new_frame(&self, size: iced_graphics::core::Size) -> Self::Frame {
+        fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
             match self {
                 Self::Primary(renderer) => {
-                    Frame::Primary(renderer.new_frame(size))
+                    Frame::Primary(renderer.new_frame(bounds))
                 }
                 Self::Secondary(renderer) => {
-                    Frame::Secondary(renderer.new_frame(size))
+                    Frame::Secondary(renderer.new_frame(bounds))
                 }
             }
         }

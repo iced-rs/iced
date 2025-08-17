@@ -394,7 +394,7 @@ where
                 if self.snap_within_viewport {
                     viewport.size()
                 } else {
-                    Size::INFINITY
+                    Size::INFINITE
                 },
             )
             .shrink(Padding::new(self.padding)),
@@ -508,7 +508,7 @@ where
             &defaults,
             layout.children().next().unwrap(),
             cursor_position,
-            &Rectangle::with_size(Size::INFINITY),
+            &Rectangle::with_size(Size::INFINITE),
         );
     }
 }
