@@ -42,7 +42,7 @@ fn fs_main(input: Output) -> @location(0) vec4<f32> {
         discard;
     }
 
-    let c = 1.0 - depth;
+    let c = (1.0 - depth) * 10.0;
 
     return vec4<f32>(c, c, c, 1.0);
 }
