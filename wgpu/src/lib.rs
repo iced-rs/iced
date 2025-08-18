@@ -311,7 +311,9 @@ impl Renderer {
             viewport.physical_size(),
         ));
 
-        for layer in self.layers.iter_mut() {
+        self.layers.merge();
+
+        for layer in self.layers.iter() {
             if physical_bounds
                 .intersection(&(layer.bounds * scale_factor))
                 .and_then(Rectangle::snap)

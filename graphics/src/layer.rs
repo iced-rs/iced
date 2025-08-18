@@ -103,27 +103,7 @@ impl<T: Layer> Stack<T> {
     pub fn pop_clip(&mut self) {
         self.flush();
 
-        let previous = self.previous.pop().unwrap();
-
-        // Try to merge contiguous layers
-        if previous + 1 == self.current {
-            let (head, tail) = self.layers.split_at_mut(previous + 1);
-            let previous_layer = &mut head[previous];
-            let current_layer = &mut tail[0];
-
-            if previous_layer.end() <= current_layer.start()
-                && previous_layer.bounds() == current_layer.bounds()
-            {
-                previous_layer.merge(current_layer);
-
-                // We can reuse the last layer
-                if self.current + 1 == self.active_count {
-                    self.active_count -= 1;
-                }
-            }
-        }
-
-        self.current = previous;
+        self.current = self.previous.pop().unwrap();
     }
 
     /// Pushes a new [`Transformation`] in the [`Stack`].
@@ -142,13 +122,6 @@ impl<T: Layer> Stack<T> {
         let _ = self.transformations.pop();
     }
 
-    /// Returns an iterator over mutable references to the layers in the [`Stack`].
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
-        self.flush();
-
-        self.layers[..self.active_count].iter_mut()
-    }
-
     /// Returns an iterator over immutable references to the layers in the [`Stack`].
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.layers[..self.active_count].iter()
@@ -159,9 +132,35 @@ impl<T: Layer> Stack<T> {
         &self.layers[..self.active_count]
     }
 
-    /// Flushes and settles any primitives in the current layer of the [`Stack`].
+    /// Flushes and settles any primitives in the [`Stack`].
     pub fn flush(&mut self) {
         self.layers[self.current].flush();
+    }
+
+    /// Performs layer merging wherever possible.
+    ///
+    /// Flushes and settles any primitives in the [`Stack`].
+    pub fn merge(&mut self) {
+        self.flush();
+
+        let mut current = 0;
+
+        while current < self.active_count {
+            let (head, tail) = self.layers.split_at_mut(current + 1);
+
+            let layer = &mut head[current];
+            let mut candidate = 0;
+
+            while let Some(next_layer) = tail.get_mut(candidate)
+                && layer.end() <= next_layer.start()
+                && layer.bounds() == next_layer.bounds()
+            {
+                layer.merge(next_layer);
+                candidate += 1;
+            }
+
+            current += candidate + 1;
+        }
     }
 
     /// Clears the layers of the [`Stack`], allowing reuse.
