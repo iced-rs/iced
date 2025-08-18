@@ -301,7 +301,7 @@ impl graphics::Layer for Layer {
             return 0;
         }
 
-        if !self.triangles.is_empty() {
+        if !self.triangles.is_empty() || !self.pending_meshes.is_empty() {
             return 1;
         }
 
@@ -313,7 +313,7 @@ impl graphics::Layer for Layer {
             return 3;
         }
 
-        if !self.text.is_empty() {
+        if !self.text.is_empty() || !self.pending_text.is_empty() {
             return 4;
         }
 
@@ -321,7 +321,7 @@ impl graphics::Layer for Layer {
     }
 
     fn end(&self) -> usize {
-        if !self.text.is_empty() {
+        if !self.text.is_empty() || !self.pending_text.is_empty() {
             return 4;
         }
 
@@ -333,7 +333,7 @@ impl graphics::Layer for Layer {
             return 2;
         }
 
-        if !self.triangles.is_empty() {
+        if !self.triangles.is_empty() || !self.pending_meshes.is_empty() {
             return 1;
         }
 
