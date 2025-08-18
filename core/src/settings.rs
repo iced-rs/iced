@@ -33,6 +33,14 @@ pub struct Settings {
     ///
     /// By default, it is enabled.
     pub antialiasing: bool,
+
+    #[cfg(target_os = "macos")]
+    /// Set whether the system can automatically organize windows into tabs.
+    ///
+    /// <https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing>
+    ///
+    /// The default value is `true`
+    pub allows_automatic_window_tabbing: bool,
 }
 
 impl Default for Settings {
@@ -43,6 +51,9 @@ impl Default for Settings {
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: true,
+
+            #[cfg(target_os = "macos")]
+            allows_automatic_window_tabbing: true
         }
     }
 }
