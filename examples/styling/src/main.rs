@@ -123,7 +123,8 @@ impl Styling {
         .width(Fill)
         .height(Fill);
 
-        let check = checkbox("Check me!", self.checkbox_value)
+        let checkbox = checkbox(self.checkbox_value)
+            .label("Check me!")
             .on_toggle(Message::CheckboxToggled);
 
         let check_disabled = checkbox("Disabled", self.checkbox_value);
