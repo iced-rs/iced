@@ -1247,12 +1247,12 @@ where
             Event::Keyboard(keyboard::Event::KeyReleased { key, .. }) => {
                 let state = state::<Renderer>(tree);
 
-                if state.is_focused.is_some() {
-                    if let keyboard::Key::Character("v") = key.as_ref() {
-                        state.is_pasting = None;
+                if state.is_focused.is_some()
+                    && let keyboard::Key::Character("v") = key.as_ref()
+                {
+                    state.is_pasting = None;
 
-                        shell.capture_event();
-                    }
+                    shell.capture_event();
                 }
 
                 state.is_pasting = None;
@@ -1328,32 +1328,31 @@ where
             Event::Window(window::Event::RedrawRequested(now)) => {
                 let state = state::<Renderer>(tree);
 
-                if let Some(focus) = &mut state.is_focused {
-                    if focus.is_window_focused {
-                        if matches!(
-                            state.cursor.state(&self.value),
-                            cursor::State::Index(_)
-                        ) {
-                            focus.now = *now;
+                if let Some(focus) = &mut state.is_focused
+                    && focus.is_window_focused
+                {
+                    if matches!(
+                        state.cursor.state(&self.value),
+                        cursor::State::Index(_)
+                    ) {
+                        focus.now = *now;
 
-                            let millis_until_redraw =
-                                CURSOR_BLINK_INTERVAL_MILLIS
-                                    - (*now - focus.updated_at).as_millis()
-                                        % CURSOR_BLINK_INTERVAL_MILLIS;
+                        let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
+                            - (*now - focus.updated_at).as_millis()
+                                % CURSOR_BLINK_INTERVAL_MILLIS;
 
-                            shell.request_redraw_at(
-                                *now + Duration::from_millis(
-                                    millis_until_redraw as u64,
-                                ),
-                            );
-                        }
-
-                        shell.request_input_method(&self.input_method(
-                            state,
-                            layout,
-                            &self.value,
-                        ));
+                        shell.request_redraw_at(
+                            *now + Duration::from_millis(
+                                millis_until_redraw as u64,
+                            ),
+                        );
                     }
+
+                    shell.request_input_method(&self.input_method(
+                        state,
+                        layout,
+                        &self.value,
+                    ));
                 }
             }
             _ => {}
@@ -1817,10 +1816,10 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
-            color: palette.background.strongest.color,
+            color: palette.background.strong.color,
         },
         icon: palette.background.weak.text,
-        placeholder: palette.background.strongest.color,
+        placeholder: palette.secondary.base.color,
         value: palette.background.base.text,
         selection: palette.primary.weak.color,
     };
@@ -1844,6 +1843,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Disabled => Style {
             background: Background::Color(palette.background.weak.color),
             value: active.placeholder,
+            placeholder: palette.background.strongest.color,
             ..active
         },
     }

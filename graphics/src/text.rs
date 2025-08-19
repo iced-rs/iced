@@ -176,7 +176,7 @@ impl FontSystem {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Version(u32);
 
-/// A weak reference to a [`cosmic-text::Buffer`] that can be drawn.
+/// A weak reference to a [`cosmic_text::Buffer`] that can be drawn.
 #[derive(Debug, Clone)]
 pub struct Raw {
     /// A weak reference to a [`cosmic_text::Buffer`].

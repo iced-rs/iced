@@ -99,10 +99,8 @@ impl Cache {
         self.map.retain(|k, memory| {
             let retain = hits.contains(k);
 
-            if !retain {
-                if let Memory::Device(entry) = memory {
-                    atlas.remove(entry);
-                }
+            if !retain && let Memory::Device(entry) = memory {
+                atlas.remove(entry);
             }
 
             retain

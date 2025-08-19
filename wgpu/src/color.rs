@@ -184,6 +184,7 @@ pub fn convert(
         label: Some("iced_wgpu.offscreen.blit.render_pass"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
             view,
+            depth_slice: None,
             resolve_target: None,
             ops: wgpu::Operations {
                 load: wgpu::LoadOp::Load,

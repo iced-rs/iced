@@ -136,23 +136,13 @@ where
         let child = child.into();
         let child_size = child.as_widget().size_hint();
 
-        self.width = self.width.enclose(child_size.width);
-        self.height = self.height.enclose(child_size.height);
-
-        self.children.push(child);
-        self
-    }
-
-    /// Adds an element to the [`Row`], if `Some`.
-    pub fn push_maybe(
-        self,
-        child: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    ) -> Self {
-        if let Some(child) = child {
-            self.push(child)
-        } else {
-            self
+        if !child_size.is_void() {
+            self.width = self.width.enclose(child_size.width);
+            self.height = self.height.enclose(child_size.height);
+            self.children.push(child);
         }
+
+        self
     }
 
     /// Extends the [`Row`] with the given children.
@@ -170,6 +160,7 @@ where
         Wrapping {
             row: self,
             vertical_spacing: None,
+            align_x: alignment::Horizontal::Left,
         }
     }
 }
@@ -378,12 +369,22 @@ pub struct Wrapping<
 > {
     row: Row<'a, Message, Theme, Renderer>,
     vertical_spacing: Option<f32>,
+    align_x: alignment::Horizontal,
 }
 
 impl<Message, Theme, Renderer> Wrapping<'_, Message, Theme, Renderer> {
     /// Sets the vertical spacing _between_ lines.
     pub fn vertical_spacing(mut self, amount: impl Into<Pixels>) -> Self {
         self.vertical_spacing = Some(amount.into().0);
+        self
+    }
+
+    /// Sets the horizontal alignment of the wrapping [`Row`].
+    pub fn align_x(
+        mut self,
+        align_x: impl Into<alignment::Horizontal>,
+    ) -> Self {
+        self.align_x = align_x.into();
         self
     }
 }
@@ -433,9 +434,9 @@ where
             Alignment::End => 1.0,
         };
 
-        let align = |row_start: std::ops::Range<usize>,
-                     row_height: f32,
-                     children: &mut Vec<layout::Node>| {
+        let align_y = |row_start: std::ops::Range<usize>,
+                       row_height: f32,
+                       children: &mut Vec<layout::Node>| {
             if align_factor != 0.0 {
                 for node in &mut children[row_start] {
                     let height = node.size().height;
@@ -460,7 +461,7 @@ where
             if x != 0.0 && x + child_size.width > max_width {
                 intrinsic_size.width = intrinsic_size.width.max(x - spacing);
 
-                align(row_start..i, row_height, &mut children);
+                align_y(row_start..i, row_height, &mut children);
 
                 y += row_height + vertical_spacing;
                 x = 0.0;
@@ -483,7 +484,42 @@ where
         }
 
         intrinsic_size.height = y + row_height;
-        align(row_start..children.len(), row_height, &mut children);
+        align_y(row_start..children.len(), row_height, &mut children);
+
+        let align_factor = match self.align_x {
+            alignment::Horizontal::Left => 0.0,
+            alignment::Horizontal::Center => 2.0,
+            alignment::Horizontal::Right => 1.0,
+        };
+
+        if align_factor != 0.0 {
+            let total_width = intrinsic_size.width;
+
+            let mut row_start = 0;
+
+            for i in 0..children.len() {
+                let bounds = children[i].bounds();
+                let row_width = bounds.x + bounds.width;
+
+                let next_x = children
+                    .get(i + 1)
+                    .map(|node| node.bounds().x)
+                    .unwrap_or_default();
+
+                if next_x == 0.0 {
+                    let translation = Vector::new(
+                        (total_width - row_width) / align_factor,
+                        0.0,
+                    );
+
+                    for node in &mut children[row_start..=i] {
+                        node.translate_mut(translation);
+                    }
+
+                    row_start = i + 1;
+                }
+            }
+        }
 
         let size =
             limits.resolve(self.row.width, self.row.height, intrinsic_size);

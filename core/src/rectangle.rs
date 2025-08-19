@@ -34,8 +34,11 @@ where
 }
 
 impl Rectangle<f32> {
-    /// A rectangle starting at [`Point::ORIGIN`] with infinite width and height.
-    pub const INFINITE: Self = Self::new(Point::ORIGIN, Size::INFINITY);
+    /// A rectangle starting at negative infinity and with infinite width and height.
+    pub const INFINITE: Self = Self::new(
+        Point::new(f32::NEG_INFINITY, f32::NEG_INFINITY),
+        Size::INFINITE,
+    );
 
     /// Creates a new [`Rectangle`] with its top-left corner in the given
     /// [`Point`] and with the provided [`Size`].

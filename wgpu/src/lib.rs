@@ -284,7 +284,7 @@ impl Renderer {
         let _ = self
             .engine
             .device
-            .poll(wgpu::Maintain::WaitForSubmissionIndex(index));
+            .poll(wgpu::PollType::WaitForSubmissionIndex(index));
 
         let mapped_buffer = slice.get_mapped_range();
 
@@ -311,7 +311,9 @@ impl Renderer {
             viewport.physical_size(),
         ));
 
-        for layer in self.layers.iter_mut() {
+        self.layers.merge();
+
+        for layer in self.layers.iter() {
             if physical_bounds
                 .intersection(&(layer.bounds * scale_factor))
                 .and_then(Rectangle::snap)
@@ -426,6 +428,7 @@ impl Renderer {
                 label: Some("iced_wgpu render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: frame,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: match clear_color {
@@ -514,6 +517,7 @@ impl Renderer {
                         color_attachments: &[Some(
                             wgpu::RenderPassColorAttachment {
                                 view: frame,
+                                depth_slice: None,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
                                     load: wgpu::LoadOp::Load,
@@ -560,6 +564,7 @@ impl Renderer {
                         color_attachments: &[Some(
                             wgpu::RenderPassColorAttachment {
                                 view: frame,
+                                depth_slice: None,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
                                     load: wgpu::LoadOp::Load,
@@ -645,8 +650,8 @@ impl core::Renderer for Renderer {
         layer.draw_quad(quad, background.into(), transformation);
     }
 
-    fn clear(&mut self) {
-        self.layers.clear();
+    fn reset(&mut self, new_bounds: Rectangle) {
+        self.layers.reset(new_bounds);
     }
 }
 
@@ -757,8 +762,8 @@ impl graphics::geometry::Renderer for Renderer {
     type Geometry = Geometry;
     type Frame = geometry::Frame;
 
-    fn new_frame(&self, size: core::Size) -> Self::Frame {
-        geometry::Frame::new(size)
+    fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
+        geometry::Frame::new(bounds)
     }
 
     fn draw_geometry(&mut self, geometry: Self::Geometry) {
@@ -831,21 +836,20 @@ impl renderer::Headless for Renderer {
                 force_fallback_adapter: false,
                 compatible_surface: None,
             })
-            .await?;
+            .await
+            .ok()?;
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: Some("iced_wgpu [headless]"),
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits {
-                        max_bind_groups: 2,
-                        ..wgpu::Limits::default()
-                    },
-                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("iced_wgpu [headless]"),
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits {
+                    max_bind_groups: 2,
+                    ..wgpu::Limits::default()
                 },
-                None,
-            )
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                trace: wgpu::Trace::Off,
+            })
             .await
             .ok()?;
 

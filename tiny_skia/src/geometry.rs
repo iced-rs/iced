@@ -64,21 +64,14 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn new(size: Size) -> Self {
-        Self::with_clip(Rectangle::with_size(size))
-    }
-
-    pub fn with_clip(clip_bounds: Rectangle) -> Self {
+    pub fn new(bounds: Rectangle) -> Self {
         Self {
-            clip_bounds,
+            clip_bounds: bounds,
             stack: Vec::new(),
             primitives: Vec::new(),
             images: Vec::new(),
             text: Vec::new(),
-            transform: tiny_skia::Transform::from_translate(
-                clip_bounds.x,
-                clip_bounds.y,
-            ),
+            transform: tiny_skia::Transform::identity(),
         }
     }
 }
@@ -238,7 +231,7 @@ impl geometry::frame::Backend for Frame {
                 align_x: text.align_x,
                 align_y: text.align_y,
                 shaping: text.shaping,
-                clip_bounds: Rectangle::with_size(Size::INFINITY),
+                clip_bounds: Rectangle::with_size(Size::INFINITE),
             });
         } else {
             text.draw_with(|path, color| self.fill(&path, color));
@@ -265,7 +258,7 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn draft(&mut self, clip_bounds: Rectangle) -> Self {
-        Self::with_clip(clip_bounds)
+        Self::new(clip_bounds)
     }
 
     fn paste(&mut self, frame: Self) {

@@ -16,7 +16,7 @@ use crate::core::{
 ///
 /// It can even notify you with anticipation at a given distance!
 #[allow(missing_debug_implementations)]
-pub struct Pop<
+pub struct Sensor<
     'a,
     Key,
     Message,
@@ -32,12 +32,12 @@ pub struct Pop<
     delay: Duration,
 }
 
-impl<'a, Message, Theme, Renderer> Pop<'a, (), Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> Sensor<'a, (), Message, Theme, Renderer>
 where
     Message: Clone,
     Renderer: core::Renderer,
 {
-    /// Creates a new [`Pop`] widget with the given content.
+    /// Creates a new [`Sensor`] widget with the given content.
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -53,7 +53,8 @@ where
     }
 }
 
-impl<'a, Key, Message, Theme, Renderer> Pop<'a, Key, Message, Theme, Renderer>
+impl<'a, Key, Message, Theme, Renderer>
+    Sensor<'a, Key, Message, Theme, Renderer>
 where
     Message: Clone,
     Key: self::Key,
@@ -84,17 +85,17 @@ where
         self
     }
 
-    /// Sets the key of the [`Pop`] widget, for continuity.
+    /// Sets the key of the [`Sensor`] widget, for continuity.
     ///
-    /// If the key changes, the [`Pop`] widget will trigger again.
+    /// If the key changes, the [`Sensor`] widget will trigger again.
     pub fn key<K>(
         self,
         key: K,
-    ) -> Pop<'a, impl self::Key, Message, Theme, Renderer>
+    ) -> Sensor<'a, impl self::Key, Message, Theme, Renderer>
     where
         K: Clone + PartialEq + 'static,
     {
-        Pop {
+        Sensor {
             content: self.content,
             key: OwnedKey(key),
             on_show: self.on_show,
@@ -105,18 +106,18 @@ where
         }
     }
 
-    /// Sets the key of the [`Pop`] widget, for continuity; using a reference.
+    /// Sets the key of the [`Sensor`], for continuity; using a reference.
     ///
-    /// If the key changes, the [`Pop`] widget will trigger again.
+    /// If the key changes, the [`Sensor`] will trigger again.
     pub fn key_ref<K>(
         self,
         key: &'a K,
-    ) -> Pop<'a, &'a K, Message, Theme, Renderer>
+    ) -> Sensor<'a, &'a K, Message, Theme, Renderer>
     where
         K: ToOwned + PartialEq<K::Owned> + ?Sized,
         K::Owned: 'static,
     {
-        Pop {
+        Sensor {
             content: self.content,
             key,
             on_show: self.on_show,
@@ -160,7 +161,7 @@ struct State<Key> {
 }
 
 impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Pop<'_, Key, Message, Theme, Renderer>
+    for Sensor<'_, Key, Message, Theme, Renderer>
 where
     Key: self::Key,
     Message: Clone,
@@ -215,7 +216,16 @@ where
 
             let distance = top_left_distance.min(bottom_right_distance);
 
-            if state.has_popped_in {
+            if self.on_show.is_none() {
+                if let Some(on_resize) = &self.on_resize {
+                    let size = bounds.size();
+
+                    if Some(size) != state.last_size {
+                        state.last_size = Some(size);
+                        shell.publish(on_resize(size));
+                    }
+                }
+            } else if state.has_popped_in {
                 if distance <= self.anticipate.0 {
                     if let Some(on_resize) = &self.on_resize {
                         let size = bounds.size();
@@ -229,7 +239,7 @@ where
                     state.has_popped_in = false;
                     state.should_notify_at = Some((false, *now + self.delay));
                 }
-            } else if self.on_show.is_some() && distance <= self.anticipate.0 {
+            } else if distance <= self.anticipate.0 {
                 let size = bounds.size();
 
                 state.has_popped_in = true;
@@ -359,7 +369,7 @@ where
 }
 
 impl<'a, Key, Message, Theme, Renderer>
-    From<Pop<'a, Key, Message, Theme, Renderer>>
+    From<Sensor<'a, Key, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
@@ -367,7 +377,7 @@ where
     Renderer: core::Renderer + 'a,
     Theme: 'a,
 {
-    fn from(pop: Pop<'a, Key, Message, Theme, Renderer>) -> Self {
+    fn from(pop: Sensor<'a, Key, Message, Theme, Renderer>) -> Self {
         Element::new(pop)
     }
 }

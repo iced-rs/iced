@@ -346,7 +346,7 @@ where
 
             self.content = Renderer::Paragraph::with_spans(Text {
                 content: &spans,
-                bounds: Size::INFINITY,
+                bounds: Size::INFINITE,
                 size: preedit
                     .text_size
                     .unwrap_or_else(|| renderer.default_size()),

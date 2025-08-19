@@ -46,8 +46,8 @@ where
         delegate!(self, renderer, renderer.fill_quad(quad, background.into()));
     }
 
-    fn clear(&mut self) {
-        delegate!(self, renderer, renderer.clear());
+    fn reset(&mut self, new_bounds: Rectangle) {
+        delegate!(self, renderer, renderer.reset(new_bounds));
     }
 
     fn start_layer(&mut self, bounds: Rectangle) {
@@ -409,13 +409,13 @@ mod geometry {
         type Geometry = Geometry<A::Geometry, B::Geometry>;
         type Frame = Frame<A::Frame, B::Frame>;
 
-        fn new_frame(&self, size: iced_graphics::core::Size) -> Self::Frame {
+        fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
             match self {
                 Self::Primary(renderer) => {
-                    Frame::Primary(renderer.new_frame(size))
+                    Frame::Primary(renderer.new_frame(bounds))
                 }
                 Self::Secondary(renderer) => {
-                    Frame::Secondary(renderer.new_frame(size))
+                    Frame::Secondary(renderer.new_frame(bounds))
                 }
             }
         }

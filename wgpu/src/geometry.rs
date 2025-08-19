@@ -105,13 +105,8 @@ pub struct Frame {
 }
 
 impl Frame {
-    /// Creates a new [`Frame`] with the given [`Size`].
-    pub fn new(size: Size) -> Frame {
-        Self::with_clip(Rectangle::with_size(size))
-    }
-
     /// Creates a new [`Frame`] with the given clip bounds.
-    pub fn with_clip(bounds: Rectangle) -> Frame {
+    pub fn new(bounds: Rectangle) -> Frame {
         Frame {
             clip_bounds: bounds,
             buffers: BufferStack::new(),
@@ -120,9 +115,7 @@ impl Frame {
             text: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
-                current: Transform(lyon::math::Transform::translation(
-                    bounds.x, bounds.y,
-                )),
+                current: Transform(lyon::math::Transform::identity()),
             },
             fill_tessellator: tessellation::FillTessellator::new(),
             stroke_tessellator: tessellation::StrokeTessellator::new(),
@@ -409,7 +402,7 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn draft(&mut self, clip_bounds: Rectangle) -> Frame {
-        Frame::with_clip(clip_bounds)
+        Frame::new(clip_bounds)
     }
 
     fn paste(&mut self, frame: Frame) {

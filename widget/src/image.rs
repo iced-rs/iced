@@ -59,6 +59,7 @@ pub struct Image<Handle = image::Handle> {
     handle: Handle,
     width: Length,
     height: Length,
+    crop: Option<Rectangle<u32>>,
     content_fit: ContentFit,
     filter_method: FilterMethod,
     rotation: Rotation,
@@ -74,6 +75,7 @@ impl<Handle> Image<Handle> {
             handle: handle.into(),
             width: Length::Shrink,
             height: Length::Shrink,
+            crop: None,
             content_fit: ContentFit::default(),
             filter_method: FilterMethod::default(),
             rotation: Rotation::default(),
@@ -145,6 +147,24 @@ impl<Handle> Image<Handle> {
         self.scale = scale.into();
         self
     }
+
+    /// Crops the [`Image`] to the given region described by the [`Rectangle`] in absolute
+    /// coordinates.
+    ///
+    /// Cropping is done before applying any transformation or [`ContentFit`]. In practice,
+    /// this means that cropping an [`Image`] with this method should produce the same result
+    /// as cropping it externally (e.g. with an image editor) and creating a new [`Handle`]
+    /// for the cropped version.
+    ///
+    /// However, this method is much more efficient; since it just leverages scissoring during
+    /// rendering and no image cropping actually takes place. Instead, it reuses the existing
+    /// image allocations and should be as efficient as not cropping at all!
+    ///
+    /// The `region` coordinates will be clamped to the image dimensions, if necessary.
+    pub fn crop(mut self, region: Rectangle<u32>) -> Self {
+        self.crop = Some(region);
+        self
+    }
 }
 
 /// Computes the layout of an [`Image`].
@@ -154,6 +174,7 @@ pub fn layout<Renderer, Handle>(
     handle: &Handle,
     width: Length,
     height: Length,
+    region: Option<Rectangle<u32>>,
     content_fit: ContentFit,
     rotation: Rotation,
     expand: bool,
@@ -162,16 +183,14 @@ where
     Renderer: image::Renderer<Handle = Handle>,
 {
     // The raw w/h of the underlying image
-    let image_size = renderer.measure_image(handle);
-    let image_size =
-        Size::new(image_size.width as f32, image_size.height as f32);
+    let image_size = crop(renderer.measure_image(handle), region);
 
     // The rotated size of the image
     let rotated_size = rotation.apply(image_size);
 
     // The size to be available to the widget prior to `Shrink`ing
     let bounds = if expand {
-        limits.max()
+        limits.width(width).height(height).max()
     } else {
         limits.resolve(width, height, rotated_size)
     };
@@ -198,6 +217,7 @@ fn drawing_bounds<Renderer, Handle>(
     renderer: &Renderer,
     bounds: Rectangle,
     handle: &Handle,
+    region: Option<Rectangle<u32>>,
     content_fit: ContentFit,
     rotation: Rotation,
     scale: f32,
@@ -205,8 +225,8 @@ fn drawing_bounds<Renderer, Handle>(
 where
     Renderer: image::Renderer<Handle = Handle>,
 {
-    let Size { width, height } = renderer.measure_image(handle);
-    let image_size = Size::new(width as f32, height as f32);
+    let original_size = renderer.measure_image(handle);
+    let image_size = crop(original_size, region);
     let rotated_size = rotation.apply(image_size);
     let adjusted_fit = content_fit.fit(rotated_size, bounds.size());
 
@@ -216,6 +236,37 @@ where
     );
 
     let final_size = image_size * fit_scale * scale;
+
+    let (crop_offset, final_size) = if let Some(region) = region {
+        let x = region.x.min(original_size.width) as f32;
+        let y = region.y.min(original_size.height) as f32;
+        let width = image_size.width;
+        let height = image_size.height;
+
+        let ratio = Vector::new(
+            original_size.width as f32 / width,
+            original_size.height as f32 / height,
+        );
+
+        let final_size = final_size * ratio;
+
+        let scale = Vector::new(
+            final_size.width / original_size.width as f32,
+            final_size.height / original_size.height as f32,
+        );
+
+        let offset = match content_fit {
+            ContentFit::None => Vector::new(x * scale.x, y * scale.y),
+            _ => Vector::new(
+                ((original_size.width as f32 - width) / 2.0 - x) * scale.x,
+                ((original_size.height as f32 - height) / 2.0 - y) * scale.y,
+            ),
+        };
+
+        (offset, final_size)
+    } else {
+        (Vector::ZERO, final_size)
+    };
 
     let position = match content_fit {
         ContentFit::None => Point::new(
@@ -228,11 +279,22 @@ where
         ),
     };
 
-    Rectangle::new(position, final_size)
+    Rectangle::new(position + crop_offset, final_size)
 }
 
 fn must_clip(bounds: Rectangle, drawing_bounds: Rectangle) -> bool {
     drawing_bounds.width > bounds.width || drawing_bounds.height > bounds.height
+}
+
+fn crop(size: Size<u32>, region: Option<Rectangle<u32>>) -> Size<f32> {
+    if let Some(region) = region {
+        Size::new(
+            region.width.min(size.width) as f32,
+            region.height.min(size.height) as f32,
+        )
+    } else {
+        Size::new(size.width as f32, size.height as f32)
+    }
 }
 
 /// Draws an [`Image`]
@@ -241,6 +303,7 @@ pub fn draw<Renderer, Handle>(
     layout: Layout<'_>,
     viewport: &Rectangle,
     handle: &Handle,
+    crop: Option<Rectangle<u32>>,
     content_fit: ContentFit,
     filter_method: FilterMethod,
     rotation: Rotation,
@@ -251,8 +314,15 @@ pub fn draw<Renderer, Handle>(
     Handle: Clone,
 {
     let bounds = layout.bounds();
-    let drawing_bounds =
-        drawing_bounds(renderer, bounds, handle, content_fit, rotation, scale);
+    let drawing_bounds = drawing_bounds(
+        renderer,
+        bounds,
+        handle,
+        crop,
+        content_fit,
+        rotation,
+        scale,
+    );
 
     if must_clip(bounds, drawing_bounds) {
         if let Some(bounds) = bounds.intersection(viewport) {
@@ -327,6 +397,7 @@ where
             &self.handle,
             self.width,
             self.height,
+            self.crop,
             self.content_fit,
             self.rotation,
             self.expand,
@@ -348,6 +419,7 @@ where
             layout,
             viewport,
             &self.handle,
+            self.crop,
             self.content_fit,
             self.filter_method,
             self.rotation,

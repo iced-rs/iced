@@ -16,7 +16,7 @@ impl Renderer for () {
 
     fn end_transformation(&mut self) {}
 
-    fn clear(&mut self) {}
+    fn reset(&mut self, _new_bounds: Rectangle) {}
 
     fn fill_quad(
         &mut self,

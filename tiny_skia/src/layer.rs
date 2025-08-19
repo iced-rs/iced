@@ -17,8 +17,8 @@ pub struct Layer {
     pub bounds: Rectangle,
     pub quads: Vec<(Quad, Background)>,
     pub primitives: Vec<Item<Primitive>>,
-    pub text: Vec<Item<Text>>,
     pub images: Vec<Image>,
+    pub text: Vec<Item<Text>>,
 }
 
 impl Layer {
@@ -284,6 +284,10 @@ impl graphics::Layer for Layer {
         }
     }
 
+    fn bounds(&self) -> Rectangle {
+        self.bounds
+    }
+
     fn flush(&mut self) {}
 
     fn resize(&mut self, bounds: Rectangle) {
@@ -297,6 +301,53 @@ impl graphics::Layer for Layer {
         self.primitives.clear();
         self.text.clear();
         self.images.clear();
+    }
+
+    fn start(&self) -> usize {
+        if !self.quads.is_empty() {
+            return 1;
+        }
+
+        if !self.primitives.is_empty() {
+            return 2;
+        }
+
+        if !self.images.is_empty() {
+            return 3;
+        }
+
+        if !self.text.is_empty() {
+            return 4;
+        }
+
+        usize::MAX
+    }
+
+    fn end(&self) -> usize {
+        if !self.text.is_empty() {
+            return 4;
+        }
+
+        if !self.images.is_empty() {
+            return 3;
+        }
+
+        if !self.primitives.is_empty() {
+            return 2;
+        }
+
+        if !self.quads.is_empty() {
+            return 1;
+        }
+
+        0
+    }
+
+    fn merge(&mut self, layer: &mut Self) {
+        self.quads.append(&mut layer.quads);
+        self.primitives.append(&mut layer.primitives);
+        self.text.append(&mut layer.text);
+        self.images.append(&mut layer.images);
     }
 }
 

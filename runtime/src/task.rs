@@ -383,6 +383,12 @@ impl<T, E> Task<Result<T, E>> {
     }
 }
 
+impl<T> Default for Task<T> {
+    fn default() -> Self {
+        Self::none()
+    }
+}
+
 impl<T> From<()> for Task<T> {
     fn from(_value: ()) -> Self {
         Self::none()

@@ -532,3 +532,49 @@ where
         )
     }
 }
+
+impl<'a, T, Message, Theme, Renderer> From<Option<T>>
+    for Element<'a, Message, Theme, Renderer>
+where
+    T: Into<Self>,
+    Renderer: crate::Renderer,
+{
+    fn from(element: Option<T>) -> Self {
+        struct Void;
+
+        impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void
+        where
+            Renderer: crate::Renderer,
+        {
+            fn size(&self) -> Size<Length> {
+                Size {
+                    width: Length::Fixed(0.0),
+                    height: Length::Fixed(0.0),
+                }
+            }
+
+            fn layout(
+                &self,
+                _tree: &mut Tree,
+                _renderer: &Renderer,
+                _limits: &layout::Limits,
+            ) -> layout::Node {
+                layout::Node::new(Size::ZERO)
+            }
+
+            fn draw(
+                &self,
+                _tree: &Tree,
+                _renderer: &mut Renderer,
+                _theme: &Theme,
+                _style: &renderer::Style,
+                _layout: Layout<'_>,
+                _cursor: mouse::Cursor,
+                _viewport: &Rectangle,
+            ) {
+            }
+        }
+
+        element.map(T::into).unwrap_or_else(|| Element::new(Void))
+    }
+}

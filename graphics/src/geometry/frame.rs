@@ -16,9 +16,17 @@ where
     Renderer: geometry::Renderer,
 {
     /// Creates a new [`Frame`] with the given dimensions.
+    ///
+    /// Any geometry drawn outside of the dimensions will be clipped.
+    /// If you need further control, use [`with_bounds`](Self::with_bounds).
     pub fn new(renderer: &Renderer, size: Size) -> Self {
+        Self::with_bounds(renderer, Rectangle::with_size(size))
+    }
+
+    /// Creates a new [`Frame`] with the given clip bounds.
+    pub fn with_bounds(renderer: &Renderer, bounds: Rectangle) -> Self {
         Self {
-            raw: renderer.new_frame(size),
+            raw: renderer.new_frame(bounds),
         }
     }
 

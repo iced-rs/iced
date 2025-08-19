@@ -482,10 +482,8 @@ where
         style: &renderer::Style,
         cursor: mouse::Cursor,
     ) {
-        // TODO: Move to shell level (?)
-        renderer.clear();
-
         let viewport = Rectangle::with_size(self.bounds);
+        renderer.reset(viewport);
 
         let base_cursor = match &self.overlay {
             None

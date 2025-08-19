@@ -12,7 +12,7 @@ impl Limits {
     /// No limits
     pub const NONE: Limits = Limits {
         min: Size::ZERO,
-        max: Size::INFINITY,
+        max: Size::INFINITE,
     };
 
     /// Creates new [`Limits`] with the given minimum and maximum [`Size`].

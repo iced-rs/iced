@@ -96,17 +96,14 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                         let capabilities = surface.get_capabilities(&adapter);
 
                         let (device, queue) = adapter
-                            .request_device(
-                                &wgpu::DeviceDescriptor {
-                                    label: None,
-                                    required_features: adapter_features
-                                        & wgpu::Features::default(),
-                                    required_limits: wgpu::Limits::default(),
-                                    memory_hints:
-                                        wgpu::MemoryHints::MemoryUsage,
-                                },
-                                None,
-                            )
+                            .request_device(&wgpu::DeviceDescriptor {
+                                label: None,
+                                required_features: adapter_features
+                                    & wgpu::Features::default(),
+                                required_limits: wgpu::Limits::default(),
+                                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                                trace: wgpu::Trace::Off,
+                            })
                             .await
                             .expect("Request device");
 

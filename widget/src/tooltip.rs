@@ -202,6 +202,7 @@ where
     ) {
         let state = tree.state.downcast_mut::<State>();
 
+        let previous_state = *state;
         let was_idle = *state == State::Idle;
 
         *state = cursor
@@ -214,7 +215,9 @@ where
         if was_idle != is_idle {
             shell.invalidate_layout();
             shell.request_redraw();
-        } else if !is_idle && self.position == Position::FollowCursor {
+        } else if self.position == Position::FollowCursor
+            && previous_state != *state
+        {
             shell.request_redraw();
         }
 
@@ -391,7 +394,7 @@ where
                 if self.snap_within_viewport {
                     viewport.size()
                 } else {
-                    Size::INFINITY
+                    Size::INFINITE
                 },
             )
             .shrink(Padding::new(self.padding)),
@@ -505,7 +508,7 @@ where
             &defaults,
             layout.children().next().unwrap(),
             cursor_position,
-            &Rectangle::with_size(Size::INFINITY),
+            &Rectangle::with_size(Size::INFINITE),
         );
     }
 }

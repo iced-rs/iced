@@ -20,7 +20,7 @@ pub use crate::core::{Image, Svg};
 pub use crate::gradient::{self, Gradient};
 
 use crate::cache::Cached;
-use crate::core::{self, Size};
+use crate::core::{self, Rectangle};
 
 /// A renderer capable of drawing some [`Self::Geometry`].
 pub trait Renderer: core::Renderer {
@@ -31,7 +31,7 @@ pub trait Renderer: core::Renderer {
     type Frame: frame::Backend<Geometry = Self::Geometry>;
 
     /// Creates a new [`Self::Frame`].
-    fn new_frame(&self, size: Size) -> Self::Frame;
+    fn new_frame(&self, bounds: Rectangle) -> Self::Frame;
 
     /// Draws the given [`Self::Geometry`].
     fn draw_geometry(&mut self, geometry: Self::Geometry);
@@ -42,7 +42,7 @@ impl Renderer for () {
     type Geometry = ();
     type Frame = ();
 
-    fn new_frame(&self, _size: Size) -> Self::Frame {}
+    fn new_frame(&self, _bounds: Rectangle) -> Self::Frame {}
 
     fn draw_geometry(&mut self, _geometry: Self::Geometry) {}
 }

@@ -304,6 +304,12 @@ impl Batch {
         self.gradients.clear();
         self.order.clear();
     }
+
+    pub fn append(&mut self, batch: &mut Batch) {
+        self.solids.append(&mut batch.solids);
+        self.gradients.append(&mut batch.gradients);
+        self.order.append(&mut batch.order);
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
