@@ -143,39 +143,56 @@ impl<T: Layer> Stack<T> {
     pub fn merge(&mut self) {
         self.flush();
 
+        // These are the layers left to process
         let mut left = self.active_count;
 
+        // There must be at least 2 or more layers to merge
         while left > 1 {
+            // We set our target as the topmost layer left to process
             let mut current = left - 1;
-            let mut last = &self.layers[current];
-            let mut last_start = last.start();
+            let mut target = &self.layers[current];
+            let mut target_start = target.start();
+            let mut target_index = current;
 
+            // We scan downwards for a contiguous block of mergeable layer candidates
             while current > 0 {
                 let candidate = &self.layers[current - 1];
                 let start = candidate.start();
                 let end = candidate.end();
 
+                // We skip empty layers
                 if end == 0 {
                     current -= 1;
                     continue;
                 }
 
-                if end > last_start || candidate.bounds() != last.bounds() {
+                // Candidate can be merged if primitive sublayers do not overlap with
+                // previous targets and the clipping bounds match
+                if end > target_start || candidate.bounds() != target.bounds() {
                     break;
                 }
 
-                last = candidate;
-                last_start = start;
+                // Candidate is not empty and can be merged into
+                target = candidate;
+                target_start = start;
+                target_index = current;
                 current -= 1;
             }
 
-            let (head, tail) = self.layers.split_at_mut(current + 1);
-            let layer = &mut head[current];
+            // We merge all the layers scanned into the target
+            //
+            // Since we use `target_index` instead of `current`, we
+            // deliberately avoid merging into empty layers.
+            //
+            // If no candidates were mergeable, this is a no-op.
+            let (head, tail) = self.layers.split_at_mut(target_index + 1);
+            let layer = &mut head[target_index];
 
-            for middle in &mut tail[0..left - current - 1] {
+            for middle in &mut tail[0..left - target_index - 1] {
                 layer.merge(middle);
             }
 
+            // Empty layers found after the target can be skipped
             left = current;
         }
     }
