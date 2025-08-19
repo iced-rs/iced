@@ -143,23 +143,40 @@ impl<T: Layer> Stack<T> {
     pub fn merge(&mut self) {
         self.flush();
 
-        let mut current = 0;
+        let mut left = self.active_count;
 
-        while current < self.active_count {
-            let (head, tail) = self.layers.split_at_mut(current + 1);
+        while left > 1 {
+            let mut current = left - 1;
+            let mut last = &self.layers[current];
+            let mut last_start = last.start();
 
-            let layer = &mut head[current];
-            let mut candidate = 0;
+            while current > 0 {
+                let candidate = &self.layers[current - 1];
+                let start = candidate.start();
+                let end = candidate.end();
 
-            while let Some(next_layer) = tail.get_mut(candidate)
-                && layer.end() <= next_layer.start()
-                && layer.bounds() == next_layer.bounds()
-            {
-                layer.merge(next_layer);
-                candidate += 1;
+                if end == 0 {
+                    current -= 1;
+                    continue;
+                }
+
+                if end > last_start || candidate.bounds() != last.bounds() {
+                    break;
+                }
+
+                last = candidate;
+                last_start = start;
+                current -= 1;
             }
 
-            current += candidate + 1;
+            let (head, tail) = self.layers.split_at_mut(current + 1);
+            let layer = &mut head[current];
+
+            for middle in &mut tail[0..left - current - 1] {
+                layer.merge(middle);
+            }
+
+            left = current;
         }
     }
 

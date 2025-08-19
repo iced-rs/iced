@@ -305,34 +305,38 @@ impl graphics::Layer for Layer {
 
     fn start(&self) -> usize {
         if !self.quads.is_empty() {
-            return 0;
-        }
-
-        if !self.primitives.is_empty() {
             return 1;
         }
 
-        if !self.images.is_empty() {
+        if !self.primitives.is_empty() {
             return 2;
         }
 
-        if !self.text.is_empty() {
+        if !self.images.is_empty() {
             return 3;
         }
 
-        0
+        if !self.text.is_empty() {
+            return 4;
+        }
+
+        usize::MAX
     }
 
     fn end(&self) -> usize {
         if !self.text.is_empty() {
-            return 3;
+            return 4;
         }
 
         if !self.images.is_empty() {
-            return 2;
+            return 3;
         }
 
         if !self.primitives.is_empty() {
+            return 2;
+        }
+
+        if !self.quads.is_empty() {
             return 1;
         }
 
