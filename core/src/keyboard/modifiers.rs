@@ -24,6 +24,8 @@ bitflags! {
         const LOGO = 0b100 << 9;
         // const LLOGO = 0b010 << 9;
         // const RLOGO = 0b001 << 9;
+        /// No modifiers
+        const NONE = 0;
     }
 }
 
