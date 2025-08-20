@@ -5,6 +5,9 @@ use crate::mouse;
 use crate::touch;
 use crate::window;
 
+#[cfg(feature = "tray-icon")]
+use crate::tray_icon;
+
 /// A user interface event.
 ///
 /// _**Note:** This type is largely incomplete! If you need to track
@@ -27,6 +30,10 @@ pub enum Event {
 
     /// An input method event
     InputMethod(input_method::Event),
+
+    #[cfg(feature = "tray-icon")]
+    /// A tray icon event
+    TrayIcon(tray_icon::Event),
 }
 
 /// The status of an [`Event`] after being processed.

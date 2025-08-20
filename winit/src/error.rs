@@ -1,6 +1,9 @@
 use crate::futures::futures;
 use crate::graphics;
 
+#[cfg(feature = "tray-icon")]
+use crate::runtime::tray_icon;
+
 /// An error that occurred while running an application.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -15,6 +18,11 @@ pub enum Error {
     /// The application graphics context could not be created.
     #[error("the application graphics context could not be created")]
     GraphicsCreationFailed(graphics::Error),
+
+    #[cfg(feature = "tray-icon")]
+    /// The application tray icon could not be created
+    #[error("the application tray icon could not be created")]
+    TrayIconCreationFailed(#[from] tray_icon::Error),
 }
 
 impl From<graphics::Error> for Error {
