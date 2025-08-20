@@ -1,8 +1,6 @@
-use crate::Selector;
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::{Event, Point};
-use crate::selector;
 use crate::simulator;
 
 use std::fmt;
@@ -38,7 +36,9 @@ impl Interaction {
     pub fn from_event(event: Event) -> Option<Self> {
         Some(match event {
             Event::Mouse(mouse) => Self::Mouse(match mouse {
-                mouse::Event::CursorMoved { position } => Mouse::Move(position),
+                mouse::Event::CursorMoved { position } => {
+                    Mouse::Move(Target::Point(position))
+                }
                 mouse::Event::ButtonPressed(button) => {
                     Mouse::Press { button, at: None }
                 }
@@ -115,8 +115,8 @@ impl Interaction {
                             at: release_at,
                         },
                     ) if press == release
-                        && release_at.is_none_or(|release_at| {
-                            Some(release_at) == press_at
+                        && release_at.as_ref().is_none_or(|release_at| {
+                            Some(release_at) == press_at.as_ref()
                         }) =>
                     {
                         (
@@ -126,22 +126,6 @@ impl Interaction {
                             }),
                             None,
                         )
-                    }
-                    (
-                        current @ Mouse::Release {
-                            button: button_a,
-                            at: at_a,
-                        }
-                        | current @ Mouse::Click {
-                            button: button_a,
-                            at: at_a,
-                        },
-                        Mouse::Release {
-                            button: button_b,
-                            at: at_b,
-                        },
-                    ) if button_a == button_b && at_a == at_b => {
-                        (Self::Mouse(current), None)
                     }
                     (current, next) => {
                         (Self::Mouse(current), Some(Self::Mouse(next)))
@@ -173,7 +157,10 @@ impl Interaction {
         }
     }
 
-    pub fn events(&self) -> Vec<Event> {
+    pub fn events(
+        &self,
+        find_target: impl FnOnce(&Target) -> Option<Point>,
+    ) -> Option<Vec<Event>> {
         let mouse_move_ =
             |to| Event::Mouse(mouse::Event::CursorMoved { position: to });
 
@@ -187,20 +174,22 @@ impl Interaction {
 
         let key_release = |key| simulator::release_key(key);
 
-        match self {
+        Some(match self {
             Interaction::Mouse(mouse) => match mouse {
-                Mouse::Move(to) => vec![mouse_move_(*to)],
+                Mouse::Move(to) => vec![mouse_move_(find_target(to)?)],
                 Mouse::Press {
                     button,
                     at: Some(at),
-                } => vec![mouse_move_(*at), mouse_press(*button)],
+                } => vec![mouse_move_(find_target(at)?), mouse_press(*button)],
                 Mouse::Press { button, at: None } => {
                     vec![mouse_press(*button)]
                 }
                 Mouse::Release {
                     button,
                     at: Some(at),
-                } => vec![mouse_move_(*at), mouse_release(*button)],
+                } => {
+                    vec![mouse_move_(find_target(at)?), mouse_release(*button)]
+                }
                 Mouse::Release { button, at: None } => {
                     vec![mouse_release(*button)]
                 }
@@ -209,7 +198,7 @@ impl Interaction {
                     at: Some(at),
                 } => {
                     vec![
-                        mouse_move_(*at),
+                        mouse_move_(find_target(at)?),
                         mouse_press(*button),
                         mouse_release(*button),
                     ]
@@ -226,7 +215,7 @@ impl Interaction {
                     simulator::typewrite(text).collect()
                 }
             },
-        }
+        })
     }
 }
 
@@ -241,36 +230,51 @@ impl fmt::Display for Interaction {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Mouse {
-    Move(Point),
+    Move(Target),
     Press {
         button: mouse::Button,
-        at: Option<Point>,
+        at: Option<Target>,
     },
     Release {
         button: mouse::Button,
-        at: Option<Point>,
+        at: Option<Target>,
     },
     Click {
         button: mouse::Button,
-        at: Option<Point>,
+        at: Option<Target>,
     },
 }
 
 impl fmt::Display for Mouse {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Mouse::Move(point) => {
-                write!(f, "move cursor to ({:.2}, {:.2})", point.x, point.y)
+            Mouse::Move(target) => {
+                write!(f, "move cursor to {}", target)
             }
             Mouse::Press { button, at } => {
-                write!(f, "press {}", format::button_at(*button, *at))
+                write!(f, "press {}", format::button_at(*button, at.as_ref()))
             }
             Mouse::Release { button, at } => {
-                write!(f, "release {}", format::button_at(*button, *at))
+                write!(f, "release {}", format::button_at(*button, at.as_ref()))
             }
             Mouse::Click { button, at } => {
-                write!(f, "click {}", format::button_at(*button, *at))
+                write!(f, "click {}", format::button_at(*button, at.as_ref()))
             }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Target {
+    Point(Point),
+    Text(String),
+}
+
+impl fmt::Display for Target {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Point(point) => f.write_str(&format::point(*point)),
+            Self::Text(text) => f.write_str(&format::string(text)),
         }
     }
 }
@@ -324,9 +328,9 @@ impl From<Key> for keyboard::Key {
 mod format {
     use super::*;
 
-    pub fn button_at(button: mouse::Button, at: Option<Point>) -> String {
+    pub fn button_at(button: mouse::Button, at: Option<&Target>) -> String {
         if let Some(at) = at {
-            format!("{} at {}", self::button(button), point(at))
+            format!("{} at {}", self::button(button), at)
         } else {
             self::button(button).to_owned()
         }
@@ -355,21 +359,22 @@ mod format {
             Key::Backspace => "backspace",
         }
     }
+
+    pub fn string(text: &str) -> String {
+        format!("\"{}\"", text.escape_default())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expectation {
-    Presence(Selector),
+    Text(String),
 }
 
 impl fmt::Display for Expectation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expectation::Presence(Selector::Id(_id)) => {
-                write!(f, "expect id") // TODO
-            }
-            Expectation::Presence(Selector::Text(text)) => {
-                write!(f, "expect text \"{text}\"")
+            Expectation::Text(text) => {
+                write!(f, "expect {}", format::string(text))
             }
         }
     }
@@ -383,7 +388,7 @@ mod parser {
     use nom::branch::alt;
     use nom::bytes::complete::tag;
     use nom::character::complete::{char, multispace0, satisfy};
-    use nom::combinator::{map, opt, recognize};
+    use nom::combinator::{cut, map, opt, recognize};
     use nom::multi::many0;
     use nom::number::float;
     use nom::sequence::{delimited, preceded, separated_pair};
@@ -418,7 +423,7 @@ mod parser {
 
     fn mouse(input: &str) -> IResult<&str, Mouse> {
         let mouse_move =
-            preceded(tag("move cursor to "), point).map(Mouse::Move);
+            preceded(tag("move cursor to "), target).map(Mouse::Move);
 
         alt((mouse_move, mouse_click)).parse(input)
     }
@@ -433,11 +438,19 @@ mod parser {
 
     fn mouse_button_at(
         input: &str,
-    ) -> IResult<&str, (mouse::Button, Option<Point>)> {
+    ) -> IResult<&str, (mouse::Button, Option<Target>)> {
         let (input, button) = mouse_button(input)?;
-        let (input, at) = opt(preceded(tag(" at "), point)).parse(input)?;
+        let (input, at) = opt(target).parse(input)?;
 
         Ok((input, (button, at)))
+    }
+
+    fn target(input: &str) -> IResult<&str, Target> {
+        preceded(
+            tag(" at "),
+            cut(alt((string.map(Target::Text), point.map(Target::Point)))),
+        )
+        .parse(input)
     }
 
     fn mouse_button(input: &str) -> IResult<&str, mouse::Button> {
@@ -457,8 +470,8 @@ mod parser {
     }
 
     fn expectation(input: &str) -> IResult<&str, Expectation> {
-        map(preceded(tag("expect text "), string), |text| {
-            Expectation::Presence(selector::text(text))
+        map(preceded(tag("expect "), string), |text| {
+            Expectation::Text(text)
         })
         .parse(input)
     }
@@ -474,6 +487,7 @@ mod parser {
     }
 
     fn string(input: &str) -> IResult<&str, String> {
+        // TODO: Proper string literal parsing
         delimited(
             char('"'),
             map(recognize(many0(satisfy(|c| c != '"'))), str::to_owned),

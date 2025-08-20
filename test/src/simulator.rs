@@ -115,7 +115,9 @@ where
         );
 
         match operation.finish() {
-            widget::operation::Outcome::Some(Some(target)) => Ok(target),
+            widget::operation::Outcome::Some(matches) => {
+                matches.first().copied().ok_or(Error::NotFound(selector))
+            }
             _ => Err(Error::NotFound(selector)),
         }
     }

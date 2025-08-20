@@ -1631,6 +1631,14 @@ impl<P: text::Paragraph> operation::Focusable for State<P> {
 }
 
 impl<P: text::Paragraph> operation::TextInput for State<P> {
+    fn text(&self) -> &str {
+        if self.value.content().is_empty() {
+            self.placeholder.content()
+        } else {
+            self.value.content()
+        }
+    }
+
     fn move_cursor_to_front(&mut self) {
         State::move_cursor_to_front(self);
     }

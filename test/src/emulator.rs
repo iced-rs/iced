@@ -16,6 +16,7 @@ use crate::runtime::task;
 use crate::runtime::user_interface;
 use crate::runtime::window;
 use crate::runtime::{Action, Task, UserInterface};
+use crate::selector;
 
 use std::fmt;
 
@@ -212,7 +213,34 @@ impl<P: Program + 'static> Emulator<P> {
 
         match instruction {
             Instruction::Interact(interaction) => {
-                let events = interaction.events();
+                let Some(events) = interaction.events(|target| match target {
+                    instruction::Target::Point(position) => Some(*position),
+                    instruction::Target::Text(text) => {
+                        use widget::Operation;
+
+                        let mut operation =
+                            selector::text(text.to_owned()).operation();
+
+                        user_interface.operate(
+                            &self.renderer,
+                            &mut widget::operation::black_box(&mut operation),
+                        );
+
+                        match operation.finish() {
+                            widget::operation::Outcome::Some(matches) => {
+                                matches
+                                    .first()
+                                    .copied()
+                                    .map(|target| target.bounds.center())
+                            }
+                            _ => None,
+                        }
+                    }
+                }) else {
+                    self.runtime.send(Event::Failed);
+                    self.cache = Some(user_interface.into_cache());
+                    return;
+                };
 
                 for event in &events {
                     if let core::Event::Mouse(mouse::Event::CursorMoved {
@@ -242,10 +270,10 @@ impl<P: Program + 'static> Emulator<P> {
                 self.resubscribe(program);
             }
             Instruction::Expect(expectation) => match expectation {
-                instruction::Expectation::Presence(selector) => {
+                instruction::Expectation::Text(text) => {
                     use widget::Operation;
 
-                    let mut operation = selector.operation();
+                    let mut operation = selector::text(text).operation();
 
                     user_interface.operate(
                         &self.renderer,
@@ -253,7 +281,9 @@ impl<P: Program + 'static> Emulator<P> {
                     );
 
                     match operation.finish() {
-                        widget::operation::Outcome::Some(Some(_)) => {
+                        widget::operation::Outcome::Some(matches)
+                            if matches.len() == 1 =>
+                        {
                             self.runtime.send(Event::Ready);
                         }
                         _ => {

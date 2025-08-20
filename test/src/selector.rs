@@ -13,7 +13,7 @@ pub enum Selector {
 }
 
 impl Selector {
-    pub fn operation<'a>(&self) -> impl widget::Operation<Option<Target>> + 'a {
+    pub fn operation<'a>(&self) -> impl widget::Operation<Vec<Target>> + 'a {
         match self {
             Selector::Id(id) => {
                 struct FindById {
@@ -21,13 +21,13 @@ impl Selector {
                     target: Option<Target>,
                 }
 
-                impl widget::Operation<Option<Target>> for FindById {
+                impl widget::Operation<Vec<Target>> for FindById {
                     fn container(
                         &mut self,
                         id: Option<&widget::Id>,
                         bounds: Rectangle,
                         operate_on_children: &mut dyn FnMut(
-                            &mut dyn widget::Operation<Option<Target>>,
+                            &mut dyn widget::Operation<Vec<Target>>,
                         ),
                     ) {
                         if self.target.is_some() {
@@ -106,9 +106,13 @@ impl Selector {
 
                     fn finish(
                         &self,
-                    ) -> widget::operation::Outcome<Option<Target>>
+                    ) -> widget::operation::Outcome<Vec<Target>>
                     {
-                        widget::operation::Outcome::Some(self.target)
+                        if let Some(target) = self.target {
+                            widget::operation::Outcome::Some(vec![target])
+                        } else {
+                            widget::operation::Outcome::None
+                        }
                     }
                 }
 
@@ -120,23 +124,30 @@ impl Selector {
             Selector::Text(text) => {
                 struct FindByText {
                     text: text::Fragment<'static>,
-                    target: Option<Target>,
+                    target: Vec<Target>,
                 }
 
-                impl widget::Operation<Option<Target>> for FindByText {
+                impl widget::Operation<Vec<Target>> for FindByText {
                     fn container(
                         &mut self,
                         _id: Option<&widget::Id>,
                         _bounds: Rectangle,
                         operate_on_children: &mut dyn FnMut(
-                            &mut dyn widget::Operation<Option<Target>>,
+                            &mut dyn widget::Operation<Vec<Target>>,
                         ),
                     ) {
-                        if self.target.is_some() {
-                            return;
-                        }
-
                         operate_on_children(self);
+                    }
+
+                    fn text_input(
+                        &mut self,
+                        _id: Option<&widget::Id>,
+                        bounds: Rectangle,
+                        state: &mut dyn widget::operation::TextInput,
+                    ) {
+                        if self.text == state.text() {
+                            self.target.push(Target { bounds });
+                        }
                     }
 
                     fn text(
@@ -145,26 +156,22 @@ impl Selector {
                         bounds: Rectangle,
                         text: &str,
                     ) {
-                        if self.target.is_some() {
-                            return;
-                        }
-
                         if self.text == text {
-                            self.target = Some(Target { bounds });
+                            self.target.push(Target { bounds });
                         }
                     }
 
                     fn finish(
                         &self,
-                    ) -> widget::operation::Outcome<Option<Target>>
+                    ) -> widget::operation::Outcome<Vec<Target>>
                     {
-                        widget::operation::Outcome::Some(self.target)
+                        widget::operation::Outcome::Some(self.target.clone())
                     }
                 }
 
                 Box::new(FindByText {
                     text: text.clone(),
-                    target: None,
+                    target: Vec::new(),
                 })
             }
         }
