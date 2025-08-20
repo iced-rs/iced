@@ -46,23 +46,18 @@ where
     }
 }
 
-struct State {
-    tree: Tree,
-}
-
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Responsive<'_, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State>()
+        struct Marker;
+        tree::Tag::of::<Marker>()
     }
 
-    fn state(&self) -> tree::State {
-        tree::State::new(State {
-            tree: Tree::empty(),
-        })
+    fn diff(&mut self, _tree: &mut Tree) {
+        // Diff is deferred to layout
     }
 
     fn size(&self) -> Size<Length> {
@@ -78,14 +73,13 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let state = tree.state.downcast_mut::<State>();
         let size = limits.max();
 
         self.content = (self.view)(size);
-        state.tree.diff(&mut self.content);
+        tree.diff_children(std::slice::from_mut(&mut self.content));
 
         self.content.as_widget_mut().layout(
-            &mut state.tree,
+            &mut tree.children[0],
             renderer,
             &limits.loose(),
         )
@@ -102,10 +96,8 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let state = tree.state.downcast_mut::<State>();
-
         self.content.as_widget_mut().update(
-            &mut state.tree,
+            &mut tree.children[0],
             event,
             layout,
             cursor,
@@ -126,10 +118,8 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let state = tree.state.downcast_ref::<State>();
-
         self.content.as_widget().draw(
-            &state.tree,
+            &tree.children[0],
             renderer,
             theme,
             style,
@@ -147,10 +137,8 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let state = tree.state.downcast_ref::<State>();
-
         self.content.as_widget().mouse_interaction(
-            &state.tree,
+            &tree.children[0],
             layout,
             cursor,
             viewport,
@@ -165,10 +153,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let state = tree.state.downcast_mut::<State>();
-
         self.content.as_widget_mut().operate(
-            &mut state.tree,
+            &mut tree.children[0],
             layout,
             renderer,
             operation,
@@ -183,10 +169,8 @@ where
         viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        let state = tree.state.downcast_mut::<State>();
-
         self.content.as_widget_mut().overlay(
-            &mut state.tree,
+            &mut tree.children[0],
             layout,
             renderer,
             viewport,
