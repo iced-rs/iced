@@ -329,16 +329,22 @@ mod format {
     use super::*;
 
     pub fn button_at(button: mouse::Button, at: Option<&Target>) -> String {
+        let button = self::button(button);
+
         if let Some(at) = at {
-            format!("{} at {}", self::button(button), at)
+            if button.is_empty() {
+                format!("at {}", at)
+            } else {
+                format!("{} at {}", button, at)
+            }
         } else {
-            self::button(button).to_owned()
+            button.to_owned()
         }
     }
 
     pub fn button(button: mouse::Button) -> &'static str {
         match button {
-            mouse::Button::Left => "left",
+            mouse::Button::Left => "",
             mouse::Button::Right => "right",
             mouse::Button::Middle => "middle",
             mouse::Button::Back => "back",
@@ -388,7 +394,8 @@ mod parser {
     use nom::branch::alt;
     use nom::bytes::complete::tag;
     use nom::character::complete::{char, multispace0, satisfy};
-    use nom::combinator::{cut, map, opt, recognize};
+    use nom::combinator::{cut, map, opt, recognize, success};
+    use nom::error::ParseError;
     use nom::multi::many0;
     use nom::number::float;
     use nom::sequence::{delimited, preceded, separated_pair};
@@ -447,7 +454,7 @@ mod parser {
 
     fn target(input: &str) -> IResult<&str, Target> {
         preceded(
-            tag(" at "),
+            whitespace(tag("at ")),
             cut(alt((string.map(Target::Text), point.map(Target::Point)))),
         )
         .parse(input)
@@ -455,8 +462,8 @@ mod parser {
 
     fn mouse_button(input: &str) -> IResult<&str, mouse::Button> {
         alt((
-            tag("left").map(|_| mouse::Button::Left),
             tag("right").map(|_| mouse::Button::Right),
+            success(mouse::Button::Left),
         ))
         .parse(input)
     }
@@ -497,7 +504,7 @@ mod parser {
     }
 
     fn point(input: &str) -> IResult<&str, Point> {
-        let comma = (multispace0, char(','), multispace0);
+        let comma = whitespace(char(','));
 
         map(
             delimited(
@@ -508,5 +515,14 @@ mod parser {
             |(x, y)| Point { x, y },
         )
         .parse(input)
+    }
+
+    pub fn whitespace<'a, O, E: ParseError<&'a str>, F>(
+        inner: F,
+    ) -> impl Parser<&'a str, Output = O, Error = E>
+    where
+        F: Parser<&'a str, Output = O, Error = E>,
+    {
+        delimited(multispace0, inner, multispace0)
     }
 }
