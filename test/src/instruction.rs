@@ -33,18 +33,20 @@ pub enum Interaction {
 }
 
 impl Interaction {
-    pub fn from_event(event: Event) -> Option<Self> {
+    pub fn from_event(event: &Event) -> Option<Self> {
         Some(match event {
             Event::Mouse(mouse) => Self::Mouse(match mouse {
                 mouse::Event::CursorMoved { position } => {
-                    Mouse::Move(Target::Point(position))
+                    Mouse::Move(Target::Point(*position))
                 }
-                mouse::Event::ButtonPressed(button) => {
-                    Mouse::Press { button, at: None }
-                }
-                mouse::Event::ButtonReleased(button) => {
-                    Mouse::Release { button, at: None }
-                }
+                mouse::Event::ButtonPressed(button) => Mouse::Press {
+                    button: *button,
+                    at: None,
+                },
+                mouse::Event::ButtonReleased(button) => Mouse::Release {
+                    button: *button,
+                    at: None,
+                },
                 _ => None?,
             }),
             Event::Keyboard(keyboard) => Self::Keyboard(match keyboard {
@@ -61,7 +63,7 @@ impl Interaction {
                     keyboard::Key::Named(keyboard::key::Named::Backspace) => {
                         Keyboard::Press(Key::Backspace)
                     }
-                    _ => Keyboard::Typewrite(text?.to_string()),
+                    _ => Keyboard::Typewrite(text.as_ref()?.to_string()),
                 },
                 keyboard::Event::KeyReleased { key, .. } => match key {
                     keyboard::Key::Named(keyboard::key::Named::Enter) => {

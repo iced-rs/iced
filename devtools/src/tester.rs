@@ -8,7 +8,7 @@ use crate::core::Length::Fill;
 use crate::core::alignment::Horizontal::Right;
 use crate::core::border;
 use crate::core::window;
-use crate::core::{Element, Event, Font, Size, Theme};
+use crate::core::{Element, Font, Size, Theme};
 use crate::executor;
 use crate::futures::futures::channel::mpsc;
 use crate::icon;
@@ -75,7 +75,7 @@ pub enum Message {
 pub enum Tick<P: Program> {
     Tester(Message),
     Program(P::Message),
-    Recorder(Event),
+    Recorder(instruction::Interaction),
     Emulator(emulator::Event<P>),
 }
 
@@ -316,9 +316,8 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::none()
             }
-            Tick::Recorder(event) => {
-                let mut interaction =
-                    instruction::Interaction::from_event(event);
+            Tick::Recorder(interaction) => {
+                let mut interaction = Some(interaction);
 
                 while let Some(new_interaction) = interaction.take() {
                     if let Some(Instruction::Interact(last_interaction)) =
@@ -441,7 +440,7 @@ impl<P: Program + 'static> Tester<P> {
 
                         Element::from(
                             recorder(themer(theme, view))
-                                .on_event(Tick::Recorder),
+                                .on_record(Tick::Recorder),
                         )
                         .map(emulate)
                     }
