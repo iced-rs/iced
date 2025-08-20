@@ -6,7 +6,6 @@ edition = "2024"
 publish = false
 
 [features]
-default = ["tester"]
 test = ["iced/test"]
 tester = ["test", "iced/tester"]
 
