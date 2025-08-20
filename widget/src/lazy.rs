@@ -2,11 +2,9 @@
 pub(crate) mod helpers;
 
 pub mod component;
-pub mod responsive;
 
 #[allow(deprecated)]
 pub use component::Component;
-pub use responsive::Responsive;
 
 mod cache;
 

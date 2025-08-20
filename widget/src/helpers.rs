@@ -6,7 +6,7 @@ use crate::container::{self, Container};
 use crate::core;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
-use crate::core::{Element, Length, Pixels, Widget};
+use crate::core::{Element, Length, Pixels, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::overlay;
@@ -25,7 +25,9 @@ use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::vertical_slider::{self, VerticalSlider};
-use crate::{Column, Grid, MouseArea, Pin, Row, Sensor, Space, Stack, Themer};
+use crate::{
+    Column, Grid, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer,
+};
 
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
@@ -2139,4 +2141,19 @@ where
     Renderer: core::Renderer,
 {
     Float::new(content)
+}
+
+/// Creates a new [`Responsive`] widget with a closure that produces its
+/// contents.
+///
+/// The `view` closure will be provided with the current [`Size`] of
+/// the [`Responsive`] widget and, therefore, can be used to build the
+/// contents of the widget in a responsive way.
+pub fn responsive<'a, Message, Theme, Renderer>(
+    f: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a,
+) -> Responsive<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    Responsive::new(f)
 }
