@@ -274,7 +274,7 @@ where
     }
 
     pub(crate) fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -282,7 +282,7 @@ where
         let limits = limits.shrink(self.padding);
         let max_size = limits.max();
 
-        let title_layout = self.content.as_widget().layout(
+        let title_layout = self.content.as_widget_mut().layout(
             &mut tree.children[0],
             renderer,
             &layout::Limits::new(Size::ZERO, max_size),
@@ -290,8 +290,8 @@ where
 
         let title_size = title_layout.size();
 
-        let node = if let Some(controls) = &self.controls {
-            let controls_layout = controls.full.as_widget().layout(
+        let node = if let Some(controls) = &mut self.controls {
+            let controls_layout = controls.full.as_widget_mut().layout(
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
@@ -300,8 +300,8 @@ where
             if title_layout.bounds().width + controls_layout.bounds().width
                 > max_size.width
             {
-                if let Some(compact) = controls.compact.as_ref() {
-                    let compact_layout = compact.as_widget().layout(
+                if let Some(compact) = controls.compact.as_mut() {
+                    let compact_layout = compact.as_widget_mut().layout(
                         &mut tree.children[2],
                         renderer,
                         &layout::Limits::new(Size::ZERO, max_size),
@@ -369,7 +369,7 @@ where
     }
 
     pub(crate) fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -382,16 +382,16 @@ where
         let title_layout = children.next().unwrap();
         let mut show_title = true;
 
-        if let Some(controls) = &self.controls {
+        if let Some(controls) = &mut self.controls {
             let controls_layout = children.next().unwrap();
 
             if title_layout.bounds().width + controls_layout.bounds().width
                 > padded.bounds().width
             {
-                if let Some(compact) = controls.compact.as_ref() {
+                if let Some(compact) = controls.compact.as_mut() {
                     let compact_layout = children.next().unwrap();
 
-                    compact.as_widget().operate(
+                    compact.as_widget_mut().operate(
                         &mut tree.children[2],
                         compact_layout,
                         renderer,
@@ -400,7 +400,7 @@ where
                 } else {
                     show_title = false;
 
-                    controls.full.as_widget().operate(
+                    controls.full.as_widget_mut().operate(
                         &mut tree.children[1],
                         controls_layout,
                         renderer,
@@ -408,7 +408,7 @@ where
                     );
                 }
             } else {
-                controls.full.as_widget().operate(
+                controls.full.as_widget_mut().operate(
                     &mut tree.children[1],
                     controls_layout,
                     renderer,
@@ -418,7 +418,7 @@ where
         };
 
         if show_title {
-            self.content.as_widget().operate(
+            self.content.as_widget_mut().operate(
                 &mut tree.children[0],
                 title_layout,
                 renderer,

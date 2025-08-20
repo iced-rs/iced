@@ -232,7 +232,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -265,7 +265,7 @@ where
         let mut y = self.padding_y;
 
         for (i, (cell, state)) in
-            self.cells.iter().zip(&mut tree.children).enumerate()
+            self.cells.iter_mut().zip(&mut tree.children).enumerate()
         {
             let row = i / columns;
             let column = i % columns;
@@ -306,7 +306,7 @@ where
             )
             .width(width);
 
-            let layout = cell.as_widget().layout(state, renderer, &limits);
+            let layout = cell.as_widget_mut().layout(state, renderer, &limits);
             let size = limits.resolve(width, Length::Shrink, layout.size());
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
@@ -344,7 +344,7 @@ where
         let mut y = self.padding_y;
 
         for (i, (cell, state)) in
-            self.cells.iter().zip(&mut tree.children).enumerate()
+            self.cells.iter_mut().zip(&mut tree.children).enumerate()
         {
             let row = i / columns;
             let column = i % columns;
@@ -396,7 +396,7 @@ where
             )
             .width(width);
 
-            let layout = cell.as_widget().layout(state, renderer, &limits);
+            let layout = cell.as_widget_mut().layout(state, renderer, &limits);
             let size = limits.resolve(
                 if let Length::Fixed(_) = width {
                     width
@@ -581,7 +581,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -589,11 +589,12 @@ where
     ) {
         for ((cell, state), layout) in self
             .cells
-            .iter()
+            .iter_mut()
             .zip(&mut tree.children)
             .zip(layout.children())
         {
-            cell.as_widget().operate(state, layout, renderer, operation);
+            cell.as_widget_mut()
+                .operate(state, layout, renderer, operation);
         }
     }
 

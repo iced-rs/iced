@@ -166,27 +166,29 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.with_element(|element| {
-            element
-                .as_widget()
-                .layout(&mut tree.children[0], renderer, limits)
+        self.with_element_mut(|element| {
+            element.as_widget_mut().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            )
         })
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.with_element(|element| {
-            element.as_widget().operate(
+        self.with_element_mut(|element| {
+            element.as_widget_mut().operate(
                 &mut tree.children[0],
                 layout,
                 renderer,

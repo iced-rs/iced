@@ -287,12 +287,12 @@ mod toast {
         }
 
         fn layout(
-            &self,
+            &mut self,
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.content.as_widget().layout(
+            self.content.as_widget_mut().layout(
                 &mut tree.children[0],
                 renderer,
                 limits,
@@ -343,14 +343,14 @@ mod toast {
         }
 
         fn operate(
-            &self,
+            &mut self,
             state: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn Operation,
         ) {
             operation.container(None, layout.bounds(), &mut |operation| {
-                self.content.as_widget().operate(
+                self.content.as_widget_mut().operate(
                     &mut state.children[0],
                     layout,
                     renderer,
@@ -582,12 +582,12 @@ mod toast {
         ) {
             operation.container(None, layout.bounds(), &mut |operation| {
                 self.toasts
-                    .iter()
+                    .iter_mut()
                     .zip(self.state.iter_mut())
                     .zip(layout.children())
                     .for_each(|((child, state), layout)| {
                         child
-                            .as_widget()
+                            .as_widget_mut()
                             .operate(state, layout, renderer, operation);
                     });
             });

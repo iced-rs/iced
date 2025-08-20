@@ -609,12 +609,12 @@ where
         }
 
         fn layout(
-            &self,
+            &mut self,
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.content.as_widget().layout(tree, renderer, limits)
+            self.content.as_widget_mut().layout(tree, renderer, limits)
         }
 
         fn draw(
@@ -633,14 +633,14 @@ where
         }
 
         fn operate(
-            &self,
+            &mut self,
             state: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
             self.content
-                .as_widget()
+                .as_widget_mut()
                 .operate(state, layout, renderer, operation);
         }
 
@@ -772,18 +772,18 @@ where
         }
 
         fn layout(
-            &self,
+            &mut self,
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            let base = self.base.as_widget().layout(
+            let base = self.base.as_widget_mut().layout(
                 &mut tree.children[0],
                 renderer,
                 limits,
             );
 
-            let top = self.top.as_widget().layout(
+            let top = self.top.as_widget_mut().layout(
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, base.size()),
@@ -834,18 +834,20 @@ where
         }
 
         fn operate(
-            &self,
+            &mut self,
             tree: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
-            let children = [&self.base, &self.top]
+            let children = [&mut self.base, &mut self.top]
                 .into_iter()
                 .zip(layout.children().zip(&mut tree.children));
 
             for (child, (layout, tree)) in children {
-                child.as_widget().operate(tree, layout, renderer, operation);
+                child
+                    .as_widget_mut()
+                    .operate(tree, layout, renderer, operation);
             }
         }
 

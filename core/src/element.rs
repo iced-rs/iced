@@ -291,7 +291,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -300,7 +300,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -426,7 +426,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -435,7 +435,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         state: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -554,7 +554,7 @@ where
             }
 
             fn layout(
-                &self,
+                &mut self,
                 _tree: &mut Tree,
                 _renderer: &Renderer,
                 _limits: &layout::Limits,
