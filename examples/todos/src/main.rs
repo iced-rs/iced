@@ -586,10 +586,7 @@ fn presets() -> impl Iterator<Item = iced::application::Preset<Todos, Message>>
 
     [
         Preset::new("Empty", || {
-            (
-                Todos::Loading,
-                Command::done(Message::Loaded(Err(LoadError::File))),
-            )
+            (Todos::Loaded(State::default()), Command::none())
         }),
         Preset::new("Carl Sagan", || {
             (

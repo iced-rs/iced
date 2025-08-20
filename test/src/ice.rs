@@ -51,7 +51,7 @@ impl Ice {
                     );
                 }
                 "mode" => {
-                    mode = Some(match value.trim() {
+                    mode = Some(match value.trim().to_lowercase().as_str() {
                         "patient" => emulator::Mode::Patient,
                         "impatient" => emulator::Mode::Impatient,
                         _ => {
@@ -118,8 +118,8 @@ impl std::fmt::Display for Ice {
             f,
             "mode: {}",
             match self.mode {
-                emulator::Mode::Patient => "patient",
-                emulator::Mode::Impatient => "impatient",
+                emulator::Mode::Patient => "Patient",
+                emulator::Mode::Impatient => "Impatient",
             }
         )?;
 
