@@ -127,7 +127,7 @@ where
         self.with_element(|element| vec![Tree::new(element.as_widget())])
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let current = tree
             .state
             .downcast_mut::<Internal<Message, Theme, Renderer>>();
@@ -146,8 +146,8 @@ where
             current.element = Rc::new(RefCell::new(Some(element)));
 
             (*self.element.borrow_mut()) = Some(current.element.clone());
-            self.with_element(|element| {
-                tree.diff_children(std::slice::from_ref(&element.as_widget()));
+            self.with_element_mut(|element| {
+                tree.diff_children(std::slice::from_mut(element));
             });
         } else {
             (*self.element.borrow_mut()) = Some(current.element.clone());

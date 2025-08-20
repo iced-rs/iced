@@ -9,7 +9,7 @@ use crate::{
     Vector, Widget,
 };
 
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 
 /// A generic [`Widget`].
 ///
@@ -239,6 +239,37 @@ impl<'a, Message, Theme, Renderer>
     }
 }
 
+impl<'a, Message, Theme, Renderer>
+    Borrow<dyn Widget<Message, Theme, Renderer> + 'a>
+    for &mut Element<'a, Message, Theme, Renderer>
+{
+    fn borrow(&self) -> &(dyn Widget<Message, Theme, Renderer> + 'a) {
+        self.widget.borrow()
+    }
+}
+
+impl<'a, Message, Theme, Renderer>
+    BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>
+    for Element<'a, Message, Theme, Renderer>
+{
+    fn borrow_mut(
+        &mut self,
+    ) -> &mut (dyn Widget<Message, Theme, Renderer> + 'a) {
+        self.widget.borrow_mut()
+    }
+}
+
+impl<'a, Message, Theme, Renderer>
+    BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>
+    for &mut Element<'a, Message, Theme, Renderer>
+{
+    fn borrow_mut(
+        &mut self,
+    ) -> &mut (dyn Widget<Message, Theme, Renderer> + 'a) {
+        self.widget.borrow_mut()
+    }
+}
+
 struct Map<'a, A, B, Theme, Renderer> {
     widget: Box<dyn Widget<A, Theme, Renderer> + 'a>,
     mapper: Box<dyn Fn(A) -> B + 'a>,
@@ -278,7 +309,7 @@ where
         self.widget.children()
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         self.widget.diff(tree);
     }
 
@@ -421,7 +452,7 @@ where
         self.element.widget.children()
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         self.element.widget.diff(tree);
     }
 

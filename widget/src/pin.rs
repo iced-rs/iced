@@ -127,8 +127,8 @@ where
         self.content.as_widget().children()
     }
 
-    fn diff(&self, tree: &mut widget::Tree) {
-        self.content.as_widget().diff(tree);
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        self.content.as_widget_mut().diff(tree);
     }
 
     fn size(&self) -> Size<Length> {

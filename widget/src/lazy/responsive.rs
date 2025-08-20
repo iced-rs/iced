@@ -82,7 +82,7 @@ where
         let size = limits.max();
 
         self.content = (self.view)(size);
-        state.tree.diff(&self.content);
+        state.tree.diff(&mut self.content);
 
         self.content.as_widget_mut().layout(
             &mut state.tree,
