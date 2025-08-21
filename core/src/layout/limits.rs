@@ -6,6 +6,7 @@ use crate::{Length, Size};
 pub struct Limits {
     min: Size,
     max: Size,
+    compress: Size<bool>,
 }
 
 impl Limits {
@@ -13,11 +14,16 @@ impl Limits {
     pub const NONE: Limits = Limits {
         min: Size::ZERO,
         max: Size::INFINITE,
+        compress: Size::new(false, false),
     };
 
     /// Creates new [`Limits`] with the given minimum and maximum [`Size`].
     pub const fn new(min: Size, max: Size) -> Limits {
-        Limits { min, max }
+        Limits {
+            min,
+            max,
+            compress: Size::new(false, false),
+        }
     }
 
     /// Returns the minimum [`Size`] of the [`Limits`].
@@ -33,13 +39,17 @@ impl Limits {
     /// Applies a width constraint to the current [`Limits`].
     pub fn width(mut self, width: impl Into<Length>) -> Limits {
         match width.into() {
-            Length::Shrink | Length::Fill | Length::FillPortion(_) => {}
+            Length::Shrink => {
+                self.compress.width = true;
+            }
             Length::Fixed(amount) => {
                 let new_width = amount.min(self.max.width).max(self.min.width);
 
                 self.min.width = new_width;
                 self.max.width = new_width;
+                self.compress.width = false;
             }
+            Length::Fill | Length::FillPortion(_) => {}
         }
 
         self
@@ -48,14 +58,18 @@ impl Limits {
     /// Applies a height constraint to the current [`Limits`].
     pub fn height(mut self, height: impl Into<Length>) -> Limits {
         match height.into() {
-            Length::Shrink | Length::Fill | Length::FillPortion(_) => {}
+            Length::Shrink => {
+                self.compress.height = true;
+            }
             Length::Fixed(amount) => {
                 let new_height =
                     amount.min(self.max.height).max(self.min.height);
 
                 self.min.height = new_height;
                 self.max.height = new_height;
+                self.compress.height = false;
             }
+            Length::Fill | Length::FillPortion(_) => {}
         }
 
         self
@@ -103,7 +117,11 @@ impl Limits {
             (self.max().height - size.height).max(0.0),
         );
 
-        Limits { min, max }
+        Limits {
+            min,
+            max,
+            compress: self.compress,
+        }
     }
 
     /// Removes the minimum width constraint for the current [`Limits`].
@@ -111,6 +129,7 @@ impl Limits {
         Limits {
             min: Size::ZERO,
             max: self.max,
+            compress: self.compress,
         }
     }
 
@@ -124,21 +143,23 @@ impl Limits {
         intrinsic_size: Size,
     ) -> Size {
         let width = match width.into() {
-            Length::Fill | Length::FillPortion(_) => self.max.width,
+            Length::Fill | Length::FillPortion(_) if !self.compress.width => {
+                self.max.width
+            }
             Length::Fixed(amount) => {
                 amount.min(self.max.width).max(self.min.width)
             }
-            Length::Shrink => {
-                intrinsic_size.width.min(self.max.width).max(self.min.width)
-            }
+            _ => intrinsic_size.width.min(self.max.width).max(self.min.width),
         };
 
         let height = match height.into() {
-            Length::Fill | Length::FillPortion(_) => self.max.height,
+            Length::Fill | Length::FillPortion(_) if !self.compress.height => {
+                self.max.height
+            }
             Length::Fixed(amount) => {
                 amount.min(self.max.height).max(self.min.height)
             }
-            Length::Shrink => intrinsic_size
+            _ => intrinsic_size
                 .height
                 .min(self.max.height)
                 .max(self.min.height),
