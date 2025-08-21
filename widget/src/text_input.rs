@@ -297,7 +297,7 @@ where
     ///
     /// [`Renderer`]: text::Renderer
     pub fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -654,7 +654,7 @@ where
         tree::State::new(State::<Renderer::Paragraph>::new())
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         // Stop pasting if input becomes disabled
@@ -671,7 +671,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -680,7 +680,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,

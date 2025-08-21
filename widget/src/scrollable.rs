@@ -409,8 +409,8 @@ where
         vec![Tree::new(&self.content)]
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content));
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content));
     }
 
     fn size(&self) -> Size<Length> {
@@ -421,7 +421,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -453,7 +453,7 @@ where
                         ),
                     );
 
-                    self.content.as_widget().layout(
+                    self.content.as_widget_mut().layout(
                         &mut tree.children[0],
                         renderer,
                         &child_limits,
@@ -527,7 +527,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -553,7 +553,7 @@ where
             self.id.as_ref().map(|id| &id.0),
             bounds,
             &mut |operation| {
-                self.content.as_widget().operate(
+                self.content.as_widget_mut().operate(
                     &mut tree.children[0],
                     layout.children().next().unwrap(),
                     renderer,

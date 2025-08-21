@@ -146,8 +146,8 @@ where
         self.children.iter().map(Tree::new).collect()
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children);
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(&mut self.children);
     }
 
     fn size(&self) -> Size<Length> {
@@ -158,7 +158,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -173,7 +173,7 @@ where
             ));
         }
 
-        let base = self.children[0].as_widget().layout(
+        let base = self.children[0].as_widget_mut().layout(
             &mut tree.children[0],
             renderer,
             &limits,
@@ -183,18 +183,21 @@ where
         let limits = layout::Limits::new(Size::ZERO, size);
 
         let nodes = std::iter::once(base)
-            .chain(self.children[1..].iter().zip(&mut tree.children[1..]).map(
-                |(layer, tree)| {
-                    layer.as_widget().layout(tree, renderer, &limits)
-                },
-            ))
+            .chain(
+                self.children[1..]
+                    .iter_mut()
+                    .zip(&mut tree.children[1..])
+                    .map(|(layer, tree)| {
+                        layer.as_widget_mut().layout(tree, renderer, &limits)
+                    }),
+            )
             .collect();
 
         layout::Node::with_children(size, nodes)
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -202,12 +205,12 @@ where
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
             self.children
-                .iter()
+                .iter_mut()
                 .zip(&mut tree.children)
                 .zip(layout.children())
                 .for_each(|((child, state), layout)| {
                     child
-                        .as_widget()
+                        .as_widget_mut()
                         .operate(state, layout, renderer, operation);
                 });
         });

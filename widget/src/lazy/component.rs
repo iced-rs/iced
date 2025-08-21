@@ -147,13 +147,13 @@ where
     Renderer: renderer::Renderer,
 {
     fn diff_self(&self) {
-        self.with_element(|element| {
+        self.with_element_mut(|element| {
             self.tree
                 .borrow_mut()
                 .borrow_mut()
                 .as_mut()
                 .unwrap()
-                .diff_children(std::slice::from_ref(&element));
+                .diff_children(std::slice::from_mut(element));
         });
     }
 
@@ -279,7 +279,7 @@ where
         vec![]
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
         *self.tree.borrow_mut() = tree.clone();
         self.rebuild_element_if_necessary();
@@ -299,15 +299,15 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
 
-        self.with_element(|element| {
-            element.as_widget().layout(
+        self.with_element_mut(|element| {
+            element.as_widget_mut().layout(
                 &mut t.borrow_mut().as_mut().unwrap().children[0],
                 renderer,
                 limits,
@@ -378,7 +378,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -387,8 +387,8 @@ where
         self.rebuild_element_with_operation(layout, operation);
 
         let tree = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
-        self.with_element(|element| {
-            element.as_widget().operate(
+        self.with_element_mut(|element| {
+            element.as_widget_mut().operate(
                 &mut tree.borrow_mut().as_mut().unwrap().children[0],
                 layout,
                 renderer,

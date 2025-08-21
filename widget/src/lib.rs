@@ -12,6 +12,7 @@ mod action;
 mod column;
 mod mouse_area;
 mod pin;
+mod responsive;
 mod space;
 mod stack;
 mod themer;
@@ -77,6 +78,8 @@ pub use pin::Pin;
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
 pub use radio::Radio;
+#[doc(no_inline)]
+pub use responsive::Responsive;
 #[doc(no_inline)]
 pub use row::Row;
 #[doc(no_inline)]
