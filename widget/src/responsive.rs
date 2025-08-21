@@ -22,6 +22,8 @@ pub struct Responsive<
     Renderer = crate::Renderer,
 > {
     view: Box<dyn Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a>,
+    width: Length,
+    height: Length,
     content: Element<'a, Message, Theme, Renderer>,
 }
 
@@ -32,16 +34,30 @@ where
     /// Creates a new [`Responsive`] widget with a closure that produces its
     /// contents.
     ///
-    /// The `view` closure will be provided with the current [`Size`] of
-    /// the [`Responsive`] widget and, therefore, can be used to build the
-    /// contents of the widget in a responsive way.
+    /// The `view` closure will receive the maximum available space for
+    /// the [`Responsive`] during layout. You can use this [`Size`] to
+    /// conditionally build the contents.
     pub fn new(
         view: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a,
     ) -> Self {
         Self {
             view: Box::new(view),
+            width: Length::Fill,
+            height: Length::Fill,
             content: Element::new(horizontal_space().width(0)),
         }
+    }
+
+    /// Sets the width of the [`Responsive`].
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
+        self
+    }
+
+    /// Sets the height of the [`Responsive`].
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
+        self
     }
 }
 
@@ -61,8 +77,8 @@ where
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: Length::Fill,
-            height: Length::Fill,
+            width: self.width,
+            height: self.height,
         }
     }
 
@@ -72,16 +88,21 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let limits = limits.width(self.width).height(self.height);
         let size = limits.max();
 
         self.content = (self.view)(size);
         tree.diff_children(std::slice::from_mut(&mut self.content));
 
-        self.content.as_widget_mut().layout(
+        let node = self.content.as_widget_mut().layout(
             &mut tree.children[0],
             renderer,
             &limits.loose(),
-        )
+        );
+
+        let size = limits.resolve(self.width, self.height, node.size());
+
+        layout::Node::with_children(size, vec![node])
     }
 
     fn update(
@@ -98,7 +119,7 @@ where
         self.content.as_widget_mut().update(
             &mut tree.children[0],
             event,
-            layout,
+            layout.children().next().unwrap(),
             cursor,
             renderer,
             clipboard,
@@ -122,7 +143,7 @@ where
             renderer,
             theme,
             style,
-            layout,
+            layout.children().next().unwrap(),
             cursor,
             viewport,
         );
@@ -138,7 +159,7 @@ where
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
             &tree.children[0],
-            layout,
+            layout.children().next().unwrap(),
             cursor,
             viewport,
             renderer,
@@ -154,7 +175,7 @@ where
     ) {
         self.content.as_widget_mut().operate(
             &mut tree.children[0],
-            layout,
+            layout.children().next().unwrap(),
             renderer,
             operation,
         );
@@ -170,7 +191,7 @@ where
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
-            layout,
+            layout.children().next().unwrap(),
             renderer,
             viewport,
             translation,

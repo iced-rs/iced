@@ -2146,9 +2146,9 @@ where
 /// Creates a new [`Responsive`] widget with a closure that produces its
 /// contents.
 ///
-/// The `view` closure will be provided with the current [`Size`] of
-/// the [`Responsive`] widget and, therefore, can be used to build the
-/// contents of the widget in a responsive way.
+/// The `view` closure will receive the maximum available space for
+/// the [`Responsive`] during layout. You can use this [`Size`] to
+/// conditionally build the contents.
 pub fn responsive<'a, Message, Theme, Renderer>(
     f: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a,
 ) -> Responsive<'a, Message, Theme, Renderer>
