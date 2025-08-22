@@ -317,6 +317,9 @@ pub fn window_event(
 
             Some(Event::Window(window::Event::Moved(Point::new(x, y))))
         }
+        WindowEvent::ScaleFactorChanged { scale_factor, .. } => Some(
+            Event::Window(window::Event::ScaleFactorChanged(scale_factor)),
+        ),
         _ => None,
     }
 }
