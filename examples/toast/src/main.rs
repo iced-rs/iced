@@ -349,7 +349,8 @@ mod toast {
             renderer: &Renderer,
             operation: &mut dyn Operation,
         ) {
-            operation.container(None, layout.bounds(), &mut |operation| {
+            operation.container(None, layout.bounds());
+            operation.traverse(&mut |operation| {
                 self.content.as_widget().operate(
                     &mut state.children[0],
                     layout,
@@ -580,7 +581,8 @@ mod toast {
             renderer: &Renderer,
             operation: &mut dyn widget::Operation,
         ) {
-            operation.container(None, layout.bounds(), &mut |operation| {
+            operation.container(None, layout.bounds());
+            operation.traverse(&mut |operation| {
                 self.toasts
                     .iter()
                     .zip(self.state.iter_mut())

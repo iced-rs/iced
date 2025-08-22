@@ -1,4 +1,3 @@
-use crate::Instruction;
 use crate::core;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -17,6 +16,7 @@ use crate::runtime::user_interface;
 use crate::runtime::window;
 use crate::runtime::{Action, Task, UserInterface};
 use crate::selector;
+use crate::{Instruction, Selector};
 
 use std::fmt;
 
@@ -216,10 +216,10 @@ impl<P: Program + 'static> Emulator<P> {
                 let Some(events) = interaction.events(|target| match target {
                     instruction::Target::Point(position) => Some(*position),
                     instruction::Target::Text(text) => {
+                        use selector::target::Bounded;
                         use widget::Operation;
 
-                        let mut operation =
-                            selector::text(text.to_owned()).operation();
+                        let mut operation = Selector::find(text.as_str());
 
                         user_interface.operate(
                             &self.renderer,
@@ -227,11 +227,8 @@ impl<P: Program + 'static> Emulator<P> {
                         );
 
                         match operation.finish() {
-                            widget::operation::Outcome::Some(matches) => {
-                                matches
-                                    .first()
-                                    .copied()
-                                    .map(|target| target.bounds.center())
+                            widget::operation::Outcome::Some(text) => {
+                                Some(text?.visible_bounds()?.center())
                             }
                             _ => None,
                         }
@@ -273,7 +270,7 @@ impl<P: Program + 'static> Emulator<P> {
                 instruction::Expectation::Text(text) => {
                     use widget::Operation;
 
-                    let mut operation = selector::text(text).operation();
+                    let mut operation = Selector::find(text.as_str());
 
                     user_interface.operate(
                         &self.renderer,
@@ -281,9 +278,7 @@ impl<P: Program + 'static> Emulator<P> {
                     );
 
                     match operation.finish() {
-                        widget::operation::Outcome::Some(matches)
-                            if matches.len() == 1 =>
-                        {
+                        widget::operation::Outcome::Some(Some(_text)) => {
                             self.runtime.send(Event::Ready);
                         }
                         _ => {

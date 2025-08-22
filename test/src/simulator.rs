@@ -12,13 +12,14 @@ use crate::core::{Element, Event, Font, Point, Settings, Size, SmolStr};
 use crate::renderer;
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
-use crate::selector;
+use crate::selector::target::Bounded;
 use crate::{Error, Selector};
 
 use std::borrow::Cow;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 /// A user interface that can be interacted with and inspected programmatically.
 #[allow(missing_debug_implementations)]
@@ -100,14 +101,15 @@ where
     }
 
     /// Finds the [`Target`] of the given widget [`Selector`] in the [`Simulator`].
-    pub fn find(
-        &mut self,
-        selector: impl Into<Selector>,
-    ) -> Result<selector::Target, Error> {
+    pub fn find<S>(&mut self, selector: S) -> Result<S::Output, Error>
+    where
+        S: Selector + Send,
+        S::Output: Clone + Send,
+    {
         use widget::Operation;
 
-        let selector = selector.into();
-        let mut operation = selector.operation();
+        let description = selector.description();
+        let mut operation = selector.find();
 
         self.raw.operate(
             &self.renderer,
@@ -115,10 +117,14 @@ where
         );
 
         match operation.finish() {
-            widget::operation::Outcome::Some(matches) => {
-                matches.first().copied().ok_or(Error::NotFound(selector))
+            widget::operation::Outcome::Some(output) => {
+                output.ok_or(Error::NotFound {
+                    selector: description,
+                })
             }
-            _ => Err(Error::NotFound(selector)),
+            _ => Err(Error::NotFound {
+                selector: description,
+            }),
         }
     }
 
@@ -134,12 +140,20 @@ where
     /// This consists in:
     /// - Pointing the mouse cursor at the center of the [`Target`].
     /// - Simulating a [`click`].
-    pub fn click(
-        &mut self,
-        selector: impl Into<Selector>,
-    ) -> Result<selector::Target, Error> {
+    pub fn click<S>(&mut self, selector: S) -> Result<S::Output, Error>
+    where
+        S: Selector + Send,
+        S::Output: Bounded + Clone + Send + Sync + 'static,
+    {
         let target = self.find(selector)?;
-        self.point_at(target.bounds.center());
+
+        let Some(visible_bounds) = target.visible_bounds() else {
+            return Err(Error::NotVisible {
+                target: Arc::new(target),
+            });
+        };
+
+        self.point_at(visible_bounds.center());
 
         let _ = self.simulate(click());
 

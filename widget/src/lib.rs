@@ -8,6 +8,8 @@ pub use iced_renderer::graphics;
 pub use iced_runtime as runtime;
 pub use iced_runtime::core;
 
+pub use core::widget::Id;
+
 mod action;
 mod column;
 mod mouse_area;

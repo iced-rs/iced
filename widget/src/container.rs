@@ -31,10 +31,10 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
     self, Background, Clipboard, Color, Element, Event, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
-    Widget, color,
+    Padding, Pixels, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    color,
 };
-use crate::runtime::task::{self, Task};
+use crate::runtime::Task;
 
 /// A widget that aligns its contents inside of its boundaries.
 ///
@@ -284,18 +284,15 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            layout.bounds(),
-            &mut |operation| {
-                self.content.as_widget().operate(
-                    tree,
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.container(self.id.as_ref().map(|id| &id.0), layout.bounds());
+        operation.traverse(&mut |operation| {
+            self.content.as_widget().operate(
+                tree,
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn update(
@@ -492,94 +489,8 @@ impl From<&'static str> for Id {
 
 /// Produces a [`Task`] that queries the visible screen bounds of the
 /// [`Container`] with the given [`Id`].
-pub fn visible_bounds(id: impl Into<Id>) -> Task<Option<Rectangle>> {
-    let id = id.into();
-
-    struct VisibleBounds {
-        target: widget::Id,
-        depth: usize,
-        scrollables: Vec<(Vector, Rectangle, usize)>,
-        bounds: Option<Rectangle>,
-    }
-
-    impl Operation<Option<Rectangle>> for VisibleBounds {
-        fn scrollable(
-            &mut self,
-            _id: Option<&widget::Id>,
-            bounds: Rectangle,
-            _content_bounds: Rectangle,
-            translation: Vector,
-            _state: &mut dyn widget::operation::Scrollable,
-        ) {
-            match self.scrollables.last() {
-                Some((last_translation, last_viewport, _depth)) => {
-                    let viewport = last_viewport
-                        .intersection(&(bounds - *last_translation))
-                        .unwrap_or(Rectangle::new(Point::ORIGIN, Size::ZERO));
-
-                    self.scrollables.push((
-                        translation + *last_translation,
-                        viewport,
-                        self.depth,
-                    ));
-                }
-                None => {
-                    self.scrollables.push((translation, bounds, self.depth));
-                }
-            }
-        }
-
-        fn container(
-            &mut self,
-            id: Option<&widget::Id>,
-            bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(
-                &mut dyn Operation<Option<Rectangle>>,
-            ),
-        ) {
-            if self.bounds.is_some() {
-                return;
-            }
-
-            if id == Some(&self.target) {
-                match self.scrollables.last() {
-                    Some((translation, viewport, _)) => {
-                        self.bounds =
-                            viewport.intersection(&(bounds - *translation));
-                    }
-                    None => {
-                        self.bounds = Some(bounds);
-                    }
-                }
-
-                return;
-            }
-
-            self.depth += 1;
-
-            operate_on_children(self);
-
-            self.depth -= 1;
-
-            match self.scrollables.last() {
-                Some((_, _, depth)) if self.depth == *depth => {
-                    let _ = self.scrollables.pop();
-                }
-                _ => {}
-            }
-        }
-
-        fn finish(&self) -> widget::operation::Outcome<Option<Rectangle>> {
-            widget::operation::Outcome::Some(self.bounds)
-        }
-    }
-
-    task::widget(VisibleBounds {
-        target: id.into(),
-        depth: 0,
-        scrollables: Vec::new(),
-        bounds: None,
-    })
+pub fn visible_bounds(_id: impl Into<Id>) -> Task<Option<Rectangle>> {
+    todo!()
 }
 
 /// The appearance of a container.

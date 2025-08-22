@@ -549,18 +549,14 @@ where
             state,
         );
 
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            bounds,
-            &mut |operation| {
-                self.content.as_widget().operate(
-                    &mut tree.children[0],
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.traverse(&mut |operation| {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn update(

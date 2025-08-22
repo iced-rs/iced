@@ -127,7 +127,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        operation.container(None, layout.bounds(), &mut |operation| {
+        operation.traverse(&mut |operation| {
             self.children.iter_mut().zip(layout.children()).for_each(
                 |(child, layout)| {
                     child.as_overlay_mut().operate(layout, renderer, operation);

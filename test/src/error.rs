@@ -1,5 +1,3 @@
-use crate::Selector;
-
 use std::io;
 use std::sync::Arc;
 
@@ -7,8 +5,12 @@ use std::sync::Arc;
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
     /// No matching widget was found for the [`Selector`].
-    #[error("no matching widget was found for the selector: {0:?}")]
-    NotFound(Selector),
+    #[error("no matching widget was found for the selector: {selector}")]
+    NotFound { selector: String },
+    #[error("the matching target is not visible: {target:?}")]
+    NotVisible {
+        target: Arc<dyn std::fmt::Debug + Send + Sync>,
+    },
     /// An IO operation failed.
     #[error("an IO operation failed: {0}")]
     IOFailed(Arc<io::Error>),

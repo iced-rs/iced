@@ -468,7 +468,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        operation.container(None, layout.bounds(), &mut |operation| {
+        operation.container(None, layout.bounds());
+        operation.traverse(&mut |operation| {
             self.panes
                 .iter()
                 .copied()

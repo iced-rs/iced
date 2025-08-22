@@ -2628,12 +2628,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "iced_selector"
+version = "0.14.0-dev"
+dependencies = [
+ "iced_core",
+]
+
+[[package]]
 name = "iced_test"
 version = "0.14.0-dev"
 dependencies = [
  "iced_program",
  "iced_renderer",
  "iced_runtime",
+ "iced_selector",
  "nom 8.0.0",
  "png",
  "sha2",

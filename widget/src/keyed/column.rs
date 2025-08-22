@@ -284,7 +284,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds(), &mut |operation| {
+        operation.container(None, layout.bounds());
+        operation.traverse(&mut |operation| {
             self.children
                 .iter()
                 .zip(&mut tree.children)
