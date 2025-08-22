@@ -6,7 +6,7 @@ pub use tracker::Tracker;
 use crate::core::event;
 use crate::core::window;
 use crate::futures::Stream;
-use crate::{BoxStream, MaybeSend};
+use crate::{BoxStream, MaybeSend, MaybeSync};
 
 use std::any::TypeId;
 use std::hash::Hash;
@@ -286,6 +286,36 @@ impl<T> Subscription<T> {
         }
     }
 
+    /// Transforms the [`Subscription`] output with the given function, yielding only
+    /// values only when the function returns `Some(value)`.
+    ///
+    /// # Panics
+    /// The closure provided must be a non-capturing closure. The method
+    /// will panic in debug mode otherwise.
+    pub fn filter_map<F, A>(mut self, f: F) -> Subscription<A>
+    where
+        T: MaybeSend + 'static,
+        F: Fn(T) -> Option<A> + MaybeSend + MaybeSync + Clone + 'static,
+        A: MaybeSend + 'static,
+    {
+        debug_assert!(
+            std::mem::size_of::<F>() == 0,
+            "the closure {} provided in `Subscription::filter_map` is capturing",
+            std::any::type_name::<F>(),
+        );
+
+        Subscription {
+            recipes: self
+                .recipes
+                .drain(..)
+                .map(move |recipe| {
+                    Box::new(FilterMap::new(recipe, f.clone()))
+                        as Box<dyn Recipe<Output = A>>
+                })
+                .collect(),
+        }
+    }
+
     /// Returns the amount of recipe units in this [`Subscription`].
     pub fn units(&self) -> usize {
         self.recipes.len()
@@ -382,6 +412,50 @@ where
         let mapper = self.mapper;
 
         Box::pin(self.recipe.stream(input).map(mapper))
+    }
+}
+
+struct FilterMap<A, B, F>
+where
+    F: Fn(A) -> Option<B> + 'static,
+{
+    recipe: Box<dyn Recipe<Output = A>>,
+    mapper: F,
+}
+
+impl<A, B, F> FilterMap<A, B, F>
+where
+    F: Fn(A) -> Option<B> + 'static,
+{
+    fn new(recipe: Box<dyn Recipe<Output = A>>, mapper: F) -> Self {
+        FilterMap { recipe, mapper }
+    }
+}
+
+impl<A, B, F> Recipe for FilterMap<A, B, F>
+where
+    A: 'static,
+    B: 'static + MaybeSend,
+    F: Fn(A) -> Option<B> + MaybeSend,
+{
+    type Output = B;
+
+    fn hash(&self, state: &mut Hasher) {
+        TypeId::of::<F>().hash(state);
+        self.recipe.hash(state);
+    }
+
+    fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
+        use futures::StreamExt;
+        use futures::future;
+
+        let mapper = self.mapper;
+
+        Box::pin(
+            self.recipe
+                .stream(input)
+                .filter_map(move |a| future::ready(mapper(a))),
+        )
     }
 }
 
