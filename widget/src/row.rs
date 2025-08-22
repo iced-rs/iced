@@ -417,6 +417,7 @@ where
             .height(self.row.height)
             .shrink(self.row.padding);
 
+        let child_limits = limits.loose();
         let spacing = self.row.spacing;
         let vertical_spacing = self.vertical_spacing.unwrap_or(spacing);
         let max_width = limits.max().width;
@@ -453,7 +454,7 @@ where
             let node = child.as_widget_mut().layout(
                 &mut tree.children[i],
                 renderer,
-                &limits,
+                &child_limits,
             );
 
             let child_size = node.size();
