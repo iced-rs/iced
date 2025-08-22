@@ -471,7 +471,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -509,7 +509,7 @@ where
         vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _, _>)]
     }
 
-    fn diff(&self, _tree: &mut widget::Tree) {
+    fn diff(&mut self, _tree: &mut widget::Tree) {
         // do nothing so the children don't get cleared
     }
 

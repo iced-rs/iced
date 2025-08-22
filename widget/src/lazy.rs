@@ -2,11 +2,9 @@
 pub(crate) mod helpers;
 
 pub mod component;
-pub mod responsive;
 
 #[allow(deprecated)]
 pub use component::Component;
-pub use responsive::Responsive;
 
 mod cache;
 
@@ -127,7 +125,7 @@ where
         self.with_element(|element| vec![Tree::new(element.as_widget())])
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let current = tree
             .state
             .downcast_mut::<Internal<Message, Theme, Renderer>>();
@@ -146,8 +144,8 @@ where
             current.element = Rc::new(RefCell::new(Some(element)));
 
             (*self.element.borrow_mut()) = Some(current.element.clone());
-            self.with_element(|element| {
-                tree.diff_children(std::slice::from_ref(&element.as_widget()));
+            self.with_element_mut(|element| {
+                tree.diff_children(std::slice::from_mut(element));
             });
         } else {
             (*self.element.borrow_mut()) = Some(current.element.clone());
@@ -166,27 +164,29 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.with_element(|element| {
-            element
-                .as_widget()
-                .layout(&mut tree.children[0], renderer, limits)
+        self.with_element_mut(|element| {
+            element.as_widget_mut().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            )
         })
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.with_element(|element| {
-            element.as_widget().operate(
+        self.with_element_mut(|element| {
+            element.as_widget_mut().operate(
                 &mut tree.children[0],
                 layout,
                 renderer,

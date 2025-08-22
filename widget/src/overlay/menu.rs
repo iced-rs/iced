@@ -205,7 +205,7 @@ where
             class,
         } = menu;
 
-        let list = Scrollable::new(List {
+        let mut list = Scrollable::new(List {
             options,
             hovered_option,
             on_selected,
@@ -218,7 +218,7 @@ where
             class,
         });
 
-        state.tree.diff(&list as &dyn Widget<_, _, _>);
+        state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
 
         Self {
             position,
@@ -369,7 +369,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,

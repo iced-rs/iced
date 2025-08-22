@@ -1,10 +1,10 @@
-use crate::core::{self, Element, Size};
+use crate::core::{self, Element};
 use crate::lazy::component;
 
 use std::hash::Hash;
 
 #[allow(deprecated)]
-pub use crate::lazy::{Component, Lazy, Responsive};
+pub use crate::lazy::{Component, Lazy};
 
 /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
 /// closure that can turn this data into a widget tree.
@@ -40,20 +40,4 @@ where
     Renderer: core::Renderer + 'a,
 {
     component::view(component)
-}
-
-/// Creates a new [`Responsive`] widget with a closure that produces its
-/// contents.
-///
-/// The `view` closure will be provided with the current [`Size`] of
-/// the [`Responsive`] widget and, therefore, can be used to build the
-/// contents of the widget in a responsive way.
-#[cfg(feature = "lazy")]
-pub fn responsive<'a, Message, Theme, Renderer>(
-    f: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a,
-) -> Responsive<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
-    Responsive::new(f)
 }
