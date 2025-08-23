@@ -129,6 +129,19 @@ impl Interaction {
                             None,
                         )
                     }
+                    (
+                        Mouse::Click {
+                            button,
+                            at: Some(click_at),
+                        },
+                        Mouse::Move(move_at),
+                    ) if click_at == move_at => (
+                        Self::Mouse(Mouse::Click {
+                            button,
+                            at: Some(click_at),
+                        }),
+                        None,
+                    ),
                     (current, next) => {
                         (Self::Mouse(current), Some(Self::Mouse(next)))
                     }

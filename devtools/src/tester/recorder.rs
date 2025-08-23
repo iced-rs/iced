@@ -3,26 +3,29 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
+use crate::core::widget::operation;
 use crate::core::widget::tree;
 use crate::core::{
     self, Clipboard, Element, Event, Layout, Length, Point, Rectangle, Shell,
-    Size, Vector, Widget,
+    Size, Theme, Vector, Widget,
 };
-use crate::test::instruction::Interaction;
+use crate::test::Selector;
+use crate::test::instruction::{Interaction, Mouse, Target};
+use crate::test::selector::target;
 
-pub fn recorder<'a, Message, Theme, Renderer>(
+pub fn recorder<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Recorder<'a, Message, Theme, Renderer> {
+) -> Recorder<'a, Message, Renderer> {
     Recorder::new(content)
 }
 
 #[allow(missing_debug_implementations)]
-pub struct Recorder<'a, Message, Theme, Renderer> {
+pub struct Recorder<'a, Message, Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
     on_record: Option<Box<dyn Fn(Interaction) -> Message + 'a>>,
 }
 
-impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
+impl<'a, Message, Renderer> Recorder<'a, Message, Renderer> {
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -41,14 +44,46 @@ impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Recorder<'_, Message, Theme, Renderer>
+struct State {
+    last_hovered: Option<Rectangle>,
+    last_hovered_overlay: Option<Rectangle>,
+}
+
+impl<Message, Renderer> Widget<Message, Theme, Renderer>
+    for Recorder<'_, Message, Renderer>
 where
     Renderer: core::Renderer,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State {
+            last_hovered: None,
+            last_hovered_overlay: None,
+        })
+    }
+
+    fn children(&self) -> Vec<widget::Tree> {
+        vec![widget::Tree::new(&self.content)]
+    }
+
+    fn diff(&self, tree: &mut tree::Tree) {
+        tree.diff_children(std::slice::from_ref(&self.content));
+    }
+
+    fn size(&self) -> Size<Length> {
+        self.content.as_widget().size()
+    }
+
+    fn size_hint(&self) -> Size<Length> {
+        self.content.as_widget().size_hint()
+    }
+
     fn update(
         &mut self,
-        state: &mut widget::Tree,
+        tree: &mut widget::Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -61,37 +96,43 @@ where
             return;
         }
 
-        self.content.as_widget_mut().update(
-            state, event, layout, cursor, renderer, clipboard, shell, viewport,
-        );
-
         if let Some(on_record) = &self.on_record {
-            record(event, cursor, shell, layout.bounds(), on_record);
+            let state = tree.state.downcast_mut::<State>();
+
+            record(
+                event,
+                cursor,
+                shell,
+                layout.bounds(),
+                &mut state.last_hovered,
+                on_record,
+                |position| {
+                    use widget::Operation;
+
+                    let mut selector = position.find_all();
+
+                    self.content.as_widget_mut().operate(
+                        &mut tree.children[0],
+                        layout,
+                        renderer,
+                        &mut operation::black_box(&mut selector),
+                    );
+
+                    selector.finish()
+                },
+            );
         }
-    }
 
-    fn tag(&self) -> tree::Tag {
-        self.content.as_widget().tag()
-    }
-
-    fn state(&self) -> tree::State {
-        self.content.as_widget().state()
-    }
-
-    fn children(&self) -> Vec<widget::Tree> {
-        self.content.as_widget().children()
-    }
-
-    fn diff(&self, tree: &mut tree::Tree) {
-        self.content.as_widget().diff(tree);
-    }
-
-    fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
-    }
-
-    fn size_hint(&self) -> Size<Length> {
-        self.content.as_widget().size_hint()
+        self.content.as_widget_mut().update(
+            &mut tree.children[0],
+            event,
+            layout,
+            cursor,
+            renderer,
+            clipboard,
+            shell,
+            viewport,
+        );
     }
 
     fn layout(
@@ -100,7 +141,9 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content.as_widget().layout(tree, renderer, limits)
+        self.content
+            .as_widget()
+            .layout(&mut tree.children[0], renderer, limits)
     }
 
     fn draw(
@@ -113,39 +156,70 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.content
-            .as_widget()
-            .draw(tree, renderer, theme, style, layout, cursor, viewport);
+        self.content.as_widget().draw(
+            &tree.children[0],
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor,
+            viewport,
+        );
+
+        let state = tree.state.downcast_ref::<State>();
+
+        let Some(last_hovered) = &state.last_hovered else {
+            return;
+        };
+
+        let palette = theme.palette();
+
+        renderer.with_layer(*viewport, |renderer| {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: *last_hovered,
+                    ..renderer::Quad::default()
+                },
+                palette.primary.scale_alpha(0.5),
+            );
+        });
     }
 
     fn mouse_interaction(
         &self,
-        state: &widget::Tree,
+        tree: &widget::Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content
-            .as_widget()
-            .mouse_interaction(state, layout, cursor, viewport, renderer)
+        self.content.as_widget().mouse_interaction(
+            &tree.children[0],
+            layout,
+            cursor,
+            viewport,
+            renderer,
+        )
     }
 
     fn operate(
         &self,
-        state: &mut widget::Tree,
+        tree: &mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content
-            .as_widget()
-            .operate(state, layout, renderer, operation);
+        self.content.as_widget().operate(
+            &mut tree.children[0],
+            layout,
+            renderer,
+            operation,
+        );
     }
 
     fn overlay<'a>(
         &'a mut self,
-        state: &'a mut widget::Tree,
+        tree: &'a mut widget::Tree,
         layout: Layout<'a>,
         renderer: &Renderer,
         _viewport: &Rectangle,
@@ -153,25 +227,34 @@ where
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         self.content
             .as_widget_mut()
-            .overlay(state, layout, renderer, &layout.bounds(), translation)
+            .overlay(
+                &mut tree.children[0],
+                layout,
+                renderer,
+                &layout.bounds(),
+                translation,
+            )
             .map(|raw| {
+                let state = tree.state.downcast_mut::<State>();
+
                 overlay::Element::new(Box::new(Overlay {
                     raw,
                     bounds: layout.bounds(),
+                    last_hovered: &mut state.last_hovered_overlay,
                     on_record: self.on_record.as_deref(),
                 }))
             })
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Recorder<'a, Message, Theme, Renderer>>
+impl<'a, Message, Renderer> From<Recorder<'a, Message, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
-    fn from(recorder: Recorder<'a, Message, Theme, Renderer>) -> Self {
+    fn from(recorder: Recorder<'a, Message, Renderer>) -> Self {
         Element::new(recorder)
     }
 }
@@ -179,6 +262,7 @@ where
 struct Overlay<'a, Message, Theme, Renderer> {
     raw: overlay::Element<'a, Message, Theme, Renderer>,
     bounds: Rectangle,
+    last_hovered: &'a mut Option<Rectangle>,
     on_record: Option<&'a dyn Fn(Interaction) -> Message>,
 }
 
@@ -230,13 +314,33 @@ where
             return;
         }
 
+        if let Some(on_event) = &self.on_record {
+            record(
+                event,
+                cursor,
+                shell,
+                self.bounds,
+                self.last_hovered,
+                on_event,
+                |position| {
+                    use widget::Operation;
+
+                    let mut selector = position.find_all();
+
+                    self.raw.as_overlay_mut().operate(
+                        layout,
+                        renderer,
+                        &mut operation::black_box(&mut selector),
+                    );
+
+                    selector.finish()
+                },
+            );
+        }
+
         self.raw
             .as_overlay_mut()
             .update(event, layout, cursor, renderer, clipboard, shell);
-
-        if let Some(on_event) = &self.on_record {
-            record(event, cursor, shell, self.bounds, on_event);
-        }
     }
 
     fn mouse_interaction(
@@ -262,6 +366,7 @@ where
                 overlay::Element::new(Box::new(Overlay {
                     raw,
                     bounds: self.bounds,
+                    last_hovered: self.last_hovered,
                     on_record: self.on_record,
                 }))
             })
@@ -277,7 +382,9 @@ fn record<Message>(
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
     bounds: Rectangle,
+    last_hovered: &mut Option<Rectangle>,
     on_record: impl Fn(Interaction) -> Message,
+    find: impl FnOnce(Point) -> operation::Outcome<Vec<target::Match>>,
 ) {
     if let Event::Mouse(_) = event
         && !cursor.is_over(bounds)
@@ -294,7 +401,43 @@ fn record<Message>(
             Interaction::from_event(event)
         };
 
-    if let Some(interaction) = interaction {
+    if let Some(mut interaction) = interaction {
+        if let Interaction::Mouse(
+            Mouse::Move(at)
+            | Mouse::Press { at: Some(at), .. }
+            | Mouse::Release { at: Some(at), .. }
+            | Mouse::Click { at: Some(at), .. },
+        ) = &mut interaction
+        {
+            if let Target::Point(position) = *at
+                && let operation::Outcome::Some(targets) =
+                    find(position + (bounds.position() - Point::ORIGIN))
+                && let Some((content, visible_bounds)) =
+                    targets.into_iter().rev().find_map(|target| {
+                        if let target::Match::Text {
+                            content,
+                            visible_bounds,
+                            ..
+                        }
+                        | target::Match::TextInput {
+                            content,
+                            visible_bounds,
+                            ..
+                        } = target
+                        {
+                            Some((content, visible_bounds))
+                        } else {
+                            None
+                        }
+                    })
+            {
+                *at = Target::Text(content);
+                *last_hovered = visible_bounds;
+            } else {
+                *last_hovered = None;
+            }
+        }
+
         shell.publish(on_record(interaction));
     }
 }

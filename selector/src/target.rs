@@ -68,6 +68,17 @@ impl<'a> Target<'a> {
             | Target::Custom { bounds, .. } => *bounds,
         }
     }
+
+    pub fn visible_bounds(&self) -> Option<Rectangle> {
+        match self {
+            Target::Container { visible_bounds, .. }
+            | Target::Focusable { visible_bounds, .. }
+            | Target::Scrollable { visible_bounds, .. }
+            | Target::TextInput { visible_bounds, .. }
+            | Target::Text { visible_bounds, .. }
+            | Target::Custom { visible_bounds, .. } => *visible_bounds,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -93,6 +104,7 @@ pub enum Match {
         id: Option<Id>,
         bounds: Rectangle,
         visible_bounds: Option<Rectangle>,
+        content: String,
     },
     Text {
         id: Option<Id>,
@@ -147,11 +159,12 @@ impl Match {
                 id,
                 bounds,
                 visible_bounds,
-                ..
+                state,
             } => Self::TextInput {
                 id: id.cloned(),
                 bounds,
                 visible_bounds,
+                content: state.text().to_owned(),
             },
             Target::Text {
                 id,

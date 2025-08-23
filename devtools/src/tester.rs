@@ -546,6 +546,7 @@ impl<P: Program + 'static> Tester<P> {
                     column(self.instructions.iter().enumerate().map(
                         |(i, instruction)| {
                             monospace(instruction.to_string())
+                                .wrapping(text::Wrapping::None) // TODO: Ellipsize?
                                 .size(10)
                                 .style(move |theme: &Theme| text::Style {
                                     color: match &self.state {

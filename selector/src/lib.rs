@@ -8,6 +8,7 @@ mod find;
 pub use find::{Find, FindAll};
 pub use target::Target;
 
+use crate::core::Point;
 use crate::core::widget::Id;
 
 pub trait Selector {
@@ -113,6 +114,21 @@ impl Selector for Id {
 
     fn description(&self) -> String {
         format!("id == {:?}", self)
+    }
+}
+
+impl Selector for Point {
+    type Output = target::Match;
+
+    fn select(&mut self, target: Target<'_>) -> Option<Self::Output> {
+        target
+            .visible_bounds()
+            .is_some_and(|visible_bounds| visible_bounds.contains(*self))
+            .then(|| target::Match::from_target(target))
+    }
+
+    fn description(&self) -> String {
+        format!("bounds contains {:?}", self)
     }
 }
 
