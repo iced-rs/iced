@@ -4,7 +4,7 @@ use std::sync::Arc;
 /// A test error.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
-    /// No matching widget was found for the [`Selector`].
+    /// No matching widget was found for the [`Selector`](crate::Selector).
     #[error("no matching widget was found for the selector: {selector}")]
     NotFound { selector: String },
     #[error("the matching target is not visible: {target:?}")]

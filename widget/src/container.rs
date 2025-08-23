@@ -107,7 +107,7 @@ where
         }
     }
 
-    /// Sets the [`Id`] of the [`Container`].
+    /// Sets the [`widget::Id`] of the [`Container`].
     pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
         self.id = Some(id.into());
         self
@@ -458,7 +458,7 @@ pub fn draw_background<Renderer>(
 }
 
 /// Produces a [`Task`] that queries the visible screen bounds of the
-/// [`Container`] with the given [`Id`].
+/// [`Container`] with the given [`widget::Id`].
 pub fn visible_bounds(_id: impl Into<widget::Id>) -> Task<Option<Rectangle>> {
     todo!()
 }

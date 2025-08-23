@@ -156,7 +156,7 @@ where
         }
     }
 
-    /// Sets the [`Id`] of the [`TextInput`].
+    /// Sets the [`widget::Id`] of the [`TextInput`].
     pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
         self.id = Some(id.into());
         self
@@ -1445,17 +1445,17 @@ pub enum Side {
     Right,
 }
 
-/// Produces a [`Task`] that returns whether the [`TextInput`] with the given [`Id`] is focused or not.
+/// Produces a [`Task`] that returns whether the [`TextInput`] with the given [`widget::Id`] is focused or not.
 pub fn is_focused(id: impl Into<widget::Id>) -> Task<bool> {
     task::widget(operation::focusable::is_focused(id.into()))
 }
 
-/// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
+/// Produces a [`Task`] that focuses the [`TextInput`] with the given [`widget::Id`].
 pub fn focus<T>(id: impl Into<widget::Id>) -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus(id.into())))
 }
 
-/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`widget::Id`] to the
 /// end.
 pub fn move_cursor_to_end<T>(id: impl Into<widget::Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to_end(
@@ -1463,7 +1463,7 @@ pub fn move_cursor_to_end<T>(id: impl Into<widget::Id>) -> Task<T> {
     )))
 }
 
-/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`widget::Id`] to the
 /// front.
 pub fn move_cursor_to_front<T>(id: impl Into<widget::Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to_front(
@@ -1471,7 +1471,7 @@ pub fn move_cursor_to_front<T>(id: impl Into<widget::Id>) -> Task<T> {
     )))
 }
 
-/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`widget::Id`] to the
 /// provided position.
 pub fn move_cursor_to<T>(
     id: impl Into<widget::Id>,
@@ -1483,7 +1483,7 @@ pub fn move_cursor_to<T>(
     )))
 }
 
-/// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`Id`].
+/// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`widget::Id`].
 pub fn select_all<T>(id: impl Into<widget::Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::select_all(id.into())))
 }

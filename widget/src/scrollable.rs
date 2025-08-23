@@ -149,7 +149,7 @@ where
         self.validate()
     }
 
-    /// Sets the [`Id`] of the [`Scrollable`].
+    /// Sets the [`widget::Id`] of the [`Scrollable`].
     pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
         self.id = Some(id.into());
         self
@@ -1262,7 +1262,7 @@ where
     }
 }
 
-/// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`Id`]
+/// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`widget::Id`]
 /// to the provided [`RelativeOffset`].
 pub fn snap_to<T>(
     id: impl Into<widget::Id>,
@@ -1274,7 +1274,7 @@ pub fn snap_to<T>(
     )))
 }
 
-/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
+/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`widget::Id`]
 /// to the provided [`AbsoluteOffset`].
 pub fn scroll_to<T>(
     id: impl Into<widget::Id>,
@@ -1286,7 +1286,7 @@ pub fn scroll_to<T>(
     )))
 }
 
-/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
+/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`widget::Id`]
 /// by the provided [`AbsoluteOffset`].
 pub fn scroll_by<T>(
     id: impl Into<widget::Id>,

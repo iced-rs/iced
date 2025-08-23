@@ -34,8 +34,8 @@
 //! let _ = ui.click("-");
 //! ```
 //!
-//! [`Simulator::click`] takes a [`Selector`]. A [`Selector`] describes a way to query the widgets of an interface. In this case,
-//! [`selector::text`] lets us select a widget by the text it contains.
+//! [`Simulator::click`] takes a type implementing the [`Selector`] trait. A [`Selector`] describes a way to query the widgets of an interface.
+//! In this case, we leverage the [`Selector`] implementation of `&str`, which selects a widget by the text it contains.
 //!
 //! We can now process any messages produced by these interactions and then assert that the final value of our counter is
 //! indeed `1`!

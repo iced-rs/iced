@@ -100,7 +100,7 @@ where
         }
     }
 
-    /// Finds the [`Target`] of the given widget [`Selector`] in the [`Simulator`].
+    /// Finds the target of the given widget [`Selector`] in the [`Simulator`].
     pub fn find<S>(&mut self, selector: S) -> Result<S::Output, Error>
     where
         S: Selector + Send,
@@ -135,10 +135,10 @@ where
         self.cursor = mouse::Cursor::Available(position.into());
     }
 
-    /// Clicks the [`Target`] found by the given [`Selector`], if any.
+    /// Clicks the [`Bounded`] target found by the given [`Selector`], if any.
     ///
     /// This consists in:
-    /// - Pointing the mouse cursor at the center of the [`Target`].
+    /// - Pointing the mouse cursor at the center of the [`Bounded`] target.
     /// - Simulating a [`click`].
     pub fn click<S>(&mut self, selector: S) -> Result<S::Output, Error>
     where
