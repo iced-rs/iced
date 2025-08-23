@@ -1,6 +1,6 @@
 use iced::widget::{
-    button, center, center_x, column, container, horizontal_space, scrollable,
-    text, text_input,
+    button, center, center_x, column, container, horizontal_space, operation,
+    scrollable, text, text_input,
 };
 use iced::window;
 use iced::{
@@ -85,7 +85,7 @@ impl Example {
             }
             Message::WindowOpened(id) => {
                 let window = Window::new(self.windows.len() + 1);
-                let focus_input = text_input::focus(format!("input-{id}"));
+                let focus_input = operation::focus(format!("input-{id}"));
 
                 self.windows.insert(id, window);
 

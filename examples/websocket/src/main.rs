@@ -2,7 +2,7 @@ mod echo;
 
 use iced::futures::stream;
 use iced::widget::{
-    self, button, center, column, row, scrollable, text, text_input,
+    button, center, column, operation, row, scrollable, text, text_input,
 };
 use iced::{Center, Element, Fill, Subscription, Task, color};
 
@@ -34,7 +34,7 @@ impl WebSocket {
                 new_message: String::new(),
                 state: State::Disconnected,
             },
-            widget::focus_next(),
+            operation::focus_next(),
         )
     }
 
@@ -73,10 +73,7 @@ impl WebSocket {
                 echo::Event::MessageReceived(message) => {
                     self.messages.push(message);
 
-                    scrollable::snap_to(
-                        MESSAGE_LOG,
-                        scrollable::RelativeOffset::END,
-                    )
+                    operation::snap_to_end(MESSAGE_LOG)
                 }
             },
             Message::Server => Task::none(),

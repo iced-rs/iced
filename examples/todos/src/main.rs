@@ -1,7 +1,7 @@
 use iced::keyboard;
 use iced::widget::{
-    self, Text, button, center, center_x, checkbox, column, keyed_column, row,
-    scrollable, text, text_input,
+    self, Text, button, center, center_x, checkbox, column, keyed_column,
+    operation, row, scrollable, text, text_input,
 };
 use iced::window;
 use iced::{
@@ -91,7 +91,7 @@ impl Todos {
                     _ => {}
                 }
 
-                text_input::focus("new-task")
+                operation::focus("new-task")
             }
             Todos::Loaded(state) => {
                 let mut saved = false;
@@ -132,8 +132,8 @@ impl Todos {
                             if should_focus {
                                 let id = Task::text_input_id(i);
                                 Command::batch(vec![
-                                    text_input::focus(id.clone()),
-                                    text_input::select_all(id),
+                                    operation::focus(id.clone()),
+                                    operation::select_all(id),
                                 ])
                             } else {
                                 Command::none()
@@ -150,9 +150,9 @@ impl Todos {
                     }
                     Message::TabPressed { shift } => {
                         if shift {
-                            widget::focus_previous()
+                            operation::focus_previous()
                         } else {
-                            widget::focus_next()
+                            operation::focus_next()
                         }
                     }
                     Message::ToggleFullscreen(mode) => window::get_latest()

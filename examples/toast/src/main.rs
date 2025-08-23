@@ -2,7 +2,7 @@ use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{
-    self, button, center, column, pick_list, row, slider, text, text_input,
+    button, center, column, operation, pick_list, row, slider, text, text_input,
 };
 use iced::{Center, Element, Fill, Subscription, Task};
 
@@ -83,11 +83,11 @@ impl App {
                 key: keyboard::Key::Named(key::Named::Tab),
                 modifiers,
                 ..
-            })) if modifiers.shift() => widget::focus_previous(),
+            })) if modifiers.shift() => operation::focus_previous(),
             Message::Event(Event::Keyboard(keyboard::Event::KeyPressed {
                 key: keyboard::Key::Named(key::Named::Tab),
                 ..
-            })) => widget::focus_next(),
+            })) => operation::focus_next(),
             Message::Event(_) => Task::none(),
         }
     }

@@ -61,8 +61,6 @@ use crate::core::{
     Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
     Widget,
 };
-use crate::runtime::Action;
-use crate::runtime::task::{self, Task};
 
 /// A field that can be filled with text.
 ///
@@ -1443,49 +1441,6 @@ pub enum Side {
     Left,
     /// The right side of a [`TextInput`].
     Right,
-}
-
-/// Produces a [`Task`] that returns whether the [`TextInput`] with the given [`widget::Id`] is focused or not.
-pub fn is_focused(id: impl Into<widget::Id>) -> Task<bool> {
-    task::widget(operation::focusable::is_focused(id.into()))
-}
-
-/// Produces a [`Task`] that focuses the [`TextInput`] with the given [`widget::Id`].
-pub fn focus<T>(id: impl Into<widget::Id>) -> Task<T> {
-    task::effect(Action::widget(operation::focusable::focus(id.into())))
-}
-
-/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`widget::Id`] to the
-/// end.
-pub fn move_cursor_to_end<T>(id: impl Into<widget::Id>) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::move_cursor_to_end(
-        id.into(),
-    )))
-}
-
-/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`widget::Id`] to the
-/// front.
-pub fn move_cursor_to_front<T>(id: impl Into<widget::Id>) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::move_cursor_to_front(
-        id.into(),
-    )))
-}
-
-/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`widget::Id`] to the
-/// provided position.
-pub fn move_cursor_to<T>(
-    id: impl Into<widget::Id>,
-    position: usize,
-) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::move_cursor_to(
-        id.into(),
-        position,
-    )))
-}
-
-/// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`widget::Id`].
-pub fn select_all<T>(id: impl Into<widget::Id>) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::select_all(id.into())))
 }
 
 /// The state of a [`TextInput`].

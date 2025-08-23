@@ -5,8 +5,8 @@ use iced::clipboard;
 use iced::highlighter;
 use iced::time::{self, Instant, milliseconds};
 use iced::widget::{
-    self, button, center_x, container, horizontal_space, hover, image,
-    markdown, right, row, scrollable, sensor, text_editor, toggler,
+    button, center_x, container, horizontal_space, hover, image, markdown,
+    operation, right, row, scrollable, sensor, text_editor, toggler,
 };
 use iced::window;
 use iced::{
@@ -78,7 +78,7 @@ impl Markdown {
                 theme: Theme::TokyoNight,
                 now: Instant::now(),
             },
-            widget::focus_next(),
+            operation::focus_next(),
         )
     }
 
@@ -140,10 +140,7 @@ impl Markdown {
                         pending: self.raw.text(),
                     };
 
-                    scrollable::snap_to(
-                        "preview",
-                        scrollable::RelativeOffset::END,
-                    )
+                    operation::snap_to_end("preview")
                 } else {
                     self.mode = Mode::Preview;
 

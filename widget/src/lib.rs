@@ -25,6 +25,7 @@ pub mod container;
 pub mod float;
 pub mod grid;
 pub mod keyed;
+pub mod operation;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;

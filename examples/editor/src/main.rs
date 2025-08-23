@@ -1,8 +1,8 @@
 use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
-    self, button, center_x, column, container, horizontal_space, pick_list,
-    row, text, text_editor, toggler, tooltip,
+    button, center_x, column, container, horizontal_space, operation,
+    pick_list, row, text, text_editor, toggler, tooltip,
 };
 use iced::{Center, Element, Fill, Font, Task, Theme};
 
@@ -59,7 +59,7 @@ impl Editor {
                     )),
                     Message::FileOpened,
                 ),
-                widget::focus_next(),
+                operation::focus_next(),
             ]),
         )
     }

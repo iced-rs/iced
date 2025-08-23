@@ -1,6 +1,6 @@
 use iced::widget::{
-    button, column, container, horizontal_space, progress_bar, radio, row,
-    scrollable, slider, text, vertical_space,
+    button, column, container, horizontal_space, operation, progress_bar,
+    radio, row, scrollable, slider, text, vertical_space,
 };
 use iced::{Border, Center, Color, Element, Fill, Task, Theme};
 
@@ -60,13 +60,13 @@ impl ScrollableDemo {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.scrollable_direction = direction;
 
-                scrollable::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
             }
             Message::AlignmentChanged(alignment) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.anchor = alignment;
 
-                scrollable::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
             }
             Message::ScrollbarWidthChanged(width) => {
                 self.scrollbar_width = width;
@@ -86,12 +86,12 @@ impl ScrollableDemo {
             Message::ScrollToBeginning => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
 
-                scrollable::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
             }
             Message::ScrollToEnd => {
                 self.current_scroll_offset = scrollable::RelativeOffset::END;
 
-                scrollable::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
             }
             Message::Scrolled(viewport) => {
                 self.current_scroll_offset = viewport.relative_offset();

@@ -37,8 +37,6 @@ use crate::core::{
     Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
     Widget,
 };
-use crate::runtime::Action;
-use crate::runtime::task::{self, Task};
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
@@ -1260,42 +1258,6 @@ where
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text_input)
     }
-}
-
-/// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`widget::Id`]
-/// to the provided [`RelativeOffset`].
-pub fn snap_to<T>(
-    id: impl Into<widget::Id>,
-    offset: RelativeOffset,
-) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::snap_to(
-        id.into(),
-        offset,
-    )))
-}
-
-/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`widget::Id`]
-/// to the provided [`AbsoluteOffset`].
-pub fn scroll_to<T>(
-    id: impl Into<widget::Id>,
-    offset: AbsoluteOffset,
-) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::scroll_to(
-        id.into(),
-        offset,
-    )))
-}
-
-/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`widget::Id`]
-/// by the provided [`AbsoluteOffset`].
-pub fn scroll_by<T>(
-    id: impl Into<widget::Id>,
-    offset: AbsoluteOffset,
-) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::scroll_by(
-        id.into(),
-        offset,
-    )))
 }
 
 fn notify_scroll<Message>(
