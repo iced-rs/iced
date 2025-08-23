@@ -78,7 +78,7 @@ impl Selector for Id {
     }
 
     fn description(&self) -> String {
-        format!("id == \"{:?}\"", self)
+        format!("id == {:?}", self)
     }
 }
 

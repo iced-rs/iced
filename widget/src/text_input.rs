@@ -106,7 +106,7 @@ pub struct TextInput<
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    id: Option<Id>,
+    id: Option<widget::Id>,
     placeholder: String,
     value: Value,
     is_secure: bool,
@@ -157,7 +157,7 @@ where
     }
 
     /// Sets the [`Id`] of the [`TextInput`].
-    pub fn id(mut self, id: impl Into<Id>) -> Self {
+    pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
         self.id = Some(id.into());
         self
     }
@@ -688,17 +688,8 @@ where
     ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
-        operation.focusable(
-            self.id.as_ref().map(|id| &id.0),
-            layout.bounds(),
-            state,
-        );
-
-        operation.text_input(
-            self.id.as_ref().map(|id| &id.0),
-            layout.bounds(),
-            state,
-        );
+        operation.text_input(self.id.as_ref(), layout.bounds(), state);
+        operation.focusable(self.id.as_ref(), layout.bounds(), state);
     }
 
     fn update(
@@ -1454,82 +1445,47 @@ pub enum Side {
     Right,
 }
 
-/// The identifier of a [`TextInput`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
-    }
-}
-
-impl From<&'static str> for Id {
-    fn from(id: &'static str) -> Self {
-        Self::new(id)
-    }
-}
-
-impl From<String> for Id {
-    fn from(id: String) -> Self {
-        Self::new(id)
-    }
-}
-
 /// Produces a [`Task`] that returns whether the [`TextInput`] with the given [`Id`] is focused or not.
-pub fn is_focused(id: impl Into<Id>) -> Task<bool> {
-    task::widget(operation::focusable::is_focused(id.into().into()))
+pub fn is_focused(id: impl Into<widget::Id>) -> Task<bool> {
+    task::widget(operation::focusable::is_focused(id.into()))
 }
 
 /// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
-pub fn focus<T>(id: impl Into<Id>) -> Task<T> {
-    task::effect(Action::widget(operation::focusable::focus(id.into().0)))
+pub fn focus<T>(id: impl Into<widget::Id>) -> Task<T> {
+    task::effect(Action::widget(operation::focusable::focus(id.into())))
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// end.
-pub fn move_cursor_to_end<T>(id: impl Into<Id>) -> Task<T> {
+pub fn move_cursor_to_end<T>(id: impl Into<widget::Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to_end(
-        id.into().0,
+        id.into(),
     )))
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// front.
-pub fn move_cursor_to_front<T>(id: impl Into<Id>) -> Task<T> {
+pub fn move_cursor_to_front<T>(id: impl Into<widget::Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to_front(
-        id.into().0,
+        id.into(),
     )))
 }
 
 /// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// provided position.
-pub fn move_cursor_to<T>(id: impl Into<Id>, position: usize) -> Task<T> {
+pub fn move_cursor_to<T>(
+    id: impl Into<widget::Id>,
+    position: usize,
+) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to(
-        id.into().0,
+        id.into(),
         position,
     )))
 }
 
 /// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`Id`].
-pub fn select_all<T>(id: impl Into<Id>) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::select_all(
-        id.into().0,
-    )))
+pub fn select_all<T>(id: impl Into<widget::Id>) -> Task<T> {
+    task::effect(Action::widget(operation::text_input::select_all(id.into())))
 }
 
 /// The state of a [`TextInput`].

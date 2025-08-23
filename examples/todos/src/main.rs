@@ -305,8 +305,8 @@ pub enum TaskMessage {
 }
 
 impl Task {
-    fn text_input_id(i: usize) -> text_input::Id {
-        text_input::Id::new(format!("task-{i}"))
+    fn text_input_id(i: usize) -> widget::Id {
+        widget::Id::new(format!("task-{i}"))
     }
 
     fn new(description: String) -> Self {

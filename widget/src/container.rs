@@ -67,7 +67,7 @@ pub struct Container<
     Theme: Catalog,
     Renderer: core::Renderer,
 {
-    id: Option<Id>,
+    id: Option<widget::Id>,
     padding: Padding,
     width: Length,
     height: Length,
@@ -108,7 +108,7 @@ where
     }
 
     /// Sets the [`Id`] of the [`Container`].
-    pub fn id(mut self, id: impl Into<Id>) -> Self {
+    pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
         self.id = Some(id.into());
         self
     }
@@ -284,7 +284,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(self.id.as_ref().map(|id| &id.0), layout.bounds());
+        operation.container(self.id.as_ref(), layout.bounds());
         operation.traverse(&mut |operation| {
             self.content.as_widget().operate(
                 tree,
@@ -457,39 +457,9 @@ pub fn draw_background<Renderer>(
     }
 }
 
-/// The identifier of a [`Container`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
-    }
-}
-
-impl From<&'static str> for Id {
-    fn from(value: &'static str) -> Self {
-        Id::new(value)
-    }
-}
-
 /// Produces a [`Task`] that queries the visible screen bounds of the
 /// [`Container`] with the given [`Id`].
-pub fn visible_bounds(_id: impl Into<Id>) -> Task<Option<Rectangle>> {
+pub fn visible_bounds(_id: impl Into<widget::Id>) -> Task<Option<Rectangle>> {
     todo!()
 }
 

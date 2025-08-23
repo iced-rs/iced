@@ -41,9 +41,9 @@ impl Example {
                 Task::none()
             }
             Message::Scrolled | Message::WindowResized => Task::batch(vec![
-                container::visible_bounds(OUTER_CONTAINER.clone())
+                container::visible_bounds(OUTER_CONTAINER)
                     .map(Message::OuterBoundsFetched),
-                container::visible_bounds(INNER_CONTAINER.clone())
+                container::visible_bounds(INNER_CONTAINER)
                     .map(Message::InnerBoundsFetched),
             ]),
             Message::OuterBoundsFetched(outer_bounds) => {
@@ -113,7 +113,7 @@ impl Example {
                     text("Scroll me!"),
                     vertical_space().height(400),
                     container(text("I am the outer container!"))
-                        .id(OUTER_CONTAINER.clone())
+                        .id(OUTER_CONTAINER)
                         .padding(40)
                         .style(container::rounded_box),
                     vertical_space().height(400),
@@ -122,7 +122,7 @@ impl Example {
                             text("Scroll me!"),
                             vertical_space().height(400),
                             container(text("I am the inner container!"))
-                                .id(INNER_CONTAINER.clone())
+                                .id(INNER_CONTAINER)
                                 .padding(40)
                                 .style(container::rounded_box),
                             vertical_space().height(400),
@@ -157,9 +157,5 @@ impl Example {
     }
 }
 
-use std::sync::LazyLock;
-
-static OUTER_CONTAINER: LazyLock<container::Id> =
-    LazyLock::new(|| container::Id::new("outer"));
-static INNER_CONTAINER: LazyLock<container::Id> =
-    LazyLock::new(|| container::Id::new("inner"));
+const OUTER_CONTAINER: &str = "outer";
+const INNER_CONTAINER: &str = "inner";

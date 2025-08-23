@@ -6,8 +6,6 @@ use iced::widget::{
 };
 use iced::{Center, Element, Fill, Subscription, Task, color};
 
-use std::sync::LazyLock;
-
 pub fn main() -> iced::Result {
     iced::application(WebSocket::new, WebSocket::update, WebSocket::view)
         .subscription(WebSocket::subscription)
@@ -76,7 +74,7 @@ impl WebSocket {
                     self.messages.push(message);
 
                     scrollable::snap_to(
-                        MESSAGE_LOG.clone(),
+                        MESSAGE_LOG,
                         scrollable::RelativeOffset::END,
                     )
                 }
@@ -105,7 +103,7 @@ impl WebSocket {
                 column(self.messages.iter().map(text).map(Element::from))
                     .spacing(10),
             )
-            .id(MESSAGE_LOG.clone())
+            .id(MESSAGE_LOG)
             .height(Fill)
             .spacing(10)
             .into()
@@ -142,5 +140,4 @@ enum State {
     Connected(echo::Connection),
 }
 
-static MESSAGE_LOG: LazyLock<scrollable::Id> =
-    LazyLock::new(scrollable::Id::unique);
+const MESSAGE_LOG: &str = "message_log";
