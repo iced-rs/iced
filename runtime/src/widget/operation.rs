@@ -1,8 +1,8 @@
 //! Change internal widget state.
-use crate::Id;
+use crate::core::widget::Id;
 use crate::core::widget::operation;
-use crate::runtime::task;
-use crate::runtime::{Action, Task};
+use crate::task;
+use crate::{Action, Task};
 
 pub use crate::core::widget::operation::scrollable::{
     AbsoluteOffset, RelativeOffset,

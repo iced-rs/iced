@@ -67,6 +67,8 @@ crisp = ["iced_core/crisp", "iced_widget/crisp"]
 webgl = ["iced_renderer/webgl"]
 # Enables syntax highligthing
 highlighter = ["iced_highlighter", "iced_widget/highlighter"]
+# Enables the `widget::selector` module
+selector = ["iced_runtime/selector"]
 # Enables the advanced module
 advanced = ["iced_core/advanced", "iced_widget/advanced"]
 # Embeds Fira Sans into the final application; useful for testing and Wasm builds

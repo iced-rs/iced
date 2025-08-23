@@ -34,7 +34,6 @@ use crate::core::{
     Padding, Pixels, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
     color,
 };
-use crate::runtime::Task;
 
 /// A widget that aligns its contents inside of its boundaries.
 ///
@@ -455,12 +454,6 @@ pub fn draw_background<Renderer>(
                 .unwrap_or(Background::Color(Color::TRANSPARENT)),
         );
     }
-}
-
-/// Produces a [`Task`] that queries the visible screen bounds of the
-/// [`Container`] with the given [`widget::Id`].
-pub fn visible_bounds(_id: impl Into<widget::Id>) -> Task<Option<Rectangle>> {
-    todo!()
 }
 
 /// The appearance of a container.

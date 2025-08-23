@@ -4,9 +4,8 @@
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub use iced_renderer as renderer;
+pub use iced_renderer::core;
 pub use iced_renderer::graphics;
-pub use iced_runtime as runtime;
-pub use iced_runtime::core;
 
 pub use core::widget::Id;
 
@@ -25,7 +24,6 @@ pub mod container;
 pub mod float;
 pub mod grid;
 pub mod keyed;
-pub mod operation;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;

@@ -1,7 +1,8 @@
 use iced::event::{self, Event};
 use iced::mouse;
 use iced::widget::{
-    column, container, horizontal_space, row, scrollable, text, vertical_space,
+    column, container, horizontal_space, row, scrollable, selector, text,
+    vertical_space,
 };
 use iced::window;
 use iced::{
@@ -23,13 +24,13 @@ struct Example {
     inner_bounds: Option<Rectangle>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Message {
     MouseMoved(Point),
     WindowResized,
     Scrolled,
-    OuterBoundsFetched(Option<Rectangle>),
-    InnerBoundsFetched(Option<Rectangle>),
+    OuterFound(Option<selector::Match>),
+    InnerFound(Option<selector::Match>),
 }
 
 impl Example {
@@ -41,18 +42,18 @@ impl Example {
                 Task::none()
             }
             Message::Scrolled | Message::WindowResized => Task::batch(vec![
-                container::visible_bounds(OUTER_CONTAINER)
-                    .map(Message::OuterBoundsFetched),
-                container::visible_bounds(INNER_CONTAINER)
-                    .map(Message::InnerBoundsFetched),
+                selector::find_by_id(OUTER_CONTAINER).map(Message::OuterFound),
+                selector::find_by_id(INNER_CONTAINER).map(Message::InnerFound),
             ]),
-            Message::OuterBoundsFetched(outer_bounds) => {
-                self.outer_bounds = outer_bounds;
+            Message::OuterFound(outer) => {
+                self.outer_bounds =
+                    outer.as_ref().and_then(selector::Bounded::visible_bounds);
 
                 Task::none()
             }
-            Message::InnerBoundsFetched(inner_bounds) => {
-                self.inner_bounds = inner_bounds;
+            Message::InnerFound(inner) => {
+                self.inner_bounds =
+                    inner.as_ref().and_then(selector::Bounded::visible_bounds);
 
                 Task::none()
             }

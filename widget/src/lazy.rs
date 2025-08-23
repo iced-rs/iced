@@ -20,7 +20,6 @@ use crate::core::widget::{self, Widget};
 use crate::core::{
     self, Clipboard, Event, Length, Rectangle, Shell, Size, Vector,
 };
-use crate::runtime::overlay::Nested;
 
 use ouroboros::self_referencing;
 use rustc_hash::FxHasher;
@@ -286,7 +285,7 @@ where
                 element
                     .as_widget_mut()
                     .overlay(tree, *layout, renderer, viewport, translation)
-                    .map(|overlay| RefCell::new(Nested::new(overlay)))
+                    .map(|overlay| RefCell::new(overlay::Nested::new(overlay)))
             },
         }
         .build();
@@ -317,7 +316,7 @@ struct Inner<'a, Message: 'a, Theme: 'a, Renderer: 'a> {
 
     #[borrows(mut element, mut tree, layout)]
     #[not_covariant]
-    overlay: Option<RefCell<Nested<'this, Message, Theme, Renderer>>>,
+    overlay: Option<RefCell<overlay::Nested<'this, Message, Theme, Renderer>>>,
 }
 
 struct Overlay<'a, Message, Theme, Renderer>(
@@ -334,7 +333,7 @@ impl<Message, Theme, Renderer> Drop for Overlay<'_, Message, Theme, Renderer> {
 impl<Message, Theme, Renderer> Overlay<'_, Message, Theme, Renderer> {
     fn with_overlay_maybe<T>(
         &self,
-        f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
+        f: impl FnOnce(&mut overlay::Nested<'_, Message, Theme, Renderer>) -> T,
     ) -> Option<T> {
         self.0.as_ref().unwrap().with_overlay(|overlay| {
             overlay.as_ref().map(|nested| (f)(&mut nested.borrow_mut()))
@@ -343,7 +342,7 @@ impl<Message, Theme, Renderer> Overlay<'_, Message, Theme, Renderer> {
 
     fn with_overlay_mut_maybe<T>(
         &mut self,
-        f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
+        f: impl FnOnce(&mut overlay::Nested<'_, Message, Theme, Renderer>) -> T,
     ) -> Option<T> {
         self.0.as_mut().unwrap().with_overlay_mut(|overlay| {
             overlay.as_mut().map(|nested| (f)(nested.get_mut()))

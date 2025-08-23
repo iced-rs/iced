@@ -9,7 +9,6 @@ use crate::core::{
     Vector, Widget,
 };
 use crate::horizontal_space;
-use crate::runtime::overlay::Nested;
 
 use ouroboros::self_referencing;
 use std::cell::{RefCell, RefMut};
@@ -327,7 +326,9 @@ where
                             viewport,
                             translation,
                         )
-                        .map(|overlay| RefCell::new(Nested::new(overlay))),
+                        .map(|overlay| {
+                            RefCell::new(overlay::Nested::new(overlay))
+                        }),
                     is_layout_invalid,
                 )
             },
@@ -364,7 +365,7 @@ struct Overlay<'a, 'b, Message, Theme, Renderer> {
     #[borrows(mut content, mut tree)]
     #[not_covariant]
     overlay: (
-        Option<RefCell<Nested<'this, Message, Theme, Renderer>>>,
+        Option<RefCell<overlay::Nested<'this, Message, Theme, Renderer>>>,
         &'this mut bool,
     ),
 }
@@ -372,7 +373,7 @@ struct Overlay<'a, 'b, Message, Theme, Renderer> {
 impl<Message, Theme, Renderer> Overlay<'_, '_, Message, Theme, Renderer> {
     fn with_overlay_maybe<T>(
         &self,
-        f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
+        f: impl FnOnce(&mut overlay::Nested<'_, Message, Theme, Renderer>) -> T,
     ) -> Option<T> {
         self.with_overlay(|(overlay, _layout)| {
             overlay.as_ref().map(|nested| (f)(&mut nested.borrow_mut()))
@@ -381,7 +382,7 @@ impl<Message, Theme, Renderer> Overlay<'_, '_, Message, Theme, Renderer> {
 
     fn with_overlay_mut_maybe<T>(
         &mut self,
-        f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
+        f: impl FnOnce(&mut overlay::Nested<'_, Message, Theme, Renderer>) -> T,
     ) -> Option<T> {
         self.with_overlay_mut(|(overlay, _layout)| {
             overlay.as_mut().map(|nested| (f)(nested.get_mut()))

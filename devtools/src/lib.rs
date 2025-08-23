@@ -1,11 +1,11 @@
 #![allow(missing_docs)]
 use iced_debug as debug;
 use iced_program as program;
+use iced_program::runtime;
+use iced_program::runtime::futures;
 #[cfg(feature = "tester")]
 use iced_test as test;
 use iced_widget::core;
-use iced_widget::runtime;
-use iced_widget::runtime::futures;
 
 mod comet;
 mod executor;
