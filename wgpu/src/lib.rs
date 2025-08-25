@@ -95,6 +95,48 @@ pub struct Renderer {
     staging_belt: wgpu::util::StagingBelt,
 }
 
+const SCREENSHOT_FORMAT: wgpu::TextureFormat = if graphics::color::GAMMA_CORRECTION {
+    wgpu::TextureFormat::Rgba8UnormSrgb
+} else {
+    wgpu::TextureFormat::Rgba8Unorm
+};
+
+#[derive(Debug)]
+pub struct ScreenshotBuffers {
+    viewport_size: Size<u32>,
+    texture: wgpu::Texture,
+    texture_view: wgpu::TextureView,
+    output_buffer: wgpu::Buffer,
+    convert_buffers: color::ConvertBuffers,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct BufferDimensions {
+    width: u32,
+    height: u32,
+    unpadded_bytes_per_row: usize,
+    padded_bytes_per_row: usize,
+}
+
+impl BufferDimensions {
+    fn new(size: Size<u32>) -> Self {
+        let unpadded_bytes_per_row = size.width as usize * 4; //slice of buffer per row; always RGBA
+        let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize; //256
+        let padded_bytes_per_row_padding = (alignment
+            - unpadded_bytes_per_row % alignment)
+            % alignment;
+        let padded_bytes_per_row =
+            unpadded_bytes_per_row + padded_bytes_per_row_padding;
+
+        Self {
+            width: size.width,
+            height: size.height,
+            unpadded_bytes_per_row,
+            padded_bytes_per_row,
+        }
+    }
+}
+
 impl Renderer {
     pub fn new(
         engine: Engine,
@@ -179,53 +221,24 @@ impl Renderer {
         submission
     }
 
-    /// Renders the current surface to an offscreen buffer.
+    /// Create wgpu buffers required for use with `screenshot_into`.
     ///
-    /// Returns RGBA bytes of the texture data.
-    pub fn screenshot(
-        &mut self,
-        viewport: &Viewport,
-        background_color: Color,
-    ) -> Vec<u8> {
-        #[derive(Clone, Copy, Debug)]
-        struct BufferDimensions {
-            width: u32,
-            height: u32,
-            unpadded_bytes_per_row: usize,
-            padded_bytes_per_row: usize,
-        }
-
-        impl BufferDimensions {
-            fn new(size: Size<u32>) -> Self {
-                let unpadded_bytes_per_row = size.width as usize * 4; //slice of buffer per row; always RGBA
-                let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize; //256
-                let padded_bytes_per_row_padding = (alignment
-                    - unpadded_bytes_per_row % alignment)
-                    % alignment;
-                let padded_bytes_per_row =
-                    unpadded_bytes_per_row + padded_bytes_per_row_padding;
-
-                Self {
-                    width: size.width,
-                    height: size.height,
-                    unpadded_bytes_per_row,
-                    padded_bytes_per_row,
-                }
-            }
-        }
-
+    /// Reusing the wgpu buffers improves performance when calling `screenshot` several times.
+    ///
+    /// The passed `name` must be a unique identifier used as part of the wgpu buffer labels
+    /// and can't be reused until the buffers are dropped. The buffers are bound to the
+    /// `viewport`'s size and must be recreated when it changes.
+    pub fn create_screenshot_buffers(&mut self, name: &str, viewport: &Viewport) -> ScreenshotBuffers {
         let dimensions = BufferDimensions::new(viewport.physical_size());
-
-        let texture_extent = wgpu::Extent3d {
-            width: dimensions.width,
-            height: dimensions.height,
-            depth_or_array_layers: 1,
-        };
 
         let texture =
             self.engine.device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("iced_wgpu.offscreen.source_texture"),
-                size: texture_extent,
+                label: Some(&format!("iced_wgpu.offscreen.source_texture.{name}")),
+                size: wgpu::Extent3d {
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    depth_or_array_layers: 1,
+                },
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
@@ -235,31 +248,70 @@ impl Renderer {
                     | wgpu::TextureUsages::TEXTURE_BINDING,
                 view_formats: &[],
             });
-
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let mut encoder = self.draw(Some(background_color), &view, viewport);
-
-        let texture = crate::color::convert(
-            &self.engine.device,
-            &mut encoder,
-            texture,
-            if graphics::color::GAMMA_CORRECTION {
-                wgpu::TextureFormat::Rgba8UnormSrgb
-            } else {
-                wgpu::TextureFormat::Rgba8Unorm
-            },
-        );
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let output_buffer =
             self.engine.device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("iced_wgpu.offscreen.output_texture_buffer"),
+                label: Some(&format!("iced_wgpu.offscreen.output_texture_buffer.{name}")),
                 size: (dimensions.padded_bytes_per_row
                     * dimensions.height as usize) as u64,
                 usage: wgpu::BufferUsages::MAP_READ
                     | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             });
+        let convert_buffers = color::create_convert_buffers(name, &self.engine.device, texture.size(), SCREENSHOT_FORMAT);
+
+        ScreenshotBuffers {
+            viewport_size: viewport.physical_size(),
+            texture,
+            texture_view,
+            output_buffer,
+            convert_buffers,
+        }
+    }
+
+    /// Renders the current surface to an offscreen buffer.
+    ///
+    /// Returns RGBA bytes of the texture data.
+    pub fn screenshot(
+        &mut self,
+        viewport: &Viewport,
+        background_color: Color,
+    ) -> Vec<u8> {
+        let mut buffers = self.create_screenshot_buffers("screenshot", viewport);
+        let mut output_buffer = vec![0u8; viewport.physical_width() as usize * viewport.physical_height() as usize * 4];
+        self.screenshot_into(viewport, background_color, &mut buffers, &mut output_buffer);
+        output_buffer
+    }
+
+    /// Renders the current surface to an offscreen buffer.
+    ///
+    /// Writes RGBA bytes into the `image_out` buffer.
+    /// The `image_out` buffer must have exactly `viewport.width * viewport.height * 4` bytes.
+    pub fn screenshot_into(
+        &mut self,
+        viewport: &Viewport,
+        background_color: Color,
+        screenshot_buffers: &mut ScreenshotBuffers,
+        image_out: &mut [u8],
+    ) {
+        assert_eq!(screenshot_buffers.viewport_size, viewport.physical_size());
+        assert_eq!(image_out.len(), viewport.physical_width() as usize * viewport.physical_height() as usize * 4);
+        let dimensions = BufferDimensions::new(viewport.physical_size());
+
+        let texture = &mut screenshot_buffers.texture;
+        let texture_view = &mut screenshot_buffers.texture_view;
+        let output_buffer = &mut screenshot_buffers.output_buffer;
+
+        let mut encoder = self.draw(Some(background_color), &texture_view, viewport);
+
+        let texture = color::convert_buffered(
+            &self.engine.device,
+            &mut encoder,
+            &texture,
+            SCREENSHOT_FORMAT,
+            &screenshot_buffers.convert_buffers,
+        );
 
         encoder.copy_texture_to_buffer(
             texture.as_image_copy(),
@@ -271,7 +323,11 @@ impl Renderer {
                     rows_per_image: None,
                 },
             },
-            texture_extent,
+            wgpu::Extent3d {
+                width: dimensions.width,
+                height: dimensions.height,
+                depth_or_array_layers: 1,
+            }
         );
 
         self.staging_belt.finish();
@@ -288,13 +344,15 @@ impl Renderer {
 
         let mapped_buffer = slice.get_mapped_range();
 
-        mapped_buffer.chunks(dimensions.padded_bytes_per_row).fold(
-            vec![],
-            |mut acc, row| {
-                acc.extend(&row[..dimensions.unpadded_bytes_per_row]);
-                acc
-            },
-        )
+        let mut written = 0;
+        let bytes = dimensions.unpadded_bytes_per_row;
+        for row in mapped_buffer.chunks(bytes) {
+            image_out[written..][..bytes].copy_from_slice(&row[..bytes]);
+            written += bytes;
+        }
+
+        drop(mapped_buffer);
+        output_buffer.unmap();
     }
 
     fn prepare(
@@ -857,11 +915,7 @@ impl renderer::Headless for Renderer {
             &adapter,
             device,
             queue,
-            if graphics::color::GAMMA_CORRECTION {
-                wgpu::TextureFormat::Rgba8UnormSrgb
-            } else {
-                wgpu::TextureFormat::Rgba8Unorm
-            },
+            SCREENSHOT_FORMAT,
             Some(graphics::Antialiasing::MSAAx4),
         );
 

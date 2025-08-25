@@ -2,18 +2,18 @@ use std::borrow::Cow;
 
 use wgpu::util::DeviceExt;
 
-pub fn convert(
-    device: &wgpu::Device,
-    encoder: &mut wgpu::CommandEncoder,
-    source: wgpu::Texture,
-    format: wgpu::TextureFormat,
-) -> wgpu::Texture {
-    if source.format() == format {
-        return source;
-    }
+#[derive(Debug)]
+pub struct ConvertBuffers {
+    size: wgpu::Extent3d,
+    pipeline: wgpu::RenderPipeline,
+    constant_bind_group: wgpu::BindGroup,
+    texture_layout: wgpu::BindGroupLayout,
+    texture: wgpu::Texture,
+}
 
+pub fn create_convert_buffers(name: &str, device: &wgpu::Device, size: wgpu::Extent3d, format: wgpu::TextureFormat) -> ConvertBuffers {
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-        label: Some("iced_wgpu.offscreen.sampler"),
+        label: Some(&format!("iced_wgpu.offscreen.sampler.{name}")),
         ..wgpu::SamplerDescriptor::default()
     });
 
@@ -28,7 +28,7 @@ pub fn convert(
     }
 
     let ratio = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("iced-wgpu::triangle::msaa ratio"),
+        label: Some(&format!("iced-wgpu::triangle::msaa ratio.{name}")),
         contents: bytemuck::bytes_of(&Ratio {
             u: 1.0,
             v: 1.0,
@@ -39,7 +39,7 @@ pub fn convert(
 
     let constant_layout =
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("iced_wgpu.offscreen.blit.sampler_layout"),
+            label: Some(&format!("iced_wgpu.offscreen.blit.sampler_layout.{name}")),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -64,7 +64,7 @@ pub fn convert(
 
     let constant_bind_group =
         device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu.offscreen.sampler.bind_group"),
+            label: Some(&format!("iced_wgpu.offscreen.sampler.bind_group.{name}")),
             layout: &constant_layout,
             entries: &[
                 wgpu::BindGroupEntry {
@@ -80,7 +80,7 @@ pub fn convert(
 
     let texture_layout =
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("iced_wgpu.offscreen.blit.texture_layout"),
+            label: Some(&format!("iced_wgpu.offscreen.blit.texture_layout.{name}")),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -97,13 +97,13 @@ pub fn convert(
 
     let pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("iced_wgpu.offscreen.blit.pipeline_layout"),
+            label: Some(&format!("iced_wgpu.offscreen.blit.pipeline_layout.{name}")),
             bind_group_layouts: &[&constant_layout, &texture_layout],
             push_constant_ranges: &[],
         });
 
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("iced_wgpu.offscreen.blit.shader"),
+        label: Some(&format!("iced_wgpu.offscreen.blit.shader.{name}")),
         source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!(
             "shader/blit.wgsl"
         ))),
@@ -111,7 +111,7 @@ pub fn convert(
 
     let pipeline =
         device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("iced_wgpu.offscreen.blit.pipeline"),
+            label: Some(&format!("iced_wgpu.offscreen.blit.pipeline.{name}")),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
@@ -154,8 +154,8 @@ pub fn convert(
         });
 
     let texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("iced_wgpu.offscreen.conversion.source_texture"),
-        size: source.size(),
+        label: Some(&format!("iced_wgpu.offscreen.conversion.source_texture.{name}")),
+        size,
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
@@ -164,13 +164,34 @@ pub fn convert(
             | wgpu::TextureUsages::COPY_SRC,
         view_formats: &[],
     });
+    ConvertBuffers {
+        size,
+        pipeline,
+        constant_bind_group,
+        texture_layout,
+        texture,
+    }
+}
 
-    let view = &texture.create_view(&wgpu::TextureViewDescriptor::default());
+pub fn convert_buffered<'a>(
+    device: &wgpu::Device,
+    encoder: &mut wgpu::CommandEncoder,
+    source: &'a wgpu::Texture,
+    format: wgpu::TextureFormat,
+    convert_buffers: &'a ConvertBuffers,
+) -> &'a wgpu::Texture {
+    assert_eq!(convert_buffers.size, source.size(), "ConvertBuffers were created for a different size");
+
+    if source.format() == format {
+        return source;
+    }
+
+    let view = &convert_buffers.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
     let texture_bind_group =
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("iced_wgpu.offscreen.blit.texture_bind_group"),
-            layout: &texture_layout,
+            layout: &convert_buffers.texture_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: wgpu::BindingResource::TextureView(
@@ -196,10 +217,10 @@ pub fn convert(
         occlusion_query_set: None,
     });
 
-    pass.set_pipeline(&pipeline);
-    pass.set_bind_group(0, &constant_bind_group, &[]);
+    pass.set_pipeline(&convert_buffers.pipeline);
+    pass.set_bind_group(0, &convert_buffers.constant_bind_group, &[]);
     pass.set_bind_group(1, &texture_bind_group, &[]);
     pass.draw(0..6, 0..1);
 
-    texture
+    &convert_buffers.texture
 }
