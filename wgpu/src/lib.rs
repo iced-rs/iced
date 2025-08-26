@@ -223,6 +223,9 @@ impl Renderer {
 
     /// Create wgpu buffers required for use with `screenshot_into`.
     ///
+    /// To reuse this buffer, the `CLEAR_TEXTURE` wgpu feature must be enabled
+    /// in `DeviceDescriptor::required_features` when creating the device.
+    ///
     /// Reusing the wgpu buffers improves performance when calling `screenshot` several times.
     ///
     /// The passed `name` must be a unique identifier used as part of the wgpu buffer labels
@@ -310,7 +313,7 @@ impl Renderer {
             &mut encoder,
             &texture,
             SCREENSHOT_FORMAT,
-            &screenshot_buffers.convert_buffers,
+            &mut screenshot_buffers.convert_buffers,
         );
 
         encoder.copy_texture_to_buffer(

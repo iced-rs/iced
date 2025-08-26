@@ -9,6 +9,7 @@ pub struct ConvertBuffers {
     constant_bind_group: wgpu::BindGroup,
     texture_layout: wgpu::BindGroupLayout,
     texture: wgpu::Texture,
+    needs_clear: bool,
 }
 
 pub fn create_convert_buffers(name: &str, device: &wgpu::Device, size: wgpu::Extent3d, format: wgpu::TextureFormat) -> ConvertBuffers {
@@ -170,6 +171,7 @@ pub fn create_convert_buffers(name: &str, device: &wgpu::Device, size: wgpu::Ext
         constant_bind_group,
         texture_layout,
         texture,
+        needs_clear: false,
     }
 }
 
@@ -178,13 +180,26 @@ pub fn convert_buffered<'a>(
     encoder: &mut wgpu::CommandEncoder,
     source: &'a wgpu::Texture,
     format: wgpu::TextureFormat,
-    convert_buffers: &'a ConvertBuffers,
+    convert_buffers: &'a mut ConvertBuffers,
 ) -> &'a wgpu::Texture {
     assert_eq!(convert_buffers.size, source.size(), "ConvertBuffers were created for a different size");
 
     if source.format() == format {
         return source;
     }
+
+    if convert_buffers.needs_clear {
+        // if the texture is reused, it must first be cleared; otherwise the conversion is written
+        // on top of the old one, not replacing it
+        encoder.clear_texture(&convert_buffers.texture, &wgpu::ImageSubresourceRange {
+            aspect: wgpu::TextureAspect::All,
+            base_mip_level: 0,
+            mip_level_count: None,
+            base_array_layer: 0,
+            array_layer_count: None,
+        });
+    }
+    convert_buffers.needs_clear = true;
 
     let view = &convert_buffers.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
