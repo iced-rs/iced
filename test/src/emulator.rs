@@ -145,8 +145,8 @@ impl<P: Program + 'static> Emulator<P> {
                 dbg!(action);
             }
             Action::Window(action) => match action {
-                window::Action::Open(_settings, sender) => {
-                    self.window = core::window::Id::unique();
+                window::Action::Open(id, _settings, sender) => {
+                    self.window = id;
 
                     let _ = sender.send(self.window);
                 }

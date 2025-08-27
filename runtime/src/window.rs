@@ -18,7 +18,7 @@ use raw_window_handle::WindowHandle;
 #[allow(missing_debug_implementations)]
 pub enum Action {
     /// Opens a new window with some [`Settings`].
-    Open(Settings, oneshot::Sender<Id>),
+    Open(Id, Settings, oneshot::Sender<Id>),
 
     /// Close the window and exits the application.
     Close(Id),
@@ -249,10 +249,15 @@ pub fn close_requests() -> Subscription<Id> {
 
 /// Opens a new window with the given [`Settings`]; producing the [`Id`]
 /// of the new window on completion.
-pub fn open(settings: Settings) -> Task<Id> {
-    task::oneshot(|channel| {
-        crate::Action::Window(Action::Open(settings, channel))
-    })
+pub fn open(settings: Settings) -> (Id, Task<Id>) {
+    let id = Id::unique();
+
+    (
+        id,
+        task::oneshot(|channel| {
+            crate::Action::Window(Action::Open(id, settings, channel))
+        }),
+    )
 }
 
 /// Closes the window with `id`.
