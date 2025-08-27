@@ -146,18 +146,3 @@ where
         format!("custom selector: {}", std::any::type_name_of_val(self))
     }
 }
-
-// pub fn inspect(position: Point) -> impl Selector<Output = (Match, Rectangle)> {
-//     visible(move |target: Target<'_>, visible_bounds: Rectangle| {
-//         visible_bounds
-//             .contains(position)
-//             .then(|| Match::from_target(target))
-//     })
-// }
-
-// pub fn visible<T>(
-//     f: impl Fn(Target<'_>, Rectangle) -> Option<T>,
-// ) -> impl Selector<Output = (T, Rectangle)> {
-//     todo!()
-// }
-//
