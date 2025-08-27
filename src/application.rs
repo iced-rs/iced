@@ -128,7 +128,7 @@ where
             state: &mut Self::State,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            debug::hot(|| self.update.update(state, message))
+            self.update.update(state, message)
         }
 
         fn view<'a>(
@@ -136,7 +136,7 @@ where
             state: &'a Self::State,
             _window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            debug::hot(|| self.view.view(state))
+            self.view.view(state)
         }
 
         fn settings(&self) -> Settings {
@@ -338,7 +338,7 @@ impl<P: Program> Application<P> {
     > {
         Application {
             raw: program::with_title(self.raw, move |state, _window| {
-                debug::hot(|| title.title(state))
+                title.title(state)
             }),
             settings: self.settings,
             window: self.window,
@@ -354,9 +354,7 @@ impl<P: Program> Application<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Application {
-            raw: program::with_subscription(self.raw, move |state| {
-                debug::hot(|| f(state))
-            }),
+            raw: program::with_subscription(self.raw, f),
             settings: self.settings,
             window: self.window,
             presets: self.presets,
@@ -371,9 +369,7 @@ impl<P: Program> Application<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Application {
-            raw: program::with_theme(self.raw, move |state, _window| {
-                debug::hot(|| f(state))
-            }),
+            raw: program::with_theme(self.raw, move |state, _window| f(state)),
             settings: self.settings,
             window: self.window,
             presets: self.presets,
@@ -388,9 +384,7 @@ impl<P: Program> Application<P> {
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Application {
-            raw: program::with_style(self.raw, move |state, theme| {
-                debug::hot(|| f(state, theme))
-            }),
+            raw: program::with_style(self.raw, f),
             settings: self.settings,
             window: self.window,
             presets: self.presets,
@@ -406,7 +400,7 @@ impl<P: Program> Application<P> {
     > {
         Application {
             raw: program::with_scale_factor(self.raw, move |state, _window| {
-                debug::hot(|| f(state))
+                f(state)
             }),
             settings: self.settings,
             window: self.window,
@@ -471,7 +465,7 @@ impl<P: Program> Program for Application<P> {
         state: &mut Self::State,
         message: Self::Message,
     ) -> Task<Self::Message> {
-        self.raw.update(state, message)
+        debug::hot(|| self.raw.update(state, message))
     }
 
     fn view<'a>(
@@ -479,15 +473,15 @@ impl<P: Program> Program for Application<P> {
         state: &'a Self::State,
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-        self.raw.view(state, window)
+        debug::hot(|| self.raw.view(state, window))
     }
 
     fn title(&self, state: &Self::State, window: window::Id) -> String {
-        self.raw.title(state, window)
+        debug::hot(|| self.raw.title(state, window))
     }
 
     fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
-        self.raw.subscription(state)
+        debug::hot(|| self.raw.subscription(state))
     }
 
     fn theme(
@@ -495,15 +489,15 @@ impl<P: Program> Program for Application<P> {
         state: &Self::State,
         window: iced_core::window::Id,
     ) -> Self::Theme {
-        self.raw.theme(state, window)
+        debug::hot(|| self.raw.theme(state, window))
     }
 
     fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
-        self.raw.style(state, theme)
+        debug::hot(|| self.raw.style(state, theme))
     }
 
     fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
-        self.raw.scale_factor(state, window)
+        debug::hot(|| self.raw.scale_factor(state, window))
     }
 
     fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
