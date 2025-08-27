@@ -118,53 +118,56 @@ pub fn run(
     use std::ffi::OsStr;
     use std::fs;
 
-    let tests = fs::read_dir(tests_dir)?;
+    let files = fs::read_dir(tests_dir)?;
+    let mut tests = Vec::new();
 
-    // TODO: Concurrent runtimes
-    for file in tests {
+    for file in files {
         let file = file?;
 
         if file.path().extension().and_then(OsStr::to_str) != Some("ice") {
             continue;
         }
 
-        let ice = {
-            let content = fs::read_to_string(file.path())?;
+        let content = fs::read_to_string(file.path())?;
 
-            match Ice::parse(&content) {
-                Ok(ice) => ice,
-                Err(error) => {
-                    return Err(Error::IceParsingFailed {
-                        file: file.path().to_path_buf(),
-                        error,
-                    });
-                }
-            }
-        };
-
-        let (sender, mut receiver) = mpsc::channel(1);
-
-        let preset = if let Some(preset) = ice.preset {
-            let Some(preset) = program
-                .presets()
-                .iter()
-                .find(|candidate| candidate.name() == preset)
-            else {
-                return Err(Error::PresetNotFound {
-                    name: preset.to_owned(),
-                    available: program
+        match Ice::parse(&content) {
+            Ok(ice) => {
+                let preset = if let Some(preset) = &ice.preset {
+                    let Some(preset) = program
                         .presets()
                         .iter()
-                        .map(program::Preset::name)
-                        .map(str::to_owned)
-                        .collect(),
-                });
-            };
+                        .find(|candidate| candidate.name() == preset)
+                    else {
+                        return Err(Error::PresetNotFound {
+                            name: preset.to_owned(),
+                            available: program
+                                .presets()
+                                .iter()
+                                .map(program::Preset::name)
+                                .map(str::to_owned)
+                                .collect(),
+                        });
+                    };
 
-            Some(preset)
-        } else {
-            None
-        };
+                    Some(preset)
+                } else {
+                    None
+                };
+
+                tests.push((file, ice, preset));
+            }
+            Err(error) => {
+                return Err(Error::IceParsingFailed {
+                    file: file.path().to_path_buf(),
+                    error,
+                });
+            }
+        }
+    }
+
+    // TODO: Concurrent runtimes
+    for (file, ice, preset) in tests {
+        let (sender, mut receiver) = mpsc::channel(1);
 
         let mut emulator = Emulator::with_preset(
             sender,
