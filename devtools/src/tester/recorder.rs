@@ -23,6 +23,7 @@ pub fn recorder<'a, Message, Renderer>(
 pub struct Recorder<'a, Message, Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
     on_record: Option<Box<dyn Fn(Interaction) -> Message + 'a>>,
+    has_overlay: bool,
 }
 
 impl<'a, Message, Renderer> Recorder<'a, Message, Renderer> {
@@ -32,6 +33,7 @@ impl<'a, Message, Renderer> Recorder<'a, Message, Renderer> {
         Self {
             content: content.into(),
             on_record: None,
+            has_overlay: false,
         }
     }
 
@@ -96,7 +98,9 @@ where
             return;
         }
 
-        if let Some(on_record) = &self.on_record {
+        if !self.has_overlay
+            && let Some(on_record) = &self.on_record
+        {
             let state = tree.state.downcast_mut::<State>();
 
             record(
@@ -174,7 +178,7 @@ where
                     bounds: *last_hovered,
                     ..renderer::Quad::default()
                 },
-                palette.primary.scale_alpha(0.5),
+                palette.primary.scale_alpha(0.7),
             );
         });
     }
@@ -219,6 +223,8 @@ where
         _viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+        self.has_overlay = false;
+
         self.content
             .as_widget_mut()
             .overlay(
@@ -229,6 +235,8 @@ where
                 translation,
             )
             .map(|raw| {
+                self.has_overlay = true;
+
                 let state = tree.state.downcast_mut::<State>();
 
                 overlay::Element::new(Box::new(Overlay {
@@ -253,22 +261,20 @@ where
     }
 }
 
-struct Overlay<'a, Message, Theme, Renderer> {
+struct Overlay<'a, Message, Renderer> {
     raw: overlay::Element<'a, Message, Theme, Renderer>,
     bounds: Rectangle,
     last_hovered: &'a mut Option<Rectangle>,
     on_record: Option<&'a dyn Fn(Interaction) -> Message>,
 }
 
-impl<'a, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for Overlay<'a, Message, Theme, Renderer>
+impl<'a, Message, Renderer> core::Overlay<Message, Theme, Renderer>
+    for Overlay<'a, Message, Renderer>
 where
     Renderer: core::Renderer + 'a,
 {
-    fn layout(&mut self, renderer: &Renderer, _bounds: Size) -> layout::Node {
-        self.raw
-            .as_overlay_mut()
-            .layout(renderer, self.bounds.size())
+    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        self.raw.as_overlay_mut().layout(renderer, bounds)
     }
 
     fn draw(
@@ -282,6 +288,22 @@ where
         self.raw
             .as_overlay()
             .draw(renderer, theme, style, layout, cursor);
+
+        let Some(last_hovered) = &self.last_hovered else {
+            return;
+        };
+
+        let palette = theme.palette();
+
+        renderer.with_layer(self.bounds, |renderer| {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: *last_hovered,
+                    ..renderer::Quad::default()
+                },
+                palette.primary.scale_alpha(0.7),
+            );
+        });
     }
 
     fn operate(
