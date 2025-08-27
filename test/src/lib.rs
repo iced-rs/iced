@@ -174,8 +174,7 @@ pub fn run(
             preset,
         );
 
-        let mut instructions: Vec<_> =
-            ice.instructions.into_iter().rev().collect();
+        let mut instructions = ice.instructions.into_iter();
 
         loop {
             let Some(event) = executor::block_on(receiver.next()) else {
@@ -193,7 +192,7 @@ pub fn run(
                     });
                 }
                 emulator::Event::Ready => {
-                    let Some(instruction) = instructions.pop() else {
+                    let Some(instruction) = instructions.next() else {
                         break;
                     };
 
