@@ -4,7 +4,9 @@ use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
 use crate::window;
-use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
+use crate::{
+    Element, Executor, Font, Preset, Result, Settings, Subscription, Task,
+};
 
 use iced_debug as debug;
 
@@ -101,6 +103,7 @@ where
             _renderer: PhantomData,
         },
         settings: Settings::default(),
+        presets: Vec::new(),
     }
 }
 
@@ -115,6 +118,7 @@ where
 pub struct Daemon<P: Program> {
     raw: P,
     settings: Settings,
+    presets: Vec<Preset<P::State, P::Message>>,
 }
 
 impl<P: Program> Daemon<P> {
@@ -187,6 +191,7 @@ impl<P: Program> Daemon<P> {
                 debug::hot(|| title.title(state, window))
             }),
             settings: self.settings,
+            presets: self.presets,
         }
     }
 
@@ -202,6 +207,7 @@ impl<P: Program> Daemon<P> {
                 debug::hot(|| f(state))
             }),
             settings: self.settings,
+            presets: self.presets,
         }
     }
 
@@ -217,6 +223,7 @@ impl<P: Program> Daemon<P> {
                 debug::hot(|| f(state, window))
             }),
             settings: self.settings,
+            presets: self.presets,
         }
     }
 
@@ -232,6 +239,7 @@ impl<P: Program> Daemon<P> {
                 debug::hot(|| f(state, theme))
             }),
             settings: self.settings,
+            presets: self.presets,
         }
     }
 
@@ -247,6 +255,7 @@ impl<P: Program> Daemon<P> {
                 debug::hot(|| f(state, window))
             }),
             settings: self.settings,
+            presets: self.presets,
         }
     }
 
@@ -262,6 +271,22 @@ impl<P: Program> Daemon<P> {
         Daemon {
             raw: program::with_executor::<P, E>(self.raw),
             settings: self.settings,
+            presets: self.presets,
+        }
+    }
+
+    /// Sets the boot presets of the [`Daemon`].
+    ///
+    /// Presets can be used to override the default booting strategy
+    /// of your application during testing to create reproducible
+    /// environments.
+    pub fn presets(
+        self,
+        presets: impl IntoIterator<Item = Preset<P::State, P::Message>>,
+    ) -> Self {
+        Self {
+            presets: presets.into_iter().collect(),
+            ..self
         }
     }
 }
@@ -323,6 +348,10 @@ impl<P: Program> Program for Daemon<P> {
 
     fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
         self.raw.scale_factor(state, window)
+    }
+
+    fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
+        &self.presets
     }
 }
 

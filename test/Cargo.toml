@@ -15,10 +15,8 @@ workspace = true
 
 [dependencies]
 iced_runtime.workspace = true
-iced_selector.workspace = true
-
 iced_program.workspace = true
-iced_program.features = ["test"]
+iced_selector.workspace = true
 
 iced_renderer.workspace = true
 iced_renderer.features = ["fira-sans"]

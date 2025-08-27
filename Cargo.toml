@@ -48,9 +48,7 @@ time-travel = ["debug", "iced_devtools/time-travel"]
 # Enables hot reloading (very experimental!)
 hot = ["debug", "iced_debug/hot"]
 # Enables the tester developer tool for recording and playing tests (press F12)
-tester = ["debug", "test", "iced_devtools/tester"]
-# Enables testing features (e.g. application presets)
-test = ["iced_program/test"]
+tester = ["debug", "iced_devtools/tester"]
 # Enables the `thread-pool` futures executor as the `executor::Default` on native platforms
 thread-pool = ["iced_futures/thread-pool"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -86,7 +84,6 @@ sipper = ["iced_runtime/sipper"]
 iced_debug.workspace = true
 iced_core.workspace = true
 iced_futures.workspace = true
-iced_program.workspace = true
 iced_renderer.workspace = true
 iced_runtime.workspace = true
 iced_widget.workspace = true

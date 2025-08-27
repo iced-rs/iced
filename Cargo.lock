@@ -2488,7 +2488,6 @@ dependencies = [
  "iced_devtools",
  "iced_futures",
  "iced_highlighter",
- "iced_program",
  "iced_renderer",
  "iced_runtime",
  "iced_wgpu",

@@ -5,7 +5,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Center, Element, Fill, Font, Function, Subscription, Task as Command,
+    Center, Element, Fill, Font, Function, Preset, Subscription,
+    Task as Command,
 };
 
 use serde::{Deserialize, Serialize};
@@ -19,10 +20,8 @@ pub fn main() -> iced::Result {
         .subscription(Todos::subscription)
         .title(Todos::title)
         .font(Todos::ICON_FONT)
-        .window_size((500.0, 800.0));
-
-    #[cfg(feature = "test")]
-    let todos = todos.presets(presets());
+        .window_size((500.0, 800.0))
+        .presets(presets());
 
     todos.run()
 }
@@ -579,11 +578,7 @@ impl SavedState {
     }
 }
 
-#[cfg(feature = "test")]
-fn presets() -> impl Iterator<Item = iced::application::Preset<Todos, Message>>
-{
-    use iced::application::Preset;
-
+fn presets() -> impl Iterator<Item = Preset<Todos, Message>> {
     [
         Preset::new("Empty", || {
             (Todos::Loaded(State::default()), Command::none())
