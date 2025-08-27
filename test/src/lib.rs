@@ -180,16 +180,15 @@ pub fn run(
         let mut instructions = ice.instructions.into_iter();
 
         loop {
-            let Some(event) = executor::block_on(receiver.next()) else {
-                panic!("emulator runtime stopped unexpectedly");
-            };
+            let event = executor::block_on(receiver.next())
+                .expect("emulator runtime should never stop on its own");
 
             match event {
                 emulator::Event::Action(action) => {
                     emulator.perform(&program, action);
                 }
                 emulator::Event::Failed(instruction) => {
-                    return Err(Error::IceFailed {
+                    return Err(Error::IceTestingFailed {
                         file: file.path().to_path_buf(),
                         instruction,
                     });

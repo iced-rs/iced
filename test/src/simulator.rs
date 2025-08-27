@@ -118,11 +118,11 @@ where
 
         match operation.finish() {
             widget::operation::Outcome::Some(output) => {
-                output.ok_or(Error::NotFound {
+                output.ok_or(Error::SelectorNotFound {
                     selector: description,
                 })
             }
-            _ => Err(Error::NotFound {
+            _ => Err(Error::SelectorNotFound {
                 selector: description,
             }),
         }
@@ -148,7 +148,7 @@ where
         let target = self.find(selector)?;
 
         let Some(visible_bounds) = target.visible_bounds() else {
-            return Err(Error::NotVisible {
+            return Err(Error::TargetNotVisible {
                 target: Arc::new(target),
             });
         };

@@ -10,9 +10,9 @@ use std::sync::Arc;
 pub enum Error {
     /// No matching widget was found for the [`Selector`](crate::Selector).
     #[error("no matching widget was found for the selector: {selector}")]
-    NotFound { selector: String },
+    SelectorNotFound { selector: String },
     #[error("the matching target is not visible: {target:?}")]
-    NotVisible {
+    TargetNotVisible {
         target: Arc<dyn std::fmt::Debug + Send + Sync>,
     },
     /// An IO operation failed.
@@ -30,7 +30,7 @@ pub enum Error {
         error: ice::ParseError,
     },
     #[error("the ice test ({file}) failed")]
-    IceFailed {
+    IceTestingFailed {
         file: PathBuf,
         instruction: Instruction,
     },
