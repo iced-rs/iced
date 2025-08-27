@@ -7,6 +7,7 @@ use crate::core::Alignment::Center;
 use crate::core::Length::Fill;
 use crate::core::alignment::Horizontal::Right;
 use crate::core::border;
+use crate::core::mouse;
 use crate::core::window;
 use crate::core::{Element, Font, Size, Theme};
 use crate::executor;
@@ -38,9 +39,10 @@ enum State<P: Program> {
     Recording {
         emulator: Emulator<P>,
     },
-    Ready {
+    Asserting {
         state: P::State,
         window: window::Id,
+        last_interaction: Option<instruction::Interaction>,
     },
     Playing {
         emulator: Emulator<P>,
@@ -75,8 +77,9 @@ pub enum Message {
 pub enum Tick<P: Program> {
     Tester(Message),
     Program(P::Message),
-    Recorder(instruction::Interaction),
     Emulator(emulator::Event<P>),
+    Record(instruction::Interaction),
+    Assert(instruction::Interaction),
 }
 
 impl<P: Program + 'static> Tester<P> {
@@ -163,7 +166,11 @@ impl<P: Program + 'static> Tester<P> {
 
                 let (state, window) = emulator.into_state();
 
-                self.state = State::Ready { state, window };
+                self.state = State::Asserting {
+                    state,
+                    window,
+                    last_interaction: None,
+                };
 
                 Task::none()
             }
@@ -325,34 +332,6 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::none()
             }
-            Tick::Recorder(interaction) => {
-                let mut interaction = Some(interaction);
-
-                while let Some(new_interaction) = interaction.take() {
-                    if let Some(Instruction::Interact(last_interaction)) =
-                        self.instructions.pop()
-                    {
-                        let (merged_interaction, new_interaction) =
-                            last_interaction.merge(new_interaction);
-
-                        if let Some(new_interaction) = new_interaction {
-                            self.instructions.push(Instruction::Interact(
-                                merged_interaction,
-                            ));
-
-                            self.instructions
-                                .push(Instruction::Interact(new_interaction));
-                        } else {
-                            interaction = Some(merged_interaction);
-                        }
-                    } else {
-                        self.instructions
-                            .push(Instruction::Interact(new_interaction));
-                    }
-                }
-
-                Task::none()
-            }
             Tick::Emulator(event) => {
                 match &mut self.state {
                     State::Recording { emulator } => {
@@ -385,8 +364,74 @@ impl<P: Program + 'static> Tester<P> {
                             }
                         }
                     },
-                    State::Idle | State::Ready { .. } => {}
+                    State::Idle | State::Asserting { .. } => {}
                 }
+
+                Task::none()
+            }
+            Tick::Record(interaction) => {
+                let mut interaction = Some(interaction);
+
+                while let Some(new_interaction) = interaction.take() {
+                    if let Some(Instruction::Interact(last_interaction)) =
+                        self.instructions.pop()
+                    {
+                        let (merged_interaction, new_interaction) =
+                            last_interaction.merge(new_interaction);
+
+                        if let Some(new_interaction) = new_interaction {
+                            self.instructions.push(Instruction::Interact(
+                                merged_interaction,
+                            ));
+
+                            self.instructions
+                                .push(Instruction::Interact(new_interaction));
+                        } else {
+                            interaction = Some(merged_interaction);
+                        }
+                    } else {
+                        self.instructions
+                            .push(Instruction::Interact(new_interaction));
+                    }
+                }
+
+                Task::none()
+            }
+            Tick::Assert(interaction) => {
+                let State::Asserting {
+                    last_interaction, ..
+                } = &mut self.state
+                else {
+                    return Task::none();
+                };
+
+                *last_interaction =
+                    if let Some(last_interaction) = last_interaction.take() {
+                        let (merged, new) = last_interaction.merge(interaction);
+
+                        Some(new.unwrap_or(merged))
+                    } else {
+                        Some(interaction)
+                    };
+
+                let Some(interaction) = last_interaction.take() else {
+                    return Task::none();
+                };
+
+                let instruction::Interaction::Mouse(
+                    instruction::Mouse::Click {
+                        button: mouse::Button::Left,
+                        at: Some(instruction::Target::Text(text)),
+                    },
+                ) = interaction
+                else {
+                    *last_interaction = Some(interaction);
+                    return Task::none();
+                };
+
+                self.instructions.push(Instruction::Expect(
+                    instruction::Expectation::Text(text),
+                ));
 
                 Task::none()
             }
@@ -403,7 +448,7 @@ impl<P: Program + 'static> Tester<P> {
             let (icon, label) = match &self.state {
                 State::Idle => (text(""), "Idle"),
                 State::Recording { .. } => (icon::record(), "Recording"),
-                State::Ready { .. } => (icon::lightbulb(), "Ready"),
+                State::Asserting { .. } => (icon::lightbulb(), "Asserting"),
                 State::Playing { outcome, .. } => match outcome {
                     Outcome::Running => (icon::play(), "Playing"),
                     Outcome::Failed => (icon::cancel(), "Failed"),
@@ -421,7 +466,9 @@ impl<P: Program + 'static> Tester<P> {
                             State::Recording { .. } => {
                                 palette.danger.base.color
                             }
-                            State::Ready { .. } => palette.warning.base.color,
+                            State::Asserting { .. } => {
+                                palette.warning.base.color
+                            }
                             State::Playing { outcome, .. } => match outcome {
                                 Outcome::Running => theme.palette().primary,
                                 Outcome::Failed => theme.palette().danger,
@@ -449,16 +496,20 @@ impl<P: Program + 'static> Tester<P> {
 
                         Element::from(
                             recorder(themer(theme, view))
-                                .on_record(Tick::Recorder),
+                                .on_record(Tick::Record),
                         )
                         .map(emulate)
                     }
-                    State::Ready { state, window } => {
+                    State::Asserting { state, window, .. } => {
                         let theme = program.theme(state, *window);
                         let view =
                             program.view(state, *window).map(Tick::Program);
 
-                        Element::from(themer(theme, view)).map(emulate)
+                        Element::from(
+                            recorder(themer(theme, view))
+                                .on_record(Tick::Assert),
+                        )
+                        .map(emulate)
                     }
                     State::Playing { emulator, .. } => {
                         let theme = emulator.theme(program);
@@ -482,7 +533,7 @@ impl<P: Program + 'static> Tester<P> {
                 border: border::width(2.0).color(match &self.state {
                     State::Idle => palette.background.strongest.color,
                     State::Recording { .. } => palette.danger.base.color,
-                    State::Ready { .. } => palette.warning.weak.color,
+                    State::Asserting { .. } => palette.warning.weak.color,
                     State::Playing { outcome, .. } => match outcome {
                         Outcome::Running => palette.primary.base.color,
                         Outcome::Failed => palette.danger.strong.color,
