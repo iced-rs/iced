@@ -36,7 +36,7 @@ pub struct Emulator<P: Program> {
 #[allow(missing_debug_implementations)]
 pub enum Event<P: Program> {
     Action(Action<P::Message>),
-    Failed,
+    Failed(Instruction),
     Ready,
 }
 
@@ -211,7 +211,7 @@ impl<P: Program + 'static> Emulator<P> {
 
         let mut messages = Vec::new();
 
-        match instruction {
+        match &instruction {
             Instruction::Interact(interaction) => {
                 let Some(events) = interaction.events(|target| match target {
                     instruction::Target::Point(position) => Some(*position),
@@ -234,7 +234,7 @@ impl<P: Program + 'static> Emulator<P> {
                         }
                     }
                 }) else {
-                    self.runtime.send(Event::Failed);
+                    self.runtime.send(Event::Failed(instruction));
                     self.cache = Some(user_interface.into_cache());
                     return;
                 };
@@ -282,7 +282,7 @@ impl<P: Program + 'static> Emulator<P> {
                             self.runtime.send(Event::Ready);
                         }
                         _ => {
-                            self.runtime.send(Event::Failed);
+                            self.runtime.send(Event::Failed(instruction));
                         }
                     }
 

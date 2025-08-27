@@ -1,4 +1,8 @@
+use crate::Instruction;
+use crate::ice;
+
 use std::io;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 /// A test error.
@@ -20,6 +24,23 @@ pub enum Error {
     /// The encoding of some PNG image failed.
     #[error("the encoding of some PNG image failed: {0}")]
     PngEncodingFailed(Arc<png::EncodingError>),
+    #[error("the ice test ({file}) is invalid: {error}")]
+    IceParsingFailed {
+        file: PathBuf,
+        error: ice::ParseError,
+    },
+    #[error("the ice test ({file}) failed")]
+    IceFailed {
+        file: PathBuf,
+        instruction: Instruction,
+    },
+    #[error(
+        "the preset \"{name}\" does not exist (available presets: {available:?})"
+    )]
+    PresetNotFound {
+        name: String,
+        available: Vec<String>,
+    },
 }
 
 impl From<io::Error> for Error {

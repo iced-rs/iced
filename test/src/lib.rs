@@ -104,3 +104,104 @@ pub use ice::Ice;
 pub use instruction::Instruction;
 pub use selector::Selector;
 pub use simulator::{Simulator, simulator};
+
+use std::path::Path;
+
+pub fn run(
+    program: impl program::Program + 'static,
+    tests_dir: impl AsRef<Path>,
+) -> Result<(), Error> {
+    use crate::runtime::futures::futures::StreamExt;
+    use crate::runtime::futures::futures::channel::mpsc;
+    use crate::runtime::futures::futures::executor;
+
+    use std::ffi::OsStr;
+    use std::fs;
+
+    let tests = fs::read_dir(tests_dir)?;
+
+    // TODO: Concurrent runtimes
+    for file in tests {
+        let file = file?;
+
+        if file.path().extension().and_then(OsStr::to_str) != Some("ice") {
+            continue;
+        }
+
+        let ice = {
+            let content = fs::read_to_string(file.path())?;
+
+            match Ice::parse(&content) {
+                Ok(ice) => ice,
+                Err(error) => {
+                    return Err(Error::IceParsingFailed {
+                        file: file.path().to_path_buf(),
+                        error,
+                    });
+                }
+            }
+        };
+
+        let (sender, mut receiver) = mpsc::channel(1);
+
+        let preset = if let Some(preset) = ice.preset {
+            let Some(preset) = program
+                .presets()
+                .iter()
+                .find(|candidate| candidate.name() == preset)
+            else {
+                return Err(Error::PresetNotFound {
+                    name: preset.to_owned(),
+                    available: program
+                        .presets()
+                        .iter()
+                        .map(program::Preset::name)
+                        .map(str::to_owned)
+                        .collect(),
+                });
+            };
+
+            Some(preset)
+        } else {
+            None
+        };
+
+        let mut emulator = Emulator::with_preset(
+            sender,
+            &program,
+            ice.mode,
+            ice.viewport,
+            preset,
+        );
+
+        let mut instructions: Vec<_> =
+            ice.instructions.into_iter().rev().collect();
+
+        loop {
+            let Some(event) = executor::block_on(receiver.next()) else {
+                panic!("emulator runtime stopped unexpectedly");
+            };
+
+            match event {
+                emulator::Event::Action(action) => {
+                    emulator.perform(&program, action);
+                }
+                emulator::Event::Failed(instruction) => {
+                    return Err(Error::IceFailed {
+                        file: file.path().to_path_buf(),
+                        instruction,
+                    });
+                }
+                emulator::Event::Ready => {
+                    let Some(instruction) = instructions.pop() else {
+                        break;
+                    };
+
+                    emulator.run(&program, instruction);
+                }
+            }
+        }
+    }
+
+    Ok(())
+}

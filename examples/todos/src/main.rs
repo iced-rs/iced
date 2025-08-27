@@ -5,8 +5,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Center, Element, Fill, Font, Function, Preset, Subscription,
-    Task as Command,
+    Application, Center, Element, Fill, Font, Function, Preset, Program,
+    Subscription, Task as Command,
 };
 
 use serde::{Deserialize, Serialize};
@@ -16,14 +16,16 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    let todos = iced::application(Todos::new, Todos::update, Todos::view)
+    application().run()
+}
+
+fn application() -> Application<impl Program> {
+    iced::application(Todos::new, Todos::update, Todos::view)
         .subscription(Todos::subscription)
         .title(Todos::title)
         .font(Todos::ICON_FONT)
         .window_size((500.0, 800.0))
-        .presets(presets());
-
-    todos.run()
+        .presets(presets())
 }
 
 #[derive(Debug)]
@@ -647,5 +649,14 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    fn it_passes_the_ice_tests() -> Result<(), Error> {
+        iced_test::run(
+            application(),
+            format!("{}/tests", env!("CARGO_MANIFEST_DIR")),
+        )
     }
 }

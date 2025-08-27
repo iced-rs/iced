@@ -5,7 +5,7 @@ use crate::instruction;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ice {
-    pub viewport: Size<u32>,
+    pub viewport: Size,
     pub mode: emulator::Mode,
     pub preset: Option<String>,
     pub instructions: Vec<Instruction>,
@@ -110,8 +110,8 @@ impl std::fmt::Display for Ice {
         writeln!(
             f,
             "viewport: {width}x{height}",
-            width = self.viewport.width,
-            height = self.viewport.height
+            width = self.viewport.width as u32, // TODO
+            height = self.viewport.height as u32, // TODO
         )?;
 
         writeln!(

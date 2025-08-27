@@ -221,10 +221,7 @@ impl<P: Program + 'static> Tester<P> {
                 self.confirm();
 
                 let ice = Ice {
-                    viewport: Size::new(
-                        self.viewport.width as u32,
-                        self.viewport.height as u32,
-                    ),
+                    viewport: self.viewport,
                     mode: self.mode,
                     preset: self.preset.clone(),
                     instructions: self.instructions.clone(),
@@ -246,10 +243,7 @@ impl<P: Program + 'static> Tester<P> {
                 .discard()
             }
             Message::Imported(Ok(ice)) => {
-                self.viewport = Size::new(
-                    ice.viewport.width as f32,
-                    ice.viewport.height as f32,
-                );
+                self.viewport = ice.viewport;
                 self.mode = ice.mode;
                 self.preset = ice.preset;
                 self.instructions = ice.instructions;
@@ -347,7 +341,7 @@ impl<P: Program + 'static> Tester<P> {
                         emulator::Event::Action(action) => {
                             emulator.perform(program, action);
                         }
-                        emulator::Event::Failed => {
+                        emulator::Event::Failed(_instruction) => {
                             *outcome = Outcome::Failed;
                         }
                         emulator::Event::Ready => {
