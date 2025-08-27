@@ -152,6 +152,15 @@ impl<P: Program + 'static> Tester<P> {
                     return Task::none();
                 };
 
+                while let Some(Instruction::Interact(
+                    instruction::Interaction::Mouse(instruction::Mouse::Move(
+                        _,
+                    )),
+                )) = self.instructions.last()
+                {
+                    let _ = self.instructions.pop();
+                }
+
                 let (state, window) = emulator.into_state();
 
                 self.state = State::Ready { state, window };
