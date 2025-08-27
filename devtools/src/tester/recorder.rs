@@ -106,19 +106,13 @@ where
                 layout.bounds(),
                 &mut state.last_hovered,
                 on_record,
-                |position| {
-                    use widget::Operation;
-
-                    let mut selector = position.find_all();
-
+                |operation| {
                     self.content.as_widget_mut().operate(
                         &mut tree.children[0],
                         layout,
                         renderer,
-                        &mut operation::black_box(&mut selector),
+                        operation,
                     );
-
-                    selector.finish()
                 },
             );
         }
@@ -322,18 +316,10 @@ where
                 self.bounds,
                 self.last_hovered,
                 on_event,
-                |position| {
-                    use widget::Operation;
-
-                    let mut selector = position.find_all();
-
-                    self.raw.as_overlay_mut().operate(
-                        layout,
-                        renderer,
-                        &mut operation::black_box(&mut selector),
-                    );
-
-                    selector.finish()
+                |operation| {
+                    self.raw
+                        .as_overlay_mut()
+                        .operate(layout, renderer, operation);
                 },
             );
         }
@@ -384,7 +370,7 @@ fn record<Message>(
     bounds: Rectangle,
     last_hovered: &mut Option<Rectangle>,
     on_record: impl Fn(Interaction) -> Message,
-    find: impl FnOnce(Point) -> operation::Outcome<Vec<target::Match>>,
+    operate: impl FnMut(&mut dyn widget::Operation),
 ) {
     if let Event::Mouse(_) = event
         && !cursor.is_over(bounds)
@@ -401,43 +387,80 @@ fn record<Message>(
             Interaction::from_event(event)
         };
 
-    if let Some(mut interaction) = interaction {
-        if let Interaction::Mouse(
-            Mouse::Move(at)
-            | Mouse::Press { at: Some(at), .. }
-            | Mouse::Release { at: Some(at), .. }
-            | Mouse::Click { at: Some(at), .. },
-        ) = &mut interaction
-        {
-            if let Target::Point(position) = *at
-                && let operation::Outcome::Some(targets) =
-                    find(position + (bounds.position() - Point::ORIGIN))
-                && let Some((content, visible_bounds)) =
-                    targets.into_iter().rev().find_map(|target| {
-                        if let target::Match::Text {
-                            content,
-                            visible_bounds,
-                            ..
-                        }
-                        | target::Match::TextInput {
-                            content,
-                            visible_bounds,
-                            ..
-                        } = target
-                        {
-                            Some((content, visible_bounds))
-                        } else {
-                            None
-                        }
-                    })
-            {
-                *at = Target::Text(content);
-                *last_hovered = visible_bounds;
-            } else {
-                *last_hovered = None;
-            }
-        }
+    let Some(mut interaction) = interaction else {
+        return;
+    };
 
+    let Interaction::Mouse(
+        Mouse::Move(at)
+        | Mouse::Press { at: Some(at), .. }
+        | Mouse::Release { at: Some(at), .. }
+        | Mouse::Click { at: Some(at), .. },
+    ) = &mut interaction
+    else {
         shell.publish(on_record(interaction));
+        return;
+    };
+
+    let Target::Point(position) = *at else {
+        shell.publish(on_record(interaction));
+        return;
+    };
+
+    if let Some((content, visible_bounds)) =
+        find_text(position + (bounds.position() - Point::ORIGIN), operate)
+    {
+        *at = Target::Text(content);
+        *last_hovered = visible_bounds;
+    } else {
+        *last_hovered = None;
     }
+
+    shell.publish(on_record(interaction));
+}
+
+fn find_text(
+    position: Point,
+    mut operate: impl FnMut(&mut dyn widget::Operation),
+) -> Option<(String, Option<Rectangle>)> {
+    use widget::Operation;
+
+    let mut by_position = position.find_all();
+    operate(&mut operation::black_box(&mut by_position));
+
+    let operation::Outcome::Some(targets) = by_position.finish() else {
+        return None;
+    };
+
+    let (content, visible_bounds) =
+        targets.into_iter().rev().find_map(|target| {
+            if let target::Match::Text {
+                content,
+                visible_bounds,
+                ..
+            }
+            | target::Match::TextInput {
+                content,
+                visible_bounds,
+                ..
+            } = target
+            {
+                Some((content, visible_bounds))
+            } else {
+                None
+            }
+        })?;
+
+    let mut by_text = content.clone().find_all();
+    operate(&mut operation::black_box(&mut by_text));
+
+    let operation::Outcome::Some(texts) = by_text.finish() else {
+        return None;
+    };
+
+    if texts.len() > 1 {
+        return None;
+    }
+
+    Some((content, visible_bounds))
 }
