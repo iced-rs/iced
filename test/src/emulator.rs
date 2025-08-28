@@ -101,14 +101,16 @@ impl<P: Program + 'static> Emulator<P> {
             pending_tasks: 0,
         };
 
-        emulator.wait_for(task);
         emulator.resubscribe(program);
+        emulator.wait_for(task);
 
         emulator
     }
 
     pub fn update(&mut self, program: &P, message: P::Message) {
         let task = program.update(&mut self.state, message);
+
+        self.resubscribe(program);
 
         match self.mode {
             Mode::Zen if self.pending_tasks > 0 => self.wait_for(task),
@@ -120,8 +122,6 @@ impl<P: Program + 'static> Emulator<P> {
                 }
             }
         }
-
-        self.resubscribe(program);
     }
 
     pub fn perform(&mut self, program: &P, action: Action<P>) {
@@ -290,8 +290,8 @@ impl<P: Program + 'static> Emulator<P> {
                         program.update(&mut self.state, message)
                     }));
 
-                self.wait_for(task);
                 self.resubscribe(program);
+                self.wait_for(task);
             }
             Instruction::Expect(expectation) => match expectation {
                 instruction::Expectation::Text(text) => {
