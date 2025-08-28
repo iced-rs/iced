@@ -111,7 +111,7 @@ impl<P: Program + 'static> Emulator<P> {
         let task = program.update(&mut self.state, message);
 
         match self.mode {
-            Mode::Zen => self.wait_for(task),
+            Mode::Zen if self.pending_tasks > 0 => self.wait_for(task),
             _ => {
                 if let Some(stream) = task::into_stream(task) {
                     self.runtime.run(
@@ -127,10 +127,12 @@ impl<P: Program + 'static> Emulator<P> {
     pub fn perform(&mut self, program: &P, action: Action<P>) {
         match action {
             Action::CountDown => {
-                self.pending_tasks -= 1;
+                if self.pending_tasks > 0 {
+                    self.pending_tasks -= 1;
 
-                if self.pending_tasks == 0 {
-                    self.runtime.send(Event::Ready);
+                    if self.pending_tasks == 0 {
+                        self.runtime.send(Event::Ready);
+                    }
                 }
             }
             Action::Runtime(action) => match action {
@@ -349,7 +351,7 @@ impl<P: Program + 'static> Emulator<P> {
                     self.runtime.send(Event::Ready);
                 }
             }
-        } else {
+        } else if self.pending_tasks == 0 {
             self.runtime.send(Event::Ready);
         }
     }
