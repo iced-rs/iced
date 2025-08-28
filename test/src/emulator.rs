@@ -6,6 +6,7 @@ use crate::core::{Element, Point, Size};
 use crate::instruction;
 use crate::program;
 use crate::program::Program;
+use crate::runtime;
 use crate::runtime::futures::futures::StreamExt;
 use crate::runtime::futures::futures::channel::mpsc;
 use crate::runtime::futures::futures::stream;
@@ -14,7 +15,7 @@ use crate::runtime::futures::{Executor, Runtime};
 use crate::runtime::task;
 use crate::runtime::user_interface;
 use crate::runtime::window;
-use crate::runtime::{Action, Task, UserInterface};
+use crate::runtime::{Task, UserInterface};
 use crate::selector;
 use crate::{Instruction, Selector};
 
@@ -31,13 +32,20 @@ pub struct Emulator<P: Program> {
     cursor: mouse::Cursor,
     clipboard: Clipboard,
     cache: Option<user_interface::Cache>,
+    pending_tasks: usize,
 }
 
 #[allow(missing_debug_implementations)]
 pub enum Event<P: Program> {
-    Action(Action<P::Message>),
+    Action(Action<P>),
     Failed(Instruction),
     Ready,
+}
+
+#[allow(missing_debug_implementations)]
+pub enum Action<P: Program> {
+    Runtime(runtime::Action<P::Message>),
+    CountDown,
 }
 
 impl<P: Program + 'static> Emulator<P> {
@@ -90,6 +98,7 @@ impl<P: Program + 'static> Emulator<P> {
             cursor: mouse::Cursor::Unavailable,
             window: core::window::Id::unique(),
             cache: Some(user_interface::Cache::default()),
+            pending_tasks: 0,
         };
 
         emulator.wait_for(task);
@@ -101,103 +110,119 @@ impl<P: Program + 'static> Emulator<P> {
     pub fn update(&mut self, program: &P, message: P::Message) {
         let task = program.update(&mut self.state, message);
 
-        if let Some(stream) = task::into_stream(task) {
-            self.runtime.run(stream.map(Event::Action).boxed());
+        match self.mode {
+            Mode::Zen => self.wait_for(task),
+            _ => {
+                if let Some(stream) = task::into_stream(task) {
+                    self.runtime.run(
+                        stream.map(Action::Runtime).map(Event::Action).boxed(),
+                    );
+                }
+            }
         }
 
         self.resubscribe(program);
     }
 
-    pub fn perform(&mut self, program: &P, action: Action<P::Message>) {
+    pub fn perform(&mut self, program: &P, action: Action<P>) {
         match action {
-            Action::Output(message) => {
-                self.update(program, message);
+            Action::CountDown => {
+                self.pending_tasks -= 1;
+
+                if self.pending_tasks == 0 {
+                    self.runtime.send(Event::Ready);
+                }
             }
-            Action::LoadFont { .. } => {
-                // TODO
-            }
-            Action::Widget(operation) => {
-                let mut user_interface = UserInterface::build(
-                    program.view(&self.state, self.window),
-                    self.size,
-                    self.cache.take().unwrap(),
-                    &mut self.renderer,
-                );
+            Action::Runtime(action) => match action {
+                runtime::Action::Output(message) => {
+                    self.update(program, message);
+                }
+                runtime::Action::LoadFont { .. } => {
+                    // TODO
+                }
+                runtime::Action::Widget(operation) => {
+                    let mut user_interface = UserInterface::build(
+                        program.view(&self.state, self.window),
+                        self.size,
+                        self.cache.take().unwrap(),
+                        &mut self.renderer,
+                    );
 
-                let mut operation = Some(operation);
+                    let mut operation = Some(operation);
 
-                while let Some(mut current) = operation.take() {
-                    user_interface.operate(&self.renderer, &mut current);
+                    while let Some(mut current) = operation.take() {
+                        user_interface.operate(&self.renderer, &mut current);
 
-                    match current.finish() {
-                        widget::operation::Outcome::None => {}
-                        widget::operation::Outcome::Some(()) => {}
-                        widget::operation::Outcome::Chain(next) => {
-                            operation = Some(next);
+                        match current.finish() {
+                            widget::operation::Outcome::None => {}
+                            widget::operation::Outcome::Some(()) => {}
+                            widget::operation::Outcome::Chain(next) => {
+                                operation = Some(next);
+                            }
                         }
                     }
-                }
 
-                self.cache = Some(user_interface.into_cache());
-            }
-            Action::Clipboard(action) => {
-                // TODO
-                dbg!(action);
-            }
-            Action::Window(action) => match action {
-                window::Action::Open(id, _settings, sender) => {
-                    self.window = id;
+                    self.cache = Some(user_interface.into_cache());
+                }
+                runtime::Action::Clipboard(action) => {
+                    // TODO
+                    dbg!(action);
+                }
+                runtime::Action::Window(action) => match action {
+                    window::Action::Open(id, _settings, sender) => {
+                        self.window = id;
 
-                    let _ = sender.send(self.window);
-                }
-                window::Action::GetOldest(sender)
-                | window::Action::GetLatest(sender) => {
-                    let _ = sender.send(Some(self.window));
-                }
-                window::Action::GetSize(id, sender) => {
-                    if id == self.window {
-                        let _ = sender.send(self.size);
+                        let _ = sender.send(self.window);
                     }
-                }
-                window::Action::GetMaximized(id, sender) => {
-                    if id == self.window {
-                        let _ = sender.send(false);
+                    window::Action::GetOldest(sender)
+                    | window::Action::GetLatest(sender) => {
+                        let _ = sender.send(Some(self.window));
                     }
-                }
-                window::Action::GetMinimized(id, sender) => {
-                    if id == self.window {
-                        let _ = sender.send(None);
+                    window::Action::GetSize(id, sender) => {
+                        if id == self.window {
+                            let _ = sender.send(self.size);
+                        }
                     }
-                }
-                window::Action::GetPosition(id, sender) => {
-                    if id == self.window {
-                        let _ = sender.send(Some(Point::ORIGIN));
+                    window::Action::GetMaximized(id, sender) => {
+                        if id == self.window {
+                            let _ = sender.send(false);
+                        }
                     }
-                }
-                window::Action::GetScaleFactor(id, sender) => {
-                    if id == self.window {
-                        let _ = sender.send(1.0);
+                    window::Action::GetMinimized(id, sender) => {
+                        if id == self.window {
+                            let _ = sender.send(None);
+                        }
                     }
-                }
-                window::Action::GetMode(id, sender) => {
-                    if id == self.window {
-                        let _ = sender.send(core::window::Mode::Windowed);
+                    window::Action::GetPosition(id, sender) => {
+                        if id == self.window {
+                            let _ = sender.send(Some(Point::ORIGIN));
+                        }
                     }
+                    window::Action::GetScaleFactor(id, sender) => {
+                        if id == self.window {
+                            let _ = sender.send(1.0);
+                        }
+                    }
+                    window::Action::GetMode(id, sender) => {
+                        if id == self.window {
+                            let _ = sender.send(core::window::Mode::Windowed);
+                        }
+                    }
+                    _ => {
+                        // Ignored
+                    }
+                },
+                runtime::Action::System(action) => {
+                    // TODO
+                    dbg!(action);
                 }
-                _ => {
-                    // Ignored
+                runtime::Action::Exit => {
+                    // TODO
+                }
+                runtime::Action::Reload => {
+                    // TODO
                 }
             },
-            Action::System(action) => {
-                // TODO
-                dbg!(action);
-            }
-            Action::Exit => {
-                // TODO
-            }
-            Action::Reload => {
-                // TODO
-            }
         }
     }
 
@@ -295,16 +320,32 @@ impl<P: Program + 'static> Emulator<P> {
     pub fn wait_for(&mut self, task: Task<P::Message>) {
         if let Some(stream) = task::into_stream(task) {
             match self.mode {
+                Mode::Zen => {
+                    self.pending_tasks += 1;
+
+                    self.runtime.run(
+                        stream
+                            .map(Action::Runtime)
+                            .map(Event::Action)
+                            .chain(stream::once(async {
+                                Event::Action(Action::CountDown)
+                            }))
+                            .boxed(),
+                    );
+                }
                 Mode::Patient => {
                     self.runtime.run(
                         stream
+                            .map(Action::Runtime)
                             .map(Event::Action)
                             .chain(stream::once(async { Event::Ready }))
                             .boxed(),
                     );
                 }
                 Mode::Impatient => {
-                    self.runtime.run(stream.map(Event::Action).boxed());
+                    self.runtime.run(
+                        stream.map(Action::Runtime).map(Event::Action).boxed(),
+                    );
                     self.runtime.send(Event::Ready);
                 }
             }
@@ -315,9 +356,9 @@ impl<P: Program + 'static> Emulator<P> {
 
     pub fn resubscribe(&mut self, program: &P) {
         self.runtime.track(subscription::into_recipes(
-            program
-                .subscription(&self.state)
-                .map(|message| Event::Action(Action::Output(message))),
+            program.subscription(&self.state).map(|message| {
+                Event::Action(Action::Runtime(runtime::Action::Output(message)))
+            }),
         ));
     }
 
@@ -340,20 +381,22 @@ impl<P: Program + 'static> Emulator<P> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Mode {
     #[default]
+    Zen,
     Patient,
     Impatient,
 }
 
 impl Mode {
-    pub const ALL: &[Self] = &[Self::Patient, Self::Impatient];
+    pub const ALL: &[Self] = &[Self::Zen, Self::Patient, Self::Impatient];
 }
 
 impl fmt::Display for Mode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Mode::Patient => f.write_str("Patient"),
-            Mode::Impatient => f.write_str("Impatient"),
-        }
+        f.write_str(match self {
+            Self::Zen => "Zen",
+            Self::Patient => "Patient",
+            Self::Impatient => "Impatient",
+        })
     }
 }
 
