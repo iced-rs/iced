@@ -82,11 +82,13 @@ impl<P: Program + 'static> Emulator<P> {
 
         let runtime = Runtime::new(executor, sender);
 
-        let (state, task) = if let Some(preset) = preset {
-            preset.boot()
-        } else {
-            program.boot()
-        };
+        let (state, task) = runtime.enter(|| {
+            if let Some(preset) = preset {
+                preset.boot()
+            } else {
+                program.boot()
+            }
+        });
 
         let mut emulator = Self {
             state,
@@ -108,7 +110,9 @@ impl<P: Program + 'static> Emulator<P> {
     }
 
     pub fn update(&mut self, program: &P, message: P::Message) {
-        let task = program.update(&mut self.state, message);
+        let task = self
+            .runtime
+            .enter(|| program.update(&mut self.state, message));
 
         self.resubscribe(program);
 
@@ -285,10 +289,11 @@ impl<P: Program + 'static> Emulator<P> {
 
                 self.cache = Some(user_interface.into_cache());
 
-                let task =
+                let task = self.runtime.enter(|| {
                     Task::batch(messages.into_iter().map(|message| {
                         program.update(&mut self.state, message)
-                    }));
+                    }))
+                });
 
                 self.resubscribe(program);
                 self.wait_for(task);
@@ -357,11 +362,14 @@ impl<P: Program + 'static> Emulator<P> {
     }
 
     pub fn resubscribe(&mut self, program: &P) {
-        self.runtime.track(subscription::into_recipes(
-            program.subscription(&self.state).map(|message| {
-                Event::Action(Action::Runtime(runtime::Action::Output(message)))
-            }),
-        ));
+        self.runtime
+            .track(subscription::into_recipes(self.runtime.enter(|| {
+                program.subscription(&self.state).map(|message| {
+                    Event::Action(Action::Runtime(runtime::Action::Output(
+                        message,
+                    )))
+                })
+            })));
     }
 
     pub fn view(
