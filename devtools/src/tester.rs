@@ -86,7 +86,7 @@ impl<P: Program + 'static> Tester<P> {
     pub fn new(program: &P) -> Self {
         Self {
             mode: emulator::Mode::default(),
-            viewport: Size::new(512.0, 512.0),
+            viewport: window::Settings::default().size,
             presets: combo_box::State::new(
                 program
                     .presets()
