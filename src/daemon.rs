@@ -6,8 +6,7 @@ use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{
-    Element, Executor, Font, MaybeSend, Preset, Result, Settings, Subscription,
-    Task,
+    Element, Executor, Font, Preset, Result, Settings, Subscription, Task,
 };
 
 use iced_debug as debug;
@@ -31,7 +30,7 @@ pub fn daemon<State, Message, Theme, Renderer>(
 ) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
-    Message: MaybeSend + 'static,
+    Message: Send + 'static,
     Theme: Default + theme::Base,
     Renderer: program::Renderer,
 {
@@ -50,7 +49,7 @@ where
     impl<State, Message, Theme, Renderer, Boot, Update, View> Program
         for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
-        Message: MaybeSend + 'static,
+        Message: Send + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
         Boot: application::Boot<State, Message>,

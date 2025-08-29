@@ -15,7 +15,7 @@ use crate::core::text;
 use crate::core::theme;
 use crate::core::window;
 use crate::core::{Element, Font, Settings};
-use crate::futures::{Executor, MaybeSend, Subscription};
+use crate::futures::{Executor, Subscription};
 use crate::graphics::compositor;
 use crate::runtime::Task;
 
@@ -29,7 +29,7 @@ pub trait Program: Sized {
     type State;
 
     /// The message of the program.
-    type Message: MaybeSend + 'static;
+    type Message: Send + 'static;
 
     /// The theme of the program.
     type Theme: Default + theme::Base;

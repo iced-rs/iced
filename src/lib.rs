@@ -528,7 +528,6 @@ pub use crate::core::{
 pub use crate::program::Preset;
 pub use crate::program::message;
 pub use crate::runtime::exit;
-pub use crate::runtime::futures::MaybeSend;
 pub use iced_futures::Subscription;
 
 pub use Alignment::Center;
@@ -698,7 +697,7 @@ pub fn run<State, Message, Theme, Renderer>(
 ) -> Result
 where
     State: Default + 'static,
-    Message: MaybeSend + message::MaybeDebug + message::MaybeClone + 'static,
+    Message: Send + message::MaybeDebug + message::MaybeClone + 'static,
     Theme: Default + theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {

@@ -36,8 +36,7 @@ use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{
-    Element, Executor, Font, MaybeSend, Preset, Result, Settings, Size,
-    Subscription, Task,
+    Element, Executor, Font, Preset, Result, Settings, Size, Subscription, Task,
 };
 
 use iced_debug as debug;
@@ -83,7 +82,7 @@ pub fn application<State, Message, Theme, Renderer>(
 ) -> Application<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
-    Message: MaybeSend + 'static,
+    Message: Send + 'static,
     Theme: Default + theme::Base,
     Renderer: program::Renderer,
 {
@@ -102,7 +101,7 @@ where
     impl<State, Message, Theme, Renderer, Boot, Update, View> Program
         for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
-        Message: MaybeSend + 'static,
+        Message: Send + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
         Boot: self::Boot<State, Message>,
@@ -201,7 +200,7 @@ impl<P: Program> Application<P> {
         #[cfg(all(feature = "debug", not(feature = "tester")))]
         let program = iced_devtools::attach(self);
 
-        #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
+        #[cfg(not(any(feature = "tester", feature = "debug")))]
         let program = self;
 
         Ok(shell::run(program)?)
