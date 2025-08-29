@@ -78,14 +78,19 @@ where
     let total_spacing = spacing * items.len().saturating_sub(1) as f32;
     let max_cross = axis.cross(limits.max());
 
-    let compression = limits.compression();
-    let (main_compress, cross_compress) =
-        axis.pack(compression.width, compression.height);
+    let (main_compress, cross_compress) = {
+        let compression = limits.compression();
+        axis.pack(compression.width, compression.height)
+    };
+
+    let compression = {
+        let (compress_x, compress_y) = axis.pack(main_compress, false);
+        Size::new(compress_x, compress_y)
+    };
 
     let mut fill_main_sum = 0;
     let mut some_fill_cross = false;
     let mut cross = if cross_compress { 0.0 } else { max_cross };
-
     let mut available = axis.main(limits.max()) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
