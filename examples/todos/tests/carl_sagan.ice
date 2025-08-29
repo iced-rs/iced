@@ -1,4 +1,4 @@
-viewport: 512x768
+viewport: 500x800
 mode: Impatient
 preset: Empty
 -----

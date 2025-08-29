@@ -3,39 +3,28 @@ use iced_debug as debug;
 use iced_program as program;
 use iced_program::runtime;
 use iced_program::runtime::futures;
-#[cfg(feature = "tester")]
-use iced_test as test;
+use iced_widget as widget;
 use iced_widget::core;
 
 mod comet;
-mod executor;
-mod icon;
 mod time_machine;
-mod widget;
-
-#[cfg(feature = "tester")]
-mod tester;
-
-#[cfg(not(feature = "tester"))]
-#[path = "tester/null.rs"]
-mod tester;
-
-use crate::tester::Tester;
 
 use crate::core::border;
 use crate::core::keyboard;
 use crate::core::theme::{self, Base, Theme};
 use crate::core::time::seconds;
 use crate::core::window;
-use crate::core::{Alignment::Center, Color, Element, Length::Fill};
+use crate::core::{
+    Alignment::Center, Color, Element, Font, Length::Fill, Settings,
+};
 use crate::futures::Subscription;
 use crate::program::Program;
-use crate::runtime::Task;
-use crate::runtime::font;
+use crate::program::message;
+use crate::runtime::task::{self, Task};
 use crate::time_machine::TimeMachine;
 use crate::widget::{
-    bottom_right, button, center, column, container, horizontal_space,
-    monospace, opaque, row, scrollable, stack, text, themer,
+    bottom_right, button, center, column, container, horizontal_space, opaque,
+    row, scrollable, stack, text, themer,
 };
 
 use std::fmt;
@@ -55,6 +44,7 @@ pub struct Attach<P> {
 impl<P> Program for Attach<P>
 where
     P: Program + 'static,
+    P::Message: std::fmt::Debug + message::MaybeClone,
 {
     type State = DevTools<P>;
     type Message = Event<P>;
@@ -66,8 +56,12 @@ where
         P::name()
     }
 
-    fn settings(&self) -> core::Settings {
+    fn settings(&self) -> Settings {
         self.program.settings()
+    }
+
+    fn window(&self) -> Option<window::Settings> {
+        self.program.window()
     }
 
     fn boot(&self) -> (Self::State, Task<Self::Message>) {
@@ -76,11 +70,7 @@ where
 
         (
             devtools,
-            Task::batch([
-                boot.map(Event::Program),
-                task.map(Event::Message),
-                font::load(icon::FONT).discard(),
-            ]),
+            Task::batch([boot.map(Event::Program), task.map(Event::Message)]),
         )
     }
 
@@ -130,7 +120,7 @@ where
     state: P::State,
     show_notification: bool,
     time_machine: TimeMachine<P>,
-    mode: Mode<P>,
+    mode: Mode,
 }
 
 #[derive(Debug, Clone)]
@@ -141,13 +131,10 @@ pub enum Message {
     InstallComet,
     Installing(comet::install::Result),
     CancelSetup,
-    Toggle,
-    Tester(tester::Message),
 }
 
-enum Mode<P: Program> {
+enum Mode {
     Hidden,
-    Open { tester: Tester<P> },
     Setup(Setup),
 }
 
@@ -164,6 +151,7 @@ enum Goal {
 impl<P> DevTools<P>
 where
     P: Program + 'static,
+    P::Message: std::fmt::Debug + message::MaybeClone,
 {
     pub fn new(state: P::State) -> (Self, Task<Message>) {
         (
@@ -173,7 +161,7 @@ where
                 show_notification: true,
                 time_machine: TimeMachine::new(),
             },
-            executor::spawn_blocking(|mut sender| {
+            task::blocking(|mut sender| {
                 thread::sleep(seconds(2));
                 let _ = sender.try_send(());
             })
@@ -190,21 +178,6 @@ where
             Event::Message(message) => match message {
                 Message::HideNotification => {
                     self.show_notification = false;
-
-                    Task::none()
-                }
-                Message::Toggle => {
-                    match &self.mode {
-                        Mode::Hidden => {
-                            self.mode = Mode::Open {
-                                tester: Tester::new(program),
-                            };
-                        }
-                        Mode::Open { tester } if !tester.is_busy() => {
-                            self.mode = Mode::Hidden;
-                        }
-                        Mode::Setup(_) | Mode::Open { .. } => {}
-                    }
 
                     Task::none()
                 }
@@ -290,13 +263,6 @@ where
 
                     Task::none()
                 }
-                Message::Tester(message) => {
-                    let Mode::Open { tester } = &mut self.mode else {
-                        return Task::none();
-                    };
-
-                    tester.update(program, message).map(Event::Tester)
-                }
             },
             Event::Program(message) => {
                 self.time_machine.push(&message);
@@ -328,13 +294,6 @@ where
 
                 Task::none()
             }
-            Event::Tester(tick) => {
-                let Mode::Open { tester } = &mut self.mode else {
-                    return Task::none();
-                };
-
-                tester.tick(program, tick).map(Event::Tester)
-            }
             Event::Discard => Task::none(),
         }
     }
@@ -347,23 +306,15 @@ where
         let state = self.state();
 
         let view = {
-            let view = || {
-                let theme = program.theme(state, window);
-                let view: Element<'_, _, Theme, _> =
-                    themer(theme, program.view(&self.state, window)).into();
+            let theme = program.theme(state, window);
 
-                if self.time_machine.is_rewinding() {
-                    view.map(|_| Event::Discard)
-                } else {
-                    view.map(Event::Program)
-                }
-            };
+            let view: Element<'_, _, Theme, _> =
+                themer(theme, program.view(state, window)).into();
 
-            match &self.mode {
-                Mode::Open { tester } => {
-                    tester.view(program, view, Event::Tester)
-                }
-                _ => view(),
+            if self.time_machine.is_rewinding() {
+                view.map(|_| Event::Discard)
+            } else {
+                view.map(Event::Program)
             }
         };
 
@@ -408,28 +359,9 @@ where
                 })
             });
 
-        let sidebar = if let Mode::Open { tester } = &self.mode {
-            let title = monospace("Developer Tools");
-            let tester = tester.controls().map(Message::Tester);
-
-            let tools = column![title, tester].spacing(10);
-
-            let sidebar = container(tools)
-                .padding(10)
-                .width(250)
-                .height(Fill)
-                .style(container::dark);
-
-            Some(Element::from(sidebar).map(Event::Message))
-        } else {
-            None
-        };
-
-        let content = row![view, sidebar];
-
         themer(
             theme,
-            stack![content]
+            stack![view]
                 .height(Fill)
                 .push_maybe(setup.map(opaque))
                 .push_maybe(notification.map(|notification| {
@@ -451,14 +383,6 @@ where
         let hotkeys =
             futures::keyboard::on_key_press(|key, _modifiers| match key {
                 keyboard::Key::Named(keyboard::key::Named::F12) => {
-                    Some(if cfg!(feature = "tester") {
-                        Message::Toggle
-                    } else {
-                        Message::ToggleComet
-                    })
-                }
-                #[cfg(feature = "tester")]
-                keyboard::Key::Named(keyboard::key::Named::F11) => {
                     Some(Message::ToggleComet)
                 }
                 _ => None,
@@ -479,11 +403,7 @@ where
     }
 
     pub fn scale_factor(&self, program: &P, window: window::Id) -> f64 {
-        if let Mode::Open { .. } = &self.mode {
-            1.0
-        } else {
-            program.scale_factor(self.state(), window)
-        }
+        program.scale_factor(self.state(), window)
     }
 
     pub fn state(&self) -> &P::State {
@@ -497,7 +417,6 @@ where
 {
     Message(Message),
     Program(P::Message),
-    Tester(tester::Tick<P>),
     Command(debug::Command),
     Discard,
 }
@@ -505,30 +424,14 @@ where
 impl<P> fmt::Debug for Event<P>
 where
     P: Program,
+    P::Message: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Message(message) => message.fmt(f),
             Self::Program(message) => message.fmt(f),
-            Self::Tester(_) => f.write_str("Tester"),
             Self::Command(command) => command.fmt(f),
             Self::Discard => f.write_str("Discard"),
-        }
-    }
-}
-
-#[cfg(feature = "time-travel")]
-impl<P> Clone for Event<P>
-where
-    P: Program,
-{
-    fn clone(&self) -> Self {
-        match self {
-            Self::Message(message) => Self::Message(message.clone()),
-            Self::Program(message) => Self::Program(message.clone()),
-            Self::Command(command) => Self::Command(*command),
-            Self::Tester(_) => Self::Discard, // Time traveling an emulator?!
-            Self::Discard => Self::Discard,
         }
     }
 }
@@ -557,13 +460,14 @@ where
     ];
 
     let command = container(
-        monospace(format!(
+        text!(
             "cargo install --locked \\
     --git https://github.com/iced-rs/comet.git \\
     --rev {}",
             comet::COMPATIBLE_REVISION
-        ))
-        .size(14),
+        )
+        .size(14)
+        .font(Font::MONOSPACE),
     )
     .width(Fill)
     .padding(5)
@@ -630,9 +534,9 @@ where
         text("Installing comet...").size(20),
         container(
             scrollable(
-                column(
-                    logs.iter().map(|log| { monospace(log).size(12).into() }),
-                )
+                column(logs.iter().map(|log| {
+                    text(log).size(12).font(Font::MONOSPACE).into()
+                }))
                 .spacing(3),
             )
             .spacing(10)
@@ -653,7 +557,7 @@ fn inline_code<'a, Renderer>(
 where
     Renderer: program::Renderer + 'a,
 {
-    container(monospace(code).size(12))
+    container(text(code).size(12).font(Font::MONOSPACE))
         .style(|_theme| {
             container::Style::default()
                 .background(Color::BLACK)

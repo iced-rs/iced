@@ -30,12 +30,14 @@
 //!     ]
 //! }
 //! ```
+use crate::message;
 use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{
-    Element, Executor, Font, Preset, Result, Settings, Size, Subscription, Task,
+    Element, Executor, Font, MaybeSend, Preset, Result, Settings, Size,
+    Subscription, Task,
 };
 
 use iced_debug as debug;
@@ -81,7 +83,7 @@ pub fn application<State, Message, Theme, Renderer>(
 ) -> Application<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
-    Message: program::Message + 'static,
+    Message: MaybeSend + 'static,
     Theme: Default + theme::Base,
     Renderer: program::Renderer,
 {
@@ -100,7 +102,7 @@ where
     impl<State, Message, Theme, Renderer, Boot, Update, View> Program
         for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
-        Message: program::Message + 'static,
+        Message: MaybeSend + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
         Boot: self::Boot<State, Message>,
@@ -142,6 +144,10 @@ where
         fn settings(&self) -> Settings {
             Settings::default()
         }
+
+        fn window(&self) -> Option<iced_core::window::Settings> {
+            Some(window::Settings::default())
+        }
     }
 
     Application {
@@ -180,25 +186,25 @@ impl<P: Program> Application<P> {
     pub fn run(self) -> Result
     where
         Self: 'static,
+        P::Message: message::MaybeDebug + message::MaybeClone,
     {
-        let settings = self.settings.clone();
-        let window = self.window.clone();
+        #[cfg(feature = "debug")]
+        iced_debug::init(iced_debug::Metadata {
+            name: P::name(),
+            theme: None,
+            can_time_travel: cfg!(feature = "time-travel"),
+        });
 
-        #[cfg(all(feature = "debug", not(target_arch = "wasm32")))]
-        let program = {
-            iced_debug::init(iced_debug::Metadata {
-                name: P::name(),
-                theme: None,
-                can_time_travel: cfg!(feature = "time-travel"),
-            });
+        #[cfg(feature = "tester")]
+        let program = iced_tester::attach(self);
 
-            iced_devtools::attach(self)
-        };
+        #[cfg(all(feature = "debug", not(feature = "tester")))]
+        let program = iced_devtools::attach(self);
 
         #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
         let program = self;
 
-        Ok(shell::run(program, settings, Some(window))?)
+        Ok(shell::run(program)?)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Application`].
@@ -454,6 +460,10 @@ impl<P: Program> Program for Application<P> {
 
     fn settings(&self) -> Settings {
         self.settings.clone()
+    }
+
+    fn window(&self) -> Option<window::Settings> {
+        Some(self.window.clone())
     }
 
     fn boot(&self) -> (Self::State, Task<Self::Message>) {

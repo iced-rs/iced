@@ -2492,6 +2492,7 @@ dependencies = [
  "iced_highlighter",
  "iced_renderer",
  "iced_runtime",
+ "iced_tester",
  "iced_wgpu",
  "iced_widget",
  "iced_winit",
@@ -2548,10 +2549,8 @@ version = "0.14.0-dev"
 dependencies = [
  "iced_debug",
  "iced_program",
- "iced_test",
  "iced_widget",
  "log",
- "rfd 0.15.4",
 ]
 
 [[package]]
@@ -2648,6 +2647,16 @@ dependencies = [
  "png",
  "sha2",
  "thiserror 2.0.16",
+]
+
+[[package]]
+name = "iced_tester"
+version = "0.14.0-dev"
+dependencies = [
+ "iced_test",
+ "iced_widget",
+ "log",
+ "rfd 0.15.4",
 ]
 
 [[package]]

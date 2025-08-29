@@ -1,29 +1,97 @@
+//! Record, edit, and run end-to-end tests for your iced applications.
+#![allow(missing_docs)]
+pub use iced_test as test;
+pub use iced_test::core;
+pub use iced_test::program;
+pub use iced_test::runtime;
+pub use iced_test::runtime::futures;
+pub use iced_widget as widget;
+
+mod icon;
 mod recorder;
 
 use recorder::recorder;
 
-use crate::Program;
 use crate::core::Alignment::Center;
 use crate::core::Length::Fill;
 use crate::core::alignment::Horizontal::Right;
 use crate::core::border;
 use crate::core::mouse;
 use crate::core::window;
-use crate::core::{Element, Font, Size, Theme};
-use crate::executor;
+use crate::core::{Element, Font, Settings, Size, Theme};
 use crate::futures::futures::channel::mpsc;
-use crate::icon;
-use crate::program;
-use crate::runtime::Task;
+use crate::program::Program;
+use crate::runtime::task::{self, Task};
 use crate::test::emulator;
 use crate::test::ice;
 use crate::test::instruction;
 use crate::test::{Emulator, Ice, Instruction};
 use crate::widget::{
-    button, center, column, combo_box, container, horizontal_space, monospace,
-    pick_list, row, scrollable, text, text_editor, text_input, themer,
+    button, center, column, combo_box, container, horizontal_space, pick_list,
+    row, scrollable, text, text_editor, text_input, themer,
 };
 
+/// Attaches a [`Tester`] to the given [`Program`].
+pub fn attach<P: Program + 'static>(program: P) -> Attach<P> {
+    Attach { program }
+}
+
+/// A [`Program`] with a [`Tester`] attached to it.
+#[derive(Debug)]
+pub struct Attach<P> {
+    /// The original [`Program`] attatched to the [`Tester`].
+    pub program: P,
+}
+
+impl<P> Program for Attach<P>
+where
+    P: Program + 'static,
+{
+    type State = Tester<P>;
+    type Message = Tick<P>;
+    type Theme = Theme;
+    type Renderer = P::Renderer;
+    type Executor = P::Executor;
+
+    fn name() -> &'static str {
+        P::name()
+    }
+
+    fn settings(&self) -> Settings {
+        let mut settings = self.program.settings();
+        settings.fonts.push(icon::FONT.into());
+        settings
+    }
+
+    fn window(&self) -> Option<window::Settings> {
+        self.program.window().map(|window| window::Settings {
+            size: window.size + Size::new(300.0, 80.0),
+            ..window
+        })
+    }
+
+    fn boot(&self) -> (Self::State, Task<Self::Message>) {
+        (Tester::new(&self.program), Task::none())
+    }
+
+    fn update(
+        &self,
+        state: &mut Self::State,
+        message: Self::Message,
+    ) -> Task<Self::Message> {
+        state.tick(&self.program, message)
+    }
+
+    fn view<'a>(
+        &self,
+        state: &'a Self::State,
+        window: window::Id,
+    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        state.view(&self.program, window)
+    }
+}
+
+#[allow(missing_debug_implementations)]
 pub struct Tester<P: Program> {
     viewport: Size,
     mode: emulator::Mode,
@@ -35,7 +103,10 @@ pub struct Tester<P: Program> {
 }
 
 enum State<P: Program> {
-    Idle,
+    Empty,
+    Idle {
+        state: P::State,
+    },
     Recording {
         emulator: Emulator<P>,
     },
@@ -84,9 +155,12 @@ pub enum Tick<P: Program> {
 
 impl<P: Program + 'static> Tester<P> {
     pub fn new(program: &P) -> Self {
+        let (state, _) = program.boot();
+        let window = program.window().unwrap_or_default();
+
         Self {
             mode: emulator::Mode::default(),
-            viewport: window::Settings::default().size,
+            viewport: window.size,
             presets: combo_box::State::new(
                 program
                     .presets()
@@ -97,7 +171,7 @@ impl<P: Program + 'static> Tester<P> {
             ),
             preset: None,
             instructions: Vec::new(),
-            state: State::Idle,
+            state: State::Idle { state },
             edit: None,
         }
     }
@@ -150,7 +224,7 @@ impl<P: Program + 'static> Tester<P> {
             }
             Message::Stop => {
                 let State::Recording { emulator } =
-                    std::mem::replace(&mut self.state, State::Idle)
+                    std::mem::replace(&mut self.state, State::Empty)
                 else {
                     return Task::none();
                 };
@@ -204,7 +278,7 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::future(import)
                     .and_then(|file| {
-                        executor::spawn_blocking(move |mut sender| {
+                        task::blocking(move |mut sender| {
                             let _ = sender.try_send(Ice::parse(
                                 &fs::read_to_string(file.path())
                                     .unwrap_or_default(),
@@ -248,7 +322,13 @@ impl<P: Program + 'static> Tester<P> {
                 self.preset = ice.preset;
                 self.instructions = ice.instructions;
                 self.edit = None;
-                self.state = State::Idle;
+
+                let (state, _) = self
+                    .preset(program)
+                    .map(program::Preset::boot)
+                    .unwrap_or_else(|| program.boot());
+
+                self.state = State::Idle { state };
 
                 Task::none()
             }
@@ -358,7 +438,9 @@ impl<P: Program + 'static> Tester<P> {
                             }
                         }
                     },
-                    State::Idle | State::Asserting { .. } => {}
+                    State::Empty
+                    | State::Idle { .. }
+                    | State::Asserting { .. } => {}
                 }
 
                 Task::none()
@@ -432,15 +514,14 @@ impl<P: Program + 'static> Tester<P> {
         }
     }
 
-    pub fn view<'a, T: 'static>(
+    pub fn view<'a>(
         &'a self,
         program: &P,
-        current: impl FnOnce() -> Element<'a, T, Theme, P::Renderer>,
-        emulate: impl Fn(Tick<P>) -> T + 'a,
-    ) -> Element<'a, T, Theme, P::Renderer> {
+        window: window::Id,
+    ) -> Element<'a, Tick<P>, Theme, P::Renderer> {
         let status = {
             let (icon, label) = match &self.state {
-                State::Idle => (text(""), "Idle"),
+                State::Empty | State::Idle { .. } => (text(""), "Idle"),
                 State::Recording { .. } => (icon::record(), "Recording"),
                 State::Asserting { .. } => (icon::lightbulb(), "Asserting"),
                 State::Playing { outcome, .. } => match outcome {
@@ -456,7 +537,9 @@ impl<P: Program + 'static> Tester<P> {
 
                     container::Style {
                         text_color: Some(match &self.state {
-                            State::Idle => palette.background.strongest.color,
+                            State::Empty | State::Idle { .. } => {
+                                palette.background.strongest.color
+                            }
                             State::Recording { .. } => {
                                 palette.danger.base.color
                             }
@@ -483,33 +566,34 @@ impl<P: Program + 'static> Tester<P> {
         let viewport = container(
             scrollable(
                 container(match &self.state {
-                    State::Idle => current(),
+                    State::Empty => horizontal_space().into(),
+                    State::Idle { state } => Element::from(themer(
+                        program.theme(state, window),
+                        program.view(state, window),
+                    ))
+                    .map(Tick::Program),
                     State::Recording { emulator } => {
                         let theme = emulator.theme(program);
                         let view = emulator.view(program).map(Tick::Program);
 
-                        Element::from(
-                            recorder(themer(theme, view))
-                                .on_record(Tick::Record),
-                        )
-                        .map(emulate)
+                        recorder(themer(theme, view))
+                            .on_record(Tick::Record)
+                            .into()
                     }
                     State::Asserting { state, window, .. } => {
                         let theme = program.theme(state, *window);
                         let view =
                             program.view(state, *window).map(Tick::Program);
 
-                        Element::from(
-                            recorder(themer(theme, view))
-                                .on_record(Tick::Assert),
-                        )
-                        .map(emulate)
+                        recorder(themer(theme, view))
+                            .on_record(Tick::Assert)
+                            .into()
                     }
                     State::Playing { emulator, .. } => {
                         let theme = emulator.theme(program);
                         let view = emulator.view(program).map(Tick::Program);
 
-                        Element::from(themer(theme, view)).map(emulate)
+                        themer(theme, view).into()
                     }
                 })
                 .width(self.viewport.width)
@@ -525,7 +609,9 @@ impl<P: Program + 'static> Tester<P> {
 
             container::Style {
                 border: border::width(2.0).color(match &self.state {
-                    State::Idle => palette.background.strongest.color,
+                    State::Empty | State::Idle { .. } => {
+                        palette.background.strongest.color
+                    }
                     State::Recording { .. } => palette.danger.base.color,
                     State::Asserting { .. } => palette.warning.weak.color,
                     State::Playing { outcome, .. } => match outcome {
@@ -539,9 +625,15 @@ impl<P: Program + 'static> Tester<P> {
         })
         .padding(10);
 
-        center(column![status, viewport].spacing(10).align_x(Right))
-            .padding(10)
-            .into()
+        row![
+            center(column![status, viewport].spacing(10).align_x(Right))
+                .padding(10),
+            container(self.controls().map(Tick::Tester))
+                .width(250)
+                .padding(10)
+                .style(container::dark)
+        ]
+        .into()
     }
 
     pub fn controls(&self) -> Element<'_, Message, Theme, P::Renderer> {
@@ -552,7 +644,7 @@ impl<P: Program + 'static> Tester<P> {
                     width: width.parse().unwrap_or(self.viewport.width),
                     ..self.viewport
                 })),
-            monospace("x").size(14),
+            text("x").size(14).font(Font::MONOSPACE),
             text_input("Height", &self.viewport.height.to_string())
                 .size(14)
                 .on_input(|height| Message::ChangeViewport(Size {
@@ -590,8 +682,9 @@ impl<P: Program + 'static> Tester<P> {
                     .into()
             } else if self.instructions.is_empty() {
                 Element::from(center(
-                    monospace("No instructions recorded yet!")
+                    text("No instructions recorded yet!")
                         .size(14)
+                        .font(Font::MONOSPACE)
                         .width(Fill)
                         .center(),
                 ))
@@ -599,9 +692,10 @@ impl<P: Program + 'static> Tester<P> {
                 scrollable(
                     column(self.instructions.iter().enumerate().map(
                         |(i, instruction)| {
-                            monospace(instruction.to_string())
+                            text(instruction.to_string())
                                 .wrapping(text::Wrapping::None) // TODO: Ellipsize?
                                 .size(10)
+                                .font(Font::MONOSPACE)
                                 .style(move |theme: &Theme| text::Style {
                                     color: match &self.state {
                                         State::Playing {
@@ -730,9 +824,12 @@ where
     Message: 'a,
     Renderer: program::Renderer + 'a,
 {
-    column![monospace(fragment).size(14), content.into()]
-        .spacing(5)
-        .into()
+    column![
+        text(fragment).size(14).font(Font::MONOSPACE),
+        content.into()
+    ]
+    .spacing(5)
+    .into()
 }
 
 fn labeled_with<'a, Message, Renderer>(
@@ -746,7 +843,7 @@ where
 {
     column![
         row![
-            monospace(fragment).size(14),
+            text(fragment).size(14).font(Font::MONOSPACE),
             horizontal_space(),
             control.into()
         ]

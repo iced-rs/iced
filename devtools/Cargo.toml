@@ -15,16 +15,11 @@ workspace = true
 
 [features]
 time-travel = ["iced_program/time-travel"]
-tester = ["dep:iced_test", "dep:rfd"]
 
 [dependencies]
 iced_debug.workspace = true
-iced_program.workspace = true
 iced_widget.workspace = true
 log.workspace = true
 
-iced_test.workspace = true
-iced_test.optional = true
-
-rfd.workspace = true
-rfd.optional = true
+iced_program.workspace = true
+iced_program.features = ["debug"]

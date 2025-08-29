@@ -4,6 +4,8 @@ pub use iced_runtime as runtime;
 pub use iced_runtime::core;
 pub use iced_runtime::futures;
 
+pub mod message;
+
 mod preset;
 
 pub use preset::Preset;
@@ -13,7 +15,7 @@ use crate::core::text;
 use crate::core::theme;
 use crate::core::window;
 use crate::core::{Element, Font, Settings};
-use crate::futures::{Executor, Subscription};
+use crate::futures::{Executor, MaybeSend, Subscription};
 use crate::graphics::compositor;
 use crate::runtime::Task;
 
@@ -27,7 +29,7 @@ pub trait Program: Sized {
     type State;
 
     /// The message of the program.
-    type Message: Message + 'static;
+    type Message: MaybeSend + 'static;
 
     /// The theme of the program.
     type Theme: Default + theme::Base;
@@ -42,6 +44,8 @@ pub trait Program: Sized {
     fn name() -> &'static str;
 
     fn settings(&self) -> Settings;
+
+    fn window(&self) -> Option<window::Settings>;
 
     fn boot(&self) -> (Self::State, Task<Self::Message>);
 
@@ -143,6 +147,10 @@ pub fn with_title<P: Program>(
             self.program.settings()
         }
 
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -227,6 +235,10 @@ pub fn with_subscription<P: Program>(
 
         fn settings(&self) -> Settings {
             self.program.settings()
+        }
+
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
         }
 
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
@@ -316,6 +328,10 @@ pub fn with_theme<P: Program>(
             self.program.settings()
         }
 
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -399,6 +415,10 @@ pub fn with_style<P: Program>(
             self.program.settings()
         }
 
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -476,6 +496,10 @@ pub fn with_scale_factor<P: Program>(
 
         fn settings(&self) -> Settings {
             self.program.settings()
+        }
+
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
         }
 
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
@@ -563,6 +587,10 @@ pub fn with_executor<P: Program, E: Executor>(
 
         fn settings(&self) -> Settings {
             self.program.settings()
+        }
+
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
         }
 
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
@@ -683,17 +711,3 @@ impl<P: Program> Instance<P> {
         self.program.scale_factor(&self.state, window)
     }
 }
-
-/// A trait alias for the [`Message`](Program::Message) of a [`Program`].
-#[cfg(feature = "time-travel")]
-pub trait Message: Send + std::fmt::Debug + Clone {}
-
-#[cfg(feature = "time-travel")]
-impl<T: Send + std::fmt::Debug + Clone> Message for T {}
-
-/// A trait alias for the [`Message`](Program::Message) of a [`Program`].
-#[cfg(not(feature = "time-travel"))]
-pub trait Message: Send + std::fmt::Debug {}
-
-#[cfg(not(feature = "time-travel"))]
-impl<T: Send + std::fmt::Debug> Message for T {}

@@ -29,7 +29,7 @@ pub fn timed<State, Message, Theme, Renderer>(
 >
 where
     State: 'static,
-    Message: program::Message + 'static,
+    Message: Send + 'static,
     Theme: Default + theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
@@ -68,7 +68,7 @@ where
             View,
         >
     where
-        Message: program::Message + 'static,
+        Message: Send + 'static,
         Theme: Default + theme::Base + 'static,
         Renderer: program::Renderer + 'static,
         Boot: self::Boot<State, Message>,
@@ -90,6 +90,10 @@ where
 
         fn settings(&self) -> Settings {
             Settings::default()
+        }
+
+        fn window(&self) -> Option<iced_core::window::Settings> {
+            Some(window::Settings::default())
         }
 
         fn boot(&self) -> (State, Task<Self::Message>) {

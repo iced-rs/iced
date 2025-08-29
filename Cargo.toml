@@ -42,13 +42,13 @@ markdown = ["iced_widget/markdown"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
 # Enables debug metrics in native platforms (press F12)
-debug = ["iced_winit/debug", "iced_devtools"]
+debug = ["iced_winit/debug", "dep:iced_devtools"]
 # Enables time-travel debugging (very experimental!)
 time-travel = ["debug", "iced_devtools/time-travel"]
 # Enables hot reloading (very experimental!)
 hot = ["debug", "iced_debug/hot"]
 # Enables the tester developer tool for recording and playing tests (press F12)
-tester = ["debug", "iced_devtools/tester"]
+tester = ["dep:iced_tester"]
 # Enables the `thread-pool` futures executor as the `executor::Default` on native platforms
 thread-pool = ["iced_futures/thread-pool"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -92,6 +92,9 @@ iced_winit.workspace = true
 iced_devtools.workspace = true
 iced_devtools.optional = true
 
+iced_tester.workspace = true
+iced_tester.optional = true
+
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
 
@@ -133,6 +136,7 @@ members = [
     "runtime",
     "selector",
     "test",
+    "tester",
     "tiny_skia",
     "wgpu",
     "widget",
@@ -165,6 +169,7 @@ iced_renderer = { version = "0.14.0-dev", path = "renderer" }
 iced_runtime = { version = "0.14.0-dev", path = "runtime" }
 iced_selector = { version = "0.14.0-dev", path = "selector" }
 iced_test = { version = "0.14.0-dev", path = "test" }
+iced_tester = { version = "0.14.0-dev", path = "tester" }
 iced_tiny_skia = { version = "0.14.0-dev", path = "tiny_skia" }
 iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
 iced_widget = { version = "0.14.0-dev", path = "widget" }

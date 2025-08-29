@@ -45,7 +45,7 @@ use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Settings, Size};
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -66,11 +66,7 @@ use std::slice;
 use std::sync::Arc;
 
 /// Runs a [`Program`] with the provided settings.
-pub fn run<P>(
-    program: P,
-    settings: Settings,
-    window_settings: Option<window::Settings>,
-) -> Result<(), Error>
+pub fn run<P>(program: P) -> Result<(), Error>
 where
     P: Program + 'static,
     P::Theme: theme::Base,
@@ -78,6 +74,8 @@ where
     use winit::event_loop::EventLoop;
 
     let boot_span = debug::boot();
+    let settings = program.settings();
+    let window_settings = program.window();
 
     let graphics_settings = settings.clone().into();
     let event_loop = EventLoop::with_user_event()
@@ -169,7 +167,6 @@ where
     impl<Message, F> winit::application::ApplicationHandler<Action<Message>>
         for Runner<Message, F>
     where
-        Message: std::fmt::Debug,
         F: Future<Output = ()>,
     {
         fn resumed(

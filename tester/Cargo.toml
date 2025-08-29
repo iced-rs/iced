@@ -1,5 +1,5 @@
 [package]
-name = "iced_program"
+name = "iced_tester"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -10,13 +10,11 @@ categories.workspace = true
 keywords.workspace = true
 rust-version.workspace = true
 
+[dependencies]
+iced_test.workspace = true
+iced_widget.workspace = true
+log.workspace = true
+rfd.workspace = true
+
 [lints]
 workspace = true
-
-[features]
-debug = []
-time-travel = []
-
-[dependencies]
-iced_graphics.workspace = true
-iced_runtime.workspace = true

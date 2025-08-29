@@ -84,10 +84,10 @@
 //!
 //! [the classical counter interface]: https://book.iced.rs/architecture.html#dissecting-an-interface
 #![allow(missing_docs)]
-use iced_program as program;
-use iced_renderer as renderer;
-use iced_runtime as runtime;
-use iced_runtime::core;
+pub use iced_program as program;
+pub use iced_renderer as renderer;
+pub use iced_runtime as runtime;
+pub use iced_runtime::core;
 
 pub use iced_selector as selector;
 

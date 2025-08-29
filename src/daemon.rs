@@ -1,11 +1,13 @@
 //! Create and run daemons that run in the background.
 use crate::application;
+use crate::message;
 use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{
-    Element, Executor, Font, Preset, Result, Settings, Subscription, Task,
+    Element, Executor, Font, MaybeSend, Preset, Result, Settings, Subscription,
+    Task,
 };
 
 use iced_debug as debug;
@@ -29,7 +31,7 @@ pub fn daemon<State, Message, Theme, Renderer>(
 ) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
-    Message: program::Message + 'static,
+    Message: MaybeSend + 'static,
     Theme: Default + theme::Base,
     Renderer: program::Renderer,
 {
@@ -48,7 +50,7 @@ where
     impl<State, Message, Theme, Renderer, Boot, Update, View> Program
         for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
-        Message: program::Message + 'static,
+        Message: MaybeSend + 'static,
         Theme: Default + theme::Base,
         Renderer: program::Renderer,
         Boot: application::Boot<State, Message>,
@@ -69,6 +71,10 @@ where
 
         fn settings(&self) -> Settings {
             Settings::default()
+        }
+
+        fn window(&self) -> Option<iced_core::window::Settings> {
+            None
         }
 
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
@@ -126,9 +132,8 @@ impl<P: Program> Daemon<P> {
     pub fn run(self) -> Result
     where
         Self: 'static,
+        P::Message: message::MaybeDebug + message::MaybeClone,
     {
-        let settings = self.settings.clone();
-
         #[cfg(all(feature = "debug", not(target_arch = "wasm32")))]
         let program = {
             iced_debug::init(iced_debug::Metadata {
@@ -143,7 +148,7 @@ impl<P: Program> Daemon<P> {
         #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
         let program = self;
 
-        Ok(shell::run(program, settings, None)?)
+        Ok(shell::run(program)?)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Daemon`].
@@ -296,6 +301,10 @@ impl<P: Program> Program for Daemon<P> {
 
     fn settings(&self) -> Settings {
         self.settings.clone()
+    }
+
+    fn window(&self) -> Option<window::Settings> {
+        None
     }
 
     fn boot(&self) -> (Self::State, Task<Self::Message>) {

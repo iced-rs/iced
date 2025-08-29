@@ -3,7 +3,7 @@ use crate::core::Font;
 use crate::program;
 use crate::widget::{Text, text};
 
-pub const FONT: &[u8] = include_bytes!("../fonts/iced_devtools-icons.ttf");
+pub const FONT: &[u8] = include_bytes!("../fonts/iced_tester-icons.ttf");
 
 pub fn cancel<'a, Theme, Renderer>() -> Text<'a, Theme, Renderer>
 where
