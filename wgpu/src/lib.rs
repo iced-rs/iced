@@ -311,7 +311,9 @@ impl Renderer {
             viewport.physical_size(),
         ));
 
-        for layer in self.layers.iter_mut() {
+        self.layers.merge();
+
+        for layer in self.layers.iter() {
             if physical_bounds
                 .intersection(&(layer.bounds * scale_factor))
                 .and_then(Rectangle::snap)
@@ -648,8 +650,8 @@ impl core::Renderer for Renderer {
         layer.draw_quad(quad, background.into(), transformation);
     }
 
-    fn clear(&mut self) {
-        self.layers.clear();
+    fn reset(&mut self, new_bounds: Rectangle) {
+        self.layers.reset(new_bounds);
     }
 }
 
@@ -759,8 +761,8 @@ impl graphics::geometry::Renderer for Renderer {
     type Geometry = Geometry;
     type Frame = geometry::Frame;
 
-    fn new_frame(&self, size: core::Size) -> Self::Frame {
-        geometry::Frame::new(size)
+    fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
+        geometry::Frame::new(bounds)
     }
 
     fn draw_geometry(&mut self, geometry: Self::Geometry) {

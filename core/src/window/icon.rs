@@ -35,7 +35,7 @@ pub fn from_rgba(
 }
 
 /// An window icon normally used for the titlebar or taskbar.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Icon {
     rgba: Vec<u8>,
     size: Size<u32>,
@@ -45,6 +45,15 @@ impl Icon {
     /// Returns the raw data of the [`Icon`].
     pub fn into_raw(self) -> (Vec<u8>, Size<u32>) {
         (self.rgba, self.size)
+    }
+}
+
+impl std::fmt::Debug for Icon {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Icon")
+            .field("rgba", &format!("{} pixels", self.rgba.len() / 4))
+            .field("size", &self.size)
+            .finish()
     }
 }
 

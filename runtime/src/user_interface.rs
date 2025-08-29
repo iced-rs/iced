@@ -97,12 +97,12 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let root = root.into();
+        let mut root = root.into();
 
         let Cache { mut state } = cache;
         state.diff(root.as_widget());
 
-        let base = root.as_widget().layout(
+        let base = root.as_widget_mut().layout(
             &mut state,
             renderer,
             &layout::Limits::new(Size::ZERO, bounds),
@@ -234,7 +234,7 @@ where
                     if shell.is_layout_invalid() {
                         drop(maybe_overlay);
 
-                        self.base = self.root.as_widget().layout(
+                        self.base = self.root.as_widget_mut().layout(
                             &mut self.state,
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
@@ -335,7 +335,7 @@ where
                 input_method.merge(shell.input_method());
 
                 shell.revalidate_layout(|| {
-                    self.base = self.root.as_widget().layout(
+                    self.base = self.root.as_widget_mut().layout(
                         &mut self.state,
                         renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
@@ -482,10 +482,8 @@ where
         style: &renderer::Style,
         cursor: mouse::Cursor,
     ) {
-        // TODO: Move to shell level (?)
-        renderer.clear();
-
         let viewport = Rectangle::with_size(self.bounds);
+        renderer.reset(viewport);
 
         let base_cursor = match &self.overlay {
             None
@@ -541,7 +539,7 @@ where
     ) {
         let viewport = Rectangle::with_size(self.bounds);
 
-        self.root.as_widget().operate(
+        self.root.as_widget_mut().operate(
             &mut self.state,
             Layout::new(&self.base),
             renderer,

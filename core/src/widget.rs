@@ -58,7 +58,7 @@ where
     /// This [`layout::Node`] is used by the runtime to compute the [`Layout`] of the
     /// user interface.
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -102,7 +102,7 @@ where
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
-        &self,
+        &mut self,
         _state: &mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,

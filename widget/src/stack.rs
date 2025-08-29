@@ -23,6 +23,7 @@ pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
     width: Length,
     height: Length,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
+    clip: bool,
 }
 
 impl<'a, Message, Theme, Renderer> Stack<'a, Message, Theme, Renderer>
@@ -62,6 +63,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             children,
+            clip: false,
         }
     }
 
@@ -114,6 +116,16 @@ where
     ) -> Self {
         children.into_iter().fold(self, Self::push)
     }
+
+    /// Sets whether the [`Stack`] should clip overflowing content.
+    ///
+    /// It has a slight performance overhead during presentation.
+    ///
+    /// By default, it is set to `false`.
+    pub fn clip(mut self, clip: bool) -> Self {
+        self.clip = clip;
+        self
+    }
 }
 
 impl<Message, Renderer> Default for Stack<'_, Message, Renderer>
@@ -146,7 +158,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -161,7 +173,7 @@ where
             ));
         }
 
-        let base = self.children[0].as_widget().layout(
+        let base = self.children[0].as_widget_mut().layout(
             &mut tree.children[0],
             renderer,
             &limits,
@@ -171,18 +183,21 @@ where
         let limits = layout::Limits::new(Size::ZERO, size);
 
         let nodes = std::iter::once(base)
-            .chain(self.children[1..].iter().zip(&mut tree.children[1..]).map(
-                |(layer, tree)| {
-                    layer.as_widget().layout(tree, renderer, &limits)
-                },
-            ))
+            .chain(
+                self.children[1..]
+                    .iter_mut()
+                    .zip(&mut tree.children[1..])
+                    .map(|(layer, tree)| {
+                        layer.as_widget_mut().layout(tree, renderer, &limits)
+                    }),
+            )
             .collect();
 
         layout::Node::with_children(size, nodes)
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -191,12 +206,12 @@ where
         operation.container(None, layout.bounds());
         operation.traverse(&mut |operation| {
             self.children
-                .iter()
+                .iter_mut()
                 .zip(&mut tree.children)
                 .zip(layout.children())
                 .for_each(|((child, state), layout)| {
                     child
-                        .as_widget()
+                        .as_widget_mut()
                         .operate(state, layout, renderer, operation);
                 });
         });
@@ -278,6 +293,12 @@ where
         viewport: &Rectangle,
     ) {
         if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
+            let viewport = if self.clip {
+                &clipped_viewport
+            } else {
+                viewport
+            };
+
             let layers_below = if cursor.is_over(layout.bounds()) {
                 self.children
                     .iter()
@@ -313,26 +334,16 @@ where
                  layout,
                  cursor| {
                     if i > 0 {
-                        renderer.with_layer(clipped_viewport, |renderer| {
+                        renderer.with_layer(*viewport, |renderer| {
                             layer.as_widget().draw(
-                                state,
-                                renderer,
-                                theme,
-                                style,
-                                layout,
-                                cursor,
-                                &clipped_viewport,
+                                state, renderer, theme, style, layout, cursor,
+                                viewport,
                             );
                         });
                     } else {
                         layer.as_widget().draw(
-                            state,
-                            renderer,
-                            theme,
-                            style,
-                            layout,
-                            cursor,
-                            &clipped_viewport,
+                            state, renderer, theme, style, layout, cursor,
+                            viewport,
                         );
                     }
                 };

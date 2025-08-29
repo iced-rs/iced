@@ -49,11 +49,14 @@ impl Layer {
             position: [bounds.x, bounds.y],
             size: [bounds.width, bounds.height],
             border_color: color::pack(quad.border.color),
-            border_radius: quad.border.radius.into(),
-            border_width: quad.border.width,
+            border_radius: (quad.border.radius * transformation.scale_factor())
+                .into(),
+            border_width: quad.border.width * transformation.scale_factor(),
             shadow_color: color::pack(quad.shadow.color),
-            shadow_offset: quad.shadow.offset.into(),
-            shadow_blur_radius: quad.shadow.blur_radius,
+            shadow_offset: (quad.shadow.offset * transformation.scale_factor())
+                .into(),
+            shadow_blur_radius: quad.shadow.blur_radius
+                * transformation.scale_factor(),
             snap: quad.snap as u32,
         };
 
@@ -268,6 +271,10 @@ impl graphics::Layer for Layer {
         }
     }
 
+    fn bounds(&self) -> Rectangle {
+        self.bounds
+    }
+
     fn flush(&mut self) {
         self.flush_meshes();
         self.flush_text();
@@ -287,6 +294,62 @@ impl graphics::Layer for Layer {
         self.images.clear();
         self.pending_meshes.clear();
         self.pending_text.clear();
+    }
+
+    fn start(&self) -> usize {
+        if !self.quads.is_empty() {
+            return 1;
+        }
+
+        if !self.triangles.is_empty() {
+            return 2;
+        }
+
+        if !self.primitives.is_empty() {
+            return 3;
+        }
+
+        if !self.images.is_empty() {
+            return 4;
+        }
+
+        if !self.text.is_empty() {
+            return 5;
+        }
+
+        usize::MAX
+    }
+
+    fn end(&self) -> usize {
+        if !self.text.is_empty() {
+            return 5;
+        }
+
+        if !self.images.is_empty() {
+            return 4;
+        }
+
+        if !self.primitives.is_empty() {
+            return 3;
+        }
+
+        if !self.triangles.is_empty() {
+            return 2;
+        }
+
+        if !self.quads.is_empty() {
+            return 1;
+        }
+
+        0
+    }
+
+    fn merge(&mut self, layer: &mut Self) {
+        self.quads.append(&mut layer.quads);
+        self.triangles.append(&mut layer.triangles);
+        self.primitives.append(&mut layer.primitives);
+        self.images.append(&mut layer.images);
+        self.text.append(&mut layer.text);
     }
 }
 

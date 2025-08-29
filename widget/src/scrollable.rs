@@ -109,21 +109,11 @@ where
             class: Theme::default(),
             last_status: None,
         }
-        .validate()
+        .enclose()
     }
 
-    fn validate(mut self) -> Self {
+    fn enclose(mut self) -> Self {
         let size_hint = self.content.as_widget().size_hint();
-
-        debug_assert!(
-            self.direction.vertical().is_none() || !size_hint.height.is_fill(),
-            "scrollable content must not fill its vertical scrolling axis"
-        );
-
-        debug_assert!(
-            self.direction.horizontal().is_none() || !size_hint.width.is_fill(),
-            "scrollable content must not fill its horizontal scrolling axis"
-        );
 
         if self.direction.horizontal().is_none() {
             self.width = self.width.enclose(size_hint.width);
@@ -144,7 +134,7 @@ where
     /// Sets the [`Direction`] of the [`Scrollable`].
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
-        self.validate()
+        self.enclose()
     }
 
     /// Sets the [`widget::Id`] of the [`Scrollable`].
@@ -419,7 +409,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -435,23 +425,27 @@ where
                     ..Padding::ZERO
                 },
                 |limits| {
-                    let child_limits = layout::Limits::new(
+                    let is_horizontal = self.direction.horizontal().is_some();
+                    let is_vertical = self.direction.vertical().is_some();
+
+                    let child_limits = layout::Limits::with_compression(
                         limits.min(),
                         Size::new(
-                            if self.direction.horizontal().is_some() {
+                            if is_horizontal {
                                 f32::INFINITY
                             } else {
                                 limits.max().width
                             },
-                            if self.direction.vertical().is_some() {
+                            if is_vertical {
                                 f32::INFINITY
                             } else {
                                 limits.max().height
                             },
                         ),
+                        Size::new(is_horizontal, is_vertical),
                     );
 
-                    self.content.as_widget().layout(
+                    self.content.as_widget_mut().layout(
                         &mut tree.children[0],
                         renderer,
                         &child_limits,
@@ -525,7 +519,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -548,7 +542,7 @@ where
         );
 
         operation.traverse(&mut |operation| {
-            self.content.as_widget().operate(
+            self.content.as_widget_mut().operate(
                 &mut tree.children[0],
                 layout.children().next().unwrap(),
                 renderer,

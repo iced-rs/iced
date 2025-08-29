@@ -258,7 +258,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -272,12 +272,14 @@ where
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |limits| self.content.as_widget().layout(tree, renderer, limits),
+            |limits| {
+                self.content.as_widget_mut().layout(tree, renderer, limits)
+            },
         )
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -285,7 +287,7 @@ where
     ) {
         operation.container(self.id.as_ref(), layout.bounds());
         operation.traverse(&mut |operation| {
-            self.content.as_widget().operate(
+            self.content.as_widget_mut().operate(
                 tree,
                 layout.children().next().unwrap(),
                 renderer,
