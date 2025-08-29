@@ -378,7 +378,7 @@ where
         self.contents.iter().map(Content::state).collect()
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
+    fn diff(&self, tree: &mut Tree) {
         let Memory { order, .. } = tree.state.downcast_ref();
 
         // `Pane` always increments and is iterated by Ord so new
@@ -401,7 +401,7 @@ where
         });
 
         tree.diff_children_custom(
-            &mut self.contents,
+            &self.contents,
             |state, content| content.diff(state),
             Content::state,
         );

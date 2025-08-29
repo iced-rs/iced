@@ -3,7 +3,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
-use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::Tree;
 use crate::core::{
     self, Clipboard, Element, Event, Length, Rectangle, Shell, Size, Vector,
     Widget,
@@ -66,12 +66,7 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
-    fn tag(&self) -> tree::Tag {
-        struct Marker;
-        tree::Tag::of::<Marker>()
-    }
-
-    fn diff(&mut self, _tree: &mut Tree) {
+    fn diff(&self, _tree: &mut Tree) {
         // Diff is deferred to layout
     }
 
@@ -92,7 +87,7 @@ where
         let size = limits.max();
 
         self.content = (self.view)(size);
-        tree.diff_children(std::slice::from_mut(&mut self.content));
+        tree.diff_children(std::slice::from_ref(&self.content));
 
         let node = self.content.as_widget_mut().layout(
             &mut tree.children[0],

@@ -222,7 +222,7 @@ where
         self.children.iter().map(Tree::new).collect()
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
+    fn diff(&self, tree: &mut Tree) {
         let Tree {
             state, children, ..
         } = tree;
@@ -231,8 +231,8 @@ where
 
         tree::diff_children_custom_with_search(
             children,
-            &mut self.children,
-            |tree, child| child.as_widget_mut().diff(tree),
+            &self.children,
+            |tree, child| child.as_widget().diff(tree),
             |index| {
                 self.keys.get(index).or_else(|| self.keys.last()).copied()
                     != Some(state.keys[index])

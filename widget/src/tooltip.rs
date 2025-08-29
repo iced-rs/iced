@@ -155,10 +155,10 @@ where
         ]
     }
 
-    fn diff(&mut self, tree: &mut widget::Tree) {
-        tree.diff_children(&mut [
-            self.content.as_widget_mut(),
-            self.tooltip.as_widget_mut(),
+    fn diff(&self, tree: &mut widget::Tree) {
+        tree.diff_children(&[
+            self.content.as_widget(),
+            self.tooltip.as_widget(),
         ]);
     }
 
