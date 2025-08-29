@@ -13,7 +13,7 @@ where
 impl<P> TimeMachine<P>
 where
     P: Program,
-    P::Message: std::fmt::Debug + Clone,
+    P::Message: Clone,
 {
     pub fn new() -> Self {
         Self {
