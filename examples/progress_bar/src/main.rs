@@ -58,7 +58,8 @@ impl Progress {
                 )
             },
             center_x(
-                checkbox("Vertical", self.is_vertical)
+                checkbox(self.is_vertical)
+                    .label("Vertical")
                     .on_toggle(Message::ToggleVertical)
             ),
         ]
