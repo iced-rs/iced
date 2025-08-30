@@ -17,6 +17,8 @@ workspace = true
 auto-detect-theme = ["dep:dark-light"]
 advanced = []
 crisp = []
+basic-shaping = []
+advanced-shaping = []
 
 [dependencies]
 bitflags.workspace = true
