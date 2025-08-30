@@ -460,6 +460,7 @@ fn icon(unicode: char) -> Text<'static> {
         .font(Font::with_name("Iced-Todos-Icons"))
         .width(20)
         .align_x(Center)
+        .shaping(text::Shaping::Basic)
 }
 
 fn edit_icon() -> Text<'static> {
