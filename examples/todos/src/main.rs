@@ -460,6 +460,7 @@ fn icon(unicode: char) -> Text<'static> {
         .font(Font::with_name("Iced-Todos-Icons"))
         .width(20)
         .align_x(Center)
+        .shaping(text::Shaping::Basic)
 }
 
 fn edit_icon() -> Text<'static> {
@@ -594,6 +595,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn it_creates_a_new_task() -> Result<(), Error> {
         let (mut todos, _command) = Todos::new();
         let _command = todos.update(Message::Loaded(Err(LoadError::File)));

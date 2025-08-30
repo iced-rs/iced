@@ -55,7 +55,7 @@ impl Cache {
                 font_system,
                 key.content,
                 &text::to_attributes(key.font),
-                text::to_shaping(key.shaping),
+                text::to_shaping(key.shaping, key.content),
             );
 
             let bounds = text::align(&mut buffer, font_system, key.align_x);
