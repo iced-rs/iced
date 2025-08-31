@@ -214,11 +214,9 @@ where
 
         let is_idle = *state == State::Idle;
 
-        if was_idle != is_idle {
-            shell.invalidate_layout();
-            shell.request_redraw();
-        } else if self.position == Position::FollowCursor
-            && previous_state != *state
+        if was_idle != is_idle
+            || (self.position == Position::FollowCursor
+                && previous_state != *state)
         {
             shell.request_redraw();
         }
