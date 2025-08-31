@@ -96,7 +96,7 @@ where
     }
 
     /// Reconciles the [`Widget`] with the provided [`Tree`].
-    fn diff(&mut self, tree: &mut Tree) {
+    fn diff(&self, tree: &mut Tree) {
         tree.children.clear();
     }
 

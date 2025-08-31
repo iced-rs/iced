@@ -196,8 +196,8 @@ where
         self.children.iter().map(Tree::new).collect()
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
-        tree.diff_children(&mut self.children);
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(&self.children);
     }
 
     fn size(&self) -> Size<Length> {
@@ -398,7 +398,7 @@ where
         self.row.children()
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
+    fn diff(&self, tree: &mut Tree) {
         self.row.diff(tree);
     }
 

@@ -72,8 +72,6 @@ impl Pipeline {
     ) -> Self {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            use crate::graphics::color;
-
             let layout = device.create_pipeline_layout(
                 &wgpu::PipelineLayoutDescriptor {
                     label: Some("iced_wgpu.quad.gradient.pipeline"),
@@ -86,39 +84,17 @@ impl Pipeline {
                 device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some("iced_wgpu.quad.gradient.shader"),
                     source: wgpu::ShaderSource::Wgsl(
-                        std::borrow::Cow::Borrowed(
-                            if color::GAMMA_CORRECTION {
-                                concat!(
-                                    include_str!("../shader/quad.wgsl"),
-                                    "\n",
-                                    include_str!("../shader/vertex.wgsl"),
-                                    "\n",
-                                    include_str!(
-                                        "../shader/quad/gradient.wgsl"
-                                    ),
-                                    "\n",
-                                    include_str!("../shader/color.wgsl"),
-                                    "\n",
-                                    include_str!("../shader/color/oklab.wgsl")
-                                )
-                            } else {
-                                concat!(
-                                    include_str!("../shader/quad.wgsl"),
-                                    "\n",
-                                    include_str!("../shader/vertex.wgsl"),
-                                    "\n",
-                                    include_str!(
-                                        "../shader/quad/gradient.wgsl"
-                                    ),
-                                    "\n",
-                                    include_str!("../shader/color.wgsl"),
-                                    "\n",
-                                    include_str!(
-                                        "../shader/color/linear_rgb.wgsl"
-                                    )
-                                )
-                            },
-                        ),
+                        std::borrow::Cow::Borrowed(concat!(
+                            include_str!("../shader/quad.wgsl"),
+                            "\n",
+                            include_str!("../shader/vertex.wgsl"),
+                            "\n",
+                            include_str!("../shader/quad/gradient.wgsl"),
+                            "\n",
+                            include_str!("../shader/color.wgsl"),
+                            "\n",
+                            include_str!("../shader/color/linear_rgb.wgsl")
+                        )),
                     ),
                 });
 

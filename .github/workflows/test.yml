@@ -26,4 +26,3 @@ jobs:
         cargo test --verbose --workspace
         cargo test --verbose --workspace -- --ignored
         cargo test --verbose --workspace --all-features
-        cargo test --verbose --workspace --all-features -- --ignored

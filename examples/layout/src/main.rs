@@ -94,14 +94,14 @@ impl Layout {
 
         let controls = row([
             (!self.example.is_first()).then_some(
-                button("← Previous")
+                button(text("← Previous"))
                     .padding([5, 10])
                     .on_press(Message::Previous)
                     .into(),
             ),
             Some(horizontal_space().into()),
             (!self.example.is_last()).then_some(
-                button("Next →")
+                button(text("Next →"))
                     .padding([5, 10])
                     .on_press(Message::Next)
                     .into(),
@@ -294,7 +294,7 @@ fn quotes<'a>() -> Element<'a, Message> {
     fn quote<'a>(
         content: impl Into<Element<'a, Message>>,
     ) -> Element<'a, Message> {
-        row![vertical_rule(2), content.into()]
+        row![vertical_rule(1), content.into()]
             .spacing(10)
             .height(Shrink)
             .into()
@@ -313,7 +313,7 @@ fn quotes<'a>() -> Element<'a, Message> {
             "This is another reply",
         ),
         horizontal_rule(1),
-        "A separator ↑",
+        text("A separator ↑"),
     ]
     .width(Shrink)
     .spacing(10)

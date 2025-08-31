@@ -147,13 +147,13 @@ where
     Renderer: renderer::Renderer,
 {
     fn diff_self(&self) {
-        self.with_element_mut(|element| {
+        self.with_element(|element| {
             self.tree
                 .borrow_mut()
                 .borrow_mut()
                 .as_mut()
                 .unwrap()
-                .diff_children(std::slice::from_mut(element));
+                .diff_children(std::slice::from_ref(&element));
         });
     }
 
@@ -279,7 +279,7 @@ where
         vec![]
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
+    fn diff(&self, tree: &mut Tree) {
         let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
         *self.tree.borrow_mut() = tree.clone();
         self.rebuild_element_if_necessary();

@@ -69,6 +69,10 @@ advanced = ["iced_core/advanced", "iced_widget/advanced"]
 fira-sans = ["iced_renderer/fira-sans"]
 # Auto-detects light/dark mode for the built-in theme
 auto-detect-theme = ["iced_core/auto-detect-theme"]
+# Enables basic text shaping by default
+basic-shaping = ["iced_core/basic-shaping"]
+# Enables advanced text shaping by default
+advanced-shaping = ["iced_core/advanced-shaping"]
 # Enables strict assertions for debugging purposes at the expense of performance
 strict-assertions = ["iced_renderer/strict-assertions"]
 # Redraws on every runtime event, and not only when a widget requests it

@@ -73,7 +73,7 @@ where
             padding: Padding::ZERO,
             text_size: None,
             text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::default(),
             font: None,
             class,
         }
@@ -205,7 +205,7 @@ where
             class,
         } = menu;
 
-        let mut list = Scrollable::new(List {
+        let list = Scrollable::new(List {
             options,
             hovered_option,
             on_selected,
@@ -218,7 +218,7 @@ where
             class,
         });
 
-        state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
+        state.tree.diff(&list as &dyn Widget<_, _, _>);
 
         Self {
             position,

@@ -314,7 +314,7 @@ mod toast {
                 .collect()
         }
 
-        fn diff(&mut self, tree: &mut Tree) {
+        fn diff(&self, tree: &mut Tree) {
             let instants = tree.state.downcast_mut::<Vec<Option<Instant>>>();
 
             // Invalidating removed instants to None allows us to remove
@@ -336,8 +336,8 @@ mod toast {
             }
 
             tree.diff_children(
-                &mut std::iter::once(&mut self.content)
-                    .chain(self.toasts.iter_mut())
+                &std::iter::once(&self.content)
+                    .chain(self.toasts.iter())
                     .collect::<Vec<_>>(),
             );
         }
