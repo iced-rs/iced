@@ -1194,7 +1194,10 @@ fn run_action<'a, P, C>(
                         winit::dpi::LogicalSize {
                             width: size.width,
                             height: size.height,
-                        },
+                        }
+                        .to_physical::<f32>(f64::from(
+                            window.state.scale_factor(),
+                        )),
                     );
                 }
             }
@@ -1205,6 +1208,9 @@ fn run_action<'a, P, C>(
                             width: size.width,
                             height: size.height,
                         }
+                        .to_physical::<f32>(f64::from(
+                            window.state.scale_factor(),
+                        ))
                     }));
                 }
             }
@@ -1215,6 +1221,9 @@ fn run_action<'a, P, C>(
                             width: size.width,
                             height: size.height,
                         }
+                        .to_physical::<f32>(f64::from(
+                            window.state.scale_factor(),
+                        ))
                     }));
                 }
             }
@@ -1225,6 +1234,9 @@ fn run_action<'a, P, C>(
                             width: size.width,
                             height: size.height,
                         }
+                        .to_physical::<f32>(f64::from(
+                            window.state.scale_factor(),
+                        ))
                     }));
                 }
             }
