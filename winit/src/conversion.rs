@@ -13,6 +13,7 @@ use crate::core::{Event, Point, Size};
 pub fn window_attributes(
     settings: window::Settings,
     title: &str,
+    scale_factor: f32,
     primary_monitor: Option<winit::monitor::MonitorHandle>,
     _id: Option<String>,
 ) -> winit::window::WindowAttributes {
@@ -21,8 +22,8 @@ pub fn window_attributes(
     attributes = attributes
         .with_title(title)
         .with_inner_size(winit::dpi::LogicalSize {
-            width: settings.size.width,
-            height: settings.size.height,
+            width: settings.size.width * scale_factor,
+            height: settings.size.height * scale_factor,
         })
         .with_maximized(settings.maximized)
         .with_fullscreen(
@@ -138,7 +139,7 @@ pub fn window_attributes(
 /// Converts a winit window event into an iced event.
 pub fn window_event(
     event: winit::event::WindowEvent,
-    scale_factor: f64,
+    scale_factor: f32,
     modifiers: winit::keyboard::ModifiersState,
 ) -> Option<Event> {
     use winit::event::Ime;
@@ -146,7 +147,7 @@ pub fn window_event(
 
     match event {
         WindowEvent::Resized(new_size) => {
-            let logical_size = new_size.to_logical(scale_factor);
+            let logical_size = new_size.to_logical(f64::from(scale_factor));
 
             Some(Event::Window(window::Event::Resized(Size {
                 width: logical_size.width,
@@ -157,7 +158,7 @@ pub fn window_event(
             Some(Event::Window(window::Event::CloseRequested))
         }
         WindowEvent::CursorMoved { position, .. } => {
-            let position = position.to_logical::<f64>(scale_factor);
+            let position = position.to_logical::<f64>(f64::from(scale_factor));
 
             Some(Event::Mouse(mouse::Event::CursorMoved {
                 position: Point::new(position.x as f32, position.y as f32),
@@ -313,7 +314,7 @@ pub fn window_event(
         }
         WindowEvent::Moved(position) => {
             let winit::dpi::LogicalPosition { x, y } =
-                position.to_logical(scale_factor);
+                position.to_logical(f64::from(scale_factor));
 
             Some(Event::Window(window::Event::Moved(Point::new(x, y))))
         }
@@ -513,9 +514,9 @@ pub fn modifiers(
 /// Converts a physical cursor position to a logical `Point`.
 pub fn cursor_position(
     position: winit::dpi::PhysicalPosition<f64>,
-    scale_factor: f64,
+    scale_factor: f32,
 ) -> Point {
-    let logical_position = position.to_logical(scale_factor);
+    let logical_position = position.to_logical(f64::from(scale_factor));
 
     Point::new(logical_position.x, logical_position.y)
 }
@@ -526,11 +527,12 @@ pub fn cursor_position(
 /// [`iced`]: https://github.com/iced-rs/iced/tree/0.12
 pub fn touch_event(
     touch: winit::event::Touch,
-    scale_factor: f64,
+    scale_factor: f32,
 ) -> touch::Event {
     let id = touch::Finger(touch.id);
     let position = {
-        let location = touch.location.to_logical::<f64>(scale_factor);
+        let location =
+            touch.location.to_logical::<f64>(f64::from(scale_factor));
 
         Point::new(location.x as f32, location.y as f32)
     };

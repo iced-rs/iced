@@ -310,6 +310,7 @@ where
                                 id,
                                 settings,
                                 title,
+                                scale_factor,
                                 monitor,
                                 on_open,
                             } => {
@@ -326,6 +327,7 @@ where
                                     conversion::window_attributes(
                                         settings,
                                         &title,
+                                        scale_factor,
                                         monitor
                                             .or(event_loop.primary_monitor()),
                                         self.id.clone(),
@@ -480,6 +482,7 @@ enum Control {
         title: String,
         monitor: Option<winit::monitor::MonitorHandle>,
         on_open: oneshot::Sender<window::Id>,
+        scale_factor: f32,
     },
 }
 
@@ -1130,6 +1133,7 @@ fn run_action<'a, P, C>(
                         id,
                         settings,
                         title: program.title(id),
+                        scale_factor: program.scale_factor(id),
                         monitor,
                         on_open: channel,
                     })
@@ -1234,7 +1238,7 @@ fn run_action<'a, P, C>(
                     let size = window
                         .raw
                         .inner_size()
-                        .to_logical(window.raw.scale_factor());
+                        .to_logical(f64::from(window.state.scale_factor()));
 
                     let _ = channel.send(Size::new(size.width, size.height));
                 }

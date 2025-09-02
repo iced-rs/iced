@@ -387,7 +387,7 @@ impl<P: Program> Application<P> {
     /// Sets the scale factor of the [`Application`].
     pub fn scale_factor(
         self,
-        f: impl Fn(&P::State) -> f64,
+        f: impl Fn(&P::State) -> f32,
     ) -> Application<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {

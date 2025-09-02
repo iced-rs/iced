@@ -232,7 +232,7 @@ impl<P: Program> Daemon<P> {
     /// Sets the scale factor of the [`Daemon`].
     pub fn scale_factor(
         self,
-        f: impl Fn(&P::State, window::Id) -> f64,
+        f: impl Fn(&P::State, window::Id) -> f32,
     ) -> Daemon<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {

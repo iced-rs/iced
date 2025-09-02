@@ -15,7 +15,7 @@ pub struct Screenshot {
     pub size: Size<u32>,
     /// The scale factor of the [`Screenshot`]. This can be useful when converting between widget
     /// bounds (which are in logical pixels) to crop screenshots.
-    pub scale_factor: f64,
+    pub scale_factor: f32,
 }
 
 impl Debug for Screenshot {
@@ -35,7 +35,7 @@ impl Screenshot {
     pub fn new(
         bytes: impl Into<Bytes>,
         size: Size<u32>,
-        scale_factor: f64,
+        scale_factor: f32,
     ) -> Self {
         Self {
             bytes: bytes.into(),

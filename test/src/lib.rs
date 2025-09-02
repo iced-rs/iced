@@ -462,7 +462,7 @@ where
             screenshot: window::Screenshot::new(
                 rgba,
                 physical_size,
-                f64::from(scale_factor),
+                scale_factor,
             ),
             renderer: self.renderer.name(),
         })

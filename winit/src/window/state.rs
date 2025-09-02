@@ -15,7 +15,7 @@ where
     P::Theme: theme::Base,
 {
     title: String,
-    scale_factor: f64,
+    scale_factor: f32,
     viewport: Viewport,
     viewport_version: u64,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
@@ -60,7 +60,7 @@ where
 
             Viewport::with_physical_size(
                 Size::new(physical_size.width, physical_size.height),
-                window.scale_factor() * scale_factor,
+                window.scale_factor() as f32 * scale_factor,
             )
         };
 
@@ -99,7 +99,7 @@ where
     }
 
     /// Returns the current scale factor of the [`Viewport`] of the [`State`].
-    pub fn scale_factor(&self) -> f64 {
+    pub fn scale_factor(&self) -> f32 {
         self.viewport.scale_factor()
     }
 
@@ -144,7 +144,7 @@ where
 
                 self.viewport = Viewport::with_physical_size(
                     size,
-                    window.scale_factor() * self.scale_factor,
+                    window.scale_factor() as f32 * self.scale_factor,
                 );
 
                 self.viewport_version = self.viewport_version.wrapping_add(1);
@@ -157,7 +157,7 @@ where
 
                 self.viewport = Viewport::with_physical_size(
                     size,
-                    new_scale_factor * self.scale_factor,
+                    *new_scale_factor as f32 * self.scale_factor,
                 );
 
                 self.viewport_version = self.viewport_version.wrapping_add(1);
@@ -208,7 +208,7 @@ where
         {
             self.viewport = Viewport::with_physical_size(
                 Size::new(new_size.width, new_size.height),
-                window.scale_factor() * new_scale_factor,
+                window.scale_factor() as f32 * new_scale_factor,
             );
             self.viewport_version = self.viewport_version.wrapping_add(1);
 

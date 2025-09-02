@@ -302,7 +302,7 @@ impl Renderer {
         encoder: &mut wgpu::CommandEncoder,
         viewport: &Viewport,
     ) {
-        let scale_factor = viewport.scale_factor() as f32;
+        let scale_factor = viewport.scale_factor();
 
         self.text_viewport
             .update(&self.engine.queue, viewport.physical_size());
@@ -464,7 +464,7 @@ impl Renderer {
         #[cfg(any(feature = "svg", feature = "image"))]
         let image_cache = self.image_cache.borrow();
 
-        let scale_factor = viewport.scale_factor() as f32;
+        let scale_factor = viewport.scale_factor();
         let physical_bounds = Rectangle::<f32>::from(Rectangle::with_size(
             viewport.physical_size(),
         ));
@@ -879,7 +879,7 @@ impl renderer::Headless for Renderer {
         background_color: Color,
     ) -> Vec<u8> {
         self.screenshot(
-            &Viewport::with_physical_size(size, f64::from(scale_factor)),
+            &Viewport::with_physical_size(size, scale_factor),
             background_color,
         )
     }
