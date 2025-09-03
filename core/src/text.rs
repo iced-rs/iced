@@ -299,6 +299,9 @@ pub trait Renderer: crate::Renderer {
     /// The [`Editor`] of this [`Renderer`].
     type Editor: Editor<Font = Self::Font> + 'static;
 
+    /// The `Raw` text of this [`Renderer`].
+    type Raw: 'static;
+
     /// A monospace font.
     ///
     /// It may be used by devtools.
@@ -342,6 +345,9 @@ pub trait Renderer: crate::Renderer {
         color: Color,
         clip_bounds: Rectangle,
     );
+
+    /// Draws the given `Raw` text.
+    fn fill_raw(&mut self, raw: Self::Raw);
 
     /// Draws the given [`Text`] at the given position and with the given
     /// [`Color`].

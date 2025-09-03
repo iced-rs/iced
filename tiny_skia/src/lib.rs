@@ -35,7 +35,7 @@ use crate::core::{
 use crate::engine::Engine;
 use crate::graphics::Viewport;
 use crate::graphics::compositor;
-use crate::graphics::text::{Editor, Paragraph};
+use crate::graphics::text::{Editor, Paragraph, Raw};
 
 /// A [`tiny-skia`] graphics renderer for [`iced`].
 ///
@@ -234,6 +234,7 @@ impl core::text::Renderer for Renderer {
     type Font = Font;
     type Paragraph = Paragraph;
     type Editor = Editor;
+    type Raw = Raw;
 
     const MONOSPACE_FONT: Font = Font::MONOSPACE;
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
@@ -275,6 +276,11 @@ impl core::text::Renderer for Renderer {
     ) {
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_editor(editor, position, color, clip_bounds, transformation);
+    }
+
+    fn fill_raw(&mut self, raw: Self::Raw) {
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_raw(raw, transformation);
     }
 
     fn fill_text(
