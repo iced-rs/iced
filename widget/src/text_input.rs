@@ -1034,14 +1034,15 @@ where
                                 return;
                             };
 
-                            if modifiers.jump()
-                                && state.cursor.selection(&self.value).is_none()
-                            {
-                                if self.is_secure {
-                                    let cursor_pos =
-                                        state.cursor.end(&self.value);
-                                    state.cursor.select_range(0, cursor_pos);
-                                } else {
+                            if state.cursor.selection(&self.value).is_none() {
+                                if (self.is_secure && modifiers.jump())
+                                    || modifiers.macos_command()
+                                {
+                                    state.cursor.select_range(
+                                        state.cursor.start(&self.value),
+                                        0,
+                                    );
+                                } else if modifiers.jump() {
                                     state
                                         .cursor
                                         .select_left_by_words(&self.value);
@@ -1064,17 +1065,15 @@ where
                                 return;
                             };
 
-                            if modifiers.jump()
-                                && state.cursor.selection(&self.value).is_none()
-                            {
-                                if self.is_secure {
-                                    let cursor_pos =
-                                        state.cursor.end(&self.value);
+                            if state.cursor.selection(&self.value).is_none() {
+                                if (self.is_secure && modifiers.jump())
+                                    || modifiers.macos_command()
+                                {
                                     state.cursor.select_range(
-                                        cursor_pos,
+                                        state.cursor.start(&self.value),
                                         self.value.len(),
                                     );
-                                } else {
+                                } else if modifiers.jump() {
                                     state
                                         .cursor
                                         .select_right_by_words(&self.value);
@@ -1132,54 +1131,21 @@ where
 
                             shell.capture_event();
                         }
-                        keyboard::Key::Named(key::Named::ArrowLeft)
-                            if modifiers.macos_command() =>
-                        {
-                            let cursor_before = state.cursor;
-
-                            if modifiers.shift() {
-                                state.cursor.select_range(
-                                    state.cursor.start(&self.value),
-                                    0,
-                                );
-                            } else {
-                                state.cursor.move_to(0);
-                            }
-
-                            if cursor_before != state.cursor {
-                                focus.updated_at = Instant::now();
-
-                                shell.request_redraw();
-                            }
-
-                            shell.capture_event();
-                        }
-                        keyboard::Key::Named(key::Named::ArrowRight)
-                            if modifiers.macos_command() =>
-                        {
-                            let cursor_before = state.cursor;
-
-                            if modifiers.shift() {
-                                state.cursor.select_range(
-                                    state.cursor.start(&self.value),
-                                    self.value.len(),
-                                );
-                            } else {
-                                state.cursor.move_to(self.value.len());
-                            }
-
-                            if cursor_before != state.cursor {
-                                focus.updated_at = Instant::now();
-
-                                shell.request_redraw();
-                            }
-
-                            shell.capture_event();
-                        }
                         keyboard::Key::Named(key::Named::ArrowLeft) => {
                             let cursor_before = state.cursor;
 
-                            if modifiers.jump() && !self.is_secure {
+                            if (self.is_secure && modifiers.jump())
+                                || modifiers.macos_command()
+                            {
+                                if modifiers.shift() {
+                                    state.cursor.select_range(
+                                        state.cursor.start(&self.value),
+                                        0,
+                                    );
+                                } else {
+                                    state.cursor.move_to(0);
+                                }
+                            } else if modifiers.jump() {
                                 if modifiers.shift() {
                                     state
                                         .cursor
@@ -1206,7 +1172,18 @@ where
                         keyboard::Key::Named(key::Named::ArrowRight) => {
                             let cursor_before = state.cursor;
 
-                            if modifiers.jump() && !self.is_secure {
+                            if (self.is_secure && modifiers.jump())
+                                || modifiers.macos_command()
+                            {
+                                if modifiers.shift() {
+                                    state.cursor.select_range(
+                                        state.cursor.start(&self.value),
+                                        self.value.len(),
+                                    );
+                                } else {
+                                    state.cursor.move_to(self.value.len());
+                                }
+                            } else if modifiers.jump() {
                                 if modifiers.shift() {
                                     state
                                         .cursor
