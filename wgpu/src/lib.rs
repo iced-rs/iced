@@ -551,7 +551,6 @@ impl Renderer {
                         let drawn = instance.primitive.draw(
                             &primitive_storage,
                             &mut render_pass,
-                            frame,
                             &clip_bounds,
                         );
 

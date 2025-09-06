@@ -56,7 +56,6 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
         &self,
         _renderer: &Self::Renderer,
         _render_pass: &mut wgpu::RenderPass<'_>,
-        _target: &wgpu::TextureView,
         _clip_bounds: &Rectangle<u32>,
     ) -> bool {
         false
@@ -94,7 +93,6 @@ pub(crate) trait Stored:
         &self,
         storage: &Storage,
         render_pass: &mut wgpu::RenderPass<'_>,
-        target: &wgpu::TextureView,
         clip_bounds: &Rectangle<u32>,
     ) -> bool;
 
@@ -142,7 +140,6 @@ impl<P: Primitive> Stored for BlackBox<P> {
         &self,
         storage: &Storage,
         render_pass: &mut wgpu::RenderPass<'_>,
-        target: &wgpu::TextureView,
         clip_bounds: &Rectangle<u32>,
     ) -> bool {
         let renderer = storage
@@ -151,8 +148,7 @@ impl<P: Primitive> Stored for BlackBox<P> {
             .downcast_ref::<P::Renderer>()
             .expect("renderer should have the proper type");
 
-        self.primitive
-            .draw(renderer, render_pass, target, clip_bounds)
+        self.primitive.draw(renderer, render_pass, clip_bounds)
     }
 
     fn render(
