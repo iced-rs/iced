@@ -422,7 +422,9 @@ where
                                 );
                             }
                             Control::Exit => {
+                                self.process_event(event_loop, Event::Exit);
                                 event_loop.exit();
+                                break;
                             }
                             Control::Crash(error) => {
                                 self.error = Some(error);
@@ -469,6 +471,7 @@ enum Event<Message: 'static> {
         on_open: oneshot::Sender<window::Id>,
     },
     EventLoopAwakened(winit::event::Event<Message>),
+    Exit,
 }
 
 #[derive(Debug)]
@@ -1039,6 +1042,7 @@ async fn run_instance<P>(
                     _ => {}
                 }
             }
+            Event::Exit => break,
         }
     }
 
