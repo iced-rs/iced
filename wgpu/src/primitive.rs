@@ -42,14 +42,39 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
         viewport: &Viewport,
     );
 
-    /// Renders the [`Primitive`].
+    /// Draws the [`Primitive`] in the given [`wgpu::RenderPass`].
+    ///
+    /// When possible, this should be implement over [`render`](Self::render)
+    /// since reusing the existing render pass should be considerably more
+    /// efficient than issuing a completely new one.
+    ///
+    /// If you have complex composition needs, then you can leverage
+    /// [`render`](Self::render) by returning `false` here.
+    ///
+    /// By default, it does nothing and returns `false`.
+    fn draw(
+        &self,
+        _renderer: &Self::Renderer,
+        _render_pass: &mut wgpu::RenderPass<'_>,
+        _target: &wgpu::TextureView,
+        _clip_bounds: &Rectangle<u32>,
+    ) -> bool {
+        false
+    }
+
+    /// Renders the [`Primitive`], using the given [`wgpu::CommandEncoder`].
+    ///
+    /// This will only be called if [`draw`](Self::draw) returns `false`.
+    ///
+    /// By default, it does nothing.
     fn render(
         &self,
-        renderer: &Self::Renderer,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
-        clip_bounds: &Rectangle<u32>,
-    );
+        _renderer: &Self::Renderer,
+        _encoder: &mut wgpu::CommandEncoder,
+        _target: &wgpu::TextureView,
+        _clip_bounds: &Rectangle<u32>,
+    ) {
+    }
 }
 
 pub(crate) trait Stored:
@@ -64,6 +89,14 @@ pub(crate) trait Stored:
         bounds: &Rectangle,
         viewport: &Viewport,
     );
+
+    fn draw(
+        &self,
+        storage: &Storage,
+        render_pass: &mut wgpu::RenderPass<'_>,
+        target: &wgpu::TextureView,
+        clip_bounds: &Rectangle<u32>,
+    ) -> bool;
 
     fn render(
         &self,
@@ -103,6 +136,23 @@ impl<P: Primitive> Stored for BlackBox<P> {
 
         self.primitive
             .prepare(renderer, device, queue, bounds, viewport);
+    }
+
+    fn draw(
+        &self,
+        storage: &Storage,
+        render_pass: &mut wgpu::RenderPass<'_>,
+        target: &wgpu::TextureView,
+        clip_bounds: &Rectangle<u32>,
+    ) -> bool {
+        let renderer = storage
+            .get::<P>()
+            .expect("renderer should be initialized")
+            .downcast_ref::<P::Renderer>()
+            .expect("renderer should have the proper type");
+
+        self.primitive
+            .draw(renderer, render_pass, target, clip_bounds)
     }
 
     fn render(

@@ -534,7 +534,6 @@ impl Renderer {
 
             if !layer.primitives.is_empty() {
                 let render_span = debug::render(debug::Primitive::Shader);
-                let _ = ManuallyDrop::into_inner(render_pass);
 
                 let primitive_storage = self
                     .engine
@@ -542,11 +541,30 @@ impl Renderer {
                     .read()
                     .expect("Read primitive storage");
 
+                let mut need_render = Vec::new();
+
                 for instance in &layer.primitives {
                     if let Some(clip_bounds) = (instance.bounds * scale)
                         .intersection(&physical_bounds)
                         .and_then(Rectangle::snap)
                     {
+                        let drawn = instance.primitive.draw(
+                            &primitive_storage,
+                            &mut render_pass,
+                            frame,
+                            &clip_bounds,
+                        );
+
+                        if !drawn {
+                            need_render.push((instance, clip_bounds));
+                        }
+                    }
+                }
+
+                if !need_render.is_empty() {
+                    let _ = ManuallyDrop::into_inner(render_pass);
+
+                    for (instance, clip_bounds) in need_render {
                         instance.primitive.render(
                             &primitive_storage,
                             encoder,
@@ -554,29 +572,29 @@ impl Renderer {
                             &clip_bounds,
                         );
                     }
+
+                    render_pass = ManuallyDrop::new(encoder.begin_render_pass(
+                        &wgpu::RenderPassDescriptor {
+                            label: Some("iced_wgpu render pass"),
+                            color_attachments: &[Some(
+                                wgpu::RenderPassColorAttachment {
+                                    view: frame,
+                                    depth_slice: None,
+                                    resolve_target: None,
+                                    ops: wgpu::Operations {
+                                        load: wgpu::LoadOp::Load,
+                                        store: wgpu::StoreOp::Store,
+                                    },
+                                },
+                            )],
+                            depth_stencil_attachment: None,
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
+                        },
+                    ));
                 }
 
                 render_span.finish();
-
-                render_pass = ManuallyDrop::new(encoder.begin_render_pass(
-                    &wgpu::RenderPassDescriptor {
-                        label: Some("iced_wgpu render pass"),
-                        color_attachments: &[Some(
-                            wgpu::RenderPassColorAttachment {
-                                view: frame,
-                                depth_slice: None,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Load,
-                                    store: wgpu::StoreOp::Store,
-                                },
-                            },
-                        )],
-                        depth_stencil_attachment: None,
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                    },
-                ));
             }
 
             #[cfg(any(feature = "svg", feature = "image"))]
