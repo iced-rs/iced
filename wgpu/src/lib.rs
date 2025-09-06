@@ -365,10 +365,10 @@ impl Renderer {
 
                 for instance in &layer.primitives {
                     instance.primitive.prepare(
+                        &mut primitive_storage,
                         &self.engine.device,
                         &self.engine.queue,
                         self.engine.format,
-                        &mut primitive_storage,
                         &instance.bounds,
                         viewport,
                     );
@@ -548,8 +548,8 @@ impl Renderer {
                         .and_then(Rectangle::snap)
                     {
                         instance.primitive.render(
-                            encoder,
                             &primitive_storage,
+                            encoder,
                             frame,
                             &clip_bounds,
                         );
@@ -805,7 +805,7 @@ impl graphics::geometry::Renderer for Renderer {
 impl primitive::Renderer for Renderer {
     fn draw_primitive(&mut self, bounds: Rectangle, primitive: impl Primitive) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_primitive(bounds, Box::new(primitive), transformation);
+        layer.draw_primitive(bounds, primitive, transformation);
     }
 }
 

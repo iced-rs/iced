@@ -12,13 +12,32 @@ pub type Batch = Vec<Instance>;
 
 /// A set of methods which allows a [`Primitive`] to be rendered.
 pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
-    /// Processes the [`Primitive`], allowing for GPU buffer allocation.
-    fn prepare(
+    /// The shared renderer of this [`Primitive`].
+    ///
+    /// Normally, this will contain a bunch of [`wgpu`] state; like
+    /// a rendering pipeline, buffers, and textures.
+    ///
+    /// All instances of this [`Primitive`] type will share the same
+    /// [`Renderer`].
+    type Renderer: MaybeSend + MaybeSync;
+
+    /// Initializes the [`Renderer`](Self::Renderer) of the [`Primitive`].
+    ///
+    /// This will only be called once, when the first [`Primitive`] of this kind
+    /// is encountered.
+    fn initialize(
         &self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
-        storage: &mut Storage,
+    ) -> Self::Renderer;
+
+    /// Processes the [`Primitive`], allowing for GPU buffer allocation.
+    fn prepare(
+        &self,
+        renderer: &mut Self::Renderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
         bounds: &Rectangle,
         viewport: &Viewport,
     );
@@ -26,21 +45,92 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
     /// Renders the [`Primitive`].
     fn render(
         &self,
+        renderer: &Self::Renderer,
         encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        clip_bounds: &Rectangle<u32>,
+    );
+}
+
+pub(crate) trait Stored:
+    Debug + MaybeSend + MaybeSync + 'static
+{
+    fn prepare(
+        &self,
+        storage: &mut Storage,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        format: wgpu::TextureFormat,
+        bounds: &Rectangle,
+        viewport: &Viewport,
+    );
+
+    fn render(
+        &self,
         storage: &Storage,
+        encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         clip_bounds: &Rectangle<u32>,
     );
 }
 
 #[derive(Debug)]
+struct BlackBox<P: Primitive> {
+    primitive: P,
+}
+
+impl<P: Primitive> Stored for BlackBox<P> {
+    fn prepare(
+        &self,
+        storage: &mut Storage,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        format: wgpu::TextureFormat,
+        bounds: &Rectangle,
+        viewport: &Viewport,
+    ) {
+        if !storage.has::<P>() {
+            storage.store::<P, _>(
+                self.primitive.initialize(device, queue, format),
+            );
+        }
+
+        let renderer = storage
+            .get_mut::<P>()
+            .expect("renderer should be initialized")
+            .downcast_mut::<P::Renderer>()
+            .expect("renderer should have the proper type");
+
+        self.primitive
+            .prepare(renderer, device, queue, bounds, viewport);
+    }
+
+    fn render(
+        &self,
+        storage: &Storage,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        clip_bounds: &Rectangle<u32>,
+    ) {
+        let renderer = storage
+            .get::<P>()
+            .expect("renderer should be initialized")
+            .downcast_ref::<P::Renderer>()
+            .expect("renderer should have the proper type");
+
+        self.primitive
+            .render(renderer, encoder, target, clip_bounds);
+    }
+}
+
+#[derive(Debug)]
 /// An instance of a specific [`Primitive`].
 pub struct Instance {
     /// The bounds of the [`Instance`].
-    pub bounds: Rectangle,
+    pub(crate) bounds: Rectangle,
 
     /// The [`Primitive`] to render.
-    pub primitive: Box<dyn Primitive>,
+    pub(crate) primitive: Box<dyn Stored>,
 }
 
 impl Instance {
@@ -48,7 +138,7 @@ impl Instance {
     pub fn new(bounds: Rectangle, primitive: impl Primitive) -> Self {
         Instance {
             bounds,
-            primitive: Box::new(primitive),
+            primitive: Box::new(BlackBox { primitive }),
         }
     }
 }
@@ -73,26 +163,25 @@ impl Storage {
     }
 
     /// Inserts the data `T` in to [`Storage`].
-    pub fn store<T: 'static + MaybeSend + MaybeSync>(&mut self, data: T) {
+    pub fn store<T: 'static, D: Any + MaybeSend + MaybeSync>(
+        &mut self,
+        data: D,
+    ) {
         let _ = self.pipelines.insert(TypeId::of::<T>(), Box::new(data));
     }
 
     /// Returns a reference to the data with type `T` if it exists in [`Storage`].
-    pub fn get<T: 'static>(&self) -> Option<&T> {
-        self.pipelines.get(&TypeId::of::<T>()).map(|pipeline| {
-            (pipeline.as_ref() as &dyn Any)
-                .downcast_ref::<T>()
-                .expect("Value with this type does not exist in Storage.")
-        })
+    pub fn get<T: 'static>(&self) -> Option<&dyn Any> {
+        self.pipelines
+            .get(&TypeId::of::<T>())
+            .map(|pipeline| pipeline.as_ref() as &dyn Any)
     }
 
     /// Returns a mutable reference to the data with type `T` if it exists in [`Storage`].
-    pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
-        self.pipelines.get_mut(&TypeId::of::<T>()).map(|pipeline| {
-            (pipeline.as_mut() as &mut dyn Any)
-                .downcast_mut::<T>()
-                .expect("Value with this type does not exist in Storage.")
-        })
+    pub fn get_mut<T: 'static>(&mut self) -> Option<&mut dyn Any> {
+        self.pipelines
+            .get_mut(&TypeId::of::<T>())
+            .map(|pipeline| pipeline.as_mut() as &mut dyn Any)
     }
 }
 

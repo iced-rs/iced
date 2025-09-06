@@ -235,13 +235,13 @@ impl Layer {
     pub fn draw_primitive(
         &mut self,
         bounds: Rectangle,
-        primitive: Box<dyn Primitive>,
+        primitive: impl Primitive,
         transformation: Transformation,
     ) {
         let bounds = bounds * transformation;
 
         self.primitives
-            .push(primitive::Instance { bounds, primitive });
+            .push(primitive::Instance::new(bounds, primitive));
     }
 
     fn flush_meshes(&mut self) {
