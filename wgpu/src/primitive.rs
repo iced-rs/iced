@@ -44,9 +44,9 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
 
     /// Draws the [`Primitive`] in the given [`wgpu::RenderPass`].
     ///
-    /// When possible, this should be implement over [`render`](Self::render)
+    /// When possible, this should be implemented over [`render`](Self::render)
     /// since reusing the existing render pass should be considerably more
-    /// efficient than issuing a completely new one.
+    /// efficient than issuing a new one.
     ///
     /// If you have complex composition needs, then you can leverage
     /// [`render`](Self::render) by returning `false` here.
