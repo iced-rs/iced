@@ -1,6 +1,7 @@
 //! Draw custom primitives.
 use crate::core::{self, Rectangle};
 use crate::graphics::Viewport;
+use crate::graphics::futures::{MaybeSend, MaybeSync};
 
 use rustc_hash::FxHashMap;
 use std::any::{Any, TypeId};
@@ -10,7 +11,7 @@ use std::fmt::Debug;
 pub type Batch = Vec<Instance>;
 
 /// A set of methods which allows a [`Primitive`] to be rendered.
-pub trait Primitive: Debug + Send + Sync + 'static {
+pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
     /// Processes the [`Primitive`], allowing for GPU buffer allocation.
     fn prepare(
         &self,
@@ -59,9 +60,10 @@ pub trait Renderer: core::Renderer {
 }
 
 /// Stores custom, user-provided types.
-#[derive(Default, Debug)]
+#[derive(Default)]
+#[allow(missing_debug_implementations)]
 pub struct Storage {
-    pipelines: FxHashMap<TypeId, Box<dyn Any + Send + Sync>>,
+    pipelines: FxHashMap<TypeId, Box<dyn AnyConcurrent>>,
 }
 
 impl Storage {
@@ -71,14 +73,14 @@ impl Storage {
     }
 
     /// Inserts the data `T` in to [`Storage`].
-    pub fn store<T: 'static + Send + Sync>(&mut self, data: T) {
+    pub fn store<T: 'static + MaybeSend + MaybeSync>(&mut self, data: T) {
         let _ = self.pipelines.insert(TypeId::of::<T>(), Box::new(data));
     }
 
     /// Returns a reference to the data with type `T` if it exists in [`Storage`].
     pub fn get<T: 'static>(&self) -> Option<&T> {
         self.pipelines.get(&TypeId::of::<T>()).map(|pipeline| {
-            pipeline
+            (pipeline.as_ref() as &dyn Any)
                 .downcast_ref::<T>()
                 .expect("Value with this type does not exist in Storage.")
         })
@@ -87,9 +89,13 @@ impl Storage {
     /// Returns a mutable reference to the data with type `T` if it exists in [`Storage`].
     pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.pipelines.get_mut(&TypeId::of::<T>()).map(|pipeline| {
-            pipeline
+            (pipeline.as_mut() as &mut dyn Any)
                 .downcast_mut::<T>()
                 .expect("Value with this type does not exist in Storage.")
         })
     }
 }
+
+trait AnyConcurrent: Any + MaybeSend + MaybeSync {}
+
+impl<T> AnyConcurrent for T where T: Any + MaybeSend + MaybeSync {}
