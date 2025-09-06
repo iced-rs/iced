@@ -200,6 +200,10 @@ impl Compositor {
 
         Err(Error::RequestDeviceFailed(errors))
     }
+
+    fn is_cpu(&self) -> bool {
+        self.adapter.get_info().device_type == wgpu::DeviceType::Cpu
+    }
 }
 
 /// Creates a [`Compositor`] with the given [`Settings`] and window.
@@ -274,7 +278,12 @@ impl graphics::Compositor for Compositor {
                     settings.present_mode = present_mode;
                 }
 
-                Ok(new(settings, compatible_window).await?)
+                let compositor = new(settings, compatible_window).await?;
+                if compositor.is_cpu() {
+                    // XXX
+                    return Err(Error::NoAdapterFound("hardware acceleration".to_string()).into());
+                }
+                Ok(compositor)
             }
             Some(backend) => Err(graphics::Error::GraphicsAdapterNotFound {
                 backend: "wgpu",
