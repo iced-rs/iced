@@ -17,8 +17,8 @@ use crate::Task;
 /// Returns a [`Task`] that produces the current [`Instant`]
 /// by calling [`Instant::now`].
 ///
-/// While you can call [`Instant::now`] directly in your application,
-/// this is an "impure" operation (i.e. it's not referentially transparent).
+/// While you can call [`Instant::now`] directly in your application;
+/// that renders your application "impure" (i.e. no referential transparency).
 ///
 /// You may care about purity if you want to leverage the `time-travel`
 /// feature properly.
