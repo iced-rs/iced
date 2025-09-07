@@ -14,7 +14,7 @@ keywords.workspace = true
 workspace = true
 
 [features]
-auto-detect-theme = ["dep:dark-light"]
+auto-detect-theme = ["dep:mundy"]
 advanced = []
 crisp = []
 basic-shaping = []
@@ -32,8 +32,8 @@ smol_str.workspace = true
 thiserror.workspace = true
 web-time.workspace = true
 
-dark-light.workspace = true
-dark-light.optional = true
+mundy.workspace = true
+mundy.optional = true
 
 serde.workspace = true
 serde.optional = true

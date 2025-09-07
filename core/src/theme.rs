@@ -170,16 +170,21 @@ impl Default for Theme {
     fn default() -> Self {
         #[cfg(feature = "auto-detect-theme")]
         {
+            use crate::time::Duration;
             use std::sync::LazyLock;
 
             static DEFAULT: LazyLock<Theme> = LazyLock::new(|| {
-                match dark_light::detect()
-                    .unwrap_or(dark_light::Mode::Unspecified)
-                {
-                    dark_light::Mode::Dark => Theme::Dark,
-                    dark_light::Mode::Light | dark_light::Mode::Unspecified => {
-                        Theme::Light
-                    }
+                let color_scheme = mundy::Preferences::once_blocking(
+                    mundy::Interest::ColorScheme,
+                    Duration::from_millis(100),
+                )
+                .map(|preferences| preferences.color_scheme)
+                .unwrap_or_default();
+
+                match color_scheme {
+                    mundy::ColorScheme::Dark => Theme::Dark,
+                    mundy::ColorScheme::Light
+                    | mundy::ColorScheme::NoPreference => Theme::Light,
                 }
             });
 
