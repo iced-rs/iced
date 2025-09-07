@@ -444,12 +444,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
-name = "beul"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3c3baedf037b161e69da9200947329f52afa3b6e1cdbe6f344d6aa350fedd2f"
-
-[[package]]
 name = "bezier_tool"
 version = "0.1.0"
 dependencies = [
@@ -3390,7 +3384,6 @@ checksum = "f5f507e52285e981a349f7224e0ac7eaf014e1a9cce399471547c8dfbc018b79"
 dependencies = [
  "android-build",
  "async-io",
- "beul",
  "cfg-if",
  "dispatch",
  "futures-channel",

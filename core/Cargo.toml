@@ -34,6 +34,7 @@ web-time.workspace = true
 
 mundy.workspace = true
 mundy.optional = true
+mundy.features = ["async-io", "color-scheme"]
 
 serde.workspace = true
 serde.optional = true

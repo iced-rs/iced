@@ -187,7 +187,6 @@ lilt = "0.8"
 log = "0.4"
 lyon = "1.0"
 lyon_path = "1.0"
-mundy = "0.2"
 num-traits = "0.2"
 ouroboros = "0.18"
 png = "0.17"
@@ -218,6 +217,9 @@ web-time = "1.1"
 wgpu = "26.0"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b" }
+
+mundy.version = "0.2"
+mundy.default-features = false
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
