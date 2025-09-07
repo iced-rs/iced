@@ -48,6 +48,9 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
     /// since reusing the existing render pass should be considerably more
     /// efficient than issuing a new one.
     ///
+    /// The viewport and scissor rect of the render pass provided is set
+    /// to the bounds and clip bounds of the [`Primitive`], respectively.
+    ///
     /// If you have complex composition needs, then you can leverage
     /// [`render`](Self::render) by returning `false` here.
     ///
@@ -56,7 +59,6 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
         &self,
         _renderer: &Self::Renderer,
         _render_pass: &mut wgpu::RenderPass<'_>,
-        _clip_bounds: &Rectangle<u32>,
     ) -> bool {
         false
     }
@@ -93,7 +95,6 @@ pub(crate) trait Stored:
         &self,
         storage: &Storage,
         render_pass: &mut wgpu::RenderPass<'_>,
-        clip_bounds: &Rectangle<u32>,
     ) -> bool;
 
     fn render(
@@ -140,7 +141,6 @@ impl<P: Primitive> Stored for BlackBox<P> {
         &self,
         storage: &Storage,
         render_pass: &mut wgpu::RenderPass<'_>,
-        clip_bounds: &Rectangle<u32>,
     ) -> bool {
         let renderer = storage
             .get::<P>()
@@ -148,7 +148,7 @@ impl<P: Primitive> Stored for BlackBox<P> {
             .downcast_ref::<P::Renderer>()
             .expect("renderer should have the proper type");
 
-        self.primitive.draw(renderer, render_pass, clip_bounds)
+        self.primitive.draw(renderer, render_pass)
     }
 
     fn render(

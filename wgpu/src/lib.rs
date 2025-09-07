@@ -544,21 +544,53 @@ impl Renderer {
                 let mut need_render = Vec::new();
 
                 for instance in &layer.primitives {
+                    let bounds = instance.bounds * scale;
+
                     if let Some(clip_bounds) = (instance.bounds * scale)
                         .intersection(&physical_bounds)
                         .and_then(Rectangle::snap)
                     {
-                        let drawn = instance.primitive.draw(
-                            &primitive_storage,
-                            &mut render_pass,
-                            &clip_bounds,
+                        render_pass.set_viewport(
+                            bounds.x,
+                            bounds.y,
+                            bounds.width,
+                            bounds.height,
+                            0.0,
+                            1.0,
                         );
+
+                        render_pass.set_scissor_rect(
+                            clip_bounds.x,
+                            clip_bounds.y,
+                            clip_bounds.width,
+                            clip_bounds.height,
+                        );
+
+                        let drawn = instance
+                            .primitive
+                            .draw(&primitive_storage, &mut render_pass);
 
                         if !drawn {
                             need_render.push((instance, clip_bounds));
                         }
                     }
                 }
+
+                render_pass.set_viewport(
+                    0.0,
+                    0.0,
+                    viewport.physical_width() as f32,
+                    viewport.physical_height() as f32,
+                    0.0,
+                    1.0,
+                );
+
+                render_pass.set_scissor_rect(
+                    0,
+                    0,
+                    viewport.physical_width(),
+                    viewport.physical_height(),
+                );
 
                 if !need_render.is_empty() {
                     let _ = ManuallyDrop::into_inner(render_pass);
