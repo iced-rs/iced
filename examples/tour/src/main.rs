@@ -220,7 +220,7 @@ impl Tour {
                     "Additionally, this tour can also run on WebAssembly ",
                     "by leveraging ",
                     span("trunk")
-                        .color(color!(0x0000FF))
+                        .color(color!(0x7777FF))
                         .underline(true)
                         .font(Font::MONOSPACE)
                         .link(Message::OpenTrunk),
