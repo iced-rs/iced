@@ -634,6 +634,10 @@ async fn run_instance<P>(
                     system_theme,
                 );
 
+                window.raw.set_theme(conversion::window_theme(
+                    window.state.theme_mode(),
+                ));
+
                 debug::theme_changed(|| {
                     if is_first {
                         theme::Base::palette(window.state.theme())

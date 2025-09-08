@@ -1207,7 +1207,7 @@ pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
     winit::window::Icon::from_rgba(pixels, size.width, size.height).ok()
 }
 
-/// Convertions some [`input_method::Purpose`] into its `winit` counterpart.
+/// Converts some [`input_method::Purpose`] into its `winit` counterpart.
 pub fn ime_purpose(
     purpose: input_method::Purpose,
 ) -> winit::window::ImePurpose {

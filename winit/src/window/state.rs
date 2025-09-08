@@ -9,7 +9,7 @@ use winit::window::Window;
 
 use std::fmt::{Debug, Formatter};
 
-/// The state of a multi-windowed [`Program`].
+/// The state of the window of a [`Program`].
 pub struct State<P: Program>
 where
     P::Theme: theme::Base,
@@ -21,6 +21,7 @@ where
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
     theme: Option<P::Theme>,
+    theme_mode: theme::Mode,
     default_theme: P::Theme,
     style: theme::Style,
 }
@@ -52,7 +53,7 @@ where
         window: &Window,
         system_theme: theme::Mode,
     ) -> Self {
-        let theme_mode = window
+        let system_theme = window
             .theme()
             .map(conversion::theme_mode)
             .unwrap_or(system_theme);
@@ -60,7 +61,9 @@ where
         let title = program.title(window_id);
         let scale_factor = program.scale_factor(window_id);
         let theme = program.theme(window_id);
-        let default_theme = <P::Theme as theme::Base>::default(theme_mode);
+        let theme_mode =
+            theme.as_ref().map(theme::Base::mode).unwrap_or_default();
+        let default_theme = <P::Theme as theme::Base>::default(system_theme);
         let style = program.style(theme.as_ref().unwrap_or(&default_theme));
 
         let viewport = {
@@ -80,6 +83,7 @@ where
             cursor_position: None,
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
+            theme_mode,
             default_theme,
             style,
         }
@@ -133,6 +137,11 @@ where
     /// Returns the current theme of the [`State`].
     pub fn theme(&self) -> &P::Theme {
         self.theme.as_ref().unwrap_or(&self.default_theme)
+    }
+
+    /// Returns the current [`theme::Mode`] of the [`State`].
+    pub fn theme_mode(&self) -> theme::Mode {
+        self.theme_mode
     }
 
     /// Returns the current background [`Color`] of the [`State`].
@@ -192,9 +201,9 @@ where
                 self.default_theme = <P::Theme as theme::Base>::default(
                     conversion::theme_mode(*theme),
                 );
-                self.style = program.style(self.theme());
 
                 if self.theme.is_none() {
+                    self.style = program.style(&self.default_theme);
                     window.request_redraw();
                 }
             }
@@ -242,5 +251,15 @@ where
         // Update theme and appearance
         self.theme = program.theme(window_id);
         self.style = program.style(self.theme());
+
+        if let Some(theme) = &self.theme {
+            let new_mode = theme::Base::mode(theme);
+
+            if self.theme_mode != new_mode {
+                window.set_theme(conversion::window_theme(new_mode));
+
+                self.theme_mode = new_mode;
+            }
+        }
     }
 }

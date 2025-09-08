@@ -258,7 +258,10 @@ pub trait Base {
     /// Returns the default theme for the preferred [`Mode`].
     fn default(preference: Mode) -> Self;
 
-    /// Returns the default base [`Style`] of a theme.
+    /// Returns the [`Mode`] of the theme.
+    fn mode(&self) -> Mode;
+
+    /// Returns the default base [`Style`] of the theme.
     fn base(&self) -> Style;
 
     /// Returns the color [`Palette`] of the theme.
@@ -292,6 +295,14 @@ impl Base for Theme {
         match preference {
             Mode::None | Mode::Light => Self::Light,
             Mode::Dark => Self::Dark,
+        }
+    }
+
+    fn mode(&self) -> Mode {
+        if self.extended_palette().is_dark {
+            Mode::Dark
+        } else {
+            Mode::Light
         }
     }
 
