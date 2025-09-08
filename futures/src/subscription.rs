@@ -426,7 +426,7 @@ where
     }
 }
 
-/// Creatges a [`Subscription`] from a hashable id and a filter function.
+/// Creates a [`Subscription`] from a hashable id and a filter function.
 pub fn filter_map<I, F, T>(id: I, f: F) -> Subscription<T>
 where
     I: Hash + 'static,
