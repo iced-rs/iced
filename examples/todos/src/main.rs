@@ -5,7 +5,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Center, Element, Fill, Font, Function, Subscription, Task as Command,
+    Center, Element, Fill, Font, Function, Subscription, Task as Command, Theme,
 };
 
 use serde::{Deserialize, Serialize};
@@ -194,7 +194,7 @@ impl Todos {
                 let title = text("todos")
                     .width(Fill)
                     .size(100)
-                    .color([0.5, 0.5, 0.5])
+                    .style(subtle)
                     .align_x(Center);
 
                 let input = text_input("What needs to be done?", input_value)
@@ -447,7 +447,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .width(Fill)
             .size(25)
             .align_x(Center)
-            .color([0.7, 0.7, 0.7]),
+            .style(subtle),
     )
     .height(200)
     .into()
@@ -469,6 +469,12 @@ fn edit_icon() -> Text<'static> {
 
 fn delete_icon() -> Text<'static> {
     icon('\u{F1F8}')
+}
+
+fn subtle(theme: &Theme) -> text::Style {
+    text::Style {
+        color: Some(theme.extended_palette().background.strongest.color),
+    }
 }
 
 // Persistence
