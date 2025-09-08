@@ -66,7 +66,7 @@ impl Example {
                     return Task::none();
                 };
 
-                window::get_position(*last_window)
+                window::position(*last_window)
                     .then(|last_position| {
                         let position = last_position.map_or(
                             window::Position::Default,
@@ -138,12 +138,8 @@ impl Example {
         }
     }
 
-    fn theme(&self, window: window::Id) -> Theme {
-        if let Some(window) = self.windows.get(&window) {
-            window.theme.clone()
-        } else {
-            Theme::default()
-        }
+    fn theme(&self, window: window::Id) -> Option<Theme> {
+        Some(self.windows.get(&window)?.theme.clone())
     }
 
     fn scale_factor(&self, window: window::Id) -> f32 {

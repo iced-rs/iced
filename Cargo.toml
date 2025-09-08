@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "crisp", "web-colors", "auto-detect-theme", "thread-pool"]
+default = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool", "linux-theme-detection"]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer backend
@@ -54,21 +54,19 @@ tokio = ["iced_futures/tokio"]
 # Enables `smol` as the `executor::Default` on native platforms
 smol = ["iced_futures/smol"]
 # Enables querying system information
-system = ["iced_winit/system"]
+sysinfo = ["iced_winit/sysinfo"]
 # Enables broken "sRGB linear" blending to reproduce color management of the Web
 web-colors = ["iced_renderer/web-colors"]
 # Enables pixel snapping for crisp edges by default (can cause jitter!)
 crisp = ["iced_core/crisp", "iced_widget/crisp"]
 # Enables the WebGL backend
 webgl = ["iced_renderer/webgl"]
-# Enables syntax highligthing
+# Enables syntax highlighting
 highlighter = ["iced_highlighter", "iced_widget/highlighter"]
 # Enables the advanced module
 advanced = ["iced_core/advanced", "iced_widget/advanced"]
 # Embeds Fira Sans into the final application; useful for testing and Wasm builds
 fira-sans = ["iced_renderer/fira-sans"]
-# Auto-detects light/dark mode for the built-in theme
-auto-detect-theme = ["iced_core/auto-detect-theme"]
 # Enables basic text shaping by default
 basic-shaping = ["iced_core/basic-shaping"]
 # Enables advanced text shaping by default
@@ -79,6 +77,8 @@ strict-assertions = ["iced_renderer/strict-assertions"]
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
 # Enables support for the `sipper` library
 sipper = ["iced_runtime/sipper"]
+# Enables Linux system theme detection
+linux-theme-detection = ["iced_winit/linux-theme-detection"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -175,10 +175,9 @@ bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cargo-hot = { package = "cargo-hot-protocol", git = "https://github.com/hecrj/cargo-hot.git", rev = "b8dc518b8640928178a501257e353b73bc06cf47" }
 cosmic-text = "0.14"
-dark-light = "2.0"
+cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "453cedec0d2ec563bd7fa87e84a2319bcebb1ba3" }
 futures = { version = "0.3", default-features = false }
 glam = "0.25"
-cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "453cedec0d2ec563bd7fa87e84a2319bcebb1ba3" }
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.25", default-features = false }
@@ -188,16 +187,17 @@ lilt = "0.8"
 log = "0.4"
 lyon = "1.0"
 lyon_path = "1.0"
+mundy = { version = "0.2", default-features = false }
 num-traits = "0.2"
 ouroboros = "0.18"
-png = "0.17"
+png = "0.18"
 pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
 resvg = "0.42"
 rustc-hash = "2.0"
-serde = "1.0"
 semver = "1.0"
+serde = "1.0"
 sha2 = "0.10"
 sipper = "0.1"
 smol = "2"

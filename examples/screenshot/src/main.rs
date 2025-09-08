@@ -49,7 +49,7 @@ impl Example {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Screenshot => {
-                return window::get_latest()
+                return window::latest()
                     .and_then(window::screenshot)
                     .map(Message::Screenshotted);
             }

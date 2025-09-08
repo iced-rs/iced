@@ -587,11 +587,12 @@ pub mod mouse {
     };
 }
 
-#[cfg(feature = "system")]
 pub mod system {
     //! Retrieve system information.
-    pub use crate::runtime::system::Information;
-    pub use crate::shell::system::*;
+    pub use crate::runtime::system::{theme, theme_changes};
+
+    #[cfg(feature = "sysinfo")]
+    pub use crate::runtime::system::{Information, information};
 }
 
 pub mod overlay {
@@ -691,14 +692,14 @@ pub type Result = std::result::Result<(), Error>;
 /// }
 /// ```
 pub fn run<State, Message, Theme, Renderer>(
-    update: impl application::Update<State, Message> + 'static,
-    view: impl for<'a> application::View<'a, State, Message, Theme, Renderer>
+    update: impl application::UpdateFn<State, Message> + 'static,
+    view: impl for<'a> application::ViewFn<'a, State, Message, Theme, Renderer>
     + 'static,
 ) -> Result
 where
     State: Default + 'static,
     Message: program::Message + 'static,
-    Theme: Default + theme::Base + 'static,
+    Theme: theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
     application(State::default, update, view).run()

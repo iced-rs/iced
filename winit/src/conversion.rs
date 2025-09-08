@@ -5,6 +5,7 @@
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::theme;
 use crate::core::touch;
 use crate::core::window;
 use crate::core::{Event, Point, Size};
@@ -322,7 +323,7 @@ pub fn window_event(
     }
 }
 
-/// Converts a [`window::Level`] to a [`winit`] window level.
+/// Converts a [`window::Level`] into a [`winit`] window level.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
@@ -335,7 +336,7 @@ pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
     }
 }
 
-/// Converts a [`window::Position`] to a [`winit`] logical position for a given monitor.
+/// Converts a [`window::Position`] into a [`winit`] logical position for a given monitor.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn position(
@@ -407,7 +408,7 @@ pub fn position(
     }
 }
 
-/// Converts a [`window::Mode`] to a [`winit`] fullscreen mode.
+/// Converts a [`window::Mode`] into a [`winit`] fullscreen mode.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn fullscreen(
@@ -422,7 +423,7 @@ pub fn fullscreen(
     }
 }
 
-/// Converts a [`window::Mode`] to a visibility flag.
+/// Converts a [`window::Mode`] into a visibility flag.
 pub fn visible(mode: window::Mode) -> bool {
     match mode {
         window::Mode::Windowed | window::Mode::Fullscreen => true,
@@ -430,7 +431,7 @@ pub fn visible(mode: window::Mode) -> bool {
     }
 }
 
-/// Converts a [`winit`] fullscreen mode to a [`window::Mode`].
+/// Converts a [`winit`] fullscreen mode into a [`window::Mode`].
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
@@ -440,7 +441,28 @@ pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
     }
 }
 
-/// Converts a [`mouse::Interaction`] to a [`winit`] cursor icon.
+/// Converts a [`winit`] window theme into a [`theme::Mode`].
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn theme_mode(theme: winit::window::Theme) -> theme::Mode {
+    match theme {
+        winit::window::Theme::Light => theme::Mode::Light,
+        winit::window::Theme::Dark => theme::Mode::Dark,
+    }
+}
+
+/// Converts a [`theme::Mode`] into a window theme.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn window_theme(mode: theme::Mode) -> Option<winit::window::Theme> {
+    match mode {
+        theme::Mode::None => None,
+        theme::Mode::Light => Some(winit::window::Theme::Light),
+        theme::Mode::Dark => Some(winit::window::Theme::Dark),
+    }
+}
+
+/// Converts a [`mouse::Interaction`] into a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn mouse_interaction(
@@ -511,7 +533,7 @@ pub fn modifiers(
     result
 }
 
-/// Converts a physical cursor position to a logical `Point`.
+/// Converts a physical cursor position into a logical `Point`.
 pub fn cursor_position(
     position: winit::dpi::PhysicalPosition<f64>,
     scale_factor: f32,
@@ -1182,7 +1204,7 @@ pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
     winit::window::Icon::from_rgba(pixels, size.width, size.height).ok()
 }
 
-/// Convertions some [`input_method::Purpose`] to its `winit` counterpart.
+/// Converts some [`input_method::Purpose`] into its `winit` counterpart.
 pub fn ime_purpose(
     purpose: input_method::Purpose,
 ) -> winit::window::ImePurpose {

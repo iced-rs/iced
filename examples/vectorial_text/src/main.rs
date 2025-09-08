@@ -11,7 +11,7 @@ pub fn main() -> iced::Result {
         VectorialText::update,
         VectorialText::view,
     )
-    .theme(|_| Theme::Dark)
+    .theme(Theme::Dark)
     .run()
 }
 

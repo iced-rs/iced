@@ -2063,7 +2063,7 @@ where
 
 /// A widget that applies any `Theme` to its contents.
 pub fn themer<'a, Message, OldTheme, NewTheme, Renderer>(
-    new_theme: NewTheme,
+    to_theme: impl Fn(&OldTheme) -> NewTheme,
     content: impl Into<Element<'a, Message, NewTheme, Renderer>>,
 ) -> Themer<
     'a,
@@ -2077,7 +2077,7 @@ where
     Renderer: core::Renderer,
     NewTheme: Clone,
 {
-    Themer::new(move |_| new_theme.clone(), content)
+    Themer::new(to_theme, content)
 }
 
 /// Creates a [`PaneGrid`] with the given [`pane_grid::State`] and view function.

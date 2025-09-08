@@ -11,7 +11,7 @@ use iced::{
 pub fn main() -> iced::Result {
     iced::application(Image::default, Image::update, Image::view)
         .subscription(Image::subscription)
-        .theme(|_| Theme::TokyoNight)
+        .theme(Theme::TokyoNight)
         .run()
 }
 
