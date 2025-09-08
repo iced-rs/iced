@@ -30,7 +30,7 @@ pub fn timed<State, Message, Theme, Renderer>(
 where
     State: 'static,
     Message: program::Message + 'static,
-    Theme: Default + theme::Base + 'static,
+    Theme: theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
     use std::marker::PhantomData;
@@ -69,7 +69,7 @@ where
         >
     where
         Message: program::Message + 'static,
-        Theme: Default + theme::Base + 'static,
+        Theme: theme::Base + 'static,
         Renderer: program::Renderer + 'static,
         Boot: self::Boot<State, Message>,
         Update: self::Update<State, Message>,

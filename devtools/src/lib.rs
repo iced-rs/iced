@@ -12,7 +12,7 @@ mod time_machine;
 
 use crate::core::border;
 use crate::core::keyboard;
-use crate::core::theme::{self, Base, Theme};
+use crate::core::theme::{self, Theme};
 use crate::core::time::seconds;
 use crate::core::window;
 use crate::core::{Alignment::Center, Color, Element, Length::Fill};
@@ -90,7 +90,11 @@ where
         state.subscription(&self.program)
     }
 
-    fn theme(&self, state: &Self::State, window: window::Id) -> Self::Theme {
+    fn theme(
+        &self,
+        state: &Self::State,
+        window: window::Id,
+    ) -> Option<Self::Theme> {
         state.theme(&self.program, window)
     }
 
@@ -307,14 +311,12 @@ where
             }
         };
 
-        let theme = program.theme(state, window);
-
-        let derive_theme = move || {
+        fn derive_theme<T: theme::Base>(theme: &T) -> Theme {
             theme
                 .palette()
                 .map(|palette| Theme::custom("iced devtools", palette))
-                .unwrap_or_default()
-        };
+                .unwrap_or(Theme::Dark)
+        }
 
         let mode = match &self.mode {
             Mode::None => None,
@@ -340,7 +342,7 @@ where
             }
         }
         .map(|mode| {
-            themer(derive_theme(), Element::from(mode).map(Event::Message))
+            themer(derive_theme, Element::from(mode).map(Event::Message))
         });
 
         let notification = self
@@ -359,7 +361,7 @@ where
             .push_maybe(mode.map(opaque))
             .push_maybe(notification.map(|notification| {
                 themer(
-                    derive_theme(),
+                    derive_theme,
                     bottom_right(opaque(
                         container(notification)
                             .padding(10)
@@ -389,7 +391,7 @@ where
         Subscription::batch([subscription, hotkeys, commands])
     }
 
-    fn theme(&self, program: &P, window: window::Id) -> P::Theme {
+    fn theme(&self, program: &P, window: window::Id) -> Option<P::Theme> {
         program.theme(self.state(), window)
     }
 

@@ -14,7 +14,6 @@ keywords.workspace = true
 workspace = true
 
 [features]
-auto-detect-theme = ["dep:mundy"]
 advanced = []
 crisp = []
 basic-shaping = []
@@ -31,10 +30,6 @@ rustc-hash.workspace = true
 smol_str.workspace = true
 thiserror.workspace = true
 web-time.workspace = true
-
-mundy.workspace = true
-mundy.optional = true
-mundy.features = ["async-io", "color-scheme"]
 
 serde.workspace = true
 serde.optional = true

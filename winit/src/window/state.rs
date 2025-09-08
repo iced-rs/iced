@@ -21,6 +21,7 @@ where
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
     theme: P::Theme,
+    theme_mode: theme::Mode,
     style: theme::Style,
 }
 
@@ -52,7 +53,14 @@ where
     ) -> Self {
         let title = program.title(window_id);
         let scale_factor = program.scale_factor(window_id);
-        let theme = program.theme(window_id);
+        let theme_mode = match window.theme() {
+            None => theme::Mode::None,
+            Some(winit::window::Theme::Light) => theme::Mode::Light,
+            Some(winit::window::Theme::Dark) => theme::Mode::Dark,
+        };
+        let theme = program
+            .theme(window_id)
+            .unwrap_or_else(|| <P::Theme as theme::Base>::default(theme_mode));
         let style = program.style(&theme);
 
         let viewport = {
@@ -72,6 +80,7 @@ where
             cursor_position: None,
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
+            theme_mode,
             style,
         }
     }
@@ -216,7 +225,9 @@ where
         }
 
         // Update theme and appearance
-        self.theme = program.theme(window_id);
+        self.theme = program.theme(window_id).unwrap_or_else(|| {
+            <P::Theme as theme::Base>::default(self.theme_mode)
+        });
         self.style = program.style(&self.theme);
     }
 }

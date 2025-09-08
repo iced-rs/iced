@@ -12,7 +12,7 @@ use iced::{
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
         .subscription(Example::subscription)
-        .theme(|_| Theme::Dark)
+        .theme(Theme::Dark)
         .run()
 }
 

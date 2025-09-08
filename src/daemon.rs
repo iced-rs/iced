@@ -4,7 +4,9 @@ use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
 use crate::window;
-use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
+use crate::{
+    Element, Executor, Font, Result, Settings, Subscription, Task, Theme,
+};
 
 use iced_debug as debug;
 
@@ -28,7 +30,7 @@ pub fn daemon<State, Message, Theme, Renderer>(
 where
     State: 'static,
     Message: program::Message + 'static,
-    Theme: Default + theme::Base,
+    Theme: theme::Base,
     Renderer: program::Renderer,
 {
     use std::marker::PhantomData;
@@ -47,7 +49,7 @@ where
         for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
         Message: program::Message + 'static,
-        Theme: Default + theme::Base,
+        Theme: theme::Base,
         Renderer: program::Renderer,
         Boot: application::Boot<State, Message>,
         Update: application::Update<State, Message>,
@@ -202,13 +204,13 @@ impl<P: Program> Daemon<P> {
     /// Sets the theme logic of the [`Daemon`].
     pub fn theme(
         self,
-        f: impl Fn(&P::State, window::Id) -> P::Theme,
+        f: impl ThemeFn<P::State, P::Theme>,
     ) -> Daemon<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
             raw: program::with_theme(self.raw, move |state, window| {
-                debug::hot(|| f(state, window))
+                debug::hot(|| f.theme(state, window))
             }),
             settings: self.settings,
         }
@@ -312,5 +314,27 @@ where
         window: window::Id,
     ) -> Element<'a, Message, Theme, Renderer> {
         self(state, window).into()
+    }
+}
+
+/// TODO
+pub trait ThemeFn<State, Theme> {
+    /// TODO
+    fn theme(&self, state: &State, window: window::Id) -> Option<Theme>;
+}
+
+impl<State> ThemeFn<State, Theme> for Theme {
+    fn theme(&self, _state: &State, _window: window::Id) -> Option<Theme> {
+        Some(self.clone())
+    }
+}
+
+impl<F, T, State, Theme> ThemeFn<State, Theme> for F
+where
+    F: Fn(&State, window::Id) -> T,
+    T: Into<Option<Theme>>,
+{
+    fn theme(&self, state: &State, window: window::Id) -> Option<Theme> {
+        (self)(state, window).into()
     }
 }

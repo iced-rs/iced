@@ -595,14 +595,7 @@ async fn run_instance<P>(
                     }
                 }
 
-                debug::theme_changed(|| {
-                    if window_manager.is_empty() {
-                        theme::Base::palette(&program.theme(id))
-                    } else {
-                        None
-                    }
-                });
-
+                let is_first = window_manager.is_empty();
                 let window = window_manager.insert(
                     id,
                     window,
@@ -612,6 +605,14 @@ async fn run_instance<P>(
                         .expect("Compositor must be initialized"),
                     exit_on_close_request,
                 );
+
+                debug::theme_changed(|| {
+                    if is_first {
+                        theme::Base::palette(window.state.theme())
+                    } else {
+                        None
+                    }
+                });
 
                 let logical_size = window.state.logical_size();
 

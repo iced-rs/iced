@@ -166,36 +166,6 @@ impl Theme {
     }
 }
 
-impl Default for Theme {
-    fn default() -> Self {
-        #[cfg(feature = "auto-detect-theme")]
-        {
-            use crate::time::Duration;
-            use std::sync::LazyLock;
-
-            static DEFAULT: LazyLock<Theme> = LazyLock::new(|| {
-                let color_scheme = mundy::Preferences::once_blocking(
-                    mundy::Interest::ColorScheme,
-                    Duration::from_millis(100),
-                )
-                .map(|preferences| preferences.color_scheme)
-                .unwrap_or_default();
-
-                match color_scheme {
-                    mundy::ColorScheme::Dark => Theme::Dark,
-                    mundy::ColorScheme::Light
-                    | mundy::ColorScheme::NoPreference => Theme::Light,
-                }
-            });
-
-            DEFAULT.clone()
-        }
-
-        #[cfg(not(feature = "auto-detect-theme"))]
-        Theme::Light
-    }
-}
-
 impl fmt::Display for Theme {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -261,6 +231,18 @@ impl fmt::Display for Custom {
     }
 }
 
+/// A theme mode, denoting the tone or brightness of a theme.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Mode {
+    /// No specific tone.
+    #[default]
+    None,
+    /// A mode referring to themes with light tones.
+    Light,
+    /// A mode referring to themes with dark tones.
+    Dark,
+}
+
 /// The base style of a theme.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
@@ -273,6 +255,9 @@ pub struct Style {
 
 /// The default blank style of a theme.
 pub trait Base {
+    /// Returns the default theme for the preferred [`Mode`].
+    fn default(preference: Mode) -> Self;
+
     /// Returns the default base [`Style`] of a theme.
     fn base(&self) -> Style;
 
@@ -285,6 +270,13 @@ pub trait Base {
 }
 
 impl Base for Theme {
+    fn default(preference: Mode) -> Self {
+        match preference {
+            Mode::None | Mode::Light => Self::Light,
+            Mode::Dark => Self::Dark,
+        }
+    }
+
     fn base(&self) -> Style {
         default(self)
     }

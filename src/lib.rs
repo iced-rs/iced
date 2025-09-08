@@ -698,7 +698,7 @@ pub fn run<State, Message, Theme, Renderer>(
 where
     State: Default + 'static,
     Message: program::Message + 'static,
-    Theme: Default + theme::Base + 'static,
+    Theme: theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
     application(State::default, update, view).run()

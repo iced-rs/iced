@@ -19,11 +19,11 @@ pub fn main() -> iced::Result {
         .run()
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug, Default)]
 struct Layout {
     example: Example,
     explain: bool,
-    theme: Theme,
+    theme: Option<Theme>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,7 +51,7 @@ impl Layout {
                 self.explain = explain;
             }
             Message::ThemeSelected(theme) => {
-                self.theme = theme;
+                self.theme = Some(theme);
             }
         }
     }
@@ -74,7 +74,8 @@ impl Layout {
             horizontal_space(),
             checkbox("Explain", self.explain)
                 .on_toggle(Message::ExplainToggled),
-            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeSelected),
+            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeSelected)
+                .placeholder("Theme"),
         ]
         .spacing(20)
         .align_y(Center);
@@ -116,7 +117,7 @@ impl Layout {
             .into()
     }
 
-    fn theme(&self) -> Theme {
+    fn theme(&self) -> Option<Theme> {
         self.theme.clone()
     }
 }

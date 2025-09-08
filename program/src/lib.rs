@@ -25,7 +25,7 @@ pub trait Program: Sized {
     type Message: Message + 'static;
 
     /// The theme of the program.
-    type Theme: Default + theme::Base;
+    type Theme: theme::Base;
 
     /// The renderer of the program.
     type Renderer: Renderer;
@@ -86,8 +86,12 @@ pub trait Program: Sized {
         Subscription::none()
     }
 
-    fn theme(&self, _state: &Self::State, _window: window::Id) -> Self::Theme {
-        <Self::Theme as Default>::default()
+    fn theme(
+        &self,
+        _state: &Self::State,
+        _window: window::Id,
+    ) -> Option<Self::Theme> {
+        None
     }
 
     fn style(&self, _state: &Self::State, theme: &Self::Theme) -> theme::Style {
@@ -152,7 +156,7 @@ pub fn with_title<P: Program>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
@@ -238,7 +242,7 @@ pub fn with_subscription<P: Program>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
@@ -264,7 +268,7 @@ pub fn with_subscription<P: Program>(
 /// Decorates a [`Program`] with the given theme function.
 pub fn with_theme<P: Program>(
     program: P,
-    f: impl Fn(&P::State, window::Id) -> P::Theme,
+    f: impl Fn(&P::State, window::Id) -> Option<P::Theme>,
 ) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithTheme<P, F> {
         program: P,
@@ -273,7 +277,7 @@ pub fn with_theme<P: Program>(
 
     impl<P: Program, F> Program for WithTheme<P, F>
     where
-        F: Fn(&P::State, window::Id) -> P::Theme,
+        F: Fn(&P::State, window::Id) -> Option<P::Theme>,
     {
         type State = P::State;
         type Message = P::Message;
@@ -285,7 +289,7 @@ pub fn with_theme<P: Program>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             (self.theme)(state, window)
         }
 
@@ -407,7 +411,7 @@ pub fn with_style<P: Program>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
@@ -478,7 +482,7 @@ pub fn with_scale_factor<P: Program>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
@@ -561,7 +565,7 @@ pub fn with_executor<P: Program, E: Executor>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
@@ -628,7 +632,7 @@ impl<P: Program> Instance<P> {
     }
 
     /// Returns the current theme of the [`Instance`].
-    pub fn theme(&self, window: window::Id) -> P::Theme {
+    pub fn theme(&self, window: window::Id) -> Option<P::Theme> {
         self.program.theme(&self.state, window)
     }
 

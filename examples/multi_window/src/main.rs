@@ -138,12 +138,8 @@ impl Example {
         }
     }
 
-    fn theme(&self, window: window::Id) -> Theme {
-        if let Some(window) = self.windows.get(&window) {
-            window.theme.clone()
-        } else {
-            Theme::default()
-        }
+    fn theme(&self, window: window::Id) -> Option<Theme> {
+        Some(self.windows.get(&window)?.theme.clone())
     }
 
     fn scale_factor(&self, window: window::Id) -> f32 {

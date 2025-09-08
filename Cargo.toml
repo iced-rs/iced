@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "crisp", "web-colors", "auto-detect-theme", "thread-pool"]
+default = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool"]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer backend
@@ -67,8 +67,6 @@ highlighter = ["iced_highlighter", "iced_widget/highlighter"]
 advanced = ["iced_core/advanced", "iced_widget/advanced"]
 # Embeds Fira Sans into the final application; useful for testing and Wasm builds
 fira-sans = ["iced_renderer/fira-sans"]
-# Auto-detects light/dark mode for the built-in theme
-auto-detect-theme = ["iced_core/auto-detect-theme"]
 # Enables basic text shaping by default
 basic-shaping = ["iced_core/basic-shaping"]
 # Enables advanced text shaping by default
@@ -217,9 +215,6 @@ web-time = "1.1"
 wgpu = "26.0"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b" }
-
-mundy.version = "0.2"
-mundy.default-features = false
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }

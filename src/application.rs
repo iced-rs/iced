@@ -7,7 +7,7 @@
 //!
 //! pub fn main() -> iced::Result {
 //!     iced::application(u64::default, update, view)
-//!         .theme(|_| Theme::Dark)
+//!         .theme(Theme::Dark)
 //!         .centered()
 //!         .run()
 //! }
@@ -35,7 +35,7 @@ use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{
-    Element, Executor, Font, Result, Settings, Size, Subscription, Task,
+    Element, Executor, Font, Result, Settings, Size, Subscription, Task, Theme,
 };
 
 use iced_debug as debug;
@@ -82,7 +82,7 @@ pub fn application<State, Message, Theme, Renderer>(
 where
     State: 'static,
     Message: program::Message + 'static,
-    Theme: Default + theme::Base,
+    Theme: theme::Base,
     Renderer: program::Renderer,
 {
     use std::marker::PhantomData;
@@ -101,7 +101,7 @@ where
         for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
         Message: program::Message + 'static,
-        Theme: Default + theme::Base,
+        Theme: theme::Base,
         Renderer: program::Renderer,
         Boot: self::Boot<State, Message>,
         Update: self::Update<State, Message>,
@@ -355,13 +355,13 @@ impl<P: Program> Application<P> {
     /// Sets the theme logic of the [`Application`].
     pub fn theme(
         self,
-        f: impl Fn(&P::State) -> P::Theme,
+        f: impl ThemeFn<P::State, P::Theme>,
     ) -> Application<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Application {
             raw: program::with_theme(self.raw, move |state, _window| {
-                debug::hot(|| f(state))
+                debug::hot(|| f.theme(state))
             }),
             settings: self.settings,
             window: self.window,
@@ -527,5 +527,27 @@ where
 {
     fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer> {
         self(state).into()
+    }
+}
+
+/// TODO
+pub trait ThemeFn<State, Theme> {
+    /// TODO
+    fn theme(&self, state: &State) -> Option<Theme>;
+}
+
+impl<State> ThemeFn<State, Theme> for Theme {
+    fn theme(&self, _state: &State) -> Option<Theme> {
+        Some(self.clone())
+    }
+}
+
+impl<F, T, State, Theme> ThemeFn<State, Theme> for F
+where
+    F: Fn(&State) -> T,
+    T: Into<Option<Theme>>,
+{
+    fn theme(&self, state: &State) -> Option<Theme> {
+        (self)(state).into()
     }
 }
