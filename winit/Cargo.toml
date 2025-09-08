@@ -23,6 +23,7 @@ wayland = ["winit/wayland"]
 wayland-dlopen = ["winit/wayland-dlopen"]
 wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 unconditional-rendering = []
+linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -42,3 +43,7 @@ sysinfo.optional = true
 web-sys.workspace = true
 web-sys.features = ["Document", "Window", "HtmlCanvasElement"]
 wasm-bindgen-futures.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+mundy.workspace = true
+mundy.optional = true

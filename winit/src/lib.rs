@@ -111,7 +111,7 @@ where
 
         let (_id, open) = runtime::window::open(window_settings);
 
-        open.then(move |_| task.take().unwrap_or(Task::none()))
+        open.then(move |_| task.take().unwrap_or_else(Task::none))
     } else {
         task
     };
@@ -517,6 +517,33 @@ async fn run_instance<P>(
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
     let mut clipboard = Clipboard::unconnected();
 
+    #[cfg(all(feature = "linux-theme-detection", target_os = "linux"))]
+    let system_theme = {
+        let to_mode = |color_scheme| match color_scheme {
+            mundy::ColorScheme::NoPreference => theme::Mode::None,
+            mundy::ColorScheme::Light => theme::Mode::Light,
+            mundy::ColorScheme::Dark => theme::Mode::Dark,
+        };
+
+        runtime.run(
+            mundy::Preferences::stream(mundy::Interest::ColorScheme)
+                .map(move |preferences| {
+                    Action::ChangeTheme(to_mode(preferences.color_scheme))
+                })
+                .boxed(),
+        );
+
+        mundy::Preferences::once_blocking(
+            mundy::Interest::ColorScheme,
+            core::time::Duration::from_millis(200),
+        )
+        .map(|preferences| to_mode(preferences.color_scheme))
+        .unwrap_or_default()
+    };
+
+    #[cfg(not(all(feature = "linux-theme-detection", target_os = "linux")))]
+    let system_theme = theme::Mode::None;
+
     loop {
         // Empty the queue if possible
         let event = if let Ok(event) = event_receiver.try_next() {
@@ -604,6 +631,7 @@ async fn run_instance<P>(
                         .as_mut()
                         .expect("Compositor must be initialized"),
                     exit_on_close_request,
+                    system_theme,
                 );
 
                 debug::theme_changed(|| {
@@ -891,7 +919,11 @@ async fn run_instance<P>(
                                 &mut is_window_opening,
                             );
                         } else {
-                            window.state.update(&window.raw, &window_event);
+                            window.state.update(
+                                &program,
+                                &window.raw,
+                                &window_event,
+                            );
 
                             if let Some(event) = conversion::window_event(
                                 window_event,
@@ -1463,6 +1495,27 @@ fn run_action<'a, P, C>(
                 compositor.load_font(bytes.clone());
 
                 let _ = channel.send(Ok(()));
+            }
+        }
+        Action::ChangeTheme(mode) => {
+            let Some(theme) = conversion::window_theme(mode) else {
+                return;
+            };
+
+            for (id, window) in window_manager.iter_mut() {
+                window.raw.set_theme(Some(theme));
+                window.state.update(
+                    program,
+                    &window.raw,
+                    &winit::event::WindowEvent::ThemeChanged(theme),
+                );
+
+                events.push((
+                    id,
+                    core::Event::Window(core::window::Event::ThemeModeChanged(
+                        mode,
+                    )),
+                ));
             }
         }
         Action::Reload => {

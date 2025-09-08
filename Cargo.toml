@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool"]
+default = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool", "linux-theme-detection"]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer backend
@@ -61,7 +61,7 @@ web-colors = ["iced_renderer/web-colors"]
 crisp = ["iced_core/crisp", "iced_widget/crisp"]
 # Enables the WebGL backend
 webgl = ["iced_renderer/webgl"]
-# Enables syntax highligthing
+# Enables syntax highlighting
 highlighter = ["iced_highlighter", "iced_widget/highlighter"]
 # Enables the advanced module
 advanced = ["iced_core/advanced", "iced_widget/advanced"]
@@ -77,6 +77,8 @@ strict-assertions = ["iced_renderer/strict-assertions"]
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
 # Enables support for the `sipper` library
 sipper = ["iced_runtime/sipper"]
+# Enables Linux system theme detection
+linux-theme-detection = ["iced_winit/linux-theme-detection"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -185,6 +187,7 @@ lilt = "0.8"
 log = "0.4"
 lyon = "1.0"
 lyon_path = "1.0"
+mundy = { version = "0.2", default-features = false }
 num-traits = "0.2"
 ouroboros = "0.18"
 png = "0.18"

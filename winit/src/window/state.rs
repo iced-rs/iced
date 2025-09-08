@@ -21,7 +21,7 @@ where
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
     theme: Option<P::Theme>,
-    system_theme: P::Theme,
+    default_theme: P::Theme,
     style: theme::Style,
 }
 
@@ -50,16 +50,18 @@ where
         program: &program::Instance<P>,
         window_id: window::Id,
         window: &Window,
+        system_theme: theme::Mode,
     ) -> Self {
-        let title = program.title(window_id);
-        let scale_factor = program.scale_factor(window_id);
         let theme_mode = window
             .theme()
             .map(conversion::theme_mode)
-            .unwrap_or_default();
+            .unwrap_or(system_theme);
+
+        let title = program.title(window_id);
+        let scale_factor = program.scale_factor(window_id);
         let theme = program.theme(window_id);
-        let system_theme = <P::Theme as theme::Base>::default(theme_mode);
-        let style = program.style(theme.as_ref().unwrap_or(&system_theme));
+        let default_theme = <P::Theme as theme::Base>::default(theme_mode);
+        let style = program.style(theme.as_ref().unwrap_or(&default_theme));
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -78,7 +80,7 @@ where
             cursor_position: None,
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
-            system_theme,
+            default_theme,
             style,
         }
     }
@@ -130,7 +132,7 @@ where
 
     /// Returns the current theme of the [`State`].
     pub fn theme(&self) -> &P::Theme {
-        self.theme.as_ref().unwrap_or(&self.system_theme)
+        self.theme.as_ref().unwrap_or(&self.default_theme)
     }
 
     /// Returns the current background [`Color`] of the [`State`].
@@ -144,7 +146,12 @@ where
     }
 
     /// Processes the provided window event and updates the [`State`] accordingly.
-    pub fn update(&mut self, window: &Window, event: &WindowEvent) {
+    pub fn update(
+        &mut self,
+        program: &program::Instance<P>,
+        window: &Window,
+        event: &WindowEvent,
+    ) {
         match event {
             WindowEvent::Resized(new_size) => {
                 let size = Size::new(new_size.width, new_size.height);
@@ -182,9 +189,10 @@ where
                 self.modifiers = new_modifiers.state();
             }
             WindowEvent::ThemeChanged(theme) => {
-                self.system_theme = <P::Theme as theme::Base>::default(
+                self.default_theme = <P::Theme as theme::Base>::default(
                     conversion::theme_mode(*theme),
                 );
+                self.style = program.style(self.theme());
 
                 if self.theme.is_none() {
                     window.request_redraw();
@@ -198,7 +206,7 @@ where
     /// window.
     ///
     /// Normally, a [`Program`] should be synchronized with its [`State`]
-    /// and window after calling [`State::update`].
+    /// and window after calling [`Program::update`].
     pub fn synchronize(
         &mut self,
         program: &program::Instance<P>,
