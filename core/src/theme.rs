@@ -271,6 +271,24 @@ pub trait Base {
 
 impl Base for Theme {
     fn default(preference: Mode) -> Self {
+        use std::env;
+        use std::sync::OnceLock;
+
+        static SYSTEM: OnceLock<Option<Theme>> = OnceLock::new();
+
+        let system = SYSTEM.get_or_init(|| {
+            let name = env::var("ICED_THEME").ok()?;
+
+            Theme::ALL
+                .iter()
+                .find(|theme| theme.to_string() == name)
+                .cloned()
+        });
+
+        if let Some(system) = system {
+            return system.clone();
+        }
+
         match preference {
             Mode::None | Mode::Light => Self::Light,
             Mode::Dark => Self::Dark,
