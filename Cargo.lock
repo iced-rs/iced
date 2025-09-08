@@ -2446,7 +2446,7 @@ version = "0.14.0-dev"
 dependencies = [
  "iced_renderer",
  "iced_runtime",
- "png 0.17.16",
+ "png 0.18.0",
  "sha2",
  "thiserror 1.0.69",
 ]
@@ -4907,9 +4907,9 @@ dependencies = [
 
 [[package]]
 name = "security-framework-sys"
-version = "2.14.0"
+version = "2.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49db231d56a190491cb4aeda9527f1ad45345af50b0851622a7adb8c03b01c32"
+checksum = "cc1f0cbffaac4852523ce30d8bd3c5cdc873501d96ff467ca09b6767bb8cd5c0"
 dependencies = [
  "core-foundation-sys",
  "libc",
