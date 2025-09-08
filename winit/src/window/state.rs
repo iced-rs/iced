@@ -252,14 +252,43 @@ where
         self.theme = program.theme(window_id);
         self.style = program.style(self.theme());
 
-        if let Some(theme) = &self.theme {
-            let new_mode = theme::Base::mode(theme);
+        let new_mode = self
+            .theme
+            .as_ref()
+            .map(theme::Base::mode)
+            .unwrap_or_default();
 
-            if self.theme_mode != new_mode {
+        if self.theme_mode != new_mode {
+            #[cfg(not(target_os = "linux"))]
+            {
                 window.set_theme(conversion::window_theme(new_mode));
 
-                self.theme_mode = new_mode;
+                // Assume the old mode matches the system one
+                // We will be notified otherwise
+                if new_mode == theme::Mode::None {
+                    self.default_theme =
+                        <P::Theme as theme::Base>::default(self.theme_mode);
+
+                    if self.theme.is_none() {
+                        self.style = program.style(&self.default_theme);
+                    }
+                }
             }
+
+            #[cfg(target_os = "linux")]
+            {
+                // mundy always notifies system theme changes, so we
+                // just restore the default theme mode.
+                let new_mode = if new_mode == theme::Mode::None {
+                    theme::Base::mode(&self.default_theme)
+                } else {
+                    new_mode
+                };
+
+                window.set_theme(conversion::window_theme(new_mode));
+            }
+
+            self.theme_mode = new_mode;
         }
     }
 }

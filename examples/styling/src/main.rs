@@ -32,6 +32,7 @@ enum Message {
     TogglerToggled(bool),
     PreviousTheme,
     NextTheme,
+    ClearTheme,
 }
 
 impl Styling {
@@ -66,6 +67,9 @@ impl Styling {
                         Theme::ALL[current - 1].clone()
                     }
                 });
+            }
+            Message::ClearTheme => {
+                self.theme = None;
             }
         }
     }
@@ -192,6 +196,9 @@ impl Styling {
                 keyboard::key::Named::ArrowDown
                 | keyboard::key::Named::ArrowRight,
             ) => Some(Message::NextTheme),
+            keyboard::Key::Named(keyboard::key::Named::Space) => {
+                Some(Message::ClearTheme)
+            }
             _ => None,
         })
     }
