@@ -691,8 +691,8 @@ pub type Result = std::result::Result<(), Error>;
 /// }
 /// ```
 pub fn run<State, Message, Theme, Renderer>(
-    update: impl application::Update<State, Message> + 'static,
-    view: impl for<'a> application::View<'a, State, Message, Theme, Renderer>
+    update: impl application::UpdateFn<State, Message> + 'static,
+    view: impl for<'a> application::ViewFn<'a, State, Message, Theme, Renderer>
     + 'static,
 ) -> Result
 where

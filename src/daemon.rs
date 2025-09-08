@@ -23,9 +23,9 @@ use std::borrow::Cow;
 ///
 /// [`exit`]: crate::exit
 pub fn daemon<State, Message, Theme, Renderer>(
-    boot: impl application::Boot<State, Message>,
-    update: impl application::Update<State, Message>,
-    view: impl for<'a> View<'a, State, Message, Theme, Renderer>,
+    boot: impl application::BootFn<State, Message>,
+    update: impl application::UpdateFn<State, Message>,
+    view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
 ) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
@@ -51,9 +51,9 @@ where
         Message: program::Message + 'static,
         Theme: theme::Base,
         Renderer: program::Renderer,
-        Boot: application::Boot<State, Message>,
-        Update: application::Update<State, Message>,
-        View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
+        Boot: application::BootFn<State, Message>,
+        Update: application::UpdateFn<State, Message>,
+        View: for<'a> self::ViewFn<'a, State, Message, Theme, Renderer>,
     {
         type State = State;
         type Message = Message;
@@ -171,10 +171,10 @@ impl<P: Program> Daemon<P> {
         self
     }
 
-    /// Sets the [`Title`] of the [`Daemon`].
+    /// Sets the title of the [`Daemon`].
     pub fn title(
         self,
-        title: impl Title<P::State>,
+        title: impl TitleFn<P::State>,
     ) -> Daemon<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
@@ -268,18 +268,18 @@ impl<P: Program> Daemon<P> {
 /// any closure `Fn(&State, window::Id) -> String`.
 ///
 /// This trait allows the [`daemon`] builder to take any of them.
-pub trait Title<State> {
+pub trait TitleFn<State> {
     /// Produces the title of the [`Daemon`].
     fn title(&self, state: &State, window: window::Id) -> String;
 }
 
-impl<State> Title<State> for &'static str {
+impl<State> TitleFn<State> for &'static str {
     fn title(&self, _state: &State, _window: window::Id) -> String {
         self.to_string()
     }
 }
 
-impl<T, State> Title<State> for T
+impl<T, State> TitleFn<State> for T
 where
     T: Fn(&State, window::Id) -> String,
 {
@@ -292,7 +292,7 @@ where
 ///
 /// This trait allows the [`daemon`] builder to take any closure that
 /// returns any `Into<Element<'_, Message>>`.
-pub trait View<'a, State, Message, Theme, Renderer> {
+pub trait ViewFn<'a, State, Message, Theme, Renderer> {
     /// Produces the widget of the [`Daemon`].
     fn view(
         &self,
@@ -302,7 +302,7 @@ pub trait View<'a, State, Message, Theme, Renderer> {
 }
 
 impl<'a, T, State, Message, Theme, Renderer, Widget>
-    View<'a, State, Message, Theme, Renderer> for T
+    ViewFn<'a, State, Message, Theme, Renderer> for T
 where
     T: Fn(&'a State, window::Id) -> Widget,
     State: 'static,
