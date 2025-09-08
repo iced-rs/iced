@@ -5,6 +5,7 @@
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::theme;
 use crate::core::touch;
 use crate::core::window;
 use crate::core::{Event, Point, Size};
@@ -318,6 +319,9 @@ pub fn window_event(
 
             Some(Event::Window(window::Event::Moved(Point::new(x, y))))
         }
+        WindowEvent::ThemeChanged(theme) => Some(Event::Window(
+            window::Event::ThemeModeChanged(theme_mode(theme)),
+        )),
         _ => None,
     }
 }
@@ -437,6 +441,16 @@ pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
     match mode {
         None => window::Mode::Windowed,
         Some(_) => window::Mode::Fullscreen,
+    }
+}
+
+/// Converts a [`winit`] window theme to a [`theme::Mode`].
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn theme_mode(theme: winit::window::Theme) -> theme::Mode {
+    match theme {
+        winit::window::Theme::Light => theme::Mode::Light,
+        winit::window::Theme::Dark => theme::Mode::Dark,
     }
 }
 

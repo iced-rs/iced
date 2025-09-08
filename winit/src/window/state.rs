@@ -20,8 +20,8 @@ where
     viewport_version: u64,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
-    theme: P::Theme,
-    theme_mode: theme::Mode,
+    theme: Option<P::Theme>,
+    system_theme: P::Theme,
     style: theme::Style,
 }
 
@@ -30,7 +30,7 @@ where
     P::Theme: theme::Base,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("multi_window::State")
+        f.debug_struct("window::State")
             .field("title", &self.title)
             .field("scale_factor", &self.scale_factor)
             .field("viewport", &self.viewport)
@@ -53,15 +53,13 @@ where
     ) -> Self {
         let title = program.title(window_id);
         let scale_factor = program.scale_factor(window_id);
-        let theme_mode = match window.theme() {
-            None => theme::Mode::None,
-            Some(winit::window::Theme::Light) => theme::Mode::Light,
-            Some(winit::window::Theme::Dark) => theme::Mode::Dark,
-        };
-        let theme = program
-            .theme(window_id)
-            .unwrap_or_else(|| <P::Theme as theme::Base>::default(theme_mode));
-        let style = program.style(&theme);
+        let theme_mode = window
+            .theme()
+            .map(conversion::theme_mode)
+            .unwrap_or_default();
+        let theme = program.theme(window_id);
+        let system_theme = <P::Theme as theme::Base>::default(theme_mode);
+        let style = program.style(theme.as_ref().unwrap_or(&system_theme));
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -80,7 +78,7 @@ where
             cursor_position: None,
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
-            theme_mode,
+            system_theme,
             style,
         }
     }
@@ -132,7 +130,7 @@ where
 
     /// Returns the current theme of the [`State`].
     pub fn theme(&self) -> &P::Theme {
-        &self.theme
+        self.theme.as_ref().unwrap_or(&self.system_theme)
     }
 
     /// Returns the current background [`Color`] of the [`State`].
@@ -183,6 +181,15 @@ where
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = new_modifiers.state();
             }
+            WindowEvent::ThemeChanged(theme) => {
+                self.system_theme = <P::Theme as theme::Base>::default(
+                    conversion::theme_mode(*theme),
+                );
+
+                if self.theme.is_none() {
+                    window.request_redraw();
+                }
+            }
             _ => {}
         }
     }
@@ -225,9 +232,7 @@ where
         }
 
         // Update theme and appearance
-        self.theme = program.theme(window_id).unwrap_or_else(|| {
-            <P::Theme as theme::Base>::default(self.theme_mode)
-        });
-        self.style = program.style(&self.theme);
+        self.theme = program.theme(window_id);
+        self.style = program.style(self.theme());
     }
 }
