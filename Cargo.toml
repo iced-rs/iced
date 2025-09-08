@@ -54,7 +54,7 @@ tokio = ["iced_futures/tokio"]
 # Enables `smol` as the `executor::Default` on native platforms
 smol = ["iced_futures/smol"]
 # Enables querying system information
-system = ["iced_winit/system"]
+sysinfo = ["iced_winit/sysinfo"]
 # Enables broken "sRGB linear" blending to reproduce color management of the Web
 web-colors = ["iced_renderer/web-colors"]
 # Enables pixel snapping for crisp edges by default (can cause jitter!)

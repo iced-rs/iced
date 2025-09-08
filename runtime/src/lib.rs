@@ -25,7 +25,6 @@ pub use iced_futures as futures;
 pub use task::Task;
 pub use user_interface::UserInterface;
 
-use crate::core::theme;
 use crate::core::widget;
 use crate::futures::futures::channel::oneshot;
 
@@ -57,9 +56,6 @@ pub enum Action<T> {
     /// Run a system action.
     System(system::Action),
 
-    /// Change the default system theme mode of all windows.
-    ChangeTheme(theme::Mode),
-
     /// Recreate all user interfaces and redraw all windows.
     Reload,
 
@@ -86,7 +82,6 @@ impl<T> Action<T> {
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
-            Action::ChangeTheme(mode) => Err(Action::ChangeTheme(mode)),
             Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
         }
@@ -111,9 +106,6 @@ where
             }
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
-            Action::ChangeTheme(mode) => {
-                write!(f, "Action::ChangeTheme({mode:?})")
-            }
             Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),
         }

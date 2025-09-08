@@ -1,4 +1,3 @@
-use crate::theme;
 use crate::time::Instant;
 use crate::{Point, Size};
 
@@ -72,7 +71,4 @@ pub enum Event {
     ///
     /// - **Wayland:** Not implemented.
     FilesHoveredLeft,
-
-    /// The theme mode of the window has changed.
-    ThemeModeChanged(theme::Mode),
 }

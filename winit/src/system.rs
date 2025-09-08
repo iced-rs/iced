@@ -3,13 +3,6 @@ use crate::graphics::compositor;
 use crate::runtime::system::{Action, Information};
 use crate::runtime::{self, Task};
 
-/// Query for available system information.
-pub fn fetch_information() -> Task<Information> {
-    runtime::task::oneshot(|channel| {
-        runtime::Action::System(Action::QueryInformation(channel))
-    })
-}
-
 pub(crate) fn information(
     graphics_info: compositor::Information,
 ) -> Information {

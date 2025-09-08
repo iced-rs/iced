@@ -16,7 +16,7 @@ workspace = true
 [features]
 default = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
 debug = ["iced_debug/enable"]
-system = ["sysinfo"]
+sysinfo = ["dep:sysinfo"]
 program = []
 x11 = ["winit/x11"]
 wayland = ["winit/wayland"]

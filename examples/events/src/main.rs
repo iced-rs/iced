@@ -37,7 +37,7 @@ impl Events {
             }
             Message::EventOccurred(event) => {
                 if let Event::Window(window::Event::CloseRequested) = event {
-                    window::get_latest().and_then(window::close)
+                    window::latest().and_then(window::close)
                 } else {
                     Task::none()
                 }
@@ -47,7 +47,7 @@ impl Events {
 
                 Task::none()
             }
-            Message::Exit => window::get_latest().and_then(window::close),
+            Message::Exit => window::latest().and_then(window::close),
         }
     }
 

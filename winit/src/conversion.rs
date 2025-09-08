@@ -319,9 +319,6 @@ pub fn window_event(
 
             Some(Event::Window(window::Event::Moved(Point::new(x, y))))
         }
-        WindowEvent::ThemeChanged(theme) => Some(Event::Window(
-            window::Event::ThemeModeChanged(theme_mode(theme)),
-        )),
         _ => None,
     }
 }

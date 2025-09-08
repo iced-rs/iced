@@ -53,11 +53,6 @@ where
         window: &Window,
         system_theme: theme::Mode,
     ) -> Self {
-        let system_theme = window
-            .theme()
-            .map(conversion::theme_mode)
-            .unwrap_or(system_theme);
-
         let title = program.title(window_id);
         let scale_factor = program.scale_factor(window_id);
         let theme = program.theme(window_id);

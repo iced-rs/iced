@@ -66,7 +66,7 @@ impl Example {
                     return Task::none();
                 };
 
-                window::get_position(*last_window)
+                window::position(*last_window)
                     .then(|last_position| {
                         let position = last_position.map_or(
                             window::Position::Default,

@@ -100,7 +100,7 @@ impl crate::graphics::Compositor for Compositor {
         surface.layer_stack.clear();
     }
 
-    fn fetch_information(&self) -> Information {
+    fn information(&self) -> Information {
         Information {
             adapter: String::from("CPU"),
             backend: String::from("tiny-skia"),
