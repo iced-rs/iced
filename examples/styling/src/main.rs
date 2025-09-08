@@ -46,21 +46,26 @@ impl Styling {
             Message::CheckboxToggled(value) => self.checkbox_value = value,
             Message::TogglerToggled(value) => self.toggler_value = value,
             Message::PreviousTheme | Message::NextTheme => {
-                if let Some(current) = Theme::ALL.iter().position(|candidate| {
+                let current = Theme::ALL.iter().position(|candidate| {
                     self.theme.as_ref() == Some(candidate)
-                }) {
-                    self.theme =
-                        Some(if matches!(message, Message::NextTheme) {
-                            Theme::ALL[(current + 1) % Theme::ALL.len()].clone()
-                        } else if current == 0 {
-                            Theme::ALL
-                                .last()
-                                .expect("Theme::ALL must not be empty")
-                                .clone()
-                        } else {
-                            Theme::ALL[current - 1].clone()
-                        });
-                }
+                });
+
+                self.theme = Some(if matches!(message, Message::NextTheme) {
+                    Theme::ALL[current.map(|current| current + 1).unwrap_or(0)
+                        % Theme::ALL.len()]
+                    .clone()
+                } else {
+                    let current = current.unwrap_or(0);
+
+                    if current == 0 {
+                        Theme::ALL
+                            .last()
+                            .expect("Theme::ALL must not be empty")
+                            .clone()
+                    } else {
+                        Theme::ALL[current - 1].clone()
+                    }
+                });
             }
         }
     }
