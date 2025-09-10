@@ -647,6 +647,20 @@ async fn run_instance<P>(
                     system_theme,
                 );
 
+                let window_theme = window
+                    .raw
+                    .theme()
+                    .map(conversion::theme_mode)
+                    .unwrap_or_default();
+
+                if system_theme != window_theme {
+                    system_theme = window_theme;
+
+                    runtime.broadcast(subscription::Event::SystemThemeChanged(
+                        window_theme,
+                    ));
+                }
+
                 window.raw.set_theme(conversion::window_theme(
                     window.state.theme_mode(),
                 ));
