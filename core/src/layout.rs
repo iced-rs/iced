@@ -54,7 +54,9 @@ impl<'a> Layout<'a> {
     }
 
     /// Returns an iterator over the children of this [`Layout`].
-    pub fn children(self) -> impl DoubleEndedIterator<Item = Layout<'a>> {
+    pub fn children(
+        self,
+    ) -> impl DoubleEndedIterator<Item = Layout<'a>> + ExactSizeIterator {
         self.node.children().iter().map(move |node| {
             Layout::with_offset(
                 Vector::new(self.position.x, self.position.y),
