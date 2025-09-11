@@ -71,33 +71,11 @@ impl Selector for String {
     type Output = target::Text;
 
     fn select(&mut self, target: Target<'_>) -> Option<Self::Output> {
-        match target {
-            Target::TextInput {
-                id,
-                bounds,
-                visible_bounds,
-                state,
-            } if state.text() == *self => Some(target::Text::Input {
-                id: id.cloned(),
-                bounds,
-                visible_bounds,
-            }),
-            Target::Text {
-                id,
-                bounds,
-                visible_bounds,
-                content,
-            } if content == *self => Some(target::Text::Raw {
-                id: id.cloned(),
-                bounds,
-                visible_bounds,
-            }),
-            _ => None,
-        }
+        self.as_str().select(target)
     }
 
     fn description(&self) -> String {
-        format!("text == \"{}\"", self.escape_default())
+        self.as_str().description()
     }
 }
 
