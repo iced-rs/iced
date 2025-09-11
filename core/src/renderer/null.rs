@@ -30,6 +30,7 @@ impl text::Renderer for () {
     type Font = Font;
     type Paragraph = ();
     type Editor = ();
+    type Raw = ();
 
     const MONOSPACE_FONT: Font = Font::MONOSPACE;
     const ICON_FONT: Font = Font::DEFAULT;
@@ -61,6 +62,8 @@ impl text::Renderer for () {
         _clip_bounds: Rectangle,
     ) {
     }
+
+    fn fill_raw(&mut self, _raw: Self::Raw) {}
 
     fn fill_text(
         &mut self,
