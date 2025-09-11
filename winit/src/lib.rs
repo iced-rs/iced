@@ -635,20 +635,7 @@ async fn run_instance<P>(
                     }
                 }
 
-                let is_first = window_manager.is_empty();
-                let window = window_manager.insert(
-                    id,
-                    window,
-                    &program,
-                    compositor
-                        .as_mut()
-                        .expect("Compositor must be initialized"),
-                    exit_on_close_request,
-                    system_theme,
-                );
-
                 let window_theme = window
-                    .raw
                     .theme()
                     .map(conversion::theme_mode)
                     .unwrap_or_default();
@@ -660,6 +647,18 @@ async fn run_instance<P>(
                         window_theme,
                     ));
                 }
+
+                let is_first = window_manager.is_empty();
+                let window = window_manager.insert(
+                    id,
+                    window,
+                    &program,
+                    compositor
+                        .as_mut()
+                        .expect("Compositor must be initialized"),
+                    exit_on_close_request,
+                    system_theme,
+                );
 
                 window.raw.set_theme(conversion::window_theme(
                     window.state.theme_mode(),
