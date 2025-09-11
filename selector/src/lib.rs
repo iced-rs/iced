@@ -63,7 +63,7 @@ impl Selector for &str {
     }
 
     fn description(&self) -> String {
-        format!("text == \"{}\"", self.escape_default())
+        format!("text == {self:?}")
     }
 }
 
@@ -91,7 +91,7 @@ impl Selector for Id {
     }
 
     fn description(&self) -> String {
-        format!("id == {:?}", self)
+        format!("id == {self:?}")
     }
 }
 
@@ -106,7 +106,7 @@ impl Selector for Point {
     }
 
     fn description(&self) -> String {
-        format!("bounds contains {:?}", self)
+        format!("bounds contains {self:?}")
     }
 }
 

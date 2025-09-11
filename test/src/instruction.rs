@@ -421,10 +421,13 @@ mod parser {
 
     use nom::branch::alt;
     use nom::bytes::complete::tag;
-    use nom::character::complete::{char, multispace0, satisfy};
-    use nom::combinator::{cut, map, opt, recognize, success};
+    use nom::bytes::{is_not, take_while_m_n};
+    use nom::character::complete::{char, multispace0, multispace1};
+    use nom::combinator::{
+        cut, map, map_opt, map_res, opt, success, value, verify,
+    };
     use nom::error::ParseError;
-    use nom::multi::many0;
+    use nom::multi::fold;
     use nom::number::float;
     use nom::sequence::{delimited, preceded, separated_pair};
     use nom::{Finish, IResult, Parser};
@@ -521,16 +524,6 @@ mod parser {
         .parse(input)
     }
 
-    fn string(input: &str) -> IResult<&str, String> {
-        // TODO: Proper string literal parsing
-        delimited(
-            char('"'),
-            map(recognize(many0(satisfy(|c| c != '"'))), str::to_owned),
-            char('"'),
-        )
-        .parse(input)
-    }
-
     fn point(input: &str) -> IResult<&str, Point> {
         let comma = whitespace(char(','));
 
@@ -552,5 +545,101 @@ mod parser {
         F: Parser<&'a str, Output = O, Error = E>,
     {
         delimited(multispace0, inner, multispace0)
+    }
+
+    // Taken from https://github.com/rust-bakery/nom/blob/51c3c4e44fa78a8a09b413419372b97b2cc2a787/examples/string.rs
+    //
+    // Copyright (c) 2014-2019 Geoffroy Couprie
+    //
+    // Permission is hereby granted, free of charge, to any person obtaining
+    // a copy of this software and associated documentation files (the
+    // "Software"), to deal in the Software without restriction, including
+    // without limitation the rights to use, copy, modify, merge, publish,
+    // distribute, sublicense, and/or sell copies of the Software, and to
+    // permit persons to whom the Software is furnished to do so, subject to
+    // the following conditions:
+    //
+    // The above copyright notice and this permission notice shall be
+    // included in all copies or substantial portions of the Software.
+    //
+    // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    // NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+    // LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+    // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    fn string(input: &str) -> IResult<&str, String> {
+        #[derive(Debug, Clone, Copy)]
+        enum Fragment<'a> {
+            Literal(&'a str),
+            EscapedChar(char),
+            EscapedWS,
+        }
+
+        fn fragment(input: &str) -> IResult<&str, Fragment<'_>> {
+            alt((
+                map(string_literal, Fragment::Literal),
+                map(escaped_char, Fragment::EscapedChar),
+                value(Fragment::EscapedWS, escaped_whitespace),
+            ))
+            .parse(input)
+        }
+
+        fn string_literal<'a, E: ParseError<&'a str>>(
+            input: &'a str,
+        ) -> IResult<&'a str, &'a str, E> {
+            let not_quote_slash = is_not("\"\\");
+
+            verify(not_quote_slash, |s: &str| !s.is_empty()).parse(input)
+        }
+
+        fn unicode(input: &str) -> IResult<&str, char> {
+            let parse_hex =
+                take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
+
+            let parse_delimited_hex =
+                preceded(char('u'), delimited(char('{'), parse_hex, char('}')));
+
+            let parse_u32 = map_res(parse_delimited_hex, move |hex| {
+                u32::from_str_radix(hex, 16)
+            });
+
+            map_opt(parse_u32, std::char::from_u32).parse(input)
+        }
+
+        fn escaped_char(input: &str) -> IResult<&str, char> {
+            preceded(
+                char('\\'),
+                alt((
+                    unicode,
+                    value('\n', char('n')),
+                    value('\r', char('r')),
+                    value('\t', char('t')),
+                    value('\u{08}', char('b')),
+                    value('\u{0C}', char('f')),
+                    value('\\', char('\\')),
+                    value('/', char('/')),
+                    value('"', char('"')),
+                )),
+            )
+            .parse(input)
+        }
+
+        fn escaped_whitespace(input: &str) -> IResult<&str, &str> {
+            preceded(char('\\'), multispace1).parse(input)
+        }
+
+        let build_string =
+            fold(0.., fragment, String::new, |mut string, fragment| {
+                match fragment {
+                    Fragment::Literal(s) => string.push_str(s),
+                    Fragment::EscapedChar(c) => string.push(c),
+                    Fragment::EscapedWS => {}
+                }
+                string
+            });
+
+        delimited(char('"'), build_string, char('"')).parse(input)
     }
 }
