@@ -28,7 +28,7 @@ use crate::test::instruction;
 use crate::test::{Emulator, Ice, Instruction};
 use crate::widget::{
     button, center, column, combo_box, container, horizontal_space, pick_list,
-    row, scrollable, text, text_editor, text_input, themer,
+    row, rule, scrollable, text, text_editor, text_input, themer,
 };
 
 /// Attaches a [`Tester`] to the given [`Program`].
@@ -632,10 +632,13 @@ impl<P: Program + 'static> Tester<P> {
         row![
             center(column![status, viewport].spacing(10).align_x(Right))
                 .padding(10),
+            rule(1).vertical().style(rule::weak),
             container(self.controls().map(Tick::Tester))
                 .width(250)
                 .padding(10)
-                .style(container::dark)
+                .style(|theme| container::Style::default().background(
+                    theme.extended_palette().background.weakest.color
+                )),
         ]
         .into()
     }

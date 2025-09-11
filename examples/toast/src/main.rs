@@ -172,7 +172,7 @@ mod toast {
     use iced::theme;
     use iced::time::{self, Duration, Instant};
     use iced::widget::{
-        button, column, container, horizontal_rule, horizontal_space, row, text,
+        button, column, container, horizontal_space, row, rule, text,
     };
     use iced::window;
     use iced::{
@@ -254,7 +254,7 @@ mod toast {
                             Status::Success => success,
                             Status::Danger => danger,
                         }),
-                        horizontal_rule(1),
+                        rule(1),
                         container(text(toast.body.as_str()))
                             .width(Fill)
                             .padding(5)

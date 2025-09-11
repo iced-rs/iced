@@ -3,8 +3,7 @@ use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
     button, canvas, center, center_y, checkbox, column, container,
-    horizontal_rule, horizontal_space, pick_list, pin, row, scrollable, stack,
-    text, vertical_rule,
+    horizontal_space, pick_list, pin, row, rule, scrollable, stack, text,
 };
 use iced::{
     Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink,
@@ -295,7 +294,7 @@ fn quotes<'a>() -> Element<'a, Message> {
     fn quote<'a>(
         content: impl Into<Element<'a, Message>>,
     ) -> Element<'a, Message> {
-        row![vertical_rule(1), content.into()]
+        row![rule(1).vertical(), content.into()]
             .spacing(10)
             .height(Shrink)
             .into()
@@ -313,7 +312,7 @@ fn quotes<'a>() -> Element<'a, Message> {
             reply("This is the original message", "This is a reply"),
             "This is another reply",
         ),
-        horizontal_rule(1),
+        rule(1),
         text("A separator ↑"),
     ]
     .width(Shrink)

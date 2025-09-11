@@ -1752,7 +1752,7 @@ pub fn vertical_space() -> Space {
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::horizontal_rule;
+/// use iced::widget::rule;
 ///
 /// #[derive(Clone)]
 /// enum Message {
@@ -1760,39 +1760,14 @@ pub fn vertical_space() -> Space {
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     horizontal_rule(2).into()
+///     rule(2).into()
 /// }
 /// ```
-pub fn horizontal_rule<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
+pub fn rule<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
 where
     Theme: rule::Catalog + 'a,
 {
-    Rule::horizontal(height)
-}
-
-/// Creates a vertical [`Rule`] with the given width.
-///
-/// # Example
-/// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
-/// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::vertical_rule;
-///
-/// #[derive(Clone)]
-/// enum Message {
-///     // ...,
-/// }
-///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     vertical_rule(2).into()
-/// }
-/// ```
-pub fn vertical_rule<'a, Theme>(width: impl Into<Pixels>) -> Rule<'a, Theme>
-where
-    Theme: rule::Catalog + 'a,
-{
-    Rule::vertical(width)
+    Rule::new(height)
 }
 
 /// Creates a new [`ProgressBar`].
