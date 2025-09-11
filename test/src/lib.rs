@@ -591,6 +591,7 @@ pub fn tap_key(
         Event::Keyboard(keyboard::Event::KeyPressed {
             key: key.clone(),
             modified_key: key.clone(),
+            baselayer_key: key.clone(),
             physical_key: keyboard::key::Physical::Unidentified(
                 keyboard::key::NativeCode::Unidentified,
             ),
@@ -600,7 +601,8 @@ pub fn tap_key(
         }),
         Event::Keyboard(keyboard::Event::KeyReleased {
             key: key.clone(),
-            modified_key: key,
+            modified_key: key.clone(),
+            baselayer_key: key,
             physical_key: keyboard::key::Physical::Unidentified(
                 keyboard::key::NativeCode::Unidentified,
             ),
