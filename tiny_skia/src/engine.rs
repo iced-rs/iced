@@ -543,27 +543,27 @@ impl Engine {
     pub fn draw_image(
         &mut self,
         image: &Image,
-        _transformation: Transformation,
-        _pixels: &mut tiny_skia::PixmapMut<'_>,
-        _clip_mask: &mut tiny_skia::Mask,
-        _clip_bounds: Rectangle,
+        transformation: Transformation,
+        pixels: &mut tiny_skia::PixmapMut<'_>,
+        clip_mask: &mut tiny_skia::Mask,
+        clip_bounds: Rectangle,
     ) {
         match image {
             #[cfg(feature = "image")]
             Image::Raster(raster, bounds) => {
-                let physical_bounds = *bounds * _transformation;
+                let physical_bounds = *bounds * transformation;
 
-                if !_clip_bounds.intersects(&physical_bounds) {
+                if !clip_bounds.intersects(&physical_bounds) {
                     return;
                 }
 
-                let clip_mask = (!physical_bounds.is_within(&_clip_bounds))
-                    .then_some(_clip_mask as &_);
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
 
                 let center = physical_bounds.center();
                 let radians = f32::from(raster.rotation);
 
-                let transform = into_transform(_transformation).post_rotate_at(
+                let transform = into_transform(transformation).post_rotate_at(
                     radians.to_degrees(),
                     center.x,
                     center.y,
@@ -574,26 +574,26 @@ impl Engine {
                     raster.filter_method,
                     *bounds,
                     raster.opacity,
-                    _pixels,
+                    pixels,
                     transform,
                     clip_mask,
                 );
             }
             #[cfg(feature = "svg")]
             Image::Vector(svg, bounds) => {
-                let physical_bounds = *bounds * _transformation;
+                let physical_bounds = *bounds * transformation;
 
-                if !_clip_bounds.intersects(&physical_bounds) {
+                if !clip_bounds.intersects(&physical_bounds) {
                     return;
                 }
 
-                let clip_mask = (!physical_bounds.is_within(&_clip_bounds))
-                    .then_some(_clip_mask as &_);
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
 
                 let center = physical_bounds.center();
                 let radians = f32::from(svg.rotation);
 
-                let transform = into_transform(_transformation).post_rotate_at(
+                let transform = into_transform(transformation).post_rotate_at(
                     radians.to_degrees(),
                     center.x,
                     center.y,
@@ -602,9 +602,9 @@ impl Engine {
                 self.vector_pipeline.draw(
                     &svg.handle,
                     svg.color,
-                    physical_bounds,
+                    *bounds,
                     svg.opacity,
-                    _pixels,
+                    pixels,
                     transform,
                     clip_mask,
                 );
