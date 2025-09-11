@@ -26,7 +26,7 @@ struct Example {
 struct Window {
     title: String,
     scale_input: String,
-    current_scale: f64,
+    current_scale: f32,
     theme: Theme,
 }
 
@@ -66,7 +66,7 @@ impl Example {
                     return Task::none();
                 };
 
-                window::get_position(*last_window)
+                window::position(*last_window)
                     .then(|last_position| {
                         let position = last_position.map_or(
                             window::Position::Default,
@@ -113,7 +113,7 @@ impl Example {
             Message::ScaleChanged(id, scale) => {
                 if let Some(window) = self.windows.get_mut(&id) {
                     window.current_scale = scale
-                        .parse::<f64>()
+                        .parse()
                         .unwrap_or(window.current_scale)
                         .clamp(0.5, 5.0);
                 }
@@ -138,15 +138,11 @@ impl Example {
         }
     }
 
-    fn theme(&self, window: window::Id) -> Theme {
-        if let Some(window) = self.windows.get(&window) {
-            window.theme.clone()
-        } else {
-            Theme::default()
-        }
+    fn theme(&self, window: window::Id) -> Option<Theme> {
+        Some(self.windows.get(&window)?.theme.clone())
     }
 
-    fn scale_factor(&self, window: window::Id) -> f64 {
+    fn scale_factor(&self, window: window::Id) -> f32 {
         self.windows
             .get(&window)
             .map(|window| window.current_scale)

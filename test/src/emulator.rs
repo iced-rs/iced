@@ -379,7 +379,7 @@ impl<P: Program + 'static> Emulator<P> {
         program.view(&self.state, self.window)
     }
 
-    pub fn theme(&self, program: &P) -> P::Theme {
+    pub fn theme(&self, program: &P) -> Option<P::Theme> {
         program.theme(&self.state, self.window)
     }
 

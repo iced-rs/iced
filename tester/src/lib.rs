@@ -566,12 +566,16 @@ impl<P: Program + 'static> Tester<P> {
         let viewport = container(
             scrollable(
                 container(match &self.state {
-                    State::Empty => horizontal_space().into(),
-                    State::Idle { state } => Element::from(themer(
-                        program.theme(state, window),
-                        program.view(state, window),
-                    ))
-                    .map(Tick::Program),
+                    State::Empty => Element::from(horizontal_space()),
+                    State::Idle { state } => {
+                        let theme = program.theme(state, window);
+
+                        themer(
+                            theme,
+                            program.view(state, window).map(Tick::Program),
+                        )
+                        .into()
+                    }
                     State::Recording { emulator } => {
                         let theme = emulator.theme(program);
                         let view = emulator.view(program).map(Tick::Program);

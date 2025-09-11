@@ -176,7 +176,7 @@ impl Default for Text {
             font: Font::default(),
             align_x: Alignment::Default,
             align_y: alignment::Vertical::Top,
-            shaping: Shaping::Basic,
+            shaping: Shaping::default(),
         }
     }
 }

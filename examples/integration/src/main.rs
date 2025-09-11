@@ -67,7 +67,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 let physical_size = window.inner_size();
                 let viewport = Viewport::with_physical_size(
                     Size::new(physical_size.width, physical_size.height),
-                    window.scale_factor(),
+                    window.scale_factor() as f32,
                 );
                 let clipboard = Clipboard::connect(window.clone());
 
@@ -212,7 +212,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                         *viewport = Viewport::with_physical_size(
                             Size::new(size.width, size.height),
-                            window.scale_factor(),
+                            window.scale_factor() as f32,
                         );
 
                         surface.configure(
@@ -345,7 +345,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             // Map window event to iced event
             if let Some(event) = conversion::window_event(
                 event,
-                window.scale_factor(),
+                window.scale_factor() as f32,
                 *modifiers,
             ) {
                 events.push(event);

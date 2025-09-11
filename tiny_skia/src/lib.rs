@@ -72,7 +72,7 @@ impl Renderer {
         damage: &[Rectangle],
         background_color: Color,
     ) {
-        let scale_factor = viewport.scale_factor() as f32;
+        let scale_factor = viewport.scale_factor();
 
         self.layers.flush();
 
@@ -404,8 +404,7 @@ impl renderer::Headless for Renderer {
         scale_factor: f32,
         background_color: Color,
     ) -> Vec<u8> {
-        let viewport =
-            Viewport::with_physical_size(size, f64::from(scale_factor));
+        let viewport = Viewport::with_physical_size(size, scale_factor);
 
         window::compositor::screenshot(self, &viewport, background_color)
     }

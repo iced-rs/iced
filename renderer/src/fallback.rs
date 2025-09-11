@@ -312,8 +312,8 @@ where
         delegate!(self, compositor, compositor.load_font(font));
     }
 
-    fn fetch_information(&self) -> compositor::Information {
-        delegate!(self, compositor, compositor.fetch_information())
+    fn information(&self) -> compositor::Information {
+        delegate!(self, compositor, compositor.information())
     }
 
     fn present(

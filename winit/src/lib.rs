@@ -29,9 +29,6 @@ pub use winit;
 pub mod clipboard;
 pub mod conversion;
 
-#[cfg(feature = "system")]
-pub mod system;
-
 mod error;
 mod proxy;
 mod window;
@@ -53,6 +50,7 @@ use crate::futures::futures::{Future, StreamExt};
 use crate::futures::subscription;
 use crate::futures::{Executor, Runtime};
 use crate::graphics::{Compositor, compositor};
+use crate::runtime::system;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Action, Task};
 
@@ -109,7 +107,7 @@ where
 
         let (_id, open) = runtime::window::open(window_settings);
 
-        open.then(move |_| task.take().unwrap_or(Task::none()))
+        open.then(move |_| task.take().unwrap_or_else(Task::none))
     } else {
         task
     };
@@ -124,6 +122,7 @@ where
 
     let (event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, control_receiver) = mpsc::unbounded();
+    let (system_theme_sender, system_theme_receiver) = oneshot::channel();
 
     let instance = Box::pin(run_instance::<P>(
         program,
@@ -134,6 +133,7 @@ where
         is_daemon,
         graphics_settings,
         settings.fonts,
+        system_theme_receiver,
     ));
 
     let context = task::Context::from_waker(task::noop_waker_ref());
@@ -145,6 +145,7 @@ where
         sender: mpsc::UnboundedSender<Event<Action<Message>>>,
         receiver: mpsc::UnboundedReceiver<Control>,
         error: Option<Error>,
+        system_theme: Option<oneshot::Sender<theme::Mode>>,
 
         #[cfg(target_arch = "wasm32")]
         canvas: Option<web_sys::HtmlCanvasElement>,
@@ -157,6 +158,7 @@ where
         sender: event_sender,
         receiver: control_receiver,
         error: None,
+        system_theme: Some(system_theme_sender),
 
         #[cfg(target_arch = "wasm32")]
         canvas: None,
@@ -169,10 +171,15 @@ where
     where
         F: Future<Output = ()>,
     {
-        fn resumed(
-            &mut self,
-            _event_loop: &winit::event_loop::ActiveEventLoop,
-        ) {
+        fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+            if let Some(sender) = self.system_theme.take() {
+                let _ = sender.send(
+                    event_loop
+                        .system_theme()
+                        .map(conversion::theme_mode)
+                        .unwrap_or_default(),
+                );
+            }
         }
 
         fn new_events(
@@ -307,6 +314,7 @@ where
                                 id,
                                 settings,
                                 title,
+                                scale_factor,
                                 monitor,
                                 on_open,
                             } => {
@@ -323,6 +331,7 @@ where
                                     conversion::window_attributes(
                                         settings,
                                         &title,
+                                        scale_factor,
                                         monitor
                                             .or(event_loop.primary_monitor()),
                                         self.id.clone(),
@@ -417,7 +426,9 @@ where
                                 );
                             }
                             Control::Exit => {
+                                self.process_event(event_loop, Event::Exit);
                                 event_loop.exit();
+                                break;
                             }
                             Control::Crash(error) => {
                                 self.error = Some(error);
@@ -464,6 +475,7 @@ enum Event<Message: 'static> {
         on_open: oneshot::Sender<window::Id>,
     },
     EventLoopAwakened(winit::event::Event<Message>),
+    Exit,
 }
 
 #[derive(Debug)]
@@ -477,6 +489,7 @@ enum Control {
         title: String,
         monitor: Option<winit::monitor::MonitorHandle>,
         on_open: oneshot::Sender<window::Id>,
+        scale_factor: f32,
     },
 }
 
@@ -489,6 +502,7 @@ async fn run_instance<P>(
     is_daemon: bool,
     graphics_settings: graphics::Settings,
     default_fonts: Vec<Cow<'static, [u8]>>,
+    mut _system_theme: oneshot::Receiver<theme::Mode>,
 ) where
     P: Program + 'static,
     P::Theme: theme::Base,
@@ -507,6 +521,38 @@ async fn run_instance<P>(
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
     let mut clipboard = Clipboard::unconnected();
+
+    #[cfg(all(feature = "linux-theme-detection", target_os = "linux"))]
+    let mut system_theme = {
+        let to_mode = |color_scheme| match color_scheme {
+            mundy::ColorScheme::NoPreference => theme::Mode::None,
+            mundy::ColorScheme::Light => theme::Mode::Light,
+            mundy::ColorScheme::Dark => theme::Mode::Dark,
+        };
+
+        runtime.run(
+            mundy::Preferences::stream(mundy::Interest::ColorScheme)
+                .map(move |preferences| {
+                    Action::System(system::Action::NotifyTheme(to_mode(
+                        preferences.color_scheme,
+                    )))
+                })
+                .boxed(),
+        );
+
+        mundy::Preferences::once_blocking(
+            mundy::Interest::ColorScheme,
+            core::time::Duration::from_millis(200),
+        )
+        .map(|preferences| to_mode(preferences.color_scheme))
+        .unwrap_or_default()
+    };
+
+    #[cfg(not(all(feature = "linux-theme-detection", target_os = "linux")))]
+    let mut system_theme =
+        _system_theme.try_recv().ok().flatten().unwrap_or_default();
+
+    log::info!("System theme: {system_theme:?}");
 
     loop {
         // Empty the queue if possible
@@ -586,14 +632,20 @@ async fn run_instance<P>(
                     }
                 }
 
-                debug::theme_changed(|| {
-                    if window_manager.is_empty() {
-                        theme::Base::palette(&program.theme(id))
-                    } else {
-                        None
-                    }
-                });
+                let window_theme = window
+                    .theme()
+                    .map(conversion::theme_mode)
+                    .unwrap_or_default();
 
+                if system_theme != window_theme {
+                    system_theme = window_theme;
+
+                    runtime.broadcast(subscription::Event::SystemThemeChanged(
+                        window_theme,
+                    ));
+                }
+
+                let is_first = window_manager.is_empty();
                 let window = window_manager.insert(
                     id,
                     window,
@@ -602,7 +654,20 @@ async fn run_instance<P>(
                         .as_mut()
                         .expect("Compositor must be initialized"),
                     exit_on_close_request,
+                    system_theme,
                 );
+
+                window.raw.set_theme(conversion::window_theme(
+                    window.state.theme_mode(),
+                ));
+
+                debug::theme_changed(|| {
+                    if is_first {
+                        theme::Base::palette(window.state.theme())
+                    } else {
+                        None
+                    }
+                });
 
                 let logical_size = window.state.logical_size();
 
@@ -686,6 +751,7 @@ async fn run_instance<P>(
                         run_action(
                             action,
                             &program,
+                            &mut runtime,
                             &mut compositor,
                             &mut events,
                             &mut messages,
@@ -695,6 +761,7 @@ async fn run_instance<P>(
                             &mut window_manager,
                             &mut ui_caches,
                             &mut is_window_opening,
+                            &mut system_theme,
                         );
                         actions += 1;
                     }
@@ -853,11 +920,24 @@ async fn run_instance<P>(
                             continue;
                         };
 
-                        if matches!(
-                            window_event,
-                            winit::event::WindowEvent::Resized(_)
-                        ) {
-                            window.raw.request_redraw();
+                        match window_event {
+                            winit::event::WindowEvent::Resized(_) => {
+                                window.raw.request_redraw();
+                            }
+                            winit::event::WindowEvent::ThemeChanged(theme) => {
+                                let mode = conversion::theme_mode(theme);
+
+                                if mode != system_theme {
+                                    system_theme = mode;
+
+                                    runtime.broadcast(
+                                        subscription::Event::SystemThemeChanged(
+                                            mode,
+                                        ),
+                                    );
+                                }
+                            }
+                            _ => {}
                         }
 
                         if matches!(
@@ -870,6 +950,7 @@ async fn run_instance<P>(
                                     id,
                                 )),
                                 &program,
+                                &mut runtime,
                                 &mut compositor,
                                 &mut events,
                                 &mut messages,
@@ -879,9 +960,14 @@ async fn run_instance<P>(
                                 &mut window_manager,
                                 &mut ui_caches,
                                 &mut is_window_opening,
+                                &mut system_theme,
                             );
                         } else {
-                            window.state.update(&window.raw, &window_event);
+                            window.state.update(
+                                &program,
+                                &window.raw,
+                                &window_event,
+                            );
 
                             if let Some(event) = conversion::window_event(
                                 window_event,
@@ -1033,6 +1119,7 @@ async fn run_instance<P>(
                     _ => {}
                 }
             }
+            Event::Exit => break,
         }
     }
 
@@ -1085,6 +1172,7 @@ fn update<P: Program, E: Executor>(
 fn run_action<'a, P, C>(
     action: Action<P::Message>,
     program: &'a program::Instance<P>,
+    runtime: &mut Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
     compositor: &mut Option<C>,
     events: &mut Vec<(window::Id, core::Event)>,
     messages: &mut Vec<P::Message>,
@@ -1097,13 +1185,13 @@ fn run_action<'a, P, C>(
     window_manager: &mut WindowManager<P, C>,
     ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
     is_window_opening: &mut bool,
+    system_theme: &mut theme::Mode,
 ) where
     P: Program,
     C: Compositor<Renderer = P::Renderer> + 'static,
     P::Theme: theme::Base,
 {
     use crate::runtime::clipboard;
-    use crate::runtime::system;
     use crate::runtime::window;
 
     match action {
@@ -1127,6 +1215,7 @@ fn run_action<'a, P, C>(
                         id,
                         settings,
                         title: program.title(id),
+                        scale_factor: program.scale_factor(id),
                         monitor,
                         on_open: channel,
                     })
@@ -1187,7 +1276,10 @@ fn run_action<'a, P, C>(
                         winit::dpi::LogicalSize {
                             width: size.width,
                             height: size.height,
-                        },
+                        }
+                        .to_physical::<f32>(f64::from(
+                            window.state.scale_factor(),
+                        )),
                     );
                 }
             }
@@ -1198,6 +1290,9 @@ fn run_action<'a, P, C>(
                             width: size.width,
                             height: size.height,
                         }
+                        .to_physical::<f32>(f64::from(
+                            window.state.scale_factor(),
+                        ))
                     }));
                 }
             }
@@ -1208,6 +1303,9 @@ fn run_action<'a, P, C>(
                             width: size.width,
                             height: size.height,
                         }
+                        .to_physical::<f32>(f64::from(
+                            window.state.scale_factor(),
+                        ))
                     }));
                 }
             }
@@ -1218,6 +1316,9 @@ fn run_action<'a, P, C>(
                             width: size.width,
                             height: size.height,
                         }
+                        .to_physical::<f32>(f64::from(
+                            window.state.scale_factor(),
+                        ))
                     }));
                 }
             }
@@ -1231,7 +1332,7 @@ fn run_action<'a, P, C>(
                     let size = window
                         .raw
                         .inner_size()
-                        .to_logical(window.raw.scale_factor());
+                        .to_logical(f64::from(window.state.scale_factor()));
 
                     let _ = channel.send(Size::new(size.width, size.height));
                 }
@@ -1398,19 +1499,42 @@ fn run_action<'a, P, C>(
             }
         },
         Action::System(action) => match action {
-            system::Action::QueryInformation(_channel) => {
-                #[cfg(feature = "system")]
+            system::Action::GetInformation(_channel) => {
+                #[cfg(feature = "sysinfo")]
                 {
                     if let Some(compositor) = compositor {
-                        let graphics_info = compositor.fetch_information();
+                        let graphics_info = compositor.information();
 
                         let _ = std::thread::spawn(move || {
-                            let information =
-                                crate::system::information(graphics_info);
+                            let information = system_information(graphics_info);
 
                             let _ = _channel.send(information);
                         });
                     }
+                }
+            }
+            system::Action::GetTheme(channel) => {
+                let _ = channel.send(*system_theme);
+            }
+            system::Action::NotifyTheme(mode) => {
+                if mode != *system_theme {
+                    *system_theme = mode;
+
+                    runtime.broadcast(subscription::Event::SystemThemeChanged(
+                        mode,
+                    ));
+                }
+
+                let Some(theme) = conversion::window_theme(mode) else {
+                    return;
+                };
+
+                for (_id, window) in window_manager.iter_mut() {
+                    window.state.update(
+                        program,
+                        &window.raw,
+                        &winit::event::WindowEvent::ThemeChanged(theme),
+                    );
                 }
             }
         },
@@ -1519,5 +1643,39 @@ pub fn user_force_quit(
             ..
         } if c == "q" && _modifiers.super_key() => true,
         _ => false,
+    }
+}
+
+#[cfg(feature = "sysinfo")]
+fn system_information(
+    graphics: compositor::Information,
+) -> system::Information {
+    use sysinfo::{Process, System};
+
+    let mut system = System::new_all();
+    system.refresh_all();
+
+    let cpu_brand = system
+        .cpus()
+        .first()
+        .map(|cpu| cpu.brand().to_string())
+        .unwrap_or_default();
+
+    let memory_used = sysinfo::get_current_pid()
+        .and_then(|pid| system.process(pid).ok_or("Process not found"))
+        .map(Process::memory)
+        .ok();
+
+    system::Information {
+        system_name: System::name(),
+        system_kernel: System::kernel_version(),
+        system_version: System::long_os_version(),
+        system_short_version: System::os_version(),
+        cpu_brand,
+        cpu_cores: system.physical_core_count(),
+        memory_total: system.total_memory(),
+        memory_used,
+        graphics_adapter: graphics.adapter,
+        graphics_backend: graphics.backend,
     }
 }

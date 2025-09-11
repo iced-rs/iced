@@ -18,6 +18,7 @@ use crate::{Error, Selector};
 use std::borrow::Cow;
 use std::env;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -235,7 +236,7 @@ where
             screenshot: window::Screenshot::new(
                 rgba,
                 physical_size,
-                f64::from(scale_factor),
+                scale_factor,
             ),
             renderer: self.renderer.name(),
         })
@@ -267,10 +268,13 @@ impl Snapshot {
 
         if path.exists() {
             let file = fs::File::open(&path)?;
-            let decoder = png::Decoder::new(file);
+            let decoder = png::Decoder::new(io::BufReader::new(file));
 
             let mut reader = decoder.read_info()?;
-            let mut bytes = vec![0; reader.output_buffer_size()];
+            let n = reader
+                .output_buffer_size()
+                .expect("snapshot should fit in memory");
+            let mut bytes = vec![0; n];
             let info = reader.next_frame(&mut bytes)?;
 
             Ok(self.screenshot.bytes == bytes[..info.buffer_size()])

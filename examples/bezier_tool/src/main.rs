@@ -4,7 +4,7 @@ use iced::{Element, Theme};
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
-        .theme(|_| Theme::CatppuccinMocha)
+        .theme(Theme::CatppuccinMocha)
         .run()
 }
 

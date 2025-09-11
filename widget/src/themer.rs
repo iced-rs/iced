@@ -3,6 +3,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::theme;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
@@ -20,7 +21,7 @@ where
     Renderer: crate::core::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
-    theme: Theme,
+    theme: Option<Theme>,
     text_color: Option<fn(&Theme) -> Color>,
     background: Option<fn(&Theme) -> Background>,
 }
@@ -32,7 +33,7 @@ where
     /// Creates an empty [`Themer`] that applies the given `Theme`
     /// to the provided `content`.
     pub fn new(
-        theme: Theme,
+        theme: Option<Theme>,
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         Self {
@@ -59,6 +60,8 @@ where
 impl<Message, Theme, Renderer, AnyTheme> Widget<Message, AnyTheme, Renderer>
     for Themer<'_, Message, Theme, Renderer>
 where
+    Theme: theme::Base,
+    AnyTheme: theme::Base,
     Renderer: crate::core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -135,17 +138,20 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        _theme: &AnyTheme,
+        theme: &AnyTheme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
+        let default_theme = theme::Base::default(theme.mode());
+        let theme = self.theme.as_ref().unwrap_or(&default_theme);
+
         if let Some(background) = self.background {
             container::draw_background(
                 renderer,
                 &container::Style {
-                    background: Some(background(&self.theme)),
+                    background: Some(background(theme)),
                     ..container::Style::default()
                 },
                 layout.bounds(),
@@ -154,21 +160,15 @@ where
 
         let style = if let Some(text_color) = self.text_color {
             renderer::Style {
-                text_color: text_color(&self.theme),
+                text_color: text_color(theme),
             }
         } else {
             *style
         };
 
-        self.content.as_widget().draw(
-            tree,
-            renderer,
-            &self.theme,
-            &style,
-            layout,
-            cursor,
-            viewport,
-        );
+        self.content
+            .as_widget()
+            .draw(tree, renderer, theme, &style, layout, cursor, viewport);
     }
 
     fn overlay<'b>(
@@ -180,7 +180,7 @@ where
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, AnyTheme, Renderer>> {
         struct Overlay<'a, Message, Theme, Renderer> {
-            theme: &'a Theme,
+            theme: &'a Option<Theme>,
             content: overlay::Element<'a, Message, Theme, Renderer>,
         }
 
@@ -188,6 +188,8 @@ where
             overlay::Overlay<Message, AnyTheme, Renderer>
             for Overlay<'_, Message, Theme, Renderer>
         where
+            Theme: theme::Base,
+            AnyTheme: theme::Base,
             Renderer: crate::core::Renderer,
         {
             fn layout(
@@ -201,14 +203,17 @@ where
             fn draw(
                 &self,
                 renderer: &mut Renderer,
-                _theme: &AnyTheme,
+                theme: &AnyTheme,
                 style: &renderer::Style,
                 layout: Layout<'_>,
                 cursor: mouse::Cursor,
             ) {
+                let default_theme = theme::Base::default(theme.mode());
+                let theme = self.theme.as_ref().unwrap_or(&default_theme);
+
                 self.content
                     .as_overlay()
-                    .draw(renderer, self.theme, style, layout, cursor);
+                    .draw(renderer, theme, style, layout, cursor);
             }
 
             fn update(
@@ -280,7 +285,8 @@ impl<'a, Message, Theme, Renderer, AnyTheme>
     for Element<'a, Message, AnyTheme, Renderer>
 where
     Message: 'a,
-    Theme: 'a,
+    Theme: theme::Base + 'a,
+    AnyTheme: theme::Base,
     Renderer: 'a + crate::core::Renderer,
 {
     fn from(

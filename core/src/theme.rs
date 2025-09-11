@@ -166,31 +166,6 @@ impl Theme {
     }
 }
 
-impl Default for Theme {
-    fn default() -> Self {
-        #[cfg(feature = "auto-detect-theme")]
-        {
-            use std::sync::LazyLock;
-
-            static DEFAULT: LazyLock<Theme> = LazyLock::new(|| {
-                match dark_light::detect()
-                    .unwrap_or(dark_light::Mode::Unspecified)
-                {
-                    dark_light::Mode::Dark => Theme::Dark,
-                    dark_light::Mode::Light | dark_light::Mode::Unspecified => {
-                        Theme::Light
-                    }
-                }
-            });
-
-            DEFAULT.clone()
-        }
-
-        #[cfg(not(feature = "auto-detect-theme"))]
-        Theme::Light
-    }
-}
-
 impl fmt::Display for Theme {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -256,6 +231,18 @@ impl fmt::Display for Custom {
     }
 }
 
+/// A theme mode, denoting the tone or brightness of a theme.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Mode {
+    /// No specific tone.
+    #[default]
+    None,
+    /// A mode referring to themes with light tones.
+    Light,
+    /// A mode referring to themes with dark tones.
+    Dark,
+}
+
 /// The base style of a theme.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
@@ -268,7 +255,13 @@ pub struct Style {
 
 /// The default blank style of a theme.
 pub trait Base {
-    /// Returns the default base [`Style`] of a theme.
+    /// Returns the default theme for the preferred [`Mode`].
+    fn default(preference: Mode) -> Self;
+
+    /// Returns the [`Mode`] of the theme.
+    fn mode(&self) -> Mode;
+
+    /// Returns the default base [`Style`] of the theme.
     fn base(&self) -> Style;
 
     /// Returns the color [`Palette`] of the theme.
@@ -280,6 +273,39 @@ pub trait Base {
 }
 
 impl Base for Theme {
+    fn default(preference: Mode) -> Self {
+        use std::env;
+        use std::sync::OnceLock;
+
+        static SYSTEM: OnceLock<Option<Theme>> = OnceLock::new();
+
+        let system = SYSTEM.get_or_init(|| {
+            let name = env::var("ICED_THEME").ok()?;
+
+            Theme::ALL
+                .iter()
+                .find(|theme| theme.to_string() == name)
+                .cloned()
+        });
+
+        if let Some(system) = system {
+            return system.clone();
+        }
+
+        match preference {
+            Mode::None | Mode::Light => Self::Light,
+            Mode::Dark => Self::Dark,
+        }
+    }
+
+    fn mode(&self) -> Mode {
+        if self.extended_palette().is_dark {
+            Mode::Dark
+        } else {
+            Mode::Light
+        }
+    }
+
     fn base(&self) -> Style {
         default(self)
     }

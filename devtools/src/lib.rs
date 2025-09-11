@@ -11,7 +11,7 @@ mod time_machine;
 
 use crate::core::border;
 use crate::core::keyboard;
-use crate::core::theme::{self, Base, Theme};
+use crate::core::theme::{self, Theme};
 use crate::core::time::seconds;
 use crate::core::window;
 use crate::core::{
@@ -98,7 +98,11 @@ where
         state.subscription(&self.program)
     }
 
-    fn theme(&self, state: &Self::State, window: window::Id) -> Self::Theme {
+    fn theme(
+        &self,
+        state: &Self::State,
+        window: window::Id,
+    ) -> Option<Self::Theme> {
         state.theme(&self.program, window)
     }
 
@@ -106,7 +110,7 @@ where
         state.style(&self.program, theme)
     }
 
-    fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+    fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
         state.scale_factor(&self.program, window)
     }
 }
@@ -161,11 +165,11 @@ where
                 show_notification: true,
                 time_machine: TimeMachine::new(),
             },
-            task::blocking(|mut sender| {
+            Task::batch([task::blocking(|mut sender| {
                 thread::sleep(seconds(2));
                 let _ = sender.try_send(());
             })
-            .map(|_| Message::HideNotification),
+            .map(|_| Message::HideNotification)]),
         )
     }
 
@@ -306,10 +310,7 @@ where
         let state = self.state();
 
         let view = {
-            let theme = program.theme(state, window);
-
-            let view: Element<'_, _, Theme, _> =
-                themer(theme, program.view(state, window)).into();
+            let view = program.view(state, window);
 
             if self.time_machine.is_rewinding() {
                 view.map(|_| Event::Discard)
@@ -318,11 +319,13 @@ where
             }
         };
 
-        let theme = program
-            .theme(state, window)
-            .palette()
-            .map(|palette| Theme::custom("iced devtools", palette))
-            .unwrap_or_default();
+        let theme = || {
+            program
+                .theme(state, window)
+                .as_ref()
+                .and_then(theme::Base::palette)
+                .map(|palette| Theme::custom("iced devtools", palette))
+        };
 
         let setup = if let Mode::Setup(setup) = &self.mode {
             let stage: Element<'_, _, Theme, P::Renderer> = match setup {
@@ -346,7 +349,7 @@ where
         } else {
             None
         }
-        .map(|mode| Element::from(mode).map(Event::Message));
+        .map(|setup| themer(theme(), Element::from(setup).map(Event::Message)));
 
         let notification = self
             .show_notification
@@ -359,20 +362,20 @@ where
                 })
             });
 
-        themer(
-            theme,
-            stack![view]
-                .height(Fill)
-                .push_maybe(setup.map(opaque))
-                .push_maybe(notification.map(|notification| {
+        stack![view]
+            .height(Fill)
+            .push_maybe(setup.map(opaque))
+            .push_maybe(notification.map(|notification| {
+                themer(
+                    theme(),
                     bottom_right(opaque(
                         container(notification)
                             .padding(10)
                             .style(container::dark),
-                    ))
-                })),
-        )
-        .into()
+                    )),
+                )
+            }))
+            .into()
     }
 
     pub fn subscription(&self, program: &P) -> Subscription<Event<P>> {
@@ -394,7 +397,7 @@ where
         Subscription::batch([subscription, hotkeys, commands])
     }
 
-    pub fn theme(&self, program: &P, window: window::Id) -> P::Theme {
+    pub fn theme(&self, program: &P, window: window::Id) -> Option<P::Theme> {
         program.theme(self.state(), window)
     }
 
@@ -402,7 +405,7 @@ where
         program.style(self.state(), theme)
     }
 
-    pub fn scale_factor(&self, program: &P, window: window::Id) -> f64 {
+    pub fn scale_factor(&self, program: &P, window: window::Id) -> f32 {
         program.scale_factor(self.state(), window)
     }
 

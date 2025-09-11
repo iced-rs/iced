@@ -7,7 +7,7 @@
 //!
 //! pub fn main() -> iced::Result {
 //!     iced::application(u64::default, update, view)
-//!         .theme(|_| Theme::Dark)
+//!         .theme(Theme::Dark)
 //!         .centered()
 //!         .run()
 //! }
@@ -36,7 +36,8 @@ use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{
-    Element, Executor, Font, Preset, Result, Settings, Size, Subscription, Task,
+    Element, Executor, Font, Preset, Result, Settings, Size, Subscription,
+    Task, Theme,
 };
 
 use iced_debug as debug;
@@ -76,14 +77,14 @@ pub use timed::timed;
 /// }
 /// ```
 pub fn application<State, Message, Theme, Renderer>(
-    boot: impl Boot<State, Message>,
-    update: impl Update<State, Message>,
-    view: impl for<'a> View<'a, State, Message, Theme, Renderer>,
+    boot: impl BootFn<State, Message>,
+    update: impl UpdateFn<State, Message>,
+    view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
 ) -> Application<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
     Message: Send + 'static,
-    Theme: Default + theme::Base,
+    Theme: theme::Base,
     Renderer: program::Renderer,
 {
     use std::marker::PhantomData;
@@ -102,11 +103,11 @@ where
         for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
         Message: Send + 'static,
-        Theme: Default + theme::Base,
+        Theme: theme::Base,
         Renderer: program::Renderer,
-        Boot: self::Boot<State, Message>,
-        Update: self::Update<State, Message>,
-        View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
+        Boot: self::BootFn<State, Message>,
+        Update: self::UpdateFn<State, Message>,
+        View: for<'a> self::ViewFn<'a, State, Message, Theme, Renderer>,
     {
         type State = State;
         type Message = Message;
@@ -334,10 +335,10 @@ impl<P: Program> Application<P> {
         }
     }
 
-    /// Sets the [`Title`] of the [`Application`].
+    /// Sets the title of the [`Application`].
     pub fn title(
         self,
-        title: impl Title<P::State>,
+        title: impl TitleFn<P::State>,
     ) -> Application<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
@@ -369,12 +370,14 @@ impl<P: Program> Application<P> {
     /// Sets the theme logic of the [`Application`].
     pub fn theme(
         self,
-        f: impl Fn(&P::State) -> P::Theme,
+        f: impl ThemeFn<P::State, P::Theme>,
     ) -> Application<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Application {
-            raw: program::with_theme(self.raw, move |state, _window| f(state)),
+            raw: program::with_theme(self.raw, move |state, _window| {
+                f.theme(state)
+            }),
             settings: self.settings,
             window: self.window,
             presets: self.presets,
@@ -399,7 +402,7 @@ impl<P: Program> Application<P> {
     /// Sets the scale factor of the [`Application`].
     pub fn scale_factor(
         self,
-        f: impl Fn(&P::State) -> f64,
+        f: impl Fn(&P::State) -> f32,
     ) -> Application<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
@@ -497,7 +500,7 @@ impl<P: Program> Program for Application<P> {
         &self,
         state: &Self::State,
         window: iced_core::window::Id,
-    ) -> Self::Theme {
+    ) -> Option<Self::Theme> {
         debug::hot(|| self.raw.theme(state, window))
     }
 
@@ -505,7 +508,7 @@ impl<P: Program> Program for Application<P> {
         debug::hot(|| self.raw.style(state, theme))
     }
 
-    fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+    fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
         debug::hot(|| self.raw.scale_factor(state, window))
     }
 
@@ -522,12 +525,12 @@ impl<P: Program> Program for Application<P> {
 /// In practice, this means that [`application`] can both take
 /// simple functions like `State::default` and more advanced ones
 /// that return a [`Task`].
-pub trait Boot<State, Message> {
+pub trait BootFn<State, Message> {
     /// Initializes the [`Application`] state.
     fn boot(&self) -> (State, Task<Message>);
 }
 
-impl<T, C, State, Message> Boot<State, Message> for T
+impl<T, C, State, Message> BootFn<State, Message> for T
 where
     T: Fn() -> C,
     C: IntoBoot<State, Message>,
@@ -561,18 +564,18 @@ impl<State, Message> IntoBoot<State, Message> for (State, Task<Message>) {
 /// any closure `Fn(&State) -> String`.
 ///
 /// This trait allows the [`application`] builder to take any of them.
-pub trait Title<State> {
+pub trait TitleFn<State> {
     /// Produces the title of the [`Application`].
     fn title(&self, state: &State) -> String;
 }
 
-impl<State> Title<State> for &'static str {
+impl<State> TitleFn<State> for &'static str {
     fn title(&self, _state: &State) -> String {
         self.to_string()
     }
 }
 
-impl<T, State> Title<State> for T
+impl<T, State> TitleFn<State> for T
 where
     T: Fn(&State) -> String,
 {
@@ -585,18 +588,18 @@ where
 ///
 /// This trait allows the [`application`] builder to take any closure that
 /// returns any `Into<Task<Message>>`.
-pub trait Update<State, Message> {
+pub trait UpdateFn<State, Message> {
     /// Processes the message and updates the state of the [`Application`].
     fn update(&self, state: &mut State, message: Message) -> Task<Message>;
 }
 
-impl<State, Message> Update<State, Message> for () {
+impl<State, Message> UpdateFn<State, Message> for () {
     fn update(&self, _state: &mut State, _message: Message) -> Task<Message> {
         Task::none()
     }
 }
 
-impl<T, State, Message, C> Update<State, Message> for T
+impl<T, State, Message, C> UpdateFn<State, Message> for T
 where
     T: Fn(&mut State, Message) -> C,
     C: Into<Task<Message>>,
@@ -610,13 +613,13 @@ where
 ///
 /// This trait allows the [`application`] builder to take any closure that
 /// returns any `Into<Element<'_, Message>>`.
-pub trait View<'a, State, Message, Theme, Renderer> {
+pub trait ViewFn<'a, State, Message, Theme, Renderer> {
     /// Produces the widget of the [`Application`].
     fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer>;
 }
 
 impl<'a, T, State, Message, Theme, Renderer, Widget>
-    View<'a, State, Message, Theme, Renderer> for T
+    ViewFn<'a, State, Message, Theme, Renderer> for T
 where
     T: Fn(&'a State) -> Widget,
     State: 'static,
@@ -624,5 +627,37 @@ where
 {
     fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer> {
         self(state).into()
+    }
+}
+
+/// The theme logic of some [`Application`].
+///
+/// Any implementors of this trait can be provided as an argument to
+/// [`Application::theme`].
+///
+/// `iced` provides two implementors:
+/// - the built-in [`Theme`] itself
+/// - and any `Fn(&State) -> impl Into<Option<Theme>>`.
+pub trait ThemeFn<State, Theme> {
+    /// Returns the theme of the [`Application`] for the current state.
+    ///
+    /// If `None` is returned, `iced` will try to use a theme that
+    /// matches the system color scheme.
+    fn theme(&self, state: &State) -> Option<Theme>;
+}
+
+impl<State> ThemeFn<State, Theme> for Theme {
+    fn theme(&self, _state: &State) -> Option<Theme> {
+        Some(self.clone())
+    }
+}
+
+impl<F, T, State, Theme> ThemeFn<State, Theme> for F
+where
+    F: Fn(&State) -> T,
+    T: Into<Option<Theme>>,
+{
+    fn theme(&self, state: &State) -> Option<Theme> {
+        (self)(state).into()
     }
 }

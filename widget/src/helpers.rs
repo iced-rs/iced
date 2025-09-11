@@ -4,6 +4,7 @@ use crate::checkbox::{self, Checkbox};
 use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
+use crate::core::theme;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
 use crate::core::{Element, Length, Pixels, Size, Widget};
@@ -2050,10 +2051,11 @@ where
 
 /// A widget that applies any `Theme` to its contents.
 pub fn themer<'a, Message, Theme, Renderer>(
-    theme: Theme,
+    theme: Option<Theme>,
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Themer<'a, Message, Theme, Renderer>
 where
+    Theme: theme::Base,
     Renderer: core::Renderer,
 {
     Themer::new(theme, content)

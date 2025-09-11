@@ -19,11 +19,11 @@ pub fn main() -> iced::Result {
         .run()
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug, Default)]
 struct Layout {
     example: Example,
     explain: bool,
-    theme: Theme,
+    theme: Option<Theme>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,7 +51,7 @@ impl Layout {
                 self.explain = explain;
             }
             Message::ThemeSelected(theme) => {
-                self.theme = theme;
+                self.theme = Some(theme);
             }
         }
     }
@@ -74,7 +74,8 @@ impl Layout {
             horizontal_space(),
             checkbox("Explain", self.explain)
                 .on_toggle(Message::ExplainToggled),
-            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeSelected),
+            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeSelected)
+                .placeholder("Theme"),
         ]
         .spacing(20)
         .align_y(Center);
@@ -94,14 +95,14 @@ impl Layout {
 
         let controls = row([
             (!self.example.is_first()).then_some(
-                button(text("← Previous").shaping(text::Shaping::Advanced))
+                button(text("← Previous"))
                     .padding([5, 10])
                     .on_press(Message::Previous)
                     .into(),
             ),
             Some(horizontal_space().into()),
             (!self.example.is_last()).then_some(
-                button(text("Next →").shaping(text::Shaping::Advanced))
+                button(text("Next →"))
                     .padding([5, 10])
                     .on_press(Message::Next)
                     .into(),
@@ -116,7 +117,7 @@ impl Layout {
             .into()
     }
 
-    fn theme(&self) -> Theme {
+    fn theme(&self) -> Option<Theme> {
         self.theme.clone()
     }
 }
@@ -313,7 +314,7 @@ fn quotes<'a>() -> Element<'a, Message> {
             "This is another reply",
         ),
         horizontal_rule(1),
-        text("A separator ↑").shaping(text::Shaping::Advanced),
+        text("A separator ↑"),
     ]
     .width(Shrink)
     .spacing(10)

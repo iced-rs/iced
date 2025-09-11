@@ -1,11 +1,20 @@
 //! Access the native system.
+use crate::core::theme;
 use crate::futures::futures::channel::oneshot;
+use crate::futures::subscription::{self, Subscription};
+use crate::task::{self, Task};
 
 /// An operation to be performed on the system.
 #[derive(Debug)]
 pub enum Action {
-    /// Query system information and produce `T` with the result.
-    QueryInformation(oneshot::Sender<Information>),
+    /// Send available system information.
+    GetInformation(oneshot::Sender<Information>),
+
+    /// Send the current system theme mode.
+    GetTheme(oneshot::Sender<theme::Mode>),
+
+    /// Notify to the runtime that the system theme has changed.
+    NotifyTheme(theme::Mode),
 }
 
 /// Contains information about the system (e.g. system name, processor, memory, graphics adapter).
@@ -36,4 +45,30 @@ pub struct Information {
     pub graphics_backend: String,
     /// Model information for the active graphics adapter
     pub graphics_adapter: String,
+}
+
+/// Returns available system information.
+pub fn information() -> Task<Information> {
+    task::oneshot(|channel| {
+        crate::Action::System(Action::GetInformation(channel))
+    })
+}
+
+/// Returns the current system theme.
+pub fn theme() -> Task<theme::Mode> {
+    task::oneshot(|sender| crate::Action::System(Action::GetTheme(sender)))
+}
+
+/// Subscribes to system theme changes.
+pub fn theme_changes() -> Subscription<theme::Mode> {
+    #[derive(Hash)]
+    struct ThemeChanges;
+
+    subscription::filter_map(ThemeChanges, |event| {
+        let subscription::Event::SystemThemeChanged(mode) = event else {
+            return None;
+        };
+
+        Some(mode)
+    })
 }
