@@ -1,8 +1,6 @@
 use iced::gradient;
 use iced::theme;
-use iced::widget::{
-    checkbox, column, container, horizontal_space, row, slider, text,
-};
+use iced::widget::{checkbox, column, container, row, slider, space_x, text};
 use iced::{Center, Color, Element, Fill, Radians, Theme, color};
 
 pub fn main() -> iced::Result {
@@ -59,7 +57,7 @@ impl Gradient {
             transparent,
         } = *self;
 
-        let gradient_box = container(horizontal_space())
+        let gradient_box = container(space_x())
             .style(move |_theme| {
                 let gradient = gradient::Linear::new(angle)
                     .add_stop(0.0, start)

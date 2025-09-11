@@ -2,8 +2,8 @@ use iced::border;
 use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
-    button, canvas, center, center_y, checkbox, column, container,
-    horizontal_space, pick_list, pin, row, rule, scrollable, stack, text,
+    button, canvas, center, center_y, checkbox, column, container, pick_list,
+    pin, row, rule, scrollable, space_x, stack, text,
 };
 use iced::{
     Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink,
@@ -70,7 +70,7 @@ impl Layout {
     fn view(&self) -> Element<'_, Message> {
         let header = row![
             text(self.example.title).size(20).font(Font::MONOSPACE),
-            horizontal_space(),
+            space_x(),
             checkbox("Explain", self.explain)
                 .on_toggle(Message::ExplainToggled),
             pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeSelected)
@@ -99,7 +99,7 @@ impl Layout {
                     .on_press(Message::Previous)
                     .into(),
             ),
-            Some(horizontal_space().into()),
+            Some(space_x().into()),
             (!self.example.is_last()).then_some(
                 button(text("Next →"))
                     .padding([5, 10])
@@ -238,20 +238,14 @@ fn row_<'a>() -> Element<'a, Message> {
 }
 
 fn space<'a>() -> Element<'a, Message> {
-    row!["Left!", horizontal_space(), "Right!"].into()
+    row!["Left!", space_x(), "Right!"].into()
 }
 
 fn application<'a>() -> Element<'a, Message> {
     let header = container(
-        row![
-            square(40),
-            horizontal_space(),
-            "Header!",
-            horizontal_space(),
-            square(40),
-        ]
-        .padding(10)
-        .align_y(Center),
+        row![square(40), space_x(), "Header!", space_x(), square(40),]
+            .padding(10)
+            .align_y(Center),
     )
     .style(|theme| {
         let palette = theme.extended_palette();

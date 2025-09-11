@@ -1,6 +1,6 @@
 use iced::widget::{
-    button, column, container, horizontal_space, operation, progress_bar,
-    radio, row, scrollable, slider, text, vertical_space,
+    button, column, container, operation, progress_bar, radio, row, scrollable,
+    slider, space_x, space_y, text,
 };
 use iced::{Border, Center, Color, Element, Fill, Task, Theme};
 
@@ -190,9 +190,9 @@ impl ScrollableDemo {
                     column![
                         scroll_to_end_button(),
                         text("Beginning!"),
-                        vertical_space().height(1200),
+                        space_y().height(1200),
                         text("Middle!"),
-                        vertical_space().height(1200),
+                        space_y().height(1200),
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
@@ -215,9 +215,9 @@ impl ScrollableDemo {
                     row![
                         scroll_to_end_button(),
                         text("Beginning!"),
-                        horizontal_space().width(1200),
+                        space_x().width(1200),
                         text("Middle!"),
-                        horizontal_space().width(1200),
+                        space_x().width(1200),
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
@@ -242,25 +242,25 @@ impl ScrollableDemo {
                     row![
                         column![
                             text("Let's do some scrolling!"),
-                            vertical_space().height(2400)
+                            space_y().height(2400)
                         ],
                         scroll_to_end_button(),
                         text("Horizontal - Beginning!"),
-                        horizontal_space().width(1200),
+                        space_x().width(1200),
                         //vertical content
                         column![
                             text("Horizontal - Middle!"),
                             scroll_to_end_button(),
                             text("Vertical - Beginning!"),
-                            vertical_space().height(1200),
+                            space_y().height(1200),
                             text("Vertical - Middle!"),
-                            vertical_space().height(1200),
+                            space_y().height(1200),
                             text("Vertical - End!"),
                             scroll_to_beginning_button(),
-                            vertical_space().height(40),
+                            space_y().height(40),
                         ]
                         .spacing(40),
-                        horizontal_space().width(1200),
+                        space_x().width(1200),
                         text("Horizontal - End!"),
                         scroll_to_beginning_button(),
                     ]

@@ -23,8 +23,8 @@ use crate::program::message;
 use crate::runtime::task::{self, Task};
 use crate::time_machine::TimeMachine;
 use crate::widget::{
-    bottom_right, button, center, column, container, horizontal_space, opaque,
-    row, scrollable, stack, text, themer,
+    bottom_right, button, center, column, container, opaque, row, scrollable,
+    space_x, stack, text, themer,
 };
 
 use std::fmt;
@@ -448,7 +448,7 @@ where
             .width(100)
             .on_press(Message::CancelSetup)
             .style(button::danger),
-        horizontal_space(),
+        space_x(),
         button(
             text(match goal {
                 Goal::Installation => "Install",
@@ -498,13 +498,13 @@ where
             let comparison = column![
                 row![
                     "Installed revision:",
-                    horizontal_space(),
+                    space_x(),
                     inline_code(revision.as_deref().unwrap_or("Unknown"))
                 ]
                 .align_y(Center),
                 row![
                     "Compatible revision:",
-                    horizontal_space(),
+                    space_x(),
                     inline_code(comet::COMPATIBLE_REVISION),
                 ]
                 .align_y(Center)

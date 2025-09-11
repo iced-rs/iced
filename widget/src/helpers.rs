@@ -1017,7 +1017,7 @@ where
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{column, scrollable, vertical_space};
+/// use iced::widget::{column, scrollable, space_y};
 ///
 /// enum Message {
 ///     // ...
@@ -1026,7 +1026,7 @@ where
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     scrollable(column![
 ///         "Scroll me!",
-///         vertical_space().height(3000),
+///         space_y().height(3000),
 ///         "You did it!",
 ///     ]).into()
 /// }
@@ -1733,7 +1733,7 @@ where
 /// horizontal space.
 ///
 /// This can be useful to separate widgets in a [`Row`].
-pub fn horizontal_space() -> Space {
+pub fn space_x() -> Space {
     Space::with_width(Length::Fill)
 }
 
@@ -1741,7 +1741,7 @@ pub fn horizontal_space() -> Space {
 /// vertical space.
 ///
 /// This can be useful to separate widgets in a [`Column`].
-pub fn vertical_space() -> Space {
+pub fn space_y() -> Space {
     Space::with_height(Length::Fill)
 }
 

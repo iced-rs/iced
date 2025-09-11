@@ -5,8 +5,8 @@ use iced::clipboard;
 use iced::highlighter;
 use iced::time::{self, Instant, milliseconds};
 use iced::widget::{
-    button, center_x, container, horizontal_space, hover, image, markdown,
-    operation, right, row, scrollable, sensor, text_editor, toggler,
+    button, center_x, container, hover, image, markdown, operation, right, row,
+    scrollable, sensor, space_x, text_editor, toggler,
 };
 use iced::window;
 use iced::{
@@ -264,7 +264,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
             )
             .into()
         } else {
-            sensor(horizontal_space())
+            sensor(space_x())
                 .key_ref(url.as_str())
                 .delay(milliseconds(500))
                 .on_show(|_size| Message::ImageShown(url.clone()))

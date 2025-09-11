@@ -27,8 +27,8 @@ use crate::test::ice;
 use crate::test::instruction;
 use crate::test::{Emulator, Ice, Instruction};
 use crate::widget::{
-    button, center, column, combo_box, container, horizontal_space, pick_list,
-    row, rule, scrollable, text, text_editor, text_input, themer,
+    button, center, column, combo_box, container, pick_list, row, rule,
+    scrollable, space_x, text, text_editor, text_input, themer,
 };
 
 /// Attaches a [`Tester`] to the given [`Program`].
@@ -566,7 +566,7 @@ impl<P: Program + 'static> Tester<P> {
         let viewport = container(
             scrollable(
                 container(match &self.state {
-                    State::Empty => Element::from(horizontal_space()),
+                    State::Empty => Element::from(space_x()),
                     State::Idle { state } => {
                         let theme = program.theme(state, window);
 
@@ -797,7 +797,7 @@ impl<P: Program + 'static> Tester<P> {
         };
 
         let edit = if self.is_busy() {
-            Element::from(horizontal_space())
+            Element::from(space_x())
         } else if self.edit.is_none() {
             button(icon::pencil().size(14))
                 .padding(0)
@@ -851,7 +851,7 @@ where
     column![
         row![
             text(fragment).size(14).font(Font::MONOSPACE),
-            horizontal_space(),
+            space_x(),
             control.into()
         ]
         .spacing(5)

@@ -5,7 +5,7 @@
 //! # mod iced { pub mod widget { pub use iced_widget::*; } }
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-//! use iced::widget::{column, scrollable, vertical_space};
+//! use iced::widget::{column, scrollable, space_y};
 //!
 //! enum Message {
 //!     // ...
@@ -14,7 +14,7 @@
 //! fn view(state: &State) -> Element<'_, Message> {
 //!     scrollable(column![
 //!         "Scroll me!",
-//!         vertical_space().height(3000),
+//!         space_y().height(3000),
 //!         "You did it!",
 //!     ]).into()
 //! }
@@ -48,7 +48,7 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{column, scrollable, vertical_space};
+/// use iced::widget::{column, scrollable, space_y};
 ///
 /// enum Message {
 ///     // ...
@@ -57,7 +57,7 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     scrollable(column![
 ///         "Scroll me!",
-///         vertical_space().height(3000),
+///         space_y().height(3000),
 ///         "You did it!",
 ///     ]).into()
 /// }

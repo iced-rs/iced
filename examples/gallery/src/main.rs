@@ -9,8 +9,8 @@ use crate::civitai::{Error, Id, Image, Rgba, Size};
 use iced::animation;
 use iced::time::{Instant, milliseconds};
 use iced::widget::{
-    button, container, float, grid, horizontal_space, image, mouse_area,
-    opaque, scrollable, sensor, stack,
+    button, container, float, grid, image, mouse_area, opaque, scrollable,
+    sensor, space_x, stack,
 };
 use iced::window;
 use iced::{
@@ -227,7 +227,7 @@ fn card<'a>(
                 })
                 .into()
             } else {
-                horizontal_space().into()
+                space_x().into()
             };
 
         if let Some(blurhash) = preview.blurhash(now) {
@@ -241,7 +241,7 @@ fn card<'a>(
             thumbnail
         }
     } else {
-        horizontal_space().into()
+        space_x().into()
     };
 
     let card = mouse_area(container(image).style(container::dark))
@@ -264,7 +264,7 @@ fn card<'a>(
 }
 
 fn placeholder<'a>() -> Element<'a, Message> {
-    container(horizontal_space()).style(container::dark).into()
+    container(space_x()).style(container::dark).into()
 }
 
 enum Preview {
@@ -426,7 +426,7 @@ impl Viewer {
                 .scale(self.image_fade_in.interpolate(1.5, 1.0, now))
                 .into()
         } else {
-            horizontal_space().into()
+            space_x().into()
         };
 
         if opacity > 0.0 {
@@ -443,7 +443,7 @@ impl Viewer {
                 .on_press(Message::Close),
             )
         } else {
-            horizontal_space().into()
+            space_x().into()
         }
     }
 }

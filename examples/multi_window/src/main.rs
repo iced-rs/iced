@@ -1,6 +1,6 @@
 use iced::widget::{
-    button, center, center_x, column, container, horizontal_space, operation,
-    scrollable, text, text_input,
+    button, center, center_x, column, container, operation, scrollable,
+    space_x, text, text_input,
 };
 use iced::window;
 use iced::{
@@ -134,7 +134,7 @@ impl Example {
         if let Some(window) = self.windows.get(&window_id) {
             center(window.view(window_id)).into()
         } else {
-            horizontal_space().into()
+            space_x().into()
         }
     }
 
