@@ -9,7 +9,7 @@ pub use find::{Find, FindAll};
 pub use target::Target;
 
 use crate::core::Point;
-use crate::core::widget::Id;
+use crate::core::widget;
 
 pub trait Selector {
     type Output;
@@ -79,7 +79,7 @@ impl Selector for String {
     }
 }
 
-impl Selector for Id {
+impl Selector for widget::Id {
     type Output = target::Match;
 
     fn select(&mut self, target: Target<'_>) -> Option<Self::Output> {
@@ -123,4 +123,9 @@ where
     fn description(&self) -> String {
         format!("custom selector: {}", std::any::type_name_of_val(self))
     }
+}
+
+/// Creates a new [`Selector`] that matches widgets with the given [`widget::Id`].
+pub fn id(id: impl Into<widget::Id>) -> impl Selector<Output = target::Match> {
+    id.into()
 }

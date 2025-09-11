@@ -617,8 +617,8 @@ fn presets() -> impl Iterator<Item = Preset<Todos, Message>> {
 mod tests {
     use super::*;
 
-    use iced::widget;
     use iced::{Settings, Theme};
+    use iced_test::selector::id;
     use iced_test::{Error, Simulator};
 
     fn simulator(todos: &Todos) -> Simulator<'_, Message> {
@@ -638,7 +638,7 @@ mod tests {
         let _command = todos.update(Message::Loaded(Err(LoadError::File)));
 
         let mut ui = simulator(&todos);
-        let _input = ui.click(widget::Id::new("new-task"))?;
+        let _input = ui.click(id("new-task"))?;
 
         let _ = ui.typewrite("Create the universe");
         let _ = ui.tap_key(keyboard::key::Named::Enter);
