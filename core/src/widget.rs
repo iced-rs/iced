@@ -25,18 +25,14 @@ use crate::{Clipboard, Event, Length, Rectangle, Shell, Size, Vector};
 /// The repository has some [examples] showcasing how to implement a custom
 /// widget:
 ///
-/// - [`bezier_tool`], a Paint-like tool for drawing Bézier curves using
-///   [`lyon`].
 /// - [`custom_widget`], a demonstration of how to build a custom widget that
 ///   draws a circle.
 /// - [`geometry`], a custom widget showcasing how to draw geometry with the
 ///   `Mesh2D` primitive in [`iced_wgpu`].
 ///
 /// [examples]: https://github.com/iced-rs/iced/tree/0.13/examples
-/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.13/examples/bezier_tool
 /// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.13/examples/custom_widget
 /// [`geometry`]: https://github.com/iced-rs/iced/tree/0.13/examples/geometry
-/// [`lyon`]: https://github.com/nical/lyon
 /// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.13/wgpu
 pub trait Widget<Message, Theme, Renderer>
 where
