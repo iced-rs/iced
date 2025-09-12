@@ -663,7 +663,6 @@ impl<T> Renderer for T where
 }
 
 /// A particular instance of a running [`Program`].
-#[allow(missing_debug_implementations)]
 pub struct Instance<P: Program> {
     program: P,
     state: P::State,

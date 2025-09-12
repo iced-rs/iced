@@ -147,7 +147,6 @@ const THICKNESS_RATIO: f32 = 25.0;
 ///     .into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct PaneGrid<
     'a,
     Message,

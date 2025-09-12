@@ -15,7 +15,6 @@ pub use raw_window_handle;
 use raw_window_handle::WindowHandle;
 
 /// An operation to be performed on some window.
-#[allow(missing_debug_implementations)]
 pub enum Action {
     /// Opens a new window with some [`Settings`].
     Open(Id, Settings, oneshot::Sender<Id>),

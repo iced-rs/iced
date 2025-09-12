@@ -56,7 +56,6 @@ use crate::core::{
 ///         .into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Container<
     'a,
     Message,

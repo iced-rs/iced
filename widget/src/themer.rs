@@ -15,7 +15,6 @@ use crate::core::{
 ///
 /// This widget can be useful to leverage multiple `Theme`
 /// types in an application.
-#[allow(missing_debug_implementations)]
 pub struct Themer<'a, Message, Theme, Renderer = crate::Renderer>
 where
     Renderer: crate::core::Renderer,

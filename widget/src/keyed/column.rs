@@ -29,7 +29,6 @@ use crate::core::{
 ///     })).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Column<
     'a,
     Key,

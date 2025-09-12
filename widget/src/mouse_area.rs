@@ -11,7 +11,6 @@ use crate::core::{
 };
 
 /// Emit messages on mouse events.
-#[allow(missing_debug_implementations)]
 pub struct MouseArea<
     'a,
     Message,

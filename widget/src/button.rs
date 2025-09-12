@@ -68,7 +68,6 @@ use crate::core::{
 ///     button("I am disabled!").into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Renderer: crate::core::Renderer,

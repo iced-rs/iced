@@ -14,7 +14,6 @@ use crate::space_x;
 ///
 /// A [`Responsive`] widget will always try to fill all the available space of
 /// its parent.
-#[allow(missing_debug_implementations)]
 pub struct Responsive<
     'a,
     Message,

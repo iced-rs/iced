@@ -6,7 +6,6 @@ use winit::window::{Window, WindowId};
 
 /// A buffer for short-term storage and transfer within and between
 /// applications.
-#[allow(missing_debug_implementations)]
 pub struct Clipboard {
     state: State,
 }

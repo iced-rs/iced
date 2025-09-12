@@ -76,7 +76,6 @@ use crate::core::{
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Toggler<
     'a,
     Message,

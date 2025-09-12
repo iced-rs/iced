@@ -15,7 +15,6 @@ use crate::core::{
 /// A widget that can generate messages when its content pops in and out of view.
 ///
 /// It can even notify you with anticipation at a given distance!
-#[allow(missing_debug_implementations)]
 pub struct Sensor<
     'a,
     Key,

@@ -62,7 +62,6 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 ///     ]).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Scrollable<
     'a,
     Message,

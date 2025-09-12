@@ -84,7 +84,6 @@ use crate::core::{
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct VerticalSlider<'a, T, Message, Theme = crate::Theme>
 where
     Theme: Catalog,

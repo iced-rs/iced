@@ -197,7 +197,6 @@ pub trait Renderer: core::Renderer {
 
 /// Stores custom, user-provided types.
 #[derive(Default)]
-#[allow(missing_debug_implementations)]
 pub struct Storage {
     pipelines: FxHashMap<TypeId, Box<dyn AnyConcurrent>>,
 }

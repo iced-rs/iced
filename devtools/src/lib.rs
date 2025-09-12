@@ -116,7 +116,6 @@ where
 }
 
 /// The state of the devtools.
-#[allow(missing_debug_implementations)]
 pub struct DevTools<P>
 where
     P: Program,

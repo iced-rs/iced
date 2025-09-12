@@ -5,7 +5,6 @@ use crate::core::{Rectangle, Vector};
 use std::any::Any;
 
 #[derive(Clone)]
-#[allow(missing_debug_implementations)]
 pub enum Target<'a> {
     Container {
         id: Option<&'a Id>,

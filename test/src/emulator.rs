@@ -21,7 +21,6 @@ use crate::{Instruction, Selector};
 
 use std::fmt;
 
-#[allow(missing_debug_implementations)]
 pub struct Emulator<P: Program> {
     state: P::State,
     runtime: Runtime<P::Executor, mpsc::Sender<Event<P>>, Event<P>>,
@@ -35,14 +34,12 @@ pub struct Emulator<P: Program> {
     pending_tasks: usize,
 }
 
-#[allow(missing_debug_implementations)]
 pub enum Event<P: Program> {
     Action(Action<P>),
     Failed(Instruction),
     Ready,
 }
 
-#[allow(missing_debug_implementations)]
 pub enum Action<P: Program> {
     Runtime(runtime::Action<P::Message>),
     CountDown,

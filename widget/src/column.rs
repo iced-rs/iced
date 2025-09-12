@@ -32,7 +32,6 @@ use crate::core::{
 ///     ].into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 {
     spacing: f32,

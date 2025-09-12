@@ -4,7 +4,6 @@ use crate::core::{self, Element};
 /// The controls of a [`Pane`].
 ///
 /// [`Pane`]: super::Pane
-#[allow(missing_debug_implementations)]
 pub struct Controls<
     'a,
     Message,

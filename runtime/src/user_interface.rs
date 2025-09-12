@@ -22,7 +22,6 @@ use crate::core::{
 /// existing graphical application.
 ///
 /// [`integration`]: https://github.com/iced-rs/iced/tree/0.13/examples/integration
-#[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Theme, Renderer> {
     root: Element<'a, Message, Theme, Renderer>,
     base: layout::Node,

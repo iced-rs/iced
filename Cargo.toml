@@ -233,7 +233,6 @@ winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f03
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
-missing_debug_implementations = "deny"
 missing_docs = "deny"
 unsafe_code = "deny"
 unused_results = "deny"

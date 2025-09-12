@@ -60,7 +60,6 @@ const QUIET_ZONE: usize = 2;
 ///     qr_code(&state.data).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct QRCode<'a, Theme = crate::Theme>
 where
     Theme: Catalog,

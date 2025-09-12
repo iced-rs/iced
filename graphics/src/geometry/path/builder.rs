@@ -10,7 +10,6 @@ use lyon_path::math;
 /// A [`Path`] builder.
 ///
 /// Once a [`Path`] is built, it can no longer be mutated.
-#[allow(missing_debug_implementations)]
 pub struct Builder {
     raw: builder::WithSvg<lyon_path::path::BuilderImpl>,
 }

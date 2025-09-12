@@ -91,7 +91,6 @@ where
     }
 }
 
-#[allow(missing_debug_implementations)]
 pub struct Tester<P: Program> {
     viewport: Size,
     mode: emulator::Mode,
@@ -144,7 +143,6 @@ pub enum Message {
     Confirm,
 }
 
-#[allow(missing_debug_implementations)]
 pub enum Tick<P: Program> {
     Tester(Message),
     Program(P::Message),

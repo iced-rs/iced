@@ -7,7 +7,6 @@ use crate::widget;
 use crate::{Clipboard, Event, Layout, Shell, Size};
 
 /// An overlay container that displays nested overlays
-#[allow(missing_debug_implementations)]
 pub struct Nested<'a, Message, Theme, Renderer> {
     overlay: overlay::Element<'a, Message, Theme, Renderer>,
 }

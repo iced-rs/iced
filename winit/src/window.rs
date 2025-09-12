@@ -24,7 +24,6 @@ use winit::monitor::MonitorHandle;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-#[allow(missing_debug_implementations)]
 pub struct WindowManager<P, C>
 where
     P: Program,
@@ -157,7 +156,6 @@ where
     }
 }
 
-#[allow(missing_debug_implementations)]
 pub struct Window<P, C>
 where
     P: Program,

@@ -17,7 +17,6 @@ use crate::core::{
 ///
 /// Keep in mind that too much layering will normally produce bad UX as well as
 /// introduce certain rendering overhead. Use this widget sparingly!
-#[allow(missing_debug_implementations)]
 pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 {
     width: Length,

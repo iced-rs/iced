@@ -72,7 +72,6 @@ use crate::graphics::text::{Editor, Paragraph};
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 /// [`iced`]: https://github.com/iced-rs/iced
-#[allow(missing_debug_implementations)]
 pub struct Renderer {
     engine: Engine,
 

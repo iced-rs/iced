@@ -130,7 +130,6 @@ use std::fmt::Display;
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct ComboBox<
     'a,
     T,

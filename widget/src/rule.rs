@@ -44,7 +44,6 @@ use crate::core::{
 ///     rule(2).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Rule<'a, Theme = crate::Theme>
 where
     Theme: Catalog,

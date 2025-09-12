@@ -256,7 +256,6 @@ where
     A: 'static,
     B: 'static,
 {
-    #[allow(missing_debug_implementations)]
     struct Map<O, A, B> {
         operation: O,
         f: Arc<dyn Fn(A) -> B + Send + Sync>,

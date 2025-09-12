@@ -269,7 +269,6 @@ impl Viewport {
 }
 
 #[derive(Clone)]
-#[allow(missing_debug_implementations)]
 pub struct Pipeline {
     format: wgpu::TextureFormat,
     cache: cryoglyph::Cache,

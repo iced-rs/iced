@@ -32,7 +32,6 @@ use crate::core::{
 ///     ].into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Row<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,
     padding: Padding,
@@ -361,7 +360,6 @@ where
 /// obtain a [`Row`] that wraps its contents.
 ///
 /// The original alignment of the [`Row`] is preserved per row wrapped.
-#[allow(missing_debug_implementations)]
 pub struct Wrapping<
     'a,
     Message,

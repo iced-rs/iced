@@ -7,7 +7,6 @@ use crate::{Clipboard, Event, Layout, Overlay, Shell, Size};
 
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.
-#[allow(missing_debug_implementations)]
 pub struct Group<'a, Message, Theme, Renderer> {
     children: Vec<overlay::Element<'a, Message, Theme, Renderer>>,
 }

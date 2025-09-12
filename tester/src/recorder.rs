@@ -19,7 +19,6 @@ pub fn recorder<'a, Message, Renderer>(
     Recorder::new(content)
 }
 
-#[allow(missing_debug_implementations)]
 pub struct Recorder<'a, Message, Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
     on_record: Option<Box<dyn Fn(Interaction) -> Message + 'a>>,

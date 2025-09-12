@@ -10,7 +10,6 @@ use crate::core::{
 };
 
 /// A container that distributes its contents on a responsive grid.
-#[allow(missing_debug_implementations)]
 pub struct Grid<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,
     columns: Constraint,

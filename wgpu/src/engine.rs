@@ -7,7 +7,6 @@ use crate::triangle;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
-#[allow(missing_debug_implementations)]
 pub struct Engine {
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,

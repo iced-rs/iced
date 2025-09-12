@@ -23,7 +23,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 /// A user interface that can be interacted with and inspected programmatically.
-#[allow(missing_debug_implementations)]
 pub struct Simulator<
     'a,
     Message,
