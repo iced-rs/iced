@@ -10,9 +10,14 @@ use std::sync::Arc;
 pub enum Error {
     /// No matching widget was found for the [`Selector`](crate::Selector).
     #[error("no matching widget was found for the selector: {selector}")]
-    SelectorNotFound { selector: String },
+    SelectorNotFound {
+        /// A description of the selector.
+        selector: String,
+    },
+    /// A target matched, but is not visible.
     #[error("the matching target is not visible: {target:?}")]
     TargetNotVisible {
+        /// The target
         target: Arc<dyn std::fmt::Debug + Send + Sync>,
     },
     /// An IO operation failed.
@@ -24,21 +29,30 @@ pub enum Error {
     /// The encoding of some PNG image failed.
     #[error("the encoding of some PNG image failed: {0}")]
     PngEncodingFailed(Arc<png::EncodingError>),
+    /// The parsing of an [`Ice`](crate::Ice) test failed.
     #[error("the ice test ({file}) is invalid: {error}")]
     IceParsingFailed {
+        /// The path of the test.
         file: PathBuf,
+        /// The parse error.
         error: ice::ParseError,
     },
+    /// The execution of an [`Ice`](crate::Ice) test failed.
     #[error("the ice test ({file}) failed")]
     IceTestingFailed {
+        /// The path of the test.
         file: PathBuf,
+        /// The [`Instruction`] that failed.
         instruction: Instruction,
     },
+    /// The [`Preset`](crate::program::Preset) of a program could not be found.
     #[error(
         "the preset \"{name}\" does not exist (available presets: {available:?})"
     )]
     PresetNotFound {
+        /// The name of the [`Preset`](crate::program::Preset).
         name: String,
+        /// The available set of presets.
         available: Vec<String>,
     },
 }

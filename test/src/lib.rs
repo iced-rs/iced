@@ -28,7 +28,7 @@
 //! #
 //! # let mut counter = Counter { value: 0 };
 //! # let mut ui = simulator(counter.view());
-//!
+//! #
 //! let _ = ui.click("+");
 //! let _ = ui.click("+");
 //! let _ = ui.click("-");
@@ -83,7 +83,6 @@
 //! [`typewrite`](Simulator::typewrite)—and even perform [_snapshot testing_](Simulator::snapshot)!
 //!
 //! [the classical counter interface]: https://book.iced.rs/architecture.html#dissecting-an-interface
-#![allow(missing_docs)]
 pub use iced_program as program;
 pub use iced_renderer as renderer;
 pub use iced_runtime as runtime;
@@ -107,6 +106,14 @@ pub use simulator::{Simulator, simulator};
 
 use std::path::Path;
 
+/// Runs an [`Ice`] test suite for the given [`Program`](program::Program).
+///
+/// Any `.ice` tests will be parsed from the given directory and executed in
+/// an [`Emulator`] of the given [`Program`](program::Program).
+///
+/// Remember that an [`Emulator`] executes the real thing! Side effects _will_
+/// be performed. It is up to you to ensure your tests have reproducible environments
+/// by leveraging [`Preset`][program::Preset].
 pub fn run(
     program: impl program::Program + 'static,
     tests_dir: impl AsRef<Path>,

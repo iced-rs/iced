@@ -1,3 +1,4 @@
+//! A step in an end-to-end test.
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::{Event, Point};
@@ -5,13 +6,19 @@ use crate::simulator;
 
 use std::fmt;
 
+/// A step in an end-to-end test.
+///
+/// An [`Instruction`] can be run by an [`Emulator`](crate::Emulator).
 #[derive(Debug, Clone, PartialEq)]
 pub enum Instruction {
+    /// A user [`Interaction`].
     Interact(Interaction),
+    /// A testing [`Expectation`].
     Expect(Expectation),
 }
 
 impl Instruction {
+    /// Parses an [`Instruction`] from its textual representation.
     pub fn parse(line: &str) -> Result<Self, ParseError> {
         parser::run(line)
     }
@@ -26,13 +33,19 @@ impl fmt::Display for Instruction {
     }
 }
 
+/// A user interaction.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Interaction {
+    /// A mouse interaction.
     Mouse(Mouse),
+    /// A keyboard interaction.
     Keyboard(Keyboard),
 }
 
 impl Interaction {
+    /// Creates an [`Interaction`] from a runtime [`Event`].
+    ///
+    /// This can be useful for recording tests during real usage.
     pub fn from_event(event: &Event) -> Option<Self> {
         Some(match event {
             Event::Mouse(mouse) => Self::Mouse(match mouse {
@@ -86,6 +99,17 @@ impl Interaction {
         })
     }
 
+    /// Merges two interactions together, if possible.
+    ///
+    /// This method can turn certain sequences of interactions into a single one.
+    /// For instance, a mouse movement, left button press, and left button release
+    /// can all be merged into a single click interaction.
+    ///
+    /// Merging is lossy and, therefore, it is not always desirable if you are recording
+    /// a test and want full reproducibility.
+    ///
+    /// If the interactions cannot be merged, the `next` interaction will be
+    /// returned as the second element of the tuple.
     pub fn merge(self, next: Self) -> (Self, Option<Self>) {
         match (self, next) {
             (Self::Mouse(current), Self::Mouse(next)) => {
@@ -185,6 +209,10 @@ impl Interaction {
         }
     }
 
+    /// Returns a list of runtime events representing the [`Interaction`].
+    ///
+    /// The `find_target` closure must convert a [`Target`] into its screen
+    /// coordinates.
     pub fn events(
         &self,
         find_target: impl FnOnce(&Target) -> Option<Point>,
@@ -256,19 +284,30 @@ impl fmt::Display for Interaction {
     }
 }
 
+/// A mouse interaction.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Mouse {
+    /// The mouse was moved.
     Move(Target),
+    /// A button was pressed.
     Press {
+        /// The button.
         button: mouse::Button,
+        /// The location of the press.
         at: Option<Target>,
     },
+    /// A button was released.
     Release {
+        /// The button.
         button: mouse::Button,
+        /// The location of the release.
         at: Option<Target>,
     },
+    /// A button was clicked.
     Click {
+        /// The button.
         button: mouse::Button,
+        /// The location of the click.
         at: Option<Target>,
     },
 }
@@ -292,9 +331,12 @@ impl fmt::Display for Mouse {
     }
 }
 
+/// The target of an interaction.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Target {
+    /// A specific point of the viewport.
     Point(Point),
+    /// A UI element containing the given text.
     Text(String),
 }
 
@@ -307,11 +349,16 @@ impl fmt::Display for Target {
     }
 }
 
+/// A keyboard interaction.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Keyboard {
+    /// A key was pressed.
     Press(Key),
+    /// A key was release.
     Release(Key),
+    /// A key was "typed" (press and released).
     Type(Key),
+    /// A bunch of text was typed.
     Typewrite(String),
 }
 
@@ -334,7 +381,11 @@ impl fmt::Display for Keyboard {
     }
 }
 
+/// A keyboard key.
+///
+/// Only a small subset of keys is supported currently!
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Key {
     Enter,
     Escape,
@@ -399,8 +450,13 @@ mod format {
     }
 }
 
+/// A testing assertion.
+///
+/// Expectations are instructions that verify the current state of
+/// the user interface of an application.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expectation {
+    /// Expect some element to contain some text.
     Text(String),
 }
 
@@ -432,6 +488,7 @@ mod parser {
     use nom::sequence::{delimited, preceded, separated_pair};
     use nom::{Finish, IResult, Parser};
 
+    /// A parsing error.
     #[derive(Debug, Clone, thiserror::Error)]
     #[error("parse error: {0}")]
     pub struct Error(nom::error::Error<String>);

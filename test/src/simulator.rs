@@ -1,4 +1,4 @@
-//! Run a simulation of your application.
+//! Run a simulation of your application without side effects.
 use crate::core;
 use crate::core::clipboard;
 use crate::core::event;
@@ -366,6 +366,7 @@ pub fn click() -> impl Iterator<Item = Event> {
     .into_iter()
 }
 
+/// Returns the sequence of events of a key press.
 pub fn press_key(
     key: impl Into<keyboard::Key>,
     text: Option<SmolStr>,
@@ -384,6 +385,7 @@ pub fn press_key(
     })
 }
 
+/// Returns the sequence of events of a key release.
 pub fn release_key(key: impl Into<keyboard::Key>) -> Event {
     let key = key.into();
 

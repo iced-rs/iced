@@ -1,3 +1,4 @@
+//! Run your application in a headless runtime.
 use crate::core;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -21,6 +22,15 @@ use crate::{Instruction, Selector};
 
 use std::fmt;
 
+/// A headless runtime that can run iced applications and execute
+/// [instructions](crate::Instruction).
+///
+/// An [`Emulator`] runs its program as close as possible to the real thing.
+/// It will run subscriptions and tasks in the [`Executor`](Program::Executor) of
+/// the [`Program`].
+///
+/// If you want to run a simulation without side effects, use a [`Simulator`](crate::Simulator)
+/// instead.
 pub struct Emulator<P: Program> {
     state: P::State,
     runtime: Runtime<P::Executor, mpsc::Sender<Event<P>>, Event<P>>,
@@ -34,18 +44,30 @@ pub struct Emulator<P: Program> {
     pending_tasks: usize,
 }
 
+/// An emulation event.
 pub enum Event<P: Program> {
+    /// An action that must be [performed](Emulator::perform) by the [`Emulator`].
     Action(Action<P>),
+    /// An [`Instruction`] failed to be executed.
     Failed(Instruction),
+    /// The [`Emulator`] is ready.
     Ready,
 }
 
-pub enum Action<P: Program> {
+/// An action that must be [performed](Emulator::perform) by the [`Emulator`].
+pub struct Action<P: Program>(Action_<P>);
+
+enum Action_<P: Program> {
     Runtime(runtime::Action<P::Message>),
     CountDown,
 }
 
 impl<P: Program + 'static> Emulator<P> {
+    /// Creates a new [`Emulator`] of the [`Program`] with the given [`Mode`] and [`Size`].
+    ///
+    /// The [`Emulator`] will send [`Event`] notifications through the provided [`mpsc::Sender`].
+    ///
+    /// When the [`Emulator`] has finished booting, an [`Event::Ready`] will be produced.
     pub fn new(
         sender: mpsc::Sender<Event<P>>,
         program: &P,
@@ -55,6 +77,10 @@ impl<P: Program + 'static> Emulator<P> {
         Self::with_preset(sender, program, mode, size, None)
     }
 
+    /// Creates a new [`Emulator`] analogously to [`new`](Self::new), but it also takes a
+    /// [`program::Preset`] that will be used as the initial state.
+    ///
+    /// When the [`Emulator`] has finished booting, an [`Event::Ready`] will be produced.
     pub fn with_preset(
         sender: mpsc::Sender<Event<P>>,
         program: &P,
@@ -106,6 +132,11 @@ impl<P: Program + 'static> Emulator<P> {
         emulator
     }
 
+    /// Updates the state of the [`Emulator`] program.
+    ///
+    /// This is equivalent to calling the [`Program::update`] function,
+    /// resubscribing to any subscriptions, and running the resulting tasks
+    /// concurrently.
     pub fn update(&mut self, program: &P, message: P::Message) {
         let task = self
             .runtime
@@ -118,16 +149,24 @@ impl<P: Program + 'static> Emulator<P> {
             _ => {
                 if let Some(stream) = task::into_stream(task) {
                     self.runtime.run(
-                        stream.map(Action::Runtime).map(Event::Action).boxed(),
+                        stream
+                            .map(Action_::Runtime)
+                            .map(Action)
+                            .map(Event::Action)
+                            .boxed(),
                     );
                 }
             }
         }
     }
 
+    /// Performs an [`Action`].
+    ///
+    /// Whenever an [`Emulator`] sends an [`Event::Action`], this
+    /// method must be called to proceed with the execution.
     pub fn perform(&mut self, program: &P, action: Action<P>) {
-        match action {
-            Action::CountDown => {
+        match action.0 {
+            Action_::CountDown => {
                 if self.pending_tasks > 0 {
                     self.pending_tasks -= 1;
 
@@ -136,7 +175,7 @@ impl<P: Program + 'static> Emulator<P> {
                     }
                 }
             }
-            Action::Runtime(action) => match action {
+            Action_::Runtime(action) => match action {
                 runtime::Action::Output(message) => {
                     self.update(program, message);
                 }
@@ -229,6 +268,12 @@ impl<P: Program + 'static> Emulator<P> {
         }
     }
 
+    /// Runs an [`Instruction`].
+    ///
+    /// If the [`Instruction`] executes successfully, an [`Event::Ready`] will be
+    /// produced by the [`Emulator`].
+    ///
+    /// Otherwise, an [`Event::Failed`] will be triggered.
     pub fn run(&mut self, program: &P, instruction: Instruction) {
         let mut user_interface = UserInterface::build(
             program.view(&self.state, self.window),
@@ -321,7 +366,7 @@ impl<P: Program + 'static> Emulator<P> {
         }
     }
 
-    pub fn wait_for(&mut self, task: Task<P::Message>) {
+    fn wait_for(&mut self, task: Task<P::Message>) {
         if let Some(stream) = task::into_stream(task) {
             match self.mode {
                 Mode::Zen => {
@@ -329,10 +374,11 @@ impl<P: Program + 'static> Emulator<P> {
 
                     self.runtime.run(
                         stream
-                            .map(Action::Runtime)
+                            .map(Action_::Runtime)
+                            .map(Action)
                             .map(Event::Action)
                             .chain(stream::once(async {
-                                Event::Action(Action::CountDown)
+                                Event::Action(Action(Action_::CountDown))
                             }))
                             .boxed(),
                     );
@@ -340,7 +386,8 @@ impl<P: Program + 'static> Emulator<P> {
                 Mode::Patient => {
                     self.runtime.run(
                         stream
-                            .map(Action::Runtime)
+                            .map(Action_::Runtime)
+                            .map(Action)
                             .map(Event::Action)
                             .chain(stream::once(async { Event::Ready }))
                             .boxed(),
@@ -348,7 +395,11 @@ impl<P: Program + 'static> Emulator<P> {
                 }
                 Mode::Impatient => {
                     self.runtime.run(
-                        stream.map(Action::Runtime).map(Event::Action).boxed(),
+                        stream
+                            .map(Action_::Runtime)
+                            .map(Action)
+                            .map(Event::Action)
+                            .boxed(),
                     );
                     self.runtime.send(Event::Ready);
                 }
@@ -358,17 +409,18 @@ impl<P: Program + 'static> Emulator<P> {
         }
     }
 
-    pub fn resubscribe(&mut self, program: &P) {
+    fn resubscribe(&mut self, program: &P) {
         self.runtime
             .track(subscription::into_recipes(self.runtime.enter(|| {
                 program.subscription(&self.state).map(|message| {
-                    Event::Action(Action::Runtime(runtime::Action::Output(
-                        message,
+                    Event::Action(Action(Action_::Runtime(
+                        runtime::Action::Output(message),
                     )))
                 })
             })));
     }
 
+    /// Returns the current view of the [`Emulator`].
     pub fn view(
         &self,
         program: &P,
@@ -376,24 +428,37 @@ impl<P: Program + 'static> Emulator<P> {
         program.view(&self.state, self.window)
     }
 
+    /// Returns the current theme of the [`Emulator`].
     pub fn theme(&self, program: &P) -> Option<P::Theme> {
         program.theme(&self.state, self.window)
     }
 
+    /// Turns the [`Emulator`] into its internal state.
     pub fn into_state(self) -> (P::State, core::window::Id) {
         (self.state, self.window)
     }
 }
 
+/// The strategy used by an [`Emulator`] when waiting for tasks to finish.
+///
+/// A [`Mode`] can be used to make an [`Emulator`] wait for side effects to finish before
+/// continuing execution.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Mode {
+    /// Waits for all tasks spawned by an [`Instruction`], as well as all tasks indirectly
+    /// spawned by the the results of those tasks.
+    ///
+    /// This is the default.
     #[default]
     Zen,
+    /// Waits only for the tasks directly spawned by an [`Instruction`].
     Patient,
+    /// Never waits for any tasks to finish.
     Impatient,
 }
 
 impl Mode {
+    /// A list of all the available modes.
     pub const ALL: &[Self] = &[Self::Zen, Self::Patient, Self::Impatient];
 }
 
