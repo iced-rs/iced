@@ -18,7 +18,7 @@ pub fn find_by_text(text: impl Into<String>) -> Task<Option<Text>> {
 }
 
 /// Finds the visible bounds of the first [`Selector`] target.
-pub fn visible_bounds<S>(selector: S) -> Task<Option<Rectangle>>
+pub fn delineate<S>(selector: S) -> Task<Option<Rectangle>>
 where
     S: Selector + Send + 'static,
     S::Output: Bounded + Clone + Send + 'static,

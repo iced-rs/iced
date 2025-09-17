@@ -41,10 +41,8 @@ impl Example {
                 Task::none()
             }
             Message::Scrolled | Message::WindowResized => Task::batch(vec![
-                selector::visible_bounds(OUTER_CONTAINER)
-                    .map(Message::OuterFound),
-                selector::visible_bounds(INNER_CONTAINER)
-                    .map(Message::InnerFound),
+                selector::delineate(OUTER_CONTAINER).map(Message::OuterFound),
+                selector::delineate(INNER_CONTAINER).map(Message::InnerFound),
             ]),
             Message::OuterFound(outer) => {
                 self.outer_bounds = outer;
