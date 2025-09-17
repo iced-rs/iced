@@ -8,7 +8,7 @@ use crate::core::{
     self, Clipboard, Element, Event, Length, Rectangle, Shell, Size, Vector,
     Widget,
 };
-use crate::space_x;
+use crate::space;
 
 /// A widget that is aware of its dimensions.
 ///
@@ -43,7 +43,7 @@ where
             view: Box::new(view),
             width: Length::Fill,
             height: Length::Fill,
-            content: Element::new(space_x().width(0)),
+            content: Element::new(space()),
         }
     }
 

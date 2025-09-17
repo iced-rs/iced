@@ -10,7 +10,7 @@ use iced::animation;
 use iced::time::{Instant, milliseconds};
 use iced::widget::{
     button, container, float, grid, image, mouse_area, opaque, scrollable,
-    sensor, space_x, stack,
+    sensor, space, stack,
 };
 use iced::window;
 use iced::{
@@ -227,7 +227,7 @@ fn card<'a>(
                 })
                 .into()
             } else {
-                space_x().into()
+                space::horizontal().into()
             };
 
         if let Some(blurhash) = preview.blurhash(now) {
@@ -241,7 +241,7 @@ fn card<'a>(
             thumbnail
         }
     } else {
-        space_x().into()
+        space::horizontal().into()
     };
 
     let card = mouse_area(container(image).style(container::dark))
@@ -264,7 +264,7 @@ fn card<'a>(
 }
 
 fn placeholder<'a>() -> Element<'a, Message> {
-    container(space_x()).style(container::dark).into()
+    container(space()).style(container::dark).into()
 }
 
 enum Preview {
@@ -415,35 +415,32 @@ impl Viewer {
             || self.image_fade_in.is_animating(now)
     }
 
-    fn view(&self, now: Instant) -> Element<'_, Message> {
+    fn view(&self, now: Instant) -> Option<Element<'_, Message>> {
         let opacity = self.background_fade_in.interpolate(0.0, 0.8, now);
 
-        let image: Element<'_, _> = if let Some(handle) = &self.image {
+        if opacity <= 0.0 {
+            return None;
+        }
+
+        let image = self.image.as_ref().map(|handle| {
             image(handle)
                 .width(Fill)
                 .height(Fill)
                 .opacity(self.image_fade_in.interpolate(0.0, 1.0, now))
                 .scale(self.image_fade_in.interpolate(1.5, 1.0, now))
-                .into()
-        } else {
-            space_x().into()
-        };
+        });
 
-        if opacity > 0.0 {
-            opaque(
-                mouse_area(
-                    container(image)
-                        .center(Fill)
-                        .style(move |_theme| {
-                            container::Style::default()
-                                .background(color!(0x000000, opacity))
-                        })
-                        .padding(20),
-                )
-                .on_press(Message::Close),
+        Some(opaque(
+            mouse_area(
+                container(image)
+                    .center(Fill)
+                    .style(move |_theme| {
+                        container::Style::default()
+                            .background(color!(0x000000, opacity))
+                    })
+                    .padding(20),
             )
-        } else {
-            space_x().into()
-        }
+            .on_press(Message::Close),
+        ))
     }
 }

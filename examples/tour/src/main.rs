@@ -1,7 +1,7 @@
 use iced::widget::{Button, Column, Container, Slider};
 use iced::widget::{
     button, center_x, center_y, checkbox, column, image, radio, rich_text, row,
-    scrollable, slider, space_x, space_y, span, text, text_input, toggler,
+    scrollable, slider, space, span, text, text_input, toggler,
 };
 use iced::{Center, Color, Element, Fill, Font, Pixels, color};
 
@@ -146,7 +146,7 @@ impl Tour {
                     .on_press(Message::BackPressed)
                     .style(button::secondary)
             }),
-            space_x(),
+            space::horizontal(),
             self.can_continue().then(|| {
                 padded_button("Next").on_press(Message::NextPressed)
             })
@@ -405,14 +405,14 @@ impl Tour {
                 text("Tip: You can use the scrollbar to scroll down faster!")
                     .size(16),
             )
-            .push(space_y().height(4096))
+            .push(space().height(4096))
             .push(
                 text("You are halfway there!")
                     .width(Fill)
                     .size(30)
                     .align_x(Center),
             )
-            .push(space_y().height(4096))
+            .push(space().height(4096))
             .push(ferris(300, image::FilterMethod::Linear))
             .push(text("You made it!").width(Fill).size(50).align_x(Center))
     }

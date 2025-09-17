@@ -3,7 +3,7 @@ use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
     button, canvas, center, center_y, checkbox, column, container, pick_list,
-    pin, row, rule, scrollable, space_x, stack, text,
+    pin, row, rule, scrollable, space, stack, text,
 };
 use iced::{
     Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink,
@@ -70,7 +70,7 @@ impl Layout {
     fn view(&self) -> Element<'_, Message> {
         let header = row![
             text(self.example.title).size(20).font(Font::MONOSPACE),
-            space_x(),
+            space::horizontal(),
             checkbox("Explain", self.explain)
                 .on_toggle(Message::ExplainToggled),
             pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeSelected)
@@ -92,23 +92,19 @@ impl Layout {
         })
         .padding(4);
 
-        let controls = row([
+        let controls = row![
             (!self.example.is_first()).then_some(
                 button(text("← Previous"))
                     .padding([5, 10])
                     .on_press(Message::Previous)
-                    .into(),
             ),
-            Some(space_x().into()),
+            space::horizontal(),
             (!self.example.is_last()).then_some(
                 button(text("Next →"))
                     .padding([5, 10])
                     .on_press(Message::Next)
-                    .into(),
             ),
-        ]
-        .into_iter()
-        .flatten());
+        ];
 
         column![header, example, controls]
             .spacing(10)
@@ -143,7 +139,7 @@ impl Example {
         },
         Self {
             title: "Space",
-            view: space,
+            view: space_,
         },
         Self {
             title: "Application",
@@ -237,15 +233,21 @@ fn row_<'a>() -> Element<'a, Message> {
     .into()
 }
 
-fn space<'a>() -> Element<'a, Message> {
-    row!["Left!", space_x(), "Right!"].into()
+fn space_<'a>() -> Element<'a, Message> {
+    row!["Left!", space::horizontal(), "Right!"].into()
 }
 
 fn application<'a>() -> Element<'a, Message> {
     let header = container(
-        row![square(40), space_x(), "Header!", space_x(), square(40),]
-            .padding(10)
-            .align_y(Center),
+        row![
+            square(40),
+            space::horizontal(),
+            "Header!",
+            space::horizontal(),
+            square(40),
+        ]
+        .padding(10)
+        .align_y(Center),
     )
     .style(|theme| {
         let palette = theme.extended_palette();

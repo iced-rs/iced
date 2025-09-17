@@ -1,7 +1,7 @@
 use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
-    button, center_x, column, container, operation, pick_list, row, space_x,
+    button, center_x, column, container, operation, pick_list, row, space,
     text, text_editor, toggler, tooltip,
 };
 use iced::{Center, Element, Fill, Font, Task, Theme};
@@ -157,7 +157,7 @@ impl Editor {
                 "Save file",
                 self.is_dirty.then_some(Message::SaveFile)
             ),
-            space_x(),
+            space::horizontal(),
             toggler(self.word_wrap)
                 .label("Word Wrap")
                 .on_toggle(Message::WordWrapToggled),
@@ -184,7 +184,7 @@ impl Editor {
             } else {
                 String::from("New file")
             }),
-            space_x(),
+            space::horizontal(),
             text({
                 let (line, column) = self.content.cursor_position();
 

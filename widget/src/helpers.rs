@@ -1017,7 +1017,7 @@ where
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{column, scrollable, space_y};
+/// use iced::widget::{column, scrollable, space};
 ///
 /// enum Message {
 ///     // ...
@@ -1026,7 +1026,7 @@ where
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     scrollable(column![
 ///         "Scroll me!",
-///         space_y().height(3000),
+///         space().height(3000),
 ///         "You did it!",
 ///     ]).into()
 /// }
@@ -1729,20 +1729,12 @@ where
     ComboBox::new(state, placeholder, selection, on_selected)
 }
 
-/// Creates a new [`Space`] widget that fills the available
-/// horizontal space.
+/// Creates some empty [`Space`] with no size.
 ///
-/// This can be useful to separate widgets in a [`Row`].
-pub fn space_x() -> Space {
-    Space::with_width(Length::Fill)
-}
-
-/// Creates a new [`Space`] widget that fills the available
-/// vertical space.
-///
-/// This can be useful to separate widgets in a [`Column`].
-pub fn space_y() -> Space {
-    Space::with_height(Length::Fill)
+/// This is considered the "identity" widget. It will take
+/// no space and do nothing.
+pub fn space() -> Space {
+    Space::new()
 }
 
 /// Creates a horizontal [`Rule`] with the given height.

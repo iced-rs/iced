@@ -171,7 +171,7 @@ mod toast {
     use iced::mouse;
     use iced::theme;
     use iced::time::{self, Duration, Instant};
-    use iced::widget::{button, column, container, row, rule, space_x, text};
+    use iced::widget::{button, column, container, row, rule, space, text};
     use iced::window;
     use iced::{
         Alignment, Center, Element, Event, Fill, Length, Point, Rectangle,
@@ -237,7 +237,7 @@ mod toast {
                         container(
                             row![
                                 text(toast.title.as_str()),
-                                space_x(),
+                                space::horizontal(),
                                 button("X")
                                     .on_press((on_close)(index))
                                     .padding(3),

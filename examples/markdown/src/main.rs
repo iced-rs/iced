@@ -6,7 +6,7 @@ use iced::highlighter;
 use iced::time::{self, Instant, milliseconds};
 use iced::widget::{
     button, center_x, container, hover, image, markdown, operation, right, row,
-    scrollable, sensor, space_x, text_editor, toggler,
+    scrollable, sensor, space, text_editor, toggler,
 };
 use iced::window;
 use iced::{
@@ -264,7 +264,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
             )
             .into()
         } else {
-            sensor(space_x())
+            sensor(space())
                 .key_ref(url.as_str())
                 .delay(milliseconds(500))
                 .on_show(|_size| Message::ImageShown(url.clone()))

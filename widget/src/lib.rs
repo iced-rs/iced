@@ -14,7 +14,6 @@ mod column;
 mod mouse_area;
 mod pin;
 mod responsive;
-mod space;
 mod stack;
 mod themer;
 
@@ -35,6 +34,7 @@ pub mod rule;
 pub mod scrollable;
 pub mod sensor;
 pub mod slider;
+pub mod space;
 pub mod table;
 pub mod text;
 pub mod text_editor;

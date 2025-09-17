@@ -1,7 +1,7 @@
 use iced::event::{self, Event};
 use iced::mouse;
 use iced::widget::{
-    self, column, container, row, scrollable, selector, space_x, space_y, text,
+    self, column, container, row, scrollable, selector, space, text,
 };
 use iced::window;
 use iced::{
@@ -63,7 +63,7 @@ impl Example {
         let data_row = |label, value, color| {
             row![
                 text(label),
-                space_x(),
+                space::horizontal(),
                 text(value)
                     .font(Font::MONOSPACE)
                     .size(14)
@@ -111,21 +111,21 @@ impl Example {
             scrollable(
                 column![
                     text("Scroll me!"),
-                    space_y().height(400),
+                    space().height(400),
                     container(text("I am the outer container!"))
                         .id(OUTER_CONTAINER)
                         .padding(40)
                         .style(container::rounded_box),
-                    space_y().height(400),
+                    space().height(400),
                     scrollable(
                         column![
                             text("Scroll me!"),
-                            space_y().height(400),
+                            space().height(400),
                             container(text("I am the inner container!"))
                                 .id(INNER_CONTAINER)
                                 .padding(40)
                                 .style(container::rounded_box),
-                            space_y().height(400),
+                            space().height(400),
                         ]
                         .padding(20)
                     )
