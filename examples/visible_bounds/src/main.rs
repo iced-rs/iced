@@ -1,7 +1,7 @@
 use iced::event::{self, Event};
 use iced::mouse;
 use iced::widget::{
-    column, container, row, scrollable, selector, space_x, space_y, text,
+    self, column, container, row, scrollable, selector, space_x, space_y, text,
 };
 use iced::window;
 use iced::{
@@ -28,8 +28,8 @@ enum Message {
     MouseMoved(Point),
     WindowResized,
     Scrolled,
-    OuterFound(Option<selector::Match>),
-    InnerFound(Option<selector::Match>),
+    OuterFound(Option<Rectangle>),
+    InnerFound(Option<Rectangle>),
 }
 
 impl Example {
@@ -41,18 +41,18 @@ impl Example {
                 Task::none()
             }
             Message::Scrolled | Message::WindowResized => Task::batch(vec![
-                selector::find_by_id(OUTER_CONTAINER).map(Message::OuterFound),
-                selector::find_by_id(INNER_CONTAINER).map(Message::InnerFound),
+                selector::visible_bounds(OUTER_CONTAINER)
+                    .map(Message::OuterFound),
+                selector::visible_bounds(INNER_CONTAINER)
+                    .map(Message::InnerFound),
             ]),
             Message::OuterFound(outer) => {
-                self.outer_bounds =
-                    outer.as_ref().and_then(selector::Bounded::visible_bounds);
+                self.outer_bounds = outer;
 
                 Task::none()
             }
             Message::InnerFound(inner) => {
-                self.inner_bounds =
-                    inner.as_ref().and_then(selector::Bounded::visible_bounds);
+                self.inner_bounds = inner;
 
                 Task::none()
             }
@@ -157,5 +157,5 @@ impl Example {
     }
 }
 
-const OUTER_CONTAINER: &str = "outer";
-const INNER_CONTAINER: &str = "inner";
+const OUTER_CONTAINER: widget::Id = widget::Id::new("outer");
+const INNER_CONTAINER: widget::Id = widget::Id::new("inner");

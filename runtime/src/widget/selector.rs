@@ -1,7 +1,5 @@
 //! Find and query widgets in your applications.
-pub use iced_selector::Selector;
-
-pub use iced_selector::target::{Bounded, Match, Target, Text};
+pub use iced_selector::{Bounded, Candidate, Selector, Target, Text};
 
 use crate::core::Rectangle;
 
@@ -10,7 +8,7 @@ use crate::core::widget;
 use crate::task;
 
 /// Finds a widget by the given [`widget::Id`].
-pub fn find_by_id(id: impl Into<widget::Id>) -> Task<Option<Match>> {
+pub fn find_by_id(id: impl Into<widget::Id>) -> Task<Option<Target>> {
     task::widget(id.into().find())
 }
 

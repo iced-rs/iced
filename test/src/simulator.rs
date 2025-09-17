@@ -12,7 +12,7 @@ use crate::core::{Element, Event, Font, Point, Settings, Size, SmolStr};
 use crate::renderer;
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
-use crate::selector::target::Bounded;
+use crate::selector::Bounded;
 use crate::{Error, Selector};
 
 use std::borrow::Cow;

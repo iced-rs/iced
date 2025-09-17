@@ -112,7 +112,7 @@ use std::path::Path;
 /// an [`Emulator`] of the given [`Program`](program::Program).
 ///
 /// Remember that an [`Emulator`] executes the real thing! Side effects _will_
-/// be performed. It is up to you to ensure your tests have reproducible environments
+/// take place. It is up to you to ensure your tests have reproducible environments
 /// by leveraging [`Preset`][program::Preset].
 pub fn run(
     program: impl program::Program + 'static,

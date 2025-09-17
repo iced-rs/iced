@@ -17,7 +17,6 @@ use crate::runtime::task;
 use crate::runtime::user_interface;
 use crate::runtime::window;
 use crate::runtime::{Task, UserInterface};
-use crate::selector;
 use crate::{Instruction, Selector};
 
 use std::fmt;
@@ -25,8 +24,8 @@ use std::fmt;
 /// A headless runtime that can run iced applications and execute
 /// [instructions](crate::Instruction).
 ///
-/// An [`Emulator`] runs its program as close as possible to the real thing.
-/// It will run subscriptions and tasks in the [`Executor`](Program::Executor) of
+/// An [`Emulator`] runs its program as faithfully as possible to the real thing.
+/// It will run subscriptions and tasks with the [`Executor`](Program::Executor) of
 /// the [`Program`].
 ///
 /// If you want to run a simulation without side effects, use a [`Simulator`](crate::Simulator)
@@ -289,7 +288,6 @@ impl<P: Program + 'static> Emulator<P> {
                 let Some(events) = interaction.events(|target| match target {
                     instruction::Target::Point(position) => Some(*position),
                     instruction::Target::Text(text) => {
-                        use selector::target::Bounded;
                         use widget::Operation;
 
                         let mut operation = Selector::find(text.as_str());

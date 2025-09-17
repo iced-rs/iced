@@ -1,9 +1,10 @@
+use crate::Selector;
 use crate::core::widget::operation::{
     Focusable, Outcome, Scrollable, TextInput,
 };
 use crate::core::widget::{Id, Operation};
 use crate::core::{Rectangle, Vector};
-use crate::{Selector, Target};
+use crate::target::Candidate;
 
 use std::any::Any;
 
@@ -38,7 +39,7 @@ where
 {
     type Output = Option<S::Output>;
 
-    fn feed(&mut self, target: Target<'_>) {
+    fn feed(&mut self, target: Candidate<'_>) {
         if let Some(output) = self.selector.select(target) {
             self.output = Some(output);
         }
@@ -81,7 +82,7 @@ where
 {
     type Output = Vec<S::Output>;
 
-    fn feed(&mut self, target: Target<'_>) {
+    fn feed(&mut self, target: Candidate<'_>) {
         if let Some(output) = self.selector.select(target) {
             self.outputs.push(output);
         }
@@ -99,7 +100,7 @@ where
 pub trait Strategy {
     type Output;
 
-    fn feed(&mut self, target: Target<'_>);
+    fn feed(&mut self, target: Candidate<'_>);
 
     fn is_done(&self) -> bool;
 
@@ -152,7 +153,7 @@ where
             return;
         }
 
-        self.strategy.feed(Target::Container {
+        self.strategy.feed(Candidate::Container {
             id,
             bounds,
             visible_bounds: self
@@ -171,7 +172,7 @@ where
             return;
         }
 
-        self.strategy.feed(Target::Focusable {
+        self.strategy.feed(Candidate::Focusable {
             id,
             bounds,
             visible_bounds: self
@@ -196,7 +197,7 @@ where
         let visible_bounds =
             self.viewport.intersection(&(bounds + self.translation));
 
-        self.strategy.feed(Target::Scrollable {
+        self.strategy.feed(Candidate::Scrollable {
             id,
             bounds,
             visible_bounds,
@@ -219,7 +220,7 @@ where
             return;
         }
 
-        self.strategy.feed(Target::TextInput {
+        self.strategy.feed(Candidate::TextInput {
             id,
             bounds,
             visible_bounds: self
@@ -234,7 +235,7 @@ where
             return;
         }
 
-        self.strategy.feed(Target::Text {
+        self.strategy.feed(Candidate::Text {
             id,
             bounds,
             visible_bounds: self
@@ -254,7 +255,7 @@ where
             return;
         }
 
-        self.strategy.feed(Target::Custom {
+        self.strategy.feed(Candidate::Custom {
             id,
             bounds,
             visible_bounds: self

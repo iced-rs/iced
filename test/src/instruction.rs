@@ -354,7 +354,7 @@ impl fmt::Display for Target {
 pub enum Keyboard {
     /// A key was pressed.
     Press(Key),
-    /// A key was release.
+    /// A key was released.
     Release(Key),
     /// A key was "typed" (press and released).
     Type(Key),

@@ -11,7 +11,7 @@ use crate::core::{
 };
 use crate::test::Selector;
 use crate::test::instruction::{Interaction, Mouse, Target};
-use crate::test::selector::target;
+use crate::test::selector;
 
 pub fn recorder<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
@@ -457,12 +457,12 @@ fn find_text(
 
     let (content, visible_bounds) =
         targets.into_iter().rev().find_map(|target| {
-            if let target::Match::Text {
+            if let selector::Target::Text {
                 content,
                 visible_bounds,
                 ..
             }
-            | target::Match::TextInput {
+            | selector::Target::TextInput {
                 content,
                 visible_bounds,
                 ..

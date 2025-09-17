@@ -1,12 +1,11 @@
 #![allow(missing_docs)]
 use iced_core as core;
 
-pub mod target;
-
 mod find;
+mod target;
 
 pub use find::{Find, FindAll};
-pub use target::Target;
+pub use target::{Bounded, Candidate, Target, Text};
 
 use crate::core::Point;
 use crate::core::widget;
@@ -14,7 +13,7 @@ use crate::core::widget;
 pub trait Selector {
     type Output;
 
-    fn select(&mut self, target: Target<'_>) -> Option<Self::Output>;
+    fn select(&mut self, candidate: Candidate<'_>) -> Option<Self::Output>;
 
     fn description(&self) -> String;
 
@@ -36,9 +35,9 @@ pub trait Selector {
 impl Selector for &str {
     type Output = target::Text;
 
-    fn select(&mut self, target: Target<'_>) -> Option<Self::Output> {
-        match target {
-            Target::TextInput {
+    fn select(&mut self, candidate: Candidate<'_>) -> Option<Self::Output> {
+        match candidate {
+            Candidate::TextInput {
                 id,
                 bounds,
                 visible_bounds,
@@ -48,7 +47,7 @@ impl Selector for &str {
                 bounds,
                 visible_bounds,
             }),
-            Target::Text {
+            Candidate::Text {
                 id,
                 bounds,
                 visible_bounds,
@@ -70,8 +69,8 @@ impl Selector for &str {
 impl Selector for String {
     type Output = target::Text;
 
-    fn select(&mut self, target: Target<'_>) -> Option<Self::Output> {
-        self.as_str().select(target)
+    fn select(&mut self, candidate: Candidate<'_>) -> Option<Self::Output> {
+        self.as_str().select(candidate)
     }
 
     fn description(&self) -> String {
@@ -80,14 +79,14 @@ impl Selector for String {
 }
 
 impl Selector for widget::Id {
-    type Output = target::Match;
+    type Output = Target;
 
-    fn select(&mut self, target: Target<'_>) -> Option<Self::Output> {
-        if target.id() != Some(self) {
+    fn select(&mut self, candidate: Candidate<'_>) -> Option<Self::Output> {
+        if candidate.id() != Some(self) {
             return None;
         }
 
-        Some(target::Match::from_target(target))
+        Some(Target::from(candidate))
     }
 
     fn description(&self) -> String {
@@ -96,13 +95,13 @@ impl Selector for widget::Id {
 }
 
 impl Selector for Point {
-    type Output = target::Match;
+    type Output = Target;
 
-    fn select(&mut self, target: Target<'_>) -> Option<Self::Output> {
-        target
+    fn select(&mut self, candidate: Candidate<'_>) -> Option<Self::Output> {
+        candidate
             .visible_bounds()
             .is_some_and(|visible_bounds| visible_bounds.contains(*self))
-            .then(|| target::Match::from_target(target))
+            .then(|| Target::from(candidate))
     }
 
     fn description(&self) -> String {
@@ -112,12 +111,12 @@ impl Selector for Point {
 
 impl<F, T> Selector for F
 where
-    F: FnMut(Target<'_>) -> Option<T>,
+    F: FnMut(Candidate<'_>) -> Option<T>,
 {
     type Output = T;
 
-    fn select(&mut self, target: Target<'_>) -> Option<Self::Output> {
-        (self)(target)
+    fn select(&mut self, candidate: Candidate<'_>) -> Option<Self::Output> {
+        (self)(candidate)
     }
 
     fn description(&self) -> String {
@@ -126,6 +125,6 @@ where
 }
 
 /// Creates a new [`Selector`] that matches widgets with the given [`widget::Id`].
-pub fn id(id: impl Into<widget::Id>) -> impl Selector<Output = target::Match> {
+pub fn id(id: impl Into<widget::Id>) -> impl Selector<Output = Target> {
     id.into()
 }

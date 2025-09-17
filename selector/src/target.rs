@@ -4,8 +4,152 @@ use crate::core::{Rectangle, Vector};
 
 use std::any::Any;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum Target {
+    Container {
+        id: Option<Id>,
+        bounds: Rectangle,
+        visible_bounds: Option<Rectangle>,
+    },
+    Focusable {
+        id: Option<Id>,
+        bounds: Rectangle,
+        visible_bounds: Option<Rectangle>,
+    },
+    Scrollable {
+        id: Option<Id>,
+        bounds: Rectangle,
+        visible_bounds: Option<Rectangle>,
+        content_bounds: Rectangle,
+        translation: Vector,
+    },
+    TextInput {
+        id: Option<Id>,
+        bounds: Rectangle,
+        visible_bounds: Option<Rectangle>,
+        content: String,
+    },
+    Text {
+        id: Option<Id>,
+        bounds: Rectangle,
+        visible_bounds: Option<Rectangle>,
+        content: String,
+    },
+    Custom {
+        id: Option<Id>,
+        bounds: Rectangle,
+        visible_bounds: Option<Rectangle>,
+    },
+}
+
+impl Target {
+    pub fn bounds(&self) -> Rectangle {
+        match self {
+            Target::Container { bounds, .. }
+            | Target::Focusable { bounds, .. }
+            | Target::Scrollable { bounds, .. }
+            | Target::TextInput { bounds, .. }
+            | Target::Text { bounds, .. }
+            | Target::Custom { bounds, .. } => *bounds,
+        }
+    }
+
+    pub fn visible_bounds(&self) -> Option<Rectangle> {
+        match self {
+            Target::Container { visible_bounds, .. }
+            | Target::Focusable { visible_bounds, .. }
+            | Target::Scrollable { visible_bounds, .. }
+            | Target::TextInput { visible_bounds, .. }
+            | Target::Text { visible_bounds, .. }
+            | Target::Custom { visible_bounds, .. } => *visible_bounds,
+        }
+    }
+}
+
+impl From<Candidate<'_>> for Target {
+    fn from(candidate: Candidate<'_>) -> Self {
+        match candidate {
+            Candidate::Container {
+                id,
+                bounds,
+                visible_bounds,
+            } => Self::Container {
+                id: id.cloned(),
+                bounds,
+                visible_bounds,
+            },
+            Candidate::Focusable {
+                id,
+                bounds,
+                visible_bounds,
+                ..
+            } => Self::Focusable {
+                id: id.cloned(),
+                bounds,
+                visible_bounds,
+            },
+            Candidate::Scrollable {
+                id,
+                bounds,
+                visible_bounds,
+                content_bounds,
+                translation,
+                ..
+            } => Self::Scrollable {
+                id: id.cloned(),
+                bounds,
+                visible_bounds,
+                content_bounds,
+                translation,
+            },
+            Candidate::TextInput {
+                id,
+                bounds,
+                visible_bounds,
+                state,
+            } => Self::TextInput {
+                id: id.cloned(),
+                bounds,
+                visible_bounds,
+                content: state.text().to_owned(),
+            },
+            Candidate::Text {
+                id,
+                bounds,
+                visible_bounds,
+                content,
+            } => Self::Text {
+                id: id.cloned(),
+                bounds,
+                visible_bounds,
+                content: content.to_owned(),
+            },
+            Candidate::Custom {
+                id,
+                bounds,
+                visible_bounds,
+                ..
+            } => Self::Custom {
+                id: id.cloned(),
+                bounds,
+                visible_bounds,
+            },
+        }
+    }
+}
+
+impl Bounded for Target {
+    fn bounds(&self) -> Rectangle {
+        self.bounds()
+    }
+
+    fn visible_bounds(&self) -> Option<Rectangle> {
+        self.visible_bounds()
+    }
+}
+
 #[derive(Clone)]
-pub enum Target<'a> {
+pub enum Candidate<'a> {
     Container {
         id: Option<&'a Id>,
         bounds: Rectangle,
@@ -45,171 +189,37 @@ pub enum Target<'a> {
     },
 }
 
-impl<'a> Target<'a> {
+impl<'a> Candidate<'a> {
     pub fn id(&self) -> Option<&'a Id> {
         match self {
-            Target::Container { id, .. }
-            | Target::Focusable { id, .. }
-            | Target::Scrollable { id, .. }
-            | Target::TextInput { id, .. }
-            | Target::Text { id, .. }
-            | Target::Custom { id, .. } => *id,
+            Candidate::Container { id, .. }
+            | Candidate::Focusable { id, .. }
+            | Candidate::Scrollable { id, .. }
+            | Candidate::TextInput { id, .. }
+            | Candidate::Text { id, .. }
+            | Candidate::Custom { id, .. } => *id,
         }
     }
 
     pub fn bounds(&self) -> Rectangle {
         match self {
-            Target::Container { bounds, .. }
-            | Target::Focusable { bounds, .. }
-            | Target::Scrollable { bounds, .. }
-            | Target::TextInput { bounds, .. }
-            | Target::Text { bounds, .. }
-            | Target::Custom { bounds, .. } => *bounds,
+            Candidate::Container { bounds, .. }
+            | Candidate::Focusable { bounds, .. }
+            | Candidate::Scrollable { bounds, .. }
+            | Candidate::TextInput { bounds, .. }
+            | Candidate::Text { bounds, .. }
+            | Candidate::Custom { bounds, .. } => *bounds,
         }
     }
 
     pub fn visible_bounds(&self) -> Option<Rectangle> {
         match self {
-            Target::Container { visible_bounds, .. }
-            | Target::Focusable { visible_bounds, .. }
-            | Target::Scrollable { visible_bounds, .. }
-            | Target::TextInput { visible_bounds, .. }
-            | Target::Text { visible_bounds, .. }
-            | Target::Custom { visible_bounds, .. } => *visible_bounds,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Match {
-    Container {
-        id: Option<Id>,
-        bounds: Rectangle,
-        visible_bounds: Option<Rectangle>,
-    },
-    Focusable {
-        id: Option<Id>,
-        bounds: Rectangle,
-        visible_bounds: Option<Rectangle>,
-    },
-    Scrollable {
-        id: Option<Id>,
-        bounds: Rectangle,
-        visible_bounds: Option<Rectangle>,
-        content_bounds: Rectangle,
-        translation: Vector,
-    },
-    TextInput {
-        id: Option<Id>,
-        bounds: Rectangle,
-        visible_bounds: Option<Rectangle>,
-        content: String,
-    },
-    Text {
-        id: Option<Id>,
-        bounds: Rectangle,
-        visible_bounds: Option<Rectangle>,
-        content: String,
-    },
-    Custom {
-        id: Option<Id>,
-        bounds: Rectangle,
-        visible_bounds: Option<Rectangle>,
-    },
-}
-
-impl Match {
-    pub fn from_target(target: Target<'_>) -> Self {
-        match target {
-            Target::Container {
-                id,
-                bounds,
-                visible_bounds,
-            } => Self::Container {
-                id: id.cloned(),
-                bounds,
-                visible_bounds,
-            },
-            Target::Focusable {
-                id,
-                bounds,
-                visible_bounds,
-                ..
-            } => Self::Focusable {
-                id: id.cloned(),
-                bounds,
-                visible_bounds,
-            },
-            Target::Scrollable {
-                id,
-                bounds,
-                visible_bounds,
-                content_bounds,
-                translation,
-                ..
-            } => Self::Scrollable {
-                id: id.cloned(),
-                bounds,
-                visible_bounds,
-                content_bounds,
-                translation,
-            },
-            Target::TextInput {
-                id,
-                bounds,
-                visible_bounds,
-                state,
-            } => Self::TextInput {
-                id: id.cloned(),
-                bounds,
-                visible_bounds,
-                content: state.text().to_owned(),
-            },
-            Target::Text {
-                id,
-                bounds,
-                visible_bounds,
-                content,
-            } => Self::Text {
-                id: id.cloned(),
-                bounds,
-                visible_bounds,
-                content: content.to_owned(),
-            },
-            Target::Custom {
-                id,
-                bounds,
-                visible_bounds,
-                ..
-            } => Self::Custom {
-                id: id.cloned(),
-                bounds,
-                visible_bounds,
-            },
-        }
-    }
-}
-
-impl Bounded for Match {
-    fn bounds(&self) -> Rectangle {
-        match self {
-            Match::Container { bounds, .. }
-            | Match::Focusable { bounds, .. }
-            | Match::Scrollable { bounds, .. }
-            | Match::TextInput { bounds, .. }
-            | Match::Text { bounds, .. }
-            | Match::Custom { bounds, .. } => *bounds,
-        }
-    }
-
-    fn visible_bounds(&self) -> Option<Rectangle> {
-        match self {
-            Match::Container { visible_bounds, .. }
-            | Match::Focusable { visible_bounds, .. }
-            | Match::Scrollable { visible_bounds, .. }
-            | Match::TextInput { visible_bounds, .. }
-            | Match::Text { visible_bounds, .. }
-            | Match::Custom { visible_bounds, .. } => *visible_bounds,
+            Candidate::Container { visible_bounds, .. }
+            | Candidate::Focusable { visible_bounds, .. }
+            | Candidate::Scrollable { visible_bounds, .. }
+            | Candidate::TextInput { visible_bounds, .. }
+            | Candidate::Text { visible_bounds, .. }
+            | Candidate::Custom { visible_bounds, .. } => *visible_bounds,
         }
     }
 }
@@ -234,17 +244,27 @@ pub enum Text {
     },
 }
 
-impl Bounded for Text {
-    fn bounds(&self) -> Rectangle {
+impl Text {
+    pub fn bounds(&self) -> Rectangle {
         match self {
             Text::Raw { bounds, .. } | Text::Input { bounds, .. } => *bounds,
         }
     }
 
-    fn visible_bounds(&self) -> Option<Rectangle> {
+    pub fn visible_bounds(&self) -> Option<Rectangle> {
         match self {
             Text::Raw { visible_bounds, .. }
             | Text::Input { visible_bounds, .. } => *visible_bounds,
         }
+    }
+}
+
+impl Bounded for Text {
+    fn bounds(&self) -> Rectangle {
+        self.bounds()
+    }
+
+    fn visible_bounds(&self) -> Option<Rectangle> {
+        self.visible_bounds()
     }
 }
