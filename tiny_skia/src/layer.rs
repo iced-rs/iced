@@ -183,7 +183,7 @@ impl Layer {
             &previous.quads,
             &current.quads,
             |(quad, _)| {
-                quad.bounds
+                quad.bounds_with_shadow()
                     .expand(1.0)
                     .intersection(&current.bounds)
                     .into_iter()
