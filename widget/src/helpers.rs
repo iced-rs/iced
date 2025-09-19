@@ -1860,7 +1860,10 @@ where
 
     row![
         svg(LOGO.clone()).width(text_size * 1.3),
-        text("iced").size(text_size).font(Font::MONOSPACE)
+        text("iced")
+            .size(text_size)
+            .font(Font::MONOSPACE)
+            .shaping(text::Shaping::Advanced)
     ]
     .spacing(text_size.0 / 3.0)
     .align_y(Alignment::Center)

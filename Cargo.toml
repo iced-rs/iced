@@ -229,7 +229,7 @@ web-sys = "0.3.69"
 web-time = "1.1"
 wgpu = "26.0"
 window_clipboard = "0.4.1"
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "11414b6aa45699f038114e61b4ddf5102b2d3b4b" }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed" }
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }

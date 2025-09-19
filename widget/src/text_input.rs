@@ -512,8 +512,7 @@ where
                     let is_cursor_visible = !is_disabled
                         && ((focus.now - focus.updated_at).as_millis()
                             / CURSOR_BLINK_INTERVAL_MILLIS)
-                            % 2
-                            == 0;
+                            .is_multiple_of(2);
 
                     let cursor = if is_cursor_visible {
                         Some((

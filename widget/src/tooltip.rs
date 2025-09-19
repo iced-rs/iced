@@ -201,23 +201,23 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let state = tree.state.downcast_mut::<State>();
+        if let Event::Mouse(_) = event {
+            let state = tree.state.downcast_mut::<State>();
+            let was_idle = *state == State::Idle;
 
-        let previous_state = *state;
-        let was_idle = *state == State::Idle;
+            *state = cursor
+                .position_over(layout.bounds())
+                .map(|cursor_position| State::Hovered { cursor_position })
+                .unwrap_or_default();
 
-        *state = cursor
-            .position_over(layout.bounds())
-            .map(|cursor_position| State::Hovered { cursor_position })
-            .unwrap_or_default();
+            let is_idle = *state == State::Idle;
 
-        let is_idle = *state == State::Idle;
-
-        if was_idle != is_idle
-            || (self.position == Position::FollowCursor
-                && previous_state != *state)
-        {
-            shell.request_redraw();
+            if was_idle != is_idle {
+                shell.invalidate_layout();
+                shell.request_redraw();
+            } else if self.position == Position::FollowCursor {
+                shell.request_redraw();
+            }
         }
 
         self.content.as_widget_mut().update(
