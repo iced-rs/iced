@@ -24,7 +24,9 @@ maintenance = { status = "actively-developed" }
 [features]
 default = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool", "linux-theme-detection"]
 # Enables the `wgpu` GPU-accelerated renderer backend
-wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
+wgpu = ["wgpu-without-backends", "wgpu/default"]
+# Enables the `wgpu` GPU-accelerated renderer backend without any default backend APIs.
+wgpu-without-backends = ["iced_renderer/wgpu", "iced_widget/wgpu", "dep:wgpu"]
 # Enables the `tiny-skia` software renderer backend
 tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `image` widget
@@ -100,6 +102,9 @@ thiserror.workspace = true
 
 image.workspace = true
 image.optional = true
+
+wgpu.workspace = true
+wgpu.optional = true
 
 [dev-dependencies]
 criterion = "0.5"
@@ -215,7 +220,7 @@ wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.1"
 web-sys = "0.3.69"
 web-time = "1.1"
-wgpu = "26.0"
+wgpu = { version = "26.0", default-features = false, features = ["wgsl"] }
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed" }
 
