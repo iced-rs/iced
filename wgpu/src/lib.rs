@@ -797,7 +797,7 @@ impl graphics::mesh::Renderer for Renderer {
         );
 
         debug_assert!(
-            mesh.indices().len() % 3 == 0,
+            mesh.indices().len().is_multiple_of(3),
             "Mesh indices length must be a multiple of 3"
         );
 
