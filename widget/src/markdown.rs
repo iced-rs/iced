@@ -51,7 +51,7 @@ use crate::core::theme;
 use crate::core::{
     self, Color, Element, Length, Padding, Pixels, Theme, color,
 };
-use crate::{column, container, rich_text, row, scrollable, span, text};
+use crate::{column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
@@ -1388,7 +1388,7 @@ where
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     row![
-        crate::rule(4).vertical(),
+        rule::vertical(4),
         column(
             contents
                 .iter()
@@ -1410,7 +1410,7 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    crate::rule(2).into()
+    rule::horizontal(2).into()
 }
 
 /// Displays a table using the default look.

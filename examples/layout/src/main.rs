@@ -290,7 +290,7 @@ fn quotes<'a>() -> Element<'a, Message> {
     fn quote<'a>(
         content: impl Into<Element<'a, Message>>,
     ) -> Element<'a, Message> {
-        row![rule(1).vertical(), content.into()]
+        row![rule::vertical(1), content.into()]
             .spacing(10)
             .height(Shrink)
             .into()
@@ -308,7 +308,7 @@ fn quotes<'a>() -> Element<'a, Message> {
             reply("This is the original message", "This is a reply"),
             "This is another reply",
         ),
-        rule(1),
+        rule::horizontal(1),
         text("A separator ↑"),
     ]
     .width(Shrink)

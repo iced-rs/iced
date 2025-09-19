@@ -162,14 +162,14 @@ impl Styling {
 
         let content = column![
             choose_theme,
-            rule(1),
+            rule::horizontal(1),
             text_input,
             buttons,
             slider(),
             progress_bar(),
             row![
                 scroll_me,
-                rule(1).vertical(),
+                rule::vertical(1),
                 column![check, check_disabled, toggle, disabled_toggle]
                     .spacing(10)
             ]

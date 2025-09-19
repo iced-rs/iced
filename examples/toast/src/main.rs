@@ -252,7 +252,7 @@ mod toast {
                             Status::Success => success,
                             Status::Danger => danger,
                         }),
-                        rule(1),
+                        rule::horizontal(1),
                         container(text(toast.body.as_str()))
                             .width(Fill)
                             .padding(5)

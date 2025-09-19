@@ -630,7 +630,7 @@ impl<P: Program + 'static> Tester<P> {
         row![
             center(column![status, viewport].spacing(10).align_x(Right))
                 .padding(10),
-            rule(1).vertical().style(rule::weak),
+            rule::vertical(1).style(rule::weak),
             container(self.controls().map(Tick::Tester))
                 .width(250)
                 .padding(10)

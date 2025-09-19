@@ -7,7 +7,7 @@ use crate::core;
 use crate::core::theme;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
-use crate::core::{Element, Length, Pixels, Size, Widget};
+use crate::core::{Element, Length, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::overlay;
@@ -15,7 +15,6 @@ use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
-use crate::rule::{self, Rule};
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
 use crate::text::{self, Text};
@@ -1737,31 +1736,6 @@ pub fn space() -> Space {
     Space::new()
 }
 
-/// Creates a horizontal [`Rule`] with the given height.
-///
-/// # Example
-/// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
-/// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::rule;
-///
-/// #[derive(Clone)]
-/// enum Message {
-///     // ...,
-/// }
-///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     rule(2).into()
-/// }
-/// ```
-pub fn rule<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
-where
-    Theme: rule::Catalog + 'a,
-{
-    Rule::new(height)
-}
-
 /// Creates a new [`ProgressBar`].
 ///
 /// Progress bars visualize the progression of an extended computer operation, such as a download, file transfer, or installation.
@@ -1864,7 +1838,7 @@ where
 /// for instance.
 #[cfg(feature = "svg")]
 pub fn iced<'a, Message, Theme, Renderer>(
-    text_size: impl Into<Pixels>,
+    text_size: impl Into<core::Pixels>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,

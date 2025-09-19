@@ -13,7 +13,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     rule(2).into()
+//!     rule::horizontal(2).into()
 //! }
 //! ```
 use crate::core;
@@ -25,6 +25,30 @@ use crate::core::widget::Tree;
 use crate::core::{
     Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget,
 };
+
+/// Creates a new horizontal [`Rule`] with the given height.
+pub fn horizontal<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
+where
+    Theme: Catalog,
+{
+    Rule {
+        thickness: Length::Fixed(height.into().0),
+        is_vertical: false,
+        class: Theme::default(),
+    }
+}
+
+/// Creates a new vertical [`Rule`] with the given width.
+pub fn vertical<'a, Theme>(width: impl Into<Pixels>) -> Rule<'a, Theme>
+where
+    Theme: Catalog,
+{
+    Rule {
+        thickness: Length::Fixed(width.into().0),
+        is_vertical: true,
+        class: Theme::default(),
+    }
+}
 
 /// Display a horizontal or vertical rule for dividing content.
 ///
@@ -41,7 +65,7 @@ use crate::core::{
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     rule(2).into()
+///     rule::horizontal(2).into()
 /// }
 /// ```
 pub struct Rule<'a, Theme = crate::Theme>
@@ -57,21 +81,6 @@ impl<'a, Theme> Rule<'a, Theme>
 where
     Theme: Catalog,
 {
-    /// Creates a horizontal [`Rule`] with the given thickness.
-    pub fn new(thickness: impl Into<Pixels>) -> Self {
-        Rule {
-            thickness: Length::Fixed(thickness.into().0),
-            is_vertical: false,
-            class: Theme::default(),
-        }
-    }
-
-    /// Turns the [`Rule`] into a vertical one.
-    pub fn vertical(mut self) -> Self {
-        self.is_vertical = true;
-        self
-    }
-
     /// Sets the style of the [`Rule`].
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
