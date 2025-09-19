@@ -14,6 +14,11 @@ impl Id {
     pub fn unique() -> Id {
         Id(COUNT.fetch_add(1, atomic::Ordering::Relaxed))
     }
+
+    /// Read-only access to the raw integer id.
+    pub fn get(&self) -> u64 {
+        self.0
+    }
 }
 
 impl fmt::Display for Id {
