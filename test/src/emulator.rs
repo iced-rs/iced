@@ -391,7 +391,7 @@ impl<P: Program + 'static> Emulator<P> {
                             .boxed(),
                     );
                 }
-                Mode::Impatient => {
+                Mode::Immediate => {
                     self.runtime.run(
                         stream
                             .map(Action_::Runtime)
@@ -452,12 +452,12 @@ pub enum Mode {
     /// Waits only for the tasks directly spawned by an [`Instruction`].
     Patient,
     /// Never waits for any tasks to finish.
-    Impatient,
+    Immediate,
 }
 
 impl Mode {
     /// A list of all the available modes.
-    pub const ALL: &[Self] = &[Self::Zen, Self::Patient, Self::Impatient];
+    pub const ALL: &[Self] = &[Self::Zen, Self::Patient, Self::Immediate];
 }
 
 impl fmt::Display for Mode {
@@ -465,7 +465,7 @@ impl fmt::Display for Mode {
         f.write_str(match self {
             Self::Zen => "Zen",
             Self::Patient => "Patient",
-            Self::Impatient => "Impatient",
+            Self::Immediate => "Immediate",
         })
     }
 }

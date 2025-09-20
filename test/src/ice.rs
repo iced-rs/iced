@@ -34,7 +34,7 @@ impl Ice {
     ///
     /// ```text
     /// viewport: 500x800
-    /// mode: Impatient
+    /// mode: Immediate
     /// preset: Empty
     /// -----
     /// click at "What needs to be done?"
@@ -96,7 +96,7 @@ impl Ice {
                     mode = Some(match value.trim().to_lowercase().as_str() {
                         "zen" => emulator::Mode::Zen,
                         "patient" => emulator::Mode::Patient,
-                        "impatient" => emulator::Mode::Impatient,
+                        "immediate" => emulator::Mode::Immediate,
                         _ => {
                             return Err(ParseError::InvalidMode {
                                 line: i,
@@ -157,15 +157,7 @@ impl std::fmt::Display for Ice {
             height = self.viewport.height as u32, // TODO
         )?;
 
-        writeln!(
-            f,
-            "mode: {}",
-            match self.mode {
-                emulator::Mode::Zen => "Zen",
-                emulator::Mode::Patient => "Patient",
-                emulator::Mode::Impatient => "Impatient",
-            }
-        )?;
+        writeln!(f, "mode: {}", self.mode)?;
 
         if let Some(preset) = &self.preset {
             writeln!(f, "preset: {preset}")?;

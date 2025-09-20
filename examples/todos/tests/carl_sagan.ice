@@ -1,5 +1,5 @@
 viewport: 500x800
-mode: Impatient
+mode: Immediate
 preset: Empty
 -----
 click at "What needs to be done?"
