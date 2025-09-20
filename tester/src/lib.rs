@@ -207,6 +207,13 @@ impl<P: Program + 'static> Tester<P> {
             Event::PresetSelected(preset) => {
                 self.preset = Some(preset);
 
+                let (state, _) = self
+                    .preset(program)
+                    .map(program::Preset::boot)
+                    .unwrap_or_else(|| program.boot());
+
+                self.state = State::Idle { state };
+
                 Task::none()
             }
             Event::Record => {
