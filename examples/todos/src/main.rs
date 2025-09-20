@@ -1,4 +1,5 @@
 use iced::keyboard;
+use iced::time::milliseconds;
 use iced::widget::{
     self, Text, button, center, center_x, checkbox, column, keyed_column,
     operation, row, scrollable, text, text_input,
@@ -544,8 +545,8 @@ impl SavedState {
                 .map_err(|_| SaveError::Write)?;
         }
 
-        // This is a simple way to save at most once every couple seconds
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        // This is a simple way to save at most twice every second
+        tokio::time::sleep(milliseconds(500)).await;
 
         Ok(())
     }

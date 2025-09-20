@@ -415,17 +415,26 @@ fn record<Message>(
     };
 
     let Interaction::Mouse(
-        Mouse::Move(at)
-        | Mouse::Press { at: Some(at), .. }
-        | Mouse::Release { at: Some(at), .. }
-        | Mouse::Click { at: Some(at), .. },
+        Mouse::Move(target)
+        | Mouse::Press {
+            target: Some(target),
+            ..
+        }
+        | Mouse::Release {
+            target: Some(target),
+            ..
+        }
+        | Mouse::Click {
+            target: Some(target),
+            ..
+        },
     ) = &mut interaction
     else {
         shell.publish(on_record(interaction));
         return;
     };
 
-    let Target::Point(position) = *at else {
+    let Target::Point(position) = *target else {
         shell.publish(on_record(interaction));
         return;
     };
@@ -433,7 +442,7 @@ fn record<Message>(
     if let Some((content, visible_bounds)) =
         find_text(position + (bounds.position() - Point::ORIGIN), operate)
     {
-        *at = Target::Text(content);
+        *target = Target::Text(content);
         *last_hovered = visible_bounds;
     } else {
         *last_hovered = None;

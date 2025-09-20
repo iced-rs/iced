@@ -54,11 +54,11 @@ impl Interaction {
                 }
                 mouse::Event::ButtonPressed(button) => Mouse::Press {
                     button: *button,
-                    at: None,
+                    target: None,
                 },
                 mouse::Event::ButtonReleased(button) => Mouse::Release {
                     button: *button,
-                    at: None,
+                    target: None,
                 },
                 _ => None?,
             }),
@@ -117,28 +117,40 @@ impl Interaction {
                     (Mouse::Move(_), Mouse::Move(to)) => {
                         (Self::Mouse(Mouse::Move(to)), None)
                     }
-                    (Mouse::Move(to), Mouse::Press { button, at: None }) => (
+                    (
+                        Mouse::Move(to),
+                        Mouse::Press {
+                            button,
+                            target: None,
+                        },
+                    ) => (
                         Self::Mouse(Mouse::Press {
                             button,
-                            at: Some(to),
+                            target: Some(to),
                         }),
                         None,
                     ),
-                    (Mouse::Move(to), Mouse::Release { button, at: None }) => (
+                    (
+                        Mouse::Move(to),
+                        Mouse::Release {
+                            button,
+                            target: None,
+                        },
+                    ) => (
                         Self::Mouse(Mouse::Release {
                             button,
-                            at: Some(to),
+                            target: Some(to),
                         }),
                         None,
                     ),
                     (
                         Mouse::Press {
                             button: press,
-                            at: press_at,
+                            target: press_at,
                         },
                         Mouse::Release {
                             button: release,
-                            at: release_at,
+                            target: release_at,
                         },
                     ) if press == release
                         && release_at.as_ref().is_none_or(|release_at| {
@@ -148,7 +160,7 @@ impl Interaction {
                         (
                             Self::Mouse(Mouse::Click {
                                 button: press,
-                                at: press_at,
+                                target: press_at,
                             }),
                             None,
                         )
@@ -156,26 +168,26 @@ impl Interaction {
                     (
                         Mouse::Press {
                             button,
-                            at: Some(press_at),
+                            target: Some(press_at),
                         },
                         Mouse::Move(move_at),
                     ) if press_at == move_at => (
                         Self::Mouse(Mouse::Press {
                             button,
-                            at: Some(press_at),
+                            target: Some(press_at),
                         }),
                         None,
                     ),
                     (
                         Mouse::Click {
                             button,
-                            at: Some(click_at),
+                            target: Some(click_at),
                         },
                         Mouse::Move(move_at),
                     ) if click_at == move_at => (
                         Self::Mouse(Mouse::Click {
                             button,
-                            at: Some(click_at),
+                            target: Some(click_at),
                         }),
                         None,
                     ),
@@ -235,23 +247,29 @@ impl Interaction {
                 Mouse::Move(to) => vec![mouse_move_(find_target(to)?)],
                 Mouse::Press {
                     button,
-                    at: Some(at),
+                    target: Some(at),
                 } => vec![mouse_move_(find_target(at)?), mouse_press(*button)],
-                Mouse::Press { button, at: None } => {
+                Mouse::Press {
+                    button,
+                    target: None,
+                } => {
                     vec![mouse_press(*button)]
                 }
                 Mouse::Release {
                     button,
-                    at: Some(at),
+                    target: Some(at),
                 } => {
                     vec![mouse_move_(find_target(at)?), mouse_release(*button)]
                 }
-                Mouse::Release { button, at: None } => {
+                Mouse::Release {
+                    button,
+                    target: None,
+                } => {
                     vec![mouse_release(*button)]
                 }
                 Mouse::Click {
                     button,
-                    at: Some(at),
+                    target: Some(at),
                 } => {
                     vec![
                         mouse_move_(find_target(at)?),
@@ -259,7 +277,10 @@ impl Interaction {
                         mouse_release(*button),
                     ]
                 }
-                Mouse::Click { button, at: None } => {
+                Mouse::Click {
+                    button,
+                    target: None,
+                } => {
                     vec![mouse_press(*button), mouse_release(*button)]
                 }
             },
@@ -294,21 +315,21 @@ pub enum Mouse {
         /// The button.
         button: mouse::Button,
         /// The location of the press.
-        at: Option<Target>,
+        target: Option<Target>,
     },
     /// A button was released.
     Release {
         /// The button.
         button: mouse::Button,
         /// The location of the release.
-        at: Option<Target>,
+        target: Option<Target>,
     },
     /// A button was clicked.
     Click {
         /// The button.
         button: mouse::Button,
         /// The location of the click.
-        at: Option<Target>,
+        target: Option<Target>,
     },
 }
 
@@ -318,14 +339,26 @@ impl fmt::Display for Mouse {
             Mouse::Move(target) => {
                 write!(f, "move cursor to {}", target)
             }
-            Mouse::Press { button, at } => {
-                write!(f, "press {}", format::button_at(*button, at.as_ref()))
+            Mouse::Press { button, target } => {
+                write!(
+                    f,
+                    "press {}",
+                    format::button_at(*button, target.as_ref())
+                )
             }
-            Mouse::Release { button, at } => {
-                write!(f, "release {}", format::button_at(*button, at.as_ref()))
+            Mouse::Release { button, target } => {
+                write!(
+                    f,
+                    "release {}",
+                    format::button_at(*button, target.as_ref())
+                )
             }
-            Mouse::Click { button, at } => {
-                write!(f, "click {}", format::button_at(*button, at.as_ref()))
+            Mouse::Click { button, target } => {
+                write!(
+                    f,
+                    "click {}",
+                    format::button_at(*button, target.as_ref())
+                )
             }
         }
     }
@@ -412,9 +445,9 @@ mod format {
 
         if let Some(at) = at {
             if button.is_empty() {
-                format!("at {}", at)
+                at.to_string()
             } else {
-                format!("{} at {}", button, at)
+                format!("{} {}", button, at)
             }
         } else {
             button.to_owned()
@@ -479,9 +512,7 @@ mod parser {
     use nom::bytes::complete::tag;
     use nom::bytes::{is_not, take_while_m_n};
     use nom::character::complete::{char, multispace0, multispace1};
-    use nom::combinator::{
-        cut, map, map_opt, map_res, opt, success, value, verify,
-    };
+    use nom::combinator::{map, map_opt, map_res, opt, success, value, verify};
     use nom::error::ParseError;
     use nom::multi::fold;
     use nom::number::float;
@@ -526,9 +557,9 @@ mod parser {
     fn mouse_click(input: &str) -> IResult<&str, Mouse> {
         let (input, _) = tag("click ")(input)?;
 
-        let (input, (button, at)) = mouse_button_at(input)?;
+        let (input, (button, target)) = mouse_button_at(input)?;
 
-        Ok((input, Mouse::Click { button, at }))
+        Ok((input, Mouse::Click { button, target }))
     }
 
     fn mouse_button_at(
@@ -541,11 +572,7 @@ mod parser {
     }
 
     fn target(input: &str) -> IResult<&str, Target> {
-        preceded(
-            whitespace(tag("at ")),
-            cut(alt((string.map(Target::Text), point.map(Target::Point)))),
-        )
-        .parse(input)
+        alt((string.map(Target::Text), point.map(Target::Point))).parse(input)
     }
 
     fn mouse_button(input: &str) -> IResult<&str, mouse::Button> {
