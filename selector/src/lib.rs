@@ -15,7 +15,7 @@ pub trait Selector {
     /// The output type of the [`Selector`].
     ///
     /// For most selectors, this will normally be a [`Target`]. However, some
-    /// may selectors may want to return a more limited type to encode the selection
+    /// selectors may want to return a more limited type to encode the selection
     /// guarantees in the type system.
     ///
     /// For instance, the implementations of [`String`] and [`str`] of [`Selector`]
