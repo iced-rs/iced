@@ -13,7 +13,6 @@ use crate::pane_grid::controls::Controls;
 /// The title bar of a [`Pane`].
 ///
 /// [`Pane`]: super::Pane
-#[allow(missing_debug_implementations)]
 pub struct TitleBar<
     'a,
     Message,

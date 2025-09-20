@@ -13,7 +13,6 @@ use crate::core::{
 };
 
 /// A bunch of [`Rich`] text.
-#[allow(missing_debug_implementations)]
 pub struct Rich<
     'a,
     Link,

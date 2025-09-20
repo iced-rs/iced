@@ -29,7 +29,6 @@ use crate::core::{
 ///     })).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Column<
     'a,
     Key,
@@ -284,7 +283,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds(), &mut |operation| {
+        operation.container(None, layout.bounds());
+        operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
                 .zip(&mut tree.children)

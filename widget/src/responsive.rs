@@ -8,13 +8,12 @@ use crate::core::{
     self, Clipboard, Element, Event, Length, Rectangle, Shell, Size, Vector,
     Widget,
 };
-use crate::horizontal_space;
+use crate::space;
 
 /// A widget that is aware of its dimensions.
 ///
 /// A [`Responsive`] widget will always try to fill all the available space of
 /// its parent.
-#[allow(missing_debug_implementations)]
 pub struct Responsive<
     'a,
     Message,
@@ -44,7 +43,7 @@ where
             view: Box::new(view),
             width: Length::Fill,
             height: Length::Fill,
-            content: Element::new(horizontal_space().width(0)),
+            content: Element::new(space()),
         }
     }
 

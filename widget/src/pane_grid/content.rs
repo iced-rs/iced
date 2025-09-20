@@ -13,7 +13,6 @@ use crate::pane_grid::{Draggable, TitleBar};
 /// The content of a [`Pane`].
 ///
 /// [`Pane`]: super::Pane
-#[allow(missing_debug_implementations)]
 pub struct Content<
     'a,
     Message,

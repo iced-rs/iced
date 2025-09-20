@@ -64,8 +64,8 @@ use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Element, Event, Length, Padding, Rectangle, Shell, Size, Theme,
-    Vector,
+    Clipboard, Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size,
+    Theme, Vector,
 };
 use crate::overlay::menu;
 use crate::text::LineHeight;
@@ -130,7 +130,6 @@ use std::fmt::Display;
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct ComboBox<
     'a,
     T,
@@ -249,9 +248,12 @@ where
     }
 
     /// Sets the text sixe of the [`ComboBox`].
-    pub fn size(mut self, size: f32) -> Self {
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
+        let size = size.into();
+
         self.text_input = self.text_input.size(size);
-        self.size = Some(size);
+        self.size = Some(size.0);
+
         self
     }
 

@@ -1,13 +1,8 @@
 use iced::widget::{
-    button, column, container, horizontal_space, progress_bar, radio, row,
-    scrollable, slider, text, vertical_space,
+    button, column, container, operation, progress_bar, radio, row, scrollable,
+    slider, space, text,
 };
 use iced::{Border, Center, Color, Element, Fill, Task, Theme};
-
-use std::sync::LazyLock;
-
-static SCROLLABLE_ID: LazyLock<scrollable::Id> =
-    LazyLock::new(scrollable::Id::unique);
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -65,19 +60,13 @@ impl ScrollableDemo {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.scrollable_direction = direction;
 
-                scrollable::snap_to(
-                    SCROLLABLE_ID.clone(),
-                    self.current_scroll_offset,
-                )
+                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
             }
             Message::AlignmentChanged(alignment) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.anchor = alignment;
 
-                scrollable::snap_to(
-                    SCROLLABLE_ID.clone(),
-                    self.current_scroll_offset,
-                )
+                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
             }
             Message::ScrollbarWidthChanged(width) => {
                 self.scrollbar_width = width;
@@ -97,18 +86,12 @@ impl ScrollableDemo {
             Message::ScrollToBeginning => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
 
-                scrollable::snap_to(
-                    SCROLLABLE_ID.clone(),
-                    self.current_scroll_offset,
-                )
+                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
             }
             Message::ScrollToEnd => {
                 self.current_scroll_offset = scrollable::RelativeOffset::END;
 
-                scrollable::snap_to(
-                    SCROLLABLE_ID.clone(),
-                    self.current_scroll_offset,
-                )
+                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
             }
             Message::Scrolled(viewport) => {
                 self.current_scroll_offset = viewport.relative_offset();
@@ -207,9 +190,9 @@ impl ScrollableDemo {
                     column![
                         scroll_to_end_button(),
                         text("Beginning!"),
-                        vertical_space().height(1200),
+                        space().height(1200),
                         text("Middle!"),
-                        vertical_space().height(1200),
+                        space().height(1200),
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
@@ -226,15 +209,15 @@ impl ScrollableDemo {
                 ))
                 .width(Fill)
                 .height(Fill)
-                .id(SCROLLABLE_ID.clone())
+                .id(SCROLLABLE)
                 .on_scroll(Message::Scrolled),
                 Direction::Horizontal => scrollable(
                     row![
                         scroll_to_end_button(),
                         text("Beginning!"),
-                        horizontal_space().width(1200),
+                        space().width(1200),
                         text("Middle!"),
-                        horizontal_space().width(1200),
+                        space().width(1200),
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
@@ -252,32 +235,32 @@ impl ScrollableDemo {
                 ))
                 .width(Fill)
                 .height(Fill)
-                .id(SCROLLABLE_ID.clone())
+                .id(SCROLLABLE)
                 .on_scroll(Message::Scrolled),
                 Direction::Multi => scrollable(
                     //horizontal content
                     row![
                         column![
                             text("Let's do some scrolling!"),
-                            vertical_space().height(2400)
+                            space().height(2400)
                         ],
                         scroll_to_end_button(),
                         text("Horizontal - Beginning!"),
-                        horizontal_space().width(1200),
+                        space().width(1200),
                         //vertical content
                         column![
                             text("Horizontal - Middle!"),
                             scroll_to_end_button(),
                             text("Vertical - Beginning!"),
-                            vertical_space().height(1200),
+                            space().height(1200),
                             text("Vertical - Middle!"),
-                            vertical_space().height(1200),
+                            space().height(1200),
                             text("Vertical - End!"),
                             scroll_to_beginning_button(),
-                            vertical_space().height(40),
+                            space().height(40),
                         ]
                         .spacing(40),
-                        horizontal_space().width(1200),
+                        space().width(1200),
                         text("Horizontal - End!"),
                         scroll_to_beginning_button(),
                     ]
@@ -299,7 +282,7 @@ impl ScrollableDemo {
                 })
                 .width(Fill)
                 .height(Fill)
-                .id(SCROLLABLE_ID.clone())
+                .id(SCROLLABLE)
                 .on_scroll(Message::Scrolled),
             });
 
@@ -348,3 +331,5 @@ fn progress_bar_custom_style(theme: &Theme) -> progress_bar::Style {
         border: Border::default(),
     }
 }
+
+const SCROLLABLE: &str = "scrollable";

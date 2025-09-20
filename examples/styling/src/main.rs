@@ -1,8 +1,8 @@
 use iced::keyboard;
 use iced::widget::{
-    button, center_x, center_y, checkbox, column, container, horizontal_rule,
-    pick_list, progress_bar, row, scrollable, slider, text, text_input,
-    toggler, vertical_rule, vertical_space,
+    button, center_x, center_y, checkbox, column, container, pick_list,
+    progress_bar, row, rule, scrollable, slider, space, text, text_input,
+    toggler,
 };
 use iced::{Center, Element, Fill, Shrink, Subscription, Theme};
 
@@ -127,7 +127,7 @@ impl Styling {
 
         let scroll_me = scrollable(column![
             "Scroll me!",
-            vertical_space().height(800),
+            space().height(800),
             "You did it!"
         ])
         .width(Fill)
@@ -162,14 +162,14 @@ impl Styling {
 
         let content = column![
             choose_theme,
-            horizontal_rule(1),
+            rule::horizontal(1),
             text_input,
             buttons,
             slider(),
             progress_bar(),
             row![
                 scroll_me,
-                vertical_rule(1),
+                rule::vertical(1),
                 column![check, check_disabled, toggle, disabled_toggle]
                     .spacing(10)
             ]

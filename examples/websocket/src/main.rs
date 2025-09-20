@@ -1,10 +1,10 @@
 mod echo;
 
+use iced::futures::stream;
 use iced::widget::{
-    self, button, center, column, row, scrollable, text, text_input,
+    button, center, column, operation, row, scrollable, text, text_input,
 };
 use iced::{Center, Element, Fill, Subscription, Task, color};
-use std::sync::LazyLock;
 
 pub fn main() -> iced::Result {
     iced::application(WebSocket::new, WebSocket::update, WebSocket::view)
@@ -34,10 +34,7 @@ impl WebSocket {
                 new_message: String::new(),
                 state: State::Disconnected,
             },
-            Task::batch([
-                Task::perform(echo::server::run(), |_| Message::Server),
-                widget::focus_next(),
-            ]),
+            operation::focus_next(),
         )
     }
 
@@ -76,10 +73,7 @@ impl WebSocket {
                 echo::Event::MessageReceived(message) => {
                     self.messages.push(message);
 
-                    scrollable::snap_to(
-                        MESSAGE_LOG.clone(),
-                        scrollable::RelativeOffset::END,
-                    )
+                    operation::snap_to_end(MESSAGE_LOG)
                 }
             },
             Message::Server => Task::none(),
@@ -87,7 +81,11 @@ impl WebSocket {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        Subscription::run(echo::connect).map(Message::Echo)
+        Subscription::batch([
+            Subscription::run(|| stream::once(echo::server::run()))
+                .map(|_| Message::Server),
+            Subscription::run(echo::connect).map(Message::Echo),
+        ])
     }
 
     fn view(&self) -> Element<'_, Message> {
@@ -102,7 +100,7 @@ impl WebSocket {
                 column(self.messages.iter().map(text).map(Element::from))
                     .spacing(10),
             )
-            .id(MESSAGE_LOG.clone())
+            .id(MESSAGE_LOG)
             .height(Fill)
             .spacing(10)
             .into()
@@ -139,5 +137,4 @@ enum State {
     Connected(echo::Connection),
 }
 
-static MESSAGE_LOG: LazyLock<scrollable::Id> =
-    LazyLock::new(scrollable::Id::unique);
+const MESSAGE_LOG: &str = "message_log";

@@ -15,7 +15,7 @@ pub struct Image {
 }
 
 impl Image {
-    pub const LIMIT: usize = 99;
+    pub const LIMIT: usize = 96;
 
     pub async fn list() -> Result<Vec<Self>, Error> {
         let client = reqwest::Client::new();

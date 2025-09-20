@@ -80,7 +80,6 @@ use std::ops::RangeInclusive;
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Slider<'a, T, Message, Theme = crate::Theme>
 where
     Theme: Catalog,

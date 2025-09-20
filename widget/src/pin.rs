@@ -52,7 +52,6 @@ use crate::core::{
 ///         .into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Pin<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Renderer: core::Renderer,

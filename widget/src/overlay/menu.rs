@@ -17,7 +17,6 @@ use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
 
 /// A list of selectable options.
-#[allow(missing_debug_implementations)]
 pub struct Menu<
     'a,
     'b,

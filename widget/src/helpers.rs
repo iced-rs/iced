@@ -4,9 +4,10 @@ use crate::checkbox::{self, Checkbox};
 use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
+use crate::core::theme;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
-use crate::core::{Element, Length, Pixels, Size, Widget};
+use crate::core::{Element, Length, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::overlay;
@@ -14,9 +15,6 @@ use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
-use crate::rule::{self, Rule};
-use crate::runtime::Action;
-use crate::runtime::task::{self, Task};
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
 use crate::text::{self, Text};
@@ -1005,7 +1003,6 @@ pub fn sensor<'a, Message, Theme, Renderer>(
 ) -> Sensor<'a, (), Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
-    Message: Clone,
 {
     Sensor::new(content)
 }
@@ -1019,7 +1016,7 @@ where
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{column, scrollable, vertical_space};
+/// use iced::widget::{column, scrollable, space};
 ///
 /// enum Message {
 ///     // ...
@@ -1028,7 +1025,7 @@ where
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     scrollable(column![
 ///         "Scroll me!",
-///         vertical_space().height(3000),
+///         space().height(3000),
 ///         "You did it!",
 ///     ]).into()
 /// }
@@ -1731,70 +1728,12 @@ where
     ComboBox::new(state, placeholder, selection, on_selected)
 }
 
-/// Creates a new [`Space`] widget that fills the available
-/// horizontal space.
+/// Creates some empty [`Space`] with no size.
 ///
-/// This can be useful to separate widgets in a [`Row`].
-pub fn horizontal_space() -> Space {
-    Space::with_width(Length::Fill)
-}
-
-/// Creates a new [`Space`] widget that fills the available
-/// vertical space.
-///
-/// This can be useful to separate widgets in a [`Column`].
-pub fn vertical_space() -> Space {
-    Space::with_height(Length::Fill)
-}
-
-/// Creates a horizontal [`Rule`] with the given height.
-///
-/// # Example
-/// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
-/// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::horizontal_rule;
-///
-/// #[derive(Clone)]
-/// enum Message {
-///     // ...,
-/// }
-///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     horizontal_rule(2).into()
-/// }
-/// ```
-pub fn horizontal_rule<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
-where
-    Theme: rule::Catalog + 'a,
-{
-    Rule::horizontal(height)
-}
-
-/// Creates a vertical [`Rule`] with the given width.
-///
-/// # Example
-/// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
-/// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::vertical_rule;
-///
-/// #[derive(Clone)]
-/// enum Message {
-///     // ...,
-/// }
-///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     vertical_rule(2).into()
-/// }
-/// ```
-pub fn vertical_rule<'a, Theme>(width: impl Into<Pixels>) -> Rule<'a, Theme>
-where
-    Theme: rule::Catalog + 'a,
-{
-    Rule::vertical(width)
+/// This is considered the "identity" widget. It will take
+/// no space and do nothing.
+pub fn space() -> Space {
+    Space::new()
 }
 
 /// Creates a new [`ProgressBar`].
@@ -1899,7 +1838,7 @@ where
 /// for instance.
 #[cfg(feature = "svg")]
 pub fn iced<'a, Message, Theme, Renderer>(
-    text_size: impl Into<Pixels>,
+    text_size: impl Into<core::Pixels>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -2044,16 +1983,6 @@ where
     crate::Shader::new(program)
 }
 
-/// Focuses the previous focusable widget.
-pub fn focus_previous<T>() -> Task<T> {
-    task::effect(Action::widget(operation::focusable::focus_previous()))
-}
-
-/// Focuses the next focusable widget.
-pub fn focus_next<T>() -> Task<T> {
-    task::effect(Action::widget(operation::focusable::focus_next()))
-}
-
 /// Creates a new [`MouseArea`].
 pub fn mouse_area<'a, Message, Theme, Renderer>(
     widget: impl Into<Element<'a, Message, Theme, Renderer>>,
@@ -2065,22 +1994,15 @@ where
 }
 
 /// A widget that applies any `Theme` to its contents.
-pub fn themer<'a, Message, OldTheme, NewTheme, Renderer>(
-    to_theme: impl Fn(&OldTheme) -> NewTheme,
-    content: impl Into<Element<'a, Message, NewTheme, Renderer>>,
-) -> Themer<
-    'a,
-    Message,
-    OldTheme,
-    NewTheme,
-    impl Fn(&OldTheme) -> NewTheme,
-    Renderer,
->
+pub fn themer<'a, Message, Theme, Renderer>(
+    theme: Option<Theme>,
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Themer<'a, Message, Theme, Renderer>
 where
+    Theme: theme::Base,
     Renderer: core::Renderer,
-    NewTheme: Clone,
 {
-    Themer::new(to_theme, content)
+    Themer::new(theme, content)
 }
 
 /// Creates a [`PaneGrid`] with the given [`pane_grid::State`] and view function.

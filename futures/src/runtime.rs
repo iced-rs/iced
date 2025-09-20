@@ -2,7 +2,7 @@
 use crate::subscription;
 use crate::{BoxStream, Executor, MaybeSend};
 
-use futures::{Sink, channel::mpsc};
+use futures::{Sink, SinkExt, channel::mpsc};
 use std::marker::PhantomData;
 
 /// A batteries-included runtime of commands and subscriptions.
@@ -77,6 +77,15 @@ where
             });
 
         self.executor.spawn(future);
+    }
+
+    /// Sends a message concurrently through the [`Runtime`].
+    pub fn send(&mut self, message: Message) {
+        let mut sender = self.sender.clone();
+
+        self.executor.spawn(async move {
+            let _ = sender.send(message).await;
+        });
     }
 
     /// Tracks a [`Subscription`] in the [`Runtime`].

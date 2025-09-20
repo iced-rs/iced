@@ -8,7 +8,6 @@ use crate::settings::{self, Settings};
 use crate::{Engine, Renderer};
 
 /// A window graphics backend for iced powered by `wgpu`.
-#[allow(missing_debug_implementations)]
 pub struct Compositor {
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,

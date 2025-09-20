@@ -5,12 +5,20 @@ use crate::widget::operation::Operation;
 
 /// The internal state of a widget that has text input.
 pub trait TextInput {
+    /// Returns the current _visible_ text of the text input
+    ///
+    /// Normally, this is either its value or its placeholder.
+    fn text(&self) -> &str;
+
     /// Moves the cursor of the text input to the front of the input text.
     fn move_cursor_to_front(&mut self);
+
     /// Moves the cursor of the text input to the end of the input text.
     fn move_cursor_to_end(&mut self);
+
     /// Moves the cursor of the text input to an arbitrary location.
     fn move_cursor_to(&mut self, position: usize);
+
     /// Selects all the content of the text input.
     fn select_all(&mut self);
 }
@@ -37,13 +45,8 @@ pub fn move_cursor_to_front<T>(target: Id) -> impl Operation<T> {
             }
         }
 
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
     }
 
@@ -72,13 +75,8 @@ pub fn move_cursor_to_end<T>(target: Id) -> impl Operation<T> {
             }
         }
 
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
     }
 
@@ -108,13 +106,8 @@ pub fn move_cursor_to<T>(target: Id, position: usize) -> impl Operation<T> {
             }
         }
 
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
     }
 
@@ -142,13 +135,8 @@ pub fn select_all<T>(target: Id) -> impl Operation<T> {
             }
         }
 
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
     }
 

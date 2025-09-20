@@ -2,13 +2,13 @@
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
+use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{
     Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector,
 };
-use crate::overlay;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -22,7 +22,6 @@ use crate::overlay;
 /// existing graphical application.
 ///
 /// [`integration`]: https://github.com/iced-rs/iced/tree/0.13/examples/integration
-#[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Theme, Renderer> {
     root: Element<'a, Message, Theme, Renderer>,
     base: layout::Node,

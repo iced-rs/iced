@@ -13,7 +13,6 @@ use crate::core::{
 };
 
 /// A widget that can make its contents float over other widgets.
-#[allow(missing_debug_implementations)]
 pub struct Float<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,

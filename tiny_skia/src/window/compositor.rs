@@ -8,13 +8,11 @@ use crate::{Layer, Renderer, Settings};
 use std::collections::VecDeque;
 use std::num::NonZeroU32;
 
-#[allow(missing_debug_implementations)]
 pub struct Compositor {
     context: softbuffer::Context<Box<dyn compositor::Window>>,
     settings: Settings,
 }
 
-#[allow(missing_debug_implementations)]
 pub struct Surface {
     window: softbuffer::Surface<
         Box<dyn compositor::Window>,

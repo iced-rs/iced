@@ -5,7 +5,7 @@
 //! # mod iced { pub mod widget { pub use iced_widget::*; } }
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-//! use iced::widget::{column, scrollable, vertical_space};
+//! use iced::widget::{column, scrollable, space};
 //!
 //! enum Message {
 //!     // ...
@@ -14,7 +14,7 @@
 //! fn view(state: &State) -> Element<'_, Message> {
 //!     scrollable(column![
 //!         "Scroll me!",
-//!         vertical_space().height(3000),
+//!         space().height(3000),
 //!         "You did it!",
 //!     ]).into()
 //! }
@@ -37,8 +37,6 @@ use crate::core::{
     Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
     Widget,
 };
-use crate::runtime::Action;
-use crate::runtime::task::{self, Task};
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
@@ -50,7 +48,7 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{column, scrollable, vertical_space};
+/// use iced::widget::{column, scrollable, space};
 ///
 /// enum Message {
 ///     // ...
@@ -59,12 +57,11 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     scrollable(column![
 ///         "Scroll me!",
-///         vertical_space().height(3000),
+///         space().height(3000),
 ///         "You did it!",
 ///     ]).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Scrollable<
     'a,
     Message,
@@ -74,7 +71,7 @@ pub struct Scrollable<
     Theme: Catalog,
     Renderer: core::Renderer,
 {
-    id: Option<Id>,
+    id: Option<widget::Id>,
     width: Length,
     height: Length,
     direction: Direction,
@@ -139,8 +136,8 @@ where
         self.enclose()
     }
 
-    /// Sets the [`Id`] of the [`Scrollable`].
-    pub fn id(mut self, id: impl Into<Id>) -> Self {
+    /// Sets the [`widget::Id`] of the [`Scrollable`].
+    pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
         self.id = Some(id.into());
         self
     }
@@ -536,25 +533,21 @@ where
             state.translation(self.direction, bounds, content_bounds);
 
         operation.scrollable(
-            self.id.as_ref().map(|id| &id.0),
+            self.id.as_ref(),
             bounds,
             content_bounds,
             translation,
             state,
         );
 
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            bounds,
-            &mut |operation| {
-                self.content.as_widget_mut().operate(
-                    &mut tree.children[0],
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.traverse(&mut |operation| {
+            self.content.as_widget_mut().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn update(
@@ -1258,63 +1251,6 @@ where
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text_input)
     }
-}
-
-/// The identifier of a [`Scrollable`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
-    }
-}
-
-impl From<&'static str> for Id {
-    fn from(id: &'static str) -> Self {
-        Self::new(id)
-    }
-}
-
-/// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`Id`]
-/// to the provided [`RelativeOffset`].
-pub fn snap_to<T>(id: impl Into<Id>, offset: RelativeOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::snap_to(
-        id.into().0,
-        offset,
-    )))
-}
-
-/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
-/// to the provided [`AbsoluteOffset`].
-pub fn scroll_to<T>(id: impl Into<Id>, offset: AbsoluteOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::scroll_to(
-        id.into().0,
-        offset,
-    )))
-}
-
-/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
-/// by the provided [`AbsoluteOffset`].
-pub fn scroll_by<T>(id: impl Into<Id>, offset: AbsoluteOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::scroll_by(
-        id.into().0,
-        offset,
-    )))
 }
 
 fn notify_scroll<Message>(

@@ -142,7 +142,6 @@ use std::f32;
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct PickList<
     'a,
     T,

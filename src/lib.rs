@@ -326,8 +326,8 @@
 //!
 //! Tasks can also be used to interact with the iced runtime. Some modules
 //! expose functions that create tasks for different purposes—like [changing
-//! window settings](window#functions), [focusing a widget](widget::focus_next), or
-//! [querying its visible bounds](widget::container::visible_bounds).
+//! window settings](window#functions), [focusing a widget](widget::operation::focus_next), or
+//! [querying its visible bounds](widget::selector::find_by_id).
 //!
 //! Like futures and streams, tasks expose [a monadic interface](Task::then)—but they can also be
 //! [mapped](Task::map), [chained](Task::chain), [batched](Task::batch), [canceled](Task::abortable),
@@ -525,6 +525,8 @@ pub use crate::core::{
     Function, Gradient, Length, Padding, Pixels, Point, Radians, Rectangle,
     Rotation, Settings, Shadow, Size, Theme, Transformation, Vector, never,
 };
+pub use crate::program::Preset;
+pub use crate::program::message;
 pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
 
@@ -621,15 +623,13 @@ pub mod touch {
 #[allow(hidden_glob_reexports)]
 pub mod widget {
     //! Use the built-in widgets or create your own.
+    pub use iced_runtime::widget::*;
     pub use iced_widget::*;
 
     // We hide the re-exported modules by `iced_widget`
     mod core {}
     mod graphics {}
-    mod native {}
     mod renderer {}
-    mod style {}
-    mod runtime {}
 }
 
 pub use application::Application;
@@ -698,7 +698,7 @@ pub fn run<State, Message, Theme, Renderer>(
 ) -> Result
 where
     State: Default + 'static,
-    Message: program::Message + 'static,
+    Message: Send + message::MaybeDebug + message::MaybeClone + 'static,
     Theme: theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {

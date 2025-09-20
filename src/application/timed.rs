@@ -29,7 +29,7 @@ pub fn timed<State, Message, Theme, Renderer>(
 >
 where
     State: 'static,
-    Message: program::Message + 'static,
+    Message: Send + 'static,
     Theme: theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
@@ -68,7 +68,7 @@ where
             View,
         >
     where
-        Message: program::Message + 'static,
+        Message: Send + 'static,
         Theme: theme::Base + 'static,
         Renderer: program::Renderer + 'static,
         Boot: self::BootFn<State, Message>,
@@ -86,6 +86,14 @@ where
             let name = std::any::type_name::<State>();
 
             name.split("::").next().unwrap_or("a_cool_application")
+        }
+
+        fn settings(&self) -> Settings {
+            Settings::default()
+        }
+
+        fn window(&self) -> Option<iced_core::window::Settings> {
+            Some(window::Settings::default())
         }
 
         fn boot(&self) -> (State, Task<Self::Message>) {
@@ -143,6 +151,7 @@ where
         },
         settings: Settings::default(),
         window: window::Settings::default(),
+        presets: Vec::new(),
     }
 }
 

@@ -2,8 +2,8 @@ use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{
-    self, button, center, column, container, horizontal_space, mouse_area,
-    opaque, pick_list, row, stack, text, text_input,
+    button, center, column, container, mouse_area, opaque, operation,
+    pick_list, row, space, stack, text, text_input,
 };
 use iced::{Bottom, Color, Element, Fill, Subscription, Task};
 
@@ -43,7 +43,7 @@ impl App {
         match message {
             Message::ShowModal => {
                 self.show_modal = true;
-                widget::focus_next()
+                operation::focus_next()
             }
             Message::HideModal => {
                 self.hide_modal();
@@ -75,9 +75,9 @@ impl App {
                     ..
                 }) => {
                     if modifiers.shift() {
-                        widget::focus_previous()
+                        operation::focus_previous()
                     } else {
-                        widget::focus_next()
+                        operation::focus_next()
                     }
                 }
                 Event::Keyboard(keyboard::Event::KeyPressed {
@@ -95,12 +95,12 @@ impl App {
     fn view(&self) -> Element<'_, Message> {
         let content = container(
             column![
-                row![text("Top Left"), horizontal_space(), text("Top Right")]
+                row![text("Top Left"), space::horizontal(), text("Top Right")]
                     .height(Fill),
                 center(button(text("Show Modal")).on_press(Message::ShowModal)),
                 row![
                     text("Bottom Left"),
-                    horizontal_space(),
+                    space::horizontal(),
                     text("Bottom Right")
                 ]
                 .align_y(Bottom)

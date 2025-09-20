@@ -1,4 +1,4 @@
-use iced::widget::{column, pick_list, scrollable, vertical_space};
+use iced::widget::{column, pick_list, scrollable, space};
 use iced::{Center, Element, Fill};
 
 pub fn main() -> iced::Result {
@@ -33,10 +33,10 @@ impl Example {
         .placeholder("Choose a language...");
 
         let content = column![
-            vertical_space().height(600),
+            space().height(600),
             "Which is your favorite language?",
             pick_list,
-            vertical_space().height(600),
+            space().height(600),
         ]
         .width(Fill)
         .align_x(Center)

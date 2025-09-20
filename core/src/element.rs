@@ -20,7 +20,6 @@ use std::borrow::Borrow;
 /// to turn it into an [`Element`].
 ///
 /// [built-in widget]: crate::widget
-#[allow(missing_debug_implementations)]
 pub struct Element<'a, Message, Theme, Renderer> {
     widget: Box<dyn Widget<Message, Theme, Renderer> + 'a>,
 }

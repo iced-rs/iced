@@ -4,16 +4,16 @@
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub use iced_renderer as renderer;
+pub use iced_renderer::core;
 pub use iced_renderer::graphics;
-pub use iced_runtime as runtime;
-pub use iced_runtime::core;
+
+pub use core::widget::Id;
 
 mod action;
 mod column;
 mod mouse_area;
 mod pin;
 mod responsive;
-mod space;
 mod stack;
 mod themer;
 
@@ -34,6 +34,7 @@ pub mod rule;
 pub mod scrollable;
 pub mod sensor;
 pub mod slider;
+pub mod space;
 pub mod table;
 pub mod text;
 pub mod text_editor;
