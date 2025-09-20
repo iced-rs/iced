@@ -17,7 +17,7 @@ use crate::core::alignment::Horizontal::Right;
 use crate::core::border;
 use crate::core::mouse;
 use crate::core::window;
-use crate::core::{Element, Font, Settings, Size, Theme};
+use crate::core::{Color, Element, Font, Settings, Size, Theme};
 use crate::futures::futures::channel::mpsc;
 use crate::program::Program;
 use crate::runtime::task::{self, Task};
@@ -27,8 +27,10 @@ use crate::test::instruction;
 use crate::test::{Emulator, Ice, Instruction};
 use crate::widget::{
     button, center, column, combo_box, container, pick_list, row, rule,
-    scrollable, space, text, text_editor, text_input, themer,
+    scrollable, slider, space, stack, text, text_editor, themer,
 };
+
+use std::ops::RangeInclusive;
 
 /// Attaches a [`Tester`] to the given [`Program`].
 pub fn attach<P: Program + 'static>(program: P) -> Attach<P> {
@@ -134,7 +136,7 @@ pub struct Message<P: Program>(Tick<P>);
 
 #[derive(Debug, Clone)]
 enum Event {
-    ChangeViewport(Size),
+    ViewportChanged(Size),
     ModeSelected(emulator::Mode),
     PresetSelected(String),
     Record,
@@ -192,7 +194,7 @@ impl<P: Program + 'static> Tester<P> {
 
     fn update(&mut self, program: &P, event: Event) -> Task<Tick<P>> {
         match event {
-            Event::ChangeViewport(viewport) => {
+            Event::ViewportChanged(viewport) => {
                 self.viewport = viewport;
 
                 Task::none()
@@ -647,23 +649,29 @@ impl<P: Program + 'static> Tester<P> {
     }
 
     fn controls(&self) -> Element<'_, Event, Theme, P::Renderer> {
-        let viewport = row![
-            text_input("Width", &self.viewport.width.to_string())
-                .size(14)
-                .on_input(|width| Event::ChangeViewport(Size {
-                    width: width.parse().unwrap_or(self.viewport.width),
+        let viewport = column![
+            labeled_slider(
+                "Width",
+                100.0..=2000.0,
+                self.viewport.width,
+                |width| Event::ViewportChanged(Size {
+                    width,
                     ..self.viewport
-                })),
-            text("x").size(14).font(Font::MONOSPACE),
-            text_input("Height", &self.viewport.height.to_string())
-                .size(14)
-                .on_input(|height| Event::ChangeViewport(Size {
-                    height: height.parse().unwrap_or(self.viewport.height),
+                }),
+                |width| format!("{width:.0}"),
+            ),
+            labeled_slider(
+                "Height",
+                100.0..=2000.0,
+                self.viewport.height,
+                |height| Event::ViewportChanged(Size {
+                    height,
                     ..self.viewport
-                })),
+                }),
+                |height| format!("{height:.0}"),
+            ),
         ]
-        .spacing(10)
-        .align_y(Center);
+        .spacing(10);
 
         let preset = combo_box(
             &self.presets,
@@ -860,5 +868,71 @@ where
         content.into()
     ]
     .spacing(5)
+    .into()
+}
+
+fn labeled_slider<'a, Message, Renderer>(
+    label: impl text::IntoFragment<'a>,
+    range: RangeInclusive<f32>,
+    current: f32,
+    on_change: impl Fn(f32) -> Message + 'a,
+    to_string: impl Fn(&f32) -> String,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: core::text::Renderer + 'a,
+{
+    stack![
+        container(
+            slider(range, current, on_change)
+                .step(10.0)
+                .width(Fill)
+                .height(24)
+                .style(|theme: &core::Theme, status| {
+                    let palette = theme.extended_palette();
+
+                    slider::Style {
+                        rail: slider::Rail {
+                            backgrounds: (
+                                match status {
+                                    slider::Status::Active
+                                    | slider::Status::Dragged => {
+                                        palette.background.strongest.color
+                                    }
+                                    slider::Status::Hovered => {
+                                        palette.background.stronger.color
+                                    }
+                                }
+                                .into(),
+                                Color::TRANSPARENT.into(),
+                            ),
+                            width: 24.0,
+                            border: border::rounded(2),
+                        },
+                        handle: slider::Handle {
+                            shape: slider::HandleShape::Circle { radius: 0.0 },
+                            background: Color::TRANSPARENT.into(),
+                            border_width: 0.0,
+                            border_color: Color::TRANSPARENT,
+                        },
+                    }
+                })
+        )
+        .style(|theme| container::Style::default()
+            .background(theme.extended_palette().background.weak.color)
+            .border(border::rounded(2))),
+        row![
+            text(label).size(14).style(|theme: &core::Theme| {
+                text::Style {
+                    color: Some(theme.extended_palette().background.weak.text),
+                }
+            }),
+            space::horizontal(),
+            text(to_string(&current)).size(14)
+        ]
+        .padding([0, 10])
+        .height(Fill)
+        .align_y(Center),
+    ]
     .into()
 }
