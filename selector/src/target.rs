@@ -4,6 +4,8 @@ use crate::core::{Rectangle, Vector};
 
 use std::any::Any;
 
+/// A generic widget match produced during selection.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Target {
     Container {
@@ -43,6 +45,7 @@ pub enum Target {
 }
 
 impl Target {
+    /// Returns the layout bounds of the [`Target`].
     pub fn bounds(&self) -> Rectangle {
         match self {
             Target::Container { bounds, .. }
@@ -54,6 +57,7 @@ impl Target {
         }
     }
 
+    /// Returns the visible bounds of the [`Target`], in screen coordinates.
     pub fn visible_bounds(&self) -> Option<Rectangle> {
         match self {
             Target::Container { visible_bounds, .. }
@@ -148,6 +152,10 @@ impl Bounded for Target {
     }
 }
 
+/// A selection candidate.
+///
+/// This is provided to [`Selector::select`](crate::Selector::select).
+#[allow(missing_docs)]
 #[derive(Clone)]
 pub enum Candidate<'a> {
     Container {
@@ -190,6 +198,7 @@ pub enum Candidate<'a> {
 }
 
 impl<'a> Candidate<'a> {
+    /// Returns the widget [`Id`] of the [`Candidate`].
     pub fn id(&self) -> Option<&'a Id> {
         match self {
             Candidate::Container { id, .. }
@@ -201,6 +210,7 @@ impl<'a> Candidate<'a> {
         }
     }
 
+    /// Returns the layout bounds of the [`Candidate`].
     pub fn bounds(&self) -> Rectangle {
         match self {
             Candidate::Container { bounds, .. }
@@ -212,6 +222,7 @@ impl<'a> Candidate<'a> {
         }
     }
 
+    /// Returns the visible bounds of the [`Candidate`], in screen coordinates.
     pub fn visible_bounds(&self) -> Option<Rectangle> {
         match self {
             Candidate::Container { visible_bounds, .. }
@@ -224,12 +235,20 @@ impl<'a> Candidate<'a> {
     }
 }
 
+/// A bounded type has both layout bounds and visible bounds.
+///
+/// This trait lets us write generic code over the [`Output`](crate::Selector::Output)
+/// of a [`Selector`](crate::Selector).
 pub trait Bounded: std::fmt::Debug {
+    /// Returns the layout bounds.
     fn bounds(&self) -> Rectangle;
 
+    /// Returns the visible bounds, in screen coordinates.
     fn visible_bounds(&self) -> Option<Rectangle>;
 }
 
+/// A text match.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Text {
     Raw {
@@ -245,12 +264,14 @@ pub enum Text {
 }
 
 impl Text {
+    /// Returns the layout bounds of the [`Text`].
     pub fn bounds(&self) -> Rectangle {
         match self {
             Text::Raw { bounds, .. } | Text::Input { bounds, .. } => *bounds,
         }
     }
 
+    /// Returns the visible bounds of the [`Text`], in screen coordinates.
     pub fn visible_bounds(&self) -> Option<Rectangle> {
         match self {
             Text::Raw { visible_bounds, .. }

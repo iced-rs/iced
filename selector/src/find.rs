@@ -8,7 +8,12 @@ use crate::target::Candidate;
 
 use std::any::Any;
 
+/// An [`Operation`] that runs the [`Selector`] and stops after
+/// the first [`Output`](Selector::Output) is produced.
 pub type Find<S> = Finder<One<S>>;
+
+/// An [`Operation`] that runs the [`Selector`] for the entire
+/// widget tree and aggregates all of its [`Output`](Selector::Output).
 pub type FindAll<S> = Finder<All<S>>;
 
 #[derive(Debug)]

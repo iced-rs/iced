@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+//! Select data from the widget tree.
 use iced_core as core;
 
 mod find;
@@ -10,13 +10,29 @@ pub use target::{Bounded, Candidate, Target, Text};
 use crate::core::Point;
 use crate::core::widget;
 
+/// A type that traverses the widget tree to "select" data and produce some output.
 pub trait Selector {
+    /// The output type of the [`Selector`].
+    ///
+    /// For most selectors, this will normally be a [`Target`]. However, some
+    /// may selectors may want to return a more limited type to encode the selection
+    /// guarantees in the type system.
+    ///
+    /// For instance, the implementations of [`String`] and [`str`] of [`Selector`]
+    /// return a [`target::Text`] instead of a generic [`Target`], since they are
+    /// guaranteed to only select text.
     type Output;
 
+    /// Performs a selection of the given [`Candidate`], if applicable.
+    ///
+    /// This method traverses the widget tree in depth-first order.
     fn select(&mut self, candidate: Candidate<'_>) -> Option<Self::Output>;
 
+    /// Returns a short description of the [`Selector`] for debugging purposes.
     fn description(&self) -> String;
 
+    /// Returns a [`widget::Operation`] that runs the [`Selector`] and stops after
+    /// the first [`Output`](Self::Output) is produced.
     fn find(self) -> Find<Self>
     where
         Self: Sized,
@@ -24,6 +40,8 @@ pub trait Selector {
         Find::new(find::One::new(self))
     }
 
+    /// Returns a [`widget::Operation`] that runs the [`Selector`] for the entire
+    /// widget tree and aggregates all of its [`Output`](Self::Output).
     fn find_all(self) -> FindAll<Self>
     where
         Self: Sized,
