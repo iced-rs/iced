@@ -1,5 +1,4 @@
 //! Record, edit, and run end-to-end tests for your iced applications.
-#![allow(missing_docs)]
 pub use iced_test as test;
 pub use iced_test::core;
 pub use iced_test::program;
@@ -39,7 +38,7 @@ pub fn attach<P: Program + 'static>(program: P) -> Attach<P> {
 /// A [`Program`] with a [`Tester`] attached to it.
 #[derive(Debug)]
 pub struct Attach<P> {
-    /// The original [`Program`] attatched to the [`Tester`].
+    /// The original [`Program`] attached to the [`Tester`].
     pub program: P,
 }
 
@@ -48,7 +47,7 @@ where
     P: Program + 'static,
 {
     type State = Tester<P>;
-    type Message = Tick<P>;
+    type Message = Message<P>;
     type Theme = Theme;
     type Renderer = P::Renderer;
     type Executor = P::Executor;
@@ -79,7 +78,7 @@ where
         state: &mut Self::State,
         message: Self::Message,
     ) -> Task<Self::Message> {
-        state.tick(&self.program, message)
+        state.tick(&self.program, message.0).map(Message)
     }
 
     fn view<'a>(
@@ -87,10 +86,13 @@ where
         state: &'a Self::State,
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-        state.view(&self.program, window)
+        state.view(&self.program, window).map(Message)
     }
 }
 
+/// A tester decorates a [`Program`] definition and attaches a test recorder on top.
+///
+/// It can be used to both record and play [`Ice`] tests.
 pub struct Tester<P: Program> {
     viewport: Size,
     mode: emulator::Mode,
@@ -127,8 +129,11 @@ enum Outcome {
     Success,
 }
 
+/// The message of a [`Tester`].
+pub struct Message<P: Program>(Tick<P>);
+
 #[derive(Debug, Clone)]
-pub enum Message {
+enum Event {
     ChangeViewport(Size),
     ModeSelected(emulator::Mode),
     PresetSelected(String),
@@ -143,8 +148,8 @@ pub enum Message {
     Confirm,
 }
 
-pub enum Tick<P: Program> {
-    Tester(Message),
+enum Tick<P: Program> {
+    Tester(Event),
     Program(P::Message),
     Emulator(emulator::Event<P>),
     Record(instruction::Interaction),
@@ -152,7 +157,7 @@ pub enum Tick<P: Program> {
 }
 
 impl<P: Program + 'static> Tester<P> {
-    pub fn new(program: &P) -> Self {
+    fn new(program: &P) -> Self {
         let (state, _) = program.boot();
         let window = program.window().unwrap_or_default();
 
@@ -174,7 +179,7 @@ impl<P: Program + 'static> Tester<P> {
         }
     }
 
-    pub fn is_busy(&self) -> bool {
+    fn is_busy(&self) -> bool {
         matches!(
             self.state,
             State::Recording { .. }
@@ -185,24 +190,24 @@ impl<P: Program + 'static> Tester<P> {
         )
     }
 
-    pub fn update(&mut self, program: &P, message: Message) -> Task<Tick<P>> {
-        match message {
-            Message::ChangeViewport(viewport) => {
+    fn update(&mut self, program: &P, event: Event) -> Task<Tick<P>> {
+        match event {
+            Event::ChangeViewport(viewport) => {
                 self.viewport = viewport;
 
                 Task::none()
             }
-            Message::ModeSelected(mode) => {
+            Event::ModeSelected(mode) => {
                 self.mode = mode;
 
                 Task::none()
             }
-            Message::PresetSelected(preset) => {
+            Event::PresetSelected(preset) => {
                 self.preset = Some(preset);
 
                 Task::none()
             }
-            Message::Record => {
+            Event::Record => {
                 self.edit = None;
                 self.instructions.clear();
 
@@ -220,7 +225,7 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::run(receiver, Tick::Emulator)
             }
-            Message::Stop => {
+            Event::Stop => {
                 let State::Recording { emulator } =
                     std::mem::replace(&mut self.state, State::Empty)
                 else {
@@ -246,7 +251,7 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::none()
             }
-            Message::Play => {
+            Event::Play => {
                 self.confirm();
 
                 let (sender, receiver) = mpsc::channel(1);
@@ -267,7 +272,7 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::run(receiver, Tick::Emulator)
             }
-            Message::Import => {
+            Event::Import => {
                 use std::fs;
 
                 let import = rfd::AsyncFileDialog::new()
@@ -283,10 +288,10 @@ impl<P: Program + 'static> Tester<P> {
                             ));
                         })
                     })
-                    .map(Message::Imported)
+                    .map(Event::Imported)
                     .map(Tick::Tester)
             }
-            Message::Export => {
+            Event::Export => {
                 use std::fs;
                 use std::thread;
 
@@ -314,7 +319,7 @@ impl<P: Program + 'static> Tester<P> {
                 })
                 .discard()
             }
-            Message::Imported(Ok(ice)) => {
+            Event::Imported(Ok(ice)) => {
                 self.viewport = ice.viewport;
                 self.mode = ice.mode;
                 self.preset = ice.preset;
@@ -330,7 +335,7 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::none()
             }
-            Message::Edit => {
+            Event::Edit => {
                 if self.is_busy() {
                     return Task::none();
                 }
@@ -346,19 +351,19 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::none()
             }
-            Message::Edited(action) => {
+            Event::Edited(action) => {
                 if let Some(edit) = &mut self.edit {
                     edit.perform(action);
                 }
 
                 Task::none()
             }
-            Message::Confirm => {
+            Event::Confirm => {
                 self.confirm();
 
                 Task::none()
             }
-            Message::Imported(Err(error)) => {
+            Event::Imported(Err(error)) => {
                 log::error!("{error}");
 
                 Task::none()
@@ -392,7 +397,7 @@ impl<P: Program + 'static> Tester<P> {
         })
     }
 
-    pub fn tick(&mut self, program: &P, tick: Tick<P>) -> Task<Tick<P>> {
+    fn tick(&mut self, program: &P, tick: Tick<P>) -> Task<Tick<P>> {
         match tick {
             Tick::Tester(message) => self.update(program, message),
             Tick::Program(message) => {
@@ -512,7 +517,7 @@ impl<P: Program + 'static> Tester<P> {
         }
     }
 
-    pub fn view<'a>(
+    fn view<'a>(
         &'a self,
         program: &P,
         window: window::Id,
@@ -641,18 +646,18 @@ impl<P: Program + 'static> Tester<P> {
         .into()
     }
 
-    pub fn controls(&self) -> Element<'_, Message, Theme, P::Renderer> {
+    fn controls(&self) -> Element<'_, Event, Theme, P::Renderer> {
         let viewport = row![
             text_input("Width", &self.viewport.width.to_string())
                 .size(14)
-                .on_input(|width| Message::ChangeViewport(Size {
+                .on_input(|width| Event::ChangeViewport(Size {
                     width: width.parse().unwrap_or(self.viewport.width),
                     ..self.viewport
                 })),
             text("x").size(14).font(Font::MONOSPACE),
             text_input("Height", &self.viewport.height.to_string())
                 .size(14)
-                .on_input(|height| Message::ChangeViewport(Size {
+                .on_input(|height| Event::ChangeViewport(Size {
                     height: height.parse().unwrap_or(self.viewport.height),
                     ..self.viewport
                 })),
@@ -664,7 +669,7 @@ impl<P: Program + 'static> Tester<P> {
             &self.presets,
             "Default",
             self.preset.as_ref(),
-            Message::PresetSelected,
+            Event::PresetSelected,
         )
         .size(14)
         .width(Fill);
@@ -672,7 +677,7 @@ impl<P: Program + 'static> Tester<P> {
         let mode = pick_list(
             emulator::Mode::ALL,
             Some(self.mode),
-            Message::ModeSelected,
+            Event::ModeSelected,
         )
         .text_size(14)
         .width(Fill);
@@ -683,7 +688,7 @@ impl<P: Program + 'static> Tester<P> {
                     .size(12)
                     .height(Fill)
                     .font(Font::MONOSPACE)
-                    .on_action(Message::Edited)
+                    .on_action(Event::Edited)
                     .into()
             } else if self.instructions.is_empty() {
                 Element::from(center(
@@ -761,30 +766,28 @@ impl<P: Program + 'static> Tester<P> {
             let play = control(icon::play()).on_press_maybe(
                 (!matches!(self.state, State::Recording { .. })
                     && !self.instructions.is_empty())
-                .then_some(Message::Play),
+                .then_some(Event::Play),
             );
 
             let record = if let State::Recording { .. } = &self.state {
                 control(icon::stop())
-                    .on_press(Message::Stop)
+                    .on_press(Event::Stop)
                     .style(button::success)
             } else {
                 control(icon::record())
-                    .on_press_maybe(
-                        (!self.is_busy()).then_some(Message::Record),
-                    )
+                    .on_press_maybe((!self.is_busy()).then_some(Event::Record))
                     .style(button::danger)
             };
 
             let import = control(icon::folder())
-                .on_press_maybe((!self.is_busy()).then_some(Message::Import))
+                .on_press_maybe((!self.is_busy()).then_some(Event::Import))
                 .style(button::secondary);
 
             let export = control(icon::floppy())
                 .on_press_maybe(
                     (!matches!(self.state, State::Recording { .. })
                         && !self.instructions.is_empty())
-                    .then_some(Message::Export),
+                    .then_some(Event::Export),
                 )
                 .style(button::success);
 
@@ -799,13 +802,13 @@ impl<P: Program + 'static> Tester<P> {
         } else if self.edit.is_none() {
             button(icon::pencil().size(14))
                 .padding(0)
-                .on_press(Message::Edit)
+                .on_press(Event::Edit)
                 .style(button::text)
                 .into()
         } else {
             button(icon::check().size(14))
                 .padding(0)
-                .on_press(Message::Confirm)
+                .on_press(Event::Confirm)
                 .style(button::text)
                 .into()
         };
