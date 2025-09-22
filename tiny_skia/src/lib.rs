@@ -72,7 +72,7 @@ impl Renderer {
         damage: &[Rectangle],
         background_color: Color,
     ) {
-        let scale_factor = viewport.scale_factor() as f32;
+        let scale_factor = viewport.scale_factor();
 
         self.layers.flush();
 
@@ -225,8 +225,8 @@ impl core::Renderer for Renderer {
         layer.draw_quad(quad, background.into(), transformation);
     }
 
-    fn clear(&mut self) {
-        self.layers.clear();
+    fn reset(&mut self, new_bounds: Rectangle) {
+        self.layers.reset(new_bounds);
     }
 }
 
@@ -235,6 +235,7 @@ impl core::text::Renderer for Renderer {
     type Paragraph = Paragraph;
     type Editor = Editor;
 
+    const MONOSPACE_FONT: Font = Font::MONOSPACE;
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
     const ARROW_DOWN_ICON: char = '\u{e800}';
@@ -293,8 +294,8 @@ impl graphics::geometry::Renderer for Renderer {
     type Geometry = Geometry;
     type Frame = geometry::Frame;
 
-    fn new_frame(&self, size: core::Size) -> Self::Frame {
-        geometry::Frame::new(size)
+    fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
+        geometry::Frame::new(bounds)
     }
 
     fn draw_geometry(&mut self, geometry: Self::Geometry) {
@@ -404,8 +405,7 @@ impl renderer::Headless for Renderer {
         scale_factor: f32,
         background_color: Color,
     ) -> Vec<u8> {
-        let viewport =
-            Viewport::with_physical_size(size, f64::from(scale_factor));
+        let viewport = Viewport::with_physical_size(size, scale_factor);
 
         window::compositor::screenshot(self, &viewport, background_color)
     }

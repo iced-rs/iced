@@ -111,21 +111,11 @@ where
             class: Theme::default(),
             last_status: None,
         }
-        .validate()
+        .enclose()
     }
 
-    fn validate(mut self) -> Self {
+    fn enclose(mut self) -> Self {
         let size_hint = self.content.as_widget().size_hint();
-
-        debug_assert!(
-            self.direction.vertical().is_none() || !size_hint.height.is_fill(),
-            "scrollable content must not fill its vertical scrolling axis"
-        );
-
-        debug_assert!(
-            self.direction.horizontal().is_none() || !size_hint.width.is_fill(),
-            "scrollable content must not fill its horizontal scrolling axis"
-        );
 
         if self.direction.horizontal().is_none() {
             self.width = self.width.enclose(size_hint.width);
@@ -146,7 +136,7 @@ where
     /// Sets the [`Direction`] of the [`Scrollable`].
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
-        self.validate()
+        self.enclose()
     }
 
     /// Sets the [`Id`] of the [`Scrollable`].
@@ -421,64 +411,117 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let (right_padding, bottom_padding) = match self.direction {
+        let mut layout = |right_padding, bottom_padding| {
+            layout::padded(
+                limits,
+                self.width,
+                self.height,
+                Padding {
+                    right: right_padding,
+                    bottom: bottom_padding,
+                    ..Padding::ZERO
+                },
+                |limits| {
+                    let is_horizontal = self.direction.horizontal().is_some();
+                    let is_vertical = self.direction.vertical().is_some();
+
+                    let child_limits = layout::Limits::with_compression(
+                        limits.min(),
+                        Size::new(
+                            if is_horizontal {
+                                f32::INFINITY
+                            } else {
+                                limits.max().width
+                            },
+                            if is_vertical {
+                                f32::INFINITY
+                            } else {
+                                limits.max().height
+                            },
+                        ),
+                        Size::new(is_horizontal, is_vertical),
+                    );
+
+                    self.content.as_widget_mut().layout(
+                        &mut tree.children[0],
+                        renderer,
+                        &child_limits,
+                    )
+                },
+            )
+        };
+
+        match self.direction {
             Direction::Vertical(Scrollbar {
                 width,
                 margin,
                 spacing: Some(spacing),
                 ..
-            }) => (width + margin * 2.0 + spacing, 0.0),
-            Direction::Horizontal(Scrollbar {
+            })
+            | Direction::Horizontal(Scrollbar {
                 width,
                 margin,
                 spacing: Some(spacing),
                 ..
-            }) => (0.0, width + margin * 2.0 + spacing),
-            _ => (0.0, 0.0),
-        };
+            }) => {
+                let is_vertical =
+                    matches!(self.direction, Direction::Vertical(_));
 
-        layout::padded(
-            limits,
-            self.width,
-            self.height,
-            Padding {
-                right: right_padding,
-                bottom: bottom_padding,
-                ..Padding::ZERO
-            },
-            |limits| {
-                let child_limits = layout::Limits::new(
-                    Size::new(limits.min().width, limits.min().height),
-                    Size::new(
-                        if self.direction.horizontal().is_some() {
-                            f32::INFINITY
-                        } else {
-                            limits.max().width
-                        },
-                        if self.direction.vertical().is_some() {
-                            f32::INFINITY
-                        } else {
-                            limits.max().height
-                        },
-                    ),
+                let padding = width + margin * 2.0 + spacing;
+                let state = tree.state.downcast_mut::<State>();
+
+                let status_quo = layout(
+                    if is_vertical && state.is_scrollbar_visible {
+                        padding
+                    } else {
+                        0.0
+                    },
+                    if !is_vertical && state.is_scrollbar_visible {
+                        padding
+                    } else {
+                        0.0
+                    },
                 );
 
-                self.content.as_widget().layout(
-                    &mut tree.children[0],
-                    renderer,
-                    &child_limits,
-                )
-            },
-        )
+                let is_scrollbar_visible = if is_vertical {
+                    status_quo.children()[0].size().height
+                        > status_quo.size().height
+                } else {
+                    status_quo.children()[0].size().width
+                        > status_quo.size().width
+                };
+
+                if state.is_scrollbar_visible == is_scrollbar_visible {
+                    status_quo
+                } else {
+                    log::trace!("Scrollbar status quo has changed");
+                    state.is_scrollbar_visible = is_scrollbar_visible;
+
+                    layout(
+                        if is_vertical && state.is_scrollbar_visible {
+                            padding
+                        } else {
+                            0.0
+                        },
+                        if !is_vertical && state.is_scrollbar_visible {
+                            padding
+                        } else {
+                            0.0
+                        },
+                    )
+                }
+            }
+            _ => layout(0.0, 0.0),
+        }
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -504,7 +547,7 @@ where
             self.id.as_ref().map(|id| &id.0),
             bounds,
             &mut |operation| {
-                self.content.as_widget().operate(
+                self.content.as_widget_mut().operate(
                     &mut tree.children[0],
                     layout.children().next().unwrap(),
                     renderer,
@@ -749,12 +792,11 @@ where
                     },
                 );
 
-                if !had_input_method {
-                    if let InputMethod::Enabled { position, .. } =
+                if !had_input_method
+                    && let InputMethod::Enabled { position, .. } =
                         shell.input_method_mut()
-                    {
-                        *position = *position - translation;
-                    }
+                {
+                    *position = *position - translation;
                 }
             };
 
@@ -1038,23 +1080,22 @@ where
                         );
                     }
 
-                    if let Some(scroller) = scrollbar.scroller {
-                        if scroller.bounds.width > 0.0
-                            && scroller.bounds.height > 0.0
-                            && (style.scroller.color != Color::TRANSPARENT
-                                || (style.scroller.border.color
-                                    != Color::TRANSPARENT
-                                    && style.scroller.border.width > 0.0))
-                        {
-                            renderer.fill_quad(
-                                renderer::Quad {
-                                    bounds: scroller.bounds,
-                                    border: style.scroller.border,
-                                    ..renderer::Quad::default()
-                                },
-                                style.scroller.color,
-                            );
-                        }
+                    if let Some(scroller) = scrollbar.scroller
+                        && scroller.bounds.width > 0.0
+                        && scroller.bounds.height > 0.0
+                        && (style.scroller.color != Color::TRANSPARENT
+                            || (style.scroller.border.color
+                                != Color::TRANSPARENT
+                                && style.scroller.border.width > 0.0))
+                    {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: scroller.bounds,
+                                border: style.scroller.border,
+                                ..renderer::Quad::default()
+                            },
+                            style.scroller.color,
+                        );
                     }
                 };
 
@@ -1174,7 +1215,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -1350,6 +1391,7 @@ struct State {
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
     last_scrolled: Option<Instant>,
+    is_scrollbar_visible: bool,
 }
 
 impl Default for State {
@@ -1363,6 +1405,7 @@ impl Default for State {
             keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,
             last_scrolled: None,
+            is_scrollbar_visible: true,
         }
     }
 }
@@ -1578,20 +1621,24 @@ impl State {
     ) -> Vector {
         Vector::new(
             if let Some(horizontal) = direction.horizontal() {
-                self.offset_x.translation(
-                    bounds.width,
-                    content_bounds.width,
-                    horizontal.alignment,
-                )
+                self.offset_x
+                    .translation(
+                        bounds.width,
+                        content_bounds.width,
+                        horizontal.alignment,
+                    )
+                    .round()
             } else {
                 0.0
             },
             if let Some(vertical) = direction.vertical() {
-                self.offset_y.translation(
-                    bounds.height,
-                    content_bounds.height,
-                    vertical.alignment,
-                )
+                self.offset_y
+                    .translation(
+                        bounds.height,
+                        content_bounds.height,
+                        vertical.alignment,
+                    )
+                    .round()
             } else {
                 0.0
             },
@@ -1622,13 +1669,13 @@ impl Scrollbars {
     ) -> Self {
         let translation = state.translation(direction, bounds, content_bounds);
 
-        let show_scrollbar_x = direction.horizontal().filter(|scrollbar| {
-            scrollbar.spacing.is_some() || content_bounds.width > bounds.width
-        });
+        let show_scrollbar_x = direction
+            .horizontal()
+            .filter(|_scrollbar| content_bounds.width > bounds.width);
 
-        let show_scrollbar_y = direction.vertical().filter(|scrollbar| {
-            scrollbar.spacing.is_some() || content_bounds.height > bounds.height
-        });
+        let show_scrollbar_y = direction
+            .vertical()
+            .filter(|_scrollbar| content_bounds.height > bounds.height);
 
         let y_scrollbar = if let Some(vertical) = show_scrollbar_y {
             let Scrollbar {
@@ -2010,7 +2057,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         background: Some(palette.background.weak.color.into()),
         border: border::rounded(2),
         scroller: Scroller {
-            color: palette.background.strong.color,
+            color: palette.background.strongest.color,
             border: border::rounded(2),
         },
     };

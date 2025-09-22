@@ -37,7 +37,7 @@ impl LoadingSpinners {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let column = [
             &easing::EMPHASIZED,
             &easing::EMPHASIZED_DECELERATE,

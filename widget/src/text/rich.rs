@@ -225,7 +225,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -365,7 +365,7 @@ where
         text::draw(
             renderer,
             defaults,
-            layout,
+            layout.bounds(),
             &state.paragraph,
             style,
             viewport,

@@ -10,6 +10,7 @@ struct GradientVertexInput {
     @location(7) border_color: vec4<f32>,
     @location(8) border_radius: vec4<f32>,
     @location(9) border_width: f32,
+    @location(10) snap: u32,
 }
 
 struct GradientVertexOutput {
@@ -33,6 +34,14 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     var pos: vec2<f32> = input.position_and_scale.xy * globals.scale;
     var scale: vec2<f32> = input.position_and_scale.zw * globals.scale;
 
+    var pos_snap = vec2<f32>(0.0, 0.0);
+    var scale_snap = vec2<f32>(0.0, 0.0);
+
+    if bool(input.snap) {
+        pos_snap = round(pos + vec2(0.001, 0.001)) - pos;
+        scale_snap = round(pos + scale + vec2(0.001, 0.001)) - pos - pos_snap - scale;
+    }
+
     var min_border_radius = min(input.position_and_scale.z, input.position_and_scale.w) * 0.5;
     var border_radius: vec4<f32> = vec4<f32>(
         min(input.border_radius.x, min_border_radius),
@@ -42,10 +51,10 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     );
 
     var transform: mat4x4<f32> = mat4x4<f32>(
-        vec4<f32>(scale.x + 1.0, 0.0, 0.0, 0.0),
-        vec4<f32>(0.0, scale.y + 1.0, 0.0, 0.0),
+        vec4<f32>(scale.x + scale_snap.x + 1.0, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, scale.y + scale_snap.y + 1.0, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(pos - vec2<f32>(0.5, 0.5), 0.0, 1.0)
+        vec4<f32>(pos + pos_snap - vec2<f32>(0.5, 0.5), 0.0, 1.0)
     );
 
     out.position = globals.transform * transform * vec4<f32>(vertex_position(input.vertex_index), 0.0, 1.0);
@@ -55,8 +64,8 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     out.colors_4 = input.colors_4;
     out.offsets = input.offsets;
     out.direction = input.direction * globals.scale;
-    out.position_and_scale = vec4<f32>(pos, scale);
-    out.border_color = input.border_color;
+    out.position_and_scale = vec4<f32>(pos + pos_snap, scale + scale_snap);
+    out.border_color = premultiply(input.border_color);
     out.border_radius = border_radius * globals.scale;
     out.border_width = input.border_width * globals.scale;
 
@@ -119,14 +128,14 @@ fn gradient(
 @fragment
 fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let colors = array<vec4<f32>, 8>(
-        unpack_u32(input.colors_1.xy),
-        unpack_u32(input.colors_1.zw),
-        unpack_u32(input.colors_2.xy),
-        unpack_u32(input.colors_2.zw),
-        unpack_u32(input.colors_3.xy),
-        unpack_u32(input.colors_3.zw),
-        unpack_u32(input.colors_4.xy),
-        unpack_u32(input.colors_4.zw),
+        unpack_color(input.colors_1.xy),
+        unpack_color(input.colors_1.zw),
+        unpack_color(input.colors_2.xy),
+        unpack_color(input.colors_2.zw),
+        unpack_color(input.colors_3.xy),
+        unpack_color(input.colors_3.zw),
+        unpack_color(input.colors_4.xy),
+        unpack_color(input.colors_4.zw),
     );
 
     let offsets_1: vec4<f32> = unpack_u32(input.offsets.xy);
@@ -157,49 +166,19 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let pos = input.position_and_scale.xy;
     let scale = input.position_and_scale.zw;
 
-    var border_radius = select_border_radius(
-        input.border_radius,
-        input.position.xy,
-        (pos + scale * 0.5).xy
-    );
+    var dist: f32 = rounded_box_sdf(
+        -(input.position.xy - pos - scale / 2.0) * 2.0,
+        scale,
+        input.border_radius * 2.0
+    ) / 2.0;
 
     if (input.border_width > 0.0) {
-        var internal_border: f32 = max(border_radius - input.border_width, 0.0);
-
-        var internal_distance: f32 = distance_alg(
-            input.position.xy,
-            pos + vec2<f32>(input.border_width, input.border_width),
-            scale - vec2<f32>(input.border_width * 2.0, input.border_width * 2.0),
-            internal_border
+        mixed_color = mix(
+            mixed_color,
+            input.border_color,
+            clamp(0.5 + dist + input.border_width, 0.0, 1.0)
         );
-
-        var border_mix: f32 = smoothstep(
-            max(internal_border - 0.5, 0.0),
-            internal_border + 0.5,
-            internal_distance
-        );
-
-        mixed_color = mix(mixed_color, input.border_color, vec4<f32>(border_mix, border_mix, border_mix, border_mix));
     }
 
-    var dist: f32 = distance_alg(
-        input.position.xy,
-        pos,
-        scale,
-        border_radius
-    );
-
-    var radius_alpha: f32 = 1.0 - smoothstep(
-        max(border_radius - 0.5, 0.0),
-        border_radius + 0.5,
-        dist);
-
-    return vec4<f32>(mixed_color.x, mixed_color.y, mixed_color.z, mixed_color.w * radius_alpha);
-}
-
-fn unpack_u32(color: vec2<u32>) -> vec4<f32> {
-    let rg: vec2<f32> = unpack2x16float(color.x);
-    let ba: vec2<f32> = unpack2x16float(color.y);
-
-    return vec4<f32>(rg.y, rg.x, ba.y, ba.x);
+    return mixed_color * clamp(0.5-dist, 0.0, 1.0);
 }

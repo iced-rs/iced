@@ -31,7 +31,7 @@ impl App {
         event::listen_url().map(Message::UrlReceived)
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let content = match &self.url {
             Some(url) => text(url),
             None => text("No URL received yet!"),

@@ -167,6 +167,7 @@ impl Pipeline {
             label: Some("iced_wgpu.triangle.render_pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &targets.attachment,
+                depth_slice: None,
                 resolve_target: Some(&targets.resolve),
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
@@ -340,6 +341,7 @@ impl State {
                 label: Some("iced_wgpu::triangle::msaa render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: target,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,

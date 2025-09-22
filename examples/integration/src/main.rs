@@ -67,7 +67,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 let physical_size = window.inner_size();
                 let viewport = Viewport::with_physical_size(
                     Size::new(physical_size.width, physical_size.height),
-                    window.scale_factor(),
+                    window.scale_factor() as f32,
                 );
                 let clipboard = Clipboard::connect(window.clone());
 
@@ -96,17 +96,14 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                         let capabilities = surface.get_capabilities(&adapter);
 
                         let (device, queue) = adapter
-                            .request_device(
-                                &wgpu::DeviceDescriptor {
-                                    label: None,
-                                    required_features: adapter_features
-                                        & wgpu::Features::default(),
-                                    required_limits: wgpu::Limits::default(),
-                                    memory_hints:
-                                        wgpu::MemoryHints::MemoryUsage,
-                                },
-                                None,
-                            )
+                            .request_device(&wgpu::DeviceDescriptor {
+                                label: None,
+                                required_features: adapter_features
+                                    & wgpu::Features::default(),
+                                required_limits: wgpu::Limits::default(),
+                                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                                trace: wgpu::Trace::Off,
+                            })
                             .await
                             .expect("Request device");
 
@@ -215,7 +212,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                         *viewport = Viewport::with_physical_size(
                             Size::new(size.width, size.height),
-                            window.scale_factor(),
+                            window.scale_factor() as f32,
                         );
 
                         surface.configure(
@@ -268,7 +265,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 renderer,
                             );
 
-                            let _ = interface.update(
+                            let (state, _) = interface.update(
                                 &[Event::Window(
                                     window::Event::RedrawRequested(
                                         Instant::now(),
@@ -280,7 +277,21 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 &mut Vec::new(),
                             );
 
-                            let mouse_interaction = interface.draw(
+                            // Update the mouse cursor
+                            if let user_interface::State::Updated {
+                                mouse_interaction,
+                                ..
+                            } = state
+                            {
+                                window.set_cursor(
+                                    conversion::mouse_interaction(
+                                        mouse_interaction,
+                                    ),
+                                );
+                            }
+
+                            // Draw the interface
+                            interface.draw(
                                 renderer,
                                 &Theme::Dark,
                                 &renderer::Style::default(),
@@ -297,11 +308,6 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                             // Present the frame
                             frame.present();
-
-                            // Update the mouse cursor
-                            window.set_cursor(conversion::mouse_interaction(
-                                mouse_interaction,
-                            ));
                         }
                         Err(error) => match error {
                             wgpu::SurfaceError::OutOfMemory => {
@@ -339,7 +345,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             // Map window event to iced event
             if let Some(event) = conversion::window_event(
                 event,
-                window.scale_factor(),
+                window.scale_factor() as f32,
                 *modifiers,
             ) {
                 events.push(event);

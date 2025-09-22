@@ -32,7 +32,6 @@ impl Pipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
-        target_size: Size<u32>,
     ) -> Self {
         //vertices of one cube
         let vertices =
@@ -62,8 +61,8 @@ impl Pipeline {
         let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("cubes depth texture"),
             size: wgpu::Extent3d {
-                width: target_size.width,
-                height: target_size.height,
+                width: 1,
+                height: 1,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -297,7 +296,7 @@ impl Pipeline {
             uniforms,
             uniform_bind_group,
             vertices,
-            depth_texture_size: target_size,
+            depth_texture_size: Size::new(1, 1),
             depth_view,
             depth_pipeline,
         }
@@ -369,6 +368,7 @@ impl Pipeline {
                     color_attachments: &[Some(
                         wgpu::RenderPassColorAttachment {
                             view: target,
+                            depth_slice: None,
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: wgpu::LoadOp::Load,
@@ -568,6 +568,7 @@ impl DepthPipeline {
             label: Some("cubes.pipeline.depth_pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: target,
+                depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Load,

@@ -154,7 +154,7 @@ impl App {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let options = lazy(self.version, |_| {
             let mut items: Vec<_> = self.items.iter().cloned().collect();
 

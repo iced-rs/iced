@@ -4,7 +4,7 @@ use iced::{Element, Theme};
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
-        .theme(|_| Theme::CatppuccinMocha)
+        .theme(Theme::CatppuccinMocha)
         .run()
 }
 
@@ -34,7 +34,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         container(hover(
             self.bezier.view(&self.curves).map(Message::AddCurve),
             if self.curves.is_empty() {

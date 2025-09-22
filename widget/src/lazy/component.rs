@@ -7,8 +7,7 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    self, Clipboard, Element, Length, Rectangle, Shell, Size, Vector, Widget,
 };
 use crate::runtime::overlay::Nested;
 
@@ -300,15 +299,15 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
 
-        self.with_element(|element| {
-            element.as_widget().layout(
+        self.with_element_mut(|element| {
+            element.as_widget_mut().layout(
                 &mut t.borrow_mut().as_mut().unwrap().children[0],
                 renderer,
                 limits,
@@ -379,7 +378,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -388,8 +387,8 @@ where
         self.rebuild_element_with_operation(layout, operation);
 
         let tree = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
-        self.with_element(|element| {
-            element.as_widget().operate(
+        self.with_element_mut(|element| {
+            element.as_widget_mut().operate(
                 &mut tree.borrow_mut().as_mut().unwrap().children[0],
                 layout,
                 renderer,
@@ -445,7 +444,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -590,11 +589,10 @@ where
         &self,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(layout, cursor, viewport, renderer)
+            overlay.mouse_interaction(layout, cursor, renderer)
         })
         .unwrap_or_default()
     }
@@ -665,17 +663,5 @@ where
 
             shell.invalidate_layout();
         }
-    }
-
-    fn is_over(
-        &self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        cursor_position: Point,
-    ) -> bool {
-        self.with_overlay_maybe(|overlay| {
-            overlay.is_over(layout, renderer, cursor_position)
-        })
-        .unwrap_or_default()
     }
 }

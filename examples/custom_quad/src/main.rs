@@ -1,89 +1,6 @@
 //! This example showcases a drawing a quad.
-mod quad {
-    use iced::advanced::layout::{self, Layout};
-    use iced::advanced::renderer;
-    use iced::advanced::widget::{self, Widget};
-    use iced::border;
-    use iced::mouse;
-    use iced::{Border, Color, Element, Length, Rectangle, Shadow, Size};
-
-    pub struct CustomQuad {
-        size: f32,
-        radius: border::Radius,
-        border_width: f32,
-        shadow: Shadow,
-    }
-
-    impl CustomQuad {
-        pub fn new(
-            size: f32,
-            radius: border::Radius,
-            border_width: f32,
-            shadow: Shadow,
-        ) -> Self {
-            Self {
-                size,
-                radius,
-                border_width,
-                shadow,
-            }
-        }
-    }
-
-    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for CustomQuad
-    where
-        Renderer: renderer::Renderer,
-    {
-        fn size(&self) -> Size<Length> {
-            Size {
-                width: Length::Shrink,
-                height: Length::Shrink,
-            }
-        }
-
-        fn layout(
-            &self,
-            _tree: &mut widget::Tree,
-            _renderer: &Renderer,
-            _limits: &layout::Limits,
-        ) -> layout::Node {
-            layout::Node::new(Size::new(self.size, self.size))
-        }
-
-        fn draw(
-            &self,
-            _state: &widget::Tree,
-            renderer: &mut Renderer,
-            _theme: &Theme,
-            _style: &renderer::Style,
-            layout: Layout<'_>,
-            _cursor: mouse::Cursor,
-            _viewport: &Rectangle,
-        ) {
-            renderer.fill_quad(
-                renderer::Quad {
-                    bounds: layout.bounds(),
-                    border: Border {
-                        radius: self.radius,
-                        width: self.border_width,
-                        color: Color::from_rgb(1.0, 0.0, 0.0),
-                    },
-                    shadow: self.shadow,
-                },
-                Color::BLACK,
-            );
-        }
-    }
-
-    impl<Message> From<CustomQuad> for Element<'_, Message> {
-        fn from(circle: CustomQuad) -> Self {
-            Self::new(circle)
-        }
-    }
-}
-
 use iced::border;
-use iced::widget::{center, column, slider, text};
+use iced::widget::{center, column, slider, text, toggler};
 use iced::{Center, Color, Element, Shadow, Vector};
 
 pub fn main() -> iced::Result {
@@ -94,6 +11,7 @@ struct Example {
     radius: border::Radius,
     border_width: f32,
     shadow: Shadow,
+    snap: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -107,6 +25,7 @@ enum Message {
     ShadowXOffsetChanged(f32),
     ShadowYOffsetChanged(f32),
     ShadowBlurRadiusChanged(f32),
+    SnapToggled(bool),
 }
 
 impl Example {
@@ -119,6 +38,7 @@ impl Example {
                 offset: Vector::new(0.0, 8.0),
                 blur_radius: 16.0,
             },
+            snap: false,
         }
     }
 
@@ -148,10 +68,13 @@ impl Example {
             Message::ShadowBlurRadiusChanged(s) => {
                 self.shadow.blur_radius = s;
             }
+            Message::SnapToggled(snap) => {
+                self.snap = snap;
+            }
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let border::Radius {
             top_left,
             top_right,
@@ -170,7 +93,8 @@ impl Example {
                 200.0,
                 self.radius,
                 self.border_width,
-                self.shadow
+                self.shadow,
+                self.snap,
             ),
             text!("Radius: {top_left:.2}/{top_right:.2}/{bottom_right:.2}/{bottom_left:.2}"),
             slider(1.0..=100.0, top_left, Message::RadiusTopLeftChanged).step(0.01),
@@ -188,6 +112,7 @@ impl Example {
                 .step(0.01),
             slider(0.0..=100.0, sr, Message::ShadowBlurRadiusChanged)
                 .step(0.01),
+            toggler(self.snap).label("Snap to pixel grid").on_toggle(Message::SnapToggled),
         ]
         .padding(20)
         .spacing(20)
@@ -201,5 +126,92 @@ impl Example {
 impl Default for Example {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+mod quad {
+    use iced::advanced::layout::{self, Layout};
+    use iced::advanced::renderer;
+    use iced::advanced::widget::{self, Widget};
+    use iced::border;
+    use iced::mouse;
+    use iced::{Border, Color, Element, Length, Rectangle, Shadow, Size};
+
+    pub struct CustomQuad {
+        size: f32,
+        radius: border::Radius,
+        border_width: f32,
+        shadow: Shadow,
+        snap: bool,
+    }
+
+    impl CustomQuad {
+        pub fn new(
+            size: f32,
+            radius: border::Radius,
+            border_width: f32,
+            shadow: Shadow,
+            snap: bool,
+        ) -> Self {
+            Self {
+                size,
+                radius,
+                border_width,
+                shadow,
+                snap,
+            }
+        }
+    }
+
+    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for CustomQuad
+    where
+        Renderer: renderer::Renderer,
+    {
+        fn size(&self) -> Size<Length> {
+            Size {
+                width: Length::Shrink,
+                height: Length::Shrink,
+            }
+        }
+
+        fn layout(
+            &mut self,
+            _tree: &mut widget::Tree,
+            _renderer: &Renderer,
+            _limits: &layout::Limits,
+        ) -> layout::Node {
+            layout::Node::new(Size::new(self.size, self.size))
+        }
+
+        fn draw(
+            &self,
+            _state: &widget::Tree,
+            renderer: &mut Renderer,
+            _theme: &Theme,
+            _style: &renderer::Style,
+            layout: Layout<'_>,
+            _cursor: mouse::Cursor,
+            _viewport: &Rectangle,
+        ) {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: layout.bounds(),
+                    border: Border {
+                        radius: self.radius,
+                        width: self.border_width,
+                        color: Color::from_rgb(1.0, 0.0, 0.0),
+                    },
+                    shadow: self.shadow,
+                    snap: self.snap,
+                },
+                Color::BLACK,
+            );
+        }
+    }
+
+    impl<Message> From<CustomQuad> for Element<'_, Message> {
+        fn from(circle: CustomQuad) -> Self {
+            Self::new(circle)
+        }
     }
 }

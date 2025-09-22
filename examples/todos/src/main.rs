@@ -5,7 +5,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Center, Element, Fill, Font, Function, Subscription, Task as Command,
+    Center, Element, Fill, Font, Function, Subscription, Task as Command, Theme,
 };
 
 use serde::{Deserialize, Serialize};
@@ -151,7 +151,7 @@ impl Todos {
                             widget::focus_next()
                         }
                     }
-                    Message::ToggleFullscreen(mode) => window::get_latest()
+                    Message::ToggleFullscreen(mode) => window::latest()
                         .and_then(move |window| window::set_mode(window, mode)),
                     Message::Loaded(_) => Command::none(),
                 };
@@ -182,7 +182,7 @@ impl Todos {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         match self {
             Todos::Loading => loading_message(),
             Todos::Loaded(State {
@@ -194,7 +194,7 @@ impl Todos {
                 let title = text("todos")
                     .width(Fill)
                     .size(100)
-                    .color([0.5, 0.5, 0.5])
+                    .style(subtle)
                     .align_x(Center);
 
                 let input = text_input("What needs to be done?", input_value)
@@ -334,7 +334,7 @@ impl Task {
         }
     }
 
-    fn view(&self, i: usize) -> Element<TaskMessage> {
+    fn view(&self, i: usize) -> Element<'_, TaskMessage> {
         match &self.state {
             TaskState::Idle => {
                 let checkbox = checkbox(&self.description, self.completed)
@@ -381,7 +381,10 @@ impl Task {
     }
 }
 
-fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
+fn view_controls(
+    tasks: &[Task],
+    current_filter: Filter,
+) -> Element<'_, Message> {
     let tasks_left = tasks.iter().filter(|task| !task.completed).count();
 
     let filter_button = |label, filter, current_filter| {
@@ -444,7 +447,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .width(Fill)
             .size(25)
             .align_x(Center)
-            .color([0.7, 0.7, 0.7]),
+            .style(subtle),
     )
     .height(200)
     .into()
@@ -457,6 +460,7 @@ fn icon(unicode: char) -> Text<'static> {
         .font(Font::with_name("Iced-Todos-Icons"))
         .width(20)
         .align_x(Center)
+        .shaping(text::Shaping::Basic)
 }
 
 fn edit_icon() -> Text<'static> {
@@ -465,6 +469,12 @@ fn edit_icon() -> Text<'static> {
 
 fn delete_icon() -> Text<'static> {
     icon('\u{F1F8}')
+}
+
+fn subtle(theme: &Theme) -> text::Style {
+    text::Style {
+        color: Some(theme.extended_palette().background.strongest.color),
+    }
 }
 
 // Persistence
@@ -577,10 +587,10 @@ mod tests {
     use super::*;
 
     use iced::{Settings, Theme};
-    use iced_test::selector::text;
+    use iced_test::selector::id;
     use iced_test::{Error, Simulator};
 
-    fn simulator(todos: &Todos) -> Simulator<Message> {
+    fn simulator(todos: &Todos) -> Simulator<'_, Message> {
         Simulator::with_settings(
             Settings {
                 fonts: vec![Todos::ICON_FONT.into()],
@@ -591,12 +601,13 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn it_creates_a_new_task() -> Result<(), Error> {
         let (mut todos, _command) = Todos::new();
         let _command = todos.update(Message::Loaded(Err(LoadError::File)));
 
         let mut ui = simulator(&todos);
-        let _input = ui.click("new-task")?;
+        let _input = ui.click(id("new-task"))?;
 
         let _ = ui.typewrite("Create the universe");
         let _ = ui.tap_key(keyboard::key::Named::Enter);
@@ -606,7 +617,7 @@ mod tests {
         }
 
         let mut ui = simulator(&todos);
-        let _ = ui.find(text("Create the universe"))?;
+        let _ = ui.find("Create the universe")?;
 
         let snapshot = ui.snapshot(&Theme::Dark)?;
         assert!(

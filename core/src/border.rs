@@ -263,3 +263,16 @@ impl From<Radius> for [f32; 4] {
         ]
     }
 }
+
+impl std::ops::Mul<f32> for Radius {
+    type Output = Self;
+
+    fn mul(self, scale: f32) -> Self::Output {
+        Self {
+            top_left: self.top_left * scale,
+            top_right: self.top_right * scale,
+            bottom_right: self.bottom_right * scale,
+            bottom_left: self.bottom_left * scale,
+        }
+    }
+}

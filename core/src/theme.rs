@@ -5,6 +5,7 @@ pub use palette::Palette;
 
 use crate::Color;
 
+use std::borrow::Cow;
 use std::fmt;
 use std::sync::Arc;
 
@@ -87,14 +88,17 @@ impl Theme {
     ];
 
     /// Creates a new custom [`Theme`] from the given [`Palette`].
-    pub fn custom(name: String, palette: Palette) -> Self {
+    pub fn custom(
+        name: impl Into<Cow<'static, str>>,
+        palette: Palette,
+    ) -> Self {
         Self::custom_with_fn(name, palette, palette::Extended::generate)
     }
 
     /// Creates a new custom [`Theme`] from the given [`Palette`], with
     /// a custom generator of a [`palette::Extended`].
     pub fn custom_with_fn(
-        name: String,
+        name: impl Into<Cow<'static, str>>,
         palette: Palette,
         generate: impl FnOnce(Palette) -> palette::Extended,
     ) -> Self {
@@ -162,31 +166,6 @@ impl Theme {
     }
 }
 
-impl Default for Theme {
-    fn default() -> Self {
-        #[cfg(feature = "auto-detect-theme")]
-        {
-            use std::sync::LazyLock;
-
-            static DEFAULT: LazyLock<Theme> = LazyLock::new(|| {
-                match dark_light::detect()
-                    .unwrap_or(dark_light::Mode::Unspecified)
-                {
-                    dark_light::Mode::Dark => Theme::Dark,
-                    dark_light::Mode::Light | dark_light::Mode::Unspecified => {
-                        Theme::Light
-                    }
-                }
-            });
-
-            DEFAULT.clone()
-        }
-
-        #[cfg(not(feature = "auto-detect-theme"))]
-        Theme::Light
-    }
-}
-
 impl fmt::Display for Theme {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -220,7 +199,7 @@ impl fmt::Display for Theme {
 /// A [`Theme`] with a customized [`Palette`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct Custom {
-    name: String,
+    name: Cow<'static, str>,
     palette: Palette,
     extended: palette::Extended,
 }
@@ -234,12 +213,12 @@ impl Custom {
     /// Creates a [`Custom`] theme from the given [`Palette`] with
     /// a custom generator of a [`palette::Extended`].
     pub fn with_fn(
-        name: String,
+        name: impl Into<Cow<'static, str>>,
         palette: Palette,
         generate: impl FnOnce(Palette) -> palette::Extended,
     ) -> Self {
         Self {
-            name,
+            name: name.into(),
             palette,
             extended: generate(palette),
         }
@@ -250,6 +229,18 @@ impl fmt::Display for Custom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
     }
+}
+
+/// A theme mode, denoting the tone or brightness of a theme.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Mode {
+    /// No specific tone.
+    #[default]
+    None,
+    /// A mode referring to themes with light tones.
+    Light,
+    /// A mode referring to themes with dark tones.
+    Dark,
 }
 
 /// The base style of a theme.
@@ -264,7 +255,13 @@ pub struct Style {
 
 /// The default blank style of a theme.
 pub trait Base {
-    /// Returns the default base [`Style`] of a theme.
+    /// Returns the default theme for the preferred [`Mode`].
+    fn default(preference: Mode) -> Self;
+
+    /// Returns the [`Mode`] of the theme.
+    fn mode(&self) -> Mode;
+
+    /// Returns the default base [`Style`] of the theme.
     fn base(&self) -> Style;
 
     /// Returns the color [`Palette`] of the theme.
@@ -276,6 +273,39 @@ pub trait Base {
 }
 
 impl Base for Theme {
+    fn default(preference: Mode) -> Self {
+        use std::env;
+        use std::sync::OnceLock;
+
+        static SYSTEM: OnceLock<Option<Theme>> = OnceLock::new();
+
+        let system = SYSTEM.get_or_init(|| {
+            let name = env::var("ICED_THEME").ok()?;
+
+            Theme::ALL
+                .iter()
+                .find(|theme| theme.to_string() == name)
+                .cloned()
+        });
+
+        if let Some(system) = system {
+            return system.clone();
+        }
+
+        match preference {
+            Mode::None | Mode::Light => Self::Light,
+            Mode::Dark => Self::Dark,
+        }
+    }
+
+    fn mode(&self) -> Mode {
+        if self.extended_palette().is_dark {
+            Mode::Dark
+        } else {
+            Mode::Light
+        }
+    }
+
     fn base(&self) -> Style {
         default(self)
     }

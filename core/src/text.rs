@@ -46,6 +46,38 @@ pub struct Text<Content = String, Font = crate::Font> {
     pub wrapping: Wrapping,
 }
 
+impl<Content, Font> Text<Content, Font>
+where
+    Font: Copy,
+{
+    /// Returns a new [`Text`] replacing only the content with the
+    /// given value.
+    pub fn with_content<T>(&self, content: T) -> Text<T, Font> {
+        Text {
+            content,
+            bounds: self.bounds,
+            size: self.size,
+            line_height: self.line_height,
+            font: self.font,
+            align_x: self.align_x,
+            align_y: self.align_y,
+            shaping: self.shaping,
+            wrapping: self.wrapping,
+        }
+    }
+}
+
+impl<Content, Font> Text<Content, Font>
+where
+    Content: AsRef<str>,
+    Font: Copy,
+{
+    /// Returns a borrowed version of [`Text`].
+    pub fn as_ref(&self) -> Text<&str, Font> {
+        self.with_content(self.content.as_ref())
+    }
+}
+
 /// The alignment of some text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Alignment {
@@ -85,9 +117,30 @@ impl From<crate::Alignment> for Alignment {
     }
 }
 
+impl From<Alignment> for alignment::Horizontal {
+    fn from(alignment: Alignment) -> Self {
+        match alignment {
+            Alignment::Default | Alignment::Left | Alignment::Justified => {
+                alignment::Horizontal::Left
+            }
+            Alignment::Center => alignment::Horizontal::Center,
+            Alignment::Right => alignment::Horizontal::Right,
+        }
+    }
+}
+
 /// The shaping strategy of some text.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Shaping {
+    /// Auto-detect the best shaping strategy from the text.
+    ///
+    /// This strategy will use [`Basic`](Self::Basic) shaping if the
+    /// text consists of only ASCII characters; otherwise, it will
+    /// use [`Advanced`](Self::Advanced) shaping.
+    ///
+    /// This is the default, if neither the `basic-shaping` nor `advanced-shaping`
+    /// features are enabled.
+    Auto,
     /// No shaping and no font fallback.
     ///
     /// This shaping strategy is very cheap, but it will not display complex
@@ -96,8 +149,8 @@ pub enum Shaping {
     /// You should use this strategy when you have complete control of the text
     /// and the font you are displaying in your application.
     ///
-    /// This is the default.
-    #[default]
+    /// This will be the default if the `basic-shaping` feature is enabled and
+    /// the `advanced-shaping` feature is disabled.
     Basic,
     /// Advanced text shaping and font fallback.
     ///
@@ -106,7 +159,21 @@ pub enum Shaping {
     /// may be needed to display all of the glyphs.
     ///
     /// Advanced shaping is expensive! You should only enable it when necessary.
+    ///
+    /// This will be the default if the `advanced-shaping` feature is enabled.
     Advanced,
+}
+
+impl Default for Shaping {
+    fn default() -> Self {
+        if cfg!(feature = "advanced-shaping") {
+            Self::Advanced
+        } else if cfg!(feature = "basic-shaping") {
+            Self::Basic
+        } else {
+            Self::Auto
+        }
+    }
 }
 
 /// The wrapping strategy of some text.
@@ -231,6 +298,11 @@ pub trait Renderer: crate::Renderer {
 
     /// The [`Editor`] of this [`Renderer`].
     type Editor: Editor<Font = Self::Font> + 'static;
+
+    /// A monospace font.
+    ///
+    /// It may be used by devtools.
+    const MONOSPACE_FONT: Self::Font;
 
     /// The icon font of the backend.
     const ICON_FONT: Self::Font;

@@ -19,11 +19,11 @@ pub fn main() -> iced::Result {
         .run()
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug, Default)]
 struct Layout {
     example: Example,
     explain: bool,
-    theme: Theme,
+    theme: Option<Theme>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,7 +51,7 @@ impl Layout {
                 self.explain = explain;
             }
             Message::ThemeSelected(theme) => {
-                self.theme = theme;
+                self.theme = Some(theme);
             }
         }
     }
@@ -68,13 +68,14 @@ impl Layout {
         })
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let header = row![
             text(self.example.title).size(20).font(Font::MONOSPACE),
             horizontal_space(),
             checkbox("Explain", self.explain)
                 .on_toggle(Message::ExplainToggled),
-            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeSelected),
+            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeSelected)
+                .placeholder("Theme"),
         ]
         .spacing(20)
         .align_y(Center);
@@ -94,14 +95,14 @@ impl Layout {
 
         let controls = row([
             (!self.example.is_first()).then_some(
-                button("← Previous")
+                button(text("← Previous"))
                     .padding([5, 10])
                     .on_press(Message::Previous)
                     .into(),
             ),
             Some(horizontal_space().into()),
             (!self.example.is_last()).then_some(
-                button("Next →")
+                button(text("Next →"))
                     .padding([5, 10])
                     .on_press(Message::Next)
                     .into(),
@@ -116,12 +117,12 @@ impl Layout {
             .into()
     }
 
-    fn theme(&self) -> Theme {
+    fn theme(&self) -> Option<Theme> {
         self.theme.clone()
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Eq)]
 struct Example {
     title: &'static str,
     view: fn() -> Element<'static, Message>,
@@ -190,7 +191,7 @@ impl Example {
         Self::LIST.get(index + 1).copied().unwrap_or(self)
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         (self.view)()
     }
 }
@@ -198,6 +199,12 @@ impl Example {
 impl Default for Example {
     fn default() -> Self {
         Self::LIST[0]
+    }
+}
+
+impl PartialEq for Example {
+    fn eq(&self, other: &Self) -> bool {
+        self.title == other.title
     }
 }
 
@@ -288,7 +295,7 @@ fn quotes<'a>() -> Element<'a, Message> {
     fn quote<'a>(
         content: impl Into<Element<'a, Message>>,
     ) -> Element<'a, Message> {
-        row![vertical_rule(2), content.into()]
+        row![vertical_rule(1), content.into()]
             .spacing(10)
             .height(Shrink)
             .into()
@@ -307,7 +314,7 @@ fn quotes<'a>() -> Element<'a, Message> {
             "This is another reply",
         ),
         horizontal_rule(1),
-        "A separator ↑",
+        text("A separator ↑"),
     ]
     .width(Shrink)
     .spacing(10)

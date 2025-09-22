@@ -60,8 +60,8 @@ pub trait Renderer {
     /// Fills a [`Quad`] with the provided [`Background`].
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
 
-    /// Clears all of the recorded primitives in the [`Renderer`].
-    fn clear(&mut self);
+    /// Resets the [`Renderer`] to start drawing in the `new_bounds` from scratch.
+    fn reset(&mut self, new_bounds: Rectangle);
 }
 
 /// A polygon with four sides.
@@ -75,6 +75,9 @@ pub struct Quad {
 
     /// The [`Shadow`] of the [`Quad`].
     pub shadow: Shadow,
+
+    /// Whether the [`Quad`] should be snapped to the pixel grid.
+    pub snap: bool,
 }
 
 impl Default for Quad {
@@ -83,6 +86,7 @@ impl Default for Quad {
             bounds: Rectangle::with_size(Size::ZERO),
             border: Border::default(),
             shadow: Shadow::default(),
+            snap: cfg!(feature = "crisp"),
         }
     }
 }

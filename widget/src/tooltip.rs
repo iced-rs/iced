@@ -179,14 +179,16 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content
-            .as_widget()
-            .layout(&mut tree.children[0], renderer, limits)
+        self.content.as_widget_mut().layout(
+            &mut tree.children[0],
+            renderer,
+            limits,
+        )
     }
 
     fn update(
@@ -200,22 +202,23 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let state = tree.state.downcast_mut::<State>();
+        if let Event::Mouse(_) = event {
+            let state = tree.state.downcast_mut::<State>();
+            let was_idle = *state == State::Idle;
 
-        let was_idle = *state == State::Idle;
+            *state = cursor
+                .position_over(layout.bounds())
+                .map(|cursor_position| State::Hovered { cursor_position })
+                .unwrap_or_default();
 
-        *state = cursor
-            .position_over(layout.bounds())
-            .map(|cursor_position| State::Hovered { cursor_position })
-            .unwrap_or_default();
+            let is_idle = *state == State::Idle;
 
-        let is_idle = *state == State::Idle;
-
-        if was_idle != is_idle {
-            shell.invalidate_layout();
-            shell.request_redraw();
-        } else if !is_idle && self.position == Position::FollowCursor {
-            shell.request_redraw();
+            if was_idle != is_idle {
+                shell.invalidate_layout();
+                shell.request_redraw();
+            } else if self.position == Position::FollowCursor {
+                shell.request_redraw();
+            }
         }
 
         self.content.as_widget_mut().update(
@@ -271,7 +274,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -291,7 +294,7 @@ where
         let tooltip = if let State::Hovered { cursor_position } = *state {
             Some(overlay::Element::new(Box::new(Overlay {
                 position: layout.position() + translation,
-                tooltip: &self.tooltip,
+                tooltip: &mut self.tooltip,
                 state: children.next().unwrap(),
                 cursor_position,
                 content_bounds: layout.bounds(),
@@ -363,7 +366,7 @@ where
     Renderer: text::Renderer,
 {
     position: Point,
-    tooltip: &'b Element<'a, Message, Theme, Renderer>,
+    tooltip: &'b mut Element<'a, Message, Theme, Renderer>,
     state: &'b mut widget::Tree,
     cursor_position: Point,
     content_bounds: Rectangle,
@@ -383,7 +386,7 @@ where
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
-        let tooltip_layout = self.tooltip.as_widget().layout(
+        let tooltip_layout = self.tooltip.as_widget_mut().layout(
             self.state,
             renderer,
             &layout::Limits::new(
@@ -391,7 +394,7 @@ where
                 if self.snap_within_viewport {
                     viewport.size()
                 } else {
-                    Size::INFINITY
+                    Size::INFINITE
                 },
             )
             .shrink(Padding::new(self.padding)),
@@ -505,16 +508,7 @@ where
             &defaults,
             layout.children().next().unwrap(),
             cursor_position,
-            &Rectangle::with_size(Size::INFINITY),
+            &Rectangle::with_size(Size::INFINITE),
         );
-    }
-
-    fn is_over(
-        &self,
-        _layout: Layout<'_>,
-        _renderer: &Renderer,
-        _cursor_position: Point,
-    ) -> bool {
-        false
     }
 }

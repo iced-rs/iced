@@ -6,7 +6,8 @@ use crate::container::{self, Container};
 use crate::core;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
-use crate::core::{Element, Length, Pixels, Widget};
+use crate::core::{Element, Length, Pixels, Size, Widget};
+use crate::float::{self, Float};
 use crate::keyed;
 use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
@@ -24,10 +25,14 @@ use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::vertical_slider::{self, VerticalSlider};
-use crate::{Column, Grid, MouseArea, Pin, Pop, Row, Space, Stack, Themer};
+use crate::{
+    Column, Grid, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer,
+};
 
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
+
+pub use crate::table::table;
 
 /// Creates a [`Column`] with the given children.
 ///
@@ -606,12 +611,12 @@ where
         }
 
         fn layout(
-            &self,
+            &mut self,
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.content.as_widget().layout(tree, renderer, limits)
+            self.content.as_widget_mut().layout(tree, renderer, limits)
         }
 
         fn draw(
@@ -630,14 +635,14 @@ where
         }
 
         fn operate(
-            &self,
+            &mut self,
             state: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
             self.content
-                .as_widget()
+                .as_widget_mut()
                 .operate(state, layout, renderer, operation);
         }
 
@@ -692,7 +697,7 @@ where
         fn overlay<'b>(
             &'b mut self,
             state: &'b mut core::widget::Tree,
-            layout: core::Layout<'_>,
+            layout: core::Layout<'b>,
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
@@ -769,18 +774,18 @@ where
         }
 
         fn layout(
-            &self,
+            &mut self,
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            let base = self.base.as_widget().layout(
+            let base = self.base.as_widget_mut().layout(
                 &mut tree.children[0],
                 renderer,
                 limits,
             );
 
-            let top = self.top.as_widget().layout(
+            let top = self.top.as_widget_mut().layout(
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, base.size()),
@@ -831,18 +836,20 @@ where
         }
 
         fn operate(
-            &self,
+            &mut self,
             tree: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
-            let children = [&self.base, &self.top]
+            let children = [&mut self.base, &mut self.top]
                 .into_iter()
                 .zip(layout.children().zip(&mut tree.children));
 
             for (child, (layout, tree)) in children {
-                child.as_widget().operate(tree, layout, renderer, operation);
+                child
+                    .as_widget_mut()
+                    .operate(tree, layout, renderer, operation);
             }
         }
 
@@ -948,7 +955,7 @@ where
         fn overlay<'b>(
             &'b mut self,
             tree: &'b mut core::widget::Tree,
-            layout: core::Layout<'_>,
+            layout: core::Layout<'b>,
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
@@ -987,18 +994,20 @@ where
     })
 }
 
-/// Creates a new [`Pop`] widget.
+/// Creates a new [`Sensor`] widget.
 ///
-/// A [`Pop`] widget can generate messages when it pops in and out of view.
+/// A [`Sensor`] widget can generate messages when its contents are shown,
+/// hidden, or resized.
+///
 /// It can even notify you with anticipation at a given distance!
-pub fn pop<'a, Message, Theme, Renderer>(
+pub fn sensor<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Pop<'a, Message, Theme, Renderer>
+) -> Sensor<'a, (), Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
     Message: Clone,
 {
-    Pop::new(content)
+    Sensor::new(content)
 }
 
 /// Creates a new [`Scrollable`] with the provided content.
@@ -1848,12 +1857,7 @@ where
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[cfg(feature = "image")]
-pub fn image<'a, Handle, Theme>(
-    handle: impl Into<Handle>,
-) -> crate::Image<'a, Handle, Theme>
-where
-    Theme: crate::image::Catalog,
-{
+pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
     crate::Image::new(handle.into())
 }
 
@@ -1917,7 +1921,10 @@ where
 
     row![
         svg(LOGO.clone()).width(text_size * 1.3),
-        text("iced").size(text_size).font(Font::MONOSPACE)
+        text("iced")
+            .size(text_size)
+            .font(Font::MONOSPACE)
+            .shaping(text::Shaping::Advanced)
     ]
     .spacing(text_size.0 / 3.0)
     .align_y(Alignment::Center)
@@ -2059,7 +2066,7 @@ where
 
 /// A widget that applies any `Theme` to its contents.
 pub fn themer<'a, Message, OldTheme, NewTheme, Renderer>(
-    new_theme: NewTheme,
+    to_theme: impl Fn(&OldTheme) -> NewTheme,
     content: impl Into<Element<'a, Message, NewTheme, Renderer>>,
 ) -> Themer<
     'a,
@@ -2073,7 +2080,7 @@ where
     Renderer: core::Renderer,
     NewTheme: Clone,
 {
-    Themer::new(move |_| new_theme.clone(), content)
+    Themer::new(to_theme, content)
 }
 
 /// Creates a [`PaneGrid`] with the given [`pane_grid::State`] and view function.
@@ -2126,4 +2133,30 @@ where
     Renderer: core::Renderer,
 {
     PaneGrid::new(state, view)
+}
+
+/// Creates a new [`Float`] widget with the given content.
+pub fn float<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Float<'a, Message, Theme, Renderer>
+where
+    Theme: float::Catalog,
+    Renderer: core::Renderer,
+{
+    Float::new(content)
+}
+
+/// Creates a new [`Responsive`] widget with a closure that produces its
+/// contents.
+///
+/// The `view` closure will receive the maximum available space for
+/// the [`Responsive`] during layout. You can use this [`Size`] to
+/// conditionally build the contents.
+pub fn responsive<'a, Message, Theme, Renderer>(
+    f: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a,
+) -> Responsive<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    Responsive::new(f)
 }

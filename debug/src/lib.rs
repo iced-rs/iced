@@ -1,11 +1,18 @@
 pub use iced_core as core;
+pub use iced_futures as futures;
 
 use crate::core::theme;
 use crate::core::window;
+use crate::futures::Subscription;
 
 pub use internal::Span;
 
-use std::io;
+#[derive(Debug, Clone, Copy)]
+pub struct Metadata {
+    pub name: &'static str,
+    pub theme: Option<theme::Palette>,
+    pub can_time_travel: bool,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum Primitive {
@@ -16,12 +23,27 @@ pub enum Primitive {
     Text,
 }
 
-pub fn init(name: &str) {
-    internal::init(name);
+#[derive(Debug, Clone, Copy)]
+pub enum Command {
+    RewindTo { message: usize },
+    GoLive,
 }
 
-pub fn toggle_comet() -> Result<(), io::Error> {
-    internal::toggle_comet()
+pub fn enable() {
+    internal::enable();
+}
+
+pub fn disable() {
+    internal::disable();
+}
+
+pub fn init(metadata: Metadata) {
+    internal::init(metadata);
+    hot::init();
+}
+
+pub fn quit() -> bool {
+    internal::quit()
 }
 
 pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
@@ -29,11 +51,15 @@ pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
 }
 
 pub fn tasks_spawned(amount: usize) {
-    internal::tasks_spawned(amount)
+    internal::tasks_spawned(amount);
 }
 
 pub fn subscriptions_tracked(amount: usize) {
-    internal::subscriptions_tracked(amount)
+    internal::subscriptions_tracked(amount);
+}
+
+pub fn layers_rendered(amount: impl FnOnce() -> usize) {
+    internal::layers_rendered(amount);
 }
 
 pub fn boot() -> Span {
@@ -84,52 +110,58 @@ pub fn time_with<T>(name: impl Into<String>, f: impl FnOnce() -> T) -> T {
     result
 }
 
-pub fn skip_next_timing() {
-    internal::skip_next_timing();
+pub fn commands() -> Subscription<Command> {
+    internal::commands()
+}
+
+pub fn hot<O>(f: impl FnOnce() -> O) -> O {
+    hot::call(f)
+}
+
+pub fn on_hotpatch(f: impl Fn() + Send + Sync + 'static) {
+    hot::on_hotpatch(f)
+}
+
+pub fn is_stale() -> bool {
+    hot::is_stale()
 }
 
 #[cfg(all(feature = "enable", not(target_arch = "wasm32")))]
 mod internal {
-    use crate::Primitive;
     use crate::core::theme;
     use crate::core::time::Instant;
     use crate::core::window;
+    use crate::futures::Subscription;
+    use crate::futures::futures::Stream;
+    use crate::{Command, Metadata, Primitive};
 
     use iced_beacon as beacon;
 
     use beacon::client::{self, Client};
     use beacon::span;
+    use beacon::span::present;
 
-    use std::io;
-    use std::process;
-    use std::sync::atomic::{self, AtomicBool};
+    use std::sync::atomic::{self, AtomicBool, AtomicUsize};
     use std::sync::{LazyLock, RwLock};
 
-    pub fn init(name: &str) {
-        let name = name.split("::").next().unwrap_or(name);
+    pub fn init(metadata: Metadata) {
+        let name = metadata.name.split("::").next().unwrap_or(metadata.name);
 
-        name.clone_into(&mut NAME.write().expect("Write application name"));
+        *METADATA.write().expect("Write application metadata") =
+            client::Metadata {
+                name,
+                theme: metadata.theme,
+                can_time_travel: metadata.can_time_travel,
+            };
     }
 
-    pub fn toggle_comet() -> Result<(), io::Error> {
+    pub fn quit() -> bool {
         if BEACON.is_connected() {
             BEACON.quit();
 
-            Ok(())
+            true
         } else {
-            let _ = process::Command::new("iced_comet")
-                .stdin(process::Stdio::null())
-                .stdout(process::Stdio::null())
-                .stderr(process::Stdio::null())
-                .spawn()?;
-
-            if let Some(palette) =
-                LAST_PALETTE.read().expect("Read last palette").as_ref()
-            {
-                BEACON.log(client::Event::ThemeChanged(*palette));
-            }
-
-            Ok(())
+            false
         }
     }
 
@@ -138,21 +170,25 @@ mod internal {
             return;
         };
 
-        if LAST_PALETTE.read().expect("Read last palette").as_ref()
+        if METADATA.read().expect("Read last palette").theme.as_ref()
             != Some(&palette)
         {
-            BEACON.log(client::Event::ThemeChanged(palette));
+            log(client::Event::ThemeChanged(palette));
 
-            *LAST_PALETTE.write().expect("Write last palette") = Some(palette);
+            METADATA.write().expect("Write last palette").theme = Some(palette);
         }
     }
 
     pub fn tasks_spawned(amount: usize) {
-        BEACON.log(client::Event::CommandsSpawned(amount));
+        log(client::Event::CommandsSpawned(amount));
     }
 
     pub fn subscriptions_tracked(amount: usize) {
-        BEACON.log(client::Event::SubscriptionsTracked(amount));
+        log(client::Event::SubscriptionsTracked(amount));
+    }
+
+    pub fn layers_rendered(amount: impl FnOnce() -> usize) {
+        log(client::Event::LayersRendered(amount()));
     }
 
     pub fn boot() -> Span {
@@ -161,6 +197,8 @@ mod internal {
 
     pub fn update(message: &impl std::fmt::Debug) -> Span {
         let span = span(span::Stage::Update);
+
+        let number = LAST_UPDATE.fetch_add(1, atomic::Ordering::Relaxed);
 
         let start = Instant::now();
         let message = format!("{message:?}");
@@ -172,11 +210,17 @@ mod internal {
             );
         }
 
-        BEACON.log(client::Event::MessageLogged(if message.len() > 49 {
-            format!("{}...", &message[..49])
+        let message = if message.len() > 49 {
+            message
+                .chars()
+                .take(49)
+                .chain("...".chars())
+                .collect::<String>()
         } else {
             message
-        }));
+        };
+
+        log(client::Event::MessageLogged { number, message });
 
         span
     }
@@ -213,12 +257,35 @@ mod internal {
         span(span::Stage::Custom(name.into()))
     }
 
-    pub fn skip_next_timing() {
-        SKIP_NEXT_SPAN.store(true, atomic::Ordering::Relaxed);
+    pub fn enable() {
+        ENABLED.store(true, atomic::Ordering::Relaxed);
+    }
+
+    pub fn disable() {
+        ENABLED.store(false, atomic::Ordering::Relaxed);
+    }
+
+    pub fn commands() -> Subscription<Command> {
+        fn listen_for_commands() -> impl Stream<Item = Command> {
+            use crate::futures::futures::stream;
+
+            stream::unfold(BEACON.subscribe(), async move |mut receiver| {
+                let command = match receiver.recv().await? {
+                    client::Command::RewindTo { message } => {
+                        Command::RewindTo { message }
+                    }
+                    client::Command::GoLive => Command::GoLive,
+                };
+
+                Some((command, receiver))
+            })
+        }
+
+        Subscription::run(listen_for_commands)
     }
 
     fn span(span: span::Stage) -> Span {
-        BEACON.log(client::Event::SpanStarted(span.clone()));
+        log(client::Event::SpanStarted(span.clone()));
 
         Span {
             span,
@@ -226,13 +293,19 @@ mod internal {
         }
     }
 
-    fn to_primitive(primitive: Primitive) -> span::Primitive {
+    fn to_primitive(primitive: Primitive) -> present::Primitive {
         match primitive {
-            Primitive::Quad => span::Primitive::Quad,
-            Primitive::Triangle => span::Primitive::Triangle,
-            Primitive::Shader => span::Primitive::Shader,
-            Primitive::Text => span::Primitive::Text,
-            Primitive::Image => span::Primitive::Image,
+            Primitive::Quad => present::Primitive::Quad,
+            Primitive::Triangle => present::Primitive::Triangle,
+            Primitive::Shader => present::Primitive::Shader,
+            Primitive::Text => present::Primitive::Text,
+            Primitive::Image => present::Primitive::Image,
+        }
+    }
+
+    fn log(event: client::Event) {
+        if ENABLED.load(atomic::Ordering::Relaxed) {
+            BEACON.log(event);
         }
     }
 
@@ -244,38 +317,40 @@ mod internal {
 
     impl Span {
         pub fn finish(self) {
-            if SKIP_NEXT_SPAN.fetch_and(false, atomic::Ordering::Relaxed) {
-                return;
-            }
-
-            BEACON.log(client::Event::SpanFinished(
-                self.span,
-                self.start.elapsed(),
-            ));
+            log(client::Event::SpanFinished(self.span, self.start.elapsed()));
         }
     }
 
     static BEACON: LazyLock<Client> = LazyLock::new(|| {
-        client::connect(NAME.read().expect("Read application name").to_owned())
+        let metadata = METADATA.read().expect("Read application metadata");
+
+        client::connect(metadata.clone())
     });
 
-    static NAME: RwLock<String> = RwLock::new(String::new());
-    static LAST_PALETTE: RwLock<Option<theme::Palette>> = RwLock::new(None);
-    static SKIP_NEXT_SPAN: AtomicBool = AtomicBool::new(false);
+    static METADATA: RwLock<client::Metadata> = RwLock::new(client::Metadata {
+        name: "",
+        theme: None,
+        can_time_travel: false,
+    });
+
+    static LAST_UPDATE: AtomicUsize = AtomicUsize::new(0);
+    static ENABLED: AtomicBool = AtomicBool::new(true);
 }
 
 #[cfg(any(not(feature = "enable"), target_arch = "wasm32"))]
 mod internal {
-    use crate::Primitive;
     use crate::core::theme;
     use crate::core::window;
+    use crate::futures::Subscription;
+    use crate::{Command, Metadata, Primitive};
 
-    use std::io;
+    pub fn enable() {}
+    pub fn disable() {}
 
-    pub fn init(_name: &str) {}
+    pub fn init(_metadata: Metadata) {}
 
-    pub fn toggle_comet() -> Result<(), io::Error> {
-        Ok(())
+    pub fn quit() -> bool {
+        false
     }
 
     pub fn theme_changed(_f: impl FnOnce() -> Option<theme::Palette>) {}
@@ -283,6 +358,8 @@ mod internal {
     pub fn tasks_spawned(_amount: usize) {}
 
     pub fn subscriptions_tracked(_amount: usize) {}
+
+    pub fn layers_rendered(_amount: impl FnOnce() -> usize) {}
 
     pub fn boot() -> Span {
         Span
@@ -324,12 +401,94 @@ mod internal {
         Span
     }
 
-    pub fn skip_next_timing() {}
+    pub fn commands() -> Subscription<Command> {
+        Subscription::none()
+    }
 
     #[derive(Debug)]
     pub struct Span;
 
     impl Span {
         pub fn finish(self) {}
+    }
+}
+
+#[cfg(feature = "hot")]
+mod hot {
+    use std::collections::BTreeSet;
+    use std::sync::atomic::{self, AtomicBool};
+    use std::sync::{Arc, Mutex, OnceLock};
+
+    static IS_STALE: AtomicBool = AtomicBool::new(false);
+
+    static HOT_FUNCTIONS_PENDING: Mutex<BTreeSet<u64>> =
+        Mutex::new(BTreeSet::new());
+
+    static HOT_FUNCTIONS: OnceLock<BTreeSet<u64>> = OnceLock::new();
+
+    pub fn init() {
+        cargo_hot::connect();
+
+        cargo_hot::subsecond::register_handler(Arc::new(|| {
+            if HOT_FUNCTIONS.get().is_none() {
+                HOT_FUNCTIONS
+                    .set(std::mem::take(
+                        &mut HOT_FUNCTIONS_PENDING
+                            .lock()
+                            .expect("Lock hot functions"),
+                    ))
+                    .expect("Set hot functions");
+            }
+
+            IS_STALE.store(false, atomic::Ordering::Relaxed);
+        }));
+    }
+
+    pub fn call<O>(f: impl FnOnce() -> O) -> O {
+        let mut f = Some(f);
+
+        // The `move` here is important. Hotpatching will not work
+        // otherwise.
+        let mut f = cargo_hot::subsecond::HotFn::current(move || {
+            f.take().expect("Hot function is stale")()
+        });
+
+        let address = f.ptr_address().0;
+
+        if let Some(hot_functions) = HOT_FUNCTIONS.get() {
+            if hot_functions.contains(&address) {
+                IS_STALE.store(true, atomic::Ordering::Relaxed);
+            }
+        } else {
+            let _ = HOT_FUNCTIONS_PENDING
+                .lock()
+                .expect("Lock hot functions")
+                .insert(address);
+        }
+
+        f.call(())
+    }
+
+    pub fn on_hotpatch(f: impl Fn() + Send + Sync + 'static) {
+        cargo_hot::subsecond::register_handler(Arc::new(f));
+    }
+
+    pub fn is_stale() -> bool {
+        IS_STALE.load(atomic::Ordering::Relaxed)
+    }
+}
+
+#[cfg(not(feature = "hot"))]
+mod hot {
+    pub fn init() {}
+
+    pub fn call<O>(f: impl FnOnce() -> O) -> O {
+        f()
+    }
+
+    pub fn on_hotpatch(_f: impl Fn() + Send + Sync + 'static) {}
+
+    pub fn is_stale() -> bool {
+        false
     }
 }

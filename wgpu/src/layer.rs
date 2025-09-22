@@ -27,6 +27,16 @@ pub struct Layer {
 }
 
 impl Layer {
+    pub fn is_empty(&self) -> bool {
+        self.quads.is_empty()
+            && self.triangles.is_empty()
+            && self.primitives.is_empty()
+            && self.images.is_empty()
+            && self.text.is_empty()
+            && self.pending_meshes.is_empty()
+            && self.pending_text.is_empty()
+    }
+
     pub fn draw_quad(
         &mut self,
         quad: renderer::Quad,
@@ -39,11 +49,15 @@ impl Layer {
             position: [bounds.x, bounds.y],
             size: [bounds.width, bounds.height],
             border_color: color::pack(quad.border.color),
-            border_radius: quad.border.radius.into(),
-            border_width: quad.border.width,
+            border_radius: (quad.border.radius * transformation.scale_factor())
+                .into(),
+            border_width: quad.border.width * transformation.scale_factor(),
             shadow_color: color::pack(quad.shadow.color),
-            shadow_offset: quad.shadow.offset.into(),
-            shadow_blur_radius: quad.shadow.blur_radius,
+            shadow_offset: (quad.shadow.offset * transformation.scale_factor())
+                .into(),
+            shadow_blur_radius: quad.shadow.blur_radius
+                * transformation.scale_factor(),
+            snap: quad.snap as u32,
         };
 
         self.quads.add(quad, &background);
@@ -221,13 +235,13 @@ impl Layer {
     pub fn draw_primitive(
         &mut self,
         bounds: Rectangle,
-        primitive: Box<dyn Primitive>,
+        primitive: impl Primitive,
         transformation: Transformation,
     ) {
         let bounds = bounds * transformation;
 
         self.primitives
-            .push(primitive::Instance { bounds, primitive });
+            .push(primitive::Instance::new(bounds, primitive));
     }
 
     fn flush_meshes(&mut self) {
@@ -257,6 +271,10 @@ impl graphics::Layer for Layer {
         }
     }
 
+    fn bounds(&self) -> Rectangle {
+        self.bounds
+    }
+
     fn flush(&mut self) {
         self.flush_meshes();
         self.flush_text();
@@ -276,6 +294,62 @@ impl graphics::Layer for Layer {
         self.images.clear();
         self.pending_meshes.clear();
         self.pending_text.clear();
+    }
+
+    fn start(&self) -> usize {
+        if !self.quads.is_empty() {
+            return 1;
+        }
+
+        if !self.triangles.is_empty() {
+            return 2;
+        }
+
+        if !self.primitives.is_empty() {
+            return 3;
+        }
+
+        if !self.images.is_empty() {
+            return 4;
+        }
+
+        if !self.text.is_empty() {
+            return 5;
+        }
+
+        usize::MAX
+    }
+
+    fn end(&self) -> usize {
+        if !self.text.is_empty() {
+            return 5;
+        }
+
+        if !self.images.is_empty() {
+            return 4;
+        }
+
+        if !self.primitives.is_empty() {
+            return 3;
+        }
+
+        if !self.triangles.is_empty() {
+            return 2;
+        }
+
+        if !self.quads.is_empty() {
+            return 1;
+        }
+
+        0
+    }
+
+    fn merge(&mut self, layer: &mut Self) {
+        self.quads.append(&mut layer.quads);
+        self.triangles.append(&mut layer.triangles);
+        self.primitives.append(&mut layer.primitives);
+        self.images.append(&mut layer.images);
+        self.text.append(&mut layer.text);
     }
 }
 

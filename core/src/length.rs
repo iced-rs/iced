@@ -57,6 +57,7 @@ impl Length {
 
     /// Adapts the [`Length`] so it can contain the other [`Length`] and
     /// match its fluidity.
+    #[inline]
     pub fn enclose(self, other: Length) -> Self {
         match (self, other) {
             (Length::Shrink, Length::Fill | Length::FillPortion(_)) => other,

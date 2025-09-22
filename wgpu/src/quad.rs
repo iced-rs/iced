@@ -41,6 +41,9 @@ pub struct Quad {
 
     /// The shadow blur radius of the [`Quad`].
     pub shadow_blur_radius: f32,
+
+    /// Whether the [`Quad`] should be snapped to the pixel grid.
+    pub snap: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -301,6 +304,12 @@ impl Batch {
         self.gradients.clear();
         self.order.clear();
     }
+
+    pub fn append(&mut self, batch: &mut Batch) {
+        self.solids.append(&mut batch.solids);
+        self.gradients.append(&mut batch.gradients);
+        self.order.append(&mut batch.order);
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -317,18 +326,7 @@ fn color_target_state(
 ) -> [Option<wgpu::ColorTargetState>; 1] {
     [Some(wgpu::ColorTargetState {
         format,
-        blend: Some(wgpu::BlendState {
-            color: wgpu::BlendComponent {
-                src_factor: wgpu::BlendFactor::SrcAlpha,
-                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                operation: wgpu::BlendOperation::Add,
-            },
-            alpha: wgpu::BlendComponent {
-                src_factor: wgpu::BlendFactor::One,
-                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                operation: wgpu::BlendOperation::Add,
-            },
-        }),
+        blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
         write_mask: wgpu::ColorWrites::ALL,
     })]
 }

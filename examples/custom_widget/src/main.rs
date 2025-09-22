@@ -33,7 +33,7 @@ mod circle {
         }
 
         fn layout(
-            &self,
+            &mut self,
             _tree: &mut widget::Tree,
             _renderer: &Renderer,
             _limits: &layout::Limits,
@@ -103,7 +103,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let content = column![
             circle(self.radius),
             text!("Radius: {:.2}", self.radius),

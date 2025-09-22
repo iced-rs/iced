@@ -12,11 +12,16 @@ keywords.workspace = true
 
 [features]
 enable = ["dep:iced_beacon"]
+hot = ["enable", "dep:cargo-hot"]
 
 [dependencies]
 iced_core.workspace = true
+iced_futures.workspace = true
 log.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iced_beacon.workspace = true
 iced_beacon.optional = true
+
+cargo-hot.workspace = true
+cargo-hot.optional = true

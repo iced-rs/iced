@@ -53,7 +53,7 @@ impl<'a> Layout<'a> {
         }
     }
 
-    /// Returns an iterator over the [`Layout`] of the children of a [`Node`].
+    /// Returns an iterator over the children of this [`Layout`].
     pub fn children(self) -> impl DoubleEndedIterator<Item = Layout<'a>> {
         self.node.children().iter().map(move |node| {
             Layout::with_offset(
@@ -61,6 +61,19 @@ impl<'a> Layout<'a> {
                 node,
             )
         })
+    }
+
+    /// Returns the [`Layout`] of the child at the given index.
+    ///
+    /// This can be useful if you ever need to access children out of order
+    /// for layering purposes.
+    ///
+    /// # Panics
+    /// Panics if index is out of bounds.
+    pub fn child(self, index: usize) -> Layout<'a> {
+        let node = &self.node.children()[index];
+
+        Layout::with_offset(Vector::new(self.position.x, self.position.y), node)
     }
 }
 

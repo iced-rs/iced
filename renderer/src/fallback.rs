@@ -46,8 +46,8 @@ where
         delegate!(self, renderer, renderer.fill_quad(quad, background.into()));
     }
 
-    fn clear(&mut self) {
-        delegate!(self, renderer, renderer.clear());
+    fn reset(&mut self, new_bounds: Rectangle) {
+        delegate!(self, renderer, renderer.reset(new_bounds));
     }
 
     fn start_layer(&mut self, bounds: Rectangle) {
@@ -84,6 +84,7 @@ where
     type Paragraph = A::Paragraph;
     type Editor = A::Editor;
 
+    const MONOSPACE_FONT: Self::Font = A::MONOSPACE_FONT;
     const ICON_FONT: Self::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
@@ -312,8 +313,8 @@ where
         delegate!(self, compositor, compositor.load_font(font));
     }
 
-    fn fetch_information(&self) -> compositor::Information {
-        delegate!(self, compositor, compositor.fetch_information())
+    fn information(&self) -> compositor::Information {
+        delegate!(self, compositor, compositor.information())
     }
 
     fn present(
@@ -408,13 +409,13 @@ mod geometry {
         type Geometry = Geometry<A::Geometry, B::Geometry>;
         type Frame = Frame<A::Frame, B::Frame>;
 
-        fn new_frame(&self, size: iced_graphics::core::Size) -> Self::Frame {
+        fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
             match self {
                 Self::Primary(renderer) => {
-                    Frame::Primary(renderer.new_frame(size))
+                    Frame::Primary(renderer.new_frame(bounds))
                 }
                 Self::Secondary(renderer) => {
-                    Frame::Secondary(renderer.new_frame(size))
+                    Frame::Secondary(renderer.new_frame(bounds))
                 }
             }
         }
@@ -534,6 +535,14 @@ mod geometry {
                 frame,
                 frame.stroke_rectangle(top_left, size, stroke)
             );
+        }
+
+        fn stroke_text<'a>(
+            &mut self,
+            text: impl Into<Text>,
+            stroke: impl Into<Stroke<'a>>,
+        ) {
+            delegate!(self, frame, frame.stroke_text(text, stroke));
         }
 
         fn fill_text(&mut self, text: impl Into<Text>) {

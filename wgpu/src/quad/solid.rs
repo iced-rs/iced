@@ -74,6 +74,8 @@ impl Pipeline {
                 label: Some("iced_wgpu.quad.solid.shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     concat!(
+                        include_str!("../shader/color.wgsl"),
+                        "\n",
                         include_str!("../shader/quad.wgsl"),
                         "\n",
                         include_str!("../shader/vertex.wgsl"),
@@ -112,6 +114,8 @@ impl Pipeline {
                             7 => Float32x2,
                             // Shadow blur radius
                             8 => Float32,
+                            // Snap
+                            9 => Uint32,
                         ),
                     }],
                     compilation_options:

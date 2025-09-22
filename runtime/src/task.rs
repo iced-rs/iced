@@ -17,7 +17,6 @@ pub use sipper::{Never, Sender, Sipper, Straw, sipper, stream};
 /// A set of concurrent actions to be performed by the iced runtime.
 ///
 /// A [`Task`] _may_ produce a bunch of values of type `T`.
-#[allow(missing_debug_implementations)]
 #[must_use = "`Task` must be returned to the runtime to take effect; normally in your `update` or `new` functions."]
 pub struct Task<T> {
     stream: Option<BoxStream<Action<T>>>,
@@ -278,6 +277,14 @@ impl<T> Task<T> {
     }
 }
 
+impl<T> std::fmt::Debug for Task<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(&format!("Task<{}>", std::any::type_name::<T>()))
+            .field("units", &self.units)
+            .finish()
+    }
+}
+
 /// A handle to a [`Task`] that can be used for aborting it.
 #[derive(Debug, Clone)]
 pub struct Handle {
@@ -373,6 +380,12 @@ impl<T, E> Task<Result<T, E>> {
         A: MaybeSend + 'static,
     {
         self.then(move |option| option.map_or_else(|_| Task::none(), &f))
+    }
+}
+
+impl<T> Default for Task<T> {
+    fn default() -> Self {
+        Self::none()
     }
 }
 

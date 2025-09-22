@@ -12,6 +12,7 @@ mod action;
 mod column;
 mod mouse_area;
 mod pin;
+mod responsive;
 mod space;
 mod stack;
 mod themer;
@@ -20,18 +21,20 @@ pub mod button;
 pub mod checkbox;
 pub mod combo_box;
 pub mod container;
+pub mod float;
 pub mod grid;
 pub mod keyed;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
-pub mod pop;
 pub mod progress_bar;
 pub mod radio;
 pub mod row;
 pub mod rule;
 pub mod scrollable;
+pub mod sensor;
 pub mod slider;
+pub mod table;
 pub mod text;
 pub mod text_editor;
 pub mod text_input;
@@ -60,6 +63,8 @@ pub use combo_box::ComboBox;
 #[doc(no_inline)]
 pub use container::Container;
 #[doc(no_inline)]
+pub use float::Float;
+#[doc(no_inline)]
 pub use grid::Grid;
 #[doc(no_inline)]
 pub use mouse_area::MouseArea;
@@ -70,17 +75,19 @@ pub use pick_list::PickList;
 #[doc(no_inline)]
 pub use pin::Pin;
 #[doc(no_inline)]
-pub use pop::Pop;
-#[doc(no_inline)]
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
 pub use radio::Radio;
+#[doc(no_inline)]
+pub use responsive::Responsive;
 #[doc(no_inline)]
 pub use row::Row;
 #[doc(no_inline)]
 pub use rule::Rule;
 #[doc(no_inline)]
 pub use scrollable::Scrollable;
+#[doc(no_inline)]
+pub use sensor::Sensor;
 #[doc(no_inline)]
 pub use slider::Slider;
 #[doc(no_inline)]

@@ -190,24 +190,26 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content
-            .as_widget()
-            .layout(&mut tree.children[0], renderer, limits)
+        self.content.as_widget_mut().layout(
+            &mut tree.children[0],
+            renderer,
+            limits,
+        )
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.content.as_widget().operate(
+        self.content.as_widget_mut().operate(
             &mut tree.children[0],
             layout,
             renderer,
@@ -294,7 +296,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -345,10 +347,6 @@ fn update<Message: Clone, Theme, Renderer>(
         state.cursor_position = cursor_position;
         state.bounds = bounds;
 
-        if widget.interaction.is_some() && state.is_hovered != was_hovered {
-            shell.request_redraw();
-        }
-
         match (
             widget.on_enter.as_ref(),
             widget.on_move.as_ref(),
@@ -381,24 +379,24 @@ fn update<Message: Clone, Theme, Renderer>(
                 shell.capture_event();
             }
 
-            if let Some(position) = cursor_position {
-                if let Some(message) = widget.on_double_click.as_ref() {
-                    let new_click = mouse::Click::new(
-                        position,
-                        mouse::Button::Left,
-                        state.previous_click,
-                    );
+            if let Some(position) = cursor_position
+                && let Some(message) = widget.on_double_click.as_ref()
+            {
+                let new_click = mouse::Click::new(
+                    position,
+                    mouse::Button::Left,
+                    state.previous_click,
+                );
 
-                    if new_click.kind() == mouse::click::Kind::Double {
-                        shell.publish(message.clone());
-                    }
-
-                    state.previous_click = Some(new_click);
-
-                    // Even if this is not a double click, but the press is nevertheless
-                    // processed by us and should not be popup to parent widgets.
-                    shell.capture_event();
+                if new_click.kind() == mouse::click::Kind::Double {
+                    shell.publish(message.clone());
                 }
+
+                state.previous_click = Some(new_click);
+
+                // Even if this is not a double click, but the press is nevertheless
+                // processed by us and should not be popup to parent widgets.
+                shell.capture_event();
             }
         }
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))

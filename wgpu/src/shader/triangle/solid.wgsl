@@ -12,7 +12,7 @@ struct SolidVertexOutput {
 fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     var out: SolidVertexOutput;
 
-    out.color = input.color;
+    out.color = premultiply(input.color);
     out.position = globals.transform * vec4<f32>(input.position, 0.0, 1.0);
 
     return out;

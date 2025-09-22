@@ -64,21 +64,14 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn new(size: Size) -> Self {
-        Self::with_clip(Rectangle::with_size(size))
-    }
-
-    pub fn with_clip(clip_bounds: Rectangle) -> Self {
+    pub fn new(bounds: Rectangle) -> Self {
         Self {
-            clip_bounds,
+            clip_bounds: bounds,
             stack: Vec::new(),
             primitives: Vec::new(),
             images: Vec::new(),
             text: Vec::new(),
-            transform: tiny_skia::Transform::from_translate(
-                clip_bounds.x,
-                clip_bounds.y,
-            ),
+            transform: tiny_skia::Transform::identity(),
         }
     }
 }
@@ -187,9 +180,15 @@ impl geometry::frame::Backend for Frame {
             && scale_x > 0.0
             && scale_y > 0.0
         {
-            let (position, size, line_height) = if self.transform.is_identity()
-            {
-                (text.position, text.size, text.line_height)
+            let (bounds, size, line_height) = if self.transform.is_identity() {
+                (
+                    Rectangle::new(
+                        text.position,
+                        Size::new(text.max_width, f32::INFINITY),
+                    ),
+                    text.size,
+                    text.line_height,
+                )
             } else {
                 let mut position = [tiny_skia::Point {
                     x: text.position.x,
@@ -210,17 +209,15 @@ impl geometry::frame::Backend for Frame {
                 };
 
                 (
-                    Point::new(position[0].x, position[0].y),
+                    Rectangle {
+                        x: position[0].x,
+                        y: position[0].y,
+                        width: text.max_width * scale_x,
+                        height: f32::INFINITY,
+                    },
                     size.into(),
                     line_height,
                 )
-            };
-
-            let bounds = Rectangle {
-                x: position.x,
-                y: position.y,
-                width: f32::INFINITY,
-                height: f32::INFINITY,
             };
 
             // TODO: Honor layering!
@@ -231,14 +228,25 @@ impl geometry::frame::Backend for Frame {
                 size,
                 line_height: line_height.to_absolute(size),
                 font: text.font,
-                align_x: text.align_x.into(),
+                align_x: text.align_x,
                 align_y: text.align_y,
                 shaping: text.shaping,
-                clip_bounds: Rectangle::with_size(Size::INFINITY),
+                clip_bounds: Rectangle::with_size(Size::INFINITE),
             });
         } else {
             text.draw_with(|path, color| self.fill(&path, color));
         }
+    }
+
+    fn stroke_text<'a>(
+        &mut self,
+        text: impl Into<geometry::Text>,
+        stroke: impl Into<Stroke<'a>>,
+    ) {
+        let text = text.into();
+        let stroke = stroke.into();
+
+        text.draw_with(|path, _color| self.stroke(&path, stroke));
     }
 
     fn push_transform(&mut self) {
@@ -250,7 +258,7 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn draft(&mut self, clip_bounds: Rectangle) -> Self {
-        Self::with_clip(clip_bounds)
+        Self::new(clip_bounds)
     }
 
     fn paste(&mut self, frame: Self) {
