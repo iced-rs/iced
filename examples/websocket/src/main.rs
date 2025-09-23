@@ -1,6 +1,5 @@
 mod echo;
 
-use iced::futures::stream;
 use iced::widget::{
     button, center, column, operation, row, scrollable, text, text_input,
 };
@@ -23,7 +22,6 @@ enum Message {
     NewMessageChanged(String),
     Send(echo::Message),
     Echo(echo::Event),
-    Server,
 }
 
 impl WebSocket {
@@ -34,7 +32,10 @@ impl WebSocket {
                 new_message: String::new(),
                 state: State::Disconnected,
             },
-            operation::focus_next(),
+            Task::batch([
+                Task::future(echo::server::run()).discard(),
+                operation::focus_next(),
+            ]),
         )
     }
 
@@ -76,16 +77,11 @@ impl WebSocket {
                     operation::snap_to_end(MESSAGE_LOG)
                 }
             },
-            Message::Server => Task::none(),
         }
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        Subscription::batch([
-            Subscription::run(|| stream::once(echo::server::run()))
-                .map(|_| Message::Server),
-            Subscription::run(echo::connect).map(Message::Echo),
-        ])
+        Subscription::run(echo::connect).map(Message::Echo)
     }
 
     fn view(&self) -> Element<'_, Message> {
