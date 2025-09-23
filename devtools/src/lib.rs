@@ -344,11 +344,10 @@ where
                     .background(Color::BLACK.scale_alpha(0.8))
             });
 
-            Some(setup)
+            Some(themer(theme(), Element::from(setup).map(Event::Message)))
         } else {
             None
-        }
-        .map(|setup| themer(theme(), Element::from(setup).map(Event::Message)));
+        };
 
         let notification = self
             .show_notification
@@ -359,12 +358,8 @@ where
                         "Types have changed. Restart to re-enable hotpatching.",
                     )
                 })
-            });
-
-        stack![view]
-            .height(Fill)
-            .push_maybe(setup.map(opaque))
-            .push_maybe(notification.map(|notification| {
+            })
+            .map(|notification| {
                 themer(
                     theme(),
                     bottom_right(opaque(
@@ -373,7 +368,11 @@ where
                             .style(container::dark),
                     )),
                 )
-            }))
+            });
+
+        stack![view, setup, notification]
+            .width(Fill)
+            .height(Fill)
             .into()
     }
 

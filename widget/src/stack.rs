@@ -84,28 +84,18 @@ where
         child: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         let child = child.into();
+        let child_size = child.as_widget().size_hint();
 
-        if self.children.is_empty() {
-            let child_size = child.as_widget().size_hint();
+        if !child_size.is_void() {
+            if self.children.is_empty() {
+                self.width = self.width.enclose(child_size.width);
+                self.height = self.height.enclose(child_size.height);
+            }
 
-            self.width = self.width.enclose(child_size.width);
-            self.height = self.height.enclose(child_size.height);
+            self.children.push(child);
         }
 
-        self.children.push(child);
         self
-    }
-
-    /// Adds an element to the [`Stack`], if `Some`.
-    pub fn push_maybe(
-        self,
-        child: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    ) -> Self {
-        if let Some(child) = child {
-            self.push(child)
-        } else {
-            self
-        }
     }
 
     /// Extends the [`Stack`] with the given children.
