@@ -37,15 +37,15 @@ impl Ice {
     /// mode: Immediate
     /// preset: Empty
     /// -----
-    /// click at "What needs to be done?"
+    /// click "What needs to be done?"
     /// type "Create the universe"
     /// type enter
     /// type "Make an apple pie"
     /// type enter
     /// expect "2 tasks left"
-    /// click at "Create the universe"
+    /// click "Create the universe"
     /// expect "1 task left"
-    /// click at "Make an apple pie"
+    /// click "Make an apple pie"
     /// expect "0 tasks left"
     /// ```
     ///

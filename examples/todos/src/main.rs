@@ -588,7 +588,7 @@ impl SavedState {
     }
 }
 
-fn presets() -> impl Iterator<Item = Preset<Todos, Message>> {
+fn presets() -> impl IntoIterator<Item = Preset<Todos, Message>> {
     [
         Preset::new("Empty", || {
             (Todos::Loaded(State::default()), Command::none())
