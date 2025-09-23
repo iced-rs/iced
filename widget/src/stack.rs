@@ -217,6 +217,10 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
+        if self.children.is_empty() {
+            return;
+        }
+
         let is_over = cursor.is_over(layout.bounds());
         let end = self.children.len() - 1;
 
