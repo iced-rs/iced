@@ -997,10 +997,10 @@ fn parse_with<'a>(
             produce(state.borrow_mut(), &mut stack, Item::Rule, source)
         }
         pulldown_cmark::Event::TaskListMarker(checked) => {
-            if let Some(Scope::List(list)) = stack.last_mut() {
-                if let Some(item) = list.items.last_mut() {
-                    item.checked = Some(checked);
-                }
+            if let Some(Scope::List(list)) = stack.last_mut()
+                && let Some(item) = list.items.last_mut()
+            {
+                item.checked = Some(checked);
             }
 
             None
