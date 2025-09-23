@@ -52,7 +52,6 @@ use std::ops::RangeInclusive;
 ///     progress_bar(0.0..=100.0, state.progress).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct ProgressBar<'a, Theme = crate::Theme>
 where
     Theme: Catalog,

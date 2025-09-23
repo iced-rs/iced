@@ -8,9 +8,9 @@ static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 pub struct Id(Internal);
 
 impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<borrow::Cow<'static, str>>) -> Self {
-        Self(Internal::Custom(id.into()))
+    /// Creates a new [`Id`] from a static `str`.
+    pub const fn new(id: &'static str) -> Self {
+        Self(Internal::Custom(borrow::Cow::Borrowed(id)))
     }
 
     /// Creates a unique [`Id`].
@@ -26,6 +26,12 @@ impl Id {
 impl From<&'static str> for Id {
     fn from(value: &'static str) -> Self {
         Self::new(value)
+    }
+}
+
+impl From<String> for Id {
+    fn from(value: String) -> Self {
+        Self(Internal::Custom(borrow::Cow::Owned(value)))
     }
 }
 

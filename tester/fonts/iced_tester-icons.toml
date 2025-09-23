@@ -1,0 +1,15 @@
+module = "icon"
+
+[glyphs]
+play = "entypo-play"
+stop = "entypo-stop"
+pause = "entypo-pause"
+record = "entypo-record"
+lightbulb = "fontawesome-lightbulb"
+check = "entypo-check"
+cancel = "entypo-cancel"
+folder = "entypo-folder"
+floppy = "entypo-floppy"
+pencil = "entypo-pencil"
+mouse_pointer = "fontawesome-mouse-pointer"
+keyboard = "entypo-keyboard"

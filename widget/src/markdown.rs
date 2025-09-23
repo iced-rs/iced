@@ -51,10 +51,7 @@ use crate::core::theme;
 use crate::core::{
     self, Color, Element, Length, Padding, Pixels, Theme, color,
 };
-use crate::{
-    column, container, horizontal_rule, rich_text, row, rule, scrollable, span,
-    text, vertical_rule,
-};
+use crate::{column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
@@ -1391,7 +1388,7 @@ where
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     row![
-        vertical_rule(4),
+        rule::vertical(4),
         column(
             contents
                 .iter()
@@ -1413,7 +1410,7 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    horizontal_rule(2).into()
+    rule::horizontal(2).into()
 }
 
 /// Displays a table using the default look.
@@ -1637,8 +1634,8 @@ where
 pub trait Catalog:
     container::Catalog
     + scrollable::Catalog
-    + rule::Catalog
     + text::Catalog
+    + crate::rule::Catalog
     + crate::table::Catalog
 {
     /// The styling class of a Markdown code block.

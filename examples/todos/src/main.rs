@@ -1,11 +1,13 @@
 use iced::keyboard;
+use iced::time::milliseconds;
 use iced::widget::{
-    self, Text, button, center, center_x, checkbox, column, keyed_column, row,
-    scrollable, text, text_input,
+    self, Text, button, center, center_x, checkbox, column, keyed_column,
+    operation, row, scrollable, text, text_input,
 };
 use iced::window;
 use iced::{
-    Center, Element, Fill, Font, Function, Subscription, Task as Command, Theme,
+    Application, Center, Element, Fill, Font, Function, Preset, Program,
+    Subscription, Task as Command, Theme,
 };
 
 use serde::{Deserialize, Serialize};
@@ -15,12 +17,16 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
+    application().run()
+}
+
+fn application() -> Application<impl Program<Message = Message>> {
     iced::application(Todos::new, Todos::update, Todos::view)
         .subscription(Todos::subscription)
         .title(Todos::title)
         .font(Todos::ICON_FONT)
         .window_size((500.0, 800.0))
-        .run()
+        .presets(presets())
 }
 
 #[derive(Debug)]
@@ -87,7 +93,7 @@ impl Todos {
                     _ => {}
                 }
 
-                text_input::focus("new-task")
+                operation::focus("new-task")
             }
             Todos::Loaded(state) => {
                 let mut saved = false;
@@ -128,8 +134,8 @@ impl Todos {
                             if should_focus {
                                 let id = Task::text_input_id(i);
                                 Command::batch(vec![
-                                    text_input::focus(id.clone()),
-                                    text_input::select_all(id),
+                                    operation::focus(id.clone()),
+                                    operation::select_all(id),
                                 ])
                             } else {
                                 Command::none()
@@ -146,9 +152,9 @@ impl Todos {
                     }
                     Message::TabPressed { shift } => {
                         if shift {
-                            widget::focus_previous()
+                            operation::focus_previous()
                         } else {
-                            widget::focus_next()
+                            operation::focus_next()
                         }
                     }
                     Message::ToggleFullscreen(mode) => window::latest()
@@ -301,8 +307,8 @@ pub enum TaskMessage {
 }
 
 impl Task {
-    fn text_input_id(i: usize) -> text_input::Id {
-        text_input::Id::new(format!("task-{i}"))
+    fn text_input_id(i: usize) -> widget::Id {
+        widget::Id::from(format!("task-{i}"))
     }
 
     fn new(description: String) -> Self {
@@ -539,8 +545,8 @@ impl SavedState {
                 .map_err(|_| SaveError::Write)?;
         }
 
-        // This is a simple way to save at most once every couple seconds
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        // This is a simple way to save at most twice every second
+        tokio::time::sleep(milliseconds(500)).await;
 
         Ok(())
     }
@@ -580,6 +586,32 @@ impl SavedState {
 
         Ok(())
     }
+}
+
+fn presets() -> impl IntoIterator<Item = Preset<Todos, Message>> {
+    [
+        Preset::new("Empty", || {
+            (Todos::Loaded(State::default()), Command::none())
+        }),
+        Preset::new("Carl Sagan", || {
+            (
+                Todos::Loaded(State {
+                    input_value: "Make an apple pie".to_owned(),
+                    filter: Filter::All,
+                    tasks: vec![Task {
+                        id: Uuid::new_v4(),
+                        description: "Create the universe".to_owned(),
+                        completed: false,
+                        state: TaskState::Idle,
+                    }],
+                    dirty: false,
+                    saving: false,
+                }),
+                Command::none(),
+            )
+        }),
+    ]
+    .into_iter()
 }
 
 #[cfg(test)]
@@ -626,5 +658,14 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    fn it_passes_the_ice_tests() -> Result<(), Error> {
+        iced_test::run(
+            application(),
+            format!("{}/tests", env!("CARGO_MANIFEST_DIR")),
+        )
     }
 }

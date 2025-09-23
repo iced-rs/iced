@@ -147,7 +147,6 @@ const THICKNESS_RATIO: f32 = 25.0;
 ///     .into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct PaneGrid<
     'a,
     Message,
@@ -467,7 +466,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        operation.container(None, layout.bounds(), &mut |operation| {
+        operation.container(None, layout.bounds());
+        operation.traverse(&mut |operation| {
             self.panes
                 .iter_mut()
                 .zip(&mut self.contents)

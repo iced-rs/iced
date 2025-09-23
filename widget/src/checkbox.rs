@@ -77,7 +77,6 @@ use crate::core::{
 /// }
 /// ```
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
-#[allow(missing_debug_implementations)]
 pub struct Checkbox<
     'a,
     Message,

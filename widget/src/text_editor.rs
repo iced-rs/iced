@@ -93,7 +93,6 @@ pub use text::editor::{Action, Edit, Line, LineEnding, Motion};
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct TextEditor<
     'a,
     Highlighter,

@@ -3,7 +3,6 @@ use crate::core::{Point, Radians, Rectangle, Size, Vector};
 use crate::geometry::{self, Fill, Image, Path, Stroke, Svg, Text};
 
 /// The region of a surface that can be used to draw geometry.
-#[allow(missing_debug_implementations)]
 pub struct Frame<Renderer>
 where
     Renderer: geometry::Renderer,

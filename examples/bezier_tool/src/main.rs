@@ -1,5 +1,5 @@
 //! This example showcases an interactive `Canvas` for drawing Bézier curves.
-use iced::widget::{button, container, horizontal_space, hover, right};
+use iced::widget::{button, container, hover, right, space};
 use iced::{Element, Theme};
 
 pub fn main() -> iced::Result {
@@ -38,7 +38,7 @@ impl Example {
         container(hover(
             self.bezier.view(&self.curves).map(Message::AddCurve),
             if self.curves.is_empty() {
-                container(horizontal_space())
+                container(space::horizontal())
             } else {
                 right(
                     button("Clear")

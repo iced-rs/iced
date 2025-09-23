@@ -299,11 +299,6 @@ pub trait Renderer: crate::Renderer {
     /// The [`Editor`] of this [`Renderer`].
     type Editor: Editor<Font = Self::Font> + 'static;
 
-    /// A monospace font.
-    ///
-    /// It may be used by devtools.
-    const MONOSPACE_FONT: Self::Font;
-
     /// The icon font of the backend.
     const ICON_FONT: Self::Font;
 

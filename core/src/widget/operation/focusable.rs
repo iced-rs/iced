@@ -48,13 +48,8 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
             }
         }
 
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
     }
 
@@ -75,13 +70,8 @@ pub fn unfocus<T>() -> impl Operation<T> {
             state.unfocus();
         }
 
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
     }
 
@@ -109,13 +99,11 @@ pub fn count() -> impl Operation<Count> {
             self.count.total += 1;
         }
 
-        fn container(
+        fn traverse(
             &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<Count>),
+            operate: &mut dyn FnMut(&mut dyn Operation<Count>),
         ) {
-            operate_on_children(self);
+            operate(self);
         }
 
         fn finish(&self) -> Outcome<Count> {
@@ -163,13 +151,8 @@ where
             self.current += 1;
         }
 
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
     }
 
@@ -205,13 +188,8 @@ where
             self.current += 1;
         }
 
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
     }
 
@@ -237,13 +215,11 @@ pub fn find_focused() -> impl Operation<Id> {
             }
         }
 
-        fn container(
+        fn traverse(
             &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<Id>),
+            operate: &mut dyn FnMut(&mut dyn Operation<Id>),
         ) {
-            operate_on_children(self);
+            operate(self);
         }
 
         fn finish(&self) -> Outcome<Id> {
@@ -279,17 +255,15 @@ pub fn is_focused(target: Id) -> impl Operation<bool> {
             }
         }
 
-        fn container(
+        fn traverse(
             &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<bool>),
+            operate: &mut dyn FnMut(&mut dyn Operation<bool>),
         ) {
             if self.is_focused.is_some() {
                 return;
             }
 
-            operate_on_children(self);
+            operate(self);
         }
 
         fn finish(&self) -> Outcome<bool> {

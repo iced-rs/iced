@@ -1,5 +1,5 @@
 [package]
-name = "visible_bounds"
+name = "delineate"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2024"
@@ -7,4 +7,4 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["debug"]
+iced.features = ["debug", "selector"]

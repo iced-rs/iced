@@ -49,7 +49,6 @@ where
 }
 
 /// A grid-like visual representation of data distributed in columns and rows.
-#[allow(missing_debug_implementations)]
 pub struct Table<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
@@ -630,7 +629,6 @@ where
 }
 
 /// A vertical visualization of some data with a header.
-#[allow(missing_debug_implementations)]
 pub struct Column<
     'a,
     'b,

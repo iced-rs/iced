@@ -129,7 +129,6 @@ use crate::core::{
 ///     column![a, b, c, all].into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Radio<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,

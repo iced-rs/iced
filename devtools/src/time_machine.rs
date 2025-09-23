@@ -13,6 +13,7 @@ where
 impl<P> TimeMachine<P>
 where
     P: Program,
+    P::Message: Clone,
 {
     pub fn new() -> Self {
         Self {
@@ -30,6 +31,7 @@ where
     }
 
     pub fn rewind(&mut self, program: &P, message: usize) {
+        crate::debug::disable();
         let (mut state, _) = program.boot();
 
         if message < self.messages.len() {
@@ -40,7 +42,6 @@ where
         }
 
         self.state = Some(state);
-        crate::debug::disable();
     }
 
     pub fn go_to_present(&mut self) {

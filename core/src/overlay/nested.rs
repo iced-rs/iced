@@ -1,13 +1,12 @@
-use crate::core::event;
-use crate::core::layout;
-use crate::core::mouse;
-use crate::core::overlay;
-use crate::core::renderer;
-use crate::core::widget;
-use crate::core::{Clipboard, Event, Layout, Shell, Size};
+use crate::event;
+use crate::layout;
+use crate::mouse;
+use crate::overlay;
+use crate::renderer;
+use crate::widget;
+use crate::{Clipboard, Event, Layout, Shell, Size};
 
 /// An overlay container that displays nested overlays
-#[allow(missing_debug_implementations)]
 pub struct Nested<'a, Message, Theme, Renderer> {
     overlay: overlay::Element<'a, Message, Theme, Renderer>,
 }

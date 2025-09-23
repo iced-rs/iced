@@ -134,7 +134,6 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
 }
 
 /// A set of system fonts.
-#[allow(missing_debug_implementations)]
 pub struct FontSystem {
     raw: cosmic_text::FontSystem,
     loaded_fonts: HashSet<usize>,

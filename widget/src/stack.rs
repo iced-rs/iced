@@ -17,7 +17,6 @@ use crate::core::{
 ///
 /// Keep in mind that too much layering will normally produce bad UX as well as
 /// introduce certain rendering overhead. Use this widget sparingly!
-#[allow(missing_debug_implementations)]
 pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 {
     width: Length,
@@ -85,28 +84,18 @@ where
         child: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         let child = child.into();
+        let child_size = child.as_widget().size_hint();
 
-        if self.children.is_empty() {
-            let child_size = child.as_widget().size_hint();
+        if !child_size.is_void() {
+            if self.children.is_empty() {
+                self.width = self.width.enclose(child_size.width);
+                self.height = self.height.enclose(child_size.height);
+            }
 
-            self.width = self.width.enclose(child_size.width);
-            self.height = self.height.enclose(child_size.height);
+            self.children.push(child);
         }
 
-        self.children.push(child);
         self
-    }
-
-    /// Adds an element to the [`Stack`], if `Some`.
-    pub fn push_maybe(
-        self,
-        child: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    ) -> Self {
-        if let Some(child) = child {
-            self.push(child)
-        } else {
-            self
-        }
     }
 
     /// Extends the [`Stack`] with the given children.
@@ -203,7 +192,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds(), &mut |operation| {
+        operation.container(None, layout.bounds());
+        operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
                 .zip(&mut tree.children)
@@ -227,6 +217,10 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
+        if self.children.is_empty() {
+            return;
+        }
+
         let is_over = cursor.is_over(layout.bounds());
         let end = self.children.len() - 1;
 

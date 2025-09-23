@@ -15,7 +15,6 @@ use crate::core::{
 /// A widget that can generate messages when its content pops in and out of view.
 ///
 /// It can even notify you with anticipation at a given distance!
-#[allow(missing_debug_implementations)]
 pub struct Sensor<
     'a,
     Key,
@@ -34,7 +33,6 @@ pub struct Sensor<
 
 impl<'a, Message, Theme, Renderer> Sensor<'a, (), Message, Theme, Renderer>
 where
-    Message: Clone,
     Renderer: core::Renderer,
 {
     /// Creates a new [`Sensor`] widget with the given content.
@@ -56,7 +54,6 @@ where
 impl<'a, Key, Message, Theme, Renderer>
     Sensor<'a, Key, Message, Theme, Renderer>
 where
-    Message: Clone,
     Key: self::Key,
     Renderer: core::Renderer,
 {
@@ -164,7 +161,6 @@ impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Sensor<'_, Key, Message, Theme, Renderer>
 where
     Key: self::Key,
-    Message: Clone,
     Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -253,8 +249,8 @@ where
                         if let Some(on_show) = &self.on_show {
                             shell.publish(on_show(layout.bounds().size()));
                         }
-                    } else if let Some(on_hide) = &self.on_hide {
-                        shell.publish(on_hide.clone());
+                    } else if let Some(on_hide) = self.on_hide.take() {
+                        shell.publish(on_hide);
                     }
 
                     state.should_notify_at = None;
@@ -374,7 +370,7 @@ impl<'a, Key, Message, Theme, Renderer>
     From<Sensor<'a, Key, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Message: Clone + 'a,
+    Message: 'a,
     Key: self::Key + 'a,
     Renderer: core::Renderer + 'a,
     Theme: 'a,

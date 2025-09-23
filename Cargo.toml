@@ -42,11 +42,13 @@ markdown = ["iced_widget/markdown"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
 # Enables debug metrics in native platforms (press F12)
-debug = ["iced_winit/debug", "iced_devtools"]
+debug = ["iced_winit/debug", "dep:iced_devtools"]
 # Enables time-travel debugging (very experimental!)
 time-travel = ["debug", "iced_devtools/time-travel"]
 # Enables hot reloading (very experimental!)
 hot = ["debug", "iced_debug/hot"]
+# Enables the tester developer tool for recording and playing tests (press F12)
+tester = ["dep:iced_tester"]
 # Enables the `thread-pool` futures executor as the `executor::Default` on native platforms
 thread-pool = ["iced_futures/thread-pool"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -63,6 +65,8 @@ crisp = ["iced_core/crisp", "iced_widget/crisp"]
 webgl = ["iced_renderer/webgl"]
 # Enables syntax highlighting
 highlighter = ["iced_highlighter", "iced_widget/highlighter"]
+# Enables the `widget::selector` module
+selector = ["iced_runtime/selector"]
 # Enables the advanced module
 advanced = ["iced_core/advanced", "iced_widget/advanced"]
 # Embeds Fira Sans into the final application; useful for testing and Wasm builds
@@ -87,11 +91,13 @@ iced_futures.workspace = true
 iced_renderer.workspace = true
 iced_runtime.workspace = true
 iced_widget.workspace = true
-iced_winit.features = ["program"]
 iced_winit.workspace = true
 
 iced_devtools.workspace = true
 iced_devtools.optional = true
+
+iced_tester.workspace = true
+iced_tester.optional = true
 
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
@@ -132,7 +138,9 @@ members = [
     "program",
     "renderer",
     "runtime",
+    "selector",
     "test",
+    "tester",
     "tiny_skia",
     "wgpu",
     "widget",
@@ -163,7 +171,9 @@ iced_highlighter = { version = "0.14.0-dev", path = "highlighter" }
 iced_program = { version = "0.14.0-dev", path = "program" }
 iced_renderer = { version = "0.14.0-dev", path = "renderer" }
 iced_runtime = { version = "0.14.0-dev", path = "runtime" }
+iced_selector = { version = "0.14.0-dev", path = "selector" }
 iced_test = { version = "0.14.0-dev", path = "test" }
+iced_tester = { version = "0.14.0-dev", path = "tester" }
 iced_tiny_skia = { version = "0.14.0-dev", path = "tiny_skia" }
 iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
 iced_widget = { version = "0.14.0-dev", path = "widget" }
@@ -188,6 +198,7 @@ log = "0.4"
 lyon = "1.0"
 lyon_path = "1.0"
 mundy = { version = "0.2", default-features = false }
+nom = "8"
 num-traits = "0.2"
 ouroboros = "0.18"
 png = "0.18"
@@ -195,6 +206,7 @@ pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
 resvg = "0.42"
+rfd = "0.15"
 rustc-hash = "2.0"
 semver = "1.0"
 serde = "1.0"
@@ -205,7 +217,7 @@ smol_str = "0.2"
 softbuffer = "0.4"
 syntect = "5.1"
 sysinfo = "0.33"
-thiserror = "1.0"
+thiserror = "2"
 tiny-skia = "0.11"
 tokio = "1.0"
 tracing = "0.1"
@@ -221,7 +233,6 @@ winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
-missing_debug_implementations = "deny"
 missing_docs = "deny"
 unsafe_code = "deny"
 unused_results = "deny"

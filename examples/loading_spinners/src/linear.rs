@@ -12,7 +12,6 @@ use super::easing::{self, Easing};
 
 use std::time::Duration;
 
-#[allow(missing_debug_implementations)]
 pub struct Linear<'a, Theme>
 where
     Theme: StyleSheet,
