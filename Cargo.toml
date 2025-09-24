@@ -177,7 +177,7 @@ iced_selector = { version = "0.14.0-dev", path = "selector" }
 iced_test = { version = "0.14.0-dev", path = "test" }
 iced_tester = { version = "0.14.0-dev", path = "tester" }
 iced_tiny_skia = { version = "0.14.0-dev", path = "tiny_skia" }
-iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
+iced_wgpu = { version = "0.14.0-dev", path = "wgpu", default-features = false }
 iced_widget = { version = "0.14.0-dev", path = "widget" }
 iced_winit = { version = "0.14.0-dev", path = "winit" }
 
