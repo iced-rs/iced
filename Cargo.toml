@@ -229,7 +229,7 @@ wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.1"
 web-sys = "0.3.69"
 web-time = "1.1"
-wgpu = { version = "26.0", default-features = false }
+wgpu = { version = "26.0", default-features = false, features = ["wgsl"] }
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed" }
 
