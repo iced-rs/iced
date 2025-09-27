@@ -89,7 +89,7 @@ impl State {
 
     pub fn new() -> State {
         let now = Instant::now();
-        let size = window::Settings::default().size;
+        let size = window::Size::default_window_size();
 
         State {
             sun: image::Handle::from_bytes(
