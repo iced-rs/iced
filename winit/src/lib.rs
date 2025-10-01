@@ -1009,9 +1009,25 @@ async fn run_instance<P>(
                                 present_span.finish();
                             }
                             Err(error) => match error {
-                                // This is an unrecoverable error.
                                 compositor::SurfaceError::OutOfMemory => {
+                                    // This is an unrecoverable error.
                                     panic!("{error:?}");
+                                }
+                                compositor::SurfaceError::Outdated
+                                | compositor::SurfaceError::Lost => {
+                                    present_span.finish();
+
+                                    // Reconfigure surface and try redrawing
+                                    let physical_size =
+                                        window.state.physical_size();
+
+                                    current_compositor.configure_surface(
+                                        &mut window.surface,
+                                        physical_size.width,
+                                        physical_size.height,
+                                    );
+
+                                    window.raw.request_redraw();
                                 }
                                 _ => {
                                     present_span.finish();
