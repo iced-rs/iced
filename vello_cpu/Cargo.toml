@@ -1,0 +1,34 @@
+[package]
+name = "iced_tiny_skia"
+description = "A software renderer for iced on top of tiny-skia"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+image = ["iced_graphics/image"]
+svg = ["iced_graphics/svg", "resvg"]
+geometry = ["iced_graphics/geometry"]
+
+[dependencies]
+iced_debug.workspace = true
+iced_graphics.workspace = true
+
+bytemuck.workspace = true
+cosmic-text.workspace = true
+kurbo.workspace = true
+log.workspace = true
+rustc-hash.workspace = true
+softbuffer.workspace = true
+tiny-skia.workspace = true
+
+resvg.workspace = true
+resvg.optional = true
