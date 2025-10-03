@@ -6,11 +6,11 @@ use crate::core::{
     Background, Color, Gradient, Rectangle, Size, Transformation, Vector,
 };
 use crate::graphics::{Image, Text};
-// use crate::text;
+use crate::text;
 
 #[derive(Debug)]
 pub struct Engine {
-    // text_pipeline: text::Pipeline,
+    text_pipeline: text::Pipeline,
 
     #[cfg(feature = "image")]
     pub(crate) raster_pipeline: crate::raster::Pipeline,
@@ -21,7 +21,7 @@ pub struct Engine {
 impl Engine {
     pub fn new() -> Self {
         Self {
-            // text_pipeline: text::Pipeline::new(),
+            text_pipeline: text::Pipeline::new(),
             #[cfg(feature = "image")]
             raster_pipeline: crate::raster::Pipeline::new(),
             #[cfg(feature = "svg")]
@@ -181,7 +181,6 @@ impl Engine {
         render_context.set_fill_rule(vello_cpu::peniko::Fill::EvenOdd);
         render_context.set_transform(transform);
         render_context.fill_path(&path);
-        dbg!(shadow.color.a);
         render_context.render_to_pixmap(pixmap);
 
         // if border_width > 0.0 {
@@ -300,145 +299,145 @@ impl Engine {
         // }
     }
 
-//     pub fn draw_text(
-//         &mut self,
-//         text: &Text,
-//         transformation: Transformation,
-//         pixels: &mut tiny_skia::PixmapMut<'_>,
-//         clip_mask: &mut tiny_skia::Mask,
-//         clip_bounds: Rectangle,
-//     ) {
-//         match text {
-//             Text::Paragraph {
-//                 paragraph,
-//                 position,
-//                 color,
-//                 clip_bounds: _, // TODO
-//                 transformation: local_transformation,
-//             } => {
-//                 let transformation = transformation * *local_transformation;
+    pub fn draw_text(
+        &mut self,
+        text: &Text,
+        transformation: Transformation,
+        pixmap: &mut vello_cpu::Pixmap,
+        render_context: &mut vello_cpu::RenderContext,
+        clip_bounds: Rectangle,
+    ) {
+        match text {
+            Text::Paragraph {
+                paragraph,
+                position,
+                color,
+                clip_bounds: _, // TODO
+                transformation: local_transformation,
+            } => {
+                let transformation = transformation * *local_transformation;
 
-//                 let physical_bounds =
-//                     Rectangle::new(*position, paragraph.min_bounds)
-//                         * transformation;
+                let physical_bounds =
+                    Rectangle::new(*position, paragraph.min_bounds)
+                        * transformation;
 
-//                 if !clip_bounds.intersects(&physical_bounds) {
-//                     return;
-//                 }
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
 
-//                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-//                     .then_some(clip_mask as &_);
+                // let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                //     .then_some(clip_mask as &_);
 
-//                 self.text_pipeline.draw_paragraph(
-//                     paragraph,
-//                     *position,
-//                     *color,
-//                     pixels,
-//                     clip_mask,
-//                     transformation,
-//                 );
-//             }
-//             Text::Editor {
-//                 editor,
-//                 position,
-//                 color,
-//                 clip_bounds: _, // TODO
-//                 transformation: local_transformation,
-//             } => {
-//                 let transformation = transformation * *local_transformation;
+                self.text_pipeline.draw_paragraph(
+                    paragraph,
+                    *position,
+                    *color,
+                    pixmap,
+                    render_context,
+                    transformation,
+                );
+            }
+            Text::Editor {
+                editor,
+                position,
+                color,
+                clip_bounds: _, // TODO
+                transformation: local_transformation,
+            } => {
+                let transformation = transformation * *local_transformation;
 
-//                 let physical_bounds =
-//                     Rectangle::new(*position, editor.bounds) * transformation;
+                let physical_bounds =
+                    Rectangle::new(*position, editor.bounds) * transformation;
 
-//                 if !clip_bounds.intersects(&physical_bounds) {
-//                     return;
-//                 }
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
 
-//                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-//                     .then_some(clip_mask as &_);
+                // let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                //     .then_some(clip_mask as &_);
 
-//                 self.text_pipeline.draw_editor(
-//                     editor,
-//                     *position,
-//                     *color,
-//                     pixels,
-//                     clip_mask,
-//                     transformation,
-//                 );
-//             }
-//             Text::Cached {
-//                 content,
-//                 bounds,
-//                 color,
-//                 size,
-//                 line_height,
-//                 font,
-//                 align_x,
-//                 align_y,
-//                 shaping,
-//                 clip_bounds: text_bounds, // TODO
-//             } => {
-//                 let physical_bounds = *text_bounds * transformation;
+                self.text_pipeline.draw_editor(
+                    editor,
+                    *position,
+                    *color,
+                    pixmap,
+                    render_context,
+                    transformation,
+                );
+            }
+            Text::Cached {
+                content,
+                bounds,
+                color,
+                size,
+                line_height,
+                font,
+                align_x,
+                align_y,
+                shaping,
+                clip_bounds: text_bounds, // TODO
+            } => {
+                let physical_bounds = *text_bounds * transformation;
 
-//                 if !clip_bounds.intersects(&physical_bounds) {
-//                     return;
-//                 }
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
 
-//                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-//                     .then_some(clip_mask as &_);
+                // let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                //     .then_some(clip_mask as &_);
 
-//                 self.text_pipeline.draw_cached(
-//                     content,
-//                     *bounds,
-//                     *color,
-//                     *size,
-//                     *line_height,
-//                     *font,
-//                     *align_x,
-//                     *align_y,
-//                     *shaping,
-//                     pixels,
-//                     clip_mask,
-//                     transformation,
-//                 );
-//             }
-//             Text::Raw {
-//                 raw,
-//                 transformation: local_transformation,
-//             } => {
-//                 let Some(buffer) = raw.buffer.upgrade() else {
-//                     return;
-//                 };
+                self.text_pipeline.draw_cached(
+                    content,
+                    *bounds,
+                    *color,
+                    *size,
+                    *line_height,
+                    *font,
+                    *align_x,
+                    *align_y,
+                    *shaping,
+                    pixmap,
+                    render_context,
+                    transformation,
+                );
+            }
+            Text::Raw {
+                raw,
+                transformation: local_transformation,
+            } => {
+                let Some(buffer) = raw.buffer.upgrade() else {
+                    return;
+                };
 
-//                 let transformation = transformation * *local_transformation;
-//                 let (width, height) = buffer.size();
+                let transformation = transformation * *local_transformation;
+                let (width, height) = buffer.size();
 
-//                 let physical_bounds = Rectangle::new(
-//                     raw.position,
-//                     Size::new(
-//                         width.unwrap_or(clip_bounds.width),
-//                         height.unwrap_or(clip_bounds.height),
-//                     ),
-//                 ) * transformation;
+                let physical_bounds = Rectangle::new(
+                    raw.position,
+                    Size::new(
+                        width.unwrap_or(clip_bounds.width),
+                        height.unwrap_or(clip_bounds.height),
+                    ),
+                ) * transformation;
 
-//                 if !clip_bounds.intersects(&physical_bounds) {
-//                     return;
-//                 }
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
 
-//                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-//                     .then_some(clip_mask as &_);
+                // let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                //     .then_some(clip_mask as &_);
 
-//                 self.text_pipeline.draw_raw(
-//                     &buffer,
-//                     raw.position,
-//                     raw.color,
-//                     pixels,
-//                     clip_mask,
-//                     transformation,
-//                 );
-//             }
-//         }
-//     }
+                self.text_pipeline.draw_raw(
+                    &buffer,
+                    raw.position,
+                    raw.color,
+                    pixmap,
+                    render_context,
+                    transformation,
+                );
+            }
+        }
+    }
 
 //     pub fn draw_primitive(
 //         &mut self,

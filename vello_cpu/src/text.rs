@@ -10,6 +10,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::hash_map;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -41,8 +42,8 @@ impl Pipeline {
         paragraph: &paragraph::Weak,
         position: Point,
         color: Color,
-        pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: Option<&tiny_skia::Mask>,
+        pixmap: &mut vello_cpu::Pixmap,
+        render_context: &mut vello_cpu::RenderContext,
         transformation: Transformation,
     ) {
         let Some(paragraph) = paragraph.upgrade() else {
@@ -57,8 +58,8 @@ impl Pipeline {
             paragraph.buffer(),
             position,
             color,
-            pixels,
-            clip_mask,
+            pixmap,
+            render_context,
             transformation,
         );
     }
@@ -68,8 +69,8 @@ impl Pipeline {
         editor: &editor::Weak,
         position: Point,
         color: Color,
-        pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: Option<&tiny_skia::Mask>,
+        pixmap: &mut vello_cpu::Pixmap,
+        render_context: &mut vello_cpu::RenderContext,
         transformation: Transformation,
     ) {
         let Some(editor) = editor.upgrade() else {
@@ -84,8 +85,8 @@ impl Pipeline {
             editor.buffer(),
             position,
             color,
-            pixels,
-            clip_mask,
+            pixmap,
+            render_context,
             transformation,
         );
     }
@@ -101,8 +102,8 @@ impl Pipeline {
         align_x: Alignment,
         align_y: alignment::Vertical,
         shaping: Shaping,
-        pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: Option<&tiny_skia::Mask>,
+        pixmap: &mut vello_cpu::Pixmap,
+        render_context: &mut vello_cpu::RenderContext,
         transformation: Transformation,
     ) {
         let line_height = f32::from(line_height);
@@ -145,8 +146,8 @@ impl Pipeline {
             &entry.buffer,
             Point::new(x, y),
             color,
-            pixels,
-            clip_mask,
+            pixmap,
+            render_context,
             transformation,
         );
     }
@@ -156,8 +157,8 @@ impl Pipeline {
         buffer: &cosmic_text::Buffer,
         position: Point,
         color: Color,
-        pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: Option<&tiny_skia::Mask>,
+        pixmap: &mut vello_cpu::Pixmap,
+        render_context: &mut vello_cpu::RenderContext,
         transformation: Transformation,
     ) {
         let mut font_system = font_system().write().expect("Write font system");
@@ -168,8 +169,8 @@ impl Pipeline {
             buffer,
             position,
             color,
-            pixels,
-            clip_mask,
+            pixmap,
+            render_context,
             transformation,
         );
     }
@@ -186,8 +187,8 @@ fn draw(
     buffer: &cosmic_text::Buffer,
     position: Point,
     color: Color,
-    pixels: &mut tiny_skia::PixmapMut<'_>,
-    clip_mask: Option<&tiny_skia::Mask>,
+    pixels: &mut vello_cpu::Pixmap,
+    render_context: &mut vello_cpu::RenderContext,
     transformation: Transformation,
 ) {
     let position = position * transformation;
@@ -207,12 +208,11 @@ fn draw(
                 font_system,
                 &mut swash,
             ) {
-                let pixmap = tiny_skia::PixmapRef::from_bytes(
-                    buffer,
-                    placement.width,
-                    placement.height,
-                )
-                .expect("Create glyph pixel map");
+                let pixmap = Arc::new(vello_cpu::Pixmap::from_parts(
+                    bytemuck::cast_slice(buffer).to_vec(),
+                    placement.width as u16,
+                    placement.height as u16,
+                ));
 
                 let opacity = color.a
                     * glyph
@@ -220,19 +220,19 @@ fn draw(
                         .map(|c| c.a() as f32 / 255.0)
                         .unwrap_or(1.0);
 
-                pixels.draw_pixmap(
-                    physical_glyph.x + placement.left,
-                    physical_glyph.y - placement.top
-                        + (run.line_y * transformation.scale_factor()).round()
-                            as i32,
-                    pixmap,
-                    &tiny_skia::PixmapPaint {
-                        opacity,
-                        ..tiny_skia::PixmapPaint::default()
-                    },
-                    tiny_skia::Transform::identity(),
-                    clip_mask,
-                );
+                render_context.push_opacity_layer(opacity);
+                render_context.set_transform(
+                    vello_cpu::kurbo::Affine::translate((
+                        (physical_glyph.x + placement.left) as f64,
+                        (physical_glyph.y - placement.top
+                            + (run.line_y * transformation.scale_factor())
+                            .round() as i32) as f64,
+                        )),
+                    );
+                    render_context
+                    .draw_pixmap(pixmap, vello_cpu::peniko::ImageQuality::High);
+                render_context.pop_layer();
+                render_context.render_to_pixmap(pixels);
             }
         }
     }
@@ -293,15 +293,14 @@ impl GlyphCache {
 
                     for _y in 0..image.placement.height {
                         for _x in 0..image.placement.width {
-                            buffer[i] = bytemuck::cast(
-                                tiny_skia::ColorU8::from_rgba(
-                                    b,
-                                    g,
-                                    r,
-                                    image.data[i],
-                                )
-                                .premultiply(),
-                            );
+                            buffer[i] = vello_cpu::color::AlphaColor::<
+                                vello_cpu::color::Srgb,
+                            >::from_rgba8(
+                                b, g, r, image.data[i]
+                            )
+                            .premultiply()
+                            .to_rgba8()
+                            .to_u32();
 
                             i += 1;
                         }
@@ -313,15 +312,17 @@ impl GlyphCache {
                     for _y in 0..image.placement.height {
                         for _x in 0..image.placement.width {
                             // TODO: Blend alpha
-                            buffer[i >> 2] = bytemuck::cast(
-                                tiny_skia::ColorU8::from_rgba(
-                                    image.data[i + 2],
-                                    image.data[i + 1],
-                                    image.data[i],
-                                    image.data[i + 3],
-                                )
-                                .premultiply(),
-                            );
+                            buffer[i >> 2] = vello_cpu::color::AlphaColor::<
+                                vello_cpu::color::Srgb,
+                            >::from_rgba8(
+                                image.data[i + 2],
+                                image.data[i + 1],
+                                image.data[i],
+                                image.data[i + 3],
+                            )
+                            .premultiply()
+                            .to_rgba8()
+                            .to_u32();
 
                             i += 4;
                         }

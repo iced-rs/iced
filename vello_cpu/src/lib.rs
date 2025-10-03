@@ -6,7 +6,7 @@ mod engine;
 mod layer;
 // mod primitive;
 mod settings;
-// mod text;
+mod text;
 
 #[cfg(feature = "image")]
 mod raster;
@@ -81,14 +81,14 @@ impl Renderer {
 
             render_context.set_paint(engine::into_color(background_color));
             render_context.set_aliasing_threshold(Some(u8::MAX));
-            render_context.push_blend_layer(vello_cpu::peniko::Compose::Copy.into());
+            // render_context.push_blend_layer(vello_cpu::peniko::Compose::Copy.into());
             render_context.fill_rect(
                 &vello_cpu::kurbo::Rect::from_origin_size(
                     (region.x, region.y),
                     (region.width as f64, region.height as f64),
                 ),
             );
-            render_context.pop_layer();
+            // render_context.pop_layer();
 
             for layer in self.layers.iter() {
                 let Some(clip_bounds) =
@@ -163,24 +163,24 @@ impl Renderer {
                 //     render_span.finish();
                 // }
 
-                // if !layer.text.is_empty() {
-                //     let render_span = debug::render(debug::Primitive::Image);
+                if !layer.text.is_empty() {
+                    let render_span = debug::render(debug::Primitive::Image);
 
-                //     for group in &layer.text {
-                //         for text in group.as_slice() {
-                //             self.engine.draw_text(
-                //                 text,
-                //                 group.transformation()
-                //                     * Transformation::scale(scale_factor),
-                //                 pixmap,
-                //                 render_context,
-                //                 clip_bounds,
-                //             );
-                //         }
-                //     }
+                    for group in &layer.text {
+                        for text in group.as_slice() {
+                            self.engine.draw_text(
+                                text,
+                                group.transformation()
+                                    * Transformation::scale(scale_factor),
+                                pixmap,
+                                render_context,
+                                clip_bounds,
+                            );
+                        }
+                    }
 
-                //     render_span.finish();
-                // }
+                    render_span.finish();
+                }
             }
         }
 
