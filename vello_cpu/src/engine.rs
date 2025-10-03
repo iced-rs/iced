@@ -34,7 +34,7 @@ impl Engine {
         quad: &Quad,
         background: &Background,
         transformation: Transformation,
-        pixmap: &mut vello_cpu::Pixmap,
+        buffer: &mut [u8],
         render_context: &mut vello_cpu::RenderContext,
         clip_bounds: Rectangle,
     ) {
@@ -181,7 +181,12 @@ impl Engine {
         render_context.set_fill_rule(vello_cpu::peniko::Fill::EvenOdd);
         render_context.set_transform(transform);
         render_context.fill_path(&path);
-        render_context.render_to_pixmap(pixmap);
+        render_context.render_to_buffer(
+            buffer,
+            render_context.width(),
+            render_context.height(),
+            vello_cpu::RenderMode::OptimizeSpeed,
+        );
 
         // if border_width > 0.0 {
         //     // Border path is offset by half the border width
@@ -303,7 +308,7 @@ impl Engine {
         &mut self,
         text: &Text,
         transformation: Transformation,
-        pixmap: &mut vello_cpu::Pixmap,
+        buffer: &mut [u8],
         render_context: &mut vello_cpu::RenderContext,
         clip_bounds: Rectangle,
     ) {
@@ -332,7 +337,7 @@ impl Engine {
                     paragraph,
                     *position,
                     *color,
-                    pixmap,
+                    buffer,
                     render_context,
                     transformation,
                 );
@@ -360,7 +365,7 @@ impl Engine {
                     editor,
                     *position,
                     *color,
-                    pixmap,
+                    buffer,
                     render_context,
                     transformation,
                 );
@@ -396,7 +401,7 @@ impl Engine {
                     *align_x,
                     *align_y,
                     *shaping,
-                    pixmap,
+                    buffer,
                     render_context,
                     transformation,
                 );
@@ -405,12 +410,12 @@ impl Engine {
                 raw,
                 transformation: local_transformation,
             } => {
-                let Some(buffer) = raw.buffer.upgrade() else {
+                let Some(raw_buffer) = raw.buffer.upgrade() else {
                     return;
                 };
 
                 let transformation = transformation * *local_transformation;
-                let (width, height) = buffer.size();
+                let (width, height) = raw_buffer.size();
 
                 let physical_bounds = Rectangle::new(
                     raw.position,
@@ -428,10 +433,10 @@ impl Engine {
                 //     .then_some(clip_mask as &_);
 
                 self.text_pipeline.draw_raw(
-                    &buffer,
+                    &raw_buffer,
                     raw.position,
                     raw.color,
-                    pixmap,
+                    buffer,
                     render_context,
                     transformation,
                 );
@@ -439,163 +444,163 @@ impl Engine {
         }
     }
 
-//     pub fn draw_primitive(
-//         &mut self,
-//         primitive: &Primitive,
-//         transformation: Transformation,
-//         pixels: &mut tiny_skia::PixmapMut<'_>,
-//         clip_mask: &mut tiny_skia::Mask,
-//         layer_bounds: Rectangle,
-//     ) {
-//         match primitive {
-//             Primitive::Fill { path, paint, rule } => {
-//                 let physical_bounds = {
-//                     let bounds = path.bounds();
+    //     pub fn draw_primitive(
+    //         &mut self,
+    //         primitive: &Primitive,
+    //         transformation: Transformation,
+    //         pixels: &mut tiny_skia::PixmapMut<'_>,
+    //         clip_mask: &mut tiny_skia::Mask,
+    //         layer_bounds: Rectangle,
+    //     ) {
+    //         match primitive {
+    //             Primitive::Fill { path, paint, rule } => {
+    //                 let physical_bounds = {
+    //                     let bounds = path.bounds();
 
-//                     Rectangle {
-//                         x: bounds.x(),
-//                         y: bounds.y(),
-//                         width: bounds.width(),
-//                         height: bounds.height(),
-//                     } * transformation
-//                 };
+    //                     Rectangle {
+    //                         x: bounds.x(),
+    //                         y: bounds.y(),
+    //                         width: bounds.width(),
+    //                         height: bounds.height(),
+    //                     } * transformation
+    //                 };
 
-//                 let Some(clip_bounds) =
-//                     layer_bounds.intersection(&physical_bounds)
-//                 else {
-//                     return;
-//                 };
+    //                 let Some(clip_bounds) =
+    //                     layer_bounds.intersection(&physical_bounds)
+    //                 else {
+    //                     return;
+    //                 };
 
-//                 let clip_mask =
-//                     (physical_bounds != clip_bounds).then_some(clip_mask as &_);
+    //                 let clip_mask =
+    //                     (physical_bounds != clip_bounds).then_some(clip_mask as &_);
 
-//                 pixels.fill_path(
-//                     path,
-//                     paint,
-//                     *rule,
-//                     into_transform(transformation),
-//                     clip_mask,
-//                 );
-//             }
-//             Primitive::Stroke {
-//                 path,
-//                 paint,
-//                 stroke,
-//             } => {
-//                 let physical_bounds = {
-//                     let bounds = path.bounds();
+    //                 pixels.fill_path(
+    //                     path,
+    //                     paint,
+    //                     *rule,
+    //                     into_transform(transformation),
+    //                     clip_mask,
+    //                 );
+    //             }
+    //             Primitive::Stroke {
+    //                 path,
+    //                 paint,
+    //                 stroke,
+    //             } => {
+    //                 let physical_bounds = {
+    //                     let bounds = path.bounds();
 
-//                     Rectangle {
-//                         x: bounds.x(),
-//                         y: bounds.y(),
-//                         width: bounds.width(),
-//                         height: bounds.height(),
-//                     } * transformation
-//                 };
+    //                     Rectangle {
+    //                         x: bounds.x(),
+    //                         y: bounds.y(),
+    //                         width: bounds.width(),
+    //                         height: bounds.height(),
+    //                     } * transformation
+    //                 };
 
-//                 let Some(clip_bounds) =
-//                     layer_bounds.intersection(&physical_bounds)
-//                 else {
-//                     return;
-//                 };
+    //                 let Some(clip_bounds) =
+    //                     layer_bounds.intersection(&physical_bounds)
+    //                 else {
+    //                     return;
+    //                 };
 
-//                 let clip_mask =
-//                     (physical_bounds != clip_bounds).then_some(clip_mask as &_);
+    //                 let clip_mask =
+    //                     (physical_bounds != clip_bounds).then_some(clip_mask as &_);
 
-//                 pixels.stroke_path(
-//                     path,
-//                     paint,
-//                     stroke,
-//                     into_transform(transformation),
-//                     clip_mask,
-//                 );
-//             }
-//         }
-//     }
+    //                 pixels.stroke_path(
+    //                     path,
+    //                     paint,
+    //                     stroke,
+    //                     into_transform(transformation),
+    //                     clip_mask,
+    //                 );
+    //             }
+    //         }
+    //     }
 
-//     pub fn draw_image(
-//         &mut self,
-//         image: &Image,
-//         _transformation: Transformation,
-//         _pixels: &mut tiny_skia::PixmapMut<'_>,
-//         _clip_mask: &mut tiny_skia::Mask,
-//         _clip_bounds: Rectangle,
-//     ) {
-//         match image {
-//             #[cfg(feature = "image")]
-//             Image::Raster(raster, bounds) => {
-//                 let physical_bounds = *bounds * _transformation;
+    //     pub fn draw_image(
+    //         &mut self,
+    //         image: &Image,
+    //         _transformation: Transformation,
+    //         _pixels: &mut tiny_skia::PixmapMut<'_>,
+    //         _clip_mask: &mut tiny_skia::Mask,
+    //         _clip_bounds: Rectangle,
+    //     ) {
+    //         match image {
+    //             #[cfg(feature = "image")]
+    //             Image::Raster(raster, bounds) => {
+    //                 let physical_bounds = *bounds * _transformation;
 
-//                 if !_clip_bounds.intersects(&physical_bounds) {
-//                     return;
-//                 }
+    //                 if !_clip_bounds.intersects(&physical_bounds) {
+    //                     return;
+    //                 }
 
-//                 let clip_mask = (!physical_bounds.is_within(&_clip_bounds))
-//                     .then_some(_clip_mask as &_);
+    //                 let clip_mask = (!physical_bounds.is_within(&_clip_bounds))
+    //                     .then_some(_clip_mask as &_);
 
-//                 let center = physical_bounds.center();
-//                 let radians = f32::from(raster.rotation);
+    //                 let center = physical_bounds.center();
+    //                 let radians = f32::from(raster.rotation);
 
-//                 let transform = into_transform(_transformation).post_rotate_at(
-//                     radians.to_degrees(),
-//                     center.x,
-//                     center.y,
-//                 );
+    //                 let transform = into_transform(_transformation).post_rotate_at(
+    //                     radians.to_degrees(),
+    //                     center.x,
+    //                     center.y,
+    //                 );
 
-//                 self.raster_pipeline.draw(
-//                     &raster.handle,
-//                     raster.filter_method,
-//                     *bounds,
-//                     raster.opacity,
-//                     _pixels,
-//                     transform,
-//                     clip_mask,
-//                 );
-//             }
-//             #[cfg(feature = "svg")]
-//             Image::Vector(svg, bounds) => {
-//                 let physical_bounds = *bounds * _transformation;
+    //                 self.raster_pipeline.draw(
+    //                     &raster.handle,
+    //                     raster.filter_method,
+    //                     *bounds,
+    //                     raster.opacity,
+    //                     _pixels,
+    //                     transform,
+    //                     clip_mask,
+    //                 );
+    //             }
+    //             #[cfg(feature = "svg")]
+    //             Image::Vector(svg, bounds) => {
+    //                 let physical_bounds = *bounds * _transformation;
 
-//                 if !_clip_bounds.intersects(&physical_bounds) {
-//                     return;
-//                 }
+    //                 if !_clip_bounds.intersects(&physical_bounds) {
+    //                     return;
+    //                 }
 
-//                 let clip_mask = (!physical_bounds.is_within(&_clip_bounds))
-//                     .then_some(_clip_mask as &_);
+    //                 let clip_mask = (!physical_bounds.is_within(&_clip_bounds))
+    //                     .then_some(_clip_mask as &_);
 
-//                 let center = physical_bounds.center();
-//                 let radians = f32::from(svg.rotation);
+    //                 let center = physical_bounds.center();
+    //                 let radians = f32::from(svg.rotation);
 
-//                 let transform = into_transform(_transformation).post_rotate_at(
-//                     radians.to_degrees(),
-//                     center.x,
-//                     center.y,
-//                 );
+    //                 let transform = into_transform(_transformation).post_rotate_at(
+    //                     radians.to_degrees(),
+    //                     center.x,
+    //                     center.y,
+    //                 );
 
-//                 self.vector_pipeline.draw(
-//                     &svg.handle,
-//                     svg.color,
-//                     physical_bounds,
-//                     svg.opacity,
-//                     _pixels,
-//                     transform,
-//                     clip_mask,
-//                 );
-//             }
-//             #[cfg(not(feature = "image"))]
-//             Image::Raster { .. } => {
-//                 log::warn!(
-//                     "Unsupported primitive in `iced_tiny_skia`: {image:?}",
-//                 );
-//             }
-//             #[cfg(not(feature = "svg"))]
-//             Image::Vector { .. } => {
-//                 log::warn!(
-//                     "Unsupported primitive in `iced_tiny_skia`: {image:?}",
-//                 );
-//             }
-//         }
-//     }
+    //                 self.vector_pipeline.draw(
+    //                     &svg.handle,
+    //                     svg.color,
+    //                     physical_bounds,
+    //                     svg.opacity,
+    //                     _pixels,
+    //                     transform,
+    //                     clip_mask,
+    //                 );
+    //             }
+    //             #[cfg(not(feature = "image"))]
+    //             Image::Raster { .. } => {
+    //                 log::warn!(
+    //                     "Unsupported primitive in `iced_tiny_skia`: {image:?}",
+    //                 );
+    //             }
+    //             #[cfg(not(feature = "svg"))]
+    //             Image::Vector { .. } => {
+    //                 log::warn!(
+    //                     "Unsupported primitive in `iced_tiny_skia`: {image:?}",
+    //                 );
+    //             }
+    //         }
+    //     }
 
     pub fn trim(&mut self) {
         self.text_pipeline.trim_cache();

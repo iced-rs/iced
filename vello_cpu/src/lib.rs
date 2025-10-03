@@ -66,7 +66,7 @@ impl Renderer {
 
     pub fn draw(
         &mut self,
-        pixmap: &mut vello_cpu::Pixmap,
+        buffer: &mut [u8],
         render_context: &mut vello_cpu::RenderContext,
         viewport: &Viewport,
         damage: &[Rectangle],
@@ -106,7 +106,7 @@ impl Renderer {
                             quad,
                             background,
                             Transformation::scale(scale_factor),
-                            pixmap,
+                            buffer,
                             render_context,
                             clip_bounds,
                         );
@@ -172,7 +172,7 @@ impl Renderer {
                                 text,
                                 group.transformation()
                                     * Transformation::scale(scale_factor),
-                                pixmap,
+                                buffer,
                                 render_context,
                                 clip_bounds,
                             );

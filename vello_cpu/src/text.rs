@@ -42,7 +42,7 @@ impl Pipeline {
         paragraph: &paragraph::Weak,
         position: Point,
         color: Color,
-        pixmap: &mut vello_cpu::Pixmap,
+        buffer: &mut [u8],
         render_context: &mut vello_cpu::RenderContext,
         transformation: Transformation,
     ) {
@@ -58,7 +58,7 @@ impl Pipeline {
             paragraph.buffer(),
             position,
             color,
-            pixmap,
+            buffer,
             render_context,
             transformation,
         );
@@ -69,7 +69,7 @@ impl Pipeline {
         editor: &editor::Weak,
         position: Point,
         color: Color,
-        pixmap: &mut vello_cpu::Pixmap,
+        buffer: &mut [u8],
         render_context: &mut vello_cpu::RenderContext,
         transformation: Transformation,
     ) {
@@ -85,7 +85,7 @@ impl Pipeline {
             editor.buffer(),
             position,
             color,
-            pixmap,
+            buffer,
             render_context,
             transformation,
         );
@@ -102,7 +102,7 @@ impl Pipeline {
         align_x: Alignment,
         align_y: alignment::Vertical,
         shaping: Shaping,
-        pixmap: &mut vello_cpu::Pixmap,
+        buffer: &mut [u8],
         render_context: &mut vello_cpu::RenderContext,
         transformation: Transformation,
     ) {
@@ -146,7 +146,7 @@ impl Pipeline {
             &entry.buffer,
             Point::new(x, y),
             color,
-            pixmap,
+            buffer,
             render_context,
             transformation,
         );
@@ -154,10 +154,10 @@ impl Pipeline {
 
     pub fn draw_raw(
         &mut self,
-        buffer: &cosmic_text::Buffer,
+        raw_buffer: &cosmic_text::Buffer,
         position: Point,
         color: Color,
-        pixmap: &mut vello_cpu::Pixmap,
+        buffer: &mut [u8],
         render_context: &mut vello_cpu::RenderContext,
         transformation: Transformation,
     ) {
@@ -166,10 +166,10 @@ impl Pipeline {
         draw(
             font_system.raw(),
             &mut self.glyph_cache,
-            buffer,
+            raw_buffer,
             position,
             color,
-            pixmap,
+            buffer,
             render_context,
             transformation,
         );
@@ -184,10 +184,10 @@ impl Pipeline {
 fn draw(
     font_system: &mut cosmic_text::FontSystem,
     glyph_cache: &mut GlyphCache,
-    buffer: &cosmic_text::Buffer,
+    raw_buffer: &cosmic_text::Buffer,
     position: Point,
     color: Color,
-    pixels: &mut vello_cpu::Pixmap,
+    buffer: &mut [u8],
     render_context: &mut vello_cpu::RenderContext,
     transformation: Transformation,
 ) {
@@ -195,21 +195,21 @@ fn draw(
 
     let mut swash = cosmic_text::SwashCache::new();
 
-    for run in buffer.layout_runs() {
+    for run in raw_buffer.layout_runs() {
         for glyph in run.glyphs {
             let physical_glyph = glyph.physical(
                 (position.x, position.y),
                 transformation.scale_factor(),
             );
 
-            if let Some((buffer, placement)) = glyph_cache.allocate(
+            if let Some((raw_buffer, placement)) = glyph_cache.allocate(
                 physical_glyph.cache_key,
                 glyph.color_opt.map(from_color).unwrap_or(color),
                 font_system,
                 &mut swash,
             ) {
                 let pixmap = Arc::new(vello_cpu::Pixmap::from_parts(
-                    bytemuck::cast_slice(buffer).to_vec(),
+                    bytemuck::cast_slice(raw_buffer).to_vec(),
                     placement.width as u16,
                     placement.height as u16,
                 ));
@@ -226,13 +226,18 @@ fn draw(
                         (physical_glyph.x + placement.left) as f64,
                         (physical_glyph.y - placement.top
                             + (run.line_y * transformation.scale_factor())
-                            .round() as i32) as f64,
-                        )),
-                    );
-                    render_context
+                                .round() as i32) as f64,
+                    )),
+                );
+                render_context
                     .draw_pixmap(pixmap, vello_cpu::peniko::ImageQuality::High);
                 render_context.pop_layer();
-                render_context.render_to_pixmap(pixels);
+                render_context.render_to_buffer(
+                    buffer,
+                    render_context.width(),
+                    render_context.height(),
+                    vello_cpu::RenderMode::OptimizeSpeed,
+                );
             }
         }
     }

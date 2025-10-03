@@ -193,27 +193,13 @@ pub fn present(
         physical_size.height as u16,
     );
 
-    let data: Vec<vello_cpu::color::PremulRgba8> = buffer
-        .iter()
-        .map(|x| vello_cpu::color::PremulRgba8::from_u32(*x))
-        .collect();
-
-    let mut pixmap = vello_cpu::Pixmap::from_parts(
-        data,
-        physical_size.width as u16,
-        physical_size.height as u16,
-    );
-
     renderer.draw(
-        &mut pixmap,
+        bytemuck::cast_slice_mut(&mut buffer),
         &mut render_context,
         viewport,
         &damage,
         background_color,
     );
-
-    // let p: Vec<u32> = pixmap.data().iter().map(|x| x.to_u32()).collect();
-    buffer.copy_from_slice(bytemuck::cast_slice(pixmap.data()));
 
     on_pre_present();
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
@@ -226,18 +212,16 @@ pub fn screenshot(
 ) -> Vec<u8> {
     let physical_size = viewport.physical_size();
 
+    let mut offscreen_buffer: Vec<u32> =
+        vec![0; physical_size.width as usize * physical_size.height as usize];
+
     let mut render_context = vello_cpu::RenderContext::new(
         physical_size.width as u16,
         physical_size.height as u16,
     );
 
-    let mut pixmap = vello_cpu::Pixmap::new(
-        physical_size.width as u16,
-        physical_size.height as u16,
-    );
-
     renderer.draw(
-        &mut pixmap,
+        bytemuck::cast_slice_mut(&mut offscreen_buffer),
         &mut render_context,
         viewport,
         &[Rectangle::with_size(Size::new(
@@ -247,5 +231,5 @@ pub fn screenshot(
         background_color,
     );
 
-    pixmap.data_as_u8_slice().to_vec()
+    bytemuck::cast_vec(offscreen_buffer)
 }
