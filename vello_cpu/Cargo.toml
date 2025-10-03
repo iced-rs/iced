@@ -1,6 +1,6 @@
 [package]
-name = "iced_tiny_skia"
-description = "A software renderer for iced on top of tiny-skia"
+name = "iced_vello_cpu"
+description = "A software renderer for iced on top of vello-cpu"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -24,11 +24,10 @@ iced_graphics.workspace = true
 
 bytemuck.workspace = true
 cosmic-text.workspace = true
-kurbo.workspace = true
 log.workspace = true
 rustc-hash.workspace = true
 softbuffer.workspace = true
-tiny-skia.workspace = true
+vello_cpu.workspace = true
 
 resvg.workspace = true
 resvg.optional = true

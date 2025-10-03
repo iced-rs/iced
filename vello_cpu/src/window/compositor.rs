@@ -18,7 +18,6 @@ pub struct Surface {
         Box<dyn compositor::Window>,
         Box<dyn compositor::Window>,
     >,
-    clip_mask: tiny_skia::Mask,
     layer_stack: VecDeque<Vec<Layer>>,
     background_color: Color,
     max_age: u8,
@@ -34,11 +33,11 @@ impl crate::graphics::Compositor for Compositor {
         backend: Option<&str>,
     ) -> Result<Self, Error> {
         match backend {
-            None | Some("tiny-skia") | Some("tiny_skia") => {
+            None | Some("vello-cpu") | Some("vello_cpu") => {
                 Ok(new(settings.into(), compatible_window))
             }
             Some(backend) => Err(Error::GraphicsAdapterNotFound {
-                backend: "tiny-skia",
+                backend: "vello-cpu",
                 reason: error::Reason::DidNotMatch {
                     preferred_backend: backend.to_owned(),
                 },
@@ -67,8 +66,6 @@ impl crate::graphics::Compositor for Compositor {
 
         let mut surface = Surface {
             window,
-            clip_mask: tiny_skia::Mask::new(width, height)
-                .expect("Create clip mask"),
             layer_stack: VecDeque::new(),
             background_color: Color::BLACK,
             max_age: 0,
@@ -93,15 +90,13 @@ impl crate::graphics::Compositor for Compositor {
             )
             .expect("Resize surface");
 
-        surface.clip_mask =
-            tiny_skia::Mask::new(width, height).expect("Create clip mask");
         surface.layer_stack.clear();
     }
 
     fn information(&self) -> Information {
         Information {
             adapter: String::from("CPU"),
-            backend: String::from("tiny-skia"),
+            backend: String::from("vello-cpu"),
         }
     }
 
@@ -193,20 +188,32 @@ pub fn present(
     let damage =
         damage::group(damage, Rectangle::with_size(viewport.logical_size()));
 
-    let mut pixels = tiny_skia::PixmapMut::from_bytes(
-        bytemuck::cast_slice_mut(&mut buffer),
-        physical_size.width,
-        physical_size.height,
-    )
-    .expect("Create pixel map");
+    let mut render_context = vello_cpu::RenderContext::new(
+        physical_size.width as u16,
+        physical_size.height as u16,
+    );
+
+    let data: Vec<vello_cpu::color::PremulRgba8> = buffer
+        .iter()
+        .map(|x| vello_cpu::color::PremulRgba8::from_u32(*x))
+        .collect();
+
+    let mut pixmap = vello_cpu::Pixmap::from_parts(
+        data,
+        physical_size.width as u16,
+        physical_size.height as u16,
+    );
 
     renderer.draw(
-        &mut pixels,
-        &mut surface.clip_mask,
+        &mut pixmap,
+        &mut render_context,
         viewport,
         &damage,
         background_color,
     );
+
+    // let p: Vec<u32> = pixmap.data().iter().map(|x| x.to_u32()).collect();
+    buffer.copy_from_slice(bytemuck::cast_slice(pixmap.data()));
 
     on_pre_present();
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
@@ -217,45 +224,28 @@ pub fn screenshot(
     viewport: &Viewport,
     background_color: Color,
 ) -> Vec<u8> {
-    let size = viewport.physical_size();
+    let physical_size = viewport.physical_size();
 
-    let mut offscreen_buffer: Vec<u32> =
-        vec![0; size.width as usize * size.height as usize];
+    let mut render_context = vello_cpu::RenderContext::new(
+        physical_size.width as u16,
+        physical_size.height as u16,
+    );
 
-    let mut clip_mask = tiny_skia::Mask::new(size.width, size.height)
-        .expect("Create clip mask");
+    let mut pixmap = vello_cpu::Pixmap::new(
+        physical_size.width as u16,
+        physical_size.height as u16,
+    );
 
     renderer.draw(
-        &mut tiny_skia::PixmapMut::from_bytes(
-            bytemuck::cast_slice_mut(&mut offscreen_buffer),
-            size.width,
-            size.height,
-        )
-        .expect("Create offscreen pixel map"),
-        &mut clip_mask,
+        &mut pixmap,
+        &mut render_context,
         viewport,
         &[Rectangle::with_size(Size::new(
-            size.width as f32,
-            size.height as f32,
+            physical_size.width as f32,
+            physical_size.height as f32,
         ))],
         background_color,
     );
 
-    offscreen_buffer.iter().fold(
-        Vec::with_capacity(offscreen_buffer.len() * 4),
-        |mut acc, pixel| {
-            const A_MASK: u32 = 0xFF_00_00_00;
-            const R_MASK: u32 = 0x00_FF_00_00;
-            const G_MASK: u32 = 0x00_00_FF_00;
-            const B_MASK: u32 = 0x00_00_00_FF;
-
-            let a = ((A_MASK & pixel) >> 24) as u8;
-            let r = ((R_MASK & pixel) >> 16) as u8;
-            let g = ((G_MASK & pixel) >> 8) as u8;
-            let b = (B_MASK & pixel) as u8;
-
-            acc.extend([r, g, b, a]);
-            acc
-        },
-    )
+    pixmap.data_as_u8_slice().to_vec()
 }

@@ -1,4 +1,4 @@
-use crate::Primitive;
+// use crate::Primitive;
 use crate::core::renderer::Quad;
 use crate::core::{
     self, Background, Color, Point, Rectangle, Svg, Transformation,
@@ -16,7 +16,7 @@ pub type Stack = layer::Stack<Layer>;
 pub struct Layer {
     pub bounds: Rectangle,
     pub quads: Vec<(Quad, Background)>,
-    pub primitives: Vec<Item<Primitive>>,
+    // pub primitives: Vec<Item<Primitive>>,
     pub images: Vec<Image>,
     pub text: Vec<Item<Text>>,
 }
@@ -148,31 +148,31 @@ impl Layer {
         self.images.push(svg);
     }
 
-    pub fn draw_primitive_group(
-        &mut self,
-        primitives: Vec<Primitive>,
-        clip_bounds: Rectangle,
-        transformation: Transformation,
-    ) {
-        self.primitives.push(Item::Group(
-            primitives,
-            clip_bounds,
-            transformation,
-        ));
-    }
+    // pub fn draw_primitive_group(
+    //     &mut self,
+    //     primitives: Vec<Primitive>,
+    //     clip_bounds: Rectangle,
+    //     transformation: Transformation,
+    // ) {
+    //     self.primitives.push(Item::Group(
+    //         primitives,
+    //         clip_bounds,
+    //         transformation,
+    //     ));
+    // }
 
-    pub fn draw_primitive_cache(
-        &mut self,
-        primitives: Arc<[Primitive]>,
-        clip_bounds: Rectangle,
-        transformation: Transformation,
-    ) {
-        self.primitives.push(Item::Cached(
-            primitives,
-            clip_bounds,
-            transformation,
-        ));
-    }
+    // pub fn draw_primitive_cache(
+    //     &mut self,
+    //     primitives: Arc<[Primitive]>,
+    //     clip_bounds: Rectangle,
+    //     transformation: Transformation,
+    // ) {
+    //     self.primitives.push(Item::Cached(
+    //         primitives,
+    //         clip_bounds,
+    //         transformation,
+    //     ));
+    // }
 
     pub fn damage(previous: &Self, current: &Self) -> Vec<Rectangle> {
         if previous.bounds != current.bounds {
@@ -219,36 +219,36 @@ impl Layer {
             },
         );
 
-        let primitives = damage::list(
-            &previous.primitives,
-            &current.primitives,
-            |item| match item {
-                Item::Live(primitive) => vec![primitive.visible_bounds()],
-                Item::Group(primitives, group_bounds, transformation) => {
-                    primitives
-                        .as_slice()
-                        .iter()
-                        .map(Primitive::visible_bounds)
-                        .map(|bounds| bounds * *transformation)
-                        .filter_map(|bounds| bounds.intersection(group_bounds))
-                        .collect()
-                }
-                Item::Cached(_, bounds, _) => {
-                    vec![*bounds]
-                }
-            },
-            |primitive_a, primitive_b| match (primitive_a, primitive_b) {
-                (
-                    Item::Cached(cache_a, bounds_a, transformation_a),
-                    Item::Cached(cache_b, bounds_b, transformation_b),
-                ) => {
-                    Arc::ptr_eq(cache_a, cache_b)
-                        && bounds_a == bounds_b
-                        && transformation_a == transformation_b
-                }
-                _ => false,
-            },
-        );
+        // let primitives = damage::list(
+        //     &previous.primitives,
+        //     &current.primitives,
+        //     |item| match item {
+        //         Item::Live(primitive) => vec![primitive.visible_bounds()],
+        //         Item::Group(primitives, group_bounds, transformation) => {
+        //             primitives
+        //                 .as_slice()
+        //                 .iter()
+        //                 .map(Primitive::visible_bounds)
+        //                 .map(|bounds| bounds * *transformation)
+        //                 .filter_map(|bounds| bounds.intersection(group_bounds))
+        //                 .collect()
+        //         }
+        //         Item::Cached(_, bounds, _) => {
+        //             vec![*bounds]
+        //         }
+        //     },
+        //     |primitive_a, primitive_b| match (primitive_a, primitive_b) {
+        //         (
+        //             Item::Cached(cache_a, bounds_a, transformation_a),
+        //             Item::Cached(cache_b, bounds_b, transformation_b),
+        //         ) => {
+        //             Arc::ptr_eq(cache_a, cache_b)
+        //                 && bounds_a == bounds_b
+        //                 && transformation_a == transformation_b
+        //         }
+        //         _ => false,
+        //     },
+        // );
 
         let images = damage::list(
             &previous.images,
@@ -258,7 +258,7 @@ impl Layer {
         );
 
         damage.extend(text);
-        damage.extend(primitives);
+        // damage.extend(primitives);
         damage.extend(images);
         damage
     }
@@ -269,7 +269,7 @@ impl Default for Layer {
         Self {
             bounds: Rectangle::INFINITE,
             quads: Vec::new(),
-            primitives: Vec::new(),
+            // primitives: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
         }
@@ -298,7 +298,7 @@ impl graphics::Layer for Layer {
         self.bounds = Rectangle::INFINITE;
 
         self.quads.clear();
-        self.primitives.clear();
+        // self.primitives.clear();
         self.text.clear();
         self.images.clear();
     }
@@ -308,9 +308,9 @@ impl graphics::Layer for Layer {
             return 1;
         }
 
-        if !self.primitives.is_empty() {
-            return 2;
-        }
+        // if !self.primitives.is_empty() {
+        //     return 2;
+        // }
 
         if !self.images.is_empty() {
             return 3;
@@ -332,9 +332,9 @@ impl graphics::Layer for Layer {
             return 3;
         }
 
-        if !self.primitives.is_empty() {
-            return 2;
-        }
+        // if !self.primitives.is_empty() {
+        //     return 2;
+        // }
 
         if !self.quads.is_empty() {
             return 1;
@@ -345,7 +345,7 @@ impl graphics::Layer for Layer {
 
     fn merge(&mut self, layer: &mut Self) {
         self.quads.append(&mut layer.quads);
-        self.primitives.append(&mut layer.primitives);
+        // self.primitives.append(&mut layer.primitives);
         self.text.append(&mut layer.text);
         self.images.append(&mut layer.images);
     }

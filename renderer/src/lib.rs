@@ -40,13 +40,19 @@ mod renderer {
     pub type Compositor = iced_wgpu::window::Compositor;
 }
 
+#[cfg(all(not(feature = "wgpu"), feature = "vello-cpu"))]
+mod renderer {
+    pub type Renderer = iced_vello_cpu::Renderer;
+    pub type Compositor = iced_vello_cpu::window::Compositor;
+}
+
 #[cfg(all(not(feature = "wgpu"), feature = "tiny-skia"))]
 mod renderer {
     pub type Renderer = iced_tiny_skia::Renderer;
     pub type Compositor = iced_tiny_skia::window::Compositor;
 }
 
-#[cfg(not(any(feature = "wgpu", feature = "tiny-skia")))]
+#[cfg(not(any(feature = "wgpu", feature = "tiny-skia", feature = "vello-cpu")))]
 mod renderer {
     #[cfg(not(debug_assertions))]
     compile_error!(

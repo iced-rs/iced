@@ -4,9 +4,9 @@ pub mod window;
 
 mod engine;
 mod layer;
-mod primitive;
+// mod primitive;
 mod settings;
-mod text;
+// mod text;
 
 #[cfg(feature = "image")]
 mod raster;
@@ -22,7 +22,7 @@ pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 
 pub use layer::Layer;
-pub use primitive::Primitive;
+// pub use primitive::Primitive;
 pub use settings::Settings;
 
 #[cfg(feature = "geometry")]
@@ -66,8 +66,8 @@ impl Renderer {
 
     pub fn draw(
         &mut self,
-        pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: &mut tiny_skia::Mask,
+        pixmap: &mut vello_cpu::Pixmap,
+        render_context: &mut vello_cpu::RenderContext,
         viewport: &Viewport,
         damage: &[Rectangle],
         background_color: Color,
@@ -79,30 +79,16 @@ impl Renderer {
         for &region in damage {
             let region = region * scale_factor;
 
-            let path = tiny_skia::PathBuilder::from_rect(
-                tiny_skia::Rect::from_xywh(
-                    region.x,
-                    region.y,
-                    region.width,
-                    region.height,
-                )
-                .expect("Create damage rectangle"),
+            render_context.set_paint(engine::into_color(background_color));
+            render_context.set_aliasing_threshold(Some(u8::MAX));
+            render_context.push_blend_layer(vello_cpu::peniko::Compose::Copy.into());
+            render_context.fill_rect(
+                &vello_cpu::kurbo::Rect::from_origin_size(
+                    (region.x, region.y),
+                    (region.width as f64, region.height as f64),
+                ),
             );
-
-            pixels.fill_path(
-                &path,
-                &tiny_skia::Paint {
-                    shader: tiny_skia::Shader::SolidColor(engine::into_color(
-                        background_color,
-                    )),
-                    anti_alias: false,
-                    blend_mode: tiny_skia::BlendMode::Source,
-                    ..Default::default()
-                },
-                tiny_skia::FillRule::default(),
-                tiny_skia::Transform::identity(),
-                None,
-            );
+            render_context.pop_layer();
 
             for layer in self.layers.iter() {
                 let Some(clip_bounds) =
@@ -111,7 +97,7 @@ impl Renderer {
                     continue;
                 };
 
-                engine::adjust_clip_mask(clip_mask, clip_bounds);
+                // engine::adjust_clip_mask(render_context, clip_bounds);
 
                 if !layer.quads.is_empty() {
                     let render_span = debug::render(debug::Primitive::Quad);
@@ -120,78 +106,81 @@ impl Renderer {
                             quad,
                             background,
                             Transformation::scale(scale_factor),
-                            pixels,
-                            clip_mask,
+                            pixmap,
+                            render_context,
                             clip_bounds,
                         );
                     }
                     render_span.finish();
                 }
 
-                if !layer.primitives.is_empty() {
-                    let render_span = debug::render(debug::Primitive::Triangle);
+                // if !layer.primitives.is_empty() {
+                //     let render_span = debug::render(debug::Primitive::Triangle);
 
-                    for group in &layer.primitives {
-                        let Some(new_clip_bounds) = (group.clip_bounds()
-                            * scale_factor)
-                            .intersection(&clip_bounds)
-                        else {
-                            continue;
-                        };
+                //     for group in &layer.primitives {
+                //         let Some(new_clip_bounds) = (group.clip_bounds()
+                //             * scale_factor)
+                //             .intersection(&clip_bounds)
+                //         else {
+                //             continue;
+                //         };
 
-                        engine::adjust_clip_mask(clip_mask, new_clip_bounds);
+                //         // engine::adjust_clip_mask(
+                //         //     render_context,
+                //         //     new_clip_bounds,
+                //         // );
 
-                        for primitive in group.as_slice() {
-                            self.engine.draw_primitive(
-                                primitive,
-                                group.transformation()
-                                    * Transformation::scale(scale_factor),
-                                pixels,
-                                clip_mask,
-                                clip_bounds,
-                            );
-                        }
+                //         for primitive in group.as_slice() {
+                //             self.engine.draw_primitive(
+                //                 primitive,
+                //                 group.transformation()
+                //                     * Transformation::scale(scale_factor),
+                //                 pixmap,
+                //                 render_context,
+                //                 clip_bounds,
+                //             );
+                //         }
 
-                        engine::adjust_clip_mask(clip_mask, clip_bounds);
-                    }
+                //         engine::adjust_clip_mask(render_context, clip_bounds);
+                //     }
 
-                    render_span.finish();
-                }
+                //     render_span.finish();
+                // }
 
-                if !layer.images.is_empty() {
-                    let render_span = debug::render(debug::Primitive::Image);
+                // if !layer.images.is_empty() {
+                //     let render_span = debug::render(debug::Primitive::Image);
 
-                    for image in &layer.images {
-                        self.engine.draw_image(
-                            image,
-                            Transformation::scale(scale_factor),
-                            pixels,
-                            clip_mask,
-                            clip_bounds,
-                        );
-                    }
+                //     for image in &layer.images {
+                //         self.engine.draw_image(
+                //             image,
+                //             Transformation::scale(scale_factor),
+                //             pixmap,
+                //             render_context,
+                //             clip_bounds,
+                //         );
+                //     }
 
-                    render_span.finish();
-                }
+                //     render_span.finish();
+                // }
 
-                if !layer.text.is_empty() {
-                    let render_span = debug::render(debug::Primitive::Image);
+                // if !layer.text.is_empty() {
+                //     let render_span = debug::render(debug::Primitive::Image);
 
-                    for group in &layer.text {
-                        for text in group.as_slice() {
-                            self.engine.draw_text(
-                                text,
-                                group.transformation()
-                                    * Transformation::scale(scale_factor),
-                                pixels,
-                                clip_mask,
-                                clip_bounds,
-                            );
-                        }
-                    }
+                //     for group in &layer.text {
+                //         for text in group.as_slice() {
+                //             self.engine.draw_text(
+                //                 text,
+                //                 group.transformation()
+                //                     * Transformation::scale(scale_factor),
+                //                 pixmap,
+                //                 render_context,
+                //                 clip_bounds,
+                //             );
+                //         }
+                //     }
 
-                    render_span.finish();
-                }
+                //     render_span.finish();
+                // }
             }
         }
 
