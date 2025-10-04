@@ -20,6 +20,7 @@ pub struct Surface {
     >,
     layer_stack: VecDeque<Vec<Layer>>,
     background_color: Color,
+    render_context: vello_cpu::RenderContext,
     max_age: u8,
 }
 
@@ -68,6 +69,10 @@ impl crate::graphics::Compositor for Compositor {
             window,
             layer_stack: VecDeque::new(),
             background_color: Color::BLACK,
+            render_context: vello_cpu::RenderContext::new(
+                width as u16,
+                height as u16,
+            ),
             max_age: 0,
         };
 
@@ -89,6 +94,9 @@ impl crate::graphics::Compositor for Compositor {
                 NonZeroU32::new(height).expect("Non-zero height"),
             )
             .expect("Resize surface");
+
+        surface.render_context =
+            vello_cpu::RenderContext::new(width as u16, height as u16);
 
         surface.layer_stack.clear();
     }
@@ -145,8 +153,6 @@ pub fn present(
     background_color: Color,
     on_pre_present: impl FnOnce(),
 ) -> Result<(), compositor::SurfaceError> {
-    let physical_size = viewport.physical_size();
-
     let mut buffer = surface
         .window
         .buffer_mut()
@@ -188,19 +194,15 @@ pub fn present(
     let damage =
         damage::group(damage, Rectangle::with_size(viewport.logical_size()));
 
-    let mut render_context = vello_cpu::RenderContext::new(
-        physical_size.width as u16,
-        physical_size.height as u16,
-    );
-
     renderer.draw(
         bytemuck::cast_slice_mut(&mut buffer),
-        &mut render_context,
+        &mut surface.render_context,
         viewport,
         &damage,
         background_color,
     );
 
+    surface.render_context.reset();
     on_pre_present();
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
 }
