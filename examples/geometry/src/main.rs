@@ -100,7 +100,7 @@ mod rainbow {
 
             let mesh = Mesh::Solid {
                 buffers: mesh::Indexed {
-                    vertices: vec![
+                    vertices: [
                         SolidVertex2D {
                             position: posn_center,
                             color: color::pack([1.0, 1.0, 1.0, 1.0]),
@@ -137,8 +137,9 @@ mod rainbow {
                             position: posn_l,
                             color: color::pack(color_v),
                         },
-                    ],
-                    indices: vec![
+                    ]
+                    .into(),
+                    indices: [
                         0, 1, 2, // TL
                         0, 2, 3, // T
                         0, 3, 4, // TR
@@ -147,7 +148,8 @@ mod rainbow {
                         0, 6, 7, // B
                         0, 7, 8, // BL
                         0, 8, 1, // L
-                    ],
+                    ]
+                    .into(),
                 },
                 transformation: Transformation::IDENTITY,
                 clip_bounds: Rectangle::INFINITE,

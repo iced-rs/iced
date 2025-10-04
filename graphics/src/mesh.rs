@@ -5,6 +5,8 @@ use crate::gradient;
 
 use bytemuck::{Pod, Zeroable};
 
+use std::sync::Arc;
+
 /// A low-level primitive to render a mesh of triangles.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Mesh {
@@ -70,12 +72,12 @@ impl Mesh {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Indexed<T> {
     /// The vertices of the mesh
-    pub vertices: Vec<T>,
+    pub vertices: Arc<[T]>,
 
     /// The list of vertex indices that defines the triangles of the mesh.
     ///
     /// Therefore, this list should always have a length that is a multiple of 3.
-    pub indices: Vec<u32>,
+    pub indices: Arc<[u32]>,
 }
 
 /// A two-dimensional vertex with a color.
