@@ -40,8 +40,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Theme, Widget,
+    Background, Border, Clipboard, Color, Element, Event, Layout, Length,
+    Pixels, Rectangle, Shell, Size, Theme, Widget, border::Radius,
 };
 
 /// A toggler widget.
@@ -395,10 +395,6 @@ where
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        /// The space ratio between the background Quad and the Toggler bounds, and
-        /// between the background Quad and foreground Quad.
-        const SPACE_RATIO: f32 = 0.05;
-
         let mut children = layout.children();
         let toggler_layout = children.next().unwrap();
 
@@ -428,14 +424,15 @@ where
 
         let bounds = toggler_layout.bounds();
 
-        let border_radius = bounds.height / 2.0;
-        let space = (SPACE_RATIO * bounds.height).round();
+        let border_radius = style
+            .border_radius
+            .unwrap_or(Radius::new(bounds.height / 2.0));
 
         let toggler_background_bounds = Rectangle {
-            x: bounds.x + space,
-            y: bounds.y + space,
-            width: bounds.width - (2.0 * space),
-            height: bounds.height - (2.0 * space),
+            x: bounds.x,
+            y: bounds.y,
+            width: bounds.width,
+            height: bounds.height,
         };
 
         renderer.fill_quad(
@@ -454,13 +451,13 @@ where
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
                 + if self.is_toggled {
-                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
+                    bounds.width - bounds.height
                 } else {
-                    2.0 * space
+                    0.0
                 },
-            y: bounds.y + (2.0 * space),
-            width: bounds.height - (4.0 * space),
-            height: bounds.height - (4.0 * space),
+            y: bounds.y,
+            width: bounds.height,
+            height: bounds.height,
         };
 
         renderer.fill_quad(
@@ -515,20 +512,22 @@ pub enum Status {
 /// The appearance of a toggler.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
-    /// The background [`Color`] of the toggler.
-    pub background: Color,
+    /// The background [`Background`] of the toggler.
+    pub background: Background,
     /// The width of the background border of the toggler.
     pub background_border_width: f32,
     /// The [`Color`] of the background border of the toggler.
     pub background_border_color: Color,
-    /// The foreground [`Color`] of the toggler.
-    pub foreground: Color,
+    /// The foreground [`Background`] of the toggler.
+    pub foreground: Background,
     /// The width of the foreground border of the toggler.
     pub foreground_border_width: f32,
     /// The [`Color`] of the foreground border of the toggler.
     pub foreground_border_color: Color,
     /// The text [`Color`] of the toggler.
     pub text_color: Option<Color>,
+    /// The optional border [`Radius`] of the toggler
+    pub border_radius: Option<Radius>,
 }
 
 /// The theme catalog of a [`Toggler`].
@@ -603,12 +602,13 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     };
 
     Style {
-        background,
-        foreground,
+        background: background.into(),
+        foreground: foreground.into(),
         foreground_border_width: 0.0,
         foreground_border_color: Color::TRANSPARENT,
         background_border_width: 0.0,
         background_border_color: Color::TRANSPARENT,
         text_color: None,
+        border_radius: None,
     }
 }
