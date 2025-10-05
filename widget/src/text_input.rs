@@ -822,7 +822,7 @@ where
             | Event::Touch(touch::Event::FingerLost { .. }) => {
                 state::<Renderer>(tree).is_dragging = false;
             }
-            Event::Mouse(mouse::Event::CursorMoved { position })
+            Event::Mouse(mouse::Event::CursorMoved { position, .. })
             | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
                 let state = state::<Renderer>(tree);
 

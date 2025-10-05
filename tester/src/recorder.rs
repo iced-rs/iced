@@ -402,9 +402,10 @@ fn record<Message>(
     }
 
     let interaction =
-        if let Event::Mouse(mouse::Event::CursorMoved { position }) = event {
+        if let Event::Mouse(mouse::Event::CursorMoved { position, screen_position }) = event {
             Interaction::from_event(&Event::Mouse(mouse::Event::CursorMoved {
                 position: *position - (bounds.position() - Point::ORIGIN),
+                screen_position: *screen_position,
             }))
         } else {
             Interaction::from_event(event)

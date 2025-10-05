@@ -49,7 +49,7 @@ impl Interaction {
     pub fn from_event(event: &Event) -> Option<Self> {
         Some(match event {
             Event::Mouse(mouse) => Self::Mouse(match mouse {
-                mouse::Event::CursorMoved { position } => {
+                mouse::Event::CursorMoved { position, .. } => {
                     Mouse::Move(Target::Point(*position))
                 }
                 mouse::Event::ButtonPressed(button) => Mouse::Press {
@@ -223,14 +223,14 @@ impl Interaction {
 
     /// Returns a list of runtime events representing the [`Interaction`].
     ///
-    /// The `find_target` closure must convert a [`Target`] into its screen
-    /// coordinates.
+    /// The `find_target` closure must convert a [`Target`] into a position
+    /// in the viewport.
     pub fn events(
         &self,
         find_target: impl FnOnce(&Target) -> Option<Point>,
     ) -> Option<Vec<Event>> {
         let mouse_move_ =
-            |to| Event::Mouse(mouse::Event::CursorMoved { position: to });
+            |to| Event::Mouse(mouse::Event::CursorMoved { position: to, screen_position: to });
 
         let mouse_press =
             |button| Event::Mouse(mouse::Event::ButtonPressed(button));

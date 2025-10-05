@@ -346,6 +346,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             if let Some(event) = conversion::window_event(
                 event,
                 window.scale_factor() as f32,
+                window.outer_position().ok(),
                 *modifiers,
             ) {
                 events.push(event);
