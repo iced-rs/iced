@@ -358,8 +358,6 @@ where
                             shell.publish(on_release);
                         }
                         state.is_dragging = false;
-
-                        shell.capture_event();
                     }
                 }
                 Event::Mouse(mouse::Event::CursorMoved { .. })
@@ -395,14 +393,14 @@ where
                         match key {
                             Key::Named(key::Named::ArrowUp) => {
                                 let _ = increment(current_value).map(change);
+                                shell.capture_event();
                             }
                             Key::Named(key::Named::ArrowDown) => {
                                 let _ = decrement(current_value).map(change);
+                                shell.capture_event();
                             }
                             _ => (),
                         }
-
-                        shell.capture_event();
                     }
                 }
                 Event::Keyboard(keyboard::Event::ModifiersChanged(
