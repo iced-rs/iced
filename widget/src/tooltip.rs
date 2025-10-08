@@ -203,6 +203,7 @@ where
     ) {
         if let Event::Mouse(_) = event {
             let state = tree.state.downcast_mut::<State>();
+            let previous_state = *state;
             let was_idle = *state == State::Idle;
 
             *state = cursor
@@ -215,7 +216,9 @@ where
             if was_idle != is_idle {
                 shell.invalidate_layout();
                 shell.request_redraw();
-            } else if self.position == Position::FollowCursor {
+            } else if self.position == Position::FollowCursor
+                && *state != previous_state
+            {
                 shell.request_redraw();
             }
         }
