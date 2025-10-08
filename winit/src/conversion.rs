@@ -141,6 +141,7 @@ pub fn window_attributes(
 pub fn window_event(
     event: winit::event::WindowEvent,
     scale_factor: f32,
+    window_position: Option<winit::dpi::PhysicalPosition<i32>>,
     modifiers: winit::keyboard::ModifiersState,
 ) -> Option<Event> {
     use winit::event::Ime;
@@ -161,8 +162,18 @@ pub fn window_event(
         WindowEvent::CursorMoved { position, .. } => {
             let position = position.to_logical::<f64>(f64::from(scale_factor));
 
+            let window_position_logical = window_position
+                .unwrap_or_default()
+                .to_logical::<f64>(f64::from(scale_factor));
+
+            let screen_position = Point::new(
+                (window_position_logical.x + position.x) as f32,
+                (window_position_logical.y + position.y) as f32,
+            );
+
             Some(Event::Mouse(mouse::Event::CursorMoved {
                 position: Point::new(position.x as f32, position.y as f32),
+                screen_position,
             }))
         }
         WindowEvent::CursorEntered { .. } => {

@@ -972,6 +972,7 @@ async fn run_instance<P>(
                             if let Some(event) = conversion::window_event(
                                 window_event,
                                 window.state.scale_factor(),
+                                window.raw.outer_position().ok(),
                                 window.state.modifiers(),
                             ) {
                                 events.push((id, event));
