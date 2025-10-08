@@ -16,6 +16,7 @@ use crate::core::Length::Fill;
 use crate::core::alignment::Horizontal::Right;
 use crate::core::border;
 use crate::core::mouse;
+use crate::core::theme;
 use crate::core::window;
 use crate::core::{Color, Element, Font, Settings, Size, Theme};
 use crate::futures::futures::channel::mpsc;
@@ -94,6 +95,14 @@ where
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
         state.view(&self.program, window).map(Message)
+    }
+
+    fn theme(&self, state: &Self::State, window: window::Id) -> Option<Theme> {
+        state
+            .theme(&self.program, window)
+            .as_ref()
+            .and_then(theme::Base::palette)
+            .map(|palette| Theme::custom("Tester", palette))
     }
 }
 
@@ -397,6 +406,19 @@ impl<P: Program + 'static> Tester<P> {
             .collect();
 
         self.edit = None;
+    }
+
+    fn theme(&self, program: &P, window: window::Id) -> Option<P::Theme> {
+        match &self.state {
+            State::Empty => None,
+            State::Idle { state } => program.theme(state, window),
+            State::Recording { emulator } | State::Playing { emulator, .. } => {
+                emulator.theme(program)
+            }
+            State::Asserting { state, window, .. } => {
+                program.theme(state, *window)
+            }
+        }
     }
 
     fn preset<'a>(
