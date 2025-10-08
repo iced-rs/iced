@@ -134,18 +134,20 @@ impl<P: Program> Daemon<P> {
         Self: 'static,
         P::Message: message::MaybeDebug + message::MaybeClone,
     {
-        #[cfg(all(feature = "debug", not(target_arch = "wasm32")))]
-        let program = {
-            iced_debug::init(iced_debug::Metadata {
-                name: P::name(),
-                theme: None,
-                can_time_travel: cfg!(feature = "time-travel"),
-            });
+        #[cfg(feature = "debug")]
+        iced_debug::init(iced_debug::Metadata {
+            name: P::name(),
+            theme: None,
+            can_time_travel: cfg!(feature = "time-travel"),
+        });
 
-            iced_devtools::attach(self)
-        };
+        #[cfg(feature = "tester")]
+        let program = iced_tester::attach(self);
 
-        #[cfg(any(not(feature = "debug"), target_arch = "wasm32"))]
+        #[cfg(all(feature = "debug", not(feature = "tester")))]
+        let program = iced_devtools::attach(self);
+
+        #[cfg(not(any(feature = "tester", feature = "debug")))]
         let program = self;
 
         Ok(shell::run(program)?)

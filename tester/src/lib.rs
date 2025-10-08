@@ -65,10 +65,15 @@ where
     }
 
     fn window(&self) -> Option<window::Settings> {
-        self.program.window().map(|window| window::Settings {
-            size: window.size + Size::new(300.0, 80.0),
-            ..window
-        })
+        Some(
+            self.program
+                .window()
+                .map(|window| window::Settings {
+                    size: window.size + Size::new(300.0, 80.0),
+                    ..window
+                })
+                .unwrap_or_default(),
+        )
     }
 
     fn boot(&self) -> (Self::State, Task<Self::Message>) {
