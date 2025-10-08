@@ -602,45 +602,31 @@ impl<P: Program + 'static> Tester<P> {
                 })
         };
 
+        let view = match &self.state {
+            State::Empty => Element::from(space()),
+            State::Idle { state } => {
+                program.view(state, window).map(Tick::Program)
+            }
+            State::Recording { emulator } => {
+                recorder(emulator.view(program).map(Tick::Program))
+                    .on_record(Tick::Record)
+                    .into()
+            }
+            State::Asserting { state, window, .. } => {
+                recorder(program.view(state, *window).map(Tick::Program))
+                    .on_record(Tick::Assert)
+                    .into()
+            }
+            State::Playing { emulator, .. } => {
+                emulator.view(program).map(Tick::Program)
+            }
+        };
+
         let viewport = container(
             scrollable(
-                container(match &self.state {
-                    State::Empty => Element::from(space()),
-                    State::Idle { state } => {
-                        let theme = program.theme(state, window);
-
-                        themer(
-                            theme,
-                            program.view(state, window).map(Tick::Program),
-                        )
-                        .into()
-                    }
-                    State::Recording { emulator } => {
-                        let theme = emulator.theme(program);
-                        let view = emulator.view(program).map(Tick::Program);
-
-                        recorder(themer(theme, view))
-                            .on_record(Tick::Record)
-                            .into()
-                    }
-                    State::Asserting { state, window, .. } => {
-                        let theme = program.theme(state, *window);
-                        let view =
-                            program.view(state, *window).map(Tick::Program);
-
-                        recorder(themer(theme, view))
-                            .on_record(Tick::Assert)
-                            .into()
-                    }
-                    State::Playing { emulator, .. } => {
-                        let theme = emulator.theme(program);
-                        let view = emulator.view(program).map(Tick::Program);
-
-                        themer(theme, view).into()
-                    }
-                })
-                .width(self.viewport.width)
-                .height(self.viewport.height),
+                container(themer(self.theme(program, window), view))
+                    .width(self.viewport.width)
+                    .height(self.viewport.height),
             )
             .direction(scrollable::Direction::Both {
                 vertical: scrollable::Scrollbar::default(),

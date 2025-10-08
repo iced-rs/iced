@@ -2,30 +2,31 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::theme;
 use crate::core::widget;
 use crate::core::widget::operation;
 use crate::core::widget::tree;
 use crate::core::{
-    self, Clipboard, Element, Event, Layout, Length, Point, Rectangle, Shell,
-    Size, Theme, Vector, Widget,
+    self, Clipboard, Color, Element, Event, Layout, Length, Point, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 use crate::test::Selector;
 use crate::test::instruction::{Interaction, Mouse, Target};
 use crate::test::selector;
 
-pub fn recorder<'a, Message, Renderer>(
+pub fn recorder<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Recorder<'a, Message, Renderer> {
+) -> Recorder<'a, Message, Theme, Renderer> {
     Recorder::new(content)
 }
 
-pub struct Recorder<'a, Message, Renderer> {
+pub struct Recorder<'a, Message, Theme, Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
     on_record: Option<Box<dyn Fn(Interaction) -> Message + 'a>>,
     has_overlay: bool,
 }
 
-impl<'a, Message, Renderer> Recorder<'a, Message, Renderer> {
+impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -50,10 +51,11 @@ struct State {
     last_hovered_overlay: Option<Rectangle>,
 }
 
-impl<Message, Renderer> Widget<Message, Theme, Renderer>
-    for Recorder<'_, Message, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Recorder<'_, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
+    Theme: theme::Base,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -171,15 +173,13 @@ where
             return;
         };
 
-        let palette = theme.palette();
-
         renderer.with_layer(*viewport, |renderer| {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: *last_hovered,
                     ..renderer::Quad::default()
                 },
-                palette.primary.scale_alpha(0.7),
+                highlight(theme).scale_alpha(0.7),
             );
         });
     }
@@ -250,29 +250,30 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Recorder<'a, Message, Renderer>>
+impl<'a, Message, Theme, Renderer> From<Recorder<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: 'a,
+    Theme: theme::Base + 'a,
     Renderer: core::Renderer + 'a,
 {
-    fn from(recorder: Recorder<'a, Message, Renderer>) -> Self {
+    fn from(recorder: Recorder<'a, Message, Theme, Renderer>) -> Self {
         Element::new(recorder)
     }
 }
 
-struct Overlay<'a, Message, Renderer> {
+struct Overlay<'a, Message, Theme, Renderer> {
     raw: overlay::Element<'a, Message, Theme, Renderer>,
     bounds: Rectangle,
     last_hovered: &'a mut Option<Rectangle>,
     on_record: Option<&'a dyn Fn(Interaction) -> Message>,
 }
 
-impl<'a, Message, Renderer> core::Overlay<Message, Theme, Renderer>
-    for Overlay<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
+    for Overlay<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer + 'a,
+    Theme: theme::Base + 'a,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         self.raw.as_overlay_mut().layout(renderer, bounds)
@@ -294,15 +295,13 @@ where
             return;
         };
 
-        let palette = theme.palette();
-
         renderer.with_layer(self.bounds, |renderer| {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: *last_hovered,
                     ..renderer::Quad::default()
                 },
-                palette.primary.scale_alpha(0.7),
+                highlight(theme).scale_alpha(0.7),
             );
         });
     }
@@ -495,4 +494,11 @@ fn find_text(
     }
 
     Some((content, visible_bounds))
+}
+
+fn highlight(theme: &impl theme::Base) -> Color {
+    theme
+        .palette()
+        .map(|palette| palette.primary)
+        .unwrap_or(Color::from_rgb(0.0, 0.0, 1.0))
 }
