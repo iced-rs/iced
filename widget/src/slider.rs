@@ -530,10 +530,8 @@ where
         let bounds = layout.bounds();
         let is_mouse_over = cursor.is_over(bounds);
 
-        if state.is_dragging {
-            mouse::Interaction::Grabbing
-        } else if is_mouse_over {
-            mouse::Interaction::Grab
+        if state.is_dragging || is_mouse_over {
+            mouse::Interaction::Pointer
         } else {
             mouse::Interaction::default()
         }
