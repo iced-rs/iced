@@ -20,7 +20,7 @@ impl Size {
         crate::Size::new(1024.0, 768.0)
     }
 
-    fn from_screen_size(
+    pub fn from_screen_size(
         func: impl 'static + Send + Sync + Fn(crate::Size) -> crate::Size,
     ) -> Self {
         Self::FromScreensize(Arc::new(func))
