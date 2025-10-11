@@ -365,7 +365,8 @@ where
             Event::Mouse(mouse::Event::CursorMoved { .. })
             | Event::Touch(touch::Event::FingerMoved { .. }) => {
                 if is_dragging {
-                    let _ = cursor.position().and_then(locate).map(change);
+                    let _ =
+                        cursor.land().position().and_then(locate).map(change);
 
                     shell.capture_event();
                 }
@@ -522,12 +523,10 @@ where
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let state = tree.state.downcast_ref::<State>();
-        let bounds = layout.bounds();
-        let is_mouse_over = cursor.is_over(bounds);
 
         if state.is_dragging {
             mouse::Interaction::Grabbing
-        } else if is_mouse_over {
+        } else if cursor.is_over(layout.bounds()) {
             mouse::Interaction::Grab
         } else {
             mouse::Interaction::default()
