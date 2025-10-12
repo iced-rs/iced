@@ -36,6 +36,7 @@ use crate::core::clipboard::{self, Clipboard};
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
+use crate::core::keyboard::key::{Code, Physical};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
@@ -1123,6 +1124,8 @@ pub struct KeyPress {
     pub text: Option<SmolStr>,
     /// The current [`Status`] of the [`TextEditor`].
     pub status: Status,
+    /// The physical key pressed.
+    pub physical_key: Physical,
 }
 
 impl<Message> Binding<Message> {
@@ -1133,35 +1136,35 @@ impl<Message> Binding<Message> {
             modifiers,
             text,
             status,
+            physical_key,
         } = event;
 
         if !matches!(status, Status::Focused { .. }) {
             return None;
         }
 
-        match key.as_ref() {
-            keyboard::Key::Named(key::Named::Enter) => Some(Self::Enter),
-            keyboard::Key::Named(key::Named::Backspace) => {
+        match physical_key {
+            Physical::Code(Code::Enter) => Some(Self::Enter),
+            Physical::Code(Code::Backspace) => {
                 Some(Self::Backspace)
             }
-            keyboard::Key::Named(key::Named::Delete)
+            Physical::Code(Code::Delete)
                 if text.is_none() || text.as_deref() == Some("\u{7f}") =>
             {
                 Some(Self::Delete)
             }
-            keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
-            keyboard::Key::Character("c") if modifiers.command() => {
+            Physical::Code(Code::Escape) => Some(Self::Unfocus),
+            Physical::Code(Code::KeyC) if modifiers.command() => {
                 Some(Self::Copy)
             }
-            keyboard::Key::Character("x") if modifiers.command() => {
+            Physical::Code(Code::KeyX) if modifiers.command() => {
                 Some(Self::Cut)
             }
-            keyboard::Key::Character("v")
-                if modifiers.command() && !modifiers.alt() =>
+            Physical::Code(Code::KeyV) if modifiers.command() && !modifiers.alt() =>
             {
                 Some(Self::Paste)
             }
-            keyboard::Key::Character("a") if modifiers.command() => {
+            Physical::Code(Code::KeyA) if modifiers.command() => {
                 Some(Self::SelectAll)
             }
             _ => {
@@ -1304,6 +1307,7 @@ impl<Message> Update<Message> {
                 key,
                 modifiers,
                 text,
+                physical_key,
                 ..
             }) => {
                 let status = if state.focus.is_some() {
@@ -1319,6 +1323,7 @@ impl<Message> Update<Message> {
                     modifiers: *modifiers,
                     text: text.clone(),
                     status,
+                    physical_key: physical_key.clone(),
                 };
 
                 if let Some(key_binding) = key_binding {
