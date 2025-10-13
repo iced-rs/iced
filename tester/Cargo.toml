@@ -10,6 +10,9 @@ categories.workspace = true
 keywords.workspace = true
 rust-version.workspace = true
 
+[features]
+wayland = ["rfd/wayland"]
+
 [dependencies]
 iced_test.workspace = true
 iced_widget.workspace = true
