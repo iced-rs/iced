@@ -17,7 +17,7 @@ thiserror.workspace = true
 tokio.features = ["fs", "process"]
 tokio.workspace = true
 
-serde = "1"
+serde = { version = "1", features = ["derive"] }
 webbrowser = "1"
 tracing-subscriber = "0.3"
 
