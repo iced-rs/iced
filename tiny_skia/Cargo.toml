@@ -17,6 +17,8 @@ workspace = true
 image = ["iced_graphics/image"]
 svg = ["iced_graphics/svg", "resvg"]
 geometry = ["iced_graphics/geometry"]
+x11 = ["softbuffer/x11"]
+wayland = ["softbuffer/wayland"]
 
 [dependencies]
 iced_debug.workspace = true

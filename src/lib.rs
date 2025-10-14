@@ -496,6 +496,17 @@ compile_error!(
     Available options: thread-pool, tokio, or smol."
 );
 
+#[cfg(all(
+    target_family = "unix",
+    not(feature = "wayland"),
+    not(feature = "x11"),
+))]
+compile_error!(
+    "No Unix display server backend has been enabled. You must enable a \
+    display server feature.\n\
+    Available options: x11, wayland."
+);
+
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
