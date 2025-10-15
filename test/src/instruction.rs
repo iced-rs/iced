@@ -555,7 +555,6 @@ mod parser {
 
     fn mouse_click(input: &str) -> IResult<&str, Mouse> {
         let (input, _) = tag("click ")(input)?;
-
         let (input, (button, target)) = mouse_button_at(input)?;
 
         Ok((input, Mouse::Click { button, target }))
@@ -563,7 +562,6 @@ mod parser {
 
     fn mouse_press(input: &str) -> IResult<&str, Mouse> {
         let (input, _) = tag("press ")(input)?;
-
         let (input, (button, target)) = mouse_button_at(input)?;
 
         Ok((input, Mouse::Press { button, target }))
@@ -571,7 +569,6 @@ mod parser {
 
     fn mouse_release(input: &str) -> IResult<&str, Mouse> {
         let (input, _) = tag("release ")(input)?;
-
         let (input, (button, target)) = mouse_button_at(input)?;
 
         Ok((input, Mouse::Release { button, target }))

@@ -192,6 +192,7 @@ where
         let mut outdated = false;
         let mut redraw_request = window::RedrawRequest::Wait;
         let mut input_method = InputMethod::Disabled;
+        let mut has_layout_changed = false;
         let viewport = Rectangle::with_size(self.bounds);
 
         let mut maybe_overlay = self
@@ -259,6 +260,7 @@ where
 
                         shell.revalidate_layout(|| {
                             layout = overlay.layout(renderer, bounds);
+                            has_layout_changed = true;
                         });
                     }
 
@@ -334,6 +336,8 @@ where
                 input_method.merge(shell.input_method());
 
                 shell.revalidate_layout(|| {
+                    has_layout_changed = true;
+
                     self.base = self.root.as_widget_mut().layout(
                         &mut self.state,
                         renderer,
@@ -395,6 +399,7 @@ where
                     mouse_interaction,
                     redraw_request,
                     input_method,
+                    has_layout_changed,
                 }
             },
             event_statuses,
@@ -624,5 +629,19 @@ pub enum State {
         redraw_request: window::RedrawRequest,
         /// The current [`InputMethod`] strategy of the user interface.
         input_method: InputMethod,
+        /// Whether the layout of the [`UserInterface`] has changed.
+        has_layout_changed: bool,
     },
+}
+
+impl State {
+    /// Returns whether the layout of the [`UserInterface`] has changed.
+    pub fn has_layout_changed(&self) -> bool {
+        match self {
+            State::Outdated => true,
+            State::Updated {
+                has_layout_changed, ..
+            } => *has_layout_changed,
+        }
+    }
 }

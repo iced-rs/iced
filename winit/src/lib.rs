@@ -774,7 +774,7 @@ async fn run_instance<P>(
                             continue;
                         };
 
-                        let Some((id, window)) =
+                        let Some((id, mut window)) =
                             window_manager.get_mut_alias(id)
                         else {
                             continue;
@@ -819,20 +819,61 @@ async fn run_instance<P>(
 
                         let cursor = window.state.cursor();
 
-                        let ui = user_interfaces
+                        let mut interface = user_interfaces
                             .get_mut(&id)
                             .expect("Get user interface");
 
                         let draw_span = debug::draw(id);
-                        let (ui_state, _) = ui.update(
-                            slice::from_ref(&redraw_event),
-                            cursor,
-                            &mut window.renderer,
-                            &mut clipboard,
-                            &mut messages,
-                        );
+                        let mut change_count = 0;
 
-                        ui.draw(
+                        let state = loop {
+                            let (state, _) = interface.update(
+                                slice::from_ref(&redraw_event),
+                                cursor,
+                                &mut window.renderer,
+                                &mut clipboard,
+                                &mut messages,
+                            );
+
+                            change_count += 1;
+
+                            if messages.is_empty()
+                                && !state.has_layout_changed()
+                            {
+                                break state;
+                            }
+
+                            if change_count >= 10 {
+                                log::warn!(
+                                    "More than 10 consecutive RedrawRequested events \
+                                    produced layout invalidation"
+                                );
+
+                                break state;
+                            }
+
+                            let caches: FxHashMap<_, _> =
+                                ManuallyDrop::into_inner(user_interfaces)
+                                    .into_iter()
+                                    .map(|(id, interface)| {
+                                        (id, interface.into_cache())
+                                    })
+                                    .collect();
+
+                            update(&mut program, &mut runtime, &mut messages);
+
+                            user_interfaces =
+                                ManuallyDrop::new(build_user_interfaces(
+                                    &program,
+                                    &mut window_manager,
+                                    caches,
+                                ));
+
+                            window = window_manager.get_mut(id).unwrap();
+                            interface = user_interfaces.get_mut(&id).unwrap();
+                        };
+
+                        interface.draw(
                             &mut window.renderer,
                             window.state.theme(),
                             &renderer::Style {
@@ -842,22 +883,23 @@ async fn run_instance<P>(
                         );
                         draw_span.finish();
 
-                        runtime.broadcast(subscription::Event::Interaction {
-                            window: id,
-                            event: redraw_event,
-                            status: core::event::Status::Ignored,
-                        });
-
                         if let user_interface::State::Updated {
                             redraw_request,
                             input_method,
                             mouse_interaction,
-                        } = ui_state
+                            ..
+                        } = state
                         {
                             window.request_redraw(redraw_request);
                             window.request_input_method(input_method);
                             window.update_mouse(mouse_interaction);
                         }
+
+                        runtime.broadcast(subscription::Event::Interaction {
+                            window: id,
+                            event: redraw_event,
+                            status: core::event::Status::Ignored,
+                        });
 
                         window.draw_preedit();
 
@@ -1071,31 +1113,13 @@ async fn run_instance<P>(
                         }
 
                         if !messages.is_empty() || uis_stale {
-                            let cached_interfaces: FxHashMap<
-                                window::Id,
-                                user_interface::Cache,
-                            > = ManuallyDrop::into_inner(user_interfaces)
-                                .drain()
-                                .map(|(id, ui)| (id, ui.into_cache()))
-                                .collect();
+                            let cached_interfaces: FxHashMap<_, _> =
+                                ManuallyDrop::into_inner(user_interfaces)
+                                    .into_iter()
+                                    .map(|(id, ui)| (id, ui.into_cache()))
+                                    .collect();
 
                             update(&mut program, &mut runtime, &mut messages);
-
-                            for (id, window) in window_manager.iter_mut() {
-                                window.state.synchronize(
-                                    &program,
-                                    id,
-                                    &window.raw,
-                                );
-
-                                window.raw.request_redraw();
-                            }
-
-                            debug::theme_changed(|| {
-                                window_manager.first().and_then(|window| {
-                                    theme::Base::palette(window.state.theme())
-                                })
-                            });
 
                             user_interfaces =
                                 ManuallyDrop::new(build_user_interfaces(
@@ -1606,6 +1630,17 @@ where
     C: Compositor<Renderer = P::Renderer>,
     P::Theme: theme::Base,
 {
+    for (id, window) in window_manager.iter_mut() {
+        window.state.synchronize(program, id, &window.raw);
+        window.raw.request_redraw();
+    }
+
+    debug::theme_changed(|| {
+        window_manager
+            .first()
+            .and_then(|window| theme::Base::palette(window.state.theme()))
+    });
+
     cached_user_interfaces
         .drain()
         .filter_map(|(id, cache)| {
