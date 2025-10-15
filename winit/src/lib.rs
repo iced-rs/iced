@@ -554,7 +554,7 @@ async fn run_instance<P>(
 
     log::info!("System theme: {system_theme:?}");
 
-    loop {
+    'next_event: loop {
         // Empty the queue if possible
         let event = if let Ok(event) = event_receiver.try_next() {
             event
@@ -770,7 +770,8 @@ async fn run_instance<P>(
                         event: event::WindowEvent::RedrawRequested,
                         ..
                     } => {
-                        let Some(compositor) = &mut compositor else {
+                        let Some(mut current_compositor) = compositor.as_mut()
+                        else {
                             continue;
                         };
 
@@ -803,7 +804,7 @@ async fn run_instance<P>(
                             );
                             layout_span.finish();
 
-                            compositor.configure_surface(
+                            current_compositor.configure_surface(
                                 &mut window.surface,
                                 physical_size.width,
                                 physical_size.height,
@@ -860,7 +861,11 @@ async fn run_instance<P>(
                                     })
                                     .collect();
 
-                            update(&mut program, &mut runtime, &mut messages);
+                            let actions = update(
+                                &mut program,
+                                &mut runtime,
+                                &mut messages,
+                            );
 
                             user_interfaces =
                                 ManuallyDrop::new(build_user_interfaces(
@@ -869,6 +874,30 @@ async fn run_instance<P>(
                                     caches,
                                 ));
 
+                            for action in actions {
+                                run_action(
+                                    action,
+                                    &program,
+                                    &mut runtime,
+                                    &mut compositor,
+                                    &mut events,
+                                    &mut messages,
+                                    &mut clipboard,
+                                    &mut control_sender,
+                                    &mut user_interfaces,
+                                    &mut window_manager,
+                                    &mut ui_caches,
+                                    &mut is_window_opening,
+                                    &mut system_theme,
+                                );
+                            }
+
+                            let Some(next_compositor) = compositor.as_mut()
+                            else {
+                                continue 'next_event;
+                            };
+
+                            current_compositor = next_compositor;
                             window = window_manager.get_mut(id).unwrap();
                             interface = user_interfaces.get_mut(&id).unwrap();
                         };
@@ -904,7 +933,7 @@ async fn run_instance<P>(
                         window.draw_preedit();
 
                         let present_span = debug::present(id);
-                        match compositor.present(
+                        match current_compositor.present(
                             &mut window.renderer,
                             &mut window.surface,
                             window.state.viewport(),
@@ -1119,7 +1148,11 @@ async fn run_instance<P>(
                                     .map(|(id, ui)| (id, ui.into_cache()))
                                     .collect();
 
-                            update(&mut program, &mut runtime, &mut messages);
+                            let actions = update(
+                                &mut program,
+                                &mut runtime,
+                                &mut messages,
+                            );
 
                             user_interfaces =
                                 ManuallyDrop::new(build_user_interfaces(
@@ -1127,6 +1160,24 @@ async fn run_instance<P>(
                                     &mut window_manager,
                                     cached_interfaces,
                                 ));
+
+                            for action in actions {
+                                run_action(
+                                    action,
+                                    &program,
+                                    &mut runtime,
+                                    &mut compositor,
+                                    &mut events,
+                                    &mut messages,
+                                    &mut clipboard,
+                                    &mut control_sender,
+                                    &mut user_interfaces,
+                                    &mut window_manager,
+                                    &mut ui_caches,
+                                    &mut is_window_opening,
+                                    &mut system_theme,
+                                );
+                            }
                         }
 
                         if let Some(redraw_at) = window_manager.redraw_at() {
@@ -1176,14 +1227,36 @@ fn update<P: Program, E: Executor>(
     program: &mut program::Instance<P>,
     runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>>,
     messages: &mut Vec<P::Message>,
-) where
+) -> Vec<Action<P::Message>>
+where
     P::Theme: theme::Base,
 {
+    use futures::futures;
+
+    let mut actions = Vec::new();
+
     for message in messages.drain(..) {
         let task = runtime.enter(|| program.update(message));
 
-        if let Some(stream) = runtime::task::into_stream(task) {
-            runtime.run(stream);
+        if let Some(mut stream) = runtime::task::into_stream(task) {
+            let waker = futures::task::noop_waker_ref();
+            let mut context = futures::task::Context::from_waker(waker);
+
+            // Run immediately available actions synchronously (e.g. widget operations)
+            loop {
+                match runtime.enter(|| stream.poll_next_unpin(&mut context)) {
+                    futures::task::Poll::Ready(Some(action)) => {
+                        actions.push(action);
+                    }
+                    futures::task::Poll::Ready(None) => {
+                        break;
+                    }
+                    futures::task::Poll::Pending => {
+                        runtime.run(stream);
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -1191,6 +1264,8 @@ fn update<P: Program, E: Executor>(
     let recipes = subscription::into_recipes(subscription.map(Action::Output));
 
     runtime.track(recipes);
+
+    actions
 }
 
 fn run_action<'a, P, C>(
