@@ -853,53 +853,56 @@ async fn run_instance<P>(
                                 break state;
                             }
 
-                            let caches: FxHashMap<_, _> =
-                                ManuallyDrop::into_inner(user_interfaces)
-                                    .into_iter()
-                                    .map(|(id, interface)| {
-                                        (id, interface.into_cache())
-                                    })
-                                    .collect();
+                            if !messages.is_empty() {
+                                let caches: FxHashMap<_, _> =
+                                    ManuallyDrop::into_inner(user_interfaces)
+                                        .into_iter()
+                                        .map(|(id, interface)| {
+                                            (id, interface.into_cache())
+                                        })
+                                        .collect();
 
-                            let actions = update(
-                                &mut program,
-                                &mut runtime,
-                                &mut messages,
-                            );
-
-                            user_interfaces =
-                                ManuallyDrop::new(build_user_interfaces(
-                                    &program,
-                                    &mut window_manager,
-                                    caches,
-                                ));
-
-                            for action in actions {
-                                run_action(
-                                    action,
-                                    &program,
+                                let actions = update(
+                                    &mut program,
                                     &mut runtime,
-                                    &mut compositor,
-                                    &mut events,
                                     &mut messages,
-                                    &mut clipboard,
-                                    &mut control_sender,
-                                    &mut user_interfaces,
-                                    &mut window_manager,
-                                    &mut ui_caches,
-                                    &mut is_window_opening,
-                                    &mut system_theme,
                                 );
+
+                                user_interfaces =
+                                    ManuallyDrop::new(build_user_interfaces(
+                                        &program,
+                                        &mut window_manager,
+                                        caches,
+                                    ));
+
+                                for action in actions {
+                                    run_action(
+                                        action,
+                                        &program,
+                                        &mut runtime,
+                                        &mut compositor,
+                                        &mut events,
+                                        &mut messages,
+                                        &mut clipboard,
+                                        &mut control_sender,
+                                        &mut user_interfaces,
+                                        &mut window_manager,
+                                        &mut ui_caches,
+                                        &mut is_window_opening,
+                                        &mut system_theme,
+                                    );
+                                }
+
+                                let Some(next_compositor) = compositor.as_mut()
+                                else {
+                                    continue 'next_event;
+                                };
+
+                                current_compositor = next_compositor;
+                                window = window_manager.get_mut(id).unwrap();
+                                interface =
+                                    user_interfaces.get_mut(&id).unwrap();
                             }
-
-                            let Some(next_compositor) = compositor.as_mut()
-                            else {
-                                continue 'next_event;
-                            };
-
-                            current_compositor = next_compositor;
-                            window = window_manager.get_mut(id).unwrap();
-                            interface = user_interfaces.get_mut(&id).unwrap();
                         };
 
                         interface.draw(
