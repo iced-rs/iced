@@ -158,6 +158,7 @@ enum Event {
     Play,
     Import,
     Export,
+    Reset,
     Imported(Result<Ice, ice::ParseError>),
     Edit,
     Edited(text_editor::Action),
@@ -232,17 +233,29 @@ impl<P: Program + 'static> Tester<P> {
             }
             Event::Record => {
                 self.edit = None;
-                self.instructions.clear();
 
                 let (sender, receiver) = mpsc::channel(1);
 
-                let emulator = Emulator::with_preset(
-                    sender,
-                    program,
-                    self.mode,
-                    self.viewport,
-                    self.preset(program),
-                );
+                let emulator = if let State::Asserting { state, .. } =
+                    std::mem::replace(&mut self.state, State::Empty)
+                {
+                    Emulator::with_state(
+                        sender,
+                        program,
+                        self.mode,
+                        self.viewport,
+                        state,
+                    )
+                } else {
+                    self.instructions.clear();
+                    Emulator::with_preset(
+                        sender,
+                        program,
+                        self.mode,
+                        self.viewport,
+                        self.preset(program),
+                    )
+                };
 
                 self.state = State::Recording { emulator };
 
@@ -341,6 +354,19 @@ impl<P: Program + 'static> Tester<P> {
                     });
                 })
                 .discard()
+            }
+            Event::Reset => {
+                self.edit = None;
+                self.instructions.clear();
+
+                let (state, _) = self
+                    .preset(program)
+                    .map(program::Preset::boot)
+                    .unwrap_or_else(|| program.boot());
+
+                self.state = State::Idle { state };
+
+                Task::none()
             }
             Event::Imported(Ok(ice)) => {
                 self.viewport = ice.viewport;
@@ -488,25 +514,33 @@ impl<P: Program + 'static> Tester<P> {
                 let mut interaction = Some(interaction);
 
                 while let Some(new_interaction) = interaction.take() {
-                    if let Some(Instruction::Interact(last_interaction)) =
-                        self.instructions.pop()
-                    {
-                        let (merged_interaction, new_interaction) =
-                            last_interaction.merge(new_interaction);
+                    if let Some(last_instruction) = self.instructions.pop() {
+                        if let Instruction::Interact(last_interaction) =
+                            last_instruction
+                        {
+                            let (merged_interaction, new_interaction) =
+                                last_interaction.merge(new_interaction);
 
-                        if let Some(new_interaction) = new_interaction {
-                            self.instructions.push(Instruction::Interact(
-                                merged_interaction,
-                            ));
+                            if let Some(new_interaction) = new_interaction {
+                                self.instructions.push(Instruction::Interact(
+                                    merged_interaction,
+                                ));
 
-                            self.instructions
-                                .push(Instruction::Interact(new_interaction));
+                                self.instructions.push(Instruction::Interact(
+                                    new_interaction,
+                                ));
+                            } else {
+                                interaction = Some(merged_interaction);
+                            }
                         } else {
-                            interaction = Some(merged_interaction);
+                            self.instructions.extend([
+                                last_instruction,
+                                Instruction::Interact(new_interaction),
+                            ]);
                         }
                     } else {
                         self.instructions
-                            .push(Instruction::Interact(new_interaction));
+                            .push(Instruction::Interact(new_interaction))
                     }
                 }
 
@@ -807,6 +841,10 @@ impl<P: Program + 'static> Tester<P> {
                     .style(button::danger)
             };
 
+            let reset = control(icon::cancel())
+                .on_press(Event::Reset)
+                .style(button::danger);
+
             let import = control(icon::folder())
                 .on_press_maybe((!self.is_busy()).then_some(Event::Import))
                 .style(button::secondary);
@@ -819,8 +857,9 @@ impl<P: Program + 'static> Tester<P> {
                 )
                 .style(button::success);
 
-            let controls =
-                row![import, export, play, record].height(30).spacing(10);
+            let controls = row![import, export, play, record, reset]
+                .height(30)
+                .spacing(10);
 
             column![instructions, controls].spacing(10).align_x(Center)
         };
