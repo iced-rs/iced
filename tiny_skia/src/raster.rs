@@ -87,8 +87,12 @@ impl Cache {
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(id) {
             let image = graphics::image::load(handle).ok()?;
 
-            let mut buffer =
-                vec![0u32; image.width() as usize * image.height() as usize];
+            let mut buffer = vec![
+                0u32;
+                (image.width().max(1) as usize
+                    * image.height().max(1) as usize)
+                    * tiny_skia::BYTES_PER_PIXEL
+            ];
 
             for (i, pixel) in image.pixels().enumerate() {
                 let [r, g, b, a] = pixel.0;
@@ -109,8 +113,8 @@ impl Cache {
         self.entries.get(&id).unwrap().as_ref().map(|entry| {
             tiny_skia::PixmapRef::from_bytes(
                 bytemuck::cast_slice(&entry.pixels),
-                entry.width,
-                entry.height,
+                entry.width.max(1),
+                entry.height.max(1),
             )
             .expect("Build pixmap from image bytes")
         })
