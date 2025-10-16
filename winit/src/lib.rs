@@ -881,16 +881,16 @@ async fn run_instance<P>(
                                 let mut has_window_resized = false;
 
                                 for action in actions {
-                                    has_window_resized = has_window_resized
-                                        || matches!(
-                                            action,
-                                            Action::Window(
-                                                runtime::window::Action::Resize(
-                                                    _,
-                                                    _
-                                                )
-                                            )
-                                        );
+                                    if let Action::Window(
+                                        runtime::window::Action::Resize(
+                                            window_id,
+                                            _,
+                                        ),
+                                    ) = action
+                                        && window_id == id
+                                    {
+                                        has_window_resized = true;
+                                    }
 
                                     run_action(
                                         action,
@@ -907,6 +907,17 @@ async fn run_instance<P>(
                                         &mut is_window_opening,
                                         &mut system_theme,
                                     );
+                                }
+
+                                for (window_id, window) in
+                                    window_manager.iter_mut()
+                                {
+                                    // We are already redrawing this window
+                                    if window_id == id {
+                                        continue;
+                                    }
+
+                                    window.raw.request_redraw();
                                 }
 
                                 let Some(next_compositor) = compositor.as_mut()
@@ -1201,6 +1212,10 @@ async fn run_instance<P>(
                                     &mut is_window_opening,
                                     &mut system_theme,
                                 );
+                            }
+
+                            for (_id, window) in window_manager.iter_mut() {
+                                window.raw.request_redraw();
                             }
                         }
 
@@ -1731,7 +1746,6 @@ where
 {
     for (id, window) in window_manager.iter_mut() {
         window.state.synchronize(program, id, &window.raw);
-        window.raw.request_redraw();
     }
 
     debug::theme_changed(|| {
