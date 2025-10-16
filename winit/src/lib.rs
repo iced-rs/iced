@@ -878,18 +878,17 @@ async fn run_instance<P>(
                                         caches,
                                     ));
 
-                                let mut has_window_resized = false;
-
                                 for action in actions {
-                                    if let Action::Window(
-                                        runtime::window::Action::Resize(
-                                            window_id,
-                                            _,
-                                        ),
-                                    ) = action
-                                        && window_id == id
-                                    {
-                                        has_window_resized = true;
+                                    // Defer all window actions to avoid compositor
+                                    // race conditions while redrawing
+                                    if let Action::Window(_) = action {
+                                        runtime.run(
+                                            futures::futures::stream::once(
+                                                async move { action },
+                                            )
+                                            .boxed(),
+                                        );
+                                        continue;
                                     }
 
                                     run_action(
@@ -929,11 +928,6 @@ async fn run_instance<P>(
                                 window = window_manager.get_mut(id).unwrap();
                                 interface =
                                     user_interfaces.get_mut(&id).unwrap();
-
-                                if has_window_resized {
-                                    window.raw.request_redraw();
-                                    continue 'next_event;
-                                }
                             }
                         };
 
