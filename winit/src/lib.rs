@@ -882,12 +882,7 @@ async fn run_instance<P>(
                                     // Defer all window actions to avoid compositor
                                     // race conditions while redrawing
                                     if let Action::Window(_) = action {
-                                        runtime.run(
-                                            futures::futures::stream::once(
-                                                async move { action },
-                                            )
-                                            .boxed(),
-                                        );
+                                        proxy.send_action(action);
                                         continue;
                                     }
 
