@@ -878,7 +878,20 @@ async fn run_instance<P>(
                                         caches,
                                     ));
 
+                                let mut has_window_resized = false;
+
                                 for action in actions {
+                                    has_window_resized = has_window_resized
+                                        || matches!(
+                                            action,
+                                            Action::Window(
+                                                runtime::window::Action::Resize(
+                                                    _,
+                                                    _
+                                                )
+                                            )
+                                        );
+
                                     run_action(
                                         action,
                                         &program,
@@ -905,6 +918,11 @@ async fn run_instance<P>(
                                 window = window_manager.get_mut(id).unwrap();
                                 interface =
                                     user_interfaces.get_mut(&id).unwrap();
+
+                                if has_window_resized {
+                                    window.raw.request_redraw();
+                                    continue 'next_event;
+                                }
                             }
                         };
 
