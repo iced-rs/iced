@@ -2,7 +2,7 @@ use iced::Center;
 use iced::widget::{Column, button, column, text};
 
 pub fn main() -> iced::Result {
-    iced::run(Counter::update, Counter::view)
+    iced::run("Counter App", Counter::update, Counter::view)
 }
 
 #[derive(Default)]
