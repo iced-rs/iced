@@ -1,5 +1,6 @@
 use iced::highlighter;
-use iced::keyboard;
+use iced::keyboard::key::Code;
+use iced::keyboard::key::Physical;
 use iced::widget::{
     button, center_x, column, container, operation, pick_list, row, space,
     text, text_editor, toggler, tooltip,
@@ -212,8 +213,8 @@ impl Editor {
                     self.theme,
                 )
                 .key_binding(|key_press| {
-                    match key_press.key.as_ref() {
-                        keyboard::Key::Character("s")
+                    match key_press.physical_key {
+                        Physical::Code(Code::KeyS)
                             if key_press.modifiers.command() =>
                         {
                             Some(text_editor::Binding::Custom(
