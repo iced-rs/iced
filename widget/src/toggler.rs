@@ -343,7 +343,9 @@ where
         }
 
         let current_status = if self.on_toggle.is_none() {
-            Status::Disabled
+            Status::Disabled {
+                is_toggled: self.is_toggled,
+            }
         } else if cursor.is_over(layout.bounds()) {
             Status::Hovered {
                 is_toggled: self.is_toggled,
@@ -416,8 +418,12 @@ where
         }
 
         let bounds = toggler_layout.bounds();
-        let style = theme
-            .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
+        let style = theme.style(
+            &self.class,
+            self.last_status.unwrap_or(Status::Disabled {
+                is_toggled: self.is_toggled,
+            }),
+        );
 
         let border_radius = bounds.height / 2.0;
         let space = (SPACE_RATIO * bounds.height).round();
@@ -497,7 +503,10 @@ pub enum Status {
         is_toggled: bool,
     },
     /// The [`Toggler`] is disabled.
-    Disabled,
+    Disabled {
+        /// Indicates whether the [`Toggler`] is toggled.
+        is_toggled: bool,
+    },
 }
 
 /// The appearance of a toggler.
@@ -558,7 +567,13 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 palette.background.strong.color
             }
         }
-        Status::Disabled => palette.background.weak.color,
+        Status::Disabled { is_toggled } => {
+            if is_toggled {
+                palette.background.strong.color
+            } else {
+                palette.background.weak.color
+            }
+        }
     };
 
     let foreground = match status {
@@ -579,7 +594,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 palette.background.weak.color
             }
         }
-        Status::Disabled => palette.background.weakest.color,
+        Status::Disabled { .. } => palette.background.weakest.color,
     };
 
     Style {
