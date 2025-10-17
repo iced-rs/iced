@@ -13,6 +13,8 @@ use std::fmt;
 pub enum Instruction {
     /// A user [`Interaction`].
     Interact(Interaction),
+    /// A testing command
+    Command(String),
     /// A testing [`Expectation`].
     Expect(Expectation),
 }
@@ -28,6 +30,7 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Instruction::Interact(interaction) => interaction.fmt(f),
+            Instruction::Command(command) => write!(f, "command {command}"),
             Instruction::Expect(expectation) => expectation.fmt(f),
         }
     }
@@ -534,6 +537,7 @@ mod parser {
     fn instruction(input: &str) -> IResult<&str, Instruction> {
         alt((
             map(interaction, Instruction::Interact),
+            map(command, Instruction::Command),
             map(expectation, Instruction::Expect),
         ))
         .parse(input)
@@ -545,6 +549,11 @@ mod parser {
             map(keyboard, Interaction::Keyboard),
         ))
         .parse(input)
+    }
+
+    fn command(input: &str) -> IResult<&str, String> {
+        let (rest, _) = tag("command ").parse_complete(input)?;
+        Ok(("", rest.to_string()))
     }
 
     fn mouse(input: &str) -> IResult<&str, Mouse> {

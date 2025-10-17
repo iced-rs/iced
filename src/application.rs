@@ -367,6 +367,24 @@ impl<P: Program> Application<P> {
         }
     }
 
+    /// Sets the command logic of the [`Application`].
+    pub fn command(
+        self,
+        _f: impl Fn(&P::State, &str) -> Option<P::Message>,
+    ) -> Application<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
+    > {
+        Application {
+            #[cfg(feature = "tester")]
+            raw: program::with_command(self.raw, _f),
+            #[cfg(not(feature = "tester"))]
+            raw: self.raw,
+            settings: self.settings,
+            window: self.window,
+            presets: self.presets,
+        }
+    }
+
     /// Sets the theme logic of the [`Application`].
     pub fn theme(
         self,
@@ -494,6 +512,14 @@ impl<P: Program> Program for Application<P> {
 
     fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
         debug::hot(|| self.raw.subscription(state))
+    }
+
+    fn command(
+        &self,
+        state: &Self::State,
+        command: &str,
+    ) -> Option<Self::Message> {
+        debug::hot(|| self.raw.command(state, command))
     }
 
     fn theme(

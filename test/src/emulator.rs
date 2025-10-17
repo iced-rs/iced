@@ -338,6 +338,17 @@ impl<P: Program + 'static> Emulator<P> {
                 self.resubscribe(program);
                 self.wait_for(task);
             }
+            Instruction::Command(command) => {
+                self.cache = Some(user_interface.into_cache());
+
+                if let Some(message) = program.command(&self.state, command) {
+                    let task = program.update(&mut self.state, message);
+                    self.resubscribe(program);
+                    self.wait_for(task);
+                } else {
+                    self.runtime.send(Event::Ready);
+                }
+            }
             Instruction::Expect(expectation) => match expectation {
                 instruction::Expectation::Text(text) => {
                     use widget::Operation;

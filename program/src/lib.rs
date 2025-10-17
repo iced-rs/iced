@@ -97,6 +97,14 @@ pub trait Program: Sized {
         Subscription::none()
     }
 
+    fn command(
+        &self,
+        _state: &Self::State,
+        _command: &str,
+    ) -> Option<Self::Message> {
+        None
+    }
+
     fn theme(
         &self,
         _state: &Self::State,
@@ -293,6 +301,104 @@ pub fn with_subscription<P: Program>(
     WithSubscription {
         program,
         subscription: f,
+    }
+}
+
+/// Decorates a [`Program`] with the given command function.
+pub fn with_command<P: Program>(
+    program: P,
+    f: impl Fn(&P::State, &str) -> Option<P::Message>,
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+    struct WithCommand<P, F> {
+        program: P,
+        command: F,
+    }
+
+    impl<P: Program, F> Program for WithCommand<P, F>
+    where
+        F: Fn(&P::State, &str) -> Option<P::Message>,
+    {
+        type State = P::State;
+        type Message = P::Message;
+        type Theme = P::Theme;
+        type Renderer = P::Renderer;
+        type Executor = P::Executor;
+
+        fn subscription(
+            &self,
+            state: &Self::State,
+        ) -> Subscription<Self::Message> {
+            self.program.subscription(state)
+        }
+
+        fn name() -> &'static str {
+            P::name()
+        }
+
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.program.boot()
+        }
+
+        fn update(
+            &self,
+            state: &mut Self::State,
+            message: Self::Message,
+        ) -> Task<Self::Message> {
+            self.program.update(state, message)
+        }
+
+        fn view<'a>(
+            &self,
+            state: &'a Self::State,
+            window: window::Id,
+        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+            self.program.view(state, window)
+        }
+
+        fn title(&self, state: &Self::State, window: window::Id) -> String {
+            self.program.title(state, window)
+        }
+
+        fn theme(
+            &self,
+            state: &Self::State,
+            window: window::Id,
+        ) -> Option<Self::Theme> {
+            self.program.theme(state, window)
+        }
+
+        fn style(
+            &self,
+            state: &Self::State,
+            theme: &Self::Theme,
+        ) -> theme::Style {
+            self.program.style(state, theme)
+        }
+
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
+            self.program.scale_factor(state, window)
+        }
+
+        fn command(
+            &self,
+            state: &Self::State,
+            command: &str,
+        ) -> Option<Self::Message> {
+            (self.command)(state, command)
+        }
+    }
+
+    WithCommand {
+        program,
+        command: f,
     }
 }
 
