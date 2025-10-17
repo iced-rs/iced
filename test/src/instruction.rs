@@ -60,6 +60,9 @@ impl Interaction {
                     button: *button,
                     target: None,
                 },
+                mouse::Event::WheelScrolled { delta } => {
+                    Mouse::Scroll { delta: *delta }
+                }
                 _ => None?,
             }),
             Event::Keyboard(keyboard) => Self::Keyboard(match keyboard {
@@ -191,6 +194,38 @@ impl Interaction {
                         }),
                         None,
                     ),
+                    (
+                        Mouse::Scroll {
+                            delta: ScrollDelta::Lines { x, y },
+                        },
+                        Mouse::Scroll {
+                            delta: ScrollDelta::Lines { x: xx, y: yy },
+                        },
+                    ) => (
+                        Self::Mouse(Mouse::Scroll {
+                            delta: ScrollDelta::Lines {
+                                x: x + xx,
+                                y: y + yy,
+                            },
+                        }),
+                        None,
+                    ),
+                    (
+                        Mouse::Scroll {
+                            delta: ScrollDelta::Pixels { x, y },
+                        },
+                        Mouse::Scroll {
+                            delta: ScrollDelta::Pixels { x: xx, y: yy },
+                        },
+                    ) => (
+                        Self::Mouse(Mouse::Scroll {
+                            delta: ScrollDelta::Pixels {
+                                x: x + xx,
+                                y: y + yy,
+                            },
+                        }),
+                        None,
+                    ),
                     (current, next) => {
                         (Self::Mouse(current), Some(Self::Mouse(next)))
                     }
@@ -238,6 +273,9 @@ impl Interaction {
         let mouse_release =
             |button| Event::Mouse(mouse::Event::ButtonReleased(button));
 
+        let mouse_scroll =
+            |delta| Event::Mouse(mouse::Event::WheelScrolled { delta });
+
         let key_press = |key| simulator::press_key(key, None);
 
         let key_release = |key| simulator::release_key(key);
@@ -282,6 +320,9 @@ impl Interaction {
                     target: None,
                 } => {
                     vec![mouse_press(*button), mouse_release(*button)]
+                }
+                Mouse::Scroll { delta } => {
+                    vec![mouse_scroll(*delta)]
                 }
             },
             Interaction::Keyboard(keyboard) => match keyboard {
@@ -331,6 +372,11 @@ pub enum Mouse {
         /// The location of the click.
         target: Option<Target>,
     },
+    /// The wheel was scrolled
+    Scroll {
+        /// The amount of scrolling
+        delta: ScrollDelta,
+    },
 }
 
 impl fmt::Display for Mouse {
@@ -360,6 +406,14 @@ impl fmt::Display for Mouse {
                     format::button_at(*button, target.as_ref())
                 )
             }
+            Mouse::Scroll { delta } => match delta {
+                ScrollDelta::Lines { x, y } => {
+                    write!(f, "scroll ({x}, {y}) lines")
+                }
+                ScrollDelta::Pixels { x, y } => {
+                    write!(f, "scroll ({x}, {y}) pixels")
+                }
+            },
         }
     }
 }
@@ -503,6 +557,7 @@ impl fmt::Display for Expectation {
     }
 }
 
+use iced_runtime::core::mouse::ScrollDelta;
 pub use parser::Error as ParseError;
 
 mod parser {
@@ -550,7 +605,14 @@ mod parser {
     fn mouse(input: &str) -> IResult<&str, Mouse> {
         let mouse_move = preceded(tag("move "), target).map(Mouse::Move);
 
-        alt((mouse_move, mouse_click, mouse_press, mouse_release)).parse(input)
+        alt((
+            mouse_move,
+            mouse_click,
+            mouse_press,
+            mouse_release,
+            mouse_scroll,
+        ))
+        .parse(input)
     }
 
     fn mouse_click(input: &str) -> IResult<&str, Mouse> {
@@ -572,6 +634,19 @@ mod parser {
         let (input, (button, target)) = mouse_button_at(input)?;
 
         Ok((input, Mouse::Release { button, target }))
+    }
+
+    fn mouse_scroll(input: &str) -> IResult<&str, Mouse> {
+        let (input, _) = tag("scroll ")(input)?;
+
+        let (input, Point { x, y }) = point(input)?;
+
+        alt((
+            tag(" lines").map(|_| ScrollDelta::Lines { x, y }),
+            tag(" pixels").map(|_| ScrollDelta::Pixels { x, y }),
+        ))
+        .map(|delta| Mouse::Scroll { delta })
+        .parse(input)
     }
 
     fn mouse_button_at(
