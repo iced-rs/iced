@@ -8,6 +8,7 @@ publish = false
 [dependencies]
 iced_winit.workspace = true
 iced_wgpu.workspace = true
+iced_wgpu.features = ["wgpu_default"]
 
 iced_widget.workspace = true
 iced_widget.features = ["wgpu"]
