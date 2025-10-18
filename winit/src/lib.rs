@@ -831,6 +831,7 @@ async fn run_instance<P>(
                         let mut change_count = 0;
 
                         let state = loop {
+                            let message_count = messages.len();
                             let (state, _) = interface.update(
                                 slice::from_ref(&redraw_event),
                                 cursor,
@@ -841,7 +842,7 @@ async fn run_instance<P>(
 
                             change_count += 1;
 
-                            if messages.is_empty()
+                            if message_count == messages.len()
                                 && !state.has_layout_changed()
                             {
                                 break state;
