@@ -22,9 +22,19 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool", "linux-theme-detection"]
+default = [
+    # "wgpu",
+    # "tiny-skia",
+    "vello-cpu",
+    "crisp",
+    "web-colors",
+    "thread-pool",
+    "linux-theme-detection",
+]
 # Enables the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
+# Enables the `vello-cpu` software renderer backend
+vello-cpu = ["iced_renderer/vello-cpu"]
 # Enables the `tiny-skia` software renderer backend
 tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `image` widget
@@ -144,8 +154,9 @@ members = [
     "tiny_skia",
     "wgpu",
     "widget",
+    "vello_cpu",
     "winit",
-    "examples/*",
+    "examples/counter",
 ]
 
 [workspace.package]
@@ -175,6 +186,7 @@ iced_selector = { version = "0.14.0-dev", path = "selector" }
 iced_test = { version = "0.14.0-dev", path = "test" }
 iced_tester = { version = "0.14.0-dev", path = "tester" }
 iced_tiny_skia = { version = "0.14.0-dev", path = "tiny_skia" }
+iced_vello_cpu = { version = "0.14.0-dev", path = "vello_cpu" }
 iced_wgpu = { version = "0.14.0-dev", path = "wgpu" }
 iced_widget = { version = "0.14.0-dev", path = "widget" }
 iced_winit = { version = "0.14.0-dev", path = "winit" }
@@ -223,6 +235,7 @@ tokio = "1.0"
 tracing = "0.1"
 unicode-segmentation = "1.0"
 url = "2.5"
+vello_cpu = { git = "https://github.com/linebender/vello", branch = "laurenz/draw_pixmap" }
 wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.1"
 web-sys = "0.3.69"

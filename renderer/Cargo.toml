@@ -15,6 +15,7 @@ workspace = true
 
 [features]
 wgpu = ["iced_wgpu"]
+vello-cpu = ["iced_vello_cpu"]
 tiny-skia = ["iced_tiny_skia"]
 image = ["iced_tiny_skia?/image", "iced_wgpu?/image"]
 svg = ["iced_tiny_skia?/svg", "iced_wgpu?/svg"]
@@ -26,6 +27,9 @@ strict-assertions = ["iced_wgpu?/strict-assertions"]
 
 [dependencies]
 iced_graphics.workspace = true
+
+iced_vello_cpu.workspace = true
+iced_vello_cpu.optional = true
 
 iced_tiny_skia.workspace = true
 iced_tiny_skia.optional = true
