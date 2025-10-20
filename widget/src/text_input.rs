@@ -1009,6 +1009,9 @@ where
                         }
                     }
 
+                    #[cfg(target_os = "macos")]
+                    let key = convert_macos_shortcut(key, modifiers);
+
                     match key.as_ref() {
                         keyboard::Key::Named(key::Named::Enter) => {
                             if let Some(on_submit) = self.on_submit.clone() {
@@ -1781,5 +1784,35 @@ fn alignment_offset(
             }
             alignment::Horizontal::Right => text_bounds_width - text_min_width,
         }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn convert_macos_shortcut(
+    key: &keyboard::Key,
+    modifiers: keyboard::Modifiers,
+) -> &keyboard::Key {
+    let control =
+        modifiers.control() && !modifiers.alt() && !modifiers.command();
+    match key.as_ref() {
+        keyboard::Key::Character("b") if control => {
+            &keyboard::Key::Named(key::Named::ArrowLeft)
+        }
+        keyboard::Key::Character("f") if control => {
+            &keyboard::Key::Named(key::Named::ArrowRight)
+        }
+        keyboard::Key::Character("a") if control => {
+            &keyboard::Key::Named(key::Named::Home)
+        }
+        keyboard::Key::Character("e") if control => {
+            &keyboard::Key::Named(key::Named::End)
+        }
+        keyboard::Key::Character("h") if control => {
+            &keyboard::Key::Named(key::Named::Backspace)
+        }
+        keyboard::Key::Character("d") if control => {
+            &keyboard::Key::Named(key::Named::Delete)
+        }
+        _ => key,
     }
 }
