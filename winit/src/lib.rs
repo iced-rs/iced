@@ -785,22 +785,20 @@ async fn run_instance<P>(
                         };
 
                         let physical_size = window.state.physical_size();
+                        let mut logical_size = window.state.logical_size();
 
                         if physical_size.width == 0 || physical_size.height == 0
                         {
                             continue;
                         }
 
-                        if window.viewport_version
-                            != window.state.viewport_version()
-                        {
-                            let logical_size = window.state.logical_size();
-
-                            let layout_span = debug::layout(id);
+                        // Window was resized between redraws
+                        if window.surface_size != physical_size {
                             let ui = user_interfaces
                                 .remove(&id)
                                 .expect("Remove user interface");
 
+                            let layout_span = debug::layout(id);
                             let _ = user_interfaces.insert(
                                 id,
                                 ui.relayout(logical_size, &mut window.renderer),
@@ -813,8 +811,7 @@ async fn run_instance<P>(
                                 physical_size.height,
                             );
 
-                            window.viewport_version =
-                                window.state.viewport_version();
+                            window.surface_size = physical_size;
                         }
 
                         let redraw_event = core::Event::Window(
@@ -922,6 +919,30 @@ async fn run_instance<P>(
 
                                 current_compositor = next_compositor;
                                 window = window_manager.get_mut(id).unwrap();
+
+                                // Window scale factor changed during a redraw request
+                                if logical_size != window.state.logical_size() {
+                                    logical_size = window.state.logical_size();
+
+                                    log::debug!(
+                                        "Window scale factor changed during a redraw request"
+                                    );
+
+                                    let ui = user_interfaces
+                                        .remove(&id)
+                                        .expect("Remove user interface");
+
+                                    let layout_span = debug::layout(id);
+                                    let _ = user_interfaces.insert(
+                                        id,
+                                        ui.relayout(
+                                            logical_size,
+                                            &mut window.renderer,
+                                        ),
+                                    );
+                                    layout_span.finish();
+                                }
+
                                 interface =
                                     user_interfaces.get_mut(&id).unwrap();
                             }

@@ -57,12 +57,11 @@ where
         system_theme: theme::Mode,
     ) -> &mut Window<P, C> {
         let state = State::new(program, id, &window, system_theme);
-        let viewport_version = state.viewport_version();
-        let physical_size = state.physical_size();
+        let surface_size = state.physical_size();
         let surface = compositor.create_surface(
             window.clone(),
-            physical_size.width,
-            physical_size.height,
+            surface_size.width,
+            surface_size.height,
         );
         let renderer = compositor.create_renderer();
 
@@ -73,9 +72,9 @@ where
             Window {
                 raw: window,
                 state,
-                viewport_version,
                 exit_on_close_request,
                 surface,
+                surface_size,
                 renderer,
                 mouse_interaction: mouse::Interaction::None,
                 redraw_at: None,
@@ -164,10 +163,10 @@ where
 {
     pub raw: Arc<winit::window::Window>,
     pub state: State<P>,
-    pub viewport_version: u64,
     pub exit_on_close_request: bool,
     pub mouse_interaction: mouse::Interaction,
     pub surface: C::Surface,
+    pub surface_size: Size<u32>,
     pub renderer: P::Renderer,
     pub redraw_at: Option<Instant>,
     preedit: Option<Preedit<P::Renderer>>,
