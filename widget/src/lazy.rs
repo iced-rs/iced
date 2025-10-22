@@ -1,10 +1,4 @@
 #![allow(clippy::await_holding_refcell_ref, clippy::type_complexity)]
-pub(crate) mod helpers;
-
-pub mod component;
-
-#[allow(deprecated)]
-pub use component::Component;
 
 mod cache;
 
@@ -24,6 +18,20 @@ use rustc_hash::FxHasher;
 use std::cell::RefCell;
 use std::hash::{Hash, Hasher as H};
 use std::rc::Rc;
+
+/// Creates a new [`Lazy`] widget with the given data `Dependency` and a
+/// closure that can turn this data into a widget tree.
+#[cfg(feature = "lazy")]
+pub fn lazy<'a, Message, Theme, Renderer, Dependency, View>(
+    dependency: Dependency,
+    view: impl Fn(&Dependency) -> View + 'a,
+) -> Lazy<'a, Message, Theme, Renderer, Dependency, View>
+where
+    Dependency: Hash + 'a,
+    View: Into<Element<'static, Message, Theme, Renderer>>,
+{
+    Lazy::new(dependency, view)
+}
 
 /// A widget that only rebuilds its contents when necessary.
 #[cfg(feature = "lazy")]

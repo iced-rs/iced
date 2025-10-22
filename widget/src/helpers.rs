@@ -30,6 +30,7 @@ use crate::{
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
 
+pub use crate::component::component;
 pub use crate::table::table;
 
 /// Creates a [`Column`] with the given children.
