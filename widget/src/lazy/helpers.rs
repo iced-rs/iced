@@ -23,17 +23,11 @@ where
 /// Turns an implementor of [`Component`] into an [`Element`] that can be
 /// embedded in any application.
 #[cfg(feature = "lazy")]
-#[deprecated(
-    since = "0.13.0",
-    note = "components introduce encapsulated state and hamper the use of a single source of truth. \
-    Instead, leverage the Elm Architecture directly, or implement a custom widget"
-)]
-#[allow(deprecated)]
 pub fn component<'a, C, Message, Theme, Renderer>(
     component: C,
 ) -> Element<'a, Message, Theme, Renderer>
 where
-    C: Component<Message, Theme, Renderer> + 'a,
+    C: Component<'a, Message, Theme, Renderer> + 'a,
     C::State: 'static,
     Message: 'a,
     Theme: 'a,
