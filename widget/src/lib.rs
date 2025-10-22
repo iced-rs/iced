@@ -11,6 +11,7 @@ pub use core::widget::Id;
 
 mod action;
 mod column;
+mod component;
 mod mouse_area;
 mod pin;
 mod responsive;
@@ -51,7 +52,7 @@ pub use helpers::*;
 mod lazy;
 
 #[cfg(feature = "lazy")]
-pub use crate::lazy::helpers::*;
+pub use crate::lazy::lazy;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -61,6 +62,8 @@ pub use checkbox::Checkbox;
 pub use column::Column;
 #[doc(no_inline)]
 pub use combo_box::ComboBox;
+#[doc(no_inline)]
+pub use component::Component;
 #[doc(no_inline)]
 pub use container::Container;
 #[doc(no_inline)]

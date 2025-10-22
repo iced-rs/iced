@@ -36,7 +36,6 @@ use crate::core::{
 ///
 /// On the other hand, if a piece of state is only needed by the component itself,
 /// you can store it as part of its internal [`State`][Component::State].
-#[cfg(feature = "lazy")]
 pub trait Component<
     'a,
     Message,
@@ -91,7 +90,7 @@ pub trait Component<
 
 /// Turns an implementor of [`Component`] into an [`Element`] that can be
 /// embedded in any application.
-pub fn view<'a, C, Message, Theme, Renderer>(
+pub fn component<'a, C, Message, Theme, Renderer>(
     component: C,
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -113,7 +112,7 @@ where
     })
 }
 
-pub struct Instance<'a, C, Message, Theme, Renderer>
+struct Instance<'a, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer> + 'a,
 {
@@ -370,10 +369,6 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
-        if *self.is_outdated {
-            return;
-        }
-
         let mut events = Vec::new();
         let mut local_shell = Shell::new(&mut events);
 
