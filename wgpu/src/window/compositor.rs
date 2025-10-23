@@ -349,13 +349,26 @@ impl graphics::Compositor for Compositor {
         background_color: Color,
         on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
-        present(
+        let result = present(
             renderer,
             surface,
             viewport,
             background_color,
             on_pre_present,
-        )
+        );
+
+        if let Err(
+            compositor::SurfaceError::Outdated | compositor::SurfaceError::Lost,
+        ) = result
+        {
+            self.configure_surface(
+                surface,
+                viewport.physical_width(),
+                viewport.physical_height(),
+            );
+        }
+
+        result
     }
 
     fn screenshot(
