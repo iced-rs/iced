@@ -76,10 +76,12 @@ where
     let settings = program.settings();
     let window_settings = program.window();
 
-    let graphics_settings = settings.clone().into();
     let event_loop = EventLoop::with_user_event()
         .build()
         .expect("Create event loop");
+
+    let graphics_settings = settings.clone().into();
+    let display_handle = event_loop.owned_display_handle();
 
     let (proxy, worker) = Proxy::new(event_loop.create_proxy());
 
@@ -131,6 +133,7 @@ where
         proxy.clone(),
         event_receiver,
         control_sender,
+        display_handle,
         is_daemon,
         graphics_settings,
         settings.fonts,
@@ -511,6 +514,7 @@ async fn run_instance<P>(
     mut proxy: Proxy<P::Message>,
     mut event_receiver: mpsc::UnboundedReceiver<Event<Action<P::Message>>>,
     mut control_sender: mpsc::UnboundedSender<Control>,
+    display_handle: winit::event_loop::OwnedDisplayHandle,
     is_daemon: bool,
     graphics_settings: graphics::Settings,
     default_fonts: Vec<Cow<'static, [u8]>>,
@@ -595,6 +599,7 @@ async fn run_instance<P>(
 
                     let create_compositor = {
                         let window = window.clone();
+                        let display_handle = display_handle.clone();
                         let proxy = proxy.clone();
                         let default_fonts = default_fonts.clone();
 
@@ -602,7 +607,12 @@ async fn run_instance<P>(
                             let shell = Shell::new(proxy.clone());
 
                             let mut compositor =
-                                <P::Renderer as compositor::Default>::Compositor::new(graphics_settings, window, shell).await;
+                                <P::Renderer as compositor::Default>::Compositor::new(
+                                    graphics_settings,
+                                    display_handle,
+                                    window,
+                                    shell,
+                                ).await;
 
                             if let Ok(compositor) = &mut compositor {
                                 for font in default_fonts {

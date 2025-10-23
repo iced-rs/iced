@@ -264,9 +264,10 @@ where
     type Renderer = Renderer<A::Renderer, B::Renderer>;
     type Surface = Surface<A::Surface, B::Surface>;
 
-    async fn with_backend<W: compositor::Window + Clone>(
+    async fn with_backend(
         settings: graphics::Settings,
-        compatible_window: W,
+        display: impl compositor::Display + Clone,
+        compatible_window: impl compositor::Window + Clone,
         shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
@@ -296,6 +297,7 @@ where
         for backend in candidates.iter().map(Option::as_deref) {
             match A::with_backend(
                 settings,
+                display.clone(),
                 compatible_window.clone(),
                 shell.clone(),
                 backend,
@@ -310,6 +312,7 @@ where
 
             match B::with_backend(
                 settings,
+                display.clone(),
                 compatible_window.clone(),
                 shell.clone(),
                 backend,

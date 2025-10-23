@@ -9,13 +9,13 @@ use std::collections::VecDeque;
 use std::num::NonZeroU32;
 
 pub struct Compositor {
-    context: softbuffer::Context<Box<dyn compositor::Window>>,
+    context: softbuffer::Context<Box<dyn compositor::Display>>,
     settings: Settings,
 }
 
 pub struct Surface {
     window: softbuffer::Surface<
-        Box<dyn compositor::Window>,
+        Box<dyn compositor::Display>,
         Box<dyn compositor::Window>,
     >,
     clip_mask: tiny_skia::Mask,
@@ -28,15 +28,16 @@ impl crate::graphics::Compositor for Compositor {
     type Renderer = Renderer;
     type Surface = Surface;
 
-    async fn with_backend<W: compositor::Window>(
+    async fn with_backend(
         settings: graphics::Settings,
-        compatible_window: W,
+        display: impl compositor::Display,
+        _compatible_window: impl compositor::Window,
         _shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, Error> {
         match backend {
             None | Some("tiny-skia") | Some("tiny_skia") => {
-                Ok(new(settings.into(), compatible_window))
+                Ok(new(settings.into(), display))
             }
             Some(backend) => Err(Error::GraphicsAdapterNotFound {
                 backend: "tiny-skia",
@@ -134,12 +135,12 @@ impl crate::graphics::Compositor for Compositor {
     }
 }
 
-pub fn new<W: compositor::Window>(
+pub fn new(
     settings: Settings,
-    compatible_window: W,
+    display: impl compositor::Display,
 ) -> Compositor {
     #[allow(unsafe_code)]
-    let context = softbuffer::Context::new(Box::new(compatible_window) as _)
+    let context = softbuffer::Context::new(Box::new(display) as _)
         .expect("Create softbuffer context");
 
     Compositor { context, settings }
