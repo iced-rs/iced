@@ -244,6 +244,7 @@ where
             }
 
             self.is_outdated = false;
+            shell.request_redraw();
         }
     }
 
@@ -404,8 +405,10 @@ where
                 }
             }
 
-            shell.invalidate_layout();
             *self.is_outdated = true;
+
+            shell.invalidate_layout();
+            shell.request_redraw();
         }
     }
 
