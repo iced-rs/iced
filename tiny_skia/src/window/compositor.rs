@@ -10,12 +10,14 @@ use std::num::NonZeroU32;
 
 #[allow(missing_debug_implementations)]
 pub struct Compositor {
-    context: softbuffer::Context<Box<dyn compositor::Window>>,
     settings: Settings,
 }
 
 #[allow(missing_debug_implementations)]
 pub struct Surface {
+    // Context must be kept alive for the lifetime of the surface
+    #[allow(dead_code)]
+    context: softbuffer::Context<Box<dyn compositor::Window>>,
     window: softbuffer::Surface<
         Box<dyn compositor::Window>,
         Box<dyn compositor::Window>,
@@ -61,13 +63,18 @@ impl crate::graphics::Compositor for Compositor {
         width: u32,
         height: u32,
     ) -> Self::Surface {
+        #[allow(unsafe_code)]
+        let context = softbuffer::Context::new(Box::new(window.clone()) as _)
+            .expect("Create softbuffer context");
+
         let window = softbuffer::Surface::new(
-            &self.context,
+            &context,
             Box::new(window.clone()) as _,
         )
         .expect("Create softbuffer surface for window");
 
         let mut surface = Surface {
+            context,
             window,
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
@@ -136,13 +143,9 @@ impl crate::graphics::Compositor for Compositor {
 
 pub fn new<W: compositor::Window>(
     settings: Settings,
-    compatible_window: W,
+    _compatible_window: W,
 ) -> Compositor {
-    #[allow(unsafe_code)]
-    let context = softbuffer::Context::new(Box::new(compatible_window) as _)
-        .expect("Create softbuffer context");
-
-    Compositor { context, settings }
+    Compositor { settings }
 }
 
 pub fn present(
