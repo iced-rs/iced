@@ -259,10 +259,7 @@ impl<T> Task<T> {
     where
         T: 'static,
     {
-        Self::stream(stream::once(async {
-            yield_now().await;
-            future.await
-        }))
+        Self::stream(stream::once(future))
     }
 
     /// Creates a new [`Task`] that runs the given [`Stream`] and produces
