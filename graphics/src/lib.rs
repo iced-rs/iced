@@ -21,6 +21,7 @@ pub mod gradient;
 pub mod image;
 pub mod layer;
 pub mod mesh;
+pub mod shell;
 pub mod text;
 
 #[cfg(feature = "geometry")]
@@ -35,6 +36,7 @@ pub use image::Image;
 pub use layer::Layer;
 pub use mesh::Mesh;
 pub use settings::Settings;
+pub use shell::Shell;
 pub use text::Text;
 pub use viewport::Viewport;
 

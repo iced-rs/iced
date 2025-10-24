@@ -49,7 +49,7 @@ use crate::futures::futures::task;
 use crate::futures::futures::{Future, StreamExt};
 use crate::futures::subscription;
 use crate::futures::{Executor, Runtime};
-use crate::graphics::{Compositor, compositor};
+use crate::graphics::{Compositor, Shell, compositor};
 use crate::runtime::system;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Action, Task};
@@ -587,8 +587,10 @@ async fn run_instance<P>(
                         let default_fonts = default_fonts.clone();
 
                         async move {
+                            let shell = Shell::new(proxy.clone());
+
                             let mut compositor =
-                                <P::Renderer as compositor::Default>::Compositor::new(graphics_settings, window).await;
+                                <P::Renderer as compositor::Default>::Compositor::new(graphics_settings, window, shell).await;
 
                             if let Ok(compositor) = &mut compositor {
                                 for font in default_fonts {
@@ -824,7 +826,7 @@ async fn run_instance<P>(
                             .get_mut(&id)
                             .expect("Get user interface");
 
-                        let draw_span = debug::draw(id);
+                        let interact_span = debug::interact(id);
                         let mut change_count = 0;
 
                         let state = loop {
@@ -947,7 +949,9 @@ async fn run_instance<P>(
                                     user_interfaces.get_mut(&id).unwrap();
                             }
                         };
+                        interact_span.finish();
 
+                        let draw_span = debug::draw(id);
                         interface.draw(
                             &mut window.renderer,
                             window.state.theme(),
@@ -1644,6 +1648,26 @@ fn run_action<'a, P, C>(
             window::Action::DisableMousePassthrough(id) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     let _ = window.raw.set_cursor_hittest(true);
+                }
+            }
+            window::Action::RedrawAll => {
+                for (_id, window) in window_manager.iter_mut() {
+                    window.raw.request_redraw();
+                }
+            }
+            window::Action::RelayoutAll => {
+                for (id, window) in window_manager.iter_mut() {
+                    if let Some(ui) = interfaces.remove(&id) {
+                        let _ = interfaces.insert(
+                            id,
+                            ui.relayout(
+                                window.state.logical_size(),
+                                &mut window.renderer,
+                            ),
+                        );
+                    }
+
+                    window.raw.request_redraw();
                 }
             }
         },

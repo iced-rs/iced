@@ -174,6 +174,12 @@ pub enum Action {
 
     /// Set the window size increment.
     SetResizeIncrements(Id, Option<Size>),
+
+    /// Redraws all the windows.
+    RedrawAll,
+
+    /// Recomputes the layouts of all the windows.
+    RelayoutAll,
 }
 
 /// Subscribes to the frames of the window of the running application.

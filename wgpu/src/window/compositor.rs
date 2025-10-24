@@ -3,7 +3,7 @@ use crate::core::Color;
 use crate::graphics::color;
 use crate::graphics::compositor;
 use crate::graphics::error;
-use crate::graphics::{self, Viewport};
+use crate::graphics::{self, Shell, Viewport};
 use crate::settings::{self, Settings};
 use crate::{Engine, Renderer};
 
@@ -50,6 +50,7 @@ impl Compositor {
     pub async fn request<W: compositor::Window>(
         settings: Settings,
         compatible_window: Option<W>,
+        shell: Shell,
     ) -> Result<Self, Error> {
         let instance = wgpu::util::new_instance_with_webgpu_detection(
             &wgpu::InstanceDescriptor {
@@ -181,6 +182,7 @@ impl Compositor {
                         queue,
                         format,
                         settings.antialiasing,
+                        shell,
                     );
 
                     return Ok(Compositor {
@@ -206,8 +208,9 @@ impl Compositor {
 pub async fn new<W: compositor::Window>(
     settings: Settings,
     compatible_window: W,
+    shell: Shell,
 ) -> Result<Compositor, Error> {
-    Compositor::request(settings, Some(compatible_window)).await
+    Compositor::request(settings, Some(compatible_window), shell).await
 }
 
 /// Presents the given primitives with the given [`Compositor`].
@@ -260,6 +263,7 @@ impl graphics::Compositor for Compositor {
     async fn with_backend<W: compositor::Window>(
         settings: graphics::Settings,
         compatible_window: W,
+        shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
         match backend {
@@ -274,7 +278,7 @@ impl graphics::Compositor for Compositor {
                     settings.present_mode = present_mode;
                 }
 
-                Ok(new(settings, compatible_window).await?)
+                Ok(new(settings, compatible_window, shell).await?)
             }
             Some(backend) => Err(graphics::Error::GraphicsAdapterNotFound {
                 backend: "wgpu",

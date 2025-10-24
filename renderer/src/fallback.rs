@@ -6,9 +6,9 @@ use crate::core::{
     self, Background, Color, Font, Image, Pixels, Point, Rectangle, Size, Svg,
     Transformation,
 };
-use crate::graphics;
 use crate::graphics::compositor;
 use crate::graphics::mesh;
+use crate::graphics::{self, Shell};
 
 use std::borrow::Cow;
 
@@ -216,6 +216,7 @@ where
     async fn with_backend<W: compositor::Window + Clone>(
         settings: graphics::Settings,
         compatible_window: W,
+        shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
         use std::env;
@@ -242,8 +243,13 @@ where
         let mut errors = vec![];
 
         for backend in candidates.iter().map(Option::as_deref) {
-            match A::with_backend(settings, compatible_window.clone(), backend)
-                .await
+            match A::with_backend(
+                settings,
+                compatible_window.clone(),
+                shell.clone(),
+                backend,
+            )
+            .await
             {
                 Ok(compositor) => return Ok(Self::Primary(compositor)),
                 Err(error) => {
@@ -251,8 +257,13 @@ where
                 }
             }
 
-            match B::with_backend(settings, compatible_window.clone(), backend)
-                .await
+            match B::with_backend(
+                settings,
+                compatible_window.clone(),
+                shell.clone(),
+                backend,
+            )
+            .await
             {
                 Ok(compositor) => return Ok(Self::Secondary(compositor)),
                 Err(error) => {
