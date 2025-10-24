@@ -3,12 +3,11 @@ use crate::graphics::Shell;
 use crate::image::atlas::{self, Atlas};
 
 #[cfg(feature = "image")]
-use std::collections::BTreeSet;
+use std::collections::HashMap;
 
 #[cfg(feature = "image")]
 use std::sync::mpsc;
 
-#[derive(Debug)]
 pub struct Cache {
     atlas: Atlas,
     #[cfg(feature = "image")]
@@ -46,7 +45,7 @@ impl Cache {
             #[cfg(feature = "image")]
             raster: Raster {
                 cache: crate::image::raster::Cache::default(),
-                pending: BTreeSet::new(),
+                pending: HashMap::new(),
                 jobs: jobs.clone(),
             },
             #[cfg(feature = "svg")]
@@ -61,6 +60,44 @@ impl Cache {
     }
 
     #[cfg(feature = "image")]
+    pub fn allocate_image(
+        &mut self,
+        handle: &core::image::Handle,
+        callback: impl FnOnce(core::image::Allocation) + Send + 'static,
+    ) {
+        use crate::image::raster::Memory;
+
+        let callback = Box::new(callback);
+
+        if let Some(callbacks) = self.raster.pending.get_mut(&handle.id()) {
+            callbacks.push(callback);
+            return;
+        }
+
+        if let Some(Memory::Device { allocation, .. }) =
+            self.raster.cache.get_mut(handle)
+        {
+            if let Some(allocation) = allocation
+                .as_ref()
+                .and_then(core::image::Allocation::upgrade)
+            {
+                callback(allocation);
+                return;
+            }
+
+            #[allow(unsafe_code)]
+            let new = unsafe { core::image::allocate(handle) };
+            *allocation = Some(new.downgrade());
+            callback(new);
+
+            return;
+        }
+
+        let _ = self.raster.pending.insert(handle.id(), vec![callback]);
+        let _ = self.raster.jobs.send(Job::Load(handle.clone()));
+    }
+
+    #[cfg(feature = "image")]
     pub fn measure_image(&mut self, handle: &core::image::Handle) -> Size<u32> {
         self.receive();
 
@@ -69,6 +106,7 @@ impl Cache {
             &mut self.raster.pending,
             &mut self.raster.jobs,
             handle,
+            None,
         ) {
             return memory.dimensions();
         }
@@ -99,9 +137,13 @@ impl Cache {
             &mut self.raster.pending,
             &mut self.raster.jobs,
             handle,
+            None,
         )?;
 
-        if let Memory::Device { entry, bind_group } = memory {
+        if let Memory::Device {
+            entry, bind_group, ..
+        } = memory
+        {
             return Some((
                 entry,
                 bind_group.as_ref().unwrap_or(self.atlas.bind_group()),
@@ -126,6 +168,7 @@ impl Cache {
             *memory = Memory::Device {
                 entry,
                 bind_group: None,
+                allocation: None,
             };
 
             if let Memory::Device { entry, .. } = memory {
@@ -133,7 +176,7 @@ impl Cache {
             }
         }
 
-        if !self.raster.pending.contains(&handle.id()) {
+        if !self.raster.pending.contains_key(&handle.id()) {
             let _ = self.jobs.send(Job::Upload {
                 handle: handle.clone(),
                 rgba: image.clone().into_raw(),
@@ -141,7 +184,7 @@ impl Cache {
                 height: image.height(),
             });
 
-            let _ = self.raster.pending.insert(handle.id());
+            let _ = self.raster.pending.insert(handle.id(), Vec::new());
         }
 
         None
@@ -194,15 +237,32 @@ impl Cache {
                     entry,
                     bind_group,
                 } => {
+                    let callbacks = self.raster.pending.remove(&handle.id());
+
+                    let allocation = if let Some(callbacks) = callbacks {
+                        #[allow(unsafe_code)]
+                        let allocation =
+                            unsafe { core::image::allocate(&handle) };
+
+                        let reference = allocation.downgrade();
+
+                        for callback in callbacks {
+                            callback(allocation.clone());
+                        }
+
+                        Some(reference)
+                    } else {
+                        None
+                    };
+
                     self.raster.cache.insert(
                         &handle,
                         Memory::Device {
                             entry,
                             bind_group: Some(bind_group),
+                            allocation,
                         },
                     );
-
-                    let _ = self.raster.pending.remove(&handle.id());
                 }
                 Work::Error { handle, error } => {
                     self.raster.cache.insert(&handle, Memory::error(error));
@@ -225,19 +285,22 @@ impl Drop for Cache {
 }
 
 #[cfg(feature = "image")]
-#[derive(Debug)]
 struct Raster {
     cache: crate::image::raster::Cache,
-    pending: BTreeSet<core::image::Id>,
+    pending: HashMap<core::image::Id, Vec<Callback>>,
     jobs: mpsc::SyncSender<Job>,
 }
 
 #[cfg(feature = "image")]
+type Callback = Box<dyn FnOnce(core::image::Allocation) + Send>;
+
+#[cfg(feature = "image")]
 fn load_image<'a>(
     cache: &'a mut crate::image::raster::Cache,
-    pending: &mut BTreeSet<core::image::Id>,
+    pending: &mut HashMap<core::image::Id, Vec<Callback>>,
     jobs: &mut mpsc::SyncSender<Job>,
     handle: &core::image::Handle,
+    callback: Option<Callback>,
 ) -> Option<&'a mut crate::image::raster::Memory> {
     use crate::image::raster::Memory;
 
@@ -248,9 +311,9 @@ fn load_image<'a>(
         } else if let core::image::Handle::Rgba { .. } = handle {
             // Load RGBA handles synchronously, since it's very cheap
             cache.insert(handle, Memory::load(handle));
-        } else if !pending.contains(&handle.id()) {
+        } else if !pending.contains_key(&handle.id()) {
             let _ = jobs.send(Job::Load(handle.clone()));
-            let _ = pending.insert(handle.id());
+            let _ = pending.insert(handle.id(), Vec::from_iter(callback));
         }
     }
 
