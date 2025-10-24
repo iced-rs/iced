@@ -176,6 +176,7 @@ impl Cache {
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert(key);
                 let _ = self.rasterized.insert(key, allocation);
+                self.should_trim = true;
 
                 self.rasterized.get(&key)
             }

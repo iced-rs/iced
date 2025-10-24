@@ -2,9 +2,11 @@ use crate::core::{self, Size};
 use crate::graphics::Shell;
 use crate::image::atlas::{self, Atlas};
 
+#[cfg(feature = "image")]
 use std::collections::BTreeSet;
+
+#[cfg(feature = "image")]
 use std::sync::mpsc;
-use std::thread;
 
 #[derive(Debug)]
 pub struct Cache {
@@ -18,26 +20,26 @@ pub struct Cache {
     #[cfg(feature = "image")]
     work: mpsc::Receiver<Work>,
     #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
-    worker_: Option<thread::JoinHandle<()>>,
+    worker_: Option<std::thread::JoinHandle<()>>,
 }
 
 impl Cache {
     pub fn new(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        _queue: &wgpu::Queue,
         backend: wgpu::Backend,
         layout: wgpu::BindGroupLayout,
-        shell: &Shell,
+        _shell: &Shell,
     ) -> Self {
         #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
         let (worker, jobs, work) =
-            Worker::new(device, queue, backend, layout.clone(), shell);
+            Worker::new(device, _queue, backend, layout.clone(), _shell);
 
         #[cfg(all(feature = "image", target_arch = "wasm32"))]
         let (jobs, work) = (mpsc::sync_channel(0).0, mpsc::sync_channel(0).1);
 
         #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
-        let handle = thread::spawn(move || worker.run());
+        let handle = std::thread::spawn(move || worker.run());
 
         Self {
             atlas: Atlas::new(device, backend, layout),
@@ -181,6 +183,7 @@ impl Cache {
         self.vector.trim(&mut self.atlas); // TODO: Concurrency
     }
 
+    #[cfg(feature = "image")]
     fn receive(&mut self) {
         use crate::image::raster::Memory;
 
