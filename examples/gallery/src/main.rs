@@ -111,16 +111,21 @@ impl Gallery {
                 let _ = self.visible.insert(id);
 
                 if self.downloaded.contains(&id) {
-                    let Some(Preview::Ready { thumbnail, .. }) =
-                        self.previews.get_mut(&id)
+                    let Some(Preview::Ready {
+                        thumbnail,
+                        blurhash,
+                    }) = self.previews.get_mut(&id)
                     else {
                         return Task::none();
                     };
 
-                    return image::allocate(image::Handle::from_bytes(
-                        thumbnail.bytes.clone(),
-                    ))
-                    .map(Message::ThumbnailAllocated.with(id));
+                    if let Some(blurhash) = blurhash {
+                        blurhash.show(now);
+                    }
+
+                    return to_rgba(thumbnail.bytes.clone())
+                        .then(image::allocate)
+                        .map(Message::ThumbnailAllocated.with(id));
                 }
 
                 let _ = self.downloaded.insert(id);
@@ -165,7 +170,8 @@ impl Gallery {
 
                 let _ = self.previews.insert(id, preview);
 
-                image::allocate(image::Handle::from_bytes(bytes))
+                to_rgba(bytes)
+                    .then(image::allocate)
                     .map(Message::ThumbnailAllocated.with(id))
             }
             Message::ThumbnailAllocated(id, allocation) => {
@@ -173,18 +179,11 @@ impl Gallery {
                     return Task::none();
                 }
 
-                let Some(Preview::Ready {
-                    thumbnail,
-                    blurhash,
-                    ..
-                }) = self.previews.get_mut(&id)
+                let Some(Preview::Ready { thumbnail, .. }) =
+                    self.previews.get_mut(&id)
                 else {
                     return Task::none();
                 };
-
-                if let Some(blurhash) = blurhash {
-                    blurhash.show(now);
-                }
 
                 thumbnail.show(allocation, now);
 
@@ -369,7 +368,7 @@ impl Blurhash {
     pub fn reset(&mut self) {
         self.fade_in = Animation::new(false)
             .easing(animation::Easing::EaseIn)
-            .slow();
+            .very_quick();
     }
 }
 
@@ -427,9 +426,15 @@ impl Preview {
     fn is_animating(&self, now: Instant) -> bool {
         match &self {
             Self::Loading { blurhash } => blurhash.fade_in.is_animating(now),
-            Self::Ready { thumbnail, .. } => {
+            Self::Ready {
+                thumbnail,
+                blurhash,
+            } => {
                 thumbnail.fade_in.is_animating(now)
                     || thumbnail.zoom.is_animating(now)
+                    || blurhash.as_ref().is_some_and(|blurhash| {
+                        blurhash.fade_in.is_animating(now)
+                    })
             }
         }
     }
@@ -469,7 +474,7 @@ impl Thumbnail {
         self.allocation = None;
         self.fade_in = Animation::new(false)
             .easing(animation::Easing::EaseIn)
-            .slow();
+            .quick();
     }
 
     pub fn show(&mut self, allocation: image::Allocation, now: Instant) {
@@ -546,4 +551,27 @@ impl Viewer {
             .on_press(Message::Close),
         ))
     }
+}
+
+fn to_rgba(bytes: Bytes) -> Task<image::Handle> {
+    use tokio::task;
+
+    Task::future(async move {
+        task::spawn_blocking(move || {
+            match ::image::load_from_memory(bytes.as_slice()) {
+                Ok(image) => {
+                    let rgba = image.to_rgba8();
+
+                    image::Handle::from_rgba(
+                        rgba.width(),
+                        rgba.height(),
+                        rgba.into_raw(),
+                    )
+                }
+                _ => image::Handle::from_bytes(bytes),
+            }
+        })
+        .await
+        .unwrap()
+    })
 }
