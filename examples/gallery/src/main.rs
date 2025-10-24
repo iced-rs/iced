@@ -4,7 +4,7 @@
 //! some smooth animations.
 mod civitai;
 
-use crate::civitai::{Error, Id, Image, Rgba, Size};
+use crate::civitai::{Bytes, Error, Id, Image, Rgba, Size};
 
 use iced::animation;
 use iced::time::{Instant, milliseconds};
@@ -46,8 +46,8 @@ enum Message {
     ImagesListed(Result<Vec<Image>, Error>),
     ImagePoppedIn(Id),
     ImagePoppedOut(Id),
-    ImageDownloaded(Result<Rgba, Error>),
-    ThumbnailDownloaded(Id, Result<Rgba, Error>),
+    ImageDownloaded(Result<Bytes, Error>),
+    ThumbnailDownloaded(Id, Result<Bytes, Error>),
     ThumbnailHovered(Id, bool),
     BlurhashDecoded(Id, civitai::Blurhash),
     Open(Id),
@@ -110,6 +110,13 @@ impl Gallery {
                 let _ = self.visible.insert(id);
 
                 if self.downloaded.contains(&id) {
+                    if let Some(Preview::Ready { thumbnail, .. }) =
+                        self.previews.get_mut(&id)
+                    {
+                        thumbnail.fade_in =
+                            Animation::new(false).slow().go(true, now);
+                    }
+
                     return Task::none();
                 }
 
@@ -129,17 +136,17 @@ impl Gallery {
 
                 Task::none()
             }
-            Message::ImageDownloaded(Ok(rgba)) => {
-                self.viewer.show(rgba, self.now);
+            Message::ImageDownloaded(Ok(bytes)) => {
+                self.viewer.show(bytes, self.now);
 
                 Task::none()
             }
-            Message::ThumbnailDownloaded(id, Ok(rgba)) => {
+            Message::ThumbnailDownloaded(id, Ok(bytes)) => {
                 let thumbnail = if let Some(preview) = self.previews.remove(&id)
                 {
-                    preview.load(rgba, self.now)
+                    preview.load(bytes, self.now)
                 } else {
-                    Preview::ready(rgba, self.now)
+                    Preview::ready(bytes, self.now)
                 };
 
                 let _ = self.previews.insert(id, thumbnail);
@@ -339,21 +346,21 @@ impl Preview {
         }
     }
 
-    fn ready(rgba: Rgba, now: Instant) -> Self {
+    fn ready(bytes: Bytes, now: Instant) -> Self {
         Self::Ready {
             blurhash: None,
-            thumbnail: Thumbnail::new(rgba, now),
+            thumbnail: Thumbnail::new(bytes, now),
         }
     }
 
-    fn load(self, rgba: Rgba, now: Instant) -> Self {
+    fn load(self, bytes: Bytes, now: Instant) -> Self {
         let Self::Loading { blurhash } = self else {
             return self;
         };
 
         Self::Ready {
             blurhash: Some(blurhash),
-            thumbnail: Thumbnail::new(rgba, now),
+            thumbnail: Thumbnail::new(bytes, now),
         }
     }
 
@@ -387,13 +394,9 @@ impl Preview {
 }
 
 impl Thumbnail {
-    pub fn new(rgba: Rgba, now: Instant) -> Self {
+    pub fn new(bytes: Bytes, now: Instant) -> Self {
         Self {
-            handle: image::Handle::from_rgba(
-                rgba.width,
-                rgba.height,
-                rgba.pixels,
-            ),
+            handle: image::Handle::from_bytes(bytes),
             fade_in: Animation::new(false).slow().go(true, now),
             zoom: Animation::new(false)
                 .quick()
@@ -426,12 +429,8 @@ impl Viewer {
         self.background_fade_in.go_mut(true, now);
     }
 
-    fn show(&mut self, rgba: Rgba, now: Instant) {
-        self.image = Some(image::Handle::from_rgba(
-            rgba.width,
-            rgba.height,
-            rgba.pixels,
-        ));
+    fn show(&mut self, bytes: Bytes, now: Instant) {
+        self.image = Some(image::Handle::from_bytes(bytes));
         self.background_fade_in.go_mut(true, now);
         self.image_fade_in.go_mut(true, now);
     }
