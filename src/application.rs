@@ -198,10 +198,17 @@ impl<P: Program> Application<P> {
         #[cfg(feature = "tester")]
         let program = iced_tester::attach(self);
 
-        #[cfg(all(feature = "debug", not(feature = "tester")))]
+        #[cfg(all(
+            feature = "debug",
+            not(feature = "tester"),
+            not(target_arch = "wasm32")
+        ))]
         let program = iced_devtools::attach(self);
 
-        #[cfg(not(any(feature = "tester", feature = "debug")))]
+        #[cfg(not(any(
+            feature = "tester",
+            all(feature = "debug", not(target_arch = "wasm32"))
+        )))]
         let program = self;
 
         Ok(shell::run(program)?)
