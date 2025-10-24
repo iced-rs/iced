@@ -748,27 +748,20 @@ where
                     Event::Mouse(mouse::Event::WheelScrolled { .. })
                 )
             {
+                let translation =
+                    state.translation(self.direction, bounds, content_bounds);
+
                 let cursor = match cursor_over_scrollable {
                     Some(cursor_position)
                         if !(mouse_over_x_scrollbar
                             || mouse_over_y_scrollbar) =>
                     {
-                        mouse::Cursor::Available(
-                            cursor_position
-                                + state.translation(
-                                    self.direction,
-                                    bounds,
-                                    content_bounds,
-                                ),
-                        )
+                        mouse::Cursor::Available(cursor_position + translation)
                     }
-                    _ => cursor.levitate(),
+                    _ => cursor.levitate() + translation,
                 };
 
                 let had_input_method = shell.input_method().is_enabled();
-
-                let translation =
-                    state.translation(self.direction, bounds, content_bounds);
 
                 self.content.as_widget_mut().update(
                     &mut tree.children[0],
@@ -1191,7 +1184,7 @@ where
             {
                 mouse::Cursor::Available(cursor_position + translation)
             }
-            _ => cursor.levitate(),
+            _ => cursor.levitate() + translation,
         };
 
         self.content.as_widget().mouse_interaction(

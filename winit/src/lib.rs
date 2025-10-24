@@ -540,12 +540,15 @@ async fn run_instance<P>(
                 .boxed(),
         );
 
-        mundy::Preferences::once_blocking(
-            mundy::Interest::ColorScheme,
-            core::time::Duration::from_millis(200),
-        )
-        .map(|preferences| to_mode(preferences.color_scheme))
-        .unwrap_or_default()
+        runtime
+            .enter(|| {
+                mundy::Preferences::once_blocking(
+                    mundy::Interest::ColorScheme,
+                    core::time::Duration::from_millis(200),
+                )
+            })
+            .map(|preferences| to_mode(preferences.color_scheme))
+            .unwrap_or_default()
     };
 
     #[cfg(not(all(feature = "linux-theme-detection", target_os = "linux")))]
@@ -554,7 +557,7 @@ async fn run_instance<P>(
 
     log::info!("System theme: {system_theme:?}");
 
-    loop {
+    'next_event: loop {
         // Empty the queue if possible
         let event = if let Ok(event) = event_receiver.try_next() {
             event
@@ -770,47 +773,45 @@ async fn run_instance<P>(
                         event: event::WindowEvent::RedrawRequested,
                         ..
                     } => {
-                        let Some(compositor) = &mut compositor else {
+                        let Some(mut current_compositor) = compositor.as_mut()
+                        else {
                             continue;
                         };
 
-                        let Some((id, window)) =
+                        let Some((id, mut window)) =
                             window_manager.get_mut_alias(id)
                         else {
                             continue;
                         };
 
                         let physical_size = window.state.physical_size();
+                        let mut logical_size = window.state.logical_size();
 
                         if physical_size.width == 0 || physical_size.height == 0
                         {
                             continue;
                         }
 
-                        if window.viewport_version
-                            != window.state.viewport_version()
-                        {
-                            let logical_size = window.state.logical_size();
-
-                            let layout_span = debug::layout(id);
+                        // Window was resized between redraws
+                        if window.surface_size != physical_size {
                             let ui = user_interfaces
                                 .remove(&id)
                                 .expect("Remove user interface");
 
+                            let layout_span = debug::layout(id);
                             let _ = user_interfaces.insert(
                                 id,
                                 ui.relayout(logical_size, &mut window.renderer),
                             );
                             layout_span.finish();
 
-                            compositor.configure_surface(
+                            current_compositor.configure_surface(
                                 &mut window.surface,
                                 physical_size.width,
                                 physical_size.height,
                             );
 
-                            window.viewport_version =
-                                window.state.viewport_version();
+                            window.surface_size = physical_size;
                         }
 
                         let redraw_event = core::Event::Window(
@@ -819,20 +820,135 @@ async fn run_instance<P>(
 
                         let cursor = window.state.cursor();
 
-                        let ui = user_interfaces
+                        let mut interface = user_interfaces
                             .get_mut(&id)
                             .expect("Get user interface");
 
                         let draw_span = debug::draw(id);
-                        let (ui_state, _) = ui.update(
-                            slice::from_ref(&redraw_event),
-                            cursor,
-                            &mut window.renderer,
-                            &mut clipboard,
-                            &mut messages,
-                        );
+                        let mut change_count = 0;
 
-                        ui.draw(
+                        let state = loop {
+                            let message_count = messages.len();
+                            let (state, _) = interface.update(
+                                slice::from_ref(&redraw_event),
+                                cursor,
+                                &mut window.renderer,
+                                &mut clipboard,
+                                &mut messages,
+                            );
+
+                            change_count += 1;
+
+                            if message_count == messages.len()
+                                && !state.has_layout_changed()
+                            {
+                                break state;
+                            }
+
+                            if change_count >= 10 {
+                                log::warn!(
+                                    "More than 10 consecutive RedrawRequested events \
+                                    produced layout invalidation"
+                                );
+
+                                break state;
+                            }
+
+                            if !messages.is_empty() {
+                                let caches: FxHashMap<_, _> =
+                                    ManuallyDrop::into_inner(user_interfaces)
+                                        .into_iter()
+                                        .map(|(id, interface)| {
+                                            (id, interface.into_cache())
+                                        })
+                                        .collect();
+
+                                let actions = update(
+                                    &mut program,
+                                    &mut runtime,
+                                    &mut messages,
+                                );
+
+                                user_interfaces =
+                                    ManuallyDrop::new(build_user_interfaces(
+                                        &program,
+                                        &mut window_manager,
+                                        caches,
+                                    ));
+
+                                for action in actions {
+                                    // Defer all window actions to avoid compositor
+                                    // race conditions while redrawing
+                                    if let Action::Window(_) = action {
+                                        proxy.send_action(action);
+                                        continue;
+                                    }
+
+                                    run_action(
+                                        action,
+                                        &program,
+                                        &mut runtime,
+                                        &mut compositor,
+                                        &mut events,
+                                        &mut messages,
+                                        &mut clipboard,
+                                        &mut control_sender,
+                                        &mut user_interfaces,
+                                        &mut window_manager,
+                                        &mut ui_caches,
+                                        &mut is_window_opening,
+                                        &mut system_theme,
+                                    );
+                                }
+
+                                for (window_id, window) in
+                                    window_manager.iter_mut()
+                                {
+                                    // We are already redrawing this window
+                                    if window_id == id {
+                                        continue;
+                                    }
+
+                                    window.raw.request_redraw();
+                                }
+
+                                let Some(next_compositor) = compositor.as_mut()
+                                else {
+                                    continue 'next_event;
+                                };
+
+                                current_compositor = next_compositor;
+                                window = window_manager.get_mut(id).unwrap();
+
+                                // Window scale factor changed during a redraw request
+                                if logical_size != window.state.logical_size() {
+                                    logical_size = window.state.logical_size();
+
+                                    log::debug!(
+                                        "Window scale factor changed during a redraw request"
+                                    );
+
+                                    let ui = user_interfaces
+                                        .remove(&id)
+                                        .expect("Remove user interface");
+
+                                    let layout_span = debug::layout(id);
+                                    let _ = user_interfaces.insert(
+                                        id,
+                                        ui.relayout(
+                                            logical_size,
+                                            &mut window.renderer,
+                                        ),
+                                    );
+                                    layout_span.finish();
+                                }
+
+                                interface =
+                                    user_interfaces.get_mut(&id).unwrap();
+                            }
+                        };
+
+                        interface.draw(
                             &mut window.renderer,
                             window.state.theme(),
                             &renderer::Style {
@@ -842,27 +958,28 @@ async fn run_instance<P>(
                         );
                         draw_span.finish();
 
-                        runtime.broadcast(subscription::Event::Interaction {
-                            window: id,
-                            event: redraw_event,
-                            status: core::event::Status::Ignored,
-                        });
-
                         if let user_interface::State::Updated {
                             redraw_request,
                             input_method,
                             mouse_interaction,
-                        } = ui_state
+                            ..
+                        } = state
                         {
                             window.request_redraw(redraw_request);
                             window.request_input_method(input_method);
                             window.update_mouse(mouse_interaction);
                         }
 
+                        runtime.broadcast(subscription::Event::Interaction {
+                            window: id,
+                            event: redraw_event,
+                            status: core::event::Status::Ignored,
+                        });
+
                         window.draw_preedit();
 
                         let present_span = debug::present(id);
-                        match compositor.present(
+                        match current_compositor.present(
                             &mut window.renderer,
                             &mut window.surface,
                             window.state.viewport(),
@@ -1071,31 +1188,17 @@ async fn run_instance<P>(
                         }
 
                         if !messages.is_empty() || uis_stale {
-                            let cached_interfaces: FxHashMap<
-                                window::Id,
-                                user_interface::Cache,
-                            > = ManuallyDrop::into_inner(user_interfaces)
-                                .drain()
-                                .map(|(id, ui)| (id, ui.into_cache()))
-                                .collect();
+                            let cached_interfaces: FxHashMap<_, _> =
+                                ManuallyDrop::into_inner(user_interfaces)
+                                    .into_iter()
+                                    .map(|(id, ui)| (id, ui.into_cache()))
+                                    .collect();
 
-                            update(&mut program, &mut runtime, &mut messages);
-
-                            for (id, window) in window_manager.iter_mut() {
-                                window.state.synchronize(
-                                    &program,
-                                    id,
-                                    &window.raw,
-                                );
-
-                                window.raw.request_redraw();
-                            }
-
-                            debug::theme_changed(|| {
-                                window_manager.first().and_then(|window| {
-                                    theme::Base::palette(window.state.theme())
-                                })
-                            });
+                            let actions = update(
+                                &mut program,
+                                &mut runtime,
+                                &mut messages,
+                            );
 
                             user_interfaces =
                                 ManuallyDrop::new(build_user_interfaces(
@@ -1103,6 +1206,28 @@ async fn run_instance<P>(
                                     &mut window_manager,
                                     cached_interfaces,
                                 ));
+
+                            for action in actions {
+                                run_action(
+                                    action,
+                                    &program,
+                                    &mut runtime,
+                                    &mut compositor,
+                                    &mut events,
+                                    &mut messages,
+                                    &mut clipboard,
+                                    &mut control_sender,
+                                    &mut user_interfaces,
+                                    &mut window_manager,
+                                    &mut ui_caches,
+                                    &mut is_window_opening,
+                                    &mut system_theme,
+                                );
+                            }
+
+                            for (_id, window) in window_manager.iter_mut() {
+                                window.raw.request_redraw();
+                            }
                         }
 
                         if let Some(redraw_at) = window_manager.redraw_at() {
@@ -1152,14 +1277,36 @@ fn update<P: Program, E: Executor>(
     program: &mut program::Instance<P>,
     runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>>,
     messages: &mut Vec<P::Message>,
-) where
+) -> Vec<Action<P::Message>>
+where
     P::Theme: theme::Base,
 {
+    use futures::futures;
+
+    let mut actions = Vec::new();
+
     for message in messages.drain(..) {
         let task = runtime.enter(|| program.update(message));
 
-        if let Some(stream) = runtime::task::into_stream(task) {
-            runtime.run(stream);
+        if let Some(mut stream) = runtime::task::into_stream(task) {
+            let waker = futures::task::noop_waker_ref();
+            let mut context = futures::task::Context::from_waker(waker);
+
+            // Run immediately available actions synchronously (e.g. widget operations)
+            loop {
+                match runtime.enter(|| stream.poll_next_unpin(&mut context)) {
+                    futures::task::Poll::Ready(Some(action)) => {
+                        actions.push(action);
+                    }
+                    futures::task::Poll::Ready(None) => {
+                        break;
+                    }
+                    futures::task::Poll::Pending => {
+                        runtime.run(stream);
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -1167,6 +1314,8 @@ fn update<P: Program, E: Executor>(
     let recipes = subscription::into_recipes(subscription.map(Action::Output));
 
     runtime.track(recipes);
+
+    actions
 }
 
 fn run_action<'a, P, C>(
@@ -1606,6 +1755,16 @@ where
     C: Compositor<Renderer = P::Renderer>,
     P::Theme: theme::Base,
 {
+    for (id, window) in window_manager.iter_mut() {
+        window.state.synchronize(program, id, &window.raw);
+    }
+
+    debug::theme_changed(|| {
+        window_manager
+            .first()
+            .and_then(|window| theme::Base::palette(window.state.theme()))
+    });
+
     cached_user_interfaces
         .drain()
         .filter_map(|(id, cache)| {

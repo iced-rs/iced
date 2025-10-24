@@ -337,7 +337,7 @@ impl fmt::Display for Mouse {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Mouse::Move(target) => {
-                write!(f, "move cursor to {}", target)
+                write!(f, "move {}", target)
             }
             Mouse::Press { button, target } => {
                 write!(
@@ -548,18 +548,30 @@ mod parser {
     }
 
     fn mouse(input: &str) -> IResult<&str, Mouse> {
-        let mouse_move =
-            preceded(tag("move cursor to "), target).map(Mouse::Move);
+        let mouse_move = preceded(tag("move "), target).map(Mouse::Move);
 
-        alt((mouse_move, mouse_click)).parse(input)
+        alt((mouse_move, mouse_click, mouse_press, mouse_release)).parse(input)
     }
 
     fn mouse_click(input: &str) -> IResult<&str, Mouse> {
         let (input, _) = tag("click ")(input)?;
-
         let (input, (button, target)) = mouse_button_at(input)?;
 
         Ok((input, Mouse::Click { button, target }))
+    }
+
+    fn mouse_press(input: &str) -> IResult<&str, Mouse> {
+        let (input, _) = tag("press ")(input)?;
+        let (input, (button, target)) = mouse_button_at(input)?;
+
+        Ok((input, Mouse::Press { button, target }))
+    }
+
+    fn mouse_release(input: &str) -> IResult<&str, Mouse> {
+        let (input, _) = tag("release ")(input)?;
+        let (input, (button, target)) = mouse_button_at(input)?;
+
+        Ok((input, Mouse::Release { button, target }))
     }
 
     fn mouse_button_at(
