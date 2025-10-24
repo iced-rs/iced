@@ -17,7 +17,7 @@ pub struct Cache {
     jobs: mpsc::SyncSender<Job>,
     #[cfg(feature = "image")]
     work: mpsc::Receiver<Work>,
-    #[cfg(feature = "image")]
+    #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
     worker_: Option<thread::JoinHandle<()>>,
 }
 
@@ -29,11 +29,14 @@ impl Cache {
         layout: wgpu::BindGroupLayout,
         shell: &Shell,
     ) -> Self {
-        #[cfg(feature = "image")]
+        #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
         let (worker, jobs, work) =
             Worker::new(device, queue, backend, layout.clone(), shell);
 
-        #[cfg(feature = "image")]
+        #[cfg(all(feature = "image", target_arch = "wasm32"))]
+        let (jobs, work) = (mpsc::sync_channel(0).0, mpsc::sync_channel(0).1);
+
+        #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
         let handle = thread::spawn(move || worker.run());
 
         Self {
@@ -50,7 +53,7 @@ impl Cache {
             jobs,
             #[cfg(feature = "image")]
             work,
-            #[cfg(feature = "image")]
+            #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
             worker_: Some(handle),
         }
     }
@@ -107,7 +110,8 @@ impl Cache {
 
         const MAX_SYNC_SIZE: usize = 2 * 1024 * 1024;
 
-        if image.len() < MAX_SYNC_SIZE {
+        // TODO: Concurrent Wasm support
+        if image.len() < MAX_SYNC_SIZE || cfg!(target_arch = "wasm32") {
             let entry = self.atlas.upload(
                 device,
                 encoder,
@@ -205,7 +209,7 @@ impl Cache {
     }
 }
 
-#[cfg(feature = "image")]
+#[cfg(all(feature = "image", not(target_arch = "wasm32")))]
 impl Drop for Cache {
     fn drop(&mut self) {
         // Stop worker gracefully
@@ -235,8 +239,11 @@ fn load_image<'a>(
     use crate::image::raster::Memory;
 
     if !cache.contains(handle) {
-        // Load RGBA handles synchronously, since it's very cheap
-        if let core::image::Handle::Rgba { .. } = handle {
+        if cfg!(target_arch = "wasm32") {
+            // TODO: Concurrent support for Wasm
+            cache.insert(handle, Memory::load(handle));
+        } else if let core::image::Handle::Rgba { .. } = handle {
+            // Load RGBA handles synchronously, since it's very cheap
             cache.insert(handle, Memory::load(handle));
         } else {
             let _ = jobs.send(Job::Load(handle.clone()));
@@ -284,7 +291,7 @@ struct Worker {
     output: mpsc::SyncSender<Work>,
 }
 
-#[cfg(feature = "image")]
+#[cfg(all(feature = "image", not(target_arch = "wasm32")))]
 impl Worker {
     fn new(
         device: &wgpu::Device,
