@@ -696,6 +696,17 @@ impl core::Renderer for Renderer {
     fn reset(&mut self, new_bounds: Rectangle) {
         self.layers.reset(new_bounds);
     }
+
+    fn allocate_image(
+        &mut self,
+        _handle: &core::image::Handle,
+        _callback: impl FnOnce(core::image::Allocation) + Send + 'static,
+    ) {
+        #[cfg(feature = "image")]
+        self.image_cache
+            .get_mut()
+            .allocate_image(_handle, _callback);
+    }
 }
 
 impl core::text::Renderer for Renderer {

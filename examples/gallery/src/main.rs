@@ -46,8 +46,9 @@ enum Message {
     ImagesListed(Result<Vec<Image>, Error>),
     ImagePoppedIn(Id),
     ImagePoppedOut(Id),
-    ImageDownloaded(Result<Bytes, Error>),
+    ImageDownloaded(Result<image::Allocation, Error>),
     ThumbnailDownloaded(Id, Result<Bytes, Error>),
+    ThumbnailAllocated(Id, image::Allocation),
     ThumbnailHovered(Id, bool),
     BlurhashDecoded(Id, civitai::Blurhash),
     Open(Id),
@@ -110,14 +111,16 @@ impl Gallery {
                 let _ = self.visible.insert(id);
 
                 if self.downloaded.contains(&id) {
-                    if let Some(Preview::Ready { thumbnail, .. }) =
+                    let Some(Preview::Ready { thumbnail, .. }) =
                         self.previews.get_mut(&id)
-                    {
-                        thumbnail.fade_in =
-                            Animation::new(false).slow().go(true, now);
-                    }
+                    else {
+                        return Task::none();
+                    };
 
-                    return Task::none();
+                    return image::allocate(image::Handle::from_bytes(
+                        thumbnail.bytes.clone(),
+                    ))
+                    .map(Message::ThumbnailAllocated.with(id));
                 }
 
                 let _ = self.downloaded.insert(id);
@@ -134,22 +137,56 @@ impl Gallery {
             Message::ImagePoppedOut(id) => {
                 let _ = self.visible.remove(&id);
 
+                if let Some(Preview::Ready {
+                    thumbnail,
+                    blurhash,
+                }) = self.previews.get_mut(&id)
+                {
+                    thumbnail.reset();
+
+                    if let Some(blurhash) = blurhash {
+                        blurhash.reset();
+                    }
+                }
+
                 Task::none()
             }
-            Message::ImageDownloaded(Ok(bytes)) => {
-                self.viewer.show(bytes, self.now);
+            Message::ImageDownloaded(Ok(allocation)) => {
+                self.viewer.show(allocation, self.now);
 
                 Task::none()
             }
             Message::ThumbnailDownloaded(id, Ok(bytes)) => {
-                let thumbnail = if let Some(preview) = self.previews.remove(&id)
-                {
-                    preview.load(bytes, self.now)
+                let preview = if let Some(preview) = self.previews.remove(&id) {
+                    preview.load(bytes.clone())
                 } else {
-                    Preview::ready(bytes, self.now)
+                    Preview::ready(bytes.clone())
                 };
 
-                let _ = self.previews.insert(id, thumbnail);
+                let _ = self.previews.insert(id, preview);
+
+                image::allocate(image::Handle::from_bytes(bytes))
+                    .map(Message::ThumbnailAllocated.with(id))
+            }
+            Message::ThumbnailAllocated(id, allocation) => {
+                if !self.visible.contains(&id) {
+                    return Task::none();
+                }
+
+                let Some(Preview::Ready {
+                    thumbnail,
+                    blurhash,
+                    ..
+                }) = self.previews.get_mut(&id)
+                else {
+                    return Task::none();
+                };
+
+                if let Some(blurhash) = blurhash {
+                    blurhash.show(now);
+                }
+
+                thumbnail.show(allocation, now);
 
                 Task::none()
             }
@@ -181,10 +218,12 @@ impl Gallery {
 
                 self.viewer.open(self.now);
 
-                Task::perform(
-                    image.download(Size::Original),
-                    Message::ImageDownloaded,
-                )
+                Task::future(image.download(Size::Original))
+                    .and_then(|bytes| {
+                        image::allocate(image::Handle::from_bytes(bytes))
+                            .map(Ok)
+                    })
+                    .map(Message::ImageDownloaded)
             }
             Message::Close => {
                 self.viewer.close(self.now);
@@ -238,9 +277,11 @@ fn card<'a>(
 ) -> Element<'a, Message> {
     let image = if let Some(preview) = preview {
         let thumbnail: Element<'_, _> =
-            if let Preview::Ready { thumbnail, .. } = &preview {
+            if let Preview::Ready { thumbnail, .. } = &preview
+                && let Some(allocation) = &thumbnail.allocation
+            {
                 float(
-                    image(&thumbnail.handle)
+                    image(allocation.handle())
                         .width(Fill)
                         .content_fit(ContentFit::Cover)
                         .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now)),
@@ -320,8 +361,21 @@ struct Blurhash {
     fade_in: Animation<bool>,
 }
 
+impl Blurhash {
+    pub fn show(&mut self, now: Instant) {
+        self.fade_in.go_mut(true, now);
+    }
+
+    pub fn reset(&mut self) {
+        self.fade_in = Animation::new(false)
+            .easing(animation::Easing::EaseIn)
+            .slow();
+    }
+}
+
 struct Thumbnail {
-    handle: image::Handle,
+    bytes: Bytes,
+    allocation: Option<image::Allocation>,
     fade_in: Animation<bool>,
     zoom: Animation<bool>,
 }
@@ -346,21 +400,21 @@ impl Preview {
         }
     }
 
-    fn ready(bytes: Bytes, now: Instant) -> Self {
+    fn ready(bytes: Bytes) -> Self {
         Self::Ready {
             blurhash: None,
-            thumbnail: Thumbnail::new(bytes, now),
+            thumbnail: Thumbnail::new(bytes),
         }
     }
 
-    fn load(self, bytes: Bytes, now: Instant) -> Self {
+    fn load(self, bytes: Bytes) -> Self {
         let Self::Loading { blurhash } = self else {
             return self;
         };
 
         Self::Ready {
             blurhash: Some(blurhash),
-            thumbnail: Thumbnail::new(bytes, now),
+            thumbnail: Thumbnail::new(bytes),
         }
     }
 
@@ -387,26 +441,45 @@ impl Preview {
                 blurhash: Some(blurhash),
                 thumbnail,
                 ..
-            } if thumbnail.fade_in.is_animating(now) => Some(blurhash),
+            } if !thumbnail.fade_in.value()
+                || thumbnail.fade_in.is_animating(now) =>
+            {
+                Some(blurhash)
+            }
             Self::Ready { .. } => None,
         }
     }
 }
 
 impl Thumbnail {
-    pub fn new(bytes: Bytes, now: Instant) -> Self {
+    pub fn new(bytes: Bytes) -> Self {
         Self {
-            handle: image::Handle::from_bytes(bytes),
-            fade_in: Animation::new(false).slow().go(true, now),
+            bytes,
+            allocation: None,
+            fade_in: Animation::new(false)
+                .easing(animation::Easing::EaseIn)
+                .slow(),
             zoom: Animation::new(false)
                 .quick()
                 .easing(animation::Easing::EaseInOut),
         }
     }
+
+    pub fn reset(&mut self) {
+        self.allocation = None;
+        self.fade_in = Animation::new(false)
+            .easing(animation::Easing::EaseIn)
+            .slow();
+    }
+
+    pub fn show(&mut self, allocation: image::Allocation, now: Instant) {
+        self.allocation = Some(allocation);
+        self.fade_in.go_mut(true, now);
+    }
 }
 
 struct Viewer {
-    image: Option<image::Handle>,
+    image: Option<image::Allocation>,
     background_fade_in: Animation<bool>,
     image_fade_in: Animation<bool>,
 }
@@ -429,8 +502,8 @@ impl Viewer {
         self.background_fade_in.go_mut(true, now);
     }
 
-    fn show(&mut self, bytes: Bytes, now: Instant) {
-        self.image = Some(image::Handle::from_bytes(bytes));
+    fn show(&mut self, allocation: image::Allocation, now: Instant) {
+        self.image = Some(allocation);
         self.background_fade_in.go_mut(true, now);
         self.image_fade_in.go_mut(true, now);
     }
@@ -452,8 +525,8 @@ impl Viewer {
             return None;
         }
 
-        let image = self.image.as_ref().map(|handle| {
-            image(handle)
+        let image = self.image.as_ref().map(|allocation| {
+            image(allocation.handle())
                 .width(Fill)
                 .height(Fill)
                 .opacity(self.image_fade_in.interpolate(0.0, 1.0, now))

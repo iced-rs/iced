@@ -24,6 +24,15 @@ impl Renderer for () {
         _background: impl Into<Background>,
     ) {
     }
+
+    fn allocate_image(
+        &mut self,
+        handle: &image::Handle,
+        callback: impl FnOnce(image::Allocation) + Send + 'static,
+    ) {
+        #[allow(unsafe_code)]
+        callback(unsafe { image::allocate(handle) });
+    }
 }
 
 impl text::Renderer for () {

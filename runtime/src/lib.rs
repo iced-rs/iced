@@ -11,6 +11,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub mod clipboard;
 pub mod font;
+pub mod image;
 pub mod keyboard;
 pub mod system;
 pub mod task;
@@ -55,6 +56,9 @@ pub enum Action<T> {
     /// Run a system action.
     System(system::Action),
 
+    /// An image action.
+    Image(image::Action),
+
     /// Recreate all user interfaces and redraw all windows.
     Reload,
 
@@ -81,6 +85,7 @@ impl<T> Action<T> {
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
+            Action::Image(action) => Err(Action::Image(action)),
             Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
         }
@@ -105,6 +110,7 @@ where
             }
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
+            Action::Image(_) => write!(f, "Action::Image"),
             Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),
         }

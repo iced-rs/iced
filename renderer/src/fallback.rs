@@ -69,6 +69,14 @@ where
     fn end_transformation(&mut self) {
         delegate!(self, renderer, renderer.end_transformation());
     }
+
+    fn allocate_image(
+        &mut self,
+        handle: &image::Handle,
+        callback: impl FnOnce(image::Allocation) + Send + 'static,
+    ) {
+        delegate!(self, renderer, renderer.allocate_image(handle, callback));
+    }
 }
 
 impl<A, B> core::text::Renderer for Renderer<A, B>

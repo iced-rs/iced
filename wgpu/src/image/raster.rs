@@ -5,6 +5,7 @@ use crate::graphics::image::image_rs;
 use crate::image::atlas::{self, Atlas};
 
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::sync::Weak;
 
 type Image = image_rs::ImageBuffer<image_rs::Rgba<u8>, image::Bytes>;
 
@@ -17,6 +18,7 @@ pub enum Memory {
     Device {
         entry: atlas::Entry,
         bind_group: Option<wgpu::BindGroup>,
+        allocation: Option<Weak<image::Memory>>,
     },
     /// Image not found
     NotFound,
@@ -100,7 +102,16 @@ impl Cache {
         self.map.retain(|k, memory| {
             let retain = hits.contains(k);
 
-            if !retain && let Memory::Device { entry, bind_group } = memory {
+            if !retain
+                && let Memory::Device {
+                    entry,
+                    bind_group,
+                    allocation: memory,
+                } = memory
+                && memory
+                    .as_ref()
+                    .is_none_or(|memory| memory.strong_count() == 0)
+            {
                 if let Some(bind_group) = bind_group.take() {
                     on_drop(bind_group);
                 } else {

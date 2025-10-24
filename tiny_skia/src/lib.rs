@@ -228,6 +228,16 @@ impl core::Renderer for Renderer {
     fn reset(&mut self, new_bounds: Rectangle) {
         self.layers.reset(new_bounds);
     }
+
+    fn allocate_image(
+        &mut self,
+        handle: &core::image::Handle,
+        callback: impl FnOnce(core::image::Allocation) + Send + 'static,
+    ) {
+        // TODO: Concurrency
+        #[allow(unsafe_code)]
+        callback(unsafe { core::image::allocate(handle) });
+    }
 }
 
 impl core::text::Renderer for Renderer {

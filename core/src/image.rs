@@ -4,8 +4,10 @@ pub use bytes::Bytes;
 use crate::{Radians, Rectangle, Size};
 
 use rustc_hash::FxHasher;
+
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Weak};
 
 /// A raster image that can be drawn.
 #[derive(Debug, Clone, PartialEq)]
@@ -225,6 +227,56 @@ pub enum FilterMethod {
     Linear,
     /// Nearest neighbor.
     Nearest,
+}
+
+/// A memory allocation of a [`Handle`], often in GPU memory.
+///
+/// Renderers tend to decode and upload image data concurrently to
+/// avoid blocking the user interface. This means that when you use a
+/// [`Handle`] in a widget, there may be a slight frame delay until it
+/// is finally visible. If you are animating images, this can cause
+/// undesirable flicker.
+///
+/// When you obtain an [`Allocation`] explicitly, you get the guarantee
+/// that using a [`Handle`] will draw the corresponding [`Image`]
+/// immediately in the next frame.
+///
+/// This guarantee is valid as long as you hold an [`Allocation`].
+/// Only when you drop all its clones, the renderer may choose to free
+/// the memory of the [`Handle`]. Be careful!
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Allocation(Arc<Memory>);
+
+/// Some memory taken by an [`Allocation`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Memory(Handle);
+
+impl Allocation {
+    /// Returns a weak reference to the [`Memory`] of the [`Allocation`].
+    pub fn downgrade(&self) -> Weak<Memory> {
+        Arc::downgrade(&self.0)
+    }
+
+    /// Upgrades a [`Weak`] memory reference to an [`Allocation`].
+    pub fn upgrade(weak: &Weak<Memory>) -> Option<Allocation> {
+        Weak::upgrade(weak).map(Allocation)
+    }
+
+    /// Returns the [`Handle`] of this [`Allocation`].
+    pub fn handle(&self) -> &Handle {
+        &self.0.0
+    }
+}
+
+/// Creates a new [`Allocation`] for the given handle.
+///
+/// This should only be used internally by renderer implementations.
+///
+/// # Safety
+/// Must only be created once the [`Handle`] is allocated in memory.
+#[allow(unsafe_code)]
+pub unsafe fn allocate(handle: &Handle) -> Allocation {
+    Allocation(Arc::new(Memory(handle.clone())))
 }
 
 /// A [`Renderer`] that can render raster graphics.

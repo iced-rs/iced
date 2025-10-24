@@ -50,6 +50,7 @@ use crate::futures::futures::{Future, StreamExt};
 use crate::futures::subscription;
 use crate::futures::{Executor, Runtime};
 use crate::graphics::{Compositor, Shell, compositor};
+use crate::runtime::image;
 use crate::runtime::system;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Action, Task};
@@ -1730,6 +1731,21 @@ fn run_action<'a, P, C>(
                 }
             }
         }
+        Action::Image(action) => match action {
+            image::Action::Allocate(handle, sender) => {
+                use core::Renderer as _;
+
+                // TODO: Shared image cache in compositor
+                if let Some((_id, window)) = window_manager.iter_mut().next() {
+                    window.renderer.allocate_image(
+                        &handle,
+                        move |allocation| {
+                            let _ = sender.send(allocation);
+                        },
+                    );
+                }
+            }
+        },
         Action::LoadFont { bytes, channel } => {
             if let Some(compositor) = compositor {
                 // TODO: Error handling (?)
