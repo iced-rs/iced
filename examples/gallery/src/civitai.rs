@@ -1,4 +1,3 @@
-use bytes::Bytes;
 use serde::Deserialize;
 use sipper::{Straw, sipper};
 use tokio::task;
@@ -54,14 +53,14 @@ impl Image {
                 rgba: Rgba {
                     width,
                     height,
-                    pixels: Bytes::from(pixels),
+                    pixels: Bytes(pixels.into()),
                 },
             })
         })
         .await?
     }
 
-    pub fn download(self, size: Size) -> impl Straw<Rgba, Blurhash, Error> {
+    pub fn download(self, size: Size) -> impl Straw<Bytes, Blurhash, Error> {
         sipper(async move |mut sender| {
             let client = reqwest::Client::new();
 
@@ -97,21 +96,7 @@ impl Image {
                 .bytes()
                 .await?;
 
-            let image = task::spawn_blocking(move || {
-                Ok::<_, Error>(
-                    image::ImageReader::new(io::Cursor::new(bytes))
-                        .with_guessed_format()?
-                        .decode()?
-                        .to_rgba8(),
-                )
-            })
-            .await??;
-
-            Ok(Rgba {
-                width: image.width(),
-                height: image.height(),
-                pixels: Bytes::from(image.into_raw()),
-            })
+            Ok(Bytes(bytes))
         })
     }
 }
@@ -138,6 +123,23 @@ impl fmt::Debug for Rgba {
         f.debug_struct("Rgba")
             .field("width", &self.width)
             .field("height", &self.height)
+            .finish()
+    }
+}
+
+#[derive(Clone)]
+pub struct Bytes(bytes::Bytes);
+
+impl From<Bytes> for bytes::Bytes {
+    fn from(value: Bytes) -> Self {
+        value.0
+    }
+}
+
+impl fmt::Debug for Bytes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Compressed")
+            .field("bytes", &self.0.len())
             .finish()
     }
 }

@@ -248,7 +248,7 @@ fn load_image<'a>(
         } else if let core::image::Handle::Rgba { .. } = handle {
             // Load RGBA handles synchronously, since it's very cheap
             cache.insert(handle, Memory::load(handle));
-        } else {
+        } else if !pending.contains(&handle.id()) {
             let _ = jobs.send(Job::Load(handle.clone()));
             let _ = pending.insert(handle.id());
         }
