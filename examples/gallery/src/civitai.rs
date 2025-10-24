@@ -130,6 +130,12 @@ impl fmt::Debug for Rgba {
 #[derive(Clone)]
 pub struct Bytes(bytes::Bytes);
 
+impl Bytes {
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 impl From<Bytes> for bytes::Bytes {
     fn from(value: Bytes) -> Self {
         value.0
