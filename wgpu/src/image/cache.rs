@@ -205,6 +205,7 @@ impl Cache {
     }
 }
 
+#[cfg(feature = "image")]
 impl Drop for Cache {
     fn drop(&mut self) {
         // Stop worker gracefully
@@ -389,11 +390,13 @@ impl Worker {
         let submission = self.queue.submit([encoder.finish()]);
         self.belt.recall();
 
+        let bind_group = atlas.bind_group().clone();
+
         self.queue.on_submitted_work_done(move || {
             let _ = output.send(Work::Upload {
                 handle,
                 entry,
-                bind_group: atlas.bind_group().clone(),
+                bind_group,
             });
 
             callback(&shell);
