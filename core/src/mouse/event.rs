@@ -18,8 +18,10 @@ pub enum Event {
 
     /// The mouse cursor was moved
     CursorMoved {
-        /// The new position of the mouse cursor
+        /// The new position of the mouse cursor (window-relative)
         position: Point,
+        /// The position of the mouse cursor in screen space (absolute)
+        screen_position: Point,
     },
 
     /// A mouse button was pressed.
