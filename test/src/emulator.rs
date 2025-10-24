@@ -61,6 +61,12 @@ enum Action_<P: Program> {
     CountDown,
 }
 
+enum Initializer<'a, P: Program + 'a> {
+    Boot,
+    Preset(&'a program::Preset<P::State, P::Message>),
+    State(P::State),
+}
+
 impl<P: Program + 'static> Emulator<P> {
     /// Creates a new [`Emulator`] of the [`Program`] with the given [`Mode`] and [`Size`].
     ///
@@ -73,7 +79,21 @@ impl<P: Program + 'static> Emulator<P> {
         mode: Mode,
         size: Size,
     ) -> Emulator<P> {
-        Self::with_preset(sender, program, mode, size, None)
+        Self::initialize(sender, program, mode, size, Initializer::Boot)
+    }
+
+    /// Creates a new [`Emulator`] analogously to [`new`](Self::new), but it also takes
+    /// an existing [`Program::State`] as the initial state.
+    ///
+    /// When the [`Emulator`] has finished booting, an [`Event::Ready`] will be produced.
+    pub fn with_state(
+        sender: mpsc::Sender<Event<P>>,
+        program: &P,
+        mode: Mode,
+        size: Size,
+        state: P::State,
+    ) -> Emulator<P> {
+        Self::initialize(sender, program, mode, size, Initializer::State(state))
     }
 
     /// Creates a new [`Emulator`] analogously to [`new`](Self::new), but it also takes a
@@ -86,6 +106,26 @@ impl<P: Program + 'static> Emulator<P> {
         mode: Mode,
         size: Size,
         preset: Option<&program::Preset<P::State, P::Message>>,
+    ) -> Emulator<P> {
+        Self::initialize(
+            sender,
+            program,
+            mode,
+            size,
+            preset.map(Initializer::Preset).unwrap_or(Initializer::Boot),
+        )
+    }
+
+    /// Creates a new [`Emulator`] analogously to [`new`](Self::new), but it also takes a
+    /// [`program::Preset`] that will be used as the initial state.
+    ///
+    /// When the [`Emulator`] has finished booting, an [`Event::Ready`] will be produced.
+    fn initialize(
+        sender: mpsc::Sender<Event<P>>,
+        program: &P,
+        mode: Mode,
+        size: Size,
+        initializer: Initializer<'_, P>,
     ) -> Emulator<P> {
         use renderer::Headless;
 
@@ -104,12 +144,10 @@ impl<P: Program + 'static> Emulator<P> {
 
         let runtime = Runtime::new(executor, sender);
 
-        let (state, task) = runtime.enter(|| {
-            if let Some(preset) = preset {
-                preset.boot()
-            } else {
-                program.boot()
-            }
+        let (state, task) = runtime.enter(|| match initializer {
+            Initializer::Boot => program.boot(),
+            Initializer::Preset(preset) => preset.boot(),
+            Initializer::State(state) => (state, Task::none()),
         });
 
         let mut emulator = Self {
