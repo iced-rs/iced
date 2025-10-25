@@ -146,6 +146,8 @@ impl Layer {
         let image = Image::Raster(
             core::Image {
                 clip_bounds: image.clip_bounds * transformation,
+                border_radius: image.border_radius
+                    * transformation.scale_factor(),
                 ..image
             },
             bounds * transformation,
