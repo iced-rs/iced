@@ -26,6 +26,9 @@ pub use runtime::debug;
 pub use runtime::futures;
 pub use winit;
 
+#[cfg(target_os = "macos")]
+use winit::platform::macos::ActiveEventLoopExtMacOS;
+
 pub mod clipboard;
 pub mod conversion;
 
@@ -149,6 +152,9 @@ where
 
         #[cfg(target_arch = "wasm32")]
         canvas: Option<web_sys::HtmlCanvasElement>,
+
+        #[cfg(target_os = "macos")]
+        allows_automatic_window_tabbing: bool,
     }
 
     let runner = Runner {
@@ -162,6 +168,10 @@ where
 
         #[cfg(target_arch = "wasm32")]
         canvas: None,
+
+        #[cfg(target_os = "macos")]
+        allows_automatic_window_tabbing: settings
+            .allows_automatic_window_tabbing,
     };
 
     boot_span.finish();
@@ -180,6 +190,11 @@ where
                         .unwrap_or_default(),
                 );
             }
+
+            #[cfg(target_os = "macos")]
+            event_loop.set_allows_automatic_window_tabbing(
+                self.allows_automatic_window_tabbing,
+            );
         }
 
         fn new_events(
