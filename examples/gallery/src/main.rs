@@ -256,7 +256,14 @@ impl Gallery {
                     self.now,
                 )
             })
-            .chain((self.images.len()..=Image::LIMIT).map(|_| placeholder()));
+            .chain(
+                if self.images.is_empty() {
+                    0..Image::LIMIT
+                } else {
+                    0..0
+                }
+                .map(|_| placeholder()),
+            );
 
         let gallery = grid(images)
             .fluid(Preview::WIDTH)

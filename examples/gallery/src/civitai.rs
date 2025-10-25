@@ -38,7 +38,11 @@ impl Image {
             .json()
             .await?;
 
-        Ok(response.items)
+        Ok(response
+            .items
+            .into_iter()
+            .filter(|image| !image.url.ends_with(".mp4"))
+            .collect())
     }
 
     pub async fn blurhash(
