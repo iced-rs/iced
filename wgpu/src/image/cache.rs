@@ -8,6 +8,8 @@ use std::collections::HashMap;
 #[cfg(feature = "image")]
 use std::sync::mpsc;
 
+use std::sync::Arc;
+
 pub struct Cache {
     atlas: Atlas,
     #[cfg(feature = "image")]
@@ -127,7 +129,7 @@ impl Cache {
         encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
         handle: &core::image::Handle,
-    ) -> Option<(&atlas::Entry, &wgpu::BindGroup)> {
+    ) -> Option<(&atlas::Entry, &Arc<wgpu::BindGroup>)> {
         use crate::image::raster::Memory;
 
         self.receive();
@@ -198,9 +200,9 @@ impl Cache {
         belt: &mut wgpu::util::StagingBelt,
         handle: &core::svg::Handle,
         color: Option<core::Color>,
-        size: [f32; 2],
+        size: Size,
         scale: f32,
-    ) -> Option<(&atlas::Entry, &wgpu::BindGroup)> {
+    ) -> Option<(&atlas::Entry, &Arc<wgpu::BindGroup>)> {
         // TODO: Concurrency
         self.vector
             .upload(
@@ -321,6 +323,7 @@ fn load_image<'a>(
 }
 
 #[cfg(feature = "image")]
+#[derive(Debug)]
 enum Job {
     Load(core::image::Handle),
     Upload {
@@ -329,7 +332,7 @@ enum Job {
         width: u32,
         height: u32,
     },
-    Drop(wgpu::BindGroup),
+    Drop(Arc<wgpu::BindGroup>),
 }
 
 #[cfg(feature = "image")]
@@ -337,7 +340,7 @@ enum Work {
     Upload {
         handle: core::image::Handle,
         entry: atlas::Entry,
-        bind_group: wgpu::BindGroup,
+        bind_group: Arc<wgpu::BindGroup>,
     },
     Error {
         handle: core::image::Handle,

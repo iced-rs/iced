@@ -7,6 +7,7 @@ mod civitai;
 use crate::civitai::{Bytes, Error, Id, Image, Rgba, Size};
 
 use iced::animation;
+use iced::border;
 use iced::time::{Instant, milliseconds};
 use iced::widget::{
     button, container, float, grid, image, mouse_area, opaque, scrollable,
@@ -283,7 +284,8 @@ fn card<'a>(
                     image(allocation.handle())
                         .width(Fill)
                         .content_fit(ContentFit::Cover)
-                        .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now)),
+                        .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now))
+                        .border_radius(BORDER_RADIUS),
                 )
                 .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
                 .translate(move |bounds, viewport| {
@@ -298,7 +300,7 @@ fn card<'a>(
                         blur_radius: thumbnail.zoom.interpolate(0.0, 20.0, now),
                         ..Shadow::default()
                     },
-                    ..float::Style::default()
+                    shadow_border_radius: border::radius(BORDER_RADIUS),
                 })
                 .into()
             } else {
@@ -309,7 +311,8 @@ fn card<'a>(
             let blurhash = image(&blurhash.handle)
                 .width(Fill)
                 .content_fit(ContentFit::Cover)
-                .opacity(blurhash.fade_in.interpolate(0.0, 1.0, now));
+                .opacity(blurhash.fade_in.interpolate(0.0, 1.0, now))
+                .border_radius(BORDER_RADIUS);
 
             stack![blurhash, thumbnail].into()
         } else {
@@ -319,7 +322,7 @@ fn card<'a>(
         space::horizontal().into()
     };
 
-    let card = mouse_area(container(image).style(container::dark))
+    let card = mouse_area(container(image).style(rounded))
         .on_enter(Message::ThumbnailHovered(metadata.id, true))
         .on_exit(Message::ThumbnailHovered(metadata.id, false));
 
@@ -342,7 +345,7 @@ fn card<'a>(
 }
 
 fn placeholder<'a>() -> Element<'a, Message> {
-    container(space()).style(container::dark).into()
+    container(space()).style(rounded).into()
 }
 
 enum Preview {
@@ -554,10 +557,8 @@ impl Viewer {
 }
 
 fn to_rgba(bytes: Bytes) -> Task<image::Handle> {
-    use tokio::task;
-
     Task::future(async move {
-        task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || {
             match ::image::load_from_memory(bytes.as_slice()) {
                 Ok(image) => {
                     let rgba = image.to_rgba8();
@@ -575,3 +576,9 @@ fn to_rgba(bytes: Bytes) -> Task<image::Handle> {
         .unwrap()
     })
 }
+
+fn rounded(theme: &Theme) -> container::Style {
+    container::dark(theme).border(border::rounded(BORDER_RADIUS))
+}
+
+const BORDER_RADIUS: u32 = 20;

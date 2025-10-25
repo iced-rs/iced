@@ -1,6 +1,7 @@
 //! Load and draw raster graphics.
 pub use bytes::Bytes;
 
+use crate::border;
 use crate::{Radians, Rectangle, Size};
 
 use rustc_hash::FxHasher;
@@ -14,6 +15,16 @@ use std::sync::{Arc, Weak};
 pub struct Image<H = Handle> {
     /// The handle of the image.
     pub handle: H,
+
+    /// The clip bounds of the [`Image`].
+    ///
+    /// Anything outside this [`Rectangle`] will not be drawn.
+    pub clip_bounds: Rectangle,
+
+    /// The border radius of the [`Image`].
+    ///
+    /// Currently, this will only be applied to the `clip_bounds`.
+    pub border_radius: border::Radius,
 
     /// The filter method of the image.
     pub filter_method: FilterMethod,
@@ -38,6 +49,8 @@ impl Image<Handle> {
     pub fn new(handle: impl Into<Handle>) -> Self {
         Self {
             handle: handle.into(),
+            clip_bounds: Rectangle::INFINITE,
+            border_radius: border::Radius::default(),
             filter_method: FilterMethod::default(),
             rotation: Radians(0.0),
             opacity: 1.0,

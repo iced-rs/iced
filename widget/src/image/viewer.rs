@@ -1,4 +1,5 @@
 //! Zoom and pan on an image.
+use crate::core::border;
 use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
 use crate::core::mouse;
@@ -347,6 +348,8 @@ where
                 renderer.draw_image(
                     Image {
                         handle: self.handle.clone(),
+                        clip_bounds: Rectangle::INFINITE,
+                        border_radius: border::Radius::default(),
                         filter_method: self.filter_method,
                         rotation: Radians(0.0),
                         opacity: 1.0,

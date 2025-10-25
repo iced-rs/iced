@@ -311,8 +311,10 @@ impl Renderer {
         self.layers.merge();
 
         for layer in self.layers.iter() {
+            let clip_bounds = layer.bounds * scale_factor;
+
             if physical_bounds
-                .intersection(&(layer.bounds * scale_factor))
+                .intersection(&clip_bounds)
                 .and_then(Rectangle::snap)
                 .is_none()
             {

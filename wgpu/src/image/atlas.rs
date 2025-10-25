@@ -16,13 +16,15 @@ pub const MAX_SIZE: u32 = 2048;
 use crate::core::Size;
 use crate::graphics::color;
 
+use std::sync::Arc;
+
 #[derive(Debug)]
 pub struct Atlas {
     size: u32,
     backend: wgpu::Backend,
     texture: wgpu::Texture,
     texture_view: wgpu::TextureView,
-    texture_bind_group: wgpu::BindGroup,
+    texture_bind_group: Arc<wgpu::BindGroup>,
     texture_layout: wgpu::BindGroupLayout,
     layers: Vec<Layer>,
 }
@@ -95,13 +97,13 @@ impl Atlas {
             backend,
             texture,
             texture_view,
-            texture_bind_group,
+            texture_bind_group: Arc::new(texture_bind_group),
             texture_layout,
             layers,
         }
     }
 
-    pub fn bind_group(&self) -> &wgpu::BindGroup {
+    pub fn bind_group(&self) -> &Arc<wgpu::BindGroup> {
         &self.texture_bind_group
     }
 
@@ -466,7 +468,7 @@ impl Atlas {
             });
 
         self.texture_bind_group =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
+            Arc::new(device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("iced_wgpu::image texture atlas bind group"),
                 layout: &self.texture_layout,
                 entries: &[wgpu::BindGroupEntry {
@@ -475,6 +477,6 @@ impl Atlas {
                         &self.texture_view,
                     ),
                 }],
-            });
+            }));
     }
 }

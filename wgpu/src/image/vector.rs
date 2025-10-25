@@ -97,15 +97,15 @@ impl Cache {
         belt: &mut wgpu::util::StagingBelt,
         handle: &svg::Handle,
         color: Option<Color>,
-        [width, height]: [f32; 2],
+        size: Size,
         scale: f32,
         atlas: &mut Atlas,
     ) -> Option<&atlas::Entry> {
         let id = handle.id();
 
         let (width, height) = (
-            (scale * width).ceil() as u32,
-            (scale * height).ceil() as u32,
+            (scale * size.width).ceil() as u32,
+            (scale * size.height).ceil() as u32,
         );
 
         let color = color.map(Color::into_rgba8);

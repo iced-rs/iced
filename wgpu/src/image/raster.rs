@@ -5,7 +5,7 @@ use crate::graphics::image::image_rs;
 use crate::image::atlas::{self, Atlas};
 
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 type Image = image_rs::ImageBuffer<image_rs::Rgba<u8>, image::Bytes>;
 
@@ -17,7 +17,7 @@ pub enum Memory {
     /// Storage entry
     Device {
         entry: atlas::Entry,
-        bind_group: Option<wgpu::BindGroup>,
+        bind_group: Option<Arc<wgpu::BindGroup>>,
         allocation: Option<Weak<image::Memory>>,
     },
     /// Image not found
@@ -90,7 +90,7 @@ impl Cache {
     pub fn trim(
         &mut self,
         atlas: &mut Atlas,
-        on_drop: impl Fn(wgpu::BindGroup),
+        on_drop: impl Fn(Arc<wgpu::BindGroup>),
     ) {
         // Only trim if new entries have landed in the `Cache`
         if !self.should_trim {

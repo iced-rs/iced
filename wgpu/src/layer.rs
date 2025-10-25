@@ -143,7 +143,13 @@ impl Layer {
         bounds: Rectangle,
         transformation: Transformation,
     ) {
-        let image = Image::Raster(image, bounds * transformation);
+        let image = Image::Raster(
+            core::Image {
+                clip_bounds: image.clip_bounds * transformation,
+                ..image
+            },
+            bounds * transformation,
+        );
 
         self.images.push(image);
     }

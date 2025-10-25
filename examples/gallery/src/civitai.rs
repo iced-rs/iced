@@ -81,7 +81,9 @@ impl Image {
                         .url
                         .split("/")
                         .map(|part| {
-                            if part.starts_with("width=") {
+                            if part.starts_with("width=")
+                                || part.starts_with("original=")
+                            {
                                 format!("width={}", width * 2) // High DPI
                             } else {
                                 part.to_owned()
