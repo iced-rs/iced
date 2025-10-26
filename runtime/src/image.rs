@@ -17,8 +17,8 @@ pub enum Action {
 /// When you obtain an [`Allocation`] explicitly, you get the guarantee
 /// that using a [`Handle`] will draw the corresponding image immediately
 /// in the next frame.
-pub fn allocate(handle: Handle) -> Task<Allocation> {
+pub fn allocate(handle: impl Into<Handle>) -> Task<Allocation> {
     task::oneshot(|sender| {
-        crate::Action::Image(Action::Allocate(handle, sender))
+        crate::Action::Image(Action::Allocate(handle.into(), sender))
     })
 }
