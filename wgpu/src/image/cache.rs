@@ -397,7 +397,6 @@ mod worker {
         quit: mpsc::Receiver<()>,
     }
 
-    #[cfg(feature = "image")]
     #[derive(Debug)]
     enum Job {
         Load(image::Handle),
@@ -411,7 +410,6 @@ mod worker {
         Quit,
     }
 
-    #[cfg(feature = "image")]
     pub enum Work {
         Upload {
             handle: image::Handle,
@@ -424,7 +422,6 @@ mod worker {
         },
     }
 
-    #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
     impl Instance {
         fn run(mut self) {
             loop {
