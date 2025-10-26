@@ -7,12 +7,15 @@ pub use element::Element;
 pub use group::Group;
 pub use nested::Nested;
 
+use crate::Widget;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;
 use crate::{Clipboard, Event, Layout, Rectangle, Shell, Size, Vector};
+
+use std::borrow::BorrowMut;
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Theme, Renderer>
@@ -105,8 +108,8 @@ where
 ///
 /// This method will generally only be used by advanced users that are
 /// implementing the [`Widget`](crate::Widget) trait.
-pub fn from_children<'a, Message, Theme, Renderer>(
-    children: &'a mut [crate::Element<'_, Message, Theme, Renderer>],
+pub fn from_children<'a, 'b: 'a, Message, Theme, Renderer>(
+    children: &'a mut [impl BorrowMut<dyn Widget<Message, Theme, Renderer> + 'b>],
     tree: &'a mut Tree,
     layout: Layout<'a>,
     renderer: &Renderer,
@@ -114,14 +117,16 @@ pub fn from_children<'a, Message, Theme, Renderer>(
     translation: Vector,
 ) -> Option<Element<'a, Message, Theme, Renderer>>
 where
-    Renderer: crate::Renderer,
+    Message: 'a,
+    Theme: 'a,
+    Renderer: crate::Renderer + 'a,
 {
     let children = children
         .iter_mut()
         .zip(&mut tree.children)
         .zip(layout.children())
         .filter_map(|((child, state), layout)| {
-            child.as_widget_mut().overlay(
+            child.borrow_mut().overlay(
                 state,
                 layout,
                 renderer,

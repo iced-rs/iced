@@ -16,11 +16,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::Element;
+use crate::Widget;
 
 use crate::layout::{Limits, Node};
 use crate::widget;
 use crate::{Alignment, Length, Padding, Point, Size};
+
+use std::borrow::BorrowMut;
 
 /// The main axis of a flex layout.
 #[derive(Debug)]
@@ -59,7 +61,7 @@ impl Axis {
 /// padding and alignment to the items as needed.
 ///
 /// It returns a new layout [`Node`].
-pub fn resolve<Message, Theme, Renderer>(
+pub fn resolve<'a, Message, Theme, Renderer>(
     axis: Axis,
     renderer: &Renderer,
     limits: &Limits,
@@ -68,7 +70,7 @@ pub fn resolve<Message, Theme, Renderer>(
     padding: Padding,
     spacing: f32,
     align_items: Alignment,
-    items: &mut [Element<'_, Message, Theme, Renderer>],
+    items: &mut [impl BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>],
     trees: &mut [widget::Tree],
 ) -> Node
 where
@@ -103,7 +105,7 @@ where
     for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate()
     {
         let (fill_main_factor, fill_cross_factor) = {
-            let size = child.as_widget().size();
+            let size = child.borrow().size();
 
             axis.pack(size.width.fill_factor(), size.height.fill_factor())
         };
@@ -127,7 +129,7 @@ where
             );
 
             let layout =
-                child.as_widget_mut().layout(tree, renderer, &child_limits);
+                child.borrow_mut().layout(tree, renderer, &child_limits);
             let size = layout.size();
 
             available -= axis.main(size);
@@ -155,7 +157,7 @@ where
             items.iter_mut().zip(trees.iter_mut()).enumerate()
         {
             let (main_size, cross_size) = {
-                let size = child.as_widget().size();
+                let size = child.borrow().size();
 
                 axis.pack(size.width, size.height)
             };
@@ -177,7 +179,7 @@ where
                 );
 
                 let layout =
-                    child.as_widget_mut().layout(tree, renderer, &child_limits);
+                    child.borrow_mut().layout(tree, renderer, &child_limits);
                 let size = layout.size();
 
                 available -= axis.main(size);
@@ -198,7 +200,7 @@ where
             items.iter_mut().zip(trees.iter_mut()).enumerate()
         {
             let (fill_main_factor, fill_cross_factor) = {
-                let size = child.as_widget().size();
+                let size = child.borrow().size();
 
                 axis.pack(size.width.fill_factor(), size.height.fill_factor())
             };
@@ -236,7 +238,7 @@ where
                 );
 
                 let layout =
-                    child.as_widget_mut().layout(tree, renderer, &child_limits);
+                    child.borrow_mut().layout(tree, renderer, &child_limits);
                 cross = cross.max(axis.cross(layout.size()));
 
                 nodes[i] = layout;
@@ -251,7 +253,7 @@ where
     if cross_compress && some_fill_cross {
         for (i, (child, tree)) in items.iter_mut().zip(trees).enumerate() {
             let (main_size, cross_size) = {
-                let size = child.as_widget().size();
+                let size = child.borrow().size();
 
                 axis.pack(size.width, size.height)
             };
@@ -267,7 +269,7 @@ where
                     Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
                 let layout =
-                    child.as_widget_mut().layout(tree, renderer, &child_limits);
+                    child.borrow_mut().layout(tree, renderer, &child_limits);
                 let size = layout.size();
 
                 cross = cross.max(axis.cross(size));
