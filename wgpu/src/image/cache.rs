@@ -19,6 +19,8 @@ pub struct Cache {
     #[cfg(feature = "image")]
     jobs: mpsc::SyncSender<Job>,
     #[cfg(feature = "image")]
+    quit: mpsc::SyncSender<()>,
+    #[cfg(feature = "image")]
     work: mpsc::Receiver<Work>,
     #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
     worker_: Option<std::thread::JoinHandle<()>>,
@@ -33,7 +35,7 @@ impl Cache {
         _shell: &Shell,
     ) -> Self {
         #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
-        let (worker, jobs, work) =
+        let (worker, jobs, quit, work) =
             Worker::new(device, _queue, backend, layout.clone(), _shell);
 
         #[cfg(all(feature = "image", target_arch = "wasm32"))]
@@ -54,6 +56,8 @@ impl Cache {
             vector: crate::image::vector::Cache::default(),
             #[cfg(feature = "image")]
             jobs,
+            #[cfg(feature = "image")]
+            quit,
             #[cfg(feature = "image")]
             work,
             #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
@@ -277,11 +281,8 @@ impl Cache {
 #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
 impl Drop for Cache {
     fn drop(&mut self) {
-        // Stop worker gracefully
-        let (sender, _) = mpsc::sync_channel(1);
-        self.jobs = sender.clone();
-        self.raster.jobs = sender;
-
+        let _ = self.quit.try_send(());
+        let _ = self.jobs.send(Job::Quit);
         let _ = self.worker_.take().unwrap().join();
     }
 }
@@ -333,6 +334,7 @@ enum Job {
         height: u32,
     },
     Drop(Arc<wgpu::BindGroup>),
+    Quit,
 }
 
 #[cfg(feature = "image")]
@@ -358,6 +360,7 @@ struct Worker {
     belt: wgpu::util::StagingBelt,
     jobs: mpsc::Receiver<Job>,
     output: mpsc::SyncSender<Work>,
+    quit: mpsc::Receiver<()>,
 }
 
 #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
@@ -368,8 +371,14 @@ impl Worker {
         backend: wgpu::Backend,
         texture_layout: wgpu::BindGroupLayout,
         shell: &Shell,
-    ) -> (Self, mpsc::SyncSender<Job>, mpsc::Receiver<Work>) {
+    ) -> (
+        Self,
+        mpsc::SyncSender<Job>,
+        mpsc::SyncSender<()>,
+        mpsc::Receiver<Work>,
+    ) {
         let (jobs_sender, jobs_receiver) = mpsc::sync_channel(1_000);
+        let (quit_sender, quit_receiver) = mpsc::sync_channel(1);
         let (work_sender, work_receiver) = mpsc::sync_channel(1_000);
 
         (
@@ -382,14 +391,24 @@ impl Worker {
                 belt: wgpu::util::StagingBelt::new(4 * 1024 * 1024),
                 jobs: jobs_receiver,
                 output: work_sender,
+                quit: quit_receiver,
             },
             jobs_sender,
+            quit_sender,
             work_receiver,
         )
     }
 
     fn run(mut self) {
-        while let Ok(job) = self.jobs.recv() {
+        loop {
+            if self.quit.try_recv().is_ok() {
+                return;
+            }
+
+            let Ok(job) = self.jobs.recv() else {
+                return;
+            };
+
             match job {
                 Job::Load(handle) => {
                     match crate::graphics::image::load(&handle) {
@@ -423,6 +442,7 @@ impl Worker {
                 Job::Drop(bind_group) => {
                     drop(bind_group);
                 }
+                Job::Quit => return,
             }
         }
     }
