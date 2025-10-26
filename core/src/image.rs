@@ -192,10 +192,12 @@ impl From<&Handle> for Handle {
 impl std::fmt::Debug for Handle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Path(_, path) => write!(f, "Path({path:?})"),
-            Self::Bytes(_, _) => write!(f, "Bytes(...)"),
-            Self::Rgba { width, height, .. } => {
-                write!(f, "Pixels({width} * {height})")
+            Self::Path(id, path) => write!(f, "Path({id:?}, {path:?})"),
+            Self::Bytes(id, _) => write!(f, "Bytes({id:?}, ...)"),
+            Self::Rgba {
+                id, width, height, ..
+            } => {
+                write!(f, "Pixels({id:?}, {width} * {height})")
             }
         }
     }

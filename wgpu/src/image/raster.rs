@@ -100,17 +100,21 @@ impl Cache {
         let hits = &self.hits;
 
         self.map.retain(|k, memory| {
+            // Retain active allocations
+            if let Memory::Device { allocation, .. } = memory
+                && allocation
+                    .as_ref()
+                    .is_some_and(|allocation| allocation.strong_count() > 0)
+            {
+                return true;
+            }
+
             let retain = hits.contains(k);
 
             if !retain
                 && let Memory::Device {
-                    entry,
-                    bind_group,
-                    allocation: memory,
+                    entry, bind_group, ..
                 } = memory
-                && memory
-                    .as_ref()
-                    .is_none_or(|memory| memory.strong_count() == 0)
             {
                 if let Some(bind_group) = bind_group.take() {
                     on_drop(bind_group);
