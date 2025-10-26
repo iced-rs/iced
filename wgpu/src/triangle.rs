@@ -587,7 +587,7 @@ impl Layer {
 
                     render_pass.set_vertex_buffer(
                         0,
-                        self.solid.vertices.range(
+                        self.gradient.vertices.range(
                             gradient_offset,
                             gradient_offset + buffers.vertices.len(),
                         ),
