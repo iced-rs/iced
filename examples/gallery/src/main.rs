@@ -588,4 +588,4 @@ fn rounded(theme: &Theme) -> container::Style {
     container::dark(theme).border(border::rounded(BORDER_RADIUS))
 }
 
-const BORDER_RADIUS: u32 = 20;
+const BORDER_RADIUS: u32 = 10;

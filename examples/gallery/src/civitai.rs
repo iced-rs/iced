@@ -4,7 +4,9 @@ use tokio::task;
 
 use std::fmt;
 use std::io;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
+
+static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Image {
@@ -17,14 +19,12 @@ impl Image {
     pub const LIMIT: usize = 96;
 
     pub async fn list() -> Result<Vec<Self>, Error> {
-        let client = reqwest::Client::new();
-
         #[derive(Deserialize)]
         struct Response {
             items: Vec<Image>,
         }
 
-        let response: Response = client
+        let response: Response = CLIENT
             .get("https://civitai.com/api/v1/images")
             .query(&[
                 ("sort", "Most Reactions"),
@@ -66,8 +66,6 @@ impl Image {
 
     pub fn download(self, size: Size) -> impl Straw<Bytes, Blurhash, Error> {
         sipper(async move |mut sender| {
-            let client = reqwest::Client::new();
-
             if let Size::Thumbnail { width, height } = size {
                 let image = self.clone();
 
@@ -78,7 +76,7 @@ impl Image {
                 }));
             }
 
-            let bytes = client
+            let bytes = CLIENT
                 .get(match size {
                     Size::Original => self.url,
                     Size::Thumbnail { width, .. } => self
