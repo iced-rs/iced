@@ -81,6 +81,8 @@ impl Cache {
         }
 
         let _ = self.raster.pending.insert(handle.id(), vec![callback]);
+
+        #[cfg(not(target_arch = "wasm32"))]
         self.worker.load(handle);
     }
 
@@ -91,6 +93,7 @@ impl Cache {
         if let Some(memory) = load_image(
             &mut self.raster.cache,
             &mut self.raster.pending,
+            #[cfg(not(target_arch = "wasm32"))]
             &self.worker,
             handle,
             None,
@@ -122,6 +125,7 @@ impl Cache {
         let memory = load_image(
             &mut self.raster.cache,
             &mut self.raster.pending,
+            #[cfg(not(target_arch = "wasm32"))]
             &self.worker,
             handle,
             None,
@@ -165,6 +169,8 @@ impl Cache {
 
         if !self.raster.pending.contains_key(&handle.id()) {
             let _ = self.raster.pending.insert(handle.id(), Vec::new());
+
+            #[cfg(not(target_arch = "wasm32"))]
             self.worker.upload(handle, image);
         }
 
@@ -199,8 +205,9 @@ impl Cache {
 
     pub fn trim(&mut self) {
         #[cfg(feature = "image")]
-        self.raster.cache.trim(&mut self.atlas, |bind_group| {
-            self.worker.drop(bind_group);
+        self.raster.cache.trim(&mut self.atlas, |_bind_group| {
+            #[cfg(not(target_arch = "wasm32"))]
+            self.worker.drop(_bind_group);
         });
 
         #[cfg(feature = "svg")]
@@ -209,9 +216,10 @@ impl Cache {
 
     #[cfg(feature = "image")]
     fn receive(&mut self) {
-        use crate::image::raster::Memory;
-
+        #[cfg(not(target_arch = "wasm32"))]
         while let Ok(work) = self.worker.try_recv() {
+            use crate::image::raster::Memory;
+
             match work {
                 worker::Work::Upload {
                     handle,
@@ -273,7 +281,7 @@ type Callback = Box<dyn FnOnce(core::image::Allocation) + Send>;
 fn load_image<'a>(
     cache: &'a mut crate::image::raster::Cache,
     pending: &mut HashMap<core::image::Id, Vec<Callback>>,
-    worker: &Worker,
+    #[cfg(not(target_arch = "wasm32"))] worker: &Worker,
     handle: &core::image::Handle,
     callback: Option<Callback>,
 ) -> Option<&'a mut crate::image::raster::Memory> {
@@ -288,6 +296,8 @@ fn load_image<'a>(
             cache.insert(handle, Memory::load(handle));
         } else if !pending.contains_key(&handle.id()) {
             let _ = pending.insert(handle.id(), Vec::from_iter(callback));
+
+            #[cfg(not(target_arch = "wasm32"))]
             worker.load(handle);
         }
     }
