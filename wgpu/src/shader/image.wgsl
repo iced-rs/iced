@@ -82,9 +82,9 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
         2.0 * (fragment - position - scale / 2.0),
         scale,
         input.border_radius * 2.0,
-    );
+    ) / 2.0;
 
-    let antialias: f32 = clamp(0.5 - d, 0.0, 1.0);
+    let antialias: f32 = clamp(1.0 - d, 0.0, 1.0);
 
     return textureSample(u_texture, u_sampler, input.uv, i32(input.layer)) * vec4<f32>(1.0, 1.0, 1.0, antialias * input.opacity);
 }

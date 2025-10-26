@@ -7,7 +7,7 @@ use crate::image::atlas::{self, Atlas};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::{Arc, Weak};
 
-type Image = image_rs::ImageBuffer<image_rs::Rgba<u8>, image::Bytes>;
+pub type Image = image_rs::ImageBuffer<image_rs::Rgba<u8>, image::Bytes>;
 
 /// Entry in cache corresponding to an image handle
 #[derive(Debug)]
