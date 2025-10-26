@@ -2620,7 +2620,6 @@ version = "0.14.0-dev"
 dependencies = [
  "bitflags 2.9.4",
  "bytemuck",
- "bytes",
  "cryoglyph",
  "futures",
  "glam",

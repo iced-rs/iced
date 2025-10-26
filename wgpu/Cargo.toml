@@ -31,7 +31,6 @@ iced_graphics.workspace = true
 
 bitflags.workspace = true
 bytemuck.workspace = true
-bytes.workspace = true
 futures.workspace = true
 glam.workspace = true
 cryoglyph.workspace = true
