@@ -10,7 +10,7 @@ pub use layer::Layer;
 
 use allocator::Allocator;
 
-pub const DEFAULT_SIZE: u32 = 512;
+pub const DEFAULT_SIZE: u32 = 2048;
 pub const MAX_SIZE: u32 = 2048;
 
 use crate::core::Size;
@@ -114,7 +114,7 @@ impl Atlas {
         belt: &mut wgpu::util::StagingBelt,
         width: u32,
         height: u32,
-        data: &[u8],
+        pixels: &[u8],
     ) -> Option<Entry> {
         let entry = {
             let current_size = self.layers.len();
@@ -129,56 +129,25 @@ impl Atlas {
 
         log::debug!("Allocated atlas entry: {entry:?}");
 
-        // It is a webgpu requirement that:
-        //   BufferCopyView.layout.bytes_per_row % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT == 0
-        // So we calculate padded_width by rounding width up to the next
-        // multiple of wgpu::COPY_BYTES_PER_ROW_ALIGNMENT.
-        let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
-        let padding = (align - (4 * width) % align) % align;
-        let padded_width = (4 * width + padding) as usize;
-        let padded_data_size = padded_width * height as usize;
-
-        let buffer_slice = belt.allocate(
-            wgpu::BufferSize::new(padded_data_size as u64).unwrap(),
-            wgpu::BufferSize::new(8 * 4).unwrap(),
-            device,
-        );
-
-        let mut padded_data = buffer_slice.get_mapped_range_mut();
-
-        for row in 0..height as usize {
-            let offset = row * padded_width;
-
-            padded_data[offset..offset + 4 * width as usize].copy_from_slice(
-                &data[row * 4 * width as usize..(row + 1) * 4 * width as usize],
-            );
-        }
-
         match &entry {
             Entry::Contiguous(allocation) => {
                 self.upload_allocation(
-                    buffer_slice.buffer(),
-                    width,
-                    height,
-                    padding,
-                    buffer_slice.offset() as usize,
-                    allocation,
-                    encoder,
+                    pixels, width, 0, allocation, device, encoder, belt,
                 );
             }
             Entry::Fragmented { fragments, .. } => {
                 for fragment in fragments {
                     let (x, y) = fragment.position;
-                    let offset = (y * padded_width as u32 + 4 * x) as usize;
+                    let offset = (y * width + 4 * x) as usize;
 
                     self.upload_allocation(
-                        buffer_slice.buffer(),
+                        pixels,
                         width,
-                        height,
-                        padding,
-                        offset + buffer_slice.offset() as usize,
+                        offset,
                         &fragment.allocation,
+                        device,
                         encoder,
+                        belt,
                     );
                 }
             }
@@ -339,44 +308,129 @@ impl Atlas {
 
     fn upload_allocation(
         &self,
-        buffer: &wgpu::Buffer,
+        pixels: &[u8],
         image_width: u32,
-        image_height: u32,
-        padding: u32,
         offset: usize,
         allocation: &Allocation,
+        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
     ) {
         let (x, y) = allocation.position();
         let Size { width, height } = allocation.size();
         let layer = allocation.layer();
+        let padding = allocation.padding();
 
-        let extent = wgpu::Extent3d {
-            width,
-            height,
-            depth_or_array_layers: 1,
-        };
+        // It is a webgpu requirement that:
+        //   BufferCopyView.layout.bytes_per_row % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT == 0
+        // So we calculate padded_width by rounding width up to the next
+        // multiple of wgpu::COPY_BYTES_PER_ROW_ALIGNMENT.
+        let bytes_per_row = (4 * (width + padding.width * 2))
+            .next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
+            as usize;
+        let total_bytes =
+            bytes_per_row * (height + padding.height * 2) as usize;
 
+        let buffer_slice = belt.allocate(
+            wgpu::BufferSize::new(total_bytes as u64).unwrap(),
+            wgpu::BufferSize::new(8 * 4).unwrap(),
+            device,
+        );
+
+        let mut padded_data = buffer_slice.get_mapped_range_mut();
+        let padding_width = padding.width as usize;
+        let padding_height = padding.height as usize;
+
+        // Copy image rows
+        for row in 0..height as usize {
+            let offset = offset + row * 4 * image_width as usize;
+            let start = (row + padding_height) * bytes_per_row;
+            let stride = 4 * width as usize;
+
+            padded_data
+                [start + 4 * padding_width..start + 4 * padding_width + stride]
+                .copy_from_slice(&pixels[offset..offset + stride]);
+
+            // Add padding to the sides, if needed
+            for i in 0..padding_width {
+                padded_data[start + 4 * i..start + 4 * (i + 1)]
+                    .copy_from_slice(&pixels[offset..offset + 4]);
+
+                padded_data[start + stride + 4 * (padding_width + i)
+                    ..start + stride + 4 * (padding_width + i + 1)]
+                    .copy_from_slice(
+                        &pixels[offset + stride - 4..offset + stride],
+                    );
+            }
+        }
+
+        // Add padding on top and bottom
+        for row in 0..padding_height {
+            let start = row * bytes_per_row;
+            let end = (padding_height + height as usize + row) * bytes_per_row;
+            let end_offset =
+                offset + height as usize * 4 * image_width as usize;
+
+            // Top
+            padded_data[start + 4 * padding_width
+                ..start + 4 * (padding_width + width as usize)]
+                .copy_from_slice(&pixels[offset..offset + 4 * width as usize]);
+
+            // Bottom
+            padded_data[end + 4 * padding_width
+                ..end + 4 * (padding_width + width as usize)]
+                .copy_from_slice(
+                    &pixels[end_offset - 4 * width as usize..end_offset],
+                );
+
+            // Corners
+            for i in 0..padding_width {
+                padded_data[start + 4 * i..start + 4 * (i + 1)]
+                    .copy_from_slice(&pixels[offset..4]);
+
+                padded_data[start + 4 * (width as usize + padding_width + i)
+                    ..start + 4 * (width as usize + padding_width + i + 1)]
+                    .copy_from_slice(
+                        &pixels[offset + 4 * (width - 1) as usize
+                            ..offset + 4 * width as usize],
+                    );
+
+                padded_data[end + 4 * i..end + 4 * (i + 1)].copy_from_slice(
+                    &pixels[end_offset - 4 * width as usize
+                        ..end_offset - 4 * (width as usize - 1)],
+                );
+
+                padded_data[end + 4 * (width as usize + padding_width + i)
+                    ..end + 4 * (width as usize + padding_width + i + 1)]
+                    .copy_from_slice(&pixels[end_offset - 4..end_offset]);
+            }
+        }
+
+        // Copy actual image
         encoder.copy_buffer_to_texture(
             wgpu::TexelCopyBufferInfo {
-                buffer,
+                buffer: buffer_slice.buffer(),
                 layout: wgpu::TexelCopyBufferLayout {
-                    offset: offset as u64,
-                    bytes_per_row: Some(4 * image_width + padding),
-                    rows_per_image: Some(image_height),
+                    offset: buffer_slice.offset(),
+                    bytes_per_row: Some(bytes_per_row as u32),
+                    rows_per_image: Some(height + padding.height * 2),
                 },
             },
             wgpu::TexelCopyTextureInfo {
                 texture: &self.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d {
-                    x,
-                    y,
+                    x: x - padding.width,
+                    y: y - padding.height,
                     z: layer as u32,
                 },
                 aspect: wgpu::TextureAspect::default(),
             },
-            extent,
+            wgpu::Extent3d {
+                width: width + padding.width * 2,
+                height: height + padding.height * 2,
+                depth_or_array_layers: 1,
+            },
         );
     }
 

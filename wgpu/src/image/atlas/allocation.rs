@@ -29,6 +29,13 @@ impl Allocation {
         }
     }
 
+    pub fn padding(&self) -> Size<u32> {
+        match self {
+            Allocation::Partial { region, .. } => region.padding(),
+            Allocation::Full { .. } => Size::new(0, 0),
+        }
+    }
+
     pub fn layer(&self) -> usize {
         match self {
             Allocation::Partial { layer, .. } => *layer,
