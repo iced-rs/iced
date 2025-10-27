@@ -34,33 +34,60 @@ struct VertexOutput {
 fn vs_main(input: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
-    // Generate a vertex position in the range [0, 1] from the vertex index.
-    var v_pos = vertex_position(input.vertex_index);
+    // Generate a vertex position in the range [0, 1] from the vertex index
+    let corner = vertex_position(input.vertex_index);
 
-    // Map the vertex position to the atlas texture.
-    out.uv = vec2<f32>(v_pos * input.atlas_scale + input.atlas_pos);
+    // Map the vertex position to the atlas texture
     out.layer = f32(input.layer);
     out.opacity = input.opacity;
 
     let tile = input.tile;
     let center = input.center;
 
-    // Calculate the vertex position and move the center to the origin
-    v_pos = tile.xy + v_pos * tile.zw - center;
-
-    // Apply the rotation around the center of the image
-    let cos_rot = cos(input.rotation);
-    let sin_rot = sin(input.rotation);
-    let rotate = mat4x4<f32>(
-        vec4<f32>(cos_rot, sin_rot, 0.0, 0.0),
-        vec4<f32>(-sin_rot, cos_rot, 0.0, 0.0),
-        vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(0.0, 0.0, 0.0, 1.0)
+    // List the unrotated tile corners
+    let corners = array<vec2<f32>, 4>(
+        tile.xy,                              // Top left
+        tile.xy + vec2<f32>(tile.z, 0.0),     // Top right
+        tile.xy + vec2<f32>(0.0, tile.w),     // Bottom left
+        tile.xy + tile.zw                     // Bottom right
     );
 
-    // Calculate the final position of the vertex
-    out.position = vec4(vec2(globals.scale_factor), 1.0, 1.0) * (vec4<f32>(center, 0.0, 0.0) + rotate * vec4<f32>(v_pos, 0.0, 1.0));
+    // Rotate tile corners around center
+    let cos_r = cos(-input.rotation); // Clockwise
+    let sin_r = sin(-input.rotation);
+    var rotated = array<vec2<f32>, 4>();
 
+    for (var i = 0u; i < 4u; i++) {
+        let c = corners[i] - input.center;
+        rotated[i] = vec2<f32>(c.x * cos_r - c.y * sin_r, c.x * sin_r + c.y * cos_r) + input.center;
+    }
+
+    // Find bounding box of rotated tile
+    var min_xy = rotated[0];
+    var max_xy = rotated[0];
+    for (var i = 1u; i < 4u; i++) {
+        min_xy = min(min_xy, rotated[i]);
+        max_xy = max(max_xy, rotated[i]);
+    }
+    let rotated_bounds = vec4<f32>(min_xy, max_xy - min_xy);
+
+    // Intersect with clip bounds
+    let clip_min = max(rotated_bounds.xy, input.clip_bounds.xy);
+    let clip_max = min(rotated_bounds.xy + rotated_bounds.zw, input.clip_bounds.xy + input.clip_bounds.zw);
+    let clipped_tile = vec4<f32>(clip_min, max(vec2<f32>(0.0), clip_max - clip_min));
+
+    // Calculate the vertex position
+    let v_pos = clipped_tile.xy + corner * clipped_tile.zw;
+    out.position = vec4(vec2(globals.scale_factor), 1.0, 1.0) * vec4<f32>(v_pos, 0.0, 1.0);
+
+    // Calculate rotated UV
+    let uv = input.atlas_pos + (v_pos - tile.xy) / tile.zw * input.atlas_scale;
+    let uv_center = input.atlas_pos + input.atlas_scale / 2.0;
+
+    let d = uv - uv_center;
+    out.uv = vec2<f32>(d.x * cos_r - d.y * sin_r, d.x * sin_r + d.y * cos_r) + uv_center;
+
+    // Snap position to the pixel grid
     if bool(input.snap) {
         out.position = round(out.position);
     }
