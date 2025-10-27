@@ -23,11 +23,12 @@ struct VertexInput {
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
-    @location(0) clip_bounds: vec4<f32>,
-    @location(1) border_radius: vec4<f32>,
-    @location(2) uv: vec2<f32>,
-    @location(3) layer: f32, // this should be an i32, but naga currently reads that as requiring interpolation.
-    @location(4) opacity: f32,
+    @location(0) @interpolate(flat) clip_bounds: vec4<f32>,
+    @location(1) @interpolate(flat) border_radius: vec4<f32>,
+    @location(2) @interpolate(flat) atlas: vec4<f32>,
+    @location(3) @interpolate(flat) layer: i32,
+    @location(4) @interpolate(flat) opacity: f32,
+    @location(5) uv: vec2<f32>,
 }
 
 @vertex
@@ -36,10 +37,6 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
     // Generate a vertex position in the range [0, 1] from the vertex index
     let corner = vertex_position(input.vertex_index);
-
-    // Map the vertex position to the atlas texture
-    out.layer = f32(input.layer);
-    out.opacity = input.opacity;
 
     let tile = input.tile;
     let center = input.center;
@@ -95,6 +92,9 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     out.position = globals.transform * out.position;
     out.clip_bounds = globals.scale_factor * input.clip_bounds;
     out.border_radius = globals.scale_factor * input.border_radius;
+    out.atlas = vec4(input.atlas_pos, input.atlas_pos + input.atlas_scale);
+    out.layer = input.layer;
+    out.opacity = input.opacity;
 
     return out;
 }
@@ -112,8 +112,9 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     ) / 2.0;
 
     let antialias: f32 = clamp(1.0 - d, 0.0, 1.0);
+    let inside = all(input.uv >= input.atlas.xy) && all(input.uv <= input.atlas.zw);
 
-    return textureSample(u_texture, u_sampler, input.uv, i32(input.layer)) * vec4<f32>(1.0, 1.0, 1.0, antialias * input.opacity);
+    return textureSample(u_texture, u_sampler, input.uv, input.layer) * vec4<f32>(1.0, 1.0, 1.0, antialias * input.opacity * f32(inside));
 }
 
 fn rounded_box_sdf(p: vec2<f32>, size: vec2<f32>, corners: vec4<f32>) -> f32 {
