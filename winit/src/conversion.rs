@@ -41,6 +41,7 @@ pub fn window_attributes(
         })
         .with_decorations(settings.decorations)
         .with_transparent(settings.transparent)
+        .with_blur(settings.blur)
         .with_window_icon(settings.icon.and_then(icon))
         .with_window_level(window_level(settings.level))
         .with_visible(settings.visible);
