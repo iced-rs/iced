@@ -1,6 +1,5 @@
 use iced::widget::{
-    button, column, horizontal_space, lazy, pick_list, row, scrollable, text,
-    text_input,
+    button, column, lazy, pick_list, row, scrollable, space, text, text_input,
 };
 use iced::{Element, Fill};
 
@@ -174,7 +173,7 @@ impl App {
 
                 row![
                     text(item.name.clone()).color(item.color),
-                    horizontal_space(),
+                    space::horizontal(),
                     pick_list(Color::ALL, Some(item.color), move |color| {
                         Message::ItemColorChanged(item.clone(), color)
                     }),

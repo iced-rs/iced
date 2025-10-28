@@ -28,6 +28,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::widget::{self, Widget};
+use crate::core::window;
 use crate::core::{
     Clipboard, Element, Event, Length, Padding, Pixels, Point, Rectangle,
     Shell, Size, Vector,
@@ -56,7 +57,6 @@ use crate::core::{
 ///     ).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Tooltip<
     'a,
     Message,
@@ -155,10 +155,10 @@ where
         ]
     }
 
-    fn diff(&mut self, tree: &mut widget::Tree) {
-        tree.diff_children(&mut [
-            self.content.as_widget_mut(),
-            self.tooltip.as_widget_mut(),
+    fn diff(&self, tree: &mut widget::Tree) {
+        tree.diff_children(&[
+            self.content.as_widget(),
+            self.tooltip.as_widget(),
         ]);
     }
 
@@ -202,25 +202,28 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let state = tree.state.downcast_mut::<State>();
-
-        let previous_state = *state;
-        let was_idle = *state == State::Idle;
-
-        *state = cursor
-            .position_over(layout.bounds())
-            .map(|cursor_position| State::Hovered { cursor_position })
-            .unwrap_or_default();
-
-        let is_idle = *state == State::Idle;
-
-        if was_idle != is_idle {
-            shell.invalidate_layout();
-            shell.request_redraw();
-        } else if self.position == Position::FollowCursor
-            && previous_state != *state
+        if let Event::Mouse(_)
+        | Event::Window(window::Event::RedrawRequested(_)) = event
         {
-            shell.request_redraw();
+            let state = tree.state.downcast_mut::<State>();
+            let previous_state = *state;
+            let was_idle = *state == State::Idle;
+
+            *state = cursor
+                .position_over(layout.bounds())
+                .map(|cursor_position| State::Hovered { cursor_position })
+                .unwrap_or_default();
+
+            let is_idle = *state == State::Idle;
+
+            if was_idle != is_idle {
+                shell.invalidate_layout();
+                shell.request_redraw();
+            } else if self.position == Position::FollowCursor
+                && *state != previous_state
+            {
+                shell.request_redraw();
+            }
         }
 
         self.content.as_widget_mut().update(

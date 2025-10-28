@@ -93,7 +93,6 @@ pub use text::editor::{Action, Edit, Line, LineEnding, Motion};
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct TextEditor<
     'a,
     Highlighter,
@@ -535,8 +534,7 @@ impl Focus {
         self.is_window_focused
             && ((self.now - self.updated_at).as_millis()
                 / Self::CURSOR_BLINK_INTERVAL_MILLIS)
-                % 2
-                == 0
+                .is_multiple_of(2)
     }
 }
 

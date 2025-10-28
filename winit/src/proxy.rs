@@ -77,10 +77,7 @@ impl<T: 'static> Proxy<T> {
     ///
     /// Note: This skips the backpressure mechanism with an unbounded
     /// channel. Use sparingly!
-    pub fn send(&self, value: T)
-    where
-        T: std::fmt::Debug,
-    {
+    pub fn send(&self, value: T) {
         self.send_action(Action::Output(value));
     }
 
@@ -88,10 +85,7 @@ impl<T: 'static> Proxy<T> {
     ///
     /// Note: This skips the backpressure mechanism with an unbounded
     /// channel. Use sparingly!
-    pub fn send_action(&self, action: Action<T>)
-    where
-        T: std::fmt::Debug,
-    {
+    pub fn send_action(&self, action: Action<T>) {
         let _ = self.raw.send_event(action);
     }
 

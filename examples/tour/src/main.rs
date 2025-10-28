@@ -1,11 +1,9 @@
-use iced::border;
 use iced::widget::{Button, Column, Container, Slider};
 use iced::widget::{
-    button, center_x, center_y, checkbox, column, horizontal_space, image,
-    radio, rich_text, row, scrollable, slider, span, text, text_input, toggler,
-    vertical_space,
+    button, center_x, center_y, checkbox, column, image, radio, rich_text, row,
+    scrollable, slider, space, span, text, text_input, toggler,
 };
-use iced::{Center, Color, Element, Fill, Font, Pixels, Theme};
+use iced::{Center, Color, Element, Fill, Font, Pixels, color};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -148,7 +146,7 @@ impl Tour {
                     .on_press(Message::BackPressed)
                     .style(button::secondary)
             }),
-            horizontal_space(),
+            space::horizontal(),
             self.can_continue().then(|| {
                 padded_button("Next").on_press(Message::NextPressed)
             })
@@ -201,7 +199,7 @@ impl Tour {
         Self::container("Welcome!")
             .push(
                 "This is a simple tour meant to showcase a bunch of \
-                widgets that can be easily implemented on top of Iced.",
+                widgets that come bundled in Iced.",
             )
             .push(
                 "Iced is a cross-platform GUI library for Rust focused on \
@@ -216,28 +214,19 @@ impl Tour {
                  built on top of wgpu, a graphics library supporting Vulkan, \
                  Metal, DX11, and DX12.",
             )
-            .push({
-                let theme = Theme::default();
-                let palette = theme.extended_palette();
-
+            .push(
                 rich_text![
                     "Additionally, this tour can also run on WebAssembly ",
                     "by leveraging ",
                     span("trunk")
-                        .color(palette.primary.base.color)
-                        .background(palette.background.weakest.color)
-                        .border(
-                            border::rounded(2)
-                                .width(1)
-                                .color(palette.background.weak.color)
-                        )
-                        .padding([0, 2])
+                        .color(color!(0x7777FF))
+                        .underline(true)
                         .font(Font::MONOSPACE)
                         .link(Message::OpenTrunk),
                     "."
                 ]
-                .on_link_click(std::convert::identity)
-            })
+                .on_link_click(std::convert::identity),
+            )
             .push(
                 "You will need to interact with the UI in order to reach \
                  the end!",
@@ -416,14 +405,14 @@ impl Tour {
                 text("Tip: You can use the scrollbar to scroll down faster!")
                     .size(16),
             )
-            .push(vertical_space().height(4096))
+            .push(space().height(4096))
             .push(
                 text("You are halfway there!")
                     .width(Fill)
                     .size(30)
                     .align_x(Center),
             )
-            .push(vertical_space().height(4096))
+            .push(space().height(4096))
             .push(ferris(300, image::FilterMethod::Linear))
             .push(text("You made it!").width(Fill).size(50).align_x(Center))
     }

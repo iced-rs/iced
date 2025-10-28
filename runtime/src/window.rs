@@ -15,7 +15,6 @@ pub use raw_window_handle;
 use raw_window_handle::WindowHandle;
 
 /// An operation to be performed on some window.
-#[allow(missing_debug_implementations)]
 pub enum Action {
     /// Opens a new window with some [`Settings`].
     Open(Id, Settings, oneshot::Sender<Id>),
@@ -266,12 +265,12 @@ pub fn close<T>(id: Id) -> Task<T> {
 }
 
 /// Gets the window [`Id`] of the oldest window.
-pub fn get_oldest() -> Task<Option<Id>> {
+pub fn oldest() -> Task<Option<Id>> {
     task::oneshot(|channel| crate::Action::Window(Action::GetOldest(channel)))
 }
 
 /// Gets the window [`Id`] of the latest window.
-pub fn get_latest() -> Task<Option<Id>> {
+pub fn latest() -> Task<Option<Id>> {
     task::oneshot(|channel| crate::Action::Window(Action::GetLatest(channel)))
 }
 
@@ -315,14 +314,14 @@ pub fn set_resize_increments<T>(id: Id, increments: Option<Size>) -> Task<T> {
 }
 
 /// Get the window's size in logical dimensions.
-pub fn get_size(id: Id) -> Task<Size> {
+pub fn size(id: Id) -> Task<Size> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetSize(id, channel))
     })
 }
 
 /// Gets the maximized state of the window with the given [`Id`].
-pub fn get_maximized(id: Id) -> Task<bool> {
+pub fn is_maximized(id: Id) -> Task<bool> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetMaximized(id, channel))
     })
@@ -334,7 +333,7 @@ pub fn maximize<T>(id: Id, maximized: bool) -> Task<T> {
 }
 
 /// Gets the minimized state of the window with the given [`Id`].
-pub fn get_minimized(id: Id) -> Task<Option<bool>> {
+pub fn is_minimized(id: Id) -> Task<Option<bool>> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetMinimized(id, channel))
     })
@@ -346,14 +345,14 @@ pub fn minimize<T>(id: Id, minimized: bool) -> Task<T> {
 }
 
 /// Gets the position in logical coordinates of the window with the given [`Id`].
-pub fn get_position(id: Id) -> Task<Option<Point>> {
+pub fn position(id: Id) -> Task<Option<Point>> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetPosition(id, channel))
     })
 }
 
 /// Gets the scale factor of the window with the given [`Id`].
-pub fn get_scale_factor(id: Id) -> Task<f32> {
+pub fn scale_factor(id: Id) -> Task<f32> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetScaleFactor(id, channel))
     })
@@ -365,7 +364,7 @@ pub fn move_to<T>(id: Id, position: Point) -> Task<T> {
 }
 
 /// Gets the current [`Mode`] of the window.
-pub fn get_mode(id: Id) -> Task<Mode> {
+pub fn mode(id: Id) -> Task<Mode> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetMode(id, channel))
     })
@@ -426,7 +425,7 @@ pub fn show_system_menu<T>(id: Id) -> Task<T> {
 
 /// Gets an identifier unique to the window, provided by the underlying windowing system. This is
 /// not to be confused with [`Id`].
-pub fn get_raw_id<Message>(id: Id) -> Task<u64> {
+pub fn raw_id<Message>(id: Id) -> Task<u64> {
     task::oneshot(|channel| {
         crate::Action::Window(Action::GetRawId(id, channel))
     })

@@ -32,7 +32,6 @@ use crate::core::{
 ///     ].into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 {
     spacing: f32,
@@ -194,8 +193,8 @@ where
         self.children.iter().map(Tree::new).collect()
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
-        tree.diff_children(&mut self.children);
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(&self.children);
     }
 
     fn size(&self) -> Size<Length> {
@@ -234,7 +233,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds(), &mut |operation| {
+        operation.container(None, layout.bounds());
+        operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
                 .zip(&mut tree.children)

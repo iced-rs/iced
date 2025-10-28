@@ -11,7 +11,6 @@ use crate::core::{
 };
 
 /// Emit messages on mouse events.
-#[allow(missing_debug_implementations)]
 pub struct MouseArea<
     'a,
     Message,
@@ -181,8 +180,8 @@ where
         vec![Tree::new(&self.content)]
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_mut(&mut self.content));
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_ref(&self.content));
     }
 
     fn size(&self) -> Size<Length> {

@@ -84,7 +84,6 @@ where
     type Paragraph = A::Paragraph;
     type Editor = A::Editor;
 
-    const MONOSPACE_FONT: Self::Font = A::MONOSPACE_FONT;
     const ICON_FONT: Self::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
@@ -313,8 +312,8 @@ where
         delegate!(self, compositor, compositor.load_font(font));
     }
 
-    fn fetch_information(&self) -> compositor::Information {
-        delegate!(self, compositor, compositor.fetch_information())
+    fn information(&self) -> compositor::Information {
+        delegate!(self, compositor, compositor.information())
     }
 
     fn present(

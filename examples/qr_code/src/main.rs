@@ -20,7 +20,7 @@ struct QRGenerator {
     data: String,
     qr_code: Option<qr_code::Data>,
     total_size: Option<f32>,
-    theme: Theme,
+    theme: Option<Theme>,
 }
 
 #[derive(Debug, Clone)]
@@ -58,7 +58,7 @@ impl QRGenerator {
                 self.total_size = Some(total_size);
             }
             Message::ThemeChanged(theme) => {
-                self.theme = theme;
+                self.theme = Some(theme);
             }
         }
     }
@@ -78,7 +78,8 @@ impl QRGenerator {
 
         let choose_theme = row![
             text("Theme:"),
-            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeChanged,)
+            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeChanged)
+                .placeholder("Theme")
         ]
         .spacing(10)
         .align_y(Center);
@@ -107,7 +108,7 @@ impl QRGenerator {
         center(content).padding(20).into()
     }
 
-    fn theme(&self) -> Theme {
+    fn theme(&self) -> Option<Theme> {
         self.theme.clone()
     }
 }

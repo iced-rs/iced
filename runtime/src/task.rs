@@ -8,7 +8,10 @@ use crate::futures::futures::stream::{self, Stream, StreamExt};
 use crate::futures::{BoxStream, MaybeSend, boxed_stream};
 
 use std::convert::Infallible;
+use std::pin::Pin;
 use std::sync::Arc;
+use std::task;
+use std::thread;
 
 #[cfg(feature = "sipper")]
 #[doc(no_inline)]
@@ -266,7 +269,11 @@ impl<T> Task<T> {
         T: 'static,
     {
         Self {
-            stream: Some(boxed_stream(stream.map(Action::Output))),
+            stream: Some(boxed_stream(
+                stream::once(yield_now())
+                    .filter_map(|_| async { None })
+                    .chain(stream.map(Action::Output)),
+            )),
             units: 1,
         }
     }
@@ -465,4 +472,75 @@ pub fn effect<T>(action: impl Into<Action<Infallible>>) -> Task<T> {
 /// Returns the underlying [`Stream`] of the [`Task`].
 pub fn into_stream<T>(task: Task<T>) -> Option<BoxStream<Action<T>>> {
     task.stream
+}
+
+/// Creates a new [`Task`] that will run the given closure in a new thread.
+///
+/// Any data sent by the closure through the [`mpsc::Sender`] will be produced
+/// by the [`Task`].
+pub fn blocking<T>(f: impl FnOnce(mpsc::Sender<T>) + Send + 'static) -> Task<T>
+where
+    T: Send + 'static,
+{
+    let (sender, receiver) = mpsc::channel(1);
+
+    let _ = thread::spawn(move || {
+        f(sender);
+    });
+
+    Task::stream(receiver)
+}
+
+/// Creates a new [`Task`] that will run the given closure that can fail in a new
+/// thread.
+///
+/// Any data sent by the closure through the [`mpsc::Sender`] will be produced
+/// by the [`Task`].
+pub fn try_blocking<T, E>(
+    f: impl FnOnce(mpsc::Sender<T>) -> Result<(), E> + Send + 'static,
+) -> Task<Result<T, E>>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+{
+    let (sender, receiver) = mpsc::channel(1);
+    let (error_sender, error_receiver) = oneshot::channel();
+
+    let _ = thread::spawn(move || {
+        if let Err(error) = f(sender) {
+            let _ = error_sender.send(Err(error));
+        }
+    });
+
+    Task::stream(stream::select(
+        receiver.map(Ok),
+        stream::once(error_receiver).filter_map(async |result| result.ok()),
+    ))
+}
+
+async fn yield_now() {
+    struct YieldNow {
+        yielded: bool,
+    }
+
+    impl Future for YieldNow {
+        type Output = ();
+
+        fn poll(
+            mut self: Pin<&mut Self>,
+            cx: &mut task::Context<'_>,
+        ) -> task::Poll<()> {
+            if self.yielded {
+                return task::Poll::Ready(());
+            }
+
+            self.yielded = true;
+
+            cx.waker().wake_by_ref();
+
+            task::Poll::Pending
+        }
+    }
+
+    YieldNow { yielded: false }.await;
 }

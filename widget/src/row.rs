@@ -32,7 +32,6 @@ use crate::core::{
 ///     ].into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Row<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,
     padding: Padding,
@@ -196,8 +195,8 @@ where
         self.children.iter().map(Tree::new).collect()
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
-        tree.diff_children(&mut self.children);
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(&self.children);
     }
 
     fn size(&self) -> Size<Length> {
@@ -234,7 +233,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds(), &mut |operation| {
+        operation.container(None, layout.bounds());
+        operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
                 .zip(&mut tree.children)
@@ -360,7 +360,6 @@ where
 /// obtain a [`Row`] that wraps its contents.
 ///
 /// The original alignment of the [`Row`] is preserved per row wrapped.
-#[allow(missing_debug_implementations)]
 pub struct Wrapping<
     'a,
     Message,
@@ -398,7 +397,7 @@ where
         self.row.children()
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
+    fn diff(&self, tree: &mut Tree) {
         self.row.diff(tree);
     }
 

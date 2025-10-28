@@ -8,13 +8,11 @@ use crate::{Layer, Renderer, Settings};
 use std::collections::VecDeque;
 use std::num::NonZeroU32;
 
-#[allow(missing_debug_implementations)]
 pub struct Compositor {
     context: softbuffer::Context<Box<dyn compositor::Window>>,
     settings: Settings,
 }
 
-#[allow(missing_debug_implementations)]
 pub struct Surface {
     window: softbuffer::Surface<
         Box<dyn compositor::Window>,
@@ -100,7 +98,7 @@ impl crate::graphics::Compositor for Compositor {
         surface.layer_stack.clear();
     }
 
-    fn fetch_information(&self) -> Information {
+    fn information(&self) -> Information {
         Information {
             adapter: String::from("CPU"),
             backend: String::from("tiny-skia"),

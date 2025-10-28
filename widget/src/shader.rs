@@ -22,7 +22,6 @@ pub use primitive::{Primitive, Storage};
 ///
 /// Must be initialized with a [`Program`], which describes the internal widget state & how
 /// its [`Program::Primitive`]s are drawn.
-#[allow(missing_debug_implementations)]
 pub struct Shader<Message, P: Program<Message>> {
     width: Length,
     height: Length,

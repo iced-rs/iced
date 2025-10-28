@@ -1,5 +1,6 @@
 //! The official renderer for iced.
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 #[cfg(feature = "wgpu")]
 pub use iced_wgpu as wgpu;
 

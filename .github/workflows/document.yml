@@ -28,6 +28,7 @@ jobs:
           -p iced_wgpu \
           -p iced_widget \
           -p iced_winit \
+          -p iced_test \
           -p iced
     - name: Write CNAME file
       run: echo 'docs.iced.rs' > ./target/doc/CNAME

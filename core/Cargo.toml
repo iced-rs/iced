@@ -14,9 +14,10 @@ keywords.workspace = true
 workspace = true
 
 [features]
-auto-detect-theme = ["dep:dark-light"]
 advanced = []
 crisp = []
+basic-shaping = []
+advanced-shaping = []
 
 [dependencies]
 bitflags.workspace = true
@@ -29,9 +30,6 @@ rustc-hash.workspace = true
 smol_str.workspace = true
 thiserror.workspace = true
 web-time.workspace = true
-
-dark-light.workspace = true
-dark-light.optional = true
 
 serde.workspace = true
 serde.optional = true

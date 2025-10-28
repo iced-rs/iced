@@ -52,7 +52,6 @@ use crate::core::{
 ///         .into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Pin<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Renderer: core::Renderer,
@@ -127,8 +126,8 @@ where
         self.content.as_widget().children()
     }
 
-    fn diff(&mut self, tree: &mut widget::Tree) {
-        self.content.as_widget_mut().diff(tree);
+    fn diff(&self, tree: &mut widget::Tree) {
+        self.content.as_widget().diff(tree);
     }
 
     fn size(&self) -> Size<Length> {

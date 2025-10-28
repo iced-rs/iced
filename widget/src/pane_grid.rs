@@ -147,7 +147,6 @@ const THICKNESS_RATIO: f32 = 25.0;
 ///     .into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct PaneGrid<
     'a,
     Message,
@@ -378,7 +377,7 @@ where
         self.contents.iter().map(Content::state).collect()
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
+    fn diff(&self, tree: &mut Tree) {
         let Memory { order, .. } = tree.state.downcast_ref();
 
         // `Pane` always increments and is iterated by Ord so new
@@ -401,7 +400,7 @@ where
         });
 
         tree.diff_children_custom(
-            &mut self.contents,
+            &self.contents,
             |state, content| content.diff(state),
             Content::state,
         );
@@ -467,7 +466,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        operation.container(None, layout.bounds(), &mut |operation| {
+        operation.container(None, layout.bounds());
+        operation.traverse(&mut |operation| {
             self.panes
                 .iter_mut()
                 .zip(&mut self.contents)

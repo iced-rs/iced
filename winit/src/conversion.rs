@@ -5,6 +5,7 @@
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::theme;
 use crate::core::touch;
 use crate::core::window;
 use crate::core::{Event, Point, Size};
@@ -13,6 +14,7 @@ use crate::core::{Event, Point, Size};
 pub fn window_attributes(
     settings: window::Settings,
     title: &str,
+    scale_factor: f32,
     primary_monitor: Option<winit::monitor::MonitorHandle>,
     _id: Option<String>,
 ) -> winit::window::WindowAttributes {
@@ -21,8 +23,8 @@ pub fn window_attributes(
     attributes = attributes
         .with_title(title)
         .with_inner_size(winit::dpi::LogicalSize {
-            width: settings.size.width,
-            height: settings.size.height,
+            width: settings.size.width * scale_factor,
+            height: settings.size.height * scale_factor,
         })
         .with_maximized(settings.maximized)
         .with_fullscreen(
@@ -138,7 +140,7 @@ pub fn window_attributes(
 /// Converts a winit window event into an iced event.
 pub fn window_event(
     event: winit::event::WindowEvent,
-    scale_factor: f64,
+    scale_factor: f32,
     modifiers: winit::keyboard::ModifiersState,
 ) -> Option<Event> {
     use winit::event::Ime;
@@ -146,7 +148,7 @@ pub fn window_event(
 
     match event {
         WindowEvent::Resized(new_size) => {
-            let logical_size = new_size.to_logical(scale_factor);
+            let logical_size = new_size.to_logical(f64::from(scale_factor));
 
             Some(Event::Window(window::Event::Resized(Size {
                 width: logical_size.width,
@@ -157,7 +159,7 @@ pub fn window_event(
             Some(Event::Window(window::Event::CloseRequested))
         }
         WindowEvent::CursorMoved { position, .. } => {
-            let position = position.to_logical::<f64>(scale_factor);
+            let position = position.to_logical::<f64>(f64::from(scale_factor));
 
             Some(Event::Mouse(mouse::Event::CursorMoved {
                 position: Point::new(position.x as f32, position.y as f32),
@@ -313,7 +315,7 @@ pub fn window_event(
         }
         WindowEvent::Moved(position) => {
             let winit::dpi::LogicalPosition { x, y } =
-                position.to_logical(scale_factor);
+                position.to_logical(f64::from(scale_factor));
 
             Some(Event::Window(window::Event::Moved(Point::new(x, y))))
         }
@@ -321,7 +323,7 @@ pub fn window_event(
     }
 }
 
-/// Converts a [`window::Level`] to a [`winit`] window level.
+/// Converts a [`window::Level`] into a [`winit`] window level.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
@@ -334,7 +336,7 @@ pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
     }
 }
 
-/// Converts a [`window::Position`] to a [`winit`] logical position for a given monitor.
+/// Converts a [`window::Position`] into a [`winit`] logical position for a given monitor.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn position(
@@ -406,7 +408,7 @@ pub fn position(
     }
 }
 
-/// Converts a [`window::Mode`] to a [`winit`] fullscreen mode.
+/// Converts a [`window::Mode`] into a [`winit`] fullscreen mode.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn fullscreen(
@@ -421,7 +423,7 @@ pub fn fullscreen(
     }
 }
 
-/// Converts a [`window::Mode`] to a visibility flag.
+/// Converts a [`window::Mode`] into a visibility flag.
 pub fn visible(mode: window::Mode) -> bool {
     match mode {
         window::Mode::Windowed | window::Mode::Fullscreen => true,
@@ -429,7 +431,7 @@ pub fn visible(mode: window::Mode) -> bool {
     }
 }
 
-/// Converts a [`winit`] fullscreen mode to a [`window::Mode`].
+/// Converts a [`winit`] fullscreen mode into a [`window::Mode`].
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
@@ -439,7 +441,28 @@ pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
     }
 }
 
-/// Converts a [`mouse::Interaction`] to a [`winit`] cursor icon.
+/// Converts a [`winit`] window theme into a [`theme::Mode`].
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn theme_mode(theme: winit::window::Theme) -> theme::Mode {
+    match theme {
+        winit::window::Theme::Light => theme::Mode::Light,
+        winit::window::Theme::Dark => theme::Mode::Dark,
+    }
+}
+
+/// Converts a [`theme::Mode`] into a window theme.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn window_theme(mode: theme::Mode) -> Option<winit::window::Theme> {
+    match mode {
+        theme::Mode::None => None,
+        theme::Mode::Light => Some(winit::window::Theme::Light),
+        theme::Mode::Dark => Some(winit::window::Theme::Dark),
+    }
+}
+
+/// Converts a [`mouse::Interaction`] into a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn mouse_interaction(
@@ -510,12 +533,12 @@ pub fn modifiers(
     result
 }
 
-/// Converts a physical cursor position to a logical `Point`.
+/// Converts a physical cursor position into a logical `Point`.
 pub fn cursor_position(
     position: winit::dpi::PhysicalPosition<f64>,
-    scale_factor: f64,
+    scale_factor: f32,
 ) -> Point {
-    let logical_position = position.to_logical(scale_factor);
+    let logical_position = position.to_logical(f64::from(scale_factor));
 
     Point::new(logical_position.x, logical_position.y)
 }
@@ -526,11 +549,12 @@ pub fn cursor_position(
 /// [`iced`]: https://github.com/iced-rs/iced/tree/0.12
 pub fn touch_event(
     touch: winit::event::Touch,
-    scale_factor: f64,
+    scale_factor: f32,
 ) -> touch::Event {
     let id = touch::Finger(touch.id);
     let position = {
-        let location = touch.location.to_logical::<f64>(scale_factor);
+        let location =
+            touch.location.to_logical::<f64>(f64::from(scale_factor));
 
         Point::new(location.x as f32, location.y as f32)
     };
@@ -1180,7 +1204,7 @@ pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
     winit::window::Icon::from_rgba(pixels, size.width, size.height).ok()
 }
 
-/// Convertions some [`input_method::Purpose`] to its `winit` counterpart.
+/// Converts some [`input_method::Purpose`] into its `winit` counterpart.
 pub fn ime_purpose(
     purpose: input_method::Purpose,
 ) -> winit::window::ImePurpose {

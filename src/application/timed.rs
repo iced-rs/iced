@@ -1,5 +1,5 @@
 //! An [`Application`] that receives an [`Instant`] in update logic.
-use crate::application::{Application, Boot, View};
+use crate::application::{Application, BootFn, ViewFn};
 use crate::program;
 use crate::theme;
 use crate::time::Instant;
@@ -20,17 +20,17 @@ use iced_debug as debug;
 ///
 /// [`comet`]: https://github.com/iced-rs/comet
 pub fn timed<State, Message, Theme, Renderer>(
-    boot: impl Boot<State, Message>,
-    update: impl Update<State, Message>,
+    boot: impl BootFn<State, Message>,
+    update: impl UpdateFn<State, Message>,
     subscription: impl Fn(&State) -> Subscription<Message>,
-    view: impl for<'a> View<'a, State, Message, Theme, Renderer>,
+    view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
 ) -> Application<
     impl Program<State = State, Message = (Message, Instant), Theme = Theme>,
 >
 where
     State: 'static,
-    Message: program::Message + 'static,
-    Theme: Default + theme::Base + 'static,
+    Message: Send + 'static,
+    Theme: theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
     use std::marker::PhantomData;
@@ -68,13 +68,13 @@ where
             View,
         >
     where
-        Message: program::Message + 'static,
-        Theme: Default + theme::Base + 'static,
+        Message: Send + 'static,
+        Theme: theme::Base + 'static,
         Renderer: program::Renderer + 'static,
-        Boot: self::Boot<State, Message>,
-        Update: self::Update<State, Message>,
+        Boot: self::BootFn<State, Message>,
+        Update: self::UpdateFn<State, Message>,
         Subscription: Fn(&State) -> self::Subscription<Message>,
-        View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
+        View: for<'a> self::ViewFn<'a, State, Message, Theme, Renderer>,
     {
         type State = State;
         type Message = (Message, Instant);
@@ -86,6 +86,14 @@ where
             let name = std::any::type_name::<State>();
 
             name.split("::").next().unwrap_or("a_cool_application")
+        }
+
+        fn settings(&self) -> Settings {
+            Settings::default()
+        }
+
+        fn window(&self) -> Option<iced_core::window::Settings> {
+            Some(window::Settings::default())
         }
 
         fn boot(&self) -> (State, Task<Self::Message>) {
@@ -143,14 +151,15 @@ where
         },
         settings: Settings::default(),
         window: window::Settings::default(),
+        presets: Vec::new(),
     }
 }
 
 /// The update logic of some timed [`Application`].
 ///
-/// This is like [`application::Update`](super::Update),
+/// This is like [`application::UpdateFn`](super::UpdateFn),
 /// but it also takes an [`Instant`].
-pub trait Update<State, Message> {
+pub trait UpdateFn<State, Message> {
     /// Processes the message and updates the state of the [`Application`].
     fn update(
         &self,
@@ -160,7 +169,7 @@ pub trait Update<State, Message> {
     ) -> impl Into<Task<Message>>;
 }
 
-impl<State, Message> Update<State, Message> for () {
+impl<State, Message> UpdateFn<State, Message> for () {
     fn update(
         &self,
         _state: &mut State,
@@ -170,7 +179,7 @@ impl<State, Message> Update<State, Message> for () {
     }
 }
 
-impl<T, State, Message, C> Update<State, Message> for T
+impl<T, State, Message, C> UpdateFn<State, Message> for T
 where
     T: Fn(&mut State, Message, Instant) -> C,
     C: Into<Task<Message>>,

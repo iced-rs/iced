@@ -13,7 +13,6 @@ use crate::core::{
 };
 
 /// A widget that can make its contents float over other widgets.
-#[allow(missing_debug_implementations)]
 pub struct Float<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
@@ -103,8 +102,8 @@ where
         self.content.as_widget().children()
     }
 
-    fn diff(&mut self, tree: &mut widget::Tree) {
-        self.content.as_widget_mut().diff(tree);
+    fn diff(&self, tree: &mut widget::Tree) {
+        self.content.as_widget().diff(tree);
     }
 
     fn size(&self) -> Size<Length> {

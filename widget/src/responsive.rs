@@ -3,18 +3,17 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
-use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::Tree;
 use crate::core::{
     self, Clipboard, Element, Event, Length, Rectangle, Shell, Size, Vector,
     Widget,
 };
-use crate::horizontal_space;
+use crate::space;
 
 /// A widget that is aware of its dimensions.
 ///
 /// A [`Responsive`] widget will always try to fill all the available space of
 /// its parent.
-#[allow(missing_debug_implementations)]
 pub struct Responsive<
     'a,
     Message,
@@ -44,7 +43,7 @@ where
             view: Box::new(view),
             width: Length::Fill,
             height: Length::Fill,
-            content: Element::new(horizontal_space().width(0)),
+            content: Element::new(space()),
         }
     }
 
@@ -66,12 +65,7 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
-    fn tag(&self) -> tree::Tag {
-        struct Marker;
-        tree::Tag::of::<Marker>()
-    }
-
-    fn diff(&mut self, _tree: &mut Tree) {
+    fn diff(&self, _tree: &mut Tree) {
         // Diff is deferred to layout
     }
 
@@ -92,7 +86,7 @@ where
         let size = limits.max();
 
         self.content = (self.view)(size);
-        tree.diff_children(std::slice::from_mut(&mut self.content));
+        tree.diff_children(std::slice::from_ref(&self.content));
 
         let node = self.content.as_widget_mut().layout(
             &mut tree.children[0],

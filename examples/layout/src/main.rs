@@ -2,9 +2,8 @@ use iced::border;
 use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
-    button, canvas, center, center_y, checkbox, column, container,
-    horizontal_rule, horizontal_space, pick_list, pin, row, scrollable, stack,
-    text, vertical_rule,
+    button, canvas, center, center_y, checkbox, column, container, pick_list,
+    pin, row, rule, scrollable, space, stack, text,
 };
 use iced::{
     Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink,
@@ -19,11 +18,11 @@ pub fn main() -> iced::Result {
         .run()
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug, Default)]
 struct Layout {
     example: Example,
     explain: bool,
-    theme: Theme,
+    theme: Option<Theme>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,7 +50,7 @@ impl Layout {
                 self.explain = explain;
             }
             Message::ThemeSelected(theme) => {
-                self.theme = theme;
+                self.theme = Some(theme);
             }
         }
     }
@@ -71,10 +70,11 @@ impl Layout {
     fn view(&self) -> Element<'_, Message> {
         let header = row![
             text(self.example.title).size(20).font(Font::MONOSPACE),
-            horizontal_space(),
+            space::horizontal(),
             checkbox("Explain", self.explain)
                 .on_toggle(Message::ExplainToggled),
-            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeSelected),
+            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeSelected)
+                .placeholder("Theme"),
         ]
         .spacing(20)
         .align_y(Center);
@@ -92,23 +92,19 @@ impl Layout {
         })
         .padding(4);
 
-        let controls = row([
+        let controls = row![
             (!self.example.is_first()).then_some(
-                button("← Previous")
+                button(text("← Previous"))
                     .padding([5, 10])
                     .on_press(Message::Previous)
-                    .into(),
             ),
-            Some(horizontal_space().into()),
+            space::horizontal(),
             (!self.example.is_last()).then_some(
-                button("Next →")
+                button(text("Next →"))
                     .padding([5, 10])
                     .on_press(Message::Next)
-                    .into(),
             ),
-        ]
-        .into_iter()
-        .flatten());
+        ];
 
         column![header, example, controls]
             .spacing(10)
@@ -116,7 +112,7 @@ impl Layout {
             .into()
     }
 
-    fn theme(&self) -> Theme {
+    fn theme(&self) -> Option<Theme> {
         self.theme.clone()
     }
 }
@@ -143,7 +139,7 @@ impl Example {
         },
         Self {
             title: "Space",
-            view: space,
+            view: space_,
         },
         Self {
             title: "Application",
@@ -237,17 +233,17 @@ fn row_<'a>() -> Element<'a, Message> {
     .into()
 }
 
-fn space<'a>() -> Element<'a, Message> {
-    row!["Left!", horizontal_space(), "Right!"].into()
+fn space_<'a>() -> Element<'a, Message> {
+    row!["Left!", space::horizontal(), "Right!"].into()
 }
 
 fn application<'a>() -> Element<'a, Message> {
     let header = container(
         row![
             square(40),
-            horizontal_space(),
+            space::horizontal(),
             "Header!",
-            horizontal_space(),
+            space::horizontal(),
             square(40),
         ]
         .padding(10)
@@ -294,7 +290,7 @@ fn quotes<'a>() -> Element<'a, Message> {
     fn quote<'a>(
         content: impl Into<Element<'a, Message>>,
     ) -> Element<'a, Message> {
-        row![vertical_rule(2), content.into()]
+        row![rule::vertical(1), content.into()]
             .spacing(10)
             .height(Shrink)
             .into()
@@ -312,8 +308,8 @@ fn quotes<'a>() -> Element<'a, Message> {
             reply("This is the original message", "This is a reply"),
             "This is another reply",
         ),
-        horizontal_rule(1),
-        "A separator ↑",
+        rule::horizontal(1),
+        text("A separator ↑"),
     ]
     .width(Shrink)
     .spacing(10)

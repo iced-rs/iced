@@ -92,7 +92,6 @@ impl Cached for Geometry {
 }
 
 /// A frame for drawing some geometry.
-#[allow(missing_debug_implementations)]
 pub struct Frame {
     clip_bounds: Rectangle,
     buffers: BufferStack,

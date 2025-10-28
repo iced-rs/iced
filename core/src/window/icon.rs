@@ -11,7 +11,7 @@ pub fn from_rgba(
 ) -> Result<Icon, Error> {
     const PIXEL_SIZE: usize = mem::size_of::<u8>() * 4;
 
-    if rgba.len() % PIXEL_SIZE != 0 {
+    if !rgba.len().is_multiple_of(PIXEL_SIZE) {
         return Err(Error::ByteCountNotDivisibleBy4 {
             byte_count: rgba.len(),
         });

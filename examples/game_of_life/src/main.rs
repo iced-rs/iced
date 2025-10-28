@@ -16,7 +16,7 @@ pub fn main() -> iced::Result {
 
     iced::application(GameOfLife::default, GameOfLife::update, GameOfLife::view)
         .subscription(GameOfLife::subscription)
-        .theme(|_| Theme::Dark)
+        .theme(Theme::Dark)
         .centered()
         .run()
 }

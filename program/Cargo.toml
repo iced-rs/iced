@@ -14,6 +14,7 @@ rust-version.workspace = true
 workspace = true
 
 [features]
+debug = []
 time-travel = []
 
 [dependencies]

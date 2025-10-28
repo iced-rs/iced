@@ -1,8 +1,8 @@
 use iced::keyboard;
 use iced::widget::{
-    button, center_x, center_y, checkbox, column, container, horizontal_rule,
-    pick_list, progress_bar, row, scrollable, slider, text, text_input,
-    toggler, vertical_rule, vertical_space,
+    button, center_x, center_y, checkbox, column, container, pick_list,
+    progress_bar, row, rule, scrollable, slider, space, text, text_input,
+    toggler,
 };
 use iced::{Center, Element, Fill, Shrink, Subscription, Theme};
 
@@ -15,7 +15,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct Styling {
-    theme: Theme,
+    theme: Option<Theme>,
     input_value: String,
     slider_value: f32,
     checkbox_value: bool,
@@ -32,13 +32,14 @@ enum Message {
     TogglerToggled(bool),
     PreviousTheme,
     NextTheme,
+    ClearTheme,
 }
 
 impl Styling {
     fn update(&mut self, message: Message) {
         match message {
             Message::ThemeChanged(theme) => {
-                self.theme = theme;
+                self.theme = Some(theme);
             }
             Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => {}
@@ -46,21 +47,29 @@ impl Styling {
             Message::CheckboxToggled(value) => self.checkbox_value = value,
             Message::TogglerToggled(value) => self.toggler_value = value,
             Message::PreviousTheme | Message::NextTheme => {
-                if let Some(current) = Theme::ALL
-                    .iter()
-                    .position(|candidate| &self.theme == candidate)
-                {
-                    self.theme = if matches!(message, Message::NextTheme) {
-                        Theme::ALL[(current + 1) % Theme::ALL.len()].clone()
-                    } else if current == 0 {
+                let current = Theme::ALL.iter().position(|candidate| {
+                    self.theme.as_ref() == Some(candidate)
+                });
+
+                self.theme = Some(if matches!(message, Message::NextTheme) {
+                    Theme::ALL[current.map(|current| current + 1).unwrap_or(0)
+                        % Theme::ALL.len()]
+                    .clone()
+                } else {
+                    let current = current.unwrap_or(0);
+
+                    if current == 0 {
                         Theme::ALL
                             .last()
                             .expect("Theme::ALL must not be empty")
                             .clone()
                     } else {
                         Theme::ALL[current - 1].clone()
-                    };
-                }
+                    }
+                });
+            }
+            Message::ClearTheme => {
+                self.theme = None;
             }
         }
     }
@@ -68,8 +77,9 @@ impl Styling {
     fn view(&self) -> Element<'_, Message> {
         let choose_theme = column![
             text("Theme:"),
-            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeChanged)
-                .width(Fill),
+            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeChanged)
+                .width(Fill)
+                .placeholder("System"),
         ]
         .spacing(10);
 
@@ -117,7 +127,7 @@ impl Styling {
 
         let scroll_me = scrollable(column![
             "Scroll me!",
-            vertical_space().height(800),
+            space().height(800),
             "You did it!"
         ])
         .width(Fill)
@@ -152,14 +162,14 @@ impl Styling {
 
         let content = column![
             choose_theme,
-            horizontal_rule(1),
+            rule::horizontal(1),
             text_input,
             buttons,
             slider(),
             progress_bar(),
             row![
                 scroll_me,
-                vertical_rule(1),
+                rule::vertical(1),
                 column![check, check_disabled, toggle, disabled_toggle]
                     .spacing(10)
             ]
@@ -186,11 +196,14 @@ impl Styling {
                 keyboard::key::Named::ArrowDown
                 | keyboard::key::Named::ArrowRight,
             ) => Some(Message::NextTheme),
+            keyboard::Key::Named(keyboard::key::Named::Space) => {
+                Some(Message::ClearTheme)
+            }
             _ => None,
         })
     }
 
-    fn theme(&self) -> Theme {
+    fn theme(&self) -> Option<Theme> {
         self.theme.clone()
     }
 }
@@ -210,9 +223,7 @@ mod tests {
             .cloned()
             .map(|theme| {
                 let mut styling = Styling::default();
-                styling.update(Message::ThemeChanged(theme));
-
-                let theme = styling.theme();
+                styling.update(Message::ThemeChanged(theme.clone()));
 
                 let mut ui = simulator(styling.view());
                 let snapshot = ui.snapshot(&theme)?;

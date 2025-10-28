@@ -31,7 +31,6 @@ crisp = []
 
 [dependencies]
 iced_renderer.workspace = true
-iced_runtime.workspace = true
 
 num-traits.workspace = true
 log.workspace = true

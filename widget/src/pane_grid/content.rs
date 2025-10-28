@@ -13,7 +13,6 @@ use crate::pane_grid::{Draggable, TitleBar};
 /// The content of a [`Pane`].
 ///
 /// [`Pane`]: super::Pane
-#[allow(missing_debug_implementations)]
 pub struct Content<
     'a,
     Message,
@@ -91,13 +90,13 @@ where
         }
     }
 
-    pub(super) fn diff(&mut self, tree: &mut Tree) {
+    pub(super) fn diff(&self, tree: &mut Tree) {
         if tree.children.len() == 2 {
-            if let Some(title_bar) = self.title_bar.as_mut() {
+            if let Some(title_bar) = self.title_bar.as_ref() {
                 title_bar.diff(&mut tree.children[1]);
             }
 
-            tree.children[0].diff(&mut self.body);
+            tree.children[0].diff(&self.body);
         } else {
             *tree = self.state();
         }

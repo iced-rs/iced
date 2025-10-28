@@ -1,5 +1,5 @@
 use iced::widget::{
-    button, center, center_x, column, container, horizontal_space, scrollable,
+    button, center, center_x, column, container, operation, scrollable, space,
     text, text_input,
 };
 use iced::window;
@@ -26,7 +26,7 @@ struct Example {
 struct Window {
     title: String,
     scale_input: String,
-    current_scale: f64,
+    current_scale: f32,
     theme: Theme,
 }
 
@@ -42,7 +42,7 @@ enum Message {
 
 impl Example {
     fn new() -> (Self, Task<Message>) {
-        let (_id, open) = window::open(window::Settings::default());
+        let (_, open) = window::open(window::Settings::default());
 
         (
             Self {
@@ -66,7 +66,7 @@ impl Example {
                     return Task::none();
                 };
 
-                window::get_position(*last_window)
+                window::position(*last_window)
                     .then(|last_position| {
                         let position = last_position.map_or(
                             window::Position::Default,
@@ -77,7 +77,7 @@ impl Example {
                             },
                         );
 
-                        let (_id, open) = window::open(window::Settings {
+                        let (_, open) = window::open(window::Settings {
                             position,
                             ..window::Settings::default()
                         });
@@ -88,7 +88,7 @@ impl Example {
             }
             Message::WindowOpened(id) => {
                 let window = Window::new(self.windows.len() + 1);
-                let focus_input = text_input::focus(format!("input-{id}"));
+                let focus_input = operation::focus(format!("input-{id}"));
 
                 self.windows.insert(id, window);
 
@@ -113,7 +113,7 @@ impl Example {
             Message::ScaleChanged(id, scale) => {
                 if let Some(window) = self.windows.get_mut(&id) {
                     window.current_scale = scale
-                        .parse::<f64>()
+                        .parse()
                         .unwrap_or(window.current_scale)
                         .clamp(0.5, 5.0);
                 }
@@ -134,19 +134,15 @@ impl Example {
         if let Some(window) = self.windows.get(&window_id) {
             center(window.view(window_id)).into()
         } else {
-            horizontal_space().into()
+            space().into()
         }
     }
 
-    fn theme(&self, window: window::Id) -> Theme {
-        if let Some(window) = self.windows.get(&window) {
-            window.theme.clone()
-        } else {
-            Theme::default()
-        }
+    fn theme(&self, window: window::Id) -> Option<Theme> {
+        Some(self.windows.get(&window)?.theme.clone())
     }
 
-    fn scale_factor(&self, window: window::Id) -> f64 {
+    fn scale_factor(&self, window: window::Id) -> f32 {
         self.windows
             .get(&window)
             .map(|window| window.current_scale)

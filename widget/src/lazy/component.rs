@@ -9,7 +9,6 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     self, Clipboard, Element, Length, Rectangle, Shell, Size, Vector, Widget,
 };
-use crate::runtime::overlay::Nested;
 
 use ouroboros::self_referencing;
 use std::cell::RefCell;
@@ -147,13 +146,13 @@ where
     Renderer: renderer::Renderer,
 {
     fn diff_self(&self) {
-        self.with_element_mut(|element| {
+        self.with_element(|element| {
             self.tree
                 .borrow_mut()
                 .borrow_mut()
                 .as_mut()
                 .unwrap()
-                .diff_children(std::slice::from_mut(element));
+                .diff_children(std::slice::from_ref(&element));
         });
     }
 
@@ -279,7 +278,7 @@ where
         vec![]
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
+    fn diff(&self, tree: &mut Tree) {
         let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
         *self.tree.borrow_mut() = tree.clone();
         self.rebuild_element_if_necessary();
@@ -472,7 +471,9 @@ where
                                 viewport,
                                 translation,
                             )
-                            .map(|overlay| RefCell::new(Nested::new(overlay)))
+                            .map(|overlay| {
+                                RefCell::new(overlay::Nested::new(overlay))
+                            })
                     },
                 )
             },
@@ -519,7 +520,7 @@ struct Inner<'a, 'b, Message, Theme, Renderer, Event, S> {
 
     #[borrows(mut instance, mut tree)]
     #[not_covariant]
-    overlay: Option<RefCell<Nested<'this, Event, Theme, Renderer>>>,
+    overlay: Option<RefCell<overlay::Nested<'this, Event, Theme, Renderer>>>,
 }
 
 struct OverlayInstance<'a, 'b, Message, Theme, Renderer, Event, S> {
@@ -531,7 +532,7 @@ impl<Message, Theme, Renderer, Event, S>
 {
     fn with_overlay_maybe<T>(
         &self,
-        f: impl FnOnce(&mut Nested<'_, Event, Theme, Renderer>) -> T,
+        f: impl FnOnce(&mut overlay::Nested<'_, Event, Theme, Renderer>) -> T,
     ) -> Option<T> {
         self.overlay
             .as_ref()
@@ -546,7 +547,7 @@ impl<Message, Theme, Renderer, Event, S>
 
     fn with_overlay_mut_maybe<T>(
         &mut self,
-        f: impl FnOnce(&mut Nested<'_, Event, Theme, Renderer>) -> T,
+        f: impl FnOnce(&mut overlay::Nested<'_, Event, Theme, Renderer>) -> T,
     ) -> Option<T> {
         self.overlay
             .as_mut()

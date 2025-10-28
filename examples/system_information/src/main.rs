@@ -1,5 +1,6 @@
+use iced::system;
 use iced::widget::{button, center, column, text};
-use iced::{Element, Task, system};
+use iced::{Element, Task};
 
 pub fn main() -> iced::Result {
     iced::application(Example::new, Example::update, Example::view).run()
@@ -26,7 +27,7 @@ impl Example {
     fn new() -> (Self, Task<Message>) {
         (
             Self::Loading,
-            system::fetch_information().map(Message::InformationReceived),
+            system::information().map(Message::InformationReceived),
         )
     }
 

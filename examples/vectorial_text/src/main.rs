@@ -1,8 +1,6 @@
 use iced::alignment;
 use iced::mouse;
-use iced::widget::{
-    canvas, checkbox, column, horizontal_space, row, slider, text,
-};
+use iced::widget::{canvas, checkbox, column, row, slider, space, text};
 use iced::{Center, Element, Fill, Point, Rectangle, Renderer, Theme, Vector};
 
 pub fn main() -> iced::Result {
@@ -11,7 +9,7 @@ pub fn main() -> iced::Result {
         VectorialText::update,
         VectorialText::view,
     )
-    .theme(|_| Theme::Dark)
+    .theme(Theme::Dark)
     .run()
 }
 
@@ -51,7 +49,7 @@ impl VectorialText {
     fn view(&self) -> Element<'_, Message> {
         let slider_with_label = |label, range, value, message: fn(f32) -> _| {
             column![
-                row![text(label), horizontal_space(), text!("{:.2}", value)],
+                row![text(label), space::horizontal(), text!("{:.2}", value)],
                 slider(range, value, message).step(0.01)
             ]
             .spacing(2)

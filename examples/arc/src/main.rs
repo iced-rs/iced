@@ -10,7 +10,7 @@ use iced::{Element, Fill, Point, Rectangle, Renderer, Subscription, Theme};
 pub fn main() -> iced::Result {
     iced::application(Arc::new, Arc::update, Arc::view)
         .subscription(Arc::subscription)
-        .theme(|_| Theme::Dark)
+        .theme(Theme::Dark)
         .run()
 }
 

@@ -30,7 +30,6 @@ pub fn connect() -> impl Sipper<Never, Event> {
                         tokio::time::sleep(tokio::time::Duration::from_secs(1))
                             .await;
 
-                        output.send(Event::Disconnected).await;
                         continue;
                     }
                 };

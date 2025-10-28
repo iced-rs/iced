@@ -55,7 +55,6 @@ pub use text::{Alignment, LineHeight, Shaping, Wrapping};
 ///         .into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Text<'a, Theme, Renderer>
 where
     Theme: Catalog,

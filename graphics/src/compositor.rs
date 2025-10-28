@@ -59,7 +59,7 @@ pub trait Compositor: Sized {
     );
 
     /// Returns [`Information`] used by this [`Compositor`].
-    fn fetch_information(&self) -> Information;
+    fn information(&self) -> Information;
 
     /// Loads a font from its bytes.
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
@@ -178,7 +178,7 @@ impl Compositor for () {
 
     fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 
-    fn fetch_information(&self) -> Information {
+    fn information(&self) -> Information {
         Information {
             adapter: String::from("Null Renderer"),
             backend: String::from("Null"),

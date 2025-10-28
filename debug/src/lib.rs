@@ -413,7 +413,7 @@ mod internal {
     }
 }
 
-#[cfg(feature = "hot")]
+#[cfg(all(feature = "hot", not(target_arch = "wasm32")))]
 mod hot {
     use std::collections::BTreeSet;
     use std::sync::atomic::{self, AtomicBool};
@@ -478,7 +478,7 @@ mod hot {
     }
 }
 
-#[cfg(not(feature = "hot"))]
+#[cfg(any(not(feature = "hot"), target_arch = "wasm32"))]
 mod hot {
     pub fn init() {}
 
@@ -486,7 +486,7 @@ mod hot {
         f()
     }
 
-    pub fn on_hotpatch(_f: impl Fn() + Send + Sync + 'static) {}
+    pub fn on_hotpatch(_f: impl Fn()) {}
 
     pub fn is_stale() -> bool {
         false

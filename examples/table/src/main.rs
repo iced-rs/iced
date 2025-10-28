@@ -8,7 +8,7 @@ use iced::{Center, Element, Fill, Font, Right, Theme};
 
 pub fn main() -> iced::Result {
     iced::application(Table::new, Table::update, Table::view)
-        .theme(|_| Theme::CatppuccinMocha)
+        .theme(Theme::CatppuccinMocha)
         .run()
 }
 

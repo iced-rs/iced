@@ -134,7 +134,6 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
 }
 
 /// A set of system fonts.
-#[allow(missing_debug_implementations)]
 pub struct FontSystem {
     raw: cosmic_text::FontSystem,
     loaded_fonts: HashSet<usize>,
@@ -323,8 +322,15 @@ fn to_align(alignment: Alignment) -> Option<cosmic_text::Align> {
 }
 
 /// Converts some [`Shaping`] strategy to a [`cosmic_text::Shaping`] strategy.
-pub fn to_shaping(shaping: Shaping) -> cosmic_text::Shaping {
+pub fn to_shaping(shaping: Shaping, text: &str) -> cosmic_text::Shaping {
     match shaping {
+        Shaping::Auto => {
+            if text.is_ascii() {
+                cosmic_text::Shaping::Basic
+            } else {
+                cosmic_text::Shaping::Advanced
+            }
+        }
         Shaping::Basic => cosmic_text::Shaping::Basic,
         Shaping::Advanced => cosmic_text::Shaping::Advanced,
     }
