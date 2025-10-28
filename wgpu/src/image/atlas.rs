@@ -337,70 +337,80 @@ impl Atlas {
             device,
         );
 
-        let mut padded_data = buffer_slice.get_mapped_range_mut();
-        let padding_width = padding.width as usize;
-        let padding_height = padding.height as usize;
+        const PIXEL: usize = 4;
+
+        let mut fragment = buffer_slice.get_mapped_range_mut();
+        let pad_w = padding.width as usize;
+        let pad_h = padding.height as usize;
+        let stride = PIXEL * width as usize;
 
         // Copy image rows
         for row in 0..height as usize {
-            let offset = offset + row * 4 * image_width as usize;
-            let start = (row + padding_height) * bytes_per_row;
-            let stride = 4 * width as usize;
+            let src = offset + row * PIXEL * image_width as usize;
+            let dst = (row + pad_h) * bytes_per_row;
 
-            padded_data
-                [start + 4 * padding_width..start + 4 * padding_width + stride]
-                .copy_from_slice(&pixels[offset..offset + stride]);
+            fragment[dst + PIXEL * pad_w..dst + PIXEL * pad_w + stride]
+                .copy_from_slice(&pixels[src..src + stride]);
 
             // Add padding to the sides, if needed
-            for i in 0..padding_width {
-                padded_data[start + 4 * i..start + 4 * (i + 1)]
-                    .copy_from_slice(&pixels[offset..offset + 4]);
+            for i in 0..pad_w {
+                fragment[dst + PIXEL * i..dst + PIXEL * (i + 1)]
+                    .copy_from_slice(&pixels[src..src + PIXEL]);
 
-                padded_data[start + stride + 4 * (padding_width + i)
-                    ..start + stride + 4 * (padding_width + i + 1)]
+                fragment[dst + stride + PIXEL * (pad_w + i)
+                    ..dst + stride + PIXEL * (pad_w + i + 1)]
                     .copy_from_slice(
-                        &pixels[offset + stride - 4..offset + stride],
+                        &pixels[src + stride - PIXEL..src + stride],
                     );
             }
         }
 
         // Add padding on top and bottom
-        for row in 0..padding_height {
-            let start = row * bytes_per_row;
-            let end = (padding_height + height as usize + row) * bytes_per_row;
-            let last =
-                offset + (height - 1) as usize * 4 * image_width as usize;
+        for row in 0..pad_h {
+            let dst_top = row * bytes_per_row;
+            let dst_bottom = (pad_h + height as usize + row) * bytes_per_row;
+            let src_top = offset;
+            let src_bottom =
+                offset + (height - 1) as usize * PIXEL * image_width as usize;
 
             // Top
-            padded_data[start + 4 * padding_width
-                ..start + 4 * (padding_width + width as usize)]
-                .copy_from_slice(&pixels[offset..offset + 4 * width as usize]);
+            fragment[dst_top + PIXEL * pad_w
+                ..dst_top + PIXEL * (pad_w + width as usize)]
+                .copy_from_slice(
+                    &pixels[src_top..src_top + PIXEL * width as usize],
+                );
 
             // Bottom
-            padded_data[end + 4 * padding_width
-                ..end + 4 * (padding_width + width as usize)]
-                .copy_from_slice(&pixels[last..last + 4 * width as usize]);
+            fragment[dst_bottom + PIXEL * pad_w
+                ..dst_bottom + PIXEL * (pad_w + width as usize)]
+                .copy_from_slice(
+                    &pixels[src_bottom..src_bottom + PIXEL * width as usize],
+                );
 
             // Corners
-            for i in 0..padding_width {
-                padded_data[start + 4 * i..start + 4 * (i + 1)]
-                    .copy_from_slice(&pixels[offset..offset + 4]);
+            for i in 0..pad_w {
+                // Top left
+                fragment[dst_top + PIXEL * i..dst_top + PIXEL * (i + 1)]
+                    .copy_from_slice(&pixels[offset..offset + PIXEL]);
 
-                padded_data[start + 4 * (width as usize + padding_width + i)
-                    ..start + 4 * (width as usize + padding_width + i + 1)]
+                // Top right
+                fragment[dst_top + PIXEL * (width as usize + pad_w + i)
+                    ..dst_top + PIXEL * (width as usize + pad_w + i + 1)]
                     .copy_from_slice(
-                        &pixels[offset + 4 * (width - 1) as usize
-                            ..offset + 4 * width as usize],
+                        &pixels[offset + PIXEL * (width - 1) as usize
+                            ..offset + PIXEL * width as usize],
                     );
 
-                padded_data[end + 4 * i..end + 4 * (i + 1)]
-                    .copy_from_slice(&pixels[last..last + 4]);
+                // Bottom left
+                fragment[dst_bottom + PIXEL * i..dst_bottom + PIXEL * (i + 1)]
+                    .copy_from_slice(&pixels[src_bottom..src_bottom + PIXEL]);
 
-                padded_data[end + 4 * (width as usize + padding_width + i)
-                    ..end + 4 * (width as usize + padding_width + i + 1)]
+                // Bottom right
+                fragment[dst_bottom + PIXEL * (width as usize + pad_w + i)
+                    ..dst_bottom + PIXEL * (width as usize + pad_w + i + 1)]
                     .copy_from_slice(
-                        &pixels[last + 4 * (width - 1) as usize
-                            ..last + 4 * width as usize],
+                        &pixels[src_bottom + PIXEL * (width - 1) as usize
+                            ..src_bottom + PIXEL * width as usize],
                     );
             }
         }
