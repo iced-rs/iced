@@ -87,7 +87,7 @@ impl Cache {
 
         let hits = &self.hits;
 
-        self.map.retain(|k, memory| {
+        self.map.retain(|id, memory| {
             // Retain active allocations
             if let Memory::Device { allocation, .. } = memory
                 && allocation
@@ -97,17 +97,20 @@ impl Cache {
                 return true;
             }
 
-            let retain = hits.contains(k);
+            let retain = hits.contains(id);
 
-            if !retain
-                && let Memory::Device {
+            if !retain {
+                log::debug!("Dropping image allocation: {id:?}");
+
+                if let Memory::Device {
                     entry, bind_group, ..
                 } = memory
-            {
-                if let Some(bind_group) = bind_group.take() {
-                    on_drop(bind_group);
-                } else {
-                    atlas.remove(entry);
+                {
+                    if let Some(bind_group) = bind_group.take() {
+                        on_drop(bind_group);
+                    } else {
+                        atlas.remove(entry);
+                    }
                 }
             }
 
