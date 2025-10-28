@@ -261,7 +261,11 @@ impl State {
         for image in images {
             match &image {
                 #[cfg(feature = "image")]
-                Image::Raster(image, bounds) => {
+                Image::Raster {
+                    image,
+                    bounds,
+                    clip_bounds,
+                } => {
                     if let Some((atlas_entry, bind_group)) = cache
                         .upload_raster(device, encoder, belt, &image.handle)
                     {
@@ -283,7 +287,7 @@ impl State {
 
                         add_instances(
                             *bounds,
-                            image.clip_bounds,
+                            *clip_bounds,
                             image.border_radius,
                             f32::from(image.rotation),
                             image.opacity,
@@ -304,7 +308,11 @@ impl State {
                 Image::Raster { .. } => continue,
 
                 #[cfg(feature = "svg")]
-                Image::Vector(svg, bounds) => {
+                Image::Vector {
+                    svg,
+                    bounds,
+                    clip_bounds,
+                } => {
                     if let Some((atlas_entry, bind_group)) = cache
                         .upload_vector(
                             device,
@@ -334,7 +342,7 @@ impl State {
 
                         add_instances(
                             *bounds,
-                            Rectangle::INFINITE,
+                            *clip_bounds,
                             border::radius(0),
                             f32::from(svg.rotation),
                             svg.opacity,

@@ -7,21 +7,32 @@ use crate::core::image;
 use crate::core::svg;
 
 /// A raster or vector image.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Image {
     /// A raster image.
-    Raster(image::Image, Rectangle),
+    Raster {
+        image: image::Image,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    },
 
     /// A vector image.
-    Vector(svg::Svg, Rectangle),
+    Vector {
+        svg: svg::Svg,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    },
 }
 
 impl Image {
     /// Returns the bounds of the [`Image`].
     pub fn bounds(&self) -> Rectangle {
         match self {
-            Image::Raster(image, bounds) => bounds.rotate(image.rotation),
-            Image::Vector(svg, bounds) => bounds.rotate(svg.rotation),
+            Image::Raster { image, bounds, .. } => {
+                bounds.rotate(image.rotation)
+            }
+            Image::Vector { svg, bounds, .. } => bounds.rotate(svg.rotation),
         }
     }
 }

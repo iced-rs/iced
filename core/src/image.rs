@@ -16,21 +16,16 @@ pub struct Image<H = Handle> {
     /// The handle of the image.
     pub handle: H,
 
-    /// The clip bounds of the [`Image`].
-    ///
-    /// Anything outside this [`Rectangle`] will not be drawn.
-    pub clip_bounds: Rectangle,
-
-    /// The border radius of the [`Image`].
-    ///
-    /// Currently, this will only be applied to the `clip_bounds`.
-    pub border_radius: border::Radius,
-
     /// The filter method of the image.
     pub filter_method: FilterMethod,
 
     /// The rotation to be applied to the image; on its center.
     pub rotation: Radians,
+
+    /// The border radius of the [`Image`].
+    ///
+    /// Currently, this will only be applied to the `clip_bounds`.
+    pub border_radius: border::Radius,
 
     /// The opacity of the image.
     ///
@@ -49,10 +44,9 @@ impl Image<Handle> {
     pub fn new(handle: impl Into<Handle>) -> Self {
         Self {
             handle: handle.into(),
-            clip_bounds: Rectangle::INFINITE,
-            border_radius: border::Radius::default(),
             filter_method: FilterMethod::default(),
             rotation: Radians(0.0),
+            border_radius: border::Radius::default(),
             opacity: 1.0,
             snap: false,
         }
@@ -307,5 +301,10 @@ pub trait Renderer: crate::Renderer {
     fn measure_image(&self, handle: &Self::Handle) -> Size<u32>;
 
     /// Draws an [`Image`] inside the provided `bounds`.
-    fn draw_image(&mut self, image: Image<Self::Handle>, bounds: Rectangle);
+    fn draw_image(
+        &mut self,
+        image: Image<Self::Handle>,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    );
 }

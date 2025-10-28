@@ -158,8 +158,17 @@ where
         delegate!(self, renderer, renderer.measure_image(handle))
     }
 
-    fn draw_image(&mut self, image: Image<A::Handle>, bounds: Rectangle) {
-        delegate!(self, renderer, renderer.draw_image(image, bounds));
+    fn draw_image(
+        &mut self,
+        image: Image<A::Handle>,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    ) {
+        delegate!(
+            self,
+            renderer,
+            renderer.draw_image(image, bounds, clip_bounds)
+        );
     }
 }
 
@@ -172,8 +181,13 @@ where
         delegate!(self, renderer, renderer.measure_svg(handle))
     }
 
-    fn draw_svg(&mut self, svg: Svg, bounds: Rectangle) {
-        delegate!(self, renderer, renderer.draw_svg(svg, bounds));
+    fn draw_svg(
+        &mut self,
+        svg: Svg,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    ) {
+        delegate!(self, renderer, renderer.draw_svg(svg, bounds, clip_bounds));
     }
 }
 

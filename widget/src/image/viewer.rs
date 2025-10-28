@@ -314,7 +314,7 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
@@ -348,7 +348,6 @@ where
                 renderer.draw_image(
                     Image {
                         handle: self.handle.clone(),
-                        clip_bounds: Rectangle::INFINITE,
                         border_radius: border::Radius::default(),
                         filter_method: self.filter_method,
                         rotation: Radians(0.0),
@@ -356,6 +355,7 @@ where
                         snap: true,
                     },
                     drawing_bounds,
+                    *viewport,
                 );
             });
         };

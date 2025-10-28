@@ -337,7 +337,6 @@ pub fn draw<Renderer, Handle>(
     renderer.draw_image(
         image::Image {
             handle: handle.clone(),
-            clip_bounds: bounds,
             border_radius,
             filter_method,
             rotation: rotation.radians(),
@@ -345,6 +344,7 @@ pub fn draw<Renderer, Handle>(
             snap: true,
         },
         drawing_bounds,
+        bounds,
     );
 }
 

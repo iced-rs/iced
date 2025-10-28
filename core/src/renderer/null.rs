@@ -217,7 +217,13 @@ impl image::Renderer for () {
         Size::default()
     }
 
-    fn draw_image(&mut self, _image: Image, _bounds: Rectangle) {}
+    fn draw_image(
+        &mut self,
+        _image: Image,
+        _bounds: Rectangle,
+        _clip_bounds: Rectangle,
+    ) {
+    }
 }
 
 impl svg::Renderer for () {
@@ -225,5 +231,11 @@ impl svg::Renderer for () {
         Size::default()
     }
 
-    fn draw_svg(&mut self, _svg: svg::Svg, _bounds: Rectangle) {}
+    fn draw_svg(
+        &mut self,
+        _svg: svg::Svg,
+        _bounds: Rectangle,
+        _clip_bounds: Rectangle,
+    ) {
+    }
 }
