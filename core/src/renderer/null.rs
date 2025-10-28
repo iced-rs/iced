@@ -28,10 +28,12 @@ impl Renderer for () {
     fn allocate_image(
         &mut self,
         handle: &image::Handle,
-        callback: impl FnOnce(image::Allocation) + Send + 'static,
+        callback: impl FnOnce(Result<image::Allocation, image::Error>)
+        + Send
+        + 'static,
     ) {
         #[allow(unsafe_code)]
-        callback(unsafe { image::allocate(handle) });
+        callback(Ok(unsafe { image::allocate(handle, Size::new(100, 100)) }));
     }
 }
 
@@ -213,8 +215,16 @@ impl text::Editor for () {
 impl image::Renderer for () {
     type Handle = image::Handle;
 
-    fn measure_image(&self, _handle: &Self::Handle) -> Size<u32> {
-        Size::default()
+    fn load_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Result<image::Allocation, image::Error> {
+        #[allow(unsafe_code)]
+        Ok(unsafe { image::allocate(handle, Size::new(100, 100)) })
+    }
+
+    fn measure_image(&self, _handle: &Self::Handle) -> Option<Size<u32>> {
+        Some(Size::new(100, 100))
     }
 
     fn draw_image(

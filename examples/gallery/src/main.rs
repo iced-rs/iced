@@ -49,7 +49,7 @@ enum Message {
     ImagePoppedOut(Id),
     ImageDownloaded(Result<image::Allocation, Error>),
     ThumbnailDownloaded(Id, Result<Bytes, Error>),
-    ThumbnailAllocated(Id, image::Allocation),
+    ThumbnailAllocated(Id, Result<image::Allocation, image::Error>),
     ThumbnailHovered(Id, bool),
     BlurhashDecoded(Id, civitai::Blurhash),
     Open(Id),
@@ -175,7 +175,7 @@ impl Gallery {
                     .then(image::allocate)
                     .map(Message::ThumbnailAllocated.with(id))
             }
-            Message::ThumbnailAllocated(id, allocation) => {
+            Message::ThumbnailAllocated(id, Ok(allocation)) => {
                 if !self.visible.contains(&id) {
                     return Task::none();
                 }
@@ -221,7 +221,7 @@ impl Gallery {
                 Task::future(image.download(Size::Original))
                     .and_then(|bytes| {
                         image::allocate(image::Handle::from_bytes(bytes))
-                            .map(Ok)
+                            .map_err(|_| Error::ImageDecodingFailed)
                     })
                     .map(Message::ImageDownloaded)
             }
@@ -234,6 +234,11 @@ impl Gallery {
             Message::ImagesListed(Err(error))
             | Message::ImageDownloaded(Err(error))
             | Message::ThumbnailDownloaded(_, Err(error)) => {
+                dbg!(error);
+
+                Task::none()
+            }
+            Message::ThumbnailAllocated(_, Err(error)) => {
                 dbg!(error);
 
                 Task::none()

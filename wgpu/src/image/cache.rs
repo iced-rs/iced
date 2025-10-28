@@ -38,6 +38,7 @@ impl Cache {
             raster: Raster {
                 cache: crate::image::raster::Cache::default(),
                 pending: HashMap::new(),
+                belt: wgpu::util::StagingBelt::new(2 * 1024 * 1024),
             },
             #[cfg(feature = "svg")]
             vector: crate::image::vector::Cache::default(),
@@ -50,7 +51,9 @@ impl Cache {
     pub fn allocate_image(
         &mut self,
         handle: &core::image::Handle,
-        callback: impl FnOnce(core::image::Allocation) + Send + 'static,
+        callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>)
+        + Send
+        + 'static,
     ) {
         use crate::image::raster::Memory;
 
@@ -61,21 +64,22 @@ impl Cache {
             return;
         }
 
-        if let Some(Memory::Device { allocation, .. }) =
-            self.raster.cache.get_mut(handle)
+        if let Some(Memory::Device {
+            allocation, entry, ..
+        }) = self.raster.cache.get_mut(handle)
         {
             if let Some(allocation) = allocation
                 .as_ref()
                 .and_then(core::image::Allocation::upgrade)
             {
-                callback(allocation);
+                callback(Ok(allocation));
                 return;
             }
 
             #[allow(unsafe_code)]
-            let new = unsafe { core::image::allocate(handle) };
+            let new = unsafe { core::image::allocate(handle, entry.size()) };
             *allocation = Some(new.downgrade());
-            callback(new);
+            callback(Ok(new));
 
             return;
         }
@@ -87,21 +91,104 @@ impl Cache {
     }
 
     #[cfg(feature = "image")]
-    pub fn measure_image(&mut self, handle: &core::image::Handle) -> Size<u32> {
+    pub fn load_image(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        handle: &core::image::Handle,
+    ) -> Result<core::image::Allocation, core::image::Error> {
+        use crate::image::raster::Memory;
+
+        if !self.raster.cache.contains(handle) {
+            self.raster.cache.insert(handle, Memory::load(handle));
+        }
+
+        match self.raster.cache.get_mut(handle).unwrap() {
+            Memory::Host(image) => {
+                let mut encoder = device.create_command_encoder(
+                    &wgpu::CommandEncoderDescriptor {
+                        label: Some("raster image upload"),
+                    },
+                );
+
+                let entry = self.atlas.upload(
+                    device,
+                    &mut encoder,
+                    &mut self.raster.belt,
+                    image.width(),
+                    image.height(),
+                    image,
+                );
+
+                self.raster.belt.finish();
+                let submission = queue.submit([encoder.finish()]);
+                self.raster.belt.recall();
+
+                let Some(entry) = entry else {
+                    return Err(core::image::Error::OutOfMemory);
+                };
+
+                let _ = device
+                    .poll(wgpu::PollType::WaitForSubmissionIndex(submission));
+
+                #[allow(unsafe_code)]
+                let allocation = unsafe {
+                    core::image::allocate(
+                        handle,
+                        Size::new(image.width(), image.height()),
+                    )
+                };
+
+                self.raster.cache.insert(
+                    handle,
+                    Memory::Device {
+                        entry,
+                        bind_group: None,
+                        allocation: Some(allocation.downgrade()),
+                    },
+                );
+
+                Ok(allocation)
+            }
+            Memory::Device {
+                entry, allocation, ..
+            } => {
+                if let Some(allocation) = allocation
+                    .as_ref()
+                    .and_then(core::image::Allocation::upgrade)
+                {
+                    return Ok(allocation);
+                }
+
+                #[allow(unsafe_code)]
+                let new =
+                    unsafe { core::image::allocate(handle, entry.size()) };
+
+                *allocation = Some(new.downgrade());
+
+                Ok(new)
+            }
+            Memory::Error(error) => Err(error.clone()),
+        }
+    }
+
+    #[cfg(feature = "image")]
+    pub fn measure_image(
+        &mut self,
+        handle: &core::image::Handle,
+    ) -> Option<Size<u32>> {
         self.receive();
 
-        if let Some(memory) = load_image(
+        let image = load_image(
             &mut self.raster.cache,
             &mut self.raster.pending,
             #[cfg(not(target_arch = "wasm32"))]
             &self.worker,
             handle,
             None,
-        ) {
-            return memory.dimensions();
-        }
+        )?;
 
-        Size::new(0, 0)
+        Some(image.dimensions())
     }
 
     #[cfg(feature = "svg")]
@@ -230,13 +317,14 @@ impl Cache {
 
                     let allocation = if let Some(callbacks) = callbacks {
                         #[allow(unsafe_code)]
-                        let allocation =
-                            unsafe { core::image::allocate(&handle) };
+                        let allocation = unsafe {
+                            core::image::allocate(&handle, entry.size())
+                        };
 
                         let reference = allocation.downgrade();
 
                         for callback in callbacks {
-                            callback(allocation.clone());
+                            callback(Ok(allocation.clone()));
                         }
 
                         Some(reference)
@@ -254,7 +342,15 @@ impl Cache {
                     );
                 }
                 worker::Work::Error { handle, error } => {
-                    self.raster.cache.insert(&handle, Memory::error(error));
+                    let callbacks = self.raster.pending.remove(&handle.id());
+
+                    if let Some(callbacks) = callbacks {
+                        for callback in callbacks {
+                            callback(Err(error.clone()));
+                        }
+                    }
+
+                    self.raster.cache.insert(&handle, Memory::Error(error));
                 }
             }
         }
@@ -272,10 +368,12 @@ impl Drop for Cache {
 struct Raster {
     cache: crate::image::raster::Cache,
     pending: HashMap<core::image::Id, Vec<Callback>>,
+    belt: wgpu::util::StagingBelt,
 }
 
 #[cfg(feature = "image")]
-type Callback = Box<dyn FnOnce(core::image::Allocation) + Send>;
+type Callback =
+    Box<dyn FnOnce(Result<core::image::Allocation, core::image::Error>) + Send>;
 
 #[cfg(feature = "image")]
 fn load_image<'a>(
@@ -418,7 +516,7 @@ mod worker {
         },
         Error {
             handle: image::Handle,
-            error: crate::graphics::image::image_rs::error::ImageError,
+            error: image::Error,
         },
     }
 

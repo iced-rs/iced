@@ -232,11 +232,17 @@ impl core::Renderer for Renderer {
     fn allocate_image(
         &mut self,
         handle: &core::image::Handle,
-        callback: impl FnOnce(core::image::Allocation) + Send + 'static,
+        callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>)
+        + Send
+        + 'static,
     ) {
-        // TODO: Concurrency
+        #[cfg(feature = "image")]
         #[allow(unsafe_code)]
-        callback(unsafe { core::image::allocate(handle) });
+        // TODO: Concurrency
+        callback(self.engine.raster_pipeline.load(handle));
+
+        #[cfg(not(feature = "image"))]
+        callback(Err(core::image::Error::Unsupported))
     }
 }
 
@@ -360,7 +366,17 @@ impl graphics::mesh::Renderer for Renderer {
 impl core::image::Renderer for Renderer {
     type Handle = core::image::Handle;
 
-    fn measure_image(&self, handle: &Self::Handle) -> crate::core::Size<u32> {
+    fn load_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Result<core::image::Allocation, core::image::Error> {
+        self.engine.raster_pipeline.load(handle)
+    }
+
+    fn measure_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Option<crate::core::Size<u32>> {
         self.engine.raster_pipeline.dimensions(handle)
     }
 

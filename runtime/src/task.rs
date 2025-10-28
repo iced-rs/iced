@@ -390,6 +390,20 @@ impl<T, E> Task<Result<T, E>> {
             result.map_or_else(|error| Task::done(Err(error)), &f)
         })
     }
+
+    /// Maps the error type of this [`Task`] to a different one using the given
+    /// function.
+    pub fn map_err<E2>(
+        self,
+        f: impl Fn(E) -> E2 + MaybeSend + 'static,
+    ) -> Task<Result<T, E2>>
+    where
+        T: MaybeSend + 'static,
+        E: MaybeSend + 'static,
+        E2: MaybeSend + 'static,
+    {
+        self.map(move |result| result.map_err(&f))
+    }
 }
 
 impl<T> Default for Task<T> {

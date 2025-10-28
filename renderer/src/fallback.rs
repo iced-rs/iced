@@ -73,7 +73,9 @@ where
     fn allocate_image(
         &mut self,
         handle: &image::Handle,
-        callback: impl FnOnce(image::Allocation) + Send + 'static,
+        callback: impl FnOnce(Result<image::Allocation, image::Error>)
+        + Send
+        + 'static,
     ) {
         delegate!(self, renderer, renderer.allocate_image(handle, callback));
     }
@@ -154,7 +156,14 @@ where
 {
     type Handle = A::Handle;
 
-    fn measure_image(&self, handle: &Self::Handle) -> Size<u32> {
+    fn load_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Result<image::Allocation, image::Error> {
+        delegate!(self, renderer, renderer.load_image(handle))
+    }
+
+    fn measure_image(&self, handle: &Self::Handle) -> Option<Size<u32>> {
         delegate!(self, renderer, renderer.measure_image(handle))
     }
 

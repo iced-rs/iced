@@ -7,6 +7,7 @@ use crate::{Radians, Rectangle, Size};
 use rustc_hash::FxHasher;
 
 use std::hash::{Hash, Hasher};
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 
@@ -258,7 +259,10 @@ pub struct Allocation(Arc<Memory>);
 
 /// Some memory taken by an [`Allocation`].
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Memory(Handle);
+pub struct Memory {
+    handle: Handle,
+    size: Size<u32>,
+}
 
 impl Allocation {
     /// Returns a weak reference to the [`Memory`] of the [`Allocation`].
@@ -273,7 +277,12 @@ impl Allocation {
 
     /// Returns the [`Handle`] of this [`Allocation`].
     pub fn handle(&self) -> &Handle {
-        &self.0.0
+        &self.0.handle
+    }
+
+    /// Returns the [`Size`] of the image of this [`Allocation`].
+    pub fn size(&self) -> Size<u32> {
+        self.0.size
     }
 }
 
@@ -284,8 +293,11 @@ impl Allocation {
 /// # Safety
 /// Must only be created once the [`Handle`] is allocated in memory.
 #[allow(unsafe_code)]
-pub unsafe fn allocate(handle: &Handle) -> Allocation {
-    Allocation(Arc::new(Memory(handle.clone())))
+pub unsafe fn allocate(handle: &Handle, size: Size<u32>) -> Allocation {
+    Allocation(Arc::new(Memory {
+        handle: handle.clone(),
+        size,
+    }))
 }
 
 /// A [`Renderer`] that can render raster graphics.
@@ -297,14 +309,48 @@ pub trait Renderer: crate::Renderer {
     /// [`Handle`]: Self::Handle
     type Handle: Clone;
 
+    /// Loads an image and returns an explicit [`Allocation`] to it.
+    ///
+    /// If the image is not already loaded, this method will block! You should
+    /// generally not use it in drawing logic if you want to avoid frame drops.
+    fn load_image(&self, handle: &Self::Handle) -> Result<Allocation, Error>;
+
     /// Returns the dimensions of an image for the given [`Handle`].
-    fn measure_image(&self, handle: &Self::Handle) -> Size<u32>;
+    ///
+    /// If the image is not already loaded, the [`Renderer`] may choose to return
+    /// `None`, load the image in the background, and then trigger a relayout.
+    ///
+    /// If you need a measurement right away, consider using [`Renderer::load_image`].
+    fn measure_image(&self, handle: &Self::Handle) -> Option<Size<u32>>;
 
     /// Draws an [`Image`] inside the provided `bounds`.
+    ///
+    /// If the image is not already loaded, the [`Renderer`] may choose to render
+    /// nothing, load the image in the background, and then trigger a redraw.
+    ///
+    /// If you need to draw an image right away, consider using [`Renderer::load_image`]
+    /// and hold on to an [`Allocation`] first.
     fn draw_image(
         &mut self,
         image: Image<Self::Handle>,
         bounds: Rectangle,
         clip_bounds: Rectangle,
     );
+}
+
+/// An image loading error.
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum Error {
+    /// The image data was invalid or could not be decoded.
+    #[error("the image data was invalid or could not be decoded: {0}")]
+    Invalid(Arc<dyn std::error::Error + Send + Sync>),
+    /// The image file was not found.
+    #[error("the image file could not be opened: {0}")]
+    Inaccessible(Arc<io::Error>),
+    /// Loading images is unsupported.
+    #[error("loading images is unsupported")]
+    Unsupported,
+    /// Not enough memory to allocate the image.
+    #[error("not enough memory to allocate the image")]
+    OutOfMemory,
 }

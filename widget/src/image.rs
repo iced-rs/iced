@@ -197,7 +197,8 @@ where
     Renderer: image::Renderer<Handle = Handle>,
 {
     // The raw w/h of the underlying image
-    let image_size = crop(renderer.measure_image(handle), region);
+    let image_size =
+        crop(renderer.measure_image(handle).unwrap_or_default(), region);
 
     // The rotated size of the image
     let rotated_size = rotation.apply(image_size);
@@ -239,7 +240,7 @@ fn drawing_bounds<Renderer, Handle>(
 where
     Renderer: image::Renderer<Handle = Handle>,
 {
-    let original_size = renderer.measure_image(handle);
+    let original_size = renderer.measure_image(handle).unwrap_or_default();
     let image_size = crop(original_size, region);
     let rotated_size = rotation.apply(image_size);
     let adjusted_fit = content_fit.fit(rotated_size, bounds.size());

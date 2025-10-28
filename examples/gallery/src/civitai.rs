@@ -166,7 +166,7 @@ pub enum Error {
     RequestFailed(Arc<reqwest::Error>),
     IOFailed(Arc<io::Error>),
     JoinFailed(Arc<task::JoinError>),
-    ImageDecodingFailed(Arc<image::ImageError>),
+    ImageDecodingFailed,
     BlurhashDecodingFailed(Arc<blurhash::Error>),
 }
 
@@ -185,12 +185,6 @@ impl From<io::Error> for Error {
 impl From<task::JoinError> for Error {
     fn from(error: task::JoinError) -> Self {
         Self::JoinFailed(Arc::new(error))
-    }
-}
-
-impl From<image::ImageError> for Error {
-    fn from(error: image::ImageError) -> Self {
-        Self::ImageDecodingFailed(Arc::new(error))
     }
 }
 

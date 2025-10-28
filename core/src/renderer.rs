@@ -68,7 +68,9 @@ pub trait Renderer {
     fn allocate_image(
         &mut self,
         handle: &image::Handle,
-        callback: impl FnOnce(image::Allocation) + Send + 'static,
+        callback: impl FnOnce(Result<image::Allocation, image::Error>)
+        + Send
+        + 'static,
     );
 }
 

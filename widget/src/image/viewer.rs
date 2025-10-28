@@ -123,7 +123,9 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         // The raw w/h of the underlying image
-        let image_size = renderer.measure_image(&self.handle);
+        let image_size =
+            renderer.measure_image(&self.handle).unwrap_or_default();
+
         let image_size =
             Size::new(image_size.width as f32, image_size.height as f32);
 
@@ -436,7 +438,9 @@ pub fn scaled_image_size<Renderer>(
 where
     Renderer: image::Renderer,
 {
-    let Size { width, height } = renderer.measure_image(handle);
+    let Size { width, height } =
+        renderer.measure_image(handle).unwrap_or_default();
+
     let image_size = Size::new(width as f32, height as f32);
 
     let adjusted_fit = content_fit.fit(image_size, bounds);

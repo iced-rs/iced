@@ -702,7 +702,9 @@ impl core::Renderer for Renderer {
     fn allocate_image(
         &mut self,
         _handle: &core::image::Handle,
-        _callback: impl FnOnce(core::image::Allocation) + Send + 'static,
+        _callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>)
+        + Send
+        + 'static,
     ) {
         #[cfg(feature = "image")]
         self.image_cache
@@ -773,7 +775,18 @@ impl core::text::Renderer for Renderer {
 impl core::image::Renderer for Renderer {
     type Handle = core::image::Handle;
 
-    fn measure_image(&self, handle: &Self::Handle) -> core::Size<u32> {
+    fn load_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Result<core::image::Allocation, core::image::Error> {
+        self.image_cache.borrow_mut().load_image(
+            &self.engine.device,
+            &self.engine.queue,
+            handle,
+        )
+    }
+
+    fn measure_image(&self, handle: &Self::Handle) -> Option<core::Size<u32>> {
         self.image_cache.borrow_mut().measure_image(handle)
     }
 

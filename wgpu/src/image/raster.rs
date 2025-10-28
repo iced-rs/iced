@@ -20,24 +20,14 @@ pub enum Memory {
         bind_group: Option<Arc<wgpu::BindGroup>>,
         allocation: Option<Weak<image::Memory>>,
     },
-    /// Image not found
-    NotFound,
-    /// Invalid image data
-    Invalid,
+    Error(image::Error),
 }
 
 impl Memory {
     pub fn load(handle: &image::Handle) -> Self {
         match graphics::image::load(handle) {
             Ok(image) => Self::Host(image),
-            Err(error) => Self::error(error),
-        }
-    }
-
-    pub fn error(error: image_rs::error::ImageError) -> Self {
-        match error {
-            image_rs::error::ImageError::IoError(_) => Self::NotFound,
-            _ => Self::Invalid,
+            Err(error) => Self::Error(error),
         }
     }
 
@@ -49,15 +39,14 @@ impl Memory {
                 Size::new(width, height)
             }
             Memory::Device { entry, .. } => entry.size(),
-            Memory::NotFound => Size::new(1, 1),
-            Memory::Invalid => Size::new(1, 1),
+            Memory::Error(_) => Size::new(1, 1),
         }
     }
 
     pub fn host(&self) -> Option<Image> {
         match self {
             Memory::Host(image) => Some(image.clone()),
-            Memory::Device { .. } | Memory::NotFound | Memory::Invalid => None,
+            Memory::Device { .. } | Memory::Error(_) => None,
         }
     }
 }
