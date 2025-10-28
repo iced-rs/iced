@@ -76,6 +76,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     // Calculate the vertex position
     let v_pos = clipped_tile.xy + corner * clipped_tile.zw;
     out.position = vec4(vec2(globals.scale_factor), 1.0, 1.0) * vec4<f32>(v_pos, 0.0, 1.0);
+    out.clip_bounds = globals.scale_factor * input.clip_bounds;
 
     // Calculate rotated UV
     let uv = input.atlas_pos + (v_pos - tile.xy) / tile.zw * input.atlas_scale;
@@ -87,10 +88,13 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     // Snap position to the pixel grid
     if bool(input.snap) {
         out.position = round(out.position);
+        out.clip_bounds = vec4(
+            round(out.clip_bounds.xy),
+            round(out.clip_bounds.xy + out.clip_bounds.zw) - out.clip_bounds.xy,
+        );
     }
 
     out.position = globals.transform * out.position;
-    out.clip_bounds = globals.scale_factor * input.clip_bounds;
     out.border_radius = globals.scale_factor * input.border_radius;
     out.atlas = vec4(input.atlas_pos, input.atlas_pos + input.atlas_scale);
     out.layer = input.layer;
