@@ -231,7 +231,7 @@ impl core::Renderer for Renderer {
 
     fn allocate_image(
         &mut self,
-        handle: &core::image::Handle,
+        _handle: &core::image::Handle,
         callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>)
         + Send
         + 'static,
@@ -239,7 +239,7 @@ impl core::Renderer for Renderer {
         #[cfg(feature = "image")]
         #[allow(unsafe_code)]
         // TODO: Concurrency
-        callback(self.engine.raster_pipeline.load(handle));
+        callback(self.engine.raster_pipeline.load(_handle));
 
         #[cfg(not(feature = "image"))]
         callback(Err(core::image::Error::Unsupported))
