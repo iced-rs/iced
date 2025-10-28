@@ -340,12 +340,14 @@ impl Atlas {
         const PIXEL: usize = 4;
 
         let mut fragment = buffer_slice.get_mapped_range_mut();
+        let w = width as usize;
+        let h = height as usize;
         let pad_w = padding.width as usize;
         let pad_h = padding.height as usize;
-        let stride = PIXEL * width as usize;
+        let stride = PIXEL * w;
 
         // Copy image rows
-        for row in 0..height as usize {
+        for row in 0..h {
             let src = offset + row * PIXEL * image_width as usize;
             let dst = (row + pad_h) * bytes_per_row;
 
@@ -368,24 +370,18 @@ impl Atlas {
         // Add padding on top and bottom
         for row in 0..pad_h {
             let dst_top = row * bytes_per_row;
-            let dst_bottom = (pad_h + height as usize + row) * bytes_per_row;
+            let dst_bottom = (pad_h + h + row) * bytes_per_row;
             let src_top = offset;
-            let src_bottom =
-                offset + (height - 1) as usize * PIXEL * image_width as usize;
+            let src_bottom = offset + (h - 1) * PIXEL * image_width as usize;
 
             // Top
-            fragment[dst_top + PIXEL * pad_w
-                ..dst_top + PIXEL * (pad_w + width as usize)]
-                .copy_from_slice(
-                    &pixels[src_top..src_top + PIXEL * width as usize],
-                );
+            fragment[dst_top + PIXEL * pad_w..dst_top + PIXEL * (pad_w + w)]
+                .copy_from_slice(&pixels[src_top..src_top + PIXEL * w]);
 
             // Bottom
-            fragment[dst_bottom + PIXEL * pad_w
-                ..dst_bottom + PIXEL * (pad_w + width as usize)]
-                .copy_from_slice(
-                    &pixels[src_bottom..src_bottom + PIXEL * width as usize],
-                );
+            fragment
+                [dst_bottom + PIXEL * pad_w..dst_bottom + PIXEL * (pad_w + w)]
+                .copy_from_slice(&pixels[src_bottom..src_bottom + PIXEL * w]);
 
             // Corners
             for i in 0..pad_w {
@@ -394,11 +390,10 @@ impl Atlas {
                     .copy_from_slice(&pixels[offset..offset + PIXEL]);
 
                 // Top right
-                fragment[dst_top + PIXEL * (width as usize + pad_w + i)
-                    ..dst_top + PIXEL * (width as usize + pad_w + i + 1)]
+                fragment[dst_top + PIXEL * (w + pad_w + i)
+                    ..dst_top + PIXEL * (w + pad_w + i + 1)]
                     .copy_from_slice(
-                        &pixels[offset + PIXEL * (width - 1) as usize
-                            ..offset + PIXEL * width as usize],
+                        &pixels[offset + PIXEL * (w - 1)..offset + PIXEL * w],
                     );
 
                 // Bottom left
@@ -406,11 +401,11 @@ impl Atlas {
                     .copy_from_slice(&pixels[src_bottom..src_bottom + PIXEL]);
 
                 // Bottom right
-                fragment[dst_bottom + PIXEL * (width as usize + pad_w + i)
-                    ..dst_bottom + PIXEL * (width as usize + pad_w + i + 1)]
+                fragment[dst_bottom + PIXEL * (w + pad_w + i)
+                    ..dst_bottom + PIXEL * (w + pad_w + i + 1)]
                     .copy_from_slice(
-                        &pixels[src_bottom + PIXEL * (width - 1) as usize
-                            ..src_bottom + PIXEL * width as usize],
+                        &pixels[src_bottom + PIXEL * (w - 1)
+                            ..src_bottom + PIXEL * w],
                     );
             }
         }
