@@ -6,8 +6,6 @@ use crate::core::Rectangle;
 use crate::core::image;
 use crate::core::svg;
 
-use std::sync::Arc;
-
 /// A raster or vector image.
 #[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq)]
@@ -40,6 +38,7 @@ impl Image {
 }
 
 /// An image buffer.
+#[cfg(feature = "image")]
 pub type Buffer = ::image::ImageBuffer<::image::Rgba<u8>, image::Bytes>;
 
 #[cfg(feature = "image")]
@@ -149,7 +148,10 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
     }
 }
 
+#[cfg(feature = "image")]
 fn to_error(error: ::image::ImageError) -> image::Error {
+    use std::sync::Arc;
+
     match error {
         ::image::ImageError::IoError(error) => {
             image::Error::Inaccessible(Arc::new(error))
