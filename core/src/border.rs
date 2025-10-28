@@ -241,9 +241,9 @@ impl From<u8> for Radius {
     }
 }
 
-impl From<u16> for Radius {
-    fn from(w: u16) -> Self {
-        Self::from(f32::from(w))
+impl From<u32> for Radius {
+    fn from(w: u32) -> Self {
+        Self::from(w as f32)
     }
 }
 

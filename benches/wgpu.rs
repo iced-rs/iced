@@ -72,7 +72,7 @@ fn benchmark<'a>(
     view: impl Fn(usize) -> Element<'a, (), Theme, Renderer>,
 ) {
     use iced_wgpu::graphics;
-    use iced_wgpu::graphics::Antialiasing;
+    use iced_wgpu::graphics::{Antialiasing, Shell};
     use iced_wgpu::wgpu;
     use iced_winit::core;
     use iced_winit::runtime;
@@ -85,6 +85,7 @@ fn benchmark<'a>(
         queue.clone(),
         format,
         Some(Antialiasing::MSAAx4),
+        Shell::headless(),
     );
 
     let mut renderer = Renderer::new(engine, Font::DEFAULT, Pixels::from(16));

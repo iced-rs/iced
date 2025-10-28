@@ -625,6 +625,13 @@ pub mod widget {
     pub use iced_runtime::widget::*;
     pub use iced_widget::*;
 
+    #[cfg(feature = "image")]
+    pub mod image {
+        //! Images display raster graphics in different formats (PNG, JPG, etc.).
+        pub use iced_runtime::image::{Allocation, Error, allocate};
+        pub use iced_widget::image::*;
+    }
+
     // We hide the re-exported modules by `iced_widget`
     mod core {}
     mod graphics {}

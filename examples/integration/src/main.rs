@@ -4,7 +4,7 @@ mod scene;
 use controls::Controls;
 use scene::Scene;
 
-use iced_wgpu::graphics::Viewport;
+use iced_wgpu::graphics::{Shell, Viewport};
 use iced_wgpu::{Engine, Renderer, wgpu};
 use iced_winit::Clipboard;
 use iced_winit::conversion;
@@ -150,6 +150,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                         queue.clone(),
                         format,
                         None,
+                        Shell::headless(),
                     );
 
                     Renderer::new(engine, Font::default(), Pixels::from(16))

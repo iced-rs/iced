@@ -240,25 +240,16 @@ where
 
         let style = theme.style(&self.class, status);
 
-        let render = |renderer: &mut Renderer| {
-            renderer.draw_svg(
-                svg::Svg {
-                    handle: self.handle.clone(),
-                    color: style.color,
-                    rotation: self.rotation.radians(),
-                    opacity: self.opacity,
-                },
-                drawing_bounds,
-            );
-        };
-
-        if adjusted_fit.width > bounds.width
-            || adjusted_fit.height > bounds.height
-        {
-            renderer.with_layer(bounds, render);
-        } else {
-            render(renderer);
-        }
+        renderer.draw_svg(
+            svg::Svg {
+                handle: self.handle.clone(),
+                color: style.color,
+                rotation: self.rotation.radians(),
+                opacity: self.opacity,
+            },
+            drawing_bounds,
+            bounds,
+        );
     }
 }
 

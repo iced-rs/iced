@@ -257,6 +257,10 @@ impl<P: Program + 'static> Emulator<P> {
                     // TODO
                     dbg!(action);
                 }
+                iced_runtime::Action::Image(action) => {
+                    // TODO
+                    dbg!(action);
+                }
                 runtime::Action::Exit => {
                     // TODO
                 }

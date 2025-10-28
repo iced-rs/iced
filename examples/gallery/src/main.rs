@@ -4,9 +4,10 @@
 //! some smooth animations.
 mod civitai;
 
-use crate::civitai::{Error, Id, Image, Rgba, Size};
+use crate::civitai::{Bytes, Error, Id, Image, Rgba, Size};
 
 use iced::animation;
+use iced::border;
 use iced::time::{Instant, milliseconds};
 use iced::widget::{
     button, container, float, grid, image, mouse_area, opaque, scrollable,
@@ -18,7 +19,7 @@ use iced::{
     Subscription, Task, Theme, color,
 };
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 fn main() -> iced::Result {
     iced::application::timed(
@@ -35,6 +36,8 @@ fn main() -> iced::Result {
 struct Gallery {
     images: Vec<Image>,
     previews: HashMap<Id, Preview>,
+    visible: HashSet<Id>,
+    downloaded: HashSet<Id>,
     viewer: Viewer,
     now: Instant,
 }
@@ -43,8 +46,10 @@ struct Gallery {
 enum Message {
     ImagesListed(Result<Vec<Image>, Error>),
     ImagePoppedIn(Id),
-    ImageDownloaded(Result<Rgba, Error>),
-    ThumbnailDownloaded(Id, Result<Rgba, Error>),
+    ImagePoppedOut(Id),
+    ImageDownloaded(Result<image::Allocation, Error>),
+    ThumbnailDownloaded(Id, Result<Bytes, Error>),
+    ThumbnailAllocated(Id, Result<image::Allocation, image::Error>),
     ThumbnailHovered(Id, bool),
     BlurhashDecoded(Id, civitai::Blurhash),
     Open(Id),
@@ -58,6 +63,8 @@ impl Gallery {
             Self {
                 images: Vec::new(),
                 previews: HashMap::new(),
+                visible: HashSet::new(),
+                downloaded: HashSet::new(),
                 viewer: Viewer::new(),
                 now: Instant::now(),
             },
@@ -102,6 +109,28 @@ impl Gallery {
                     return Task::none();
                 };
 
+                let _ = self.visible.insert(id);
+
+                if self.downloaded.contains(&id) {
+                    let Some(Preview::Ready {
+                        thumbnail,
+                        blurhash,
+                    }) = self.previews.get_mut(&id)
+                    else {
+                        return Task::none();
+                    };
+
+                    if let Some(blurhash) = blurhash {
+                        blurhash.show(now);
+                    }
+
+                    return to_rgba(thumbnail.bytes.clone())
+                        .then(image::allocate)
+                        .map(Message::ThumbnailAllocated.with(id));
+                }
+
+                let _ = self.downloaded.insert(id);
+
                 Task::sip(
                     image.download(Size::Thumbnail {
                         width: Preview::WIDTH,
@@ -111,20 +140,53 @@ impl Gallery {
                     Message::ThumbnailDownloaded.with(id),
                 )
             }
-            Message::ImageDownloaded(Ok(rgba)) => {
-                self.viewer.show(rgba, self.now);
+            Message::ImagePoppedOut(id) => {
+                let _ = self.visible.remove(&id);
+
+                if let Some(Preview::Ready {
+                    thumbnail,
+                    blurhash,
+                }) = self.previews.get_mut(&id)
+                {
+                    thumbnail.reset();
+
+                    if let Some(blurhash) = blurhash {
+                        blurhash.reset();
+                    }
+                }
 
                 Task::none()
             }
-            Message::ThumbnailDownloaded(id, Ok(rgba)) => {
-                let thumbnail = if let Some(preview) = self.previews.remove(&id)
-                {
-                    preview.load(rgba, self.now)
+            Message::ImageDownloaded(Ok(allocation)) => {
+                self.viewer.show(allocation, self.now);
+
+                Task::none()
+            }
+            Message::ThumbnailDownloaded(id, Ok(bytes)) => {
+                let preview = if let Some(preview) = self.previews.remove(&id) {
+                    preview.load(bytes.clone())
                 } else {
-                    Preview::ready(rgba, self.now)
+                    Preview::ready(bytes.clone())
                 };
 
-                let _ = self.previews.insert(id, thumbnail);
+                let _ = self.previews.insert(id, preview);
+
+                to_rgba(bytes)
+                    .then(image::allocate)
+                    .map(Message::ThumbnailAllocated.with(id))
+            }
+            Message::ThumbnailAllocated(id, Ok(allocation)) => {
+                if !self.visible.contains(&id) {
+                    return Task::none();
+                }
+
+                let Some(Preview::Ready { thumbnail, .. }) =
+                    self.previews.get_mut(&id)
+                else {
+                    return Task::none();
+                };
+
+                thumbnail.show(allocation, now);
 
                 Task::none()
             }
@@ -156,10 +218,12 @@ impl Gallery {
 
                 self.viewer.open(self.now);
 
-                Task::perform(
-                    image.download(Size::Original),
-                    Message::ImageDownloaded,
-                )
+                Task::future(image.download(Size::Original))
+                    .and_then(|bytes| {
+                        image::allocate(image::Handle::from_bytes(bytes))
+                            .map_err(|_| Error::ImageDecodingFailed)
+                    })
+                    .map(Message::ImageDownloaded)
             }
             Message::Close => {
                 self.viewer.close(self.now);
@@ -174,6 +238,11 @@ impl Gallery {
 
                 Task::none()
             }
+            Message::ThumbnailAllocated(_, Err(error)) => {
+                dbg!(error);
+
+                Task::none()
+            }
         }
     }
 
@@ -181,8 +250,25 @@ impl Gallery {
         let images = self
             .images
             .iter()
-            .map(|image| card(image, self.previews.get(&image.id), self.now))
-            .chain((self.images.len()..=Image::LIMIT).map(|_| placeholder()));
+            .map(|image| {
+                card(
+                    image,
+                    if self.visible.contains(&image.id) {
+                        self.previews.get(&image.id)
+                    } else {
+                        None
+                    },
+                    self.now,
+                )
+            })
+            .chain(
+                if self.images.is_empty() {
+                    0..Image::LIMIT
+                } else {
+                    0..0
+                }
+                .map(|_| placeholder()),
+            );
 
         let gallery = grid(images)
             .fluid(Preview::WIDTH)
@@ -203,12 +289,15 @@ fn card<'a>(
 ) -> Element<'a, Message> {
     let image = if let Some(preview) = preview {
         let thumbnail: Element<'_, _> =
-            if let Preview::Ready { thumbnail, .. } = &preview {
+            if let Preview::Ready { thumbnail, .. } = &preview
+                && let Some(allocation) = &thumbnail.allocation
+            {
                 float(
-                    image(&thumbnail.handle)
+                    image(allocation.handle())
                         .width(Fill)
                         .content_fit(ContentFit::Cover)
-                        .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now)),
+                        .opacity(thumbnail.fade_in.interpolate(0.0, 1.0, now))
+                        .border_radius(BORDER_RADIUS),
                 )
                 .scale(thumbnail.zoom.interpolate(1.0, 1.1, now))
                 .translate(move |bounds, viewport| {
@@ -223,7 +312,7 @@ fn card<'a>(
                         blur_radius: thumbnail.zoom.interpolate(0.0, 20.0, now),
                         ..Shadow::default()
                     },
-                    ..float::Style::default()
+                    shadow_border_radius: border::radius(BORDER_RADIUS),
                 })
                 .into()
             } else {
@@ -234,7 +323,8 @@ fn card<'a>(
             let blurhash = image(&blurhash.handle)
                 .width(Fill)
                 .content_fit(ContentFit::Cover)
-                .opacity(blurhash.fade_in.interpolate(0.0, 1.0, now));
+                .opacity(blurhash.fade_in.interpolate(0.0, 1.0, now))
+                .border_radius(BORDER_RADIUS);
 
             stack![blurhash, thumbnail].into()
         } else {
@@ -244,11 +334,11 @@ fn card<'a>(
         space::horizontal().into()
     };
 
-    let card = mouse_area(container(image).style(container::dark))
+    let card = mouse_area(container(image).style(rounded))
         .on_enter(Message::ThumbnailHovered(metadata.id, true))
         .on_exit(Message::ThumbnailHovered(metadata.id, false));
 
-    if let Some(preview) = preview {
+    let card: Element<'_, _> = if let Some(preview) = preview {
         let is_thumbnail = matches!(preview, Preview::Ready { .. });
 
         button(card)
@@ -257,14 +347,17 @@ fn card<'a>(
             .style(button::text)
             .into()
     } else {
-        sensor(card)
-            .on_show(|_| Message::ImagePoppedIn(metadata.id))
-            .into()
-    }
+        card.into()
+    };
+
+    sensor(card)
+        .on_show(|_| Message::ImagePoppedIn(metadata.id))
+        .on_hide(Message::ImagePoppedOut(metadata.id))
+        .into()
 }
 
 fn placeholder<'a>() -> Element<'a, Message> {
-    container(space()).style(container::dark).into()
+    container(space()).style(rounded).into()
 }
 
 enum Preview {
@@ -282,8 +375,21 @@ struct Blurhash {
     fade_in: Animation<bool>,
 }
 
+impl Blurhash {
+    pub fn show(&mut self, now: Instant) {
+        self.fade_in.go_mut(true, now);
+    }
+
+    pub fn reset(&mut self) {
+        self.fade_in = Animation::new(false)
+            .easing(animation::Easing::EaseIn)
+            .very_quick();
+    }
+}
+
 struct Thumbnail {
-    handle: image::Handle,
+    bytes: Bytes,
+    allocation: Option<image::Allocation>,
     fade_in: Animation<bool>,
     zoom: Animation<bool>,
 }
@@ -308,21 +414,21 @@ impl Preview {
         }
     }
 
-    fn ready(rgba: Rgba, now: Instant) -> Self {
+    fn ready(bytes: Bytes) -> Self {
         Self::Ready {
             blurhash: None,
-            thumbnail: Thumbnail::new(rgba, now),
+            thumbnail: Thumbnail::new(bytes),
         }
     }
 
-    fn load(self, rgba: Rgba, now: Instant) -> Self {
+    fn load(self, bytes: Bytes) -> Self {
         let Self::Loading { blurhash } = self else {
             return self;
         };
 
         Self::Ready {
             blurhash: Some(blurhash),
-            thumbnail: Thumbnail::new(rgba, now),
+            thumbnail: Thumbnail::new(bytes),
         }
     }
 
@@ -335,9 +441,15 @@ impl Preview {
     fn is_animating(&self, now: Instant) -> bool {
         match &self {
             Self::Loading { blurhash } => blurhash.fade_in.is_animating(now),
-            Self::Ready { thumbnail, .. } => {
+            Self::Ready {
+                thumbnail,
+                blurhash,
+            } => {
                 thumbnail.fade_in.is_animating(now)
                     || thumbnail.zoom.is_animating(now)
+                    || blurhash.as_ref().is_some_and(|blurhash| {
+                        blurhash.fade_in.is_animating(now)
+                    })
             }
         }
     }
@@ -349,30 +461,45 @@ impl Preview {
                 blurhash: Some(blurhash),
                 thumbnail,
                 ..
-            } if thumbnail.fade_in.is_animating(now) => Some(blurhash),
+            } if !thumbnail.fade_in.value()
+                || thumbnail.fade_in.is_animating(now) =>
+            {
+                Some(blurhash)
+            }
             Self::Ready { .. } => None,
         }
     }
 }
 
 impl Thumbnail {
-    pub fn new(rgba: Rgba, now: Instant) -> Self {
+    pub fn new(bytes: Bytes) -> Self {
         Self {
-            handle: image::Handle::from_rgba(
-                rgba.width,
-                rgba.height,
-                rgba.pixels,
-            ),
-            fade_in: Animation::new(false).slow().go(true, now),
+            bytes,
+            allocation: None,
+            fade_in: Animation::new(false)
+                .easing(animation::Easing::EaseIn)
+                .slow(),
             zoom: Animation::new(false)
                 .quick()
                 .easing(animation::Easing::EaseInOut),
         }
     }
+
+    pub fn reset(&mut self) {
+        self.allocation = None;
+        self.fade_in = Animation::new(false)
+            .easing(animation::Easing::EaseIn)
+            .quick();
+    }
+
+    pub fn show(&mut self, allocation: image::Allocation, now: Instant) {
+        self.allocation = Some(allocation);
+        self.fade_in.go_mut(true, now);
+    }
 }
 
 struct Viewer {
-    image: Option<image::Handle>,
+    image: Option<image::Allocation>,
     background_fade_in: Animation<bool>,
     image_fade_in: Animation<bool>,
 }
@@ -395,12 +522,8 @@ impl Viewer {
         self.background_fade_in.go_mut(true, now);
     }
 
-    fn show(&mut self, rgba: Rgba, now: Instant) {
-        self.image = Some(image::Handle::from_rgba(
-            rgba.width,
-            rgba.height,
-            rgba.pixels,
-        ));
+    fn show(&mut self, allocation: image::Allocation, now: Instant) {
+        self.image = Some(allocation);
         self.background_fade_in.go_mut(true, now);
         self.image_fade_in.go_mut(true, now);
     }
@@ -422,8 +545,8 @@ impl Viewer {
             return None;
         }
 
-        let image = self.image.as_ref().map(|handle| {
-            image(handle)
+        let image = self.image.as_ref().map(|allocation| {
+            image(allocation.handle())
                 .width(Fill)
                 .height(Fill)
                 .opacity(self.image_fade_in.interpolate(0.0, 1.0, now))
@@ -444,3 +567,30 @@ impl Viewer {
         ))
     }
 }
+
+fn to_rgba(bytes: Bytes) -> Task<image::Handle> {
+    Task::future(async move {
+        tokio::task::spawn_blocking(move || {
+            match ::image::load_from_memory(bytes.as_slice()) {
+                Ok(image) => {
+                    let rgba = image.to_rgba8();
+
+                    image::Handle::from_rgba(
+                        rgba.width(),
+                        rgba.height(),
+                        rgba.into_raw(),
+                    )
+                }
+                _ => image::Handle::from_bytes(bytes),
+            }
+        })
+        .await
+        .unwrap()
+    })
+}
+
+fn rounded(theme: &Theme) -> container::Style {
+    container::dark(theme).border(border::rounded(BORDER_RADIUS))
+}
+
+const BORDER_RADIUS: u32 = 10;

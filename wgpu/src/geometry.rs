@@ -431,8 +431,14 @@ impl geometry::frame::Backend for Frame {
             self.transforms.current.transform_rectangle(bounds);
 
         image.rotation += external_rotation;
+        image.border_radius =
+            image.border_radius * self.transforms.current.scale().0;
 
-        self.images.push(Image::Raster(image, bounds));
+        self.images.push(Image::Raster {
+            image,
+            bounds,
+            clip_bounds: self.clip_bounds,
+        });
     }
 
     fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>) {
@@ -443,7 +449,11 @@ impl geometry::frame::Backend for Frame {
 
         svg.rotation += external_rotation;
 
-        self.images.push(Image::Vector(svg, bounds));
+        self.images.push(Image::Vector {
+            svg,
+            bounds,
+            clip_bounds: self.clip_bounds,
+        });
     }
 }
 

@@ -18,12 +18,24 @@ impl Pipeline {
         }
     }
 
-    pub fn dimensions(&self, handle: &raster::Handle) -> Size<u32> {
-        if let Some(image) = self.cache.borrow_mut().allocate(handle) {
-            Size::new(image.width(), image.height())
-        } else {
-            Size::new(0, 0)
-        }
+    pub fn load(
+        &self,
+        handle: &raster::Handle,
+    ) -> Result<raster::Allocation, raster::Error> {
+        let mut cache = self.cache.borrow_mut();
+        let image = cache.allocate(handle)?;
+
+        #[allow(unsafe_code)]
+        Ok(unsafe {
+            raster::allocate(handle, Size::new(image.width(), image.height()))
+        })
+    }
+
+    pub fn dimensions(&self, handle: &raster::Handle) -> Option<Size<u32>> {
+        let mut cache = self.cache.borrow_mut();
+        let image = cache.allocate(handle).ok()?;
+
+        Some(Size::new(image.width(), image.height()))
     }
 
     pub fn draw(
@@ -36,34 +48,34 @@ impl Pipeline {
         transform: tiny_skia::Transform,
         clip_mask: Option<&tiny_skia::Mask>,
     ) {
-        if let Some(image) = self.cache.borrow_mut().allocate(handle) {
-            let width_scale = bounds.width / image.width() as f32;
-            let height_scale = bounds.height / image.height() as f32;
+        let mut cache = self.cache.borrow_mut();
 
-            let transform = transform.pre_scale(width_scale, height_scale);
+        let Ok(image) = cache.allocate(handle) else {
+            return;
+        };
 
-            let quality = match filter_method {
-                raster::FilterMethod::Linear => {
-                    tiny_skia::FilterQuality::Bilinear
-                }
-                raster::FilterMethod::Nearest => {
-                    tiny_skia::FilterQuality::Nearest
-                }
-            };
+        let width_scale = bounds.width / image.width() as f32;
+        let height_scale = bounds.height / image.height() as f32;
 
-            pixels.draw_pixmap(
-                (bounds.x / width_scale) as i32,
-                (bounds.y / height_scale) as i32,
-                image,
-                &tiny_skia::PixmapPaint {
-                    quality,
-                    opacity,
-                    ..Default::default()
-                },
-                transform,
-                clip_mask,
-            );
-        }
+        let transform = transform.pre_scale(width_scale, height_scale);
+
+        let quality = match filter_method {
+            raster::FilterMethod::Linear => tiny_skia::FilterQuality::Bilinear,
+            raster::FilterMethod::Nearest => tiny_skia::FilterQuality::Nearest,
+        };
+
+        pixels.draw_pixmap(
+            (bounds.x / width_scale) as i32,
+            (bounds.y / height_scale) as i32,
+            image,
+            &tiny_skia::PixmapPaint {
+                quality,
+                opacity,
+                ..Default::default()
+            },
+            transform,
+            clip_mask,
+        );
     }
 
     pub fn trim_cache(&mut self) {
@@ -81,11 +93,18 @@ impl Cache {
     pub fn allocate(
         &mut self,
         handle: &raster::Handle,
-    ) -> Option<tiny_skia::PixmapRef<'_>> {
+    ) -> Result<tiny_skia::PixmapRef<'_>, raster::Error> {
         let id = handle.id();
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(id) {
-            let image = graphics::image::load(handle).ok()?;
+            let image = match graphics::image::load(handle) {
+                Ok(image) => image,
+                Err(error) => {
+                    let _ = entry.insert(None);
+
+                    return Err(error);
+                }
+            };
 
             let mut buffer =
                 vec![0u32; image.width() as usize * image.height() as usize];
@@ -106,14 +125,21 @@ impl Cache {
         }
 
         let _ = self.hits.insert(id);
-        self.entries.get(&id).unwrap().as_ref().map(|entry| {
-            tiny_skia::PixmapRef::from_bytes(
-                bytemuck::cast_slice(&entry.pixels),
-                entry.width,
-                entry.height,
-            )
-            .expect("Build pixmap from image bytes")
-        })
+
+        Ok(self
+            .entries
+            .get(&id)
+            .unwrap()
+            .as_ref()
+            .map(|entry| {
+                tiny_skia::PixmapRef::from_bytes(
+                    bytemuck::cast_slice(&entry.pixels),
+                    entry.width,
+                    entry.height,
+                )
+                .expect("Build pixmap from image bytes")
+            })
+            .expect("Image should be allocated"))
     }
 
     fn trim(&mut self) {

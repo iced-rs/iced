@@ -6,9 +6,9 @@ use crate::core::{
     self, Background, Color, Font, Image, Pixels, Point, Rectangle, Size, Svg,
     Transformation,
 };
-use crate::graphics;
 use crate::graphics::compositor;
 use crate::graphics::mesh;
+use crate::graphics::{self, Shell};
 
 use std::borrow::Cow;
 
@@ -68,6 +68,16 @@ where
 
     fn end_transformation(&mut self) {
         delegate!(self, renderer, renderer.end_transformation());
+    }
+
+    fn allocate_image(
+        &mut self,
+        handle: &image::Handle,
+        callback: impl FnOnce(Result<image::Allocation, image::Error>)
+        + Send
+        + 'static,
+    ) {
+        delegate!(self, renderer, renderer.allocate_image(handle, callback));
     }
 }
 
@@ -146,12 +156,28 @@ where
 {
     type Handle = A::Handle;
 
-    fn measure_image(&self, handle: &Self::Handle) -> Size<u32> {
+    fn load_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Result<image::Allocation, image::Error> {
+        delegate!(self, renderer, renderer.load_image(handle))
+    }
+
+    fn measure_image(&self, handle: &Self::Handle) -> Option<Size<u32>> {
         delegate!(self, renderer, renderer.measure_image(handle))
     }
 
-    fn draw_image(&mut self, image: Image<A::Handle>, bounds: Rectangle) {
-        delegate!(self, renderer, renderer.draw_image(image, bounds));
+    fn draw_image(
+        &mut self,
+        image: Image<A::Handle>,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    ) {
+        delegate!(
+            self,
+            renderer,
+            renderer.draw_image(image, bounds, clip_bounds)
+        );
     }
 }
 
@@ -164,8 +190,13 @@ where
         delegate!(self, renderer, renderer.measure_svg(handle))
     }
 
-    fn draw_svg(&mut self, svg: Svg, bounds: Rectangle) {
-        delegate!(self, renderer, renderer.draw_svg(svg, bounds));
+    fn draw_svg(
+        &mut self,
+        svg: Svg,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    ) {
+        delegate!(self, renderer, renderer.draw_svg(svg, bounds, clip_bounds));
     }
 }
 
@@ -216,6 +247,7 @@ where
     async fn with_backend<W: compositor::Window + Clone>(
         settings: graphics::Settings,
         compatible_window: W,
+        shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
         use std::env;
@@ -242,8 +274,13 @@ where
         let mut errors = vec![];
 
         for backend in candidates.iter().map(Option::as_deref) {
-            match A::with_backend(settings, compatible_window.clone(), backend)
-                .await
+            match A::with_backend(
+                settings,
+                compatible_window.clone(),
+                shell.clone(),
+                backend,
+            )
+            .await
             {
                 Ok(compositor) => return Ok(Self::Primary(compositor)),
                 Err(error) => {
@@ -251,8 +288,13 @@ where
                 }
             }
 
-            match B::with_backend(settings, compatible_window.clone(), backend)
-                .await
+            match B::with_backend(
+                settings,
+                compatible_window.clone(),
+                shell.clone(),
+                backend,
+            )
+            .await
             {
                 Ok(compositor) => return Ok(Self::Secondary(compositor)),
                 Err(error) => {

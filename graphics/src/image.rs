@@ -7,33 +7,45 @@ use crate::core::image;
 use crate::core::svg;
 
 /// A raster or vector image.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Image {
     /// A raster image.
-    Raster(image::Image, Rectangle),
+    Raster {
+        image: image::Image,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    },
 
     /// A vector image.
-    Vector(svg::Svg, Rectangle),
+    Vector {
+        svg: svg::Svg,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    },
 }
 
 impl Image {
     /// Returns the bounds of the [`Image`].
     pub fn bounds(&self) -> Rectangle {
         match self {
-            Image::Raster(image, bounds) => bounds.rotate(image.rotation),
-            Image::Vector(svg, bounds) => bounds.rotate(svg.rotation),
+            Image::Raster { image, bounds, .. } => {
+                bounds.rotate(image.rotation)
+            }
+            Image::Vector { svg, bounds, .. } => bounds.rotate(svg.rotation),
         }
     }
 }
+
+/// An image buffer.
+#[cfg(feature = "image")]
+pub type Buffer = ::image::ImageBuffer<::image::Rgba<u8>, image::Bytes>;
 
 #[cfg(feature = "image")]
 /// Tries to load an image by its [`Handle`].
 ///
 /// [`Handle`]: image::Handle
-pub fn load(
-    handle: &image::Handle,
-) -> ::image::ImageResult<::image::ImageBuffer<::image::Rgba<u8>, image::Bytes>>
-{
+pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
     use bitflags::bitflags;
 
     bitflags! {
@@ -85,7 +97,7 @@ pub fn load(
 
     let (width, height, pixels) = match handle {
         image::Handle::Path(_, path) => {
-            let image = ::image::open(path)?;
+            let image = ::image::open(path).map_err(to_error)?;
 
             let operation = std::fs::File::open(path)
                 .ok()
@@ -102,7 +114,8 @@ pub fn load(
             )
         }
         image::Handle::Bytes(_, bytes) => {
-            let image = ::image::load_from_memory(bytes)?;
+            let image = ::image::load_from_memory(bytes).map_err(to_error)?;
+
             let operation =
                 Operation::from_exif(&mut std::io::Cursor::new(bytes))
                     .ok()
@@ -127,10 +140,22 @@ pub fn load(
     if let Some(image) = ::image::ImageBuffer::from_raw(width, height, pixels) {
         Ok(image)
     } else {
-        Err(::image::error::ImageError::Limits(
+        Err(to_error(::image::error::ImageError::Limits(
             ::image::error::LimitError::from_kind(
                 ::image::error::LimitErrorKind::DimensionError,
             ),
-        ))
+        )))
+    }
+}
+
+#[cfg(feature = "image")]
+fn to_error(error: ::image::ImageError) -> image::Error {
+    use std::sync::Arc;
+
+    match error {
+        ::image::ImageError::IoError(error) => {
+            image::Error::Inaccessible(Arc::new(error))
+        }
+        error => image::Error::Invalid(Arc::new(error)),
     }
 }

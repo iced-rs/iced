@@ -379,14 +379,30 @@ impl<T, E> Task<Result<T, E>> {
     /// The success value is provided to the closure to create the subsequent [`Task`].
     pub fn and_then<A>(
         self,
-        f: impl Fn(T) -> Task<A> + MaybeSend + 'static,
-    ) -> Task<A>
+        f: impl Fn(T) -> Task<Result<A, E>> + MaybeSend + 'static,
+    ) -> Task<Result<A, E>>
     where
         T: MaybeSend + 'static,
         E: MaybeSend + 'static,
         A: MaybeSend + 'static,
     {
-        self.then(move |option| option.map_or_else(|_| Task::none(), &f))
+        self.then(move |result| {
+            result.map_or_else(|error| Task::done(Err(error)), &f)
+        })
+    }
+
+    /// Maps the error type of this [`Task`] to a different one using the given
+    /// function.
+    pub fn map_err<E2>(
+        self,
+        f: impl Fn(E) -> E2 + MaybeSend + 'static,
+    ) -> Task<Result<T, E2>>
+    where
+        T: MaybeSend + 'static,
+        E: MaybeSend + 'static,
+        E2: MaybeSend + 'static,
+    {
+        self.map(move |result| result.map_err(&f))
     }
 }
 

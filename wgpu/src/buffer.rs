@@ -42,7 +42,7 @@ impl<T: bytemuck::Pod> Buffer<T> {
     }
 
     pub fn resize(&mut self, device: &wgpu::Device, new_count: usize) -> bool {
-        let new_size = (std::mem::size_of::<T>() * new_count) as u64;
+        let new_size = next_copy_size::<T>(new_count);
 
         if self.size < new_size {
             self.raw = device.create_buffer(&wgpu::BufferDescriptor {

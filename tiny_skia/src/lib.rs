@@ -228,6 +228,22 @@ impl core::Renderer for Renderer {
     fn reset(&mut self, new_bounds: Rectangle) {
         self.layers.reset(new_bounds);
     }
+
+    fn allocate_image(
+        &mut self,
+        handle: &core::image::Handle,
+        callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>)
+        + Send
+        + 'static,
+    ) {
+        #[cfg(feature = "image")]
+        #[allow(unsafe_code)]
+        // TODO: Concurrency
+        callback(self.engine.raster_pipeline.load(handle));
+
+        #[cfg(not(feature = "image"))]
+        callback(Err(core::image::Error::Unsupported))
+    }
 }
 
 impl core::text::Renderer for Renderer {
@@ -350,13 +366,28 @@ impl graphics::mesh::Renderer for Renderer {
 impl core::image::Renderer for Renderer {
     type Handle = core::image::Handle;
 
-    fn measure_image(&self, handle: &Self::Handle) -> crate::core::Size<u32> {
+    fn load_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Result<core::image::Allocation, core::image::Error> {
+        self.engine.raster_pipeline.load(handle)
+    }
+
+    fn measure_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Option<crate::core::Size<u32>> {
         self.engine.raster_pipeline.dimensions(handle)
     }
 
-    fn draw_image(&mut self, image: core::Image, bounds: Rectangle) {
+    fn draw_image(
+        &mut self,
+        image: core::Image,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_raster(image, bounds, transformation);
+        layer.draw_raster(image, bounds, clip_bounds, transformation);
     }
 }
 
@@ -369,9 +400,14 @@ impl core::svg::Renderer for Renderer {
         self.engine.vector_pipeline.viewport_dimensions(handle)
     }
 
-    fn draw_svg(&mut self, svg: core::Svg, bounds: Rectangle) {
+    fn draw_svg(
+        &mut self,
+        svg: core::Svg,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_svg(svg, bounds, transformation);
+        layer.draw_svg(svg, bounds, clip_bounds, transformation);
     }
 }
 

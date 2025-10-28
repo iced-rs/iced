@@ -1,11 +1,12 @@
-use bytes::Bytes;
 use serde::Deserialize;
 use sipper::{Straw, sipper};
 use tokio::task;
 
 use std::fmt;
 use std::io;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
+
+static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Image {
@@ -18,14 +19,12 @@ impl Image {
     pub const LIMIT: usize = 96;
 
     pub async fn list() -> Result<Vec<Self>, Error> {
-        let client = reqwest::Client::new();
-
         #[derive(Deserialize)]
         struct Response {
             items: Vec<Image>,
         }
 
-        let response: Response = client
+        let response: Response = CLIENT
             .get("https://civitai.com/api/v1/images")
             .query(&[
                 ("sort", "Most Reactions"),
@@ -39,7 +38,11 @@ impl Image {
             .json()
             .await?;
 
-        Ok(response.items)
+        Ok(response
+            .items
+            .into_iter()
+            .filter(|image| !image.url.ends_with(".mp4"))
+            .collect())
     }
 
     pub async fn blurhash(
@@ -54,17 +57,15 @@ impl Image {
                 rgba: Rgba {
                     width,
                     height,
-                    pixels: Bytes::from(pixels),
+                    pixels: Bytes(pixels.into()),
                 },
             })
         })
         .await?
     }
 
-    pub fn download(self, size: Size) -> impl Straw<Rgba, Blurhash, Error> {
+    pub fn download(self, size: Size) -> impl Straw<Bytes, Blurhash, Error> {
         sipper(async move |mut sender| {
-            let client = reqwest::Client::new();
-
             if let Size::Thumbnail { width, height } = size {
                 let image = self.clone();
 
@@ -75,14 +76,16 @@ impl Image {
                 }));
             }
 
-            let bytes = client
+            let bytes = CLIENT
                 .get(match size {
                     Size::Original => self.url,
                     Size::Thumbnail { width, .. } => self
                         .url
                         .split("/")
                         .map(|part| {
-                            if part.starts_with("width=") {
+                            if part.starts_with("width=")
+                                || part.starts_with("original=")
+                            {
                                 format!("width={}", width * 2) // High DPI
                             } else {
                                 part.to_owned()
@@ -97,21 +100,7 @@ impl Image {
                 .bytes()
                 .await?;
 
-            let image = task::spawn_blocking(move || {
-                Ok::<_, Error>(
-                    image::ImageReader::new(io::Cursor::new(bytes))
-                        .with_guessed_format()?
-                        .decode()?
-                        .to_rgba8(),
-                )
-            })
-            .await??;
-
-            Ok(Rgba {
-                width: image.width(),
-                height: image.height(),
-                pixels: Bytes::from(image.into_raw()),
-            })
+            Ok(Bytes(bytes))
         })
     }
 }
@@ -142,6 +131,29 @@ impl fmt::Debug for Rgba {
     }
 }
 
+#[derive(Clone)]
+pub struct Bytes(bytes::Bytes);
+
+impl Bytes {
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl From<Bytes> for bytes::Bytes {
+    fn from(value: Bytes) -> Self {
+        value.0
+    }
+}
+
+impl fmt::Debug for Bytes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Compressed")
+            .field("bytes", &self.0.len())
+            .finish()
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum Size {
     Original,
@@ -154,7 +166,7 @@ pub enum Error {
     RequestFailed(Arc<reqwest::Error>),
     IOFailed(Arc<io::Error>),
     JoinFailed(Arc<task::JoinError>),
-    ImageDecodingFailed(Arc<image::ImageError>),
+    ImageDecodingFailed,
     BlurhashDecodingFailed(Arc<blurhash::Error>),
 }
 
@@ -173,12 +185,6 @@ impl From<io::Error> for Error {
 impl From<task::JoinError> for Error {
     fn from(error: task::JoinError) -> Self {
         Self::JoinFailed(Arc::new(error))
-    }
-}
-
-impl From<image::ImageError> for Error {
-    fn from(error: image::ImageError) -> Self {
-        Self::ImageDecodingFailed(Arc::new(error))
     }
 }
 
