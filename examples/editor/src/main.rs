@@ -1,8 +1,8 @@
 use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
-    button, center_x, column, container, operation, pick_list, row, space,
-    text, text_editor, toggler, tooltip,
+    self, button, center_x, column, container, operation::focus, pick_list,
+    row, space, text, text_editor, toggler, tooltip,
 };
 use iced::{Center, Element, Fill, Font, Task, Theme};
 
@@ -20,6 +20,7 @@ pub fn main() -> iced::Result {
 }
 
 struct Editor {
+    editor_id: widget::Id,
     file: Option<PathBuf>,
     content: text_editor::Content,
     theme: highlighter::Theme,
@@ -42,8 +43,10 @@ enum Message {
 
 impl Editor {
     fn new() -> (Self, Task<Message>) {
+        let id = widget::Id::unique();
         (
             Self {
+                editor_id: id.clone(),
                 file: None,
                 content: text_editor::Content::new(),
                 theme: highlighter::Theme::SolarizedDark,
@@ -59,7 +62,7 @@ impl Editor {
                     )),
                     Message::FileOpened,
                 ),
-                operation::focus_next(),
+                focus(id),
             ]),
         )
     }
@@ -196,6 +199,7 @@ impl Editor {
         column![
             controls,
             text_editor(&self.content)
+                .id(self.editor_id.clone())
                 .height(Fill)
                 .on_action(Message::ActionPerformed)
                 .wrapping(if self.word_wrap {
