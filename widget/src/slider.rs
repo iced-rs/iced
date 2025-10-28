@@ -95,6 +95,7 @@ where
     width: Length,
     height: f32,
     class: Theme::Class<'a>,
+    mouse_interaction: SliderMouseInteraction,
 }
 
 impl<'a, T, Message, Theme> Slider<'a, T, Message, Theme>
@@ -141,6 +142,7 @@ where
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
             class: Theme::default(),
+            mouse_interaction: Default::default()
         }
     }
 
@@ -189,6 +191,13 @@ where
         self
     }
 
+    /// Sets the mouse interaction of the [`Slider`].
+    pub fn mouse_interaction(mut self, interaction: SliderMouseInteraction) -> Self
+    {
+        self.mouse_interaction = interaction;
+        self
+    }
+
     /// Sets the style of the [`Slider`].
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
@@ -205,6 +214,24 @@ where
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
         self.class = class.into();
         self
+    }
+}
+
+/// Configuration of the [`mouse::Interaction`] displayed by a [`Slider`]
+#[derive(Debug)]
+pub struct SliderMouseInteraction {
+    /// [`mouse::Interaction`] when dragging the [`Slider`]
+    pub dragging: mouse::Interaction,
+    /// [`mouse::Interaction`] when hovering over the [`Slider`]
+    pub mouse_over: mouse::Interaction,
+}
+
+impl Default for SliderMouseInteraction {
+    fn default() -> Self {
+        Self {
+            dragging: mouse::Interaction::Grabbing,
+            mouse_over: mouse::Interaction::Grab,
+        }
     }
 }
 
@@ -520,9 +547,9 @@ where
         let is_mouse_over = cursor.is_over(bounds);
 
         if state.is_dragging {
-            mouse::Interaction::Grabbing
+            self.mouse_interaction.dragging
         } else if is_mouse_over {
-            mouse::Interaction::Grab
+            self.mouse_interaction.mouse_over
         } else {
             mouse::Interaction::default()
         }
