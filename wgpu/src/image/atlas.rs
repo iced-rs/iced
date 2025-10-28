@@ -138,7 +138,7 @@ impl Atlas {
             Entry::Fragmented { fragments, .. } => {
                 for fragment in fragments {
                     let (x, y) = fragment.position;
-                    let offset = (y * width + 4 * x) as usize;
+                    let offset = 4 * (y * width + x) as usize;
 
                     self.upload_allocation(
                         pixels,
@@ -323,7 +323,7 @@ impl Atlas {
 
         // It is a webgpu requirement that:
         //   BufferCopyView.layout.bytes_per_row % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT == 0
-        // So we calculate padded_width by rounding width up to the next
+        // So we calculate bytes_per_row by rounding width up to the next
         // multiple of wgpu::COPY_BYTES_PER_ROW_ALIGNMENT.
         let bytes_per_row = (4 * (width + padding.width * 2))
             .next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
@@ -368,8 +368,8 @@ impl Atlas {
         for row in 0..padding_height {
             let start = row * bytes_per_row;
             let end = (padding_height + height as usize + row) * bytes_per_row;
-            let end_offset =
-                offset + height as usize * 4 * image_width as usize;
+            let last =
+                offset + (height - 1) as usize * 4 * image_width as usize;
 
             // Top
             padded_data[start + 4 * padding_width
@@ -379,14 +379,12 @@ impl Atlas {
             // Bottom
             padded_data[end + 4 * padding_width
                 ..end + 4 * (padding_width + width as usize)]
-                .copy_from_slice(
-                    &pixels[end_offset - 4 * width as usize..end_offset],
-                );
+                .copy_from_slice(&pixels[last..last + 4 * width as usize]);
 
             // Corners
             for i in 0..padding_width {
                 padded_data[start + 4 * i..start + 4 * (i + 1)]
-                    .copy_from_slice(&pixels[offset..4]);
+                    .copy_from_slice(&pixels[offset..offset + 4]);
 
                 padded_data[start + 4 * (width as usize + padding_width + i)
                     ..start + 4 * (width as usize + padding_width + i + 1)]
@@ -395,14 +393,15 @@ impl Atlas {
                             ..offset + 4 * width as usize],
                     );
 
-                padded_data[end + 4 * i..end + 4 * (i + 1)].copy_from_slice(
-                    &pixels[end_offset - 4 * width as usize
-                        ..end_offset - 4 * (width as usize - 1)],
-                );
+                padded_data[end + 4 * i..end + 4 * (i + 1)]
+                    .copy_from_slice(&pixels[last..last + 4]);
 
                 padded_data[end + 4 * (width as usize + padding_width + i)
                     ..end + 4 * (width as usize + padding_width + i + 1)]
-                    .copy_from_slice(&pixels[end_offset - 4..end_offset]);
+                    .copy_from_slice(
+                        &pixels[last + 4 * (width - 1) as usize
+                            ..last + 4 * width as usize],
+                    );
             }
         }
 
