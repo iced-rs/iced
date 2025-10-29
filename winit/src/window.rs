@@ -58,6 +58,7 @@ where
     ) -> &mut Window<P, C> {
         let state = State::new(program, id, &window, system_theme);
         let surface_size = state.physical_size();
+        let surface_version = state.surface_version();
         let surface = compositor.create_surface(
             window.clone(),
             surface_size.width,
@@ -74,7 +75,7 @@ where
                 state,
                 exit_on_close_request,
                 surface,
-                surface_size,
+                surface_version,
                 renderer,
                 mouse_interaction: mouse::Interaction::None,
                 redraw_at: None,
@@ -166,7 +167,7 @@ where
     pub exit_on_close_request: bool,
     pub mouse_interaction: mouse::Interaction,
     pub surface: C::Surface,
-    pub surface_size: Size<u32>,
+    pub surface_version: u64,
     pub renderer: P::Renderer,
     pub redraw_at: Option<Instant>,
     preedit: Option<Preedit<P::Renderer>>,
@@ -190,10 +191,8 @@ where
             })
     }
 
-    pub fn size(&self) -> Size {
-        let size = self.raw.inner_size().to_logical(self.raw.scale_factor());
-
-        Size::new(size.width, size.height)
+    pub fn logical_size(&self) -> Size {
+        self.state.logical_size()
     }
 
     pub fn request_redraw(&mut self, redraw_request: RedrawRequest) {

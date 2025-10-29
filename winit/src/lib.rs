@@ -697,7 +697,7 @@ async fn run_instance<P>(
                     id,
                     core::Event::Window(window::Event::Opened {
                         position: window.position(),
-                        size: window.size(),
+                        size: window.logical_size(),
                     }),
                 ));
 
@@ -796,7 +796,9 @@ async fn run_instance<P>(
                         }
 
                         // Window was resized between redraws
-                        if window.surface_size != physical_size {
+                        if window.surface_version
+                            != window.state.surface_version()
+                        {
                             let ui = user_interfaces
                                 .remove(&id)
                                 .expect("Remove user interface");
@@ -814,7 +816,8 @@ async fn run_instance<P>(
                                 physical_size.height,
                             );
 
-                            window.surface_size = physical_size;
+                            window.surface_version =
+                                window.state.surface_version();
                         }
 
                         let redraw_event = core::Event::Window(
@@ -1483,11 +1486,7 @@ fn run_action<'a, P, C>(
             }
             window::Action::GetSize(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id) {
-                    let size = window
-                        .raw
-                        .inner_size()
-                        .to_logical(f64::from(window.state.scale_factor()));
-
+                    let size = window.logical_size();
                     let _ = channel.send(Size::new(size.width, size.height));
                 }
             }
@@ -1761,7 +1760,7 @@ fn run_action<'a, P, C>(
                 };
 
                 let cache = ui.into_cache();
-                let size = window.size();
+                let size = window.logical_size();
 
                 let _ = interfaces.insert(
                     id,

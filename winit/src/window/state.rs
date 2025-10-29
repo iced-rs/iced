@@ -17,6 +17,7 @@ where
     title: String,
     scale_factor: f32,
     viewport: Viewport,
+    surface_version: u64,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
     theme: Option<P::Theme>,
@@ -72,6 +73,7 @@ where
             title,
             scale_factor,
             viewport,
+            surface_version: 0,
             cursor_position: None,
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
@@ -81,27 +83,26 @@ where
         }
     }
 
-    /// Returns the current [`Viewport`] of the [`State`].
     pub fn viewport(&self) -> &Viewport {
         &self.viewport
     }
 
-    /// Returns the physical [`Size`] of the [`Viewport`] of the [`State`].
+    pub fn surface_version(&self) -> u64 {
+        self.surface_version
+    }
+
     pub fn physical_size(&self) -> Size<u32> {
         self.viewport.physical_size()
     }
 
-    /// Returns the logical [`Size`] of the [`Viewport`] of the [`State`].
     pub fn logical_size(&self) -> Size<f32> {
         self.viewport.logical_size()
     }
 
-    /// Returns the current scale factor of the [`Viewport`] of the [`State`].
     pub fn scale_factor(&self) -> f32 {
         self.viewport.scale_factor()
     }
 
-    /// Returns the current cursor position of the [`State`].
     pub fn cursor(&self) -> mouse::Cursor {
         self.cursor_position
             .map(|cursor_position| {
@@ -114,32 +115,26 @@ where
             .unwrap_or(mouse::Cursor::Unavailable)
     }
 
-    /// Returns the current keyboard modifiers of the [`State`].
     pub fn modifiers(&self) -> winit::keyboard::ModifiersState {
         self.modifiers
     }
 
-    /// Returns the current theme of the [`State`].
     pub fn theme(&self) -> &P::Theme {
         self.theme.as_ref().unwrap_or(&self.default_theme)
     }
 
-    /// Returns the current [`theme::Mode`] of the [`State`].
     pub fn theme_mode(&self) -> theme::Mode {
         self.theme_mode
     }
 
-    /// Returns the current background [`Color`] of the [`State`].
     pub fn background_color(&self) -> Color {
         self.style.background_color
     }
 
-    /// Returns the current text [`Color`] of the [`State`].
     pub fn text_color(&self) -> Color {
         self.style.text_color
     }
 
-    /// Processes the provided window event and updates the [`State`] accordingly.
     pub fn update(
         &mut self,
         program: &program::Instance<P>,
@@ -154,6 +149,7 @@ where
                     size,
                     window.scale_factor() as f32 * self.scale_factor,
                 );
+                self.surface_version += 1;
             }
             WindowEvent::ScaleFactorChanged {
                 scale_factor: new_scale_factor,
@@ -165,6 +161,7 @@ where
                     size,
                     *new_scale_factor as f32 * self.scale_factor,
                 );
+                self.surface_version += 1;
             }
             WindowEvent::CursorMoved { position, .. }
             | WindowEvent::Touch(Touch {
@@ -192,11 +189,6 @@ where
         }
     }
 
-    /// Synchronizes the [`State`] with its [`Program`] and its respective
-    /// window.
-    ///
-    /// Normally, a [`Program`] should be synchronized with its [`State`]
-    /// and window after calling [`Program::update`].
     pub fn synchronize(
         &mut self,
         program: &program::Instance<P>,
