@@ -49,7 +49,6 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
     use bitflags::bitflags;
 
     bitflags! {
-        #[derive(Debug)]
         struct Operation: u8 {
             const FLIP_HORIZONTALLY = 0b1;
             const ROTATE_180 = 0b10;
