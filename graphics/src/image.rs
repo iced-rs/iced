@@ -49,10 +49,13 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
     use bitflags::bitflags;
 
     bitflags! {
+        #[derive(Debug)]
         struct Operation: u8 {
-            const FLIP_HORIZONTALLY = 0b001;
-            const ROTATE_180 = 0b010;
-            const FLIP_DIAGONALLY = 0b100;
+            const FLIP_HORIZONTALLY = 0b1;
+            const ROTATE_180 = 0b10;
+            const FLIP_VERTICALLY= 0b100;
+            const ROTATE_90 = 0b1000;
+            const ROTATE_270 = 0b10000;
         }
     }
 
@@ -69,7 +72,17 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
                 .get_field(exif::Tag::Orientation, exif::In::PRIMARY)
                 .and_then(|field| field.value.get_uint(0))
                 .and_then(|value| u8::try_from(value).ok())
-                .and_then(|value| Self::from_bits(value.saturating_sub(1)))
+                .map(|value| match value {
+                    1 => Operation::empty(),
+                    2 => Operation::FLIP_HORIZONTALLY,
+                    3 => Operation::ROTATE_180,
+                    4 => Operation::FLIP_VERTICALLY,
+                    5 => Operation::ROTATE_90 | Operation::FLIP_HORIZONTALLY,
+                    6 => Operation::ROTATE_90,
+                    7 => Operation::ROTATE_90 | Operation::FLIP_VERTICALLY,
+                    8 => Operation::ROTATE_270,
+                    _ => Operation::empty(),
+                })
                 .unwrap_or_else(Self::empty))
         }
 
@@ -79,12 +92,20 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
         ) -> ::image::DynamicImage {
             use ::image::imageops;
 
-            if self.contains(Self::FLIP_DIAGONALLY) {
-                imageops::flip_vertical_in_place(&mut image);
+            if self.contains(Operation::ROTATE_90) {
+                image = imageops::rotate90(&image).into();
             }
 
             if self.contains(Self::ROTATE_180) {
                 imageops::rotate180_in_place(&mut image);
+            }
+
+            if self.contains(Operation::ROTATE_270) {
+                image = imageops::rotate270(&image).into();
+            }
+
+            if self.contains(Self::FLIP_VERTICALLY) {
+                imageops::flip_vertical_in_place(&mut image);
             }
 
             if self.contains(Self::FLIP_HORIZONTALLY) {

@@ -191,7 +191,7 @@ glam = "0.25"
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.25", default-features = false }
-kamadak-exif = "0.5"
+kamadak-exif = "0.6"
 kurbo = "0.10"
 lilt = "0.8"
 log = "0.4"

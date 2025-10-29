@@ -2989,9 +2989,9 @@ dependencies = [
 
 [[package]]
 name = "kamadak-exif"
-version = "0.5.5"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef4fc70d0ab7e5b6bafa30216a6b48705ea964cdfc29c050f2412295eba58077"
+checksum = "1130d80c7374efad55a117d715a3af9368f0fa7a2c54573afc15a188cd984837"
 dependencies = [
  "mutate_once",
 ]
