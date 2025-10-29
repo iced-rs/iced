@@ -292,10 +292,13 @@ impl Cache {
 
     pub fn trim(&mut self) {
         #[cfg(feature = "image")]
-        self.raster.cache.trim(&mut self.atlas, |_bind_group| {
-            #[cfg(not(target_arch = "wasm32"))]
-            self.worker.drop(_bind_group);
-        });
+        {
+            self.receive();
+            self.raster.cache.trim(&mut self.atlas, |_bind_group| {
+                #[cfg(not(target_arch = "wasm32"))]
+                self.worker.drop(_bind_group);
+            });
+        }
 
         #[cfg(feature = "svg")]
         self.vector.trim(&mut self.atlas); // TODO: Concurrency
