@@ -1,4 +1,6 @@
 //! Build and reuse custom widgets using The Elm Architecture.
+use crate::Action;
+use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -64,6 +66,16 @@ pub trait Component<
         &self,
         state: &Self::State,
     ) -> Element<'a, Self::Event, Theme, Renderer>;
+
+    /// Listens to a runtime [`Event`] and performs an [`Action`] as a result.
+    ///
+    /// If the [`Action`] publishes a [`Component::Event`], it will be immediately fed
+    /// to [`update`](Self::update).
+    ///
+    /// By default, it returns [`Action::none`].
+    fn listen(&self, _event: &Event) -> Action<Self::Event> {
+        Action::none()
+    }
 
     /// Reconciles the current [`Component`] with its internal [`State`](Self::State) persisted
     /// in the widget tree.
@@ -199,37 +211,49 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let mut events = Vec::new();
-        let mut local_shell = Shell::new(&mut events);
+        let action = self.component.listen(event);
+        let (publish, redraw_request, event_status) = action.into_inner();
 
-        self.view.as_widget_mut().update(
-            &mut tree.children[0],
-            event,
-            Layout::with_offset(
-                layout.position() - Point::ORIGIN,
-                &self.layout,
-            ),
-            cursor,
-            renderer,
-            clipboard,
-            &mut local_shell,
-            viewport,
-        );
+        shell.request_redraw_at(redraw_request);
 
-        if local_shell.is_event_captured() {
+        if let event::Status::Captured = event_status {
             shell.capture_event();
         }
 
-        if local_shell.is_layout_invalid() {
-            shell.invalidate_layout();
-        }
+        let mut events = Vec::from_iter(publish);
 
-        if local_shell.are_widgets_invalid() {
-            shell.invalidate_widgets();
-        }
+        if !shell.is_event_captured() {
+            let mut local_shell = Shell::new(&mut events);
 
-        shell.request_redraw_at(local_shell.redraw_request());
-        shell.request_input_method(local_shell.input_method());
+            self.view.as_widget_mut().update(
+                &mut tree.children[0],
+                event,
+                Layout::with_offset(
+                    layout.position() - Point::ORIGIN,
+                    &self.layout,
+                ),
+                cursor,
+                renderer,
+                clipboard,
+                &mut local_shell,
+                viewport,
+            );
+
+            if local_shell.is_event_captured() {
+                shell.capture_event();
+            }
+
+            if local_shell.is_layout_invalid() {
+                shell.invalidate_layout();
+            }
+
+            if local_shell.are_widgets_invalid() {
+                shell.invalidate_widgets();
+            }
+
+            shell.request_redraw_at(local_shell.redraw_request());
+            shell.request_input_method(local_shell.input_method());
+        }
 
         if !events.is_empty() {
             let state = tree.state.downcast_mut::<C::State>();

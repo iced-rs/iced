@@ -11,7 +11,8 @@ pub struct Action<Message> {
 }
 
 impl<Message> Action<Message> {
-    fn new() -> Self {
+    /// Creates an [`Action`] that does nothing.
+    pub fn none() -> Self {
         Self {
             message_to_publish: None,
             redraw_request: window::RedrawRequest::Wait,
@@ -27,7 +28,7 @@ impl<Message> Action<Message> {
     pub fn capture() -> Self {
         Self {
             event_status: event::Status::Captured,
-            ..Self::new()
+            ..Self::none()
         }
     }
 
@@ -38,7 +39,7 @@ impl<Message> Action<Message> {
     pub fn publish(message: Message) -> Self {
         Self {
             message_to_publish: Some(message),
-            ..Self::new()
+            ..Self::none()
         }
     }
 
@@ -47,7 +48,7 @@ impl<Message> Action<Message> {
     pub fn request_redraw() -> Self {
         Self {
             redraw_request: window::RedrawRequest::NextFrame,
-            ..Self::new()
+            ..Self::none()
         }
     }
 
@@ -59,7 +60,7 @@ impl<Message> Action<Message> {
     pub fn request_redraw_at(at: Instant) -> Self {
         Self {
             redraw_request: window::RedrawRequest::At(at),
-            ..Self::new()
+            ..Self::none()
         }
     }
 
