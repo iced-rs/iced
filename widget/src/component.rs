@@ -81,6 +81,16 @@ pub trait Component<
         Action::none()
     }
 
+    /// Returns the current [`mouse::Interaction`] of the [`Component`].
+    ///
+    /// This interaction will override any interaction produced by the [`view`](Self::view)
+    /// of the [`Component`].
+    ///
+    /// By default, it returns [`mouse::Interaction::None`].
+    fn mouse_interaction(&self, _state: &Self::State) -> mouse::Interaction {
+        mouse::Interaction::None
+    }
+
     /// Reconciles the current [`Component`] with its internal [`State`](Self::State) persisted
     /// in the widget tree.
     ///
@@ -320,6 +330,13 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
+        let interaction =
+            self.component.mouse_interaction(tree.state.downcast_ref());
+
+        if interaction != mouse::Interaction::None {
+            return interaction;
+        }
+
         self.view.as_widget().mouse_interaction(
             &tree.children[0],
             Layout::with_offset(
