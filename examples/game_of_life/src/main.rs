@@ -882,16 +882,15 @@ mod grid {
         }
     }
 
+    #[derive(Default)]
     pub enum Interaction {
+        #[default]
         None,
         Drawing,
         Erasing,
-        Panning { translation: Vector, start: Point },
-    }
-
-    impl Default for Interaction {
-        fn default() -> Self {
-            Self::None
-        }
+        Panning {
+            translation: Vector,
+            start: Point,
+        },
     }
 }

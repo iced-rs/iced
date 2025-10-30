@@ -1,9 +1,10 @@
 use crate::{Point, Size};
 
 /// The position of a window in a given screen.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum Position {
     /// The platform-specific default position for a new window.
+    #[default]
     Default,
     /// The window is completely centered on the screen.
     Centered,
@@ -21,10 +22,4 @@ pub enum Position {
     ///
     /// [`Specific`]: Self::Specific
     SpecificWith(fn(Size, Size) -> Point),
-}
-
-impl Default for Position {
-    fn default() -> Self {
-        Self::Default
-    }
 }
