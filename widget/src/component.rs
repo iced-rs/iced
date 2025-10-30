@@ -65,6 +65,15 @@ pub trait Component<
         state: &Self::State,
     ) -> Element<'a, Self::Event, Theme, Renderer>;
 
+    /// Reconciles the current [`Component`] with its internal [`State`](Self::State) persisted
+    /// in the widget tree.
+    ///
+    /// This method will be called every time the widget tree changes. You can leverage it to
+    /// detect and react to changes in the [`Component`].
+    ///
+    /// By default, it does nothing.
+    fn diff(&self, _state: &mut Self::State) {}
+
     /// Update the [`Component`] state based on the provided [`Operation`](widget::Operation)
     ///
     /// By default, it does nothing.
@@ -80,6 +89,8 @@ pub trait Component<
     ///
     /// This hint may be used by some widget containers to adjust their sizing strategy
     /// during construction.
+    ///
+    /// By default, it returns a [`Size`] with both dimensions set to [`Length::Shrink`].
     fn size_hint(&self) -> Size<Length> {
         Size {
             width: Length::Shrink,
@@ -140,8 +151,10 @@ where
         tree::State::new(C::State::default())
     }
 
-    fn diff(&self, _tree: &mut Tree) {
-        // Deferred
+    fn diff(&self, tree: &mut Tree) {
+        let state = tree.state.downcast_mut();
+
+        self.component.diff(state);
     }
 
     fn size(&self) -> Size<Length> {
