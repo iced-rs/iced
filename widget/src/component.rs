@@ -73,7 +73,11 @@ pub trait Component<
     /// to [`update`](Self::update).
     ///
     /// By default, it returns [`Action::none`].
-    fn listen(&self, _event: &Event) -> Action<Self::Event> {
+    fn listen(
+        &self,
+        _state: &Self::State,
+        _event: &Event,
+    ) -> Action<Self::Event> {
         Action::none()
     }
 
@@ -211,7 +215,8 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let action = self.component.listen(event);
+        let state = tree.state.downcast_mut::<C::State>();
+        let action = self.component.listen(state, event);
         let (publish, redraw_request, event_status) = action.into_inner();
 
         shell.request_redraw_at(redraw_request);
@@ -256,8 +261,6 @@ where
         }
 
         if !events.is_empty() {
-            let state = tree.state.downcast_mut::<C::State>();
-
             for event in events {
                 if let Some(message) = self.component.update(state, event) {
                     shell.publish(message);
