@@ -39,6 +39,7 @@ pub fn wgpu_benchmark(c: &mut Criterion) {
             required_limits: wgpu::Limits::default(),
             memory_hints: wgpu::MemoryHints::MemoryUsage,
             trace: wgpu::Trace::Off,
+            experimental_features: wgpu::ExperimentalFeatures::disabled(),
         }))
         .expect("request device");
 
@@ -140,7 +141,10 @@ fn benchmark<'a>(
             &viewport,
         );
 
-        let _ = device.poll(wgpu::PollType::WaitForSubmissionIndex(submission));
+        let _ = device.poll(wgpu::PollType::Wait {
+            submission_index: Some(submission),
+            timeout: None,
+        });
 
         i += 1;
     });

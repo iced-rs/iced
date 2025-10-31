@@ -171,6 +171,8 @@ impl Compositor {
                     required_limits: required_limits.clone(),
                     memory_hints: wgpu::MemoryHints::MemoryUsage,
                     trace: wgpu::Trace::Off,
+                    experimental_features: wgpu::ExperimentalFeatures::disabled(
+                    ),
                 })
                 .await;
 
