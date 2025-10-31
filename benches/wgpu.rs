@@ -63,6 +63,15 @@ pub fn wgpu_benchmark(c: &mut Criterion) {
     c.bench_function("wgpu - dynamic text (heavy)", |b| {
         benchmark(b, &adapter, &device, &queue, |i| dynamic_text(100_000, i));
     });
+
+    c.bench_function("wgpu - advanced shaping (light)", |b| {
+        benchmark(b, &adapter, &device, &queue, |i| advanced_shaping(1_000, i));
+    });
+    c.bench_function("wgpu - advanced shaping (heavy)", |b| {
+        benchmark(b, &adapter, &device, &queue, |i| {
+            advanced_shaping(100_000, i)
+        });
+    });
 }
 
 fn benchmark<'a>(
@@ -202,7 +211,7 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
 fn layered_text<'a, Message: 'a>(
     n: usize,
 ) -> Element<'a, Message, Theme, Renderer> {
-    stack((0..n).map(|i| text(format!("I am paragraph {i}!")).into()))
+    stack((0..n).map(|i| text!("I am paragraph {i}!").into()))
         .width(Length::Fill)
         .height(Length::Fill)
         .into()
@@ -215,13 +224,33 @@ fn dynamic_text<'a, Message: 'a>(
     const LOREM_IPSUM: &str = include_str!("ipsum.txt");
 
     scrollable(
-        text(format!(
+        text!(
             "{}... Iteration {i}",
             std::iter::repeat(LOREM_IPSUM.chars())
                 .flatten()
                 .take(n)
                 .collect::<String>(),
-        ))
+        )
+        .size(10),
+    )
+    .into()
+}
+
+fn advanced_shaping<'a, Message: 'a>(
+    n: usize,
+    i: usize,
+) -> Element<'a, Message, Theme, Renderer> {
+    const LOREM_IPSUM: &str = include_str!("ipsum.txt");
+
+    scrollable(
+        text!(
+            "{}... Iteration {i} 😎",
+            std::iter::repeat(LOREM_IPSUM.chars())
+                .flatten()
+                .take(n)
+                .collect::<String>(),
+        )
+        .shaping(text::Shaping::Advanced)
         .size(10),
     )
     .into()
