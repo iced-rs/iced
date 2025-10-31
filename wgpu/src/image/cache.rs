@@ -128,8 +128,10 @@ impl Cache {
                     return Err(core::image::Error::OutOfMemory);
                 };
 
-                let _ = device
-                    .poll(wgpu::PollType::WaitForSubmissionIndex(submission));
+                let _ = device.poll(wgpu::PollType::Wait {
+                    submission_index: Some(submission),
+                    timeout: None,
+                });
 
                 #[allow(unsafe_code)]
                 let allocation = unsafe {
@@ -624,9 +626,10 @@ mod worker {
                 callback(&shell);
             });
 
-            let _ = self
-                .device
-                .poll(wgpu::PollType::WaitForSubmissionIndex(submission));
+            let _ = self.device.poll(wgpu::PollType::Wait {
+                submission_index: Some(submission),
+                timeout: None,
+            });
         }
     }
 }

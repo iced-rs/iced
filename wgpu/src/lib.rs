@@ -278,10 +278,10 @@ impl Renderer {
         let slice = output_buffer.slice(..);
         slice.map_async(wgpu::MapMode::Read, |_| {});
 
-        let _ = self
-            .engine
-            .device
-            .poll(wgpu::PollType::WaitForSubmissionIndex(index));
+        let _ = self.engine.device.poll(wgpu::PollType::Wait {
+            submission_index: Some(index),
+            timeout: None,
+        });
 
         let mapped_buffer = slice.get_mapped_range();
 
@@ -927,6 +927,7 @@ impl renderer::Headless for Renderer {
                 },
                 memory_hints: wgpu::MemoryHints::MemoryUsage,
                 trace: wgpu::Trace::Off,
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
             })
             .await
             .ok()?;

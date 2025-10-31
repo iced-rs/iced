@@ -103,6 +103,8 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 required_limits: wgpu::Limits::default(),
                                 memory_hints: wgpu::MemoryHints::MemoryUsage,
                                 trace: wgpu::Trace::Off,
+                                experimental_features:
+                                    wgpu::ExperimentalFeatures::disabled(),
                             })
                             .await
                             .expect("Request device");
