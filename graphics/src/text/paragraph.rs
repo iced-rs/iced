@@ -89,6 +89,7 @@ impl core::text::Paragraph for Paragraph {
             text.content,
             &text::to_attributes(text.font),
             text::to_shaping(text.shaping, text.content),
+            None,
         );
 
         let min_bounds =
