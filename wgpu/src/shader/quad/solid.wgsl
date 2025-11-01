@@ -40,13 +40,7 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
         scale_snap = round(pos + scale + vec2(0.001, 0.001)) - pos - pos_snap - scale;
     }
 
-    var min_border_radius = min(input.scale.x, input.scale.y) * 0.5;
-    var border_radius: vec4<f32> = vec4<f32>(
-        min(input.border_radius.x, min_border_radius),
-        min(input.border_radius.y, min_border_radius),
-        min(input.border_radius.z, min_border_radius),
-        min(input.border_radius.w, min_border_radius)
-    );
+    let border_radius = min(input.border_radius, vec4(min(input.scale.x, input.scale.y) / 2.0));
 
     var transform: mat4x4<f32> = mat4x4<f32>(
         vec4<f32>(scale.x + scale_snap.x + 1.0, 0.0, 0.0, 0.0),
