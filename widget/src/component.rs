@@ -9,7 +9,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     self, Clipboard, Element, Event, Length, Point, Rectangle, Shell, Size,
-    Widget,
+    Vector, Widget,
 };
 
 /// A reusable, custom widget that uses The Elm Architecture.
@@ -146,6 +146,7 @@ where
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
         layout: layout::Node::new(Size::ZERO),
         is_outdated: true,
+        has_overlay: false,
     })
 }
 
@@ -159,6 +160,7 @@ where
     layout: layout::Node,
     size_hint: Size<Length>,
     is_outdated: bool,
+    has_overlay: bool,
 }
 
 impl<'a, C, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -280,6 +282,7 @@ where
             self.view = self.component.view(state);
             tree.diff_children(&[&self.view]);
 
+            let previous_size = self.layout.size();
             self.layout = self.view.as_widget_mut().layout(
                 &mut tree.children[0],
                 renderer,
@@ -291,6 +294,31 @@ where
             if new_size_hint != self.size_hint {
                 self.size_hint = new_size_hint;
                 shell.invalidate_layout();
+            } else if (self.size_hint.width == Length::Shrink
+                || self.size_hint.height == Length::Shrink)
+                && previous_size != self.layout.size()
+            {
+                shell.invalidate_layout();
+            } else {
+                let has_overlay = self
+                    .view
+                    .as_widget_mut()
+                    .overlay(
+                        &mut tree.children[0],
+                        Layout::with_offset(
+                            layout.position() - Point::ORIGIN,
+                            &self.layout,
+                        ),
+                        renderer,
+                        viewport,
+                        Vector::ZERO,
+                    )
+                    .is_some();
+
+                if self.has_overlay != has_overlay {
+                    self.has_overlay = has_overlay;
+                    shell.invalidate_layout();
+                }
             }
 
             self.is_outdated = false;
@@ -391,6 +419,8 @@ where
             viewport,
             translation,
         )?;
+
+        self.has_overlay = true;
 
         let state = tree.state.downcast_mut();
 
