@@ -2831,6 +2831,7 @@ dependencies = [
 name = "integration"
 version = "0.1.0"
 dependencies = [
+ "android-activity",
  "console_error_panic_hook",
  "console_log",
  "futures",

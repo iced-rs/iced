@@ -15,6 +15,9 @@ iced_widget.features = ["wgpu"]
 futures.workspace = true
 futures.features = ["thread-pool"]
 
+[target.'cfg(target_os = "android")'.dependencies]
+android-activity = { version = "0.6.0", features = ["native-activity"] }
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tracing-subscriber = "0.3"
 
