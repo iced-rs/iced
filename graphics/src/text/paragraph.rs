@@ -269,30 +269,59 @@ impl core::text::Paragraph for Paragraph {
         let internal = self.internal();
 
         let cursor = internal.buffer.hit(point.x, point.y)?;
-        let line = internal.buffer.lines.get(cursor.line)?;
 
-        let mut last_glyph = None;
-        let mut glyphs = line
-            .layout_opt()
-            .as_ref()?
-            .iter()
-            .flat_map(|line| line.glyphs.iter())
+        let glyphs = internal
+            .buffer
+            .layout_runs()
+            .filter(|run| run.line_i == cursor.line)
+            .flat_map(|run| {
+                let line_top = run.line_top;
+                let line_height = run.line_height;
+
+                run.glyphs
+                    .iter()
+                    .map(move |glyph| (line_top, line_height, glyph))
+            })
             .peekable();
 
-        while let Some(glyph) = glyphs.peek() {
-            if glyph.start <= cursor.index && cursor.index < glyph.end {
-                break;
-            }
+        let mut current = None;
 
-            last_glyph = glyphs.next();
+        for (line_top, line_height, glyph) in glyphs {
+            let y = line_top + glyph.y;
+
+            let new_bounds = || {
+                Rectangle::new(
+                    Point::new(glyph.x, y),
+                    Size::new(
+                        glyph.w,
+                        glyph.line_height_opt.unwrap_or(line_height),
+                    ),
+                )
+            };
+
+            match current.as_mut() {
+                None => {
+                    let new = new_bounds();
+
+                    if new.contains(point) {
+                        return Some(glyph.metadata);
+                    }
+
+                    current = Some(new);
+                }
+                Some(current) if y != current.y => {
+                    *current = new_bounds();
+                }
+                Some(current) => {
+                    current.width += glyph.w;
+                    if current.contains(point) {
+                        return Some(glyph.metadata);
+                    }
+                }
+            }
         }
 
-        let glyph = match cursor.affinity {
-            cosmic_text::Affinity::Before => last_glyph,
-            cosmic_text::Affinity::After => glyphs.next(),
-        }?;
-
-        Some(glyph.metadata)
+        None
     }
 
     fn span_bounds(&self, index: usize) -> Vec<Rectangle> {
