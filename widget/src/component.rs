@@ -291,6 +291,18 @@ where
 
             let new_size_hint = self.component.size_hint();
 
+            // We must invalidate application layout in 3 instances:
+            //
+            // 1. The size hint of the component changes. Other widgets
+            //    may change layout behavior.
+            //
+            // 2. The size hint of the component is `Shrink` for any axis
+            //    and the component has changed size. The new size may
+            //    push other widgets around.
+            //
+            // 3. The overlay status of the component changes. The
+            //    runtime will only call `overlay` again if the layout
+            //    is invalidated.
             if new_size_hint != self.size_hint {
                 self.size_hint = new_size_hint;
                 shell.invalidate_layout();
@@ -407,7 +419,7 @@ where
         layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
-        translation: core::Vector,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let overlay = self.view.as_widget_mut().overlay(
             &mut tree.children[0],
@@ -422,11 +434,9 @@ where
 
         self.has_overlay = true;
 
-        let state = tree.state.downcast_mut();
-
         Some(overlay::Element::new(Box::new(Overlay {
             component: &mut self.component,
-            state,
+            state: tree.state.downcast_mut(),
             raw: overlay,
             is_outdated: &mut self.is_outdated,
         })))
