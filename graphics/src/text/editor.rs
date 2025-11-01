@@ -452,7 +452,7 @@ impl editor::Editor for Editor {
                     font_system.raw(),
                     cosmic_text::Action::Scroll {
                         pixels: lines as f32
-                            * self.buffer().metrics().line_height,
+                            * buffer_from_editor(editor).metrics().line_height,
                     },
                 );
             }
