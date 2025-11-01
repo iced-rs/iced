@@ -100,13 +100,13 @@ pub trait Component<
     /// By default, it does nothing.
     fn diff(&self, _state: &mut Self::State) {}
 
-    /// Update the [`Component`] state based on the provided [`Operation`](widget::Operation)
+    /// Run the provided [`widget::Operation`] on the [`Component`].
     ///
     /// By default, it does nothing.
     fn operate(
         &self,
+        _state: &Self::State,
         _bounds: Rectangle,
-        _state: &mut Self::State,
         _operation: &mut dyn widget::Operation,
     ) {
     }
@@ -351,13 +351,19 @@ where
 
     fn operate(
         &mut self,
-        state: &mut Tree,
+        tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
+        self.component.operate(
+            tree.state.downcast_ref(),
+            layout.bounds(),
+            operation,
+        );
+
         self.view.as_widget_mut().operate(
-            &mut state.children[0],
+            &mut tree.children[0],
             Layout::with_offset(
                 layout.position() - Point::ORIGIN,
                 &self.layout,
