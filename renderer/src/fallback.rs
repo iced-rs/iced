@@ -71,7 +71,7 @@ where
     }
 
     fn allocate_image(
-        &mut self,
+        &self,
         handle: &image::Handle,
         callback: impl FnOnce(Result<image::Allocation, image::Error>)
         + Send

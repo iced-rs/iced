@@ -11,7 +11,6 @@ pub use core::widget::Id;
 
 mod action;
 mod column;
-mod component;
 mod mouse_area;
 mod pin;
 mod responsive;
@@ -21,6 +20,7 @@ mod themer;
 pub mod button;
 pub mod checkbox;
 pub mod combo_box;
+pub mod component;
 pub mod container;
 pub mod float;
 pub mod grid;

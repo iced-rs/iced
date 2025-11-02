@@ -230,7 +230,7 @@ impl core::Renderer for Renderer {
     }
 
     fn allocate_image(
-        &mut self,
+        &self,
         _handle: &core::image::Handle,
         callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>)
         + Send

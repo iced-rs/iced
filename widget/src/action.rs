@@ -70,6 +70,12 @@ impl<Message> Action<Message> {
         self
     }
 
+    /// Requests a redraw at the given [`Instant`]. See [`Self::request_redraw_at`].
+    pub fn and_request_redraw_at(mut self, at: Instant) -> Self {
+        self.redraw_request = window::RedrawRequest::At(at);
+        self
+    }
+
     /// Converts the [`Action`] into its internal parts.
     ///
     /// This method is meant to be used by runtimes, libraries, or internal

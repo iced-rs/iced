@@ -66,7 +66,7 @@ pub trait Renderer {
 
     /// Creates an [`image::Allocation`] for the given [`image::Handle`] and calls the given callback with it.
     fn allocate_image(
-        &mut self,
+        &self,
         handle: &image::Handle,
         callback: impl FnOnce(Result<image::Allocation, image::Error>)
         + Send
