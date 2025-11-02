@@ -77,6 +77,8 @@ pub trait Component<
         &self,
         _state: &Self::State,
         _event: &Event,
+        _bounds: Rectangle,
+        _cursor: mouse::Cursor,
     ) -> Action<Self::Event> {
         Action::none()
     }
@@ -228,7 +230,8 @@ where
         viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_mut::<C::State>();
-        let action = self.component.listen(state, event);
+        let action =
+            self.component.listen(state, event, layout.bounds(), cursor);
         let (publish, redraw_request, event_status) = action.into_inner();
 
         shell.request_redraw_at(redraw_request);
