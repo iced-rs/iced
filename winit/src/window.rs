@@ -81,6 +81,7 @@ where
                 redraw_at: None,
                 preedit: None,
                 ime_state: None,
+                accessibility: None, // TODO: Initialize with adapter
             },
         );
 
@@ -172,6 +173,7 @@ where
     pub redraw_at: Option<Instant>,
     preedit: Option<Preedit<P::Renderer>>,
     ime_state: Option<(Point, input_method::Purpose)>,
+    pub accessibility: Option<accesskit_winit::Adapter>,
 }
 
 impl<P, C> Window<P, C>

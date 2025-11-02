@@ -1,8 +1,8 @@
 # AccessKit Integration Research Status
 
-**Last Updated**: Nov 2, 2025  
-**Current Branch**: `accesskit-integration` (commit: 9cccd4688)  
-**Status**: Foundation implemented and compiling, ready for runtime integration
+**Last Updated**: Nov 2, 2025 (End of Session)
+**Current Branch**: `accesskit-integration` (commit: 38e9f05dd)  
+**Status**: Operation pattern implemented, UserInterface integration complete, iced_winit partially integrated
 
 This document tracks what research can be done immediately versus what needs clarification or user input.
 
@@ -39,11 +39,27 @@ This document tracks what research can be done immediately versus what needs cla
    - ✅ No breaking changes to existing code
    - ✅ All changes committed to `accesskit-integration` branch
 
-### 🚧 What We Built But Isn't Functional Yet
-- Widget `accessibility()` methods exist but **nothing consumes the data**
-- Tree collection code exists but **not integrated** into UserInterface lifecycle
-- No AccessKit adapter initialized in iced_winit  
-- No action handling or events
+6. **Tree Collection via Operation Pattern** (runtime/src/accessibility.rs):
+   - ✅ `TreeBuilder` struct implementing `Operation` trait
+   - ✅ Collects container, focusable, text_input, text, scrollable widgets
+   - ✅ Generates stable NodeIds (counter-based)
+   - ✅ Returns complete AccessKit TreeUpdate
+
+7. **UserInterface Integration** (runtime/src/user_interface.rs:579):
+   - ✅ Added `UserInterface::accessibility()` method
+   - ✅ Calls TreeBuilder operation and returns TreeUpdate
+   - ✅ Ready to be invoked from event loop
+
+8. **iced_winit Integration Started** (winit/src/window.rs:174):
+   - ✅ Added `accessibility: Option<accesskit_winit::Adapter>` field to Window
+   - ⚠️ Initialized as None (needs proper adapter setup)
+
+### 🚧 What's Still Missing to Make It Functional
+- **Adapter initialization**: Need to create ActivationHandler and ActionHandler
+- **Event loop integration**: Need to call `ui.accessibility()` after UI rebuilds
+- **Tree updates**: Need to send TreeUpdate to adapter via `update_if_active()`
+- **Action handling**: Need to process accessibility events from screen readers
+- **Testing**: Need to verify with actual screen reader (VoiceOver/Narrator/Orca)
 
 ### 🎯 Major Architectural Decision Made (Nov 2, 2025)
 
@@ -68,10 +84,17 @@ After investigating tree traversal approaches, we've decided to use iced's exist
   - Only send changed nodes to AccessKit
   - AccessKit docs: "should only include nodes that are new or changed"
 
-**Next Critical Steps**: 
-1. Implement accessibility Operation in `iced_runtime`
-2. Integrate Operation call into UserInterface lifecycle
-3. Initialize accesskit_winit adapter
+**Next Critical Steps for Next Session**: 
+1. ✅ ~~Implement accessibility Operation in `iced_runtime`~~ DONE
+2. ✅ ~~Integrate Operation call into UserInterface lifecycle~~ DONE
+3. 🚧 Complete accesskit_winit adapter initialization:
+   - Implement ActivationHandler trait (returns initial tree)
+   - Implement ActionHandler trait (handles screen reader actions)
+   - Call Adapter::with_event_loop_proxy during window creation
+4. 🚧 Wire up tree updates in event loop:
+   - Call `ui.accessibility()` after UI rebuilds
+   - Send TreeUpdate to `adapter.update_if_active()`
+5. 🧪 Test with counter example and screen reader
 
 ---
 
