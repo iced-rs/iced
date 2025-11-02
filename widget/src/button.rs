@@ -444,6 +444,38 @@ where
             translation,
         )
     }
+
+    fn accessibility(
+        &self,
+        _state: &Tree,
+        layout: Layout<'_>,
+    ) -> Option<crate::core::accessibility::AccessibilityNode> {
+        use crate::core::accessibility::{AccessibilityNode, Role};
+
+        // Extract label from button content if it's text
+        let label = extract_text_from_element(&self.content);
+
+        Some(
+            AccessibilityNode::new(layout.bounds())
+                .role(Role::Button)
+                .label(label.unwrap_or_else(|| "Button".to_string()))
+                .enabled(self.on_press.is_some())
+                .focusable(true),
+        )
+    }
+}
+
+/// Helper to extract text content from an element for accessibility labels.
+/// This is a simple implementation that works for basic text buttons.
+fn extract_text_from_element<Message, Theme, Renderer>(
+    _element: &Element<'_, Message, Theme, Renderer>,
+) -> Option<String>
+where
+    Renderer: crate::core::Renderer,
+{
+    // TODO: Implement proper text extraction by traversing the element tree
+    // For now, return None to use default label
+    None
 }
 
 impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
@@ -539,11 +571,11 @@ impl Default for Style {
 ///
 /// impl Catalog for MyTheme {
 ///     type Class<'a> = ButtonClass;
-///     
+///
 ///     fn default<'a>() -> Self::Class<'a> {
 ///         ButtonClass::default()
 ///     }
-///     
+///
 ///
 ///     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
 ///         let mut style = Style::default();

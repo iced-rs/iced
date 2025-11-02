@@ -151,4 +151,61 @@ where
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         None
     }
+
+    /// Returns accessibility information for this [`Widget`].
+    ///
+    /// By default, returns `None`, making the widget invisible to
+    /// accessibility tools. Widgets should override this to provide
+    /// meaningful accessibility information.
+    ///
+    /// # Return Value
+    /// - `Some(node)`: This widget should appear in the accessibility tree
+    /// - `None`: This widget is transparent to accessibility (layout-only)
+    ///
+    /// # When to return `None`
+    /// Return `None` for:
+    /// - Pure layout containers (Container, Column, Row)
+    /// - Spacing widgets (Space)
+    /// - Decorative elements with no semantic meaning
+    ///
+    /// # When to return `Some`
+    /// Return `Some(node)` for:
+    /// - Interactive widgets (Button, TextInput, Checkbox)
+    /// - Informational content (Text, Image with alt text)
+    /// - Semantic containers (List, Table, Group)
+    ///
+    /// # Example
+    /// ```
+    /// use iced_core::accessibility::{AccessibilityNode, Role};
+    /// use iced_core::widget::{Tree, Widget};
+    /// use iced_core::{Layout, Rectangle};
+    ///
+    /// # struct MyButton;
+    /// # impl<Message, Theme, Renderer: iced_core::Renderer> Widget<Message, Theme, Renderer> for MyButton {
+    /// #     fn size(&self) -> iced_core::Size<iced_core::Length> { iced_core::Size::ZERO }
+    /// #     fn layout(&mut self, _: &mut Tree, _: &Renderer, _: &iced_core::layout::Limits) -> iced_core::layout::Node {
+    /// #         iced_core::layout::Node::new(iced_core::Size::ZERO)
+    /// #     }
+    /// #     fn draw(&self, _: &Tree, _: &mut Renderer, _: &Theme, _: &iced_core::renderer::Style, _: Layout<'_>, _: iced_core::mouse::Cursor, _: &Rectangle) {}
+    /// fn accessibility(
+    ///     &self,
+    ///     _state: &Tree,
+    ///     layout: Layout<'_>,
+    /// ) -> Option<AccessibilityNode> {
+    ///     Some(
+    ///         AccessibilityNode::new(layout.bounds())
+    ///             .role(Role::Button)
+    ///             .label("Click me")
+    ///             .focusable(true)
+    ///     )
+    /// }
+    /// # }
+    /// ```
+    fn accessibility(
+        &self,
+        _state: &Tree,
+        _layout: Layout<'_>,
+    ) -> Option<crate::accessibility::AccessibilityNode> {
+        None
+    }
 }
