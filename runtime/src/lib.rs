@@ -20,7 +20,6 @@ pub mod widget;
 pub mod window;
 
 pub use iced_core as core;
-pub use iced_debug as debug;
 pub use iced_futures as futures;
 
 pub use task::Task;

@@ -2559,7 +2559,6 @@ version = "0.14.0-dev"
 dependencies = [
  "bytes",
  "iced_core",
- "iced_debug",
  "iced_futures",
  "iced_selector",
  "raw-window-handle 0.6.2",
