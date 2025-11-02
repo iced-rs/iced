@@ -1,74 +1,58 @@
 //! Accessibility tree construction and management.
 
-use crate::core::Element;
-use crate::core::layout::Layout;
-use crate::core::widget::Tree;
+use crate::core::Rectangle;
+use crate::core::widget::{Id, Operation, operation};
 
 use accesskit::{Node, NodeId, Role, Tree as AccessKitTree, TreeUpdate};
 
 use std::collections::HashMap;
 
-/// Builds an AccessKit tree from a widget tree.
+/// Produces an [`Operation`] that builds an accessibility tree.
 ///
-/// This traverses the widget tree, collecting accessibility information
-/// from each widget and building a tree structure that AccessKit can consume.
-pub fn build_accessibility_tree<Message, Theme, Renderer>(
-    root: &Element<'_, Message, Theme, Renderer>,
-    state: &Tree,
-    layout: Layout<'_>,
-) -> TreeUpdate
-where
-    Renderer: crate::core::Renderer,
-{
-    let mut builder = TreeBuilder::new();
+/// This operation traverses the widget tree and collects accessibility
+/// information from each widget to build an AccessKit TreeUpdate.
+pub fn build_tree() -> impl Operation<TreeUpdate> {
+    struct BuildTree {
+        nodes: HashMap<NodeId, Node>,
+        node_id_stack: Vec<NodeId>,
+        current_index: usize,
+    }
 
-    // Traverse the widget tree and collect accessibility nodes
-    builder.traverse(root, state, layout, &[]);
+    impl BuildTree {
+        fn new() -> Self {
+            Self {
+                nodes: HashMap::new(),
+                node_id_stack: vec![NodeId(0)], // Start with root
+                current_index: 0,
+            }
+        }
 
-    builder.build()
-}
+        /// Generate a stable NodeId from the current path.
+        fn generate_node_id(&self) -> NodeId {
+            if self.node_id_stack.len() == 1 {
+                return NodeId(0); // Root
+            }
 
-/// Helper struct for building the accessibility tree.
-struct TreeBuilder {
-    /// Map from stable IDs to AccessKit nodes
-    nodes: HashMap<NodeId, Node>,
+            // Hash the path to create a stable ID
+            let mut hash: u64 = 1;
+            for &NodeId(id) in &self.node_id_stack {
+                hash = hash.wrapping_mul(31).wrapping_add(id);
+            }
+            hash = hash
+                .wrapping_mul(31)
+                .wrapping_add(self.current_index as u64);
 
-    /// The root node ID
-    root_id: NodeId,
-}
-
-impl TreeBuilder {
-    fn new() -> Self {
-        Self {
-            nodes: HashMap::new(),
-            root_id: NodeId(0),
+            NodeId(if hash == 0 { 1 } else { hash })
         }
     }
 
-    /// Traverse a widget and its children, collecting accessibility information.
-    fn traverse<Message, Theme, Renderer>(
-        &mut self,
-        element: &Element<'_, Message, Theme, Renderer>,
-        state: &Tree,
-        layout: Layout<'_>,
-        path: &[usize],
-    ) where
-        Renderer: crate::core::Renderer,
-    {
-        // Generate stable ID from path
-        let node_id = self.path_to_node_id(path);
+    impl Operation<TreeUpdate> for BuildTree {
+        fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
+            // Containers can optionally provide accessibility info
+            // For now, we'll create a generic container node
+            let node_id = self.generate_node_id();
 
-        // Get accessibility information from the widget
-        if let Some(accessibility_node) =
-            element.as_widget().accessibility(state, layout)
-        {
-            // Build AccessKit node from our AccessibilityNode
-            let mut node = Node::new(
-                accessibility_node.role.unwrap_or(Role::GenericContainer),
-            );
-
-            // Set bounds (AccessKit uses screen coordinates)
-            let bounds = accessibility_node.bounds;
+            let mut node = Node::new(Role::GenericContainer);
             node.set_bounds(accesskit::Rect {
                 x0: bounds.x as f64,
                 y0: bounds.y as f64,
@@ -76,76 +60,136 @@ impl TreeBuilder {
                 y1: (bounds.y + bounds.height) as f64,
             });
 
-            // Set label if present
-            if let Some(label) = accessibility_node.label {
-                node.set_label(label);
-            }
-
-            // Set value if present
-            if let Some(value) = accessibility_node.value {
-                node.set_value(value);
-            }
-
-            // Set enabled state
-            if !accessibility_node.enabled {
-                node.set_disabled();
-            }
-
-            // Note: AccessKit doesn't have a direct "focusable" property.
-            // Focusability is determined by the role and supported actions.
-            // The focusable field in AccessibilityNode is informational only.
-
-            // Collect children IDs
-            let mut child_ids = Vec::new();
-            for (index, _child_layout) in layout.children().enumerate() {
-                let mut child_path = path.to_vec();
-                child_path.push(index);
-
-                // Recursively traverse children
-                // Note: We need children states, but we don't have direct access yet
-                // This is a limitation we'll need to address
-
-                let child_id = self.path_to_node_id(&child_path);
-                child_ids.push(child_id);
-            }
-
-            if !child_ids.is_empty() {
-                node.set_children(child_ids);
+            // Use widget ID as label if available
+            if let Some(id) = id {
+                node.set_label(format!("Container {:?}", id));
             }
 
             let _ = self.nodes.insert(node_id, node);
         }
 
-        // If widget returned None for accessibility, it's transparent to the tree
-        // We still need to traverse its children, but they become direct children
-        // of the parent instead
-    }
+        fn focusable(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn operation::Focusable,
+        ) {
+            let node_id = self.generate_node_id();
 
-    /// Convert a path to a stable NodeId.
-    ///
-    /// This uses a simple hash of the path to generate a stable ID.
-    /// For the root (empty path), we use NodeId(0).
-    fn path_to_node_id(&self, path: &[usize]) -> NodeId {
-        if path.is_empty() {
-            return self.root_id;
+            // Focusable widgets are likely buttons or inputs
+            let mut node = Node::new(Role::Button);
+            node.set_bounds(accesskit::Rect {
+                x0: bounds.x as f64,
+                y0: bounds.y as f64,
+                x1: (bounds.x + bounds.width) as f64,
+                y1: (bounds.y + bounds.height) as f64,
+            });
+
+            if let Some(id) = id {
+                node.set_label(format!("Focusable {:?}", id));
+            }
+
+            if state.is_focused() {
+                // This node is currently focused
+                // We'll handle this when building the final tree
+            }
+
+            let _ = self.nodes.insert(node_id, node);
         }
 
-        // Simple hash: combine indices with prime multipliers
-        let mut hash: u64 = 1;
-        for &index in path {
-            hash = hash.wrapping_mul(31).wrapping_add(index as u64);
+        fn text_input(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            _state: &mut dyn operation::TextInput,
+        ) {
+            let node_id = self.generate_node_id();
+
+            let mut node = Node::new(Role::TextInput);
+            node.set_bounds(accesskit::Rect {
+                x0: bounds.x as f64,
+                y0: bounds.y as f64,
+                x1: (bounds.x + bounds.width) as f64,
+                y1: (bounds.y + bounds.height) as f64,
+            });
+
+            if let Some(id) = id {
+                node.set_label(format!("TextInput {:?}", id));
+            }
+
+            let _ = self.nodes.insert(node_id, node);
         }
 
-        // Ensure we don't use 0 (reserved for root)
-        NodeId(if hash == 0 { 1 } else { hash })
-    }
+        fn text(&mut self, _id: Option<&Id>, bounds: Rectangle, text: &str) {
+            let node_id = self.generate_node_id();
 
-    /// Build the final AccessKit TreeUpdate.
-    fn build(self) -> TreeUpdate {
-        TreeUpdate {
-            nodes: self.nodes.into_iter().collect(),
-            tree: Some(AccessKitTree::new(self.root_id)),
-            focus: self.root_id,
+            let mut node = Node::new(Role::TextRun);
+            node.set_bounds(accesskit::Rect {
+                x0: bounds.x as f64,
+                y0: bounds.y as f64,
+                x1: (bounds.x + bounds.width) as f64,
+                y1: (bounds.y + bounds.height) as f64,
+            });
+            node.set_label(text.to_string());
+
+            let _ = self.nodes.insert(node_id, node);
+        }
+
+        fn scrollable(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            _content_bounds: Rectangle,
+            _translation: crate::core::Vector,
+            _state: &mut dyn operation::Scrollable,
+        ) {
+            let node_id = self.generate_node_id();
+
+            let mut node = Node::new(Role::ScrollView);
+            node.set_bounds(accesskit::Rect {
+                x0: bounds.x as f64,
+                y0: bounds.y as f64,
+                x1: (bounds.x + bounds.width) as f64,
+                y1: (bounds.y + bounds.height) as f64,
+            });
+
+            if let Some(id) = id {
+                node.set_label(format!("Scrollable {:?}", id));
+            }
+
+            let _ = self.nodes.insert(node_id, node);
+        }
+
+        fn traverse(
+            &mut self,
+            operate: &mut dyn FnMut(&mut dyn Operation<TreeUpdate>),
+        ) {
+            // Continue traversal
+            operate(self);
+        }
+
+        fn finish(&self) -> operation::Outcome<TreeUpdate> {
+            if self.nodes.is_empty() {
+                // Create a minimal root node
+                let mut root = Node::new(Role::Window);
+                root.set_label("Application".to_string());
+
+                let nodes = vec![(NodeId(0), root)];
+
+                operation::Outcome::Some(TreeUpdate {
+                    nodes,
+                    tree: Some(AccessKitTree::new(NodeId(0))),
+                    focus: NodeId(0),
+                })
+            } else {
+                operation::Outcome::Some(TreeUpdate {
+                    nodes: self.nodes.clone().into_iter().collect(),
+                    tree: Some(AccessKitTree::new(NodeId(0))),
+                    focus: NodeId(0),
+                })
+            }
         }
     }
+
+    BuildTree::new()
 }
