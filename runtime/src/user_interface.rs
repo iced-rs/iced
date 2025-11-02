@@ -577,6 +577,21 @@ where
         }
     }
 
+    /// Builds an accessibility tree from the current widget tree.
+    ///
+    /// This traverses the widget tree using an [`Operation`] and collects
+    /// accessibility information to create an AccessKit [`TreeUpdate`].
+    ///
+    /// [`TreeUpdate`]: https://docs.rs/accesskit/latest/accesskit/struct.TreeUpdate.html
+    pub fn accessibility(
+        &mut self,
+        renderer: &Renderer,
+    ) -> accesskit::TreeUpdate {
+        use crate::accessibility;
+
+        accessibility::build_tree_from_ui(self, renderer)
+    }
+
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
