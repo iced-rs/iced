@@ -58,6 +58,7 @@ pub trait Component<
         &mut self,
         state: &mut Self::State,
         event: Self::Event,
+        renderer: &Renderer,
     ) -> Option<Message>;
 
     /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
@@ -277,7 +278,9 @@ where
 
         if !events.is_empty() {
             for event in events {
-                if let Some(message) = self.component.update(state, event) {
+                if let Some(message) =
+                    self.component.update(state, event, renderer)
+                {
                     shell.publish(message);
                 }
             }
@@ -505,7 +508,8 @@ where
 
         if !events.is_empty() {
             for event in events {
-                if let Some(message) = self.component.update(self.state, event)
+                if let Some(message) =
+                    self.component.update(self.state, event, renderer)
                 {
                     shell.publish(message);
                 }

@@ -35,7 +35,7 @@ impl Example {
 
 mod numeric_input {
     use iced::widget::{Component, button, component, row, text, text_input};
-    use iced::{Center, Element, Fill, Length, Shrink, Size};
+    use iced::{Center, Element, Fill, Length, Renderer, Shrink, Size};
 
     pub struct NumericInput<Message> {
         value: Option<i32>,
@@ -76,6 +76,7 @@ mod numeric_input {
             &mut self,
             _state: &mut Self::State,
             event: Event,
+            _renderer: &Renderer,
         ) -> Option<Message> {
             match event {
                 Event::IncrementPressed => Some((self.on_change)(Some(
