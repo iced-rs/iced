@@ -38,6 +38,7 @@ where
 pub struct TreeBuilder {
     nodes: HashMap<NodeId, Node>,
     node_id_counter: u64,
+    children: Vec<NodeId>,
 }
 
 impl TreeBuilder {
@@ -45,6 +46,7 @@ impl TreeBuilder {
         Self {
             nodes: HashMap::new(),
             node_id_counter: 1, // Start at 1, 0 is reserved for root
+            children: Vec::new(),
         }
     }
 
@@ -55,12 +57,12 @@ impl TreeBuilder {
     }
 
     fn build(mut self) -> TreeUpdate {
-        // Ensure we have at least a root node
-        if self.nodes.is_empty() {
-            let mut root = Node::new(Role::Window);
-            root.set_label("Application".to_string());
-            let _ = self.nodes.insert(NodeId(0), root);
-        }
+        // Create root node and add all collected nodes as children
+        let mut root = Node::new(Role::Window);
+        root.set_label("Iced Application".to_string());
+        root.set_children(self.children);
+
+        let _ = self.nodes.insert(NodeId(0), root);
 
         TreeUpdate {
             nodes: self.nodes.into_iter().collect(),
@@ -86,6 +88,7 @@ impl Operation for TreeBuilder {
             node.set_label(format!("Container {:?}", id));
         }
 
+        self.children.push(node_id);
         let _ = self.nodes.insert(node_id, node);
     }
 
@@ -109,6 +112,7 @@ impl Operation for TreeBuilder {
             node.set_label(format!("Focusable {:?}", id));
         }
 
+        self.children.push(node_id);
         let _ = self.nodes.insert(node_id, node);
     }
 
@@ -132,6 +136,7 @@ impl Operation for TreeBuilder {
             node.set_label(format!("TextInput {:?}", id));
         }
 
+        self.children.push(node_id);
         let _ = self.nodes.insert(node_id, node);
     }
 
@@ -147,6 +152,7 @@ impl Operation for TreeBuilder {
         });
         node.set_label(text.to_string());
 
+        self.children.push(node_id);
         let _ = self.nodes.insert(node_id, node);
     }
 
@@ -172,6 +178,7 @@ impl Operation for TreeBuilder {
             node.set_label(format!("Scrollable {:?}", id));
         }
 
+        self.children.push(node_id);
         let _ = self.nodes.insert(node_id, node);
     }
 
