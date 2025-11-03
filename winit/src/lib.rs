@@ -1027,6 +1027,35 @@ async fn run_instance<P>(
                         if let Some(adapter) = &mut window.accessibility {
                             let tree_update =
                                 interface.accessibility(&window.renderer);
+
+                            // Write tree to file for debugging (only first time)
+                            static ONCE: std::sync::Once =
+                                std::sync::Once::new();
+                            ONCE.call_once(|| {
+                                use std::io::Write;
+                                if let Ok(mut file) = std::fs::File::create("/tmp/iced_accessibility_tree.txt") {
+                                    let _ = writeln!(file, "Accessibility Tree Snapshot:");
+                                    let _ = writeln!(file, "Total nodes: {}", tree_update.nodes.len());
+                                    let _ = writeln!(file, "\nTree structure:");
+                                    if let Some(tree) = &tree_update.tree {
+                                        let _ = writeln!(file, "  Root: {:?}", tree.root);
+                                    }
+                                    let _ = writeln!(file, "\nNodes:");
+                                    for (node_id, node) in &tree_update.nodes {
+                                        let _ = writeln!(file, "  Node {:?}:", node_id);
+                                        let _ = writeln!(file, "    Role: {:?}", node.role());
+                                        let _ = writeln!(file, "    Children: {} ({:?})", node.children().len(), node.children());
+                                        if let Some(label) = node.label() {
+                                            let _ = writeln!(file, "    Label: {}", label);
+                                        }
+                                        if let Some(bounds) = node.bounds() {
+                                            let _ = writeln!(file, "    Bounds: {:?}", bounds);
+                                        }
+                                    }
+                                    eprintln!("Accessibility tree written to /tmp/iced_accessibility_tree.txt");
+                                }
+                            });
+
                             adapter.update_if_active(|| tree_update);
                         }
 
