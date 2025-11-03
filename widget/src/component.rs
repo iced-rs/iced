@@ -7,6 +7,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Clipboard, Element, Event, Length, Point, Rectangle, Shell, Size,
     Vector, Widget,
@@ -311,7 +312,7 @@ where
             //    is invalidated.
             if new_size_hint != self.size_hint {
                 self.size_hint = new_size_hint;
-                shell.invalidate_layout();
+                shell.invalidate_widgets();
             } else if (self.size_hint.width == Length::Shrink
                 || self.size_hint.height == Length::Shrink)
                 && previous_size != self.layout.size()
@@ -340,7 +341,13 @@ where
             }
 
             self.is_outdated = false;
-            shell.request_redraw();
+
+            if !matches!(
+                event,
+                Event::Window(window::Event::RedrawRequested(_))
+            ) {
+                shell.request_redraw();
+            }
         }
     }
 
