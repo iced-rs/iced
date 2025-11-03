@@ -55,6 +55,7 @@ where
         compositor: &mut C,
         exit_on_close_request: bool,
         system_theme: theme::Mode,
+        accessibility_adapter: Option<accesskit_winit::Adapter>,
     ) -> &mut Window<P, C> {
         let state = State::new(program, id, &window, system_theme);
         let surface_size = state.physical_size();
@@ -81,7 +82,7 @@ where
                 redraw_at: None,
                 preedit: None,
                 ime_state: None,
-                accessibility: None, // TODO: Initialize with adapter
+                accessibility: accessibility_adapter,
             },
         );
 

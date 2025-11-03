@@ -4,9 +4,20 @@ use crate::core::Rectangle;
 use crate::core::widget::{Id, Operation, operation};
 use crate::user_interface::UserInterface;
 
-use accesskit::{Node, NodeId, Role, Tree as AccessKitTree, TreeUpdate};
+use accesskit::{
+    ActionRequest, Node, NodeId, Role, Tree as AccessKitTree, TreeUpdate,
+};
 
 use std::collections::HashMap;
+
+/// An accessibility action to be performed by the runtime.
+#[derive(Debug, Clone)]
+pub enum Action {
+    /// An action was requested by an assistive technology.
+    ActionRequested(ActionRequest),
+    /// Accessibility was deactivated.
+    Deactivated,
+}
 
 /// Builds an accessibility tree from a UserInterface.
 ///
