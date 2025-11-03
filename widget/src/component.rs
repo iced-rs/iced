@@ -277,78 +277,94 @@ where
             shell.request_input_method(local_shell.input_method());
         }
 
-        if !events.is_empty() {
-            for event in events {
-                if let Some(message) =
-                    self.component.update(state, event, renderer)
-                {
-                    shell.publish(message);
-                }
-            }
+        if events.is_empty() {
+            return;
+        }
 
-            self.view = self.component.view(state);
-            tree.diff_children(&[&self.view]);
-
-            let previous_size = self.layout.size();
-            self.layout = self.view.as_widget_mut().layout(
-                &mut tree.children[0],
-                renderer,
-                &self.limits,
-            );
-
-            let new_size_hint = self.component.size_hint();
-
-            // We must invalidate application layout in 3 instances:
-            //
-            // 1. The size hint of the component changes. Other widgets
-            //    may change layout behavior.
-            //
-            // 2. The size hint of the component is `Shrink` for any axis
-            //    and the component has changed size. The new size may
-            //    push other widgets around.
-            //
-            // 3. The overlay status of the component changes. The
-            //    runtime will only call `overlay` again if the layout
-            //    is invalidated.
-            if new_size_hint != self.size_hint {
-                self.size_hint = new_size_hint;
-                shell.invalidate_widgets();
-            } else if (self.size_hint.width == Length::Shrink
-                || self.size_hint.height == Length::Shrink)
-                && previous_size != self.layout.size()
+        for event in events.drain(..) {
+            if let Some(message) = self.component.update(state, event, renderer)
             {
-                shell.invalidate_layout();
-            } else {
-                let has_overlay = self
-                    .view
-                    .as_widget_mut()
-                    .overlay(
-                        &mut tree.children[0],
-                        Layout::with_offset(
-                            layout.position() - Point::ORIGIN,
-                            &self.layout,
-                        ),
-                        renderer,
-                        viewport,
-                        Vector::ZERO,
-                    )
-                    .is_some();
-
-                if self.has_overlay != has_overlay {
-                    self.has_overlay = has_overlay;
-                    shell.invalidate_layout();
-                }
-            }
-
-            self.is_outdated = false;
-
-            if !matches!(
-                event,
-                Event::Window(window::Event::RedrawRequested(_))
-            ) {
-                shell.request_redraw();
+                shell.publish(message);
             }
         }
+
+        self.view = self.component.view(state);
+        tree.diff_children(&[&self.view]);
+
+        let previous_size = self.layout.size();
+        self.layout = self.view.as_widget_mut().layout(
+            &mut tree.children[0],
+            renderer,
+            &self.limits,
+        );
+
+        let new_size_hint = self.component.size_hint();
+
+        // We must invalidate application layout in 3 instances:
+        //
+        // 1. The size hint of the component changes. Other widgets
+        //    may change layout behavior.
+        //
+        // 2. The size hint of the component is `Shrink` for any axis
+        //    and the component has changed size. The new size may
+        //    push other widgets around.
+        //
+        // 3. The overlay status of the component changes. The
+        //    runtime will only call `overlay` again if the layout
+        //    is invalidated.
+        if new_size_hint != self.size_hint {
+            self.size_hint = new_size_hint;
+            shell.invalidate_widgets();
+        } else if (self.size_hint.width == Length::Shrink
+            || self.size_hint.height == Length::Shrink)
+            && previous_size != self.layout.size()
+        {
+            shell.invalidate_layout();
+        } else {
+            let has_overlay = self
+                .view
+                .as_widget_mut()
+                .overlay(
+                    &mut tree.children[0],
+                    Layout::with_offset(
+                        layout.position() - Point::ORIGIN,
+                        &self.layout,
+                    ),
+                    renderer,
+                    viewport,
+                    Vector::ZERO,
+                )
+                .is_some();
+
+            if self.has_overlay != has_overlay {
+                self.has_overlay = has_overlay;
+                shell.invalidate_layout();
+            }
+        }
+
+        self.is_outdated = false;
+
+        if let Event::Window(window::Event::RedrawRequested(_)) = event {
+            let mut local_shell = Shell::new(&mut events);
+
+            self.view.as_widget_mut().update(
+                &mut tree.children[0],
+                event,
+                Layout::with_offset(
+                    layout.position() - Point::ORIGIN,
+                    &self.layout,
+                ),
+                cursor,
+                renderer,
+                clipboard,
+                &mut local_shell,
+                viewport,
+            );
+
+            return;
+        }
+
+        shell.request_redraw();
     }
 
     fn draw(
