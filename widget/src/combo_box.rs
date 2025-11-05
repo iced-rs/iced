@@ -384,6 +384,41 @@ where
         &self.options
     }
 
+    /// Adds a `new_option` to the [`State`].
+    ///
+    /// A search is performed immediately after the `new_option` is added so the option will be displayed
+    /// (or not) depending on if it matches the existing search
+    pub fn add_option(&mut self, new_option: T) {
+        // add option to option matchers
+        self.inner
+            .borrow_mut()
+            .option_matchers
+            .push(build_matcher(&new_option));
+
+        // add the option to options
+        self.options.push(new_option);
+
+        // perform a search to update the options displayed
+        let search_results = search(
+            &self.options,
+            &self.inner.borrow().option_matchers,
+            &self.inner.borrow().value,
+        )
+        .cloned()
+        .collect();
+
+        self.inner.borrow_mut().filtered_options.options = search_results;
+        self.inner.borrow_mut().filtered_options.updated = Instant::now();
+    }
+
+    /// clears all options from the  combobox returning the options that were in it.
+    pub fn extract_options(&mut self) -> Vec<T> {
+        let options = std::mem::replace(&mut self.options, vec![]);
+        *self = Self::new(vec![]);
+
+        options
+    }
+
     fn value(&self) -> String {
         let inner = self.inner.borrow();
 
@@ -959,12 +994,15 @@ fn build_matchers<'a, T>(
 where
     T: Display + 'a,
 {
-    options
-        .into_iter()
-        .map(|opt| {
-            let mut matcher = opt.to_string();
-            matcher.retain(|c| c.is_ascii_alphanumeric());
-            matcher.to_lowercase()
-        })
-        .collect()
+    options.into_iter().map(|opt| build_matcher(opt)).collect()
+}
+
+/// build an individual matcher, a matcher is the string representation of `T` with all non-alphanumeric characters filtered out and all alphanumeric characters mapped to lowercase
+fn build_matcher<T>(option: T) -> String
+where
+    T: Display,
+{
+    let mut matcher = option.to_string();
+    matcher.retain(|c| c.is_ascii_alphanumeric());
+    matcher.to_lowercase()
 }
