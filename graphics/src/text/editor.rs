@@ -74,10 +74,12 @@ impl editor::Editor for Editor {
             font_system.raw(),
             text,
             &cosmic_text::Attrs::new(),
+            // reduced timings by ~1/3
             cosmic_text::Shaping::Basic,
             None,
         );
 
+        // worth perhpas 1ms (10ms -> 9ms)
         buffer.shape_until_scroll(font_system.raw(), true);
 
         Editor(Some(Arc::new(Internal {
