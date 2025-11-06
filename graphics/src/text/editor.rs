@@ -78,6 +78,8 @@ impl editor::Editor for Editor {
             None,
         );
 
+        buffer.shape_until_scroll(true);
+
         Editor(Some(Arc::new(Internal {
             editor: cosmic_text::Editor::new(buffer),
             version: font_system.version(),
