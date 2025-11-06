@@ -243,6 +243,20 @@ where
         );
     }
 
+    fn accessibility(
+        &self,
+        _state: &Tree,
+        layout: Layout<'_>,
+    ) -> Option<crate::accessibility::AccessibilityNode> {
+        use crate::accessibility::{AccessibilityNode, Role};
+
+        Some(
+            AccessibilityNode::new(layout.bounds())
+                .role(Role::Label)
+                .label(self.fragment.as_ref()),
+        )
+    }
+
     fn operate(
         &mut self,
         _state: &mut Tree,
@@ -250,6 +264,17 @@ where
         _renderer: &Renderer,
         operation: &mut dyn super::Operation,
     ) {
+        use crate::accessibility::{AccessibilityNode, Role};
+
+        // Provide accessibility information for this text
+        let accessibility_node = Some(
+            AccessibilityNode::new(layout.bounds())
+                .role(Role::Label)
+                .label(self.fragment.as_ref()),
+        );
+        operation.accessibility(accessibility_node);
+
+        // Also call the text operation for backwards compatibility
         operation.text(None, layout.bounds(), &self.fragment);
     }
 }

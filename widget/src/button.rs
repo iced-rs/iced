@@ -261,7 +261,11 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds());
+        // Provide accessibility information for this button
+        let accessibility_node = self.accessibility(tree, layout);
+        operation.accessibility(accessibility_node);
+
+        // Continue traversal to children
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
                 &mut tree.children[0],
