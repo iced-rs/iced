@@ -78,7 +78,7 @@ impl editor::Editor for Editor {
             None,
         );
 
-        buffer.shape_until_scroll(true);
+        buffer.shape_until_scroll(font_system.raw(), true);
 
         Editor(Some(Arc::new(Internal {
             editor: cosmic_text::Editor::new(buffer),
