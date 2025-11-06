@@ -74,7 +74,7 @@ impl editor::Editor for Editor {
             font_system.raw(),
             text,
             &cosmic_text::Attrs::new(),
-            cosmic_text::Shaping::Advanced,
+            cosmic_text::Shaping::Basic,
             None,
         );
 
