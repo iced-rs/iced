@@ -1901,58 +1901,25 @@ fn run_action<'a, P, C>(
                         request
                     );
 
-                    // Handle press actions by synthesizing a click at the widget's bounds
-                    if request.action == accesskit::Action::Click {
-                        // Find the window that has this node (or any button as fallback)
-                        for (window_id, window) in window_manager.iter_mut() {
-                            // Try to find the target node first, or just grab any button
-                            let bounds = window.accessibility_nodes.get(&request.target)
-                                .or_else(|| {
-                                    log::debug!("Target node {:?} not found, using first available button", request.target);
-                                    window.accessibility_nodes.values().next()
-                                });
+                    // Find the window that has this node and push AccessKit event
+                    for (window_id, window) in window_manager.iter_mut() {
+                        if window
+                            .accessibility_nodes
+                            .contains_key(&request.target)
+                        {
+                            log::debug!(
+                                "Dispatching AccessKit event for node {:?} in window {:?}",
+                                request.target,
+                                window_id
+                            );
 
-                            if let Some(bounds) = bounds {
-                                // Calculate the center point of the widget
-                                let click_position = core::Point::new(
-                                    bounds.x + bounds.width / 2.0,
-                                    bounds.y + bounds.height / 2.0,
-                                );
+                            // Push AccessKit event directly - widgets will handle it
+                            events.push((
+                                window_id,
+                                core::Event::AccessKit(request.clone()),
+                            ));
 
-                                log::debug!(
-                                    "Synthesizing click at {:?} for accessibility action on node {:?}",
-                                    click_position,
-                                    request.target
-                                );
-
-                                // Synthesize a mouse button press and release
-                                events.push((
-                                    window_id,
-                                    core::Event::Mouse(
-                                        core::mouse::Event::ButtonPressed(
-                                            core::mouse::Button::Left,
-                                        ),
-                                    ),
-                                ));
-                                events.push((
-                                    window_id,
-                                    core::Event::Mouse(
-                                        core::mouse::Event::CursorMoved {
-                                            position: click_position,
-                                        },
-                                    ),
-                                ));
-                                events.push((
-                                    window_id,
-                                    core::Event::Mouse(
-                                        core::mouse::Event::ButtonReleased(
-                                            core::mouse::Button::Left,
-                                        ),
-                                    ),
-                                ));
-
-                                break;
-                            }
+                            break;
                         }
                     }
                 }

@@ -16,6 +16,9 @@
 //!     button("Press me!").on_press(Message::ButtonPressed).into()
 //! }
 //! ```
+use crate::core::accessibility::{
+    Action as AccessKitAction, NodeId as AccessKitNodeId,
+};
 use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
@@ -350,6 +353,29 @@ where
                 let state = tree.state.downcast_mut::<State>();
 
                 state.is_pressed = false;
+            }
+            Event::AccessKit(request) => {
+                // Handle accessibility click actions
+                if request.action == AccessKitAction::Click {
+                    if let Some(on_press) = &self.on_press {
+                        // Check if this button is the target
+                        if let Some(id) = &self.id {
+                            // Hash the widget ID to match with AccessKit NodeId
+                            use std::collections::hash_map::DefaultHasher;
+                            use std::hash::{Hash, Hasher};
+
+                            let mut hasher = DefaultHasher::new();
+                            id.hash(&mut hasher);
+                            let node_id = AccessKitNodeId(hasher.finish());
+
+                            if node_id == request.target {
+                                // Directly trigger the button's action
+                                shell.publish(on_press.get());
+                                shell.capture_event();
+                            }
+                        }
+                    }
+                }
             }
             _ => {}
         }
