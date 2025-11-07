@@ -76,7 +76,11 @@ impl TreeBuilder {
     /// Priority:
     /// 1. If widget_id is provided, use it for maximum stability
     /// 2. Otherwise, fall back to path-based hashing
-    fn generate_stable_id(&mut self, widget_type: &str, widget_id: Option<&Id>) -> NodeId {
+    fn generate_stable_id(
+        &mut self,
+        widget_type: &str,
+        widget_id: Option<&Id>,
+    ) -> NodeId {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
@@ -152,7 +156,10 @@ impl Operation for TreeBuilder {
                     _ => "widget",
                 };
                 // NEW: Pass widget_id to generate_stable_id for hybrid approach
-                let node_id = self.generate_stable_id(widget_type, a11y_node.widget_id.as_ref());
+                let node_id = self.generate_stable_id(
+                    widget_type,
+                    a11y_node.widget_id.as_ref(),
+                );
 
                 // Convert iced AccessibilityNode to AccessKit Node
                 let mut node = Node::new(role);
