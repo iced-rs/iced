@@ -83,6 +83,7 @@ where
                 preedit: None,
                 ime_state: None,
                 accessibility: accessibility_adapter,
+                accessibility_nodes: std::collections::HashMap::new(),
             },
         );
 
@@ -175,6 +176,8 @@ where
     preedit: Option<Preedit<P::Renderer>>,
     ime_state: Option<(Point, input_method::Purpose)>,
     pub accessibility: Option<accesskit_winit::Adapter>,
+    pub accessibility_nodes:
+        std::collections::HashMap<accesskit::NodeId, Rectangle>,
 }
 
 impl<P, C> Window<P, C>

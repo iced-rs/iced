@@ -1,7 +1,10 @@
-use iced::Center;
+use accessibility_mcp::start_all;
 use iced::widget::{Column, button, column, text};
+use iced::Center;
 
 pub fn main() -> iced::Result {
+    let _s = start_all().expect("Failed to start MCP server");
+
     iced::run(Counter::update, Counter::view)
 }
 
@@ -30,9 +33,13 @@ impl Counter {
 
     fn view(&self) -> Column<'_, Message> {
         column![
-            button("Increment").on_press(Message::Increment),
+            button("Increment")
+                .id("increment-button")
+                .on_press(Message::Increment),
             text(self.value).size(50),
-            button("Decrement").on_press(Message::Decrement)
+            button("Decrement")
+                .id("decrement-button")
+                .on_press(Message::Decrement)
         ]
         .padding(20)
         .align_x(Center)

@@ -22,10 +22,11 @@ pub enum Action {
 /// Builds an accessibility tree from a UserInterface.
 ///
 /// This traverses the widget tree and collects accessibility information.
+/// Returns the TreeUpdate and a mapping of NodeId to bounds for action routing.
 pub fn build_tree_from_ui<Message, Theme, Renderer>(
     ui: &mut UserInterface<'_, Message, Theme, Renderer>,
     renderer: &Renderer,
-) -> TreeUpdate
+) -> (TreeUpdate, HashMap<NodeId, Rectangle>)
 where
     Renderer: crate::core::Renderer,
 {
@@ -37,26 +38,81 @@ where
 /// Helper struct for building the accessibility tree via Operation pattern.
 pub struct TreeBuilder {
     nodes: HashMap<NodeId, Node>,
-    node_id_counter: u64,
     children: Vec<NodeId>,
+    /// Mapping of NodeId to bounds for action routing
+    node_bounds: HashMap<NodeId, Rectangle>,
+    /// Path stack for generating stable IDs based on widget tree position
+    path_stack: Vec<String>,
+    /// Counter for each widget type at current level
+    type_counters: HashMap<String, usize>,
+    /// Cache mapping widget::Id to stable AccessKit NodeId
+    id_cache: HashMap<Id, NodeId>,
 }
 
 impl TreeBuilder {
     fn new() -> Self {
         Self {
             nodes: HashMap::new(),
-            node_id_counter: 1, // Start at 1, 0 is reserved for root
             children: Vec::new(),
+            node_bounds: HashMap::new(),
+            path_stack: vec!["window".to_string()],
+            type_counters: HashMap::new(),
+            id_cache: HashMap::new(),
         }
     }
 
-    fn next_id(&mut self) -> NodeId {
-        let id = NodeId(self.node_id_counter);
-        self.node_id_counter += 1;
-        id
+    /// Hash a widget::Id to create a stable AccessKit NodeId
+    fn hash_widget_id(&self, id: &Id) -> NodeId {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+        id.hash(&mut hasher);
+        NodeId(hasher.finish())
     }
 
-    fn build(mut self) -> TreeUpdate {
+    /// Generate a stable NodeId based on widget::Id (preferred) or tree position (fallback)
+    ///
+    /// Priority:
+    /// 1. If widget_id is provided, use it for maximum stability
+    /// 2. Otherwise, fall back to path-based hashing
+    fn generate_stable_id(&mut self, widget_type: &str, widget_id: Option<&Id>) -> NodeId {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        // Priority 1: Use widget::Id if provided (most stable)
+        if let Some(id) = widget_id {
+            // Check cache first
+            if let Some(&cached_node_id) = self.id_cache.get(id) {
+                return cached_node_id;
+            }
+
+            // Generate new stable NodeId from widget::Id
+            let node_id = self.hash_widget_id(id);
+            let _ = self.id_cache.insert(id.clone(), node_id);
+            return node_id;
+        }
+
+        // Priority 2: Fall back to path-based hashing (current behavior)
+        // Get or initialize counter for this widget type at current level
+        let counter = self
+            .type_counters
+            .entry(widget_type.to_string())
+            .or_insert(0);
+        let index = *counter;
+        *counter += 1;
+
+        // Build path string like "window/column/button[0]"
+        let mut path = self.path_stack.join("/");
+        path.push_str(&format!("/{}[{}]", widget_type, index));
+
+        // Hash the path to get stable u64 ID
+        let mut hasher = DefaultHasher::new();
+        path.hash(&mut hasher);
+        NodeId(hasher.finish())
+    }
+
+    fn build(mut self) -> (TreeUpdate, HashMap<NodeId, Rectangle>) {
         // Create root node and add all collected nodes as children
         let mut root = Node::new(Role::Window);
         root.set_label("Iced Application".to_string());
@@ -64,11 +120,13 @@ impl TreeBuilder {
 
         let _ = self.nodes.insert(NodeId(0), root);
 
-        TreeUpdate {
+        let tree_update = TreeUpdate {
             nodes: self.nodes.into_iter().collect(),
             tree: Some(AccessKitTree::new(NodeId(0))),
             focus: NodeId(0),
-        }
+        };
+
+        (tree_update, self.node_bounds)
     }
 }
 
@@ -82,7 +140,19 @@ impl Operation for TreeBuilder {
         if let Some(a11y_node) = accessibility_node {
             // Role is required for AccessKit nodes
             if let Some(role) = a11y_node.role {
-                let node_id = self.next_id();
+                // Generate stable ID based on role type and position
+                let widget_type = match role {
+                    Role::Button => "button",
+                    Role::Label => "label",
+                    Role::TextInput => "textinput",
+                    Role::CheckBox => "checkbox",
+                    Role::Slider => "slider",
+                    Role::Image => "image",
+                    Role::Link => "link",
+                    _ => "widget",
+                };
+                // NEW: Pass widget_id to generate_stable_id for hybrid approach
+                let node_id = self.generate_stable_id(widget_type, a11y_node.widget_id.as_ref());
 
                 // Convert iced AccessibilityNode to AccessKit Node
                 let mut node = Node::new(role);
@@ -110,6 +180,11 @@ impl Operation for TreeBuilder {
                     node.add_action(accesskit::Action::Focus);
                 }
 
+                // Add Click action for buttons
+                if role == Role::Button && a11y_node.enabled {
+                    node.add_action(accesskit::Action::Click);
+                }
+
                 if a11y_node.enabled {
                     // Enabled state is implicit; we mark disabled state
                 } else {
@@ -118,12 +193,16 @@ impl Operation for TreeBuilder {
 
                 self.children.push(node_id);
                 let _ = self.nodes.insert(node_id, node);
+
+                // Store bounds for action routing
+                let _ = self.node_bounds.insert(node_id, a11y_node.bounds);
             }
         }
     }
 
     fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
-        let node_id = self.next_id();
+        // NEW: Pass widget ID through to generate_stable_id
+        let node_id = self.generate_stable_id("container", id);
 
         let mut node = Node::new(Role::GenericContainer);
         node.set_bounds(accesskit::Rect {
@@ -147,7 +226,8 @@ impl Operation for TreeBuilder {
         bounds: Rectangle,
         _state: &mut dyn operation::Focusable,
     ) {
-        let node_id = self.next_id();
+        // NEW: Pass widget ID through to generate_stable_id
+        let node_id = self.generate_stable_id("focusable", id);
 
         let mut node = Node::new(Role::Button);
         node.set_bounds(accesskit::Rect {
@@ -171,7 +251,8 @@ impl Operation for TreeBuilder {
         bounds: Rectangle,
         _state: &mut dyn operation::TextInput,
     ) {
-        let node_id = self.next_id();
+        // NEW: Pass widget ID through to generate_stable_id
+        let node_id = self.generate_stable_id("textinput", id);
 
         let mut node = Node::new(Role::TextInput);
         node.set_bounds(accesskit::Rect {
@@ -189,8 +270,9 @@ impl Operation for TreeBuilder {
         let _ = self.nodes.insert(node_id, node);
     }
 
-    fn text(&mut self, _id: Option<&Id>, bounds: Rectangle, text: &str) {
-        let node_id = self.next_id();
+    fn text(&mut self, id: Option<&Id>, bounds: Rectangle, text: &str) {
+        // NEW: Pass widget ID through to generate_stable_id (though text rarely has IDs)
+        let node_id = self.generate_stable_id("text", id);
 
         let mut node = Node::new(Role::TextRun);
         node.set_bounds(accesskit::Rect {
@@ -213,7 +295,8 @@ impl Operation for TreeBuilder {
         _translation: crate::core::Vector,
         _state: &mut dyn operation::Scrollable,
     ) {
-        let node_id = self.next_id();
+        // NEW: Pass widget ID through to generate_stable_id
+        let node_id = self.generate_stable_id("scrollable", id);
 
         let mut node = Node::new(Role::ScrollView);
         node.set_bounds(accesskit::Rect {

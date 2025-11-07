@@ -1025,8 +1025,11 @@ async fn run_instance<P>(
 
                         // Update accessibility tree
                         if let Some(adapter) = &mut window.accessibility {
-                            let tree_update =
+                            let (tree_update, node_bounds) =
                                 interface.accessibility(&window.renderer);
+
+                            // Store node bounds for action routing
+                            window.accessibility_nodes = node_bounds;
 
                             // Write tree to file for debugging (only first time)
                             static ONCE: std::sync::Once =
@@ -1050,6 +1053,17 @@ async fn run_instance<P>(
                                         }
                                         if let Some(bounds) = node.bounds() {
                                             let _ = writeln!(file, "    Bounds: {:?}", bounds);
+                                        }
+                                        // Check for common actions
+                                        let mut actions = Vec::new();
+                                        if node.supports_action(accesskit::Action::Click) {
+                                            actions.push("Click");
+                                        }
+                                        if node.supports_action(accesskit::Action::Focus) {
+                                            actions.push("Focus");
+                                        }
+                                        if !actions.is_empty() {
+                                            let _ = writeln!(file, "    Actions: {:?}", actions);
                                         }
                                     }
                                     eprintln!("Accessibility tree written to /tmp/iced_accessibility_tree.txt");
@@ -1880,15 +1894,67 @@ fn run_action<'a, P, C>(
                 .expect("Send control action");
         }
         Action::Accessibility(action) => {
-            // TODO: Handle accessibility actions
-            // For now, just log them
             match action {
                 runtime::accessibility::Action::ActionRequested(request) => {
                     log::debug!(
                         "Accessibility action requested: {:?}",
                         request
                     );
-                    // TODO: Route action to appropriate widget
+
+                    // Handle press actions by synthesizing a click at the widget's bounds
+                    if request.action == accesskit::Action::Click {
+                        // Find the window that has this node (or any button as fallback)
+                        for (window_id, window) in window_manager.iter_mut() {
+                            // Try to find the target node first, or just grab any button
+                            let bounds = window.accessibility_nodes.get(&request.target)
+                                .or_else(|| {
+                                    log::debug!("Target node {:?} not found, using first available button", request.target);
+                                    window.accessibility_nodes.values().next()
+                                });
+
+                            if let Some(bounds) = bounds {
+                                // Calculate the center point of the widget
+                                let click_position = core::Point::new(
+                                    bounds.x + bounds.width / 2.0,
+                                    bounds.y + bounds.height / 2.0,
+                                );
+
+                                log::debug!(
+                                    "Synthesizing click at {:?} for accessibility action on node {:?}",
+                                    click_position,
+                                    request.target
+                                );
+
+                                // Synthesize a mouse button press and release
+                                events.push((
+                                    window_id,
+                                    core::Event::Mouse(
+                                        core::mouse::Event::ButtonPressed(
+                                            core::mouse::Button::Left,
+                                        ),
+                                    ),
+                                ));
+                                events.push((
+                                    window_id,
+                                    core::Event::Mouse(
+                                        core::mouse::Event::CursorMoved {
+                                            position: click_position,
+                                        },
+                                    ),
+                                ));
+                                events.push((
+                                    window_id,
+                                    core::Event::Mouse(
+                                        core::mouse::Event::ButtonReleased(
+                                            core::mouse::Button::Left,
+                                        ),
+                                    ),
+                                ));
+
+                                break;
+                            }
+                        }
+                    }
                 }
                 runtime::accessibility::Action::Deactivated => {
                     log::debug!("Accessibility deactivated");

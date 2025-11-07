@@ -81,6 +81,7 @@ where
     clip: bool,
     class: Theme::Class<'a>,
     status: Option<Status>,
+    id: Option<crate::core::widget::Id>,
 }
 
 enum OnPress<'a, Message> {
@@ -118,6 +119,7 @@ where
             clip: false,
             class: Theme::default(),
             status: None,
+            id: None,
         }
     }
 
@@ -194,6 +196,15 @@ where
     #[must_use]
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
         self.class = class.into();
+        self
+    }
+
+    /// Sets the ID of the [`Button`].
+    ///
+    /// This is useful for providing stable accessibility tree node IDs,
+    /// especially in dynamic UIs where widgets may be reordered or inserted.
+    pub fn id(mut self, id: impl Into<crate::core::widget::Id>) -> Self {
+        self.id = Some(id.into());
         self
     }
 }
@@ -464,7 +475,8 @@ where
                 .role(Role::Button)
                 .label(label.unwrap_or_else(|| "Button".to_string()))
                 .enabled(self.on_press.is_some())
-                .focusable(true),
+                .focusable(true)
+                .widget_id(self.id.clone()),
         )
     }
 }

@@ -1,6 +1,7 @@
 //! Accessibility node for describing widget semantics.
 
 use crate::Rectangle;
+use crate::widget::Id;
 
 pub use accesskit::Role;
 
@@ -27,6 +28,15 @@ pub struct AccessibilityNode {
 
     /// Whether the widget can receive keyboard focus
     pub focusable: bool,
+
+    /// Optional widget ID for maximum accessibility tree stability.
+    ///
+    /// When provided, this ID is used to generate stable AccessKit NodeIds
+    /// that remain consistent even when the widget tree structure changes.
+    /// This is particularly useful for dynamic lists or frequently changing UIs.
+    ///
+    /// If not provided, a path-based ID is generated automatically.
+    pub widget_id: Option<Id>,
 }
 
 impl AccessibilityNode {
@@ -55,6 +65,7 @@ impl AccessibilityNode {
             value: None,
             enabled: true,
             focusable: false,
+            widget_id: None,
         }
     }
 
@@ -134,6 +145,30 @@ impl AccessibilityNode {
     /// ```
     pub fn focusable(mut self, focusable: bool) -> Self {
         self.focusable = focusable;
+        self
+    }
+
+    /// Sets an optional widget ID for maximum accessibility tree stability.
+    ///
+    /// When a widget ID is provided, it's used to generate a stable AccessKit
+    /// NodeId that remains consistent across UI updates, even when the widget
+    /// tree structure changes. This is particularly important for dynamic lists
+    /// and frequently changing UIs.
+    ///
+    /// If no widget ID is provided, a path-based ID is generated automatically
+    /// based on the widget's position in the tree.
+    ///
+    /// # Example
+    /// ```
+    /// use iced_core::accessibility::AccessibilityNode;
+    /// use iced_core::widget::Id;
+    /// use iced_core::Rectangle;
+    ///
+    /// let node = AccessibilityNode::new(Rectangle::default())
+    ///     .widget_id(Some(Id::new("my-button")));
+    /// ```
+    pub fn widget_id(mut self, id: Option<Id>) -> Self {
+        self.widget_id = id;
         self
     }
 }

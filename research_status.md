@@ -1,16 +1,53 @@
 # AccessKit Integration Research Status
 
-**Last Updated**: Nov 2, 2025 (End of Session)
-**Current Branch**: `accesskit-integration` (commit: 38e9f05dd)  
-**Status**: Operation pattern implemented, UserInterface integration complete, iced_winit partially integrated
+**Last Updated**: Nov 6, 2025 (Stable NodeIDs Implemented)
+**Current Branch**: `accesskit-integration` (commit: latest)  
+**Status**: Stable NodeID system implemented, accessibility tree working with VoiceOver-ready
 
 This document tracks what research can be done immediately versus what needs clarification or user input.
 
 ---
 
-## 🎉 Implementation Progress (Nov 2, 2025)
+## 🎉 Implementation Progress
 
-### ✅ Completed in Current Session
+### ✅ Completed Nov 6, 2025: Stable NodeID System
+
+**Critical Achievement**: Implemented automatic stable NodeID generation with **ZERO developer burden**.
+
+**Implementation** (runtime/src/accessibility.rs):
+- **Path-based ID generation**: Each widget gets stable ID from tree position
+  - Example paths: `"window/button[0]"`, `"window/button[1]"`, `"window/label[0]"`
+  - Hash path → stable u64 → AccessKit NodeId
+- **TreeBuilder enhancements**:
+  - `path_stack: Vec<String>` - tracks position in widget tree
+  - `type_counters: HashMap<String, usize>` - counts widgets by type per level
+  - `generate_stable_id(widget_type)` - creates deterministic NodeId from path
+- **All Operation methods updated**: container, focusable, text, text_input, scrollable, accessibility
+- **Role-to-type mapping**: Maps AccessKit Role to widget type string for path generation
+
+**Verification**:
+```
+First build:  button[0] → NodeId 7447623757530889483
+Second build: button[0] → NodeId 7447623757530889483  ✅ STABLE!
+```
+
+**Key Features**:
+- ✅ **Automatic** - No developer code changes needed
+- ✅ **Stable** - Same widget position = same NodeId across frames
+- ✅ **Path-based** - Derived from widget tree structure
+- ✅ **Zero breaking changes** - Fully backward compatible
+- ✅ **Better than egui** - No manual `.id_salt()` needed for static layouts
+
+**Compared to Browser Approach**:
+- Browsers: DOM elements have persistent object identity
+- egui (immediate-mode): Requires manual `.id_salt()` for dynamic content
+- iced (retained-mode): Widget tree persists → natural stability from tree structure
+
+**Status**: Counter example running with stable IDs, ready for VoiceOver testing!
+
+---
+
+### ✅ Completed Nov 2, 2025: Initial Infrastructure
 1. **Dependencies Added** (Cargo.toml):
    - accesskit = "0.21.1"
    - accesskit_winit = "0.29.2"  
@@ -42,8 +79,8 @@ This document tracks what research can be done immediately versus what needs cla
 6. **Tree Collection via Operation Pattern** (runtime/src/accessibility.rs):
    - ✅ `TreeBuilder` struct implementing `Operation` trait
    - ✅ Collects container, focusable, text_input, text, scrollable widgets
-   - ✅ Generates stable NodeIds (counter-based)
-   - ✅ Returns complete AccessKit TreeUpdate
+   - ✅ Generates stable NodeIds (path-based hashing) ⬅️ Updated Nov 6!
+   - ✅ Returns complete AccessKit TreeUpdate with bounds mapping
 
 7. **UserInterface Integration** (runtime/src/user_interface.rs:579):
    - ✅ Added `UserInterface::accessibility()` method
@@ -55,11 +92,19 @@ This document tracks what research can be done immediately versus what needs cla
    - ⚠️ Initialized as None (needs proper adapter setup)
 
 ### 🚧 What's Still Missing to Make It Functional
-- **Adapter initialization**: Need to create ActivationHandler and ActionHandler
-- **Event loop integration**: Need to call `ui.accessibility()` after UI rebuilds
-- **Tree updates**: Need to send TreeUpdate to adapter via `update_if_active()`
-- **Action handling**: Need to process accessibility events from screen readers
-- **Testing**: Need to verify with actual screen reader (VoiceOver/Narrator/Orca)
+
+**Nov 6 Update**: Many items completed! Remaining work:
+
+- ~~**Stable NodeIDs**~~ ✅ DONE - Path-based hashing implemented
+- ~~**Adapter initialization**~~ ✅ DONE - Created ActivationHandler and ActionHandler
+- ~~**Event loop integration**~~ ✅ DONE - Calls `ui.accessibility()` after UI rebuilds
+- ~~**Tree updates**~~ ✅ DONE - Sends TreeUpdate to adapter via `update_if_active()`
+- ~~**Action handling**~~ ✅ DONE - Processes accessibility events, synthesizes mouse clicks
+- ~~**Click actions on buttons**~~ ✅ DONE - Buttons have Click + Focus actions
+- **Testing with screen reader**: Need real-world VoiceOver/Narrator/Orca validation
+- **More widgets**: Text, TextInput, Checkbox, Radio, Slider, etc.
+- **Overlay support**: Tooltips, modals, dropdowns
+- **Optional widget IDs**: Allow developers to provide explicit IDs for extra stability
 
 ### 🎯 Major Architectural Decision Made (Nov 2, 2025)
 
@@ -87,14 +132,19 @@ After investigating tree traversal approaches, we've decided to use iced's exist
 **Next Critical Steps for Next Session**: 
 1. ✅ ~~Implement accessibility Operation in `iced_runtime`~~ DONE
 2. ✅ ~~Integrate Operation call into UserInterface lifecycle~~ DONE
-3. 🚧 Complete accesskit_winit adapter initialization:
-   - Implement ActivationHandler trait (returns initial tree)
-   - Implement ActionHandler trait (handles screen reader actions)
-   - Call Adapter::with_event_loop_proxy during window creation
-4. 🚧 Wire up tree updates in event loop:
-   - Call `ui.accessibility()` after UI rebuilds
-   - Send TreeUpdate to `adapter.update_if_active()`
-5. 🧪 Test with counter example and screen reader
+3. ✅ ~~Complete accesskit_winit adapter initialization~~ DONE (Nov 6):
+   - ✅ Implemented ActivationHandler trait (returns initial tree)
+   - ✅ Implemented ActionHandler trait (handles screen reader actions)
+   - ✅ Adapter initialized with event_loop_proxy during window creation
+4. ✅ ~~Wire up tree updates in event loop~~ DONE (Nov 6):
+   - ✅ Calls `ui.accessibility()` after UI rebuilds
+   - ✅ Sends TreeUpdate to `adapter.update_if_active()`
+   - ✅ Stores NodeId → bounds mapping for action routing
+5. ✅ ~~Implement stable NodeID generation~~ DONE (Nov 6):
+   - ✅ Path-based hashing (e.g., "window/button[0]" → NodeId)
+   - ✅ Automatic, zero developer burden
+   - ✅ Stable across frame updates
+6. 🧪 Test with counter example and screen reader - READY FOR TESTING
 
 ---
 
@@ -193,19 +243,22 @@ After investigating tree traversal approaches, we've decided to use iced's exist
 - ✅ Can examine TextInput and other focusable widgets
 - **Action**: Create comprehensive focus system map
 
-### **Phase 0.3: ID Stability Strategy Research**
+### **Phase 0.3: ID Stability Strategy Research** ✅ COMPLETED (Nov 6)
 
-#### 6. ID Generation Approaches (Ready)
-- ✅ Can analyze current widget::Id usage patterns
-- ✅ Can prototype different ID strategies in a test file
-- ⚠️ **Note**: Plan shows code blocks for options but doesn't specify evaluation criteria
-- **Action**: Design evaluation matrix for ID strategies
+#### 6. ID Generation Approaches ✅ RESOLVED
+- ✅ Researched browser approach (DOM element lifetime provides stability)
+- ✅ Researched egui approach (hash-based with manual `.id_salt()` for dynamic content)
+- ✅ Researched pop-os/iced accessibility branch (auto-generated IDs in constructors - doesn't work with immediate-mode)
+- ✅ **Decision**: Path-based hashing leveraging iced's retained-mode architecture
+- ✅ **Implementation**: `generate_stable_id(widget_type)` hashes tree path
+- ✅ **Result**: Automatic stability without developer burden
 
-#### 7. Study Other Implementations (Partially Ready)
-- ✅ Can fetch and read egui source code (already approved WebFetch for docs.rs)
-- ✅ Can research AccessKit's own examples beyond simple.rs
-- ⚠️ **Limited**: Can't easily study Dear ImGui or Flutter without more web access
-- **Action**: Deep dive into egui's AccessKit integration
+#### 7. Study Other Implementations ✅ COMPLETED
+- ✅ Deep dive into egui's AccessKit integration
+- ✅ Analyzed pop-os/iced `iced-accessibility` branch
+- ✅ Studied browser accessibility architecture (Chromium/Firefox)
+- ✅ Key insight: iced's retained-mode gives natural stability vs egui's immediate-mode
+- ✅ Verified: path-based IDs stable across frame updates in counter example
 
 ### **Phase 1.1: Non-Breaking Widget Extension**
 
