@@ -182,7 +182,7 @@ where
     ///
     /// # struct MyButton;
     /// # impl<Message, Theme, Renderer: iced_core::Renderer> Widget<Message, Theme, Renderer> for MyButton {
-    /// #     fn size(&self) -> iced_core::Size<iced_core::Length> { iced_core::Size::ZERO }
+    /// #     fn size(&self) -> iced_core::Size<iced_core::Length> { iced_core::Size::new(iced_core::Length::Shrink, iced_core::Length::Shrink) }
     /// #     fn layout(&mut self, _: &mut Tree, _: &Renderer, _: &iced_core::layout::Limits) -> iced_core::layout::Node {
     /// #         iced_core::layout::Node::new(iced_core::Size::ZERO)
     /// #     }
