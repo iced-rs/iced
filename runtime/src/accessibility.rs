@@ -9,8 +9,6 @@ use accesskit::{
 };
 
 use std::collections::HashMap;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 
 /// An accessibility action to be performed by the runtime.
 #[derive(Debug, Clone)]
@@ -19,16 +17,6 @@ pub enum Action {
     ActionRequested(ActionRequest),
     /// Accessibility was deactivated.
     Deactivated,
-}
-
-/// Hash a widget::Id to create a stable AccessKit NodeId.
-///
-/// This is the canonical way to convert between iced's widget IDs and AccessKit's NodeIds.
-/// Widgets can use this to check if an AccessKit action targets them.
-pub fn hash_widget_id_to_node_id(id: &Id) -> NodeId {
-    let mut hasher = DefaultHasher::new();
-    id.hash(&mut hasher);
-    NodeId(hasher.finish())
 }
 
 /// Builds an accessibility tree from a UserInterface.
@@ -73,11 +61,6 @@ impl TreeBuilder {
         }
     }
 
-    /// Hash a widget::Id to create a stable AccessKit NodeId
-    fn hash_widget_id(&self, id: &Id) -> NodeId {
-        hash_widget_id_to_node_id(id)
-    }
-
     /// Generate a stable NodeId based on widget::Id (preferred) or tree position (fallback)
     ///
     /// Priority:
@@ -98,8 +81,7 @@ impl TreeBuilder {
                 return cached_node_id;
             }
 
-            // Generate new stable NodeId from widget::Id
-            let node_id = self.hash_widget_id(id);
+            let node_id = id.into();
             let _ = self.id_cache.insert(id.clone(), node_id);
             return node_id;
         }
