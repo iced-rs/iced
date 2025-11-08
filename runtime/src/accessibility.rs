@@ -74,35 +74,31 @@ impl TreeBuilder {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        // Priority 1: Use widget::Id if provided (most stable)
-        if let Some(id) = widget_id {
-            // Check cache first
-            if let Some(&cached_node_id) = self.id_cache.get(id) {
-                return cached_node_id;
+        match widget_id {
+            Some(id) => self
+                .id_cache
+                .entry(id.clone())
+                .or_insert_with(|| NodeId::from(id))
+                .clone(),
+
+            None => {
+                let counter = self
+                    .type_counters
+                    .entry(widget_type.to_string())
+                    .or_insert(0);
+                let index = *counter;
+                *counter += 1;
+
+                // Build path string like "window/column/button[0]"
+                let mut path = self.path_stack.join("/");
+                path.push_str(&format!("/{}[{}]", widget_type, index));
+
+                // Hash the path to get stable u64 ID
+                let mut hasher = DefaultHasher::new();
+                path.hash(&mut hasher);
+                NodeId(hasher.finish())
             }
-
-            let node_id = id.into();
-            let _ = self.id_cache.insert(id.clone(), node_id);
-            return node_id;
         }
-
-        // Priority 2: Fall back to path-based hashing (current behavior)
-        // Get or initialize counter for this widget type at current level
-        let counter = self
-            .type_counters
-            .entry(widget_type.to_string())
-            .or_insert(0);
-        let index = *counter;
-        *counter += 1;
-
-        // Build path string like "window/column/button[0]"
-        let mut path = self.path_stack.join("/");
-        path.push_str(&format!("/{}[{}]", widget_type, index));
-
-        // Hash the path to get stable u64 ID
-        let mut hasher = DefaultHasher::new();
-        path.hash(&mut hasher);
-        NodeId(hasher.finish())
     }
 
     fn build(mut self) -> (TreeUpdate, HashMap<NodeId, Rectangle>) {
