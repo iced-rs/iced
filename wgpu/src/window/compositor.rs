@@ -105,9 +105,13 @@ impl Compositor {
             .and_then(|surface| {
                 let capabilities = surface.get_capabilities(&adapter);
 
-                let mut formats = capabilities.formats.iter().copied();
+                let formats = capabilities.formats.iter().copied();
 
                 log::info!("Available formats: {formats:#?}");
+
+                let mut formats = formats.filter(|format| {
+                    format.required_features() == wgpu::Features::empty()
+                });
 
                 let format = if color::GAMMA_CORRECTION {
                     formats.find(wgpu::TextureFormat::is_srgb)
