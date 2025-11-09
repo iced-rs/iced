@@ -37,6 +37,16 @@ pub struct AccessibilityNode {
     ///
     /// If not provided, a path-based ID is generated automatically.
     pub widget_id: Option<Id>,
+
+    /// Whether this widget is a leaf node in the accessibility tree.
+    ///
+    /// When `true`, child widgets will not have their accessibility nodes
+    /// included in the tree. This is useful for widgets like buttons that
+    /// want to present themselves as a single accessible element with their
+    /// content embedded in the label, rather than as a container with children.
+    ///
+    /// Default: `false`
+    pub is_leaf_node: bool,
 }
 
 impl AccessibilityNode {
@@ -66,6 +76,7 @@ impl AccessibilityNode {
             enabled: true,
             focusable: false,
             widget_id: None,
+            is_leaf_node: false,
         }
     }
 
@@ -169,6 +180,28 @@ impl AccessibilityNode {
     /// ```
     pub fn widget_id(mut self, id: Option<Id>) -> Self {
         self.widget_id = id;
+        self
+    }
+
+    /// Sets whether this widget is a leaf node in the accessibility tree.
+    ///
+    /// When set to `true`, child widgets will not have their accessibility
+    /// nodes included in the tree. This is useful for widgets like buttons
+    /// that want to present themselves as a single accessible element rather
+    /// than as a container with children.
+    ///
+    /// # Example
+    /// ```
+    /// use iced_core::accessibility::{AccessibilityNode, Role};
+    /// use iced_core::Rectangle;
+    ///
+    /// let node = AccessibilityNode::new(Rectangle::default())
+    ///     .role(Role::Button)
+    ///     .label("Click me")
+    ///     .is_leaf_node(true);
+    /// ```
+    pub fn is_leaf_node(mut self, is_leaf: bool) -> Self {
+        self.is_leaf_node = is_leaf;
         self
     }
 }

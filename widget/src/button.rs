@@ -83,6 +83,7 @@ where
     class: Theme::Class<'a>,
     status: Option<Status>,
     id: Option<crate::core::widget::Id>,
+    accessibility_label: Option<String>,
 }
 
 enum OnPress<'a, Message> {
@@ -121,6 +122,7 @@ where
             class: Theme::default(),
             status: None,
             id: None,
+            accessibility_label: None,
         }
     }
 
@@ -206,6 +208,18 @@ where
     /// especially in dynamic UIs where widgets may be reordered or inserted.
     pub fn id(mut self, id: impl Into<crate::core::widget::Id>) -> Self {
         self.id = Some(id.into());
+        self
+    }
+
+    /// Sets the accessibility label for the [`Button`].
+    ///
+    /// This label will be used by screen readers and other assistive technologies.
+    /// If not set, a default "Button" label will be used.
+    pub fn accessibility_label(
+        mut self,
+        label: impl Into<String>,
+    ) -> Self {
+        self.accessibility_label = Some(label.into());
         self
     }
 }
@@ -483,30 +497,39 @@ where
     ) -> Option<crate::core::accessibility::AccessibilityNode> {
         use crate::core::accessibility::{AccessibilityNode, Role};
 
-        // Extract label from button content if it's text
-        let label = extract_text_from_element(&self.content);
+        // Use explicit accessibility label if set, otherwise try to extract from content,
+        // otherwise use default "Button" label
+        let label = self
+            .accessibility_label
+            .clone()
+            .or_else(|| extract_text_from_element(&self.content))
+            .unwrap_or_else(|| "Button".to_string());
 
         Some(
             AccessibilityNode::new(layout.bounds())
                 .role(Role::Button)
-                .label(label.unwrap_or_else(|| "Button".to_string()))
+                .label(label)
                 .enabled(self.on_press.is_some())
                 .focusable(true)
-                .widget_id(self.id.clone()),
+                .widget_id(self.id.clone())
+                .is_leaf_node(true), // Button is a leaf node - don't include children in accessibility tree
         )
     }
 }
 
 /// Helper to extract text content from an element for accessibility labels.
-/// This is a simple implementation that works for basic text buttons.
+///
+/// Currently not implemented - returns None.
+/// TODO: Implement text extraction by operating on the element tree
 fn extract_text_from_element<Message, Theme, Renderer>(
     _element: &Element<'_, Message, Theme, Renderer>,
 ) -> Option<String>
 where
     Renderer: crate::core::Renderer,
 {
-    // TODO: Implement proper text extraction by traversing the element tree
-    // For now, return None to use default label
+    // We can't easily operate on the element without more context (layout, tree, renderer).
+    // For now, return None and rely on explicit labels.
+    // Users should use `.label()` on buttons when they contain non-text content.
     None
 }
 

@@ -47,6 +47,8 @@ pub struct TreeBuilder {
     type_counters: HashMap<String, usize>,
     /// Cache mapping widget::Id to stable AccessKit NodeId
     id_cache: HashMap<Id, NodeId>,
+    /// Whether we're inside a leaf node (children should not create accessibility nodes)
+    inside_leaf_node: bool,
 }
 
 impl TreeBuilder {
@@ -58,6 +60,7 @@ impl TreeBuilder {
             path_stack: vec!["window".to_string()],
             type_counters: HashMap::new(),
             id_cache: HashMap::new(),
+            inside_leaf_node: false,
         }
     }
 
@@ -126,7 +129,15 @@ impl Operation for TreeBuilder {
             crate::core::accessibility::AccessibilityNode,
         >,
     ) {
+        // If we're inside a leaf node, don't add child nodes to the tree
+        if self.inside_leaf_node {
+            return;
+        }
+
         if let Some(a11y_node) = accessibility_node {
+            // Store whether this widget is a leaf node
+            let is_leaf = a11y_node.is_leaf_node;
+
             // Role is required for AccessKit nodes
             if let Some(role) = a11y_node.role {
                 // Generate stable ID based on role type and position
@@ -188,6 +199,12 @@ impl Operation for TreeBuilder {
 
                 // Store bounds for action routing
                 let _ = self.node_bounds.insert(node_id, a11y_node.bounds);
+            }
+
+            // If this is a leaf node, set the flag so children won't be added
+            // This will affect the subsequent traverse() call
+            if is_leaf {
+                self.inside_leaf_node = true;
             }
         }
     }
@@ -307,6 +324,13 @@ impl Operation for TreeBuilder {
     }
 
     fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation)) {
+        // Perform the traversal
+        // If inside_leaf_node is true, child nodes won't be added to the tree
         operate(self);
+
+        // Reset the flag after traversing
+        // This ensures the flag only affects immediate children of the leaf node,
+        // not siblings or other widgets at the same level
+        self.inside_leaf_node = false;
     }
 }

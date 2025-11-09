@@ -35,10 +35,12 @@ impl Counter {
         column![
             button("Increment")
                 .id("increment-button")
+                .accessibility_label("Increment")
                 .on_press(Message::Increment),
             text(self.value).size(50),
             button("Decrement")
                 .id("decrement-button")
+                .accessibility_label("Decrement")
                 .on_press(Message::Decrement)
         ]
         .padding(20)
