@@ -45,8 +45,6 @@ pub struct TreeBuilder {
     path_stack: Vec<String>,
     /// Counter for each widget type at current level
     type_counters: HashMap<String, usize>,
-    /// Cache mapping widget::Id to stable AccessKit NodeId
-    id_cache: HashMap<Id, NodeId>,
     /// Whether we're inside a leaf node (children should not create accessibility nodes)
     inside_leaf_node: bool,
 }
@@ -59,7 +57,6 @@ impl TreeBuilder {
             node_bounds: HashMap::new(),
             path_stack: vec!["window".to_string()],
             type_counters: HashMap::new(),
-            id_cache: HashMap::new(),
             inside_leaf_node: false,
         }
     }
@@ -78,11 +75,10 @@ impl TreeBuilder {
         use std::hash::{Hash, Hasher};
 
         match widget_id {
-            Some(id) => self
-                .id_cache
-                .entry(id.clone())
-                .or_insert_with(|| NodeId::from(id))
-                .clone(),
+            Some(id) => {
+                // Convert widget::Id to NodeId via deterministic hashing
+                NodeId::from(id)
+            }
 
             None => {
                 let counter = self

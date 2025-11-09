@@ -1,9 +1,42 @@
-# Current Implementation Status (as of Nov 6, 2025)
+# Current Implementation Status (as of Nov 9, 2025)
 
-## ✅ Major Milestone Achieved: End-to-End Accessibility Working!
+## ✅ Major Milestone: Leaf Node Semantics & Button Accessibility!
 
-**Branch**: `accesskit-integration` (latest: TBD - needs commit)  
-**Status**: Stable NodeIDs implemented, counter example ready for screen reader testing
+**Branch**: `accesskit-integration` (latest: TBD - needs commit)
+**Status**: Button leaf node implementation complete, screen reader tested
+
+### 🎉 Completed Nov 9, 2025: Leaf Node Architecture & Button Widget
+
+**Critical Achievement**: Proper accessibility tree semantics for composite widgets
+
+Implemented:
+1. ✅ **Leaf node concept** (core/src/accessibility/node.rs)
+   - Added `is_leaf_node: bool` field to AccessibilityNode
+   - Leaf nodes present as single accessible elements without traversable children
+   - Semantic API: `.is_leaf_node(true)` clearly indicates terminal elements
+
+2. ✅ **TreeBuilder leaf node handling** (runtime/src/accessibility.rs)
+   - Added `inside_leaf_node: bool` state tracking
+   - When inside a leaf node, child accessibility nodes are not added to tree
+   - Proper reset after traversal ensures siblings are not affected
+
+3. ✅ **Button widget as leaf node** (widget/src/button.rs)
+   - Buttons set `.is_leaf_node(true)` - text children don't create separate nodes
+   - Added `accessibility_label` field for explicit labeling
+   - Added `.accessibility_label()` builder method
+   - Falls back to "Button" if no label set
+
+4. ✅ **Counter example updated** (examples/counter/src/main.rs)
+   - Buttons labeled with `.accessibility_label("Increment")` and `.accessibility_label("Decrement")`
+   - Screen reader testing confirmed: 3 focus stops (2 buttons + 1 text) instead of 5
+   - Button children no longer appear as separate accessibility nodes
+
+5. ✅ **API naming improvements**
+   - Renamed `traverse_children` → `is_leaf_node` (more semantic)
+   - Renamed `skip_children` → `inside_leaf_node` (clearer state tracking)
+   - Better conveys the tree relationship: property declaration vs internal state
+
+Status: **Buttons work correctly with screen readers! Text embeds in button label.**
 
 ### 🎉 Completed Nov 6, 2025: Stable NodeID System
 
@@ -60,35 +93,87 @@ Operation pattern for tree traversal - leverages existing iced infrastructure
 
 ## 🎯 What's Next
 
-### Immediate (This Week)
-1. ~~Initialize accesskit_winit Adapter~~ ✅ DONE
-2. ~~Wire up tree updates in event loop~~ ✅ DONE
-3. ~~Implement stable NodeIDs~~ ✅ DONE
-4. **Test with real screen readers** 🚧 IN PROGRESS
-   - VoiceOver (macOS)
-   - Narrator (Windows)
-   - Orca (Linux)
+### Immediate Priorities (This Week)
+
+1. **Hybrid ID System - Widget ID Support** 🎯 HIGH PRIORITY
+   - ✅ Widget ID field already added to AccessibilityNode
+   - ✅ TreeBuilder already checks widget_id before falling back to path-based ID
+   - 🚧 Need to audit which widgets should have explicit IDs
+   - 🚧 Need to test dynamic lists with widget IDs
+   - **Why critical**: Dynamic content (lists, conditional rendering) need stable IDs
+
+2. **Text Widget Accessibility** 🎯 HIGH PRIORITY
+   - Current: Text creates Role::Label nodes
+   - ⚠️ Issue: Count value (text widget) should be readable but not focusable
+   - Need to verify text widgets are working correctly with screen readers
+   - May need `.focusable(false)` for static text
+   - Test reading order in complex layouts
+
+3. **More Screen Reader Testing** 🚧 IN PROGRESS
+   - ✅ VoiceOver (macOS) - counter example tested
+   - ⏳ Narrator (Windows)
+   - ⏳ Orca (Linux)
    - Validate button press actions work end-to-end
+   - Test navigation patterns and announcement text
 
 ### Short Term (Next 1-2 Weeks)
-5. **Implement more core widgets**:
-   - TextInput (Role::TextInput with value editing)
-   - Checkbox (Role::CheckBox with checked state)
-   - Radio (Role::RadioButton in groups)
-   - Slider (Role::Slider with value range)
-   - Image (Role::Image with alt text)
-   
-6. **Optional widget IDs** (Phase 2 enhancement):
-   - Add `widget_id: Option<widget::Id>` to AccessibilityNode
-   - Allow developers to provide explicit IDs for extra stability in dynamic lists
-   - TreeBuilder prefers widget_id over path-based ID when available
 
-7. **Overlay support**:
+4. **Core Interactive Widgets** 🎯 PRIORITY
+   - **TextInput** (Role::TextInput with value editing)
+     - Similar to Button - is a leaf node
+     - Needs value property and text editing actions
+     - Focus management critical here
+   - **Checkbox** (Role::CheckBox with checked state)
+     - Leaf node with checked/unchecked state
+     - Toggle action support
+   - **Slider** (Role::Slider with value range)
+     - Leaf node with value, min, max
+     - Increment/Decrement actions
+
+5. **Container Widgets** 🎯 MEDIUM PRIORITY
+   - **Column/Row** - Should these create accessibility nodes?
+     - Likely transparent (no accessibility node)
+     - Just pass through to children
+   - **Scrollable** - Role::ScrollView
+     - Needs scroll position and range
+     - May be a leaf node containing virtual children
+   - **Container** - Likely transparent
+
+6. **Overlay & Complex Widgets** 📅 LATER
    - Tooltips (Role::Tooltip)
    - Modals (Role::Dialog)
    - Dropdowns (Role::Menu)
+   - PickList, ComboBox
+   - Image (Role::Image with alt text)
 
 ## 🎯 Key Architecture Decisions
+
+### Leaf Node Architecture (Nov 9, 2025)
+
+**DECISION**: Use `is_leaf_node` flag to control child traversal
+
+Why this approach:
+- **Composite widgets** (Button, TextInput) need to present as single accessible units
+- **Prevents duplicate focus stops** - button text doesn't get its own node
+- **Clean semantics** - `is_leaf_node(true)` clearly indicates terminal element
+- **Flexible** - widgets can choose to be containers or leaves
+
+Implementation:
+```rust
+// Widget declares itself as leaf
+AccessibilityNode::new(bounds)
+    .role(Role::Button)
+    .label("Click me")
+    .is_leaf_node(true)  // Children won't be added to tree
+
+// TreeBuilder tracks state
+inside_leaf_node: bool  // Set when processing leaf node's children
+```
+
+Key insights:
+- **Leaf node ≠ no children** - widget can have visual children but be accessibility leaf
+- **Proper reset critical** - `inside_leaf_node` must reset after traverse() or siblings affected
+- **Button use case** - button contains text visually, but text embedded in button's label for a11y
 
 ### Tree Traversal Strategy (Nov 2, 2025)
 
@@ -540,11 +625,57 @@ Success Metrics
  Multi-window applications fully supported
  90%+ test coverage for accessibility code
 
-Next Steps
+## 📋 Recommended Next Steps (Priority Order)
 
-Start with Phase 0 research - Cannot proceed without understanding existing architecture
-Create proof-of-concept for ID stability by end of Week 1
-Get maintainer input on architectural decisions before Phase 2
-Iterate based on discoveries during research phase
+### 1. Text Widget Review & Testing 🎯 **START HERE**
+**Why**: Text is fundamental and needs verification
+- Check if static text is focusable (should not be)
+- Verify screen reader reads text in correct order
+- Test with counter example - does "0" announce correctly?
+- Estimated time: 30 minutes
 
-This revised plan addresses the critical gaps identified, particularly around understanding iced's actual architecture before making design decisions. The research phase is now essential to avoid building on incorrect assumptions.
+### 2. TextInput Widget Implementation 🎯 **HIGH VALUE**
+**Why**: First interactive input widget, critical for forms
+- Similar pattern to Button (is a leaf node)
+- Add `value` property to AccessibilityNode
+- Implement text editing actions (SetValue)
+- Focus management is critical here
+- Estimated time: 2-3 hours
+
+### 3. Checkbox Widget Implementation 🎯 **HIGH VALUE**
+**Why**: Second most common interactive widget
+- Leaf node with checked state
+- Add checked/indeterminate states to AccessibilityNode
+- Implement Toggle action
+- Simpler than TextInput, good learning example
+- Estimated time: 1-2 hours
+
+### 4. Dynamic Content Testing 📊 **IMPORTANT**
+**Why**: Validates hybrid ID system works
+- Create test with list that adds/removes items
+- Verify widget IDs maintain stability
+- Test screen reader doesn't lose context
+- Estimated time: 1-2 hours
+
+### 5. Container Widget Audit 🔍 **CLEANUP**
+**Why**: Many widgets might not need accessibility nodes
+- Review Column, Row, Container - likely transparent
+- Document which widgets should return None
+- Add comments explaining why
+- Estimated time: 1 hour
+
+## ⚠️ Known Issues to Address
+
+1. **Text focusability** - Static text might be focusable when it shouldn't be
+2. **Missing widgets** - Most iced widgets don't have accessibility yet
+3. **Dynamic lists** - Need real-world testing with widget IDs
+4. **Focus management** - No keyboard navigation between widgets yet
+5. **Action routing** - Button clicks work, but need to verify other actions
+
+## 🎓 Lessons Learned
+
+1. **Naming matters** - `is_leaf_node` is much clearer than `traverse_children`
+2. **State tracking is tricky** - `inside_leaf_node` reset bug affected all siblings
+3. **Screen reader testing essential** - Discovered button text issue immediately
+4. **Explicit labels needed** - Can't auto-extract text from Elements easily
+5. **Start simple** - Button was perfect first widget (single action, clear semantics)
