@@ -7,8 +7,6 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-accessibility_mcp = { path = "../../../accessibility_mcp/crates/accessibility_mcp" }
-tokio = { version = "1.40", features = ["rt", "rt-multi-thread", "sync", "time", "io-std", "io-util", "macros", "net"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced.workspace = true

@@ -1,10 +1,7 @@
-use accessibility_mcp::start_all;
 use iced::Center;
 use iced::widget::{Column, button, column, text};
 
 pub fn main() -> iced::Result {
-    let _s = start_all().expect("Failed to start MCP server");
-
     iced::run(Counter::update, Counter::view)
 }
 
