@@ -179,6 +179,17 @@ where
         self.class = class.into();
         self
     }
+
+    fn accessibility_noce(
+        &self,
+        layout: Layout<'_>,
+    ) -> crate::accessibility::AccessibilityNode {
+        use crate::accessibility::{AccessibilityNode, Role};
+
+        AccessibilityNode::new(layout.bounds())
+            .role(Role::Label)
+            .label(self.fragment.as_ref())
+    }
 }
 
 /// The internal state of a [`Text`] widget.
@@ -248,13 +259,7 @@ where
         _state: &Tree,
         layout: Layout<'_>,
     ) -> Option<crate::accessibility::AccessibilityNode> {
-        use crate::accessibility::{AccessibilityNode, Role};
-
-        Some(
-            AccessibilityNode::new(layout.bounds())
-                .role(Role::Label)
-                .label(self.fragment.as_ref()),
-        )
+        Some(self.accessibility_noce(layout))
     }
 
     fn operate(
@@ -264,16 +269,7 @@ where
         _renderer: &Renderer,
         operation: &mut dyn super::Operation,
     ) {
-        use crate::accessibility::{AccessibilityNode, Role};
-
-        // Provide accessibility information for this text
-        let accessibility_node = Some(
-            AccessibilityNode::new(layout.bounds())
-                .role(Role::Label)
-                .label(self.fragment.as_ref()),
-        );
-        operation.accessibility(accessibility_node);
-
+        operation.accessibility(Some(self.accessibility_noce(layout)));
         operation.text(None, layout.bounds(), &self.fragment);
     }
 }
