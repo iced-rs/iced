@@ -274,7 +274,6 @@ where
         );
         operation.accessibility(accessibility_node);
 
-        // Also call the text operation for backwards compatibility
         operation.text(None, layout.bounds(), &self.fragment);
     }
 }

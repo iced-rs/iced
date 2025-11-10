@@ -287,8 +287,26 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
+        // Collect text from children if no explicit accessibility label is set
+        let collected_text = if self.accessibility_label.is_none() {
+            extract_text_from_children(
+                &mut self.content,
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+            )
+        } else {
+            None
+        };
+
         // Provide accessibility information for this button
-        let accessibility_node = self.accessibility(tree, layout);
+        let accessibility_node = Self::build_accessibility_node(
+            &self.accessibility_label,
+            self.on_press.is_some(),
+            &self.id,
+            layout.bounds(),
+            collected_text,
+        );
         operation.accessibility(accessibility_node);
 
         // Continue traversal to children
@@ -495,42 +513,97 @@ where
         _state: &Tree,
         layout: Layout<'_>,
     ) -> Option<crate::core::accessibility::AccessibilityNode> {
+        // This is called from Widget trait, but we don't have collected text here
+        // Use the helper with no collected text
+        Self::build_accessibility_node(
+            &self.accessibility_label,
+            self.on_press.is_some(),
+            &self.id,
+            layout.bounds(),
+            None,
+        )
+    }
+}
+
+impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
+where
+    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+{
+    /// Helper to build accessibility node with optional collected text
+    fn build_accessibility_node(
+        accessibility_label: &Option<String>,
+        enabled: bool,
+        id: &Option<crate::core::widget::Id>,
+        bounds: crate::core::Rectangle,
+        collected_text: Option<String>,
+    ) -> Option<crate::core::accessibility::AccessibilityNode> {
         use crate::core::accessibility::{AccessibilityNode, Role};
 
-        // Use explicit accessibility label if set, otherwise try to extract from content,
-        // otherwise use default "Button" label
-        let label = self
-            .accessibility_label
+        // Priority: explicit label > collected text > default "Button"
+        let label = accessibility_label
             .clone()
-            .or_else(|| extract_text_from_element(&self.content))
+            .or(collected_text)
             .unwrap_or_else(|| "Button".to_string());
 
         Some(
-            AccessibilityNode::new(layout.bounds())
+            AccessibilityNode::new(bounds)
                 .role(Role::Button)
                 .label(label)
-                .enabled(self.on_press.is_some())
+                .enabled(enabled)
                 .focusable(true)
-                .widget_id(self.id.clone())
+                .widget_id(id.clone())
                 .is_leaf_node(true), // Button is a leaf node - don't include children in accessibility tree
         )
     }
 }
 
-/// Helper to extract text content from an element for accessibility labels.
+/// Helper to extract text content from button's children for accessibility labels.
 ///
-/// Currently not implemented - returns None.
-/// TODO: Implement text extraction by operating on the element tree
-fn extract_text_from_element<Message, Theme, Renderer>(
-    _element: &Element<'_, Message, Theme, Renderer>,
+/// Uses the Operation pattern to traverse child widgets and collect text.
+fn extract_text_from_children<Message, Theme, Renderer>(
+    element: &mut Element<'_, Message, Theme, Renderer>,
+    tree: &mut Tree,
+    layout: Layout<'_>,
+    renderer: &Renderer,
 ) -> Option<String>
 where
     Renderer: crate::core::Renderer,
 {
-    // We can't easily operate on the element without more context (layout, tree, renderer).
-    // For now, return None and rely on explicit labels.
-    // Users should use `.label()` on buttons when they contain non-text content.
-    None
+    use crate::core::widget::Operation;
+    use crate::core::Rectangle;
+    use crate::core::widget::Id;
+
+    /// Operation to collect text from widgets
+    struct TextCollector {
+        text: Vec<String>,
+    }
+
+    impl TextCollector {
+        fn new() -> Self {
+            Self { text: Vec::new() }
+        }
+    }
+
+    impl Operation for TextCollector {
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation)) {
+            operate(self);
+        }
+
+        fn text(&mut self, _id: Option<&Id>, _bounds: Rectangle, text: &str) {
+            self.text.push(text.to_string());
+        }
+    }
+
+    let mut collector = TextCollector::new();
+    element.as_widget_mut().operate(tree, layout, renderer, &mut collector);
+
+    if collector.text.is_empty() {
+        None
+    } else {
+        // Join multiple text segments with spaces
+        Some(collector.text.join(" "))
+    }
 }
 
 impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
