@@ -31,7 +31,7 @@ pub fn daemon<State, Message, Theme, Renderer>(
 ) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
-    Message: Clone + Send + 'static,
+    Message: Send + 'static,
     Theme: theme::Base,
     Renderer: program::Renderer,
 {
@@ -50,7 +50,7 @@ where
     impl<State, Message, Theme, Renderer, Boot, Update, View> Program
         for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
-        Message: Clone + Send + 'static,
+        Message: Send + 'static,
         Theme: theme::Base,
         Renderer: program::Renderer,
         Boot: application::BootFn<State, Message>,

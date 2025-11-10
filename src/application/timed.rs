@@ -29,7 +29,7 @@ pub fn timed<State, Message, Theme, Renderer>(
 >
 where
     State: 'static,
-    Message: Clone + Send + 'static,
+    Message: Send + 'static,
     Theme: theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
@@ -68,7 +68,7 @@ where
             View,
         >
     where
-        Message: Clone + Send + 'static,
+        Message: Send + 'static,
         Theme: theme::Base + 'static,
         Renderer: program::Renderer + 'static,
         Boot: self::BootFn<State, Message>,
