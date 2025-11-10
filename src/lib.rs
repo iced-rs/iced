@@ -704,7 +704,7 @@ pub fn run<State, Message, Theme, Renderer>(
 ) -> Result
 where
     State: Default + 'static,
-    Message: Send + message::MaybeDebug + message::MaybeClone + 'static,
+    Message: Clone + Send + message::MaybeDebug + message::MaybeClone + 'static,
     Theme: theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {

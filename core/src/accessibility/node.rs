@@ -2,6 +2,7 @@
 
 use crate::Rectangle;
 use crate::widget::Id;
+use std::any::Any;
 
 pub use accesskit::Role;
 
@@ -9,7 +10,6 @@ pub use accesskit::Role;
 ///
 /// This is a simplified wrapper around AccessKit's node types,
 /// providing a builder API for common accessibility properties.
-#[derive(Debug, Clone)]
 pub struct AccessibilityNode {
     /// The bounding box of the widget in screen coordinates
     pub bounds: Rectangle,
@@ -47,6 +47,15 @@ pub struct AccessibilityNode {
     ///
     /// Default: `false`
     pub is_leaf_node: bool,
+
+    /// Optional action callback that will be invoked when an accessibility action occurs.
+    ///
+    /// This is a closure that produces a type-erased Message when called.
+    /// It will be invoked when an accessibility action (like Click) is performed on this node.
+    /// TreeBuilder will extract this and store it in the action callback map.
+    ///
+    /// Using a closure avoids requiring Clone on the Message type, following iced's pattern.
+    pub on_action: Option<Box<dyn Fn() -> Box<dyn Any + Send> + Send>>,
 }
 
 impl AccessibilityNode {
@@ -77,6 +86,7 @@ impl AccessibilityNode {
             focusable: false,
             widget_id: None,
             is_leaf_node: false,
+            on_action: None,
         }
     }
 
@@ -204,4 +214,34 @@ impl AccessibilityNode {
         self.is_leaf_node = is_leaf;
         self
     }
+
+    /// Sets the action callback for this widget.
+    ///
+    /// When an accessibility action (like Click) is performed on this node,
+    /// the provided message will be published to the application.
+    ///
+    /// The message is captured in a closure to avoid requiring Clone on the Message type.
+    ///
+    /// # Example
+    /// ```ignore
+    /// use iced_core::accessibility::{AccessibilityNode, Role};
+    /// use iced_core::Rectangle;
+    ///
+    /// #[derive(Clone)]
+    /// enum Message {
+    ///     ButtonPressed,
+    /// }
+    ///
+    /// let node = AccessibilityNode::new(Rectangle::default())
+    ///     .role(Role::Button)
+    ///     .on_action(Message::ButtonPressed);
+    /// ```
+    pub fn on_action<M>(mut self, message: M) -> Self
+    where
+        M: 'static + Clone + Send,
+    {
+        self.on_action = Some(Box::new(move || Box::new(message.clone())));
+        self
+    }
 }
+

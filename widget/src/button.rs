@@ -16,7 +16,6 @@
 //!     button("Press me!").on_press(Message::ButtonPressed).into()
 //! }
 //! ```
-use crate::core::accessibility::{Action as AccessKitAction, NodeId};
 use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
@@ -99,6 +98,7 @@ impl<Message: Clone> OnPress<'_, Message> {
         }
     }
 }
+
 
 impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
 where
@@ -232,7 +232,7 @@ struct State {
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Button<'a, Message, Theme, Renderer>
 where
-    Message: 'a + Clone,
+    Message: 'a + Clone + Send + 'static,
     Renderer: 'a + crate::core::Renderer,
     Theme: Catalog,
 {
@@ -306,6 +306,7 @@ where
             &self.id,
             layout.bounds(),
             collected_text,
+            &self.on_press,
         );
         operation.accessibility(accessibility_node);
 
@@ -383,21 +384,6 @@ where
                 let state = tree.state.downcast_mut::<State>();
 
                 state.is_pressed = false;
-            }
-            Event::AccessKit(request) => {
-                // Handle accessibility click actions
-                if request.action == AccessKitAction::Click {
-                    if let Some(on_press) = &self.on_press {
-                        // Check if this button is the target
-                        if let Some(id) = &self.id {
-                            if NodeId::from(id) == request.target {
-                                // Directly trigger the button's action
-                                shell.publish(on_press.get());
-                                shell.capture_event();
-                            }
-                        }
-                    }
-                }
             }
             _ => {}
         }
@@ -521,6 +507,7 @@ where
             &self.id,
             layout.bounds(),
             None,
+            &self.on_press,
         )
     }
 }
@@ -537,7 +524,11 @@ where
         id: &Option<crate::core::widget::Id>,
         bounds: crate::core::Rectangle,
         collected_text: Option<String>,
-    ) -> Option<crate::core::accessibility::AccessibilityNode> {
+        on_press: &Option<OnPress<'_, Message>>,
+    ) -> Option<crate::core::accessibility::AccessibilityNode>
+    where
+        Message: Clone + Send + 'static,
+    {
         use crate::core::accessibility::{AccessibilityNode, Role};
 
         // Priority: explicit label > collected text > default "Button"
@@ -546,15 +537,20 @@ where
             .or(collected_text)
             .unwrap_or_else(|| "Button".to_string());
 
-        Some(
-            AccessibilityNode::new(bounds)
-                .role(Role::Button)
-                .label(label)
-                .enabled(enabled)
-                .focusable(true)
-                .widget_id(id.clone())
-                .is_leaf_node(true), // Button is a leaf node - don't include children in accessibility tree
-        )
+        let mut node = AccessibilityNode::new(bounds)
+            .role(Role::Button)
+            .label(label)
+            .enabled(enabled)
+            .focusable(true)
+            .widget_id(id.clone())
+            .is_leaf_node(true); // Button is a leaf node - don't include children in accessibility tree
+
+        // Register the on_press callback for accessibility actions
+        if let Some(on_press) = on_press {
+            node = node.on_action(on_press.get());
+        }
+
+        Some(node)
     }
 }
 
@@ -609,7 +605,7 @@ where
 impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Message: Clone + 'a,
+    Message: Clone + Send + 'static,
     Theme: Catalog + 'a,
     Renderer: crate::core::Renderer + 'a,
 {

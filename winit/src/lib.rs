@@ -1025,11 +1025,14 @@ async fn run_instance<P>(
 
                         // Update accessibility tree
                         if let Some(adapter) = &mut window.accessibility {
-                            let (tree_update, node_bounds) =
+                            let (tree_update, node_bounds, action_callbacks) =
                                 interface.accessibility(&window.renderer);
 
                             // Store node bounds for action routing
                             window.accessibility_nodes = node_bounds;
+
+                            // Store action callbacks for message publishing
+                            window.accessibility_actions = action_callbacks;
 
                             // Write tree to file for debugging (only first time)
                             static ONCE: std::sync::Once =
@@ -1901,25 +1904,25 @@ fn run_action<'a, P, C>(
                         request
                     );
 
-                    // Find the window that has this node and push AccessKit event
-                    for (window_id, window) in window_manager.iter_mut() {
-                        if window
-                            .accessibility_nodes
-                            .contains_key(&request.target)
-                        {
-                            log::debug!(
-                                "Dispatching AccessKit event for node {:?} in window {:?}",
-                                request.target,
-                                window_id
-                            );
+                    // Only handle Click actions, not Focus or other actions
+                    if request.action == accesskit::Action::Click {
+                        // Find the window that has this node and publish the message
+                        for (window_id, window) in window_manager.iter_mut() {
+                            if let Some(callback) = window
+                                .accessibility_actions
+                                .get(&request.target)
+                            {
+                                log::debug!(
+                                    "Publishing message for Click action on node {:?} in window {:?}",
+                                    request.target,
+                                    window_id
+                                );
 
-                            // Push AccessKit event directly - widgets will handle it
-                            events.push((
-                                window_id,
-                                core::Event::AccessKit(request.clone()),
-                            ));
+                                // Call the closure to produce the message - pure Elm architecture!
+                                messages.push(callback());
 
-                            break;
+                                break;
+                            }
                         }
                     }
                 }

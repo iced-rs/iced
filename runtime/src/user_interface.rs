@@ -590,7 +590,11 @@ where
     ) -> (
         accesskit::TreeUpdate,
         std::collections::HashMap<accesskit::NodeId, crate::core::Rectangle>,
-    ) {
+        std::collections::HashMap<accesskit::NodeId, Box<dyn Fn() -> Message + Send>>,
+    )
+    where
+        Message: Send + 'static,
+    {
         use crate::accessibility;
 
         accessibility::build_tree_from_ui(self, renderer)

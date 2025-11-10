@@ -22,12 +22,13 @@ pub enum Action {
 /// Builds an accessibility tree from a UserInterface.
 ///
 /// This traverses the widget tree and collects accessibility information.
-/// Returns the TreeUpdate and a mapping of NodeId to bounds for action routing.
+/// Returns the TreeUpdate, bounds mapping, and action callbacks (as closures) for routing.
 pub fn build_tree_from_ui<Message, Theme, Renderer>(
     ui: &mut UserInterface<'_, Message, Theme, Renderer>,
     renderer: &Renderer,
-) -> (TreeUpdate, HashMap<NodeId, Rectangle>)
+) -> (TreeUpdate, HashMap<NodeId, Rectangle>, HashMap<NodeId, Box<dyn Fn() -> Message + Send>>)
 where
+    Message: Send + 'static,
     Renderer: crate::core::Renderer,
 {
     let mut builder = TreeBuilder::new();
@@ -36,11 +37,13 @@ where
 }
 
 /// Helper struct for building the accessibility tree via Operation pattern.
-pub struct TreeBuilder {
+pub struct TreeBuilder<Message = ()> {
     nodes: HashMap<NodeId, Node>,
     children: Vec<NodeId>,
     /// Mapping of NodeId to bounds for action routing
     node_bounds: HashMap<NodeId, Rectangle>,
+    /// Mapping of NodeId to action callbacks (closures that produce messages)
+    action_callbacks: HashMap<NodeId, Box<dyn Fn() -> Message + Send>>,
     /// Path stack for generating stable IDs based on widget tree position
     path_stack: Vec<String>,
     /// Counter for each widget type at current level
@@ -49,12 +52,13 @@ pub struct TreeBuilder {
     inside_leaf_node: bool,
 }
 
-impl TreeBuilder {
+impl<Message> TreeBuilder<Message> {
     fn new() -> Self {
         Self {
             nodes: HashMap::new(),
             children: Vec::new(),
             node_bounds: HashMap::new(),
+            action_callbacks: HashMap::new(),
             path_stack: vec!["window".to_string()],
             type_counters: HashMap::new(),
             inside_leaf_node: false,
@@ -100,7 +104,7 @@ impl TreeBuilder {
         }
     }
 
-    fn build(mut self) -> (TreeUpdate, HashMap<NodeId, Rectangle>) {
+    fn build(mut self) -> (TreeUpdate, HashMap<NodeId, Rectangle>, HashMap<NodeId, Box<dyn Fn() -> Message + Send>>) {
         // Create root node and add all collected nodes as children
         let mut root = Node::new(Role::Window);
         root.set_label("Iced Application".to_string());
@@ -114,11 +118,19 @@ impl TreeBuilder {
             focus: NodeId(0),
         };
 
-        (tree_update, self.node_bounds)
+        (tree_update, self.node_bounds, self.action_callbacks)
     }
 }
 
-impl Operation for TreeBuilder {
+impl<Message> TreeBuilder<Message> {
+    /// Register an action callback for a node.
+    /// This allows widgets to specify what closure should be called when an accessibility action occurs.
+    pub fn register_action(&mut self, node_id: NodeId, callback: Box<dyn Fn() -> Message + Send>) {
+        let _ = self.action_callbacks.insert(node_id, callback);
+    }
+}
+
+impl<Message: Send + 'static> Operation for TreeBuilder<Message> {
     fn accessibility(
         &mut self,
         accessibility_node: Option<
@@ -152,6 +164,17 @@ impl Operation for TreeBuilder {
                     widget_type,
                     a11y_node.widget_id.as_ref(),
                 );
+
+                // Extract and store action callback if present
+                if let Some(action_closure) = a11y_node.on_action {
+                    // The closure produces Box<dyn Any + Send>, we need to downcast and create a new closure
+                    let callback = Box::new(move || {
+                        let any_box = action_closure();
+                        // Downcast the Any box to the concrete Message type
+                        *any_box.downcast::<Message>().expect("Message type mismatch")
+                    });
+                    let _ = self.action_callbacks.insert(node_id, callback);
+                }
 
                 // Convert iced AccessibilityNode to AccessKit Node
                 let mut node = Node::new(role);
