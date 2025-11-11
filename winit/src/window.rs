@@ -179,8 +179,10 @@ where
     pub accessibility: Option<accesskit_winit::Adapter>,
     pub accessibility_nodes:
         std::collections::HashMap<accesskit::NodeId, Rectangle>,
-    pub accessibility_actions:
-        std::collections::HashMap<accesskit::NodeId, Box<dyn Fn() -> P::Message + Send>>,
+    pub accessibility_actions: std::collections::HashMap<
+        accesskit::NodeId,
+        Box<dyn Fn() -> P::Message + Send>,
+    >,
 }
 
 impl<P, C> Window<P, C>

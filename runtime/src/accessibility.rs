@@ -26,7 +26,11 @@ pub enum Action {
 pub fn build_tree_from_ui<Message, Theme, Renderer>(
     ui: &mut UserInterface<'_, Message, Theme, Renderer>,
     renderer: &Renderer,
-) -> (TreeUpdate, HashMap<NodeId, Rectangle>, HashMap<NodeId, Box<dyn Fn() -> Message + Send>>)
+) -> (
+    TreeUpdate,
+    HashMap<NodeId, Rectangle>,
+    HashMap<NodeId, Box<dyn Fn() -> Message + Send>>,
+)
 where
     Message: Send + 'static,
     Renderer: crate::core::Renderer,
@@ -104,7 +108,13 @@ impl<Message> TreeBuilder<Message> {
         }
     }
 
-    fn build(mut self) -> (TreeUpdate, HashMap<NodeId, Rectangle>, HashMap<NodeId, Box<dyn Fn() -> Message + Send>>) {
+    fn build(
+        mut self,
+    ) -> (
+        TreeUpdate,
+        HashMap<NodeId, Rectangle>,
+        HashMap<NodeId, Box<dyn Fn() -> Message + Send>>,
+    ) {
         // Create root node and add all collected nodes as children
         let mut root = Node::new(Role::Window);
         root.set_label("Iced Application".to_string());
@@ -125,7 +135,11 @@ impl<Message> TreeBuilder<Message> {
 impl<Message> TreeBuilder<Message> {
     /// Register an action callback for a node.
     /// This allows widgets to specify what closure should be called when an accessibility action occurs.
-    pub fn register_action(&mut self, node_id: NodeId, callback: Box<dyn Fn() -> Message + Send>) {
+    pub fn register_action(
+        &mut self,
+        node_id: NodeId,
+        callback: Box<dyn Fn() -> Message + Send>,
+    ) {
         let _ = self.action_callbacks.insert(node_id, callback);
     }
 }
@@ -171,7 +185,9 @@ impl<Message: Send + 'static> Operation for TreeBuilder<Message> {
                     let callback = Box::new(move || {
                         let any_box = action_closure();
                         // Downcast the Any box to the concrete Message type
-                        *any_box.downcast::<Message>().expect("Message type mismatch")
+                        *any_box
+                            .downcast::<Message>()
+                            .expect("Message type mismatch")
                     });
                     let _ = self.action_callbacks.insert(node_id, callback);
                 }

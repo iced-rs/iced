@@ -244,4 +244,3 @@ impl AccessibilityNode {
         self
     }
 }
-

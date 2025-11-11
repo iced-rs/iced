@@ -590,7 +590,10 @@ where
     ) -> (
         accesskit::TreeUpdate,
         std::collections::HashMap<accesskit::NodeId, crate::core::Rectangle>,
-        std::collections::HashMap<accesskit::NodeId, Box<dyn Fn() -> Message + Send>>,
+        std::collections::HashMap<
+            accesskit::NodeId,
+            Box<dyn Fn() -> Message + Send>,
+        >,
     )
     where
         Message: Send + 'static,

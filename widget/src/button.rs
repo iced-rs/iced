@@ -99,7 +99,6 @@ impl<Message: Clone> OnPress<'_, Message> {
     }
 }
 
-
 impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
@@ -215,10 +214,7 @@ where
     ///
     /// This label will be used by screen readers and other assistive technologies.
     /// If not set, a default "Button" label will be used.
-    pub fn accessibility_label(
-        mut self,
-        label: impl Into<String>,
-    ) -> Self {
+    pub fn accessibility_label(mut self, label: impl Into<String>) -> Self {
         self.accessibility_label = Some(label.into());
         self
     }
@@ -566,9 +562,9 @@ fn extract_text_from_children<Message, Theme, Renderer>(
 where
     Renderer: crate::core::Renderer,
 {
-    use crate::core::widget::Operation;
     use crate::core::Rectangle;
     use crate::core::widget::Id;
+    use crate::core::widget::Operation;
 
     /// Operation to collect text from widgets
     struct TextCollector {
@@ -592,7 +588,9 @@ where
     }
 
     let mut collector = TextCollector::new();
-    element.as_widget_mut().operate(tree, layout, renderer, &mut collector);
+    element
+        .as_widget_mut()
+        .operate(tree, layout, renderer, &mut collector);
 
     if collector.text.is_empty() {
         None
