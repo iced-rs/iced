@@ -439,14 +439,14 @@
 //!                     }
 //!                  }
 //!             } else {
-//!                 Task::none()    
+//!                 Task::none()
 //!             }
 //!         }
 //!         Message::Conversation(message) => {
 //!             if let Screen::Conversation(conversation) = &mut state.screen {
 //!                 conversation.update(message).map(Message::Conversation)
 //!             } else {
-//!                 Task::none()    
+//!                 Task::none()
 //!             }
 //!         }
 //!     }
@@ -704,7 +704,7 @@ pub fn run<State, Message, Theme, Renderer>(
 ) -> Result
 where
     State: Default + 'static,
-    Message: Clone + Send + message::MaybeDebug + message::MaybeClone + 'static,
+    Message: Send + message::MaybeDebug + message::MaybeClone + 'static,
     Theme: theme::Base + 'static,
     Renderer: program::Renderer + 'static,
 {
