@@ -276,7 +276,7 @@ impl Snapshot {
             let mut bytes = vec![0; n];
             let info = reader.next_frame(&mut bytes)?;
 
-            Ok(self.screenshot.bytes == bytes[..info.buffer_size()])
+            Ok(self.screenshot.rgba == bytes[..info.buffer_size()])
         } else {
             if let Some(directory) = path.parent() {
                 fs::create_dir_all(directory)?;
@@ -292,7 +292,7 @@ impl Snapshot {
             encoder.set_color(png::ColorType::Rgba);
 
             let mut writer = encoder.write_header()?;
-            writer.write_image_data(&self.screenshot.bytes)?;
+            writer.write_image_data(&self.screenshot.rgba)?;
             writer.finish()?;
 
             Ok(true)
@@ -311,7 +311,7 @@ impl Snapshot {
 
         let hash = {
             let mut hasher = Sha256::new();
-            hasher.update(&self.screenshot.bytes);
+            hasher.update(&self.screenshot.rgba);
             format!("{:x}", hasher.finalize())
         };
 

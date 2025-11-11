@@ -1,8 +1,6 @@
 //! Load and draw raster graphics.
-pub use bytes::Bytes;
-
 use crate::border;
-use crate::{Radians, Rectangle, Size};
+use crate::{Bytes, Radians, Rectangle, Size};
 
 use rustc_hash::FxHasher;
 

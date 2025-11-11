@@ -410,6 +410,7 @@ fn load_image<'a>(
 
 #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
 mod worker {
+    use crate::core::Bytes;
     use crate::core::image;
     use crate::graphics::Shell;
     use crate::image::atlas::{self, Atlas};
@@ -505,7 +506,7 @@ mod worker {
         Load(image::Handle),
         Upload {
             handle: image::Handle,
-            rgba: image::Bytes,
+            rgba: Bytes,
             width: u32,
             height: u32,
         },
@@ -580,7 +581,7 @@ mod worker {
             handle: image::Handle,
             width: u32,
             height: u32,
-            rgba: image::Bytes,
+            rgba: Bytes,
             callback: fn(&Shell),
         ) {
             let mut encoder = self.device.create_command_encoder(

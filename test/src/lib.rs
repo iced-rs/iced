@@ -104,6 +104,10 @@ pub use instruction::Instruction;
 pub use selector::Selector;
 pub use simulator::{Simulator, simulator};
 
+use crate::core::Size;
+use crate::core::time::{Duration, Instant};
+use crate::core::window;
+
 use std::path::Path;
 
 /// Runs an [`Ice`] test suite for the given [`Program`](program::Program).
@@ -212,4 +216,51 @@ pub fn run(
     }
 
     Ok(())
+}
+
+/// Takes a screenshot of the given [`Program`](program::Program) with the given theme, viewport,
+/// and scale factor after running it for the given [`Duration`].
+pub fn screenshot<P: program::Program + 'static>(
+    program: P,
+    theme: &P::Theme,
+    viewport: impl Into<Size>,
+    scale_factor: f32,
+    duration: Duration,
+) -> window::Screenshot {
+    use crate::runtime::futures::futures::channel::mpsc;
+
+    let (sender, mut receiver) = mpsc::channel(100);
+
+    let mut emulator = Emulator::new(
+        sender,
+        &program,
+        emulator::Mode::Immediate,
+        viewport.into(),
+    );
+
+    let start = Instant::now();
+
+    loop {
+        if let Some(event) = receiver.try_next().ok().flatten() {
+            match event {
+                emulator::Event::Action(action) => {
+                    emulator.perform(&program, action);
+                }
+                emulator::Event::Failed(_) => {
+                    unreachable!(
+                        "no instructions should be executed during a screenshot"
+                    );
+                }
+                emulator::Event::Ready => {}
+            }
+        }
+
+        if start.elapsed() >= duration {
+            break;
+        }
+
+        std::thread::sleep(Duration::from_millis(1));
+    }
+
+    emulator.screenshot(&program, theme, scale_factor)
 }

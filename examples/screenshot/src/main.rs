@@ -59,7 +59,7 @@ impl Example {
                     image::Handle::from_rgba(
                         screenshot.size.width,
                         screenshot.size.height,
-                        screenshot.bytes,
+                        screenshot.rgba,
                     ),
                 ));
             }
@@ -105,7 +105,7 @@ impl Example {
                                 image::Handle::from_rgba(
                                     screenshot.size.width,
                                     screenshot.size.height,
-                                    screenshot.bytes,
+                                    screenshot.rgba,
                                 ),
                             ));
                             self.crop_error = None;
@@ -243,7 +243,7 @@ async fn save_to_png(screenshot: Screenshot) -> Result<String, PngError> {
     tokio::task::spawn_blocking(move || {
         img::save_buffer(
             &path,
-            &screenshot.bytes,
+            &screenshot.rgba,
             screenshot.size.width,
             screenshot.size.height,
             ColorType::Rgba8,

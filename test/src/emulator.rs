@@ -2,8 +2,10 @@
 use crate::core;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::time::Instant;
 use crate::core::widget;
-use crate::core::{Element, Point, Size};
+use crate::core::window;
+use crate::core::{Bytes, Element, Point, Size};
 use crate::instruction;
 use crate::program;
 use crate::program::Program;
@@ -15,7 +17,6 @@ use crate::runtime::futures::subscription;
 use crate::runtime::futures::{Executor, Runtime};
 use crate::runtime::task;
 use crate::runtime::user_interface;
-use crate::runtime::window;
 use crate::runtime::{Task, UserInterface};
 use crate::{Instruction, Selector};
 
@@ -209,50 +210,55 @@ impl<P: Program + 'static> Emulator<P> {
                     // TODO
                     dbg!(action);
                 }
-                runtime::Action::Window(action) => match action {
-                    window::Action::Open(id, _settings, sender) => {
-                        self.window = id;
+                runtime::Action::Window(action) => {
+                    use crate::runtime::window;
 
-                        let _ = sender.send(self.window);
-                    }
-                    window::Action::GetOldest(sender)
-                    | window::Action::GetLatest(sender) => {
-                        let _ = sender.send(Some(self.window));
-                    }
-                    window::Action::GetSize(id, sender) => {
-                        if id == self.window {
-                            let _ = sender.send(self.size);
+                    match action {
+                        window::Action::Open(id, _settings, sender) => {
+                            self.window = id;
+
+                            let _ = sender.send(self.window);
+                        }
+                        window::Action::GetOldest(sender)
+                        | window::Action::GetLatest(sender) => {
+                            let _ = sender.send(Some(self.window));
+                        }
+                        window::Action::GetSize(id, sender) => {
+                            if id == self.window {
+                                let _ = sender.send(self.size);
+                            }
+                        }
+                        window::Action::GetMaximized(id, sender) => {
+                            if id == self.window {
+                                let _ = sender.send(false);
+                            }
+                        }
+                        window::Action::GetMinimized(id, sender) => {
+                            if id == self.window {
+                                let _ = sender.send(None);
+                            }
+                        }
+                        window::Action::GetPosition(id, sender) => {
+                            if id == self.window {
+                                let _ = sender.send(Some(Point::ORIGIN));
+                            }
+                        }
+                        window::Action::GetScaleFactor(id, sender) => {
+                            if id == self.window {
+                                let _ = sender.send(1.0);
+                            }
+                        }
+                        window::Action::GetMode(id, sender) => {
+                            if id == self.window {
+                                let _ =
+                                    sender.send(core::window::Mode::Windowed);
+                            }
+                        }
+                        _ => {
+                            // Ignored
                         }
                     }
-                    window::Action::GetMaximized(id, sender) => {
-                        if id == self.window {
-                            let _ = sender.send(false);
-                        }
-                    }
-                    window::Action::GetMinimized(id, sender) => {
-                        if id == self.window {
-                            let _ = sender.send(None);
-                        }
-                    }
-                    window::Action::GetPosition(id, sender) => {
-                        if id == self.window {
-                            let _ = sender.send(Some(Point::ORIGIN));
-                        }
-                    }
-                    window::Action::GetScaleFactor(id, sender) => {
-                        if id == self.window {
-                            let _ = sender.send(1.0);
-                        }
-                    }
-                    window::Action::GetMode(id, sender) => {
-                        if id == self.window {
-                            let _ = sender.send(core::window::Mode::Windowed);
-                        }
-                    }
-                    _ => {
-                        // Ignored
-                    }
-                },
+                }
                 runtime::Action::System(action) => {
                     // TODO
                     dbg!(action);
@@ -433,6 +439,62 @@ impl<P: Program + 'static> Emulator<P> {
     /// Returns the current theme of the [`Emulator`].
     pub fn theme(&self, program: &P) -> Option<P::Theme> {
         program.theme(&self.state, self.window)
+    }
+
+    /// Takes a [`window::Screenshot`] of the current state of the [`Emulator`].
+    pub fn screenshot(
+        &mut self,
+        program: &P,
+        theme: &P::Theme,
+        scale_factor: f32,
+    ) -> window::Screenshot {
+        use core::renderer::Headless;
+
+        let style = program.style(&self.state, theme);
+
+        let mut user_interface = UserInterface::build(
+            program.view(&self.state, self.window),
+            self.size,
+            self.cache.take().unwrap(),
+            &mut self.renderer,
+        );
+
+        // TODO: Nested redraws!
+        let _ = user_interface.update(
+            &[core::Event::Window(window::Event::RedrawRequested(
+                Instant::now(),
+            ))],
+            mouse::Cursor::Unavailable,
+            &mut self.renderer,
+            &mut self.clipboard,
+            &mut Vec::new(),
+        );
+
+        user_interface.draw(
+            &mut self.renderer,
+            theme,
+            &renderer::Style {
+                text_color: style.text_color,
+            },
+            mouse::Cursor::Unavailable,
+        );
+
+        let physical_size = Size::new(
+            (self.size.width * scale_factor).round() as u32,
+            (self.size.height * scale_factor).round() as u32,
+        );
+
+        let rgba = self.renderer.screenshot(
+            physical_size,
+            scale_factor,
+            style.background_color,
+        );
+
+        window::Screenshot {
+            rgba: Bytes::from(rgba),
+            size: physical_size,
+            scale_factor,
+        }
     }
 
     /// Turns the [`Emulator`] into its internal state.

@@ -2,9 +2,9 @@
 #[cfg(feature = "image")]
 pub use ::image as image_rs;
 
-use crate::core::Rectangle;
 use crate::core::image;
 use crate::core::svg;
+use crate::core::{Bytes, Rectangle};
 
 /// A raster or vector image.
 #[allow(missing_docs)]
@@ -39,7 +39,7 @@ impl Image {
 
 /// An image buffer.
 #[cfg(feature = "image")]
-pub type Buffer = ::image::ImageBuffer<::image::Rgba<u8>, image::Bytes>;
+pub type Buffer = ::image::ImageBuffer<::image::Rgba<u8>, Bytes>;
 
 #[cfg(feature = "image")]
 /// Tries to load an image by its [`Handle`].
@@ -127,11 +127,7 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
 
             let rgba = operation.perform(image).into_rgba8();
 
-            (
-                rgba.width(),
-                rgba.height(),
-                image::Bytes::from(rgba.into_raw()),
-            )
+            (rgba.width(), rgba.height(), Bytes::from(rgba.into_raw()))
         }
         image::Handle::Bytes(_, bytes) => {
             let image = ::image::load_from_memory(bytes).map_err(to_error)?;
@@ -143,11 +139,7 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
 
             let rgba = operation.perform(image).into_rgba8();
 
-            (
-                rgba.width(),
-                rgba.height(),
-                image::Bytes::from(rgba.into_raw()),
-            )
+            (rgba.width(), rgba.height(), Bytes::from(rgba.into_raw()))
         }
         image::Handle::Rgba {
             width,

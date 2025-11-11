@@ -83,6 +83,7 @@ pub use transformation::Transformation;
 pub use vector::Vector;
 pub use widget::Widget;
 
+pub use bytes::Bytes;
 pub use smol_str::SmolStr;
 
 /// A function that can _never_ be called.
