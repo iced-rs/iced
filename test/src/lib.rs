@@ -221,7 +221,7 @@ pub fn run(
 /// Takes a screenshot of the given [`Program`](program::Program) with the given theme, viewport,
 /// and scale factor after running it for the given [`Duration`].
 pub fn screenshot<P: program::Program + 'static>(
-    program: P,
+    program: &P,
     theme: &P::Theme,
     viewport: impl Into<Size>,
     scale_factor: f32,
@@ -233,7 +233,7 @@ pub fn screenshot<P: program::Program + 'static>(
 
     let mut emulator = Emulator::new(
         sender,
-        &program,
+        program,
         emulator::Mode::Immediate,
         viewport.into(),
     );
@@ -244,7 +244,7 @@ pub fn screenshot<P: program::Program + 'static>(
         if let Some(event) = receiver.try_next().ok().flatten() {
             match event {
                 emulator::Event::Action(action) => {
-                    emulator.perform(&program, action);
+                    emulator.perform(program, action);
                 }
                 emulator::Event::Failed(_) => {
                     unreachable!(
@@ -262,5 +262,5 @@ pub fn screenshot<P: program::Program + 'static>(
         std::thread::sleep(Duration::from_millis(1));
     }
 
-    emulator.screenshot(&program, theme, scale_factor)
+    emulator.screenshot(program, theme, scale_factor)
 }
