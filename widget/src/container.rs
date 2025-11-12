@@ -458,7 +458,7 @@ pub fn draw_background<Renderer>(
 }
 
 /// The appearance of a container.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The text [`Color`] of the container.
     pub text_color: Option<Color>,
@@ -470,6 +470,18 @@ pub struct Style {
     pub shadow: Shadow,
     /// Whether the container should be snapped to the pixel grid.
     pub snap: bool,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            text_color: None,
+            background: None,
+            border: Border::default(),
+            shadow: Shadow::default(),
+            snap: cfg!(feature = "crisp"),
+        }
+    }
 }
 
 impl Style {
