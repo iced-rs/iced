@@ -1235,7 +1235,7 @@ impl<Message> Update<Message> {
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
                     if let Some(cursor_position) = cursor.position_in(bounds) {
                         let cursor_position = cursor_position
-                            - Vector::new(padding.top, padding.left);
+                            - Vector::new(padding.left, padding.top);
 
                         let click = mouse::Click::new(
                             cursor_position,
@@ -1256,7 +1256,7 @@ impl<Message> Update<Message> {
                 mouse::Event::CursorMoved { .. } => match state.drag_click {
                     Some(mouse::click::Kind::Single) => {
                         let cursor_position = cursor.position_in(bounds)?
-                            - Vector::new(padding.top, padding.left);
+                            - Vector::new(padding.left, padding.top);
 
                         Some(Update::Drag(cursor_position))
                     }
