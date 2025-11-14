@@ -158,7 +158,26 @@ pub fn present(
         .buffer_mut()
         .map_err(|_| compositor::SurfaceError::Lost)?;
 
-    let last_layers = {
+    let last_presented_layers = surface.layer_stack.front();
+
+    let frame_damage = last_presented_layers
+        .and_then(|last_presented_layers| {
+            (surface.background_color == background_color).then(|| {
+                damage::diff(
+                    last_presented_layers,
+                    renderer.layers(),
+                    |layer| vec![layer.bounds],
+                    Layer::damage,
+                )
+            })
+        })
+        .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
+
+    if frame_damage.is_empty() {
+        return Ok(());
+    }
+
+    let last_buffer_layers = {
         let age = buffer.age();
 
         surface.max_age = surface.max_age.max(age);
@@ -171,11 +190,11 @@ pub fn present(
         }
     };
 
-    let damage = last_layers
-        .and_then(|last_layers| {
+    let buffer_damage = last_buffer_layers
+        .and_then(|last_buffer_layers| {
             (surface.background_color == background_color).then(|| {
                 damage::diff(
-                    last_layers,
+                    last_buffer_layers,
                     renderer.layers(),
                     |layer| vec![layer.bounds],
                     Layer::damage,
@@ -184,15 +203,13 @@ pub fn present(
         })
         .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
 
-    if damage.is_empty() {
-        return Ok(());
-    }
-
     surface.layer_stack.push_front(renderer.layers().to_vec());
     surface.background_color = background_color;
 
-    let damage =
-        damage::group(damage, Rectangle::with_size(viewport.logical_size()));
+    let buffer_damage = damage::group(
+        buffer_damage,
+        Rectangle::with_size(viewport.logical_size()),
+    );
 
     let mut pixels = tiny_skia::PixmapMut::from_bytes(
         bytemuck::cast_slice_mut(&mut buffer),
@@ -205,12 +222,33 @@ pub fn present(
         &mut pixels,
         &mut surface.clip_mask,
         viewport,
-        &damage,
+        &buffer_damage,
         background_color,
     );
 
+    let frame_damage = damage::group(
+        frame_damage,
+        Rectangle::with_size(viewport.logical_size()),
+    )
+    .into_iter()
+    .map(|rect| rect * viewport.scale_factor() as f32)
+    .filter_map(|rect| {
+        let width = (rect.x - rect.x.floor() + rect.width).ceil() as u32;
+        let height = (rect.y - rect.y.floor() + rect.height).ceil() as u32;
+
+        Some(softbuffer::Rect {
+            x: rect.x.floor() as u32,
+            y: rect.y.floor() as u32,
+            width: width.try_into().ok()?,
+            height: height.try_into().ok()?,
+        })
+    })
+    .collect::<Vec<_>>();
+
     on_pre_present();
-    buffer.present().map_err(|_| compositor::SurfaceError::Lost)
+    buffer
+        .present_with_damage(&frame_damage)
+        .map_err(|_| compositor::SurfaceError::Lost)
 }
 
 pub fn screenshot(
