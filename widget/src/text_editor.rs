@@ -428,6 +428,16 @@ where
             .flatten()
     }
 
+    /// Returns the top most visible line index.
+    pub fn scroll_top(&self) -> usize {
+        self.0.borrow().editor.scroll_top()
+    }
+
+    /// Returns the last visible line index before scroll.
+    pub fn scroll_last_visible_line(&self) -> usize {
+        self.0.borrow().editor.scroll_last_visible_line()
+    }
+
     /// Returns the text of the [`Content`].
     pub fn text(&self) -> String {
         let mut contents = String::new();
