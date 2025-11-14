@@ -339,10 +339,15 @@ impl Engine {
                 paragraph,
                 position,
                 color,
-                clip_bounds: _, // TODO
+                clip_bounds: local_clip_bounds,
                 transformation: local_transformation,
             } => {
                 let transformation = transformation * *local_transformation;
+                let Some(clip_bounds) = clip_bounds
+                    .intersection(&(*local_clip_bounds * transformation))
+                else {
+                    return;
+                };
 
                 let physical_bounds =
                     Rectangle::new(*position, paragraph.min_bounds)
@@ -352,8 +357,13 @@ impl Engine {
                     return;
                 }
 
-                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then_some(clip_mask as &_);
+                let clip_mask = match physical_bounds.is_within(&clip_bounds) {
+                    true => None,
+                    false => {
+                        adjust_clip_mask(clip_mask, clip_bounds);
+                        Some(clip_mask as &_)
+                    }
+                };
 
                 self.text_pipeline.draw_paragraph(
                     paragraph,
@@ -368,10 +378,15 @@ impl Engine {
                 editor,
                 position,
                 color,
-                clip_bounds: _, // TODO
+                clip_bounds: local_clip_bounds,
                 transformation: local_transformation,
             } => {
                 let transformation = transformation * *local_transformation;
+                let Some(clip_bounds) = clip_bounds
+                    .intersection(&(*local_clip_bounds * transformation))
+                else {
+                    return;
+                };
 
                 let physical_bounds =
                     Rectangle::new(*position, editor.bounds) * transformation;
@@ -380,8 +395,13 @@ impl Engine {
                     return;
                 }
 
-                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then_some(clip_mask as &_);
+                let clip_mask = match physical_bounds.is_within(&clip_bounds) {
+                    true => None,
+                    false => {
+                        adjust_clip_mask(clip_mask, clip_bounds);
+                        Some(clip_mask as &_)
+                    }
+                };
 
                 self.text_pipeline.draw_editor(
                     editor,
@@ -402,16 +422,21 @@ impl Engine {
                 align_x,
                 align_y,
                 shaping,
-                clip_bounds: text_bounds, // TODO
+                clip_bounds: local_clip_bounds,
             } => {
-                let physical_bounds = *text_bounds * transformation;
+                let physical_bounds = *local_clip_bounds * transformation;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
                 }
 
-                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then_some(clip_mask as &_);
+                let clip_mask = match physical_bounds.is_within(&clip_bounds) {
+                    true => None,
+                    false => {
+                        adjust_clip_mask(clip_mask, clip_bounds);
+                        Some(clip_mask as &_)
+                    }
+                };
 
                 self.text_pipeline.draw_cached(
                     content,
