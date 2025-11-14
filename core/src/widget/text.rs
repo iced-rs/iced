@@ -99,6 +99,17 @@ where
         self
     }
 
+    /// Sets the [`Font`] of the [`Text`], if `Some`.
+    ///
+    /// [`Font`]: crate::text::Renderer::Font
+    pub fn font_maybe(
+        mut self,
+        font: Option<impl Into<Renderer::Font>>,
+    ) -> Self {
+        self.format.font = font.map(Into::into);
+        self
+    }
+
     /// Sets the width of the [`Text`] boundaries.
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.format.width = width.into();
