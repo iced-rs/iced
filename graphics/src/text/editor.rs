@@ -377,6 +377,8 @@ impl editor::Editor for Editor {
                         );
                     }
                     Edit::Paste(text) => {
+                        internal.topmost_line_changed =
+                            Some(editor.cursor().line);
                         editor.insert_string(&text, None);
                     }
                     Edit::Indent => {
@@ -416,8 +418,9 @@ impl editor::Editor for Editor {
                     .selection_bounds()
                     .map(|(start, _)| start)
                     .unwrap_or(cursor);
-
-                internal.topmost_line_changed = Some(selection_start.line);
+                _ = internal
+                    .topmost_line_changed
+                    .get_or_insert(selection_start.line);
             }
 
             // Mouse events
