@@ -59,7 +59,7 @@ impl Editor {
                     )),
                     Message::FileOpened,
                 ),
-                operation::focus_next(),
+                operation::focus(EDITOR),
             ]),
         )
     }
@@ -196,6 +196,7 @@ impl Editor {
         column![
             controls,
             text_editor(&self.content)
+                .id(EDITOR)
                 .height(Fill)
                 .on_action(Message::ActionPerformed)
                 .wrapping(if self.word_wrap {
@@ -331,3 +332,5 @@ fn icon<'a, Message>(codepoint: char) -> Element<'a, Message> {
         .shaping(text::Shaping::Basic)
         .into()
 }
+
+const EDITOR: &str = "editor";
