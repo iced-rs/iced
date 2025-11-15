@@ -1,8 +1,8 @@
 use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
-    self, button, center_x, column, container, operation::focus, pick_list,
-    row, space, text, text_editor, toggler, tooltip,
+    button, center_x, column, container, operation, pick_list, row, space,
+    text, text_editor, toggler, tooltip,
 };
 use iced::{Center, Element, Fill, Font, Task, Theme};
 
@@ -20,7 +20,6 @@ pub fn main() -> iced::Result {
 }
 
 struct Editor {
-    editor_id: widget::Id,
     file: Option<PathBuf>,
     content: text_editor::Content,
     theme: highlighter::Theme,
@@ -43,10 +42,8 @@ enum Message {
 
 impl Editor {
     fn new() -> (Self, Task<Message>) {
-        let id = widget::Id::unique();
         (
             Self {
-                editor_id: id.clone(),
                 file: None,
                 content: text_editor::Content::new(),
                 theme: highlighter::Theme::SolarizedDark,
@@ -62,7 +59,7 @@ impl Editor {
                     )),
                     Message::FileOpened,
                 ),
-                focus(id),
+                operation::focus(EDITOR),
             ]),
         )
     }
@@ -199,7 +196,7 @@ impl Editor {
         column![
             controls,
             text_editor(&self.content)
-                .id(self.editor_id.clone())
+                .id(EDITOR)
                 .height(Fill)
                 .on_action(Message::ActionPerformed)
                 .wrapping(if self.word_wrap {
@@ -335,3 +332,5 @@ fn icon<'a, Message>(codepoint: char) -> Element<'a, Message> {
         .shaping(text::Shaping::Basic)
         .into()
 }
+
+const EDITOR: &str = "editor";
