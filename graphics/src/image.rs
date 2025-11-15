@@ -1,10 +1,10 @@
 //! Load and operate on images.
 #[cfg(feature = "image")]
-pub use ::image as image_rs;
+use crate::core::Bytes;
 
+use crate::core::Rectangle;
 use crate::core::image;
 use crate::core::svg;
-use crate::core::{Bytes, Rectangle};
 
 /// A raster or vector image.
 #[allow(missing_docs)]
