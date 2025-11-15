@@ -12,11 +12,14 @@ use crate::keyboard::{Key, Location, Modifiers};
 pub enum Event {
     /// A keyboard key was pressed.
     KeyPressed {
-        /// The key pressed.
+        /// The key pressed. Tries to meet expectations, currently equal to `modified_key`.
         key: Key,
 
         /// The key pressed with all keyboard modifiers applied, except Ctrl.
         modified_key: Key,
+
+        /// The key on keyboard layer 0 pressed.
+        baselayer_key: Key,
 
         /// The physical key pressed.
         physical_key: key::Physical,
@@ -33,11 +36,14 @@ pub enum Event {
 
     /// A keyboard key was released.
     KeyReleased {
-        /// The key released.
+        /// The key released. Tries to meet expectations, currently equal to `modified_key`.
         key: Key,
 
         /// The key released with all keyboard modifiers applied, except Ctrl.
         modified_key: Key,
+
+        /// The key on keyboard layer 0 released.
+        baselayer_key: Key,
 
         /// The physical key released.
         physical_key: key::Physical,
