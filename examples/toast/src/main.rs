@@ -222,7 +222,7 @@ mod toast {
 
     impl<'a, Message> Manager<'a, Message>
     where
-        Message: 'a + Clone,
+        Message: 'a + Clone + Send + 'static,
     {
         pub fn new(
             content: impl Into<Element<'a, Message>>,

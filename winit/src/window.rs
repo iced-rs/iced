@@ -55,6 +55,7 @@ where
         compositor: &mut C,
         exit_on_close_request: bool,
         system_theme: theme::Mode,
+        accessibility_adapter: Option<accesskit_winit::Adapter>,
     ) -> &mut Window<P, C> {
         let state = State::new(program, id, &window, system_theme);
         let surface_size = state.physical_size();
@@ -81,6 +82,9 @@ where
                 redraw_at: None,
                 preedit: None,
                 ime_state: None,
+                accessibility: accessibility_adapter,
+                accessibility_nodes: std::collections::HashMap::new(),
+                accessibility_actions: std::collections::HashMap::new(),
             },
         );
 
@@ -172,6 +176,13 @@ where
     pub redraw_at: Option<Instant>,
     preedit: Option<Preedit<P::Renderer>>,
     ime_state: Option<(Point, input_method::Purpose)>,
+    pub accessibility: Option<accesskit_winit::Adapter>,
+    pub accessibility_nodes:
+        std::collections::HashMap<accesskit::NodeId, Rectangle>,
+    pub accessibility_actions: std::collections::HashMap<
+        accesskit::NodeId,
+        Box<dyn Fn() -> P::Message + Send>,
+    >,
 }
 
 impl<P, C> Window<P, C>

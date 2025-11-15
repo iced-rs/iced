@@ -179,6 +179,17 @@ where
         self.class = class.into();
         self
     }
+
+    fn accessibility_noce(
+        &self,
+        layout: Layout<'_>,
+    ) -> crate::accessibility::AccessibilityNode {
+        use crate::accessibility::{AccessibilityNode, Role};
+
+        AccessibilityNode::new(layout.bounds())
+            .role(Role::Label)
+            .label(self.fragment.as_ref())
+    }
 }
 
 /// The internal state of a [`Text`] widget.
@@ -243,6 +254,14 @@ where
         );
     }
 
+    fn accessibility(
+        &self,
+        _state: &Tree,
+        layout: Layout<'_>,
+    ) -> Option<crate::accessibility::AccessibilityNode> {
+        Some(self.accessibility_noce(layout))
+    }
+
     fn operate(
         &mut self,
         _state: &mut Tree,
@@ -250,6 +269,7 @@ where
         _renderer: &Renderer,
         operation: &mut dyn super::Operation,
     ) {
+        operation.accessibility(Some(self.accessibility_noce(layout)));
         operation.text(None, layout.bounds(), &self.fragment);
     }
 }

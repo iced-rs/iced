@@ -20,6 +20,7 @@ basic-shaping = []
 advanced-shaping = []
 
 [dependencies]
+accesskit.workspace = true
 bitflags.workspace = true
 bytes.workspace = true
 glam.workspace = true

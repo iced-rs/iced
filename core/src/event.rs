@@ -5,6 +5,8 @@ use crate::mouse;
 use crate::touch;
 use crate::window;
 
+use accesskit::ActionRequest;
+
 /// A user interface event.
 ///
 /// _**Note:** This type is largely incomplete! If you need to track
@@ -27,6 +29,9 @@ pub enum Event {
 
     /// An input method event
     InputMethod(input_method::Event),
+
+    /// An accessibility event
+    AccessKit(ActionRequest),
 }
 
 /// The status of an [`Event`] after being processed.

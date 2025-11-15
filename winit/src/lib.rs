@@ -29,6 +29,7 @@ pub use winit;
 pub mod clipboard;
 pub mod conversion;
 
+mod accessibility;
 mod error;
 mod proxy;
 mod window;
@@ -147,6 +148,7 @@ where
         receiver: mpsc::UnboundedReceiver<Control>,
         error: Option<Error>,
         system_theme: Option<oneshot::Sender<theme::Mode>>,
+        proxy: Proxy<Message>,
 
         #[cfg(target_arch = "wasm32")]
         canvas: Option<web_sys::HtmlCanvasElement>,
@@ -160,6 +162,7 @@ where
         receiver: control_receiver,
         error: None,
         system_theme: Some(system_theme_sender),
+        proxy: proxy.clone(),
 
         #[cfg(target_arch = "wasm32")]
         canvas: None,
@@ -171,6 +174,7 @@ where
         for Runner<Message, F>
     where
         F: Future<Output = ()>,
+        Message: Send,
     {
         fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
             if let Some(sender) = self.system_theme.take() {
@@ -276,6 +280,7 @@ where
     impl<Message, F> Runner<Message, F>
     where
         F: Future<Output = ()>,
+        Message: Send,
     {
         fn process_event(
             &mut self,
@@ -415,6 +420,41 @@ where
                                     };
                                 }
 
+                                // Create accessibility adapter
+                                let accessibility_adapter = {
+                                    use crate::accessibility::{
+                                        IcedActionHandler,
+                                        IcedActivationHandler,
+                                        IcedDeactivationHandler,
+                                    };
+                                    use std::sync::{Arc, Mutex};
+
+                                    // Create shared state for the initial tree
+                                    let tree_state = Arc::new(Mutex::new(None));
+
+                                    // Create handlers
+                                    let activation_handler =
+                                        IcedActivationHandler::new(Arc::clone(
+                                            &tree_state,
+                                        ));
+                                    let action_handler = IcedActionHandler::new(
+                                        self.proxy.clone(),
+                                    );
+                                    let deactivation_handler =
+                                        IcedDeactivationHandler::new(
+                                            self.proxy.clone(),
+                                        );
+
+                                    // Create the adapter with direct handlers
+                                    Some(accesskit_winit::Adapter::with_direct_handlers(
+                                        event_loop,
+                                        &window,
+                                        activation_handler,
+                                        action_handler,
+                                        deactivation_handler,
+                                    ))
+                                };
+
                                 self.process_event(
                                     event_loop,
                                     Event::WindowCreated {
@@ -423,6 +463,7 @@ where
                                         exit_on_close_request,
                                         make_visible: visible,
                                         on_open,
+                                        accessibility_adapter,
                                     },
                                 );
                             }
@@ -466,7 +507,6 @@ where
     }
 }
 
-#[derive(Debug)]
 enum Event<Message: 'static> {
     WindowCreated {
         id: window::Id,
@@ -474,9 +514,24 @@ enum Event<Message: 'static> {
         exit_on_close_request: bool,
         make_visible: bool,
         on_open: oneshot::Sender<window::Id>,
+        accessibility_adapter: Option<accesskit_winit::Adapter>,
     },
     EventLoopAwakened(winit::event::Event<Message>),
     Exit,
+}
+
+impl<Message> std::fmt::Debug for Event<Message> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Event::WindowCreated { id, .. } => {
+                write!(f, "Event::WindowCreated {{ id: {:?}, ... }}", id)
+            }
+            Event::EventLoopAwakened(_) => {
+                write!(f, "Event::EventLoopAwakened")
+            }
+            Event::Exit => write!(f, "Event::Exit"),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -577,6 +632,7 @@ async fn run_instance<P>(
                 exit_on_close_request,
                 make_visible,
                 on_open,
+                accessibility_adapter,
             } => {
                 if compositor.is_none() {
                     let (compositor_sender, compositor_receiver) =
@@ -661,6 +717,7 @@ async fn run_instance<P>(
                         .expect("Compositor must be initialized"),
                     exit_on_close_request,
                     system_theme,
+                    accessibility_adapter,
                 );
 
                 window.raw.set_theme(conversion::window_theme(
@@ -966,6 +1023,59 @@ async fn run_instance<P>(
                         );
                         draw_span.finish();
 
+                        // Update accessibility tree
+                        if let Some(adapter) = &mut window.accessibility {
+                            let (tree_update, node_bounds, action_callbacks) =
+                                interface.accessibility(&window.renderer);
+
+                            // Store node bounds for action routing
+                            window.accessibility_nodes = node_bounds;
+
+                            // Store action callbacks for message publishing
+                            window.accessibility_actions = action_callbacks;
+
+                            // Write tree to file for debugging (only first time)
+                            static ONCE: std::sync::Once =
+                                std::sync::Once::new();
+                            ONCE.call_once(|| {
+                                use std::io::Write;
+                                if let Ok(mut file) = std::fs::File::create("/tmp/iced_accessibility_tree.txt") {
+                                    let _ = writeln!(file, "Accessibility Tree Snapshot:");
+                                    let _ = writeln!(file, "Total nodes: {}", tree_update.nodes.len());
+                                    let _ = writeln!(file, "\nTree structure:");
+                                    if let Some(tree) = &tree_update.tree {
+                                        let _ = writeln!(file, "  Root: {:?}", tree.root);
+                                    }
+                                    let _ = writeln!(file, "\nNodes:");
+                                    for (node_id, node) in &tree_update.nodes {
+                                        let _ = writeln!(file, "  Node {:?}:", node_id);
+                                        let _ = writeln!(file, "    Role: {:?}", node.role());
+                                        let _ = writeln!(file, "    Children: {} ({:?})", node.children().len(), node.children());
+                                        if let Some(label) = node.label() {
+                                            let _ = writeln!(file, "    Label: {}", label);
+                                        }
+                                        if let Some(bounds) = node.bounds() {
+                                            let _ = writeln!(file, "    Bounds: {:?}", bounds);
+                                        }
+                                        // Check for common actions
+                                        let mut actions = Vec::new();
+                                        if node.supports_action(accesskit::Action::Click) {
+                                            actions.push("Click");
+                                        }
+                                        if node.supports_action(accesskit::Action::Focus) {
+                                            actions.push("Focus");
+                                        }
+                                        if !actions.is_empty() {
+                                            let _ = writeln!(file, "    Actions: {:?}", actions);
+                                        }
+                                    }
+                                    eprintln!("Accessibility tree written to /tmp/iced_accessibility_tree.txt");
+                                }
+                            });
+
+                            adapter.update_if_active(|| tree_update);
+                        }
+
                         if let user_interface::State::Updated {
                             redraw_request,
                             input_method,
@@ -1044,6 +1154,11 @@ async fn run_instance<P>(
                         else {
                             continue;
                         };
+
+                        // Process accessibility events
+                        if let Some(adapter) = &mut window.accessibility {
+                            adapter.process_event(&window.raw, &window_event);
+                        }
 
                         match window_event {
                             winit::event::WindowEvent::Resized(_) => {
@@ -1780,6 +1895,41 @@ fn run_action<'a, P, C>(
             control_sender
                 .start_send(Control::Exit)
                 .expect("Send control action");
+        }
+        Action::Accessibility(action) => {
+            match action {
+                runtime::accessibility::Action::ActionRequested(request) => {
+                    log::debug!(
+                        "Accessibility action requested: {:?}",
+                        request
+                    );
+
+                    // Only handle Click actions, not Focus or other actions
+                    if request.action == accesskit::Action::Click {
+                        // Find the window that has this node and publish the message
+                        for (window_id, window) in window_manager.iter_mut() {
+                            if let Some(callback) = window
+                                .accessibility_actions
+                                .get(&request.target)
+                            {
+                                log::debug!(
+                                    "Publishing message for Click action on node {:?} in window {:?}",
+                                    request.target,
+                                    window_id
+                                );
+
+                                // Call the closure to produce the message - pure Elm architecture!
+                                messages.push(callback());
+
+                                break;
+                            }
+                        }
+                    }
+                }
+                runtime::accessibility::Action::Deactivated => {
+                    log::debug!("Accessibility deactivated");
+                }
+            }
         }
     }
 }

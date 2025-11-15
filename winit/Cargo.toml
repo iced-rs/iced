@@ -25,6 +25,8 @@ unconditional-rendering = []
 linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme"]
 
 [dependencies]
+accesskit.workspace = true
+accesskit_winit.workspace = true
 iced_debug.workspace = true
 iced_program.workspace = true
 
