@@ -177,9 +177,17 @@ impl<P: Program + 'static> Tester<P> {
         let (state, _) = program.boot();
         let window = program.window().unwrap_or_default();
 
+        let size = match window.size {
+            window::Size::Fixed(size) => size,
+            // Since there is no monitor, we fall back to a default size
+            window::Size::FromScreensize(_) => {
+                window::Size::default_window_size()
+            }
+        };
+
         Self {
             mode: emulator::Mode::default(),
-            viewport: window.size,
+            viewport: size,
             presets: combo_box::State::new(
                 program
                     .presets()

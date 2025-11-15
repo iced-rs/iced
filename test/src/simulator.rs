@@ -53,7 +53,7 @@ where
         settings: Settings,
         element: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
-        Self::with_size(settings, window::Settings::default().size, element)
+        Self::with_size(settings, window::Size::default_window_size(), element)
     }
 
     /// Creates a new [`Simulator`] with the given [`Settings`] and size.
