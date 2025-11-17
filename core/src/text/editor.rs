@@ -34,6 +34,12 @@ pub trait Editor: Sized + Default {
     /// Returns the amount of lines in the [`Editor`].
     fn line_count(&self) -> usize;
 
+    /// Returns the top most visible line index.
+    fn scroll_top(&self) -> usize;
+
+    /// Returns the last visible line index before scroll.
+    fn scroll_last_visible_line(&self) -> usize;
+
     /// Performs an [`Action`] on the [`Editor`].
     fn perform(&mut self, action: Action);
 
