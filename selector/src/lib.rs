@@ -146,3 +146,28 @@ where
 pub fn id(id: impl Into<widget::Id>) -> impl Selector<Output = Target> {
     id.into()
 }
+
+/// Returns a [`Selector`] that matches widgets that are currently focused.
+pub fn is_focused() -> impl Selector<Output = Target> {
+    struct IsFocused;
+
+    impl Selector for IsFocused {
+        type Output = Target;
+
+        fn select(&mut self, candidate: Candidate<'_>) -> Option<Self::Output> {
+            if let Candidate::Focusable { state, .. } = candidate
+                && state.is_focused()
+            {
+                Some(Target::from(candidate))
+            } else {
+                None
+            }
+        }
+
+        fn description(&self) -> String {
+            "is focused".to_owned()
+        }
+    }
+
+    IsFocused
+}
