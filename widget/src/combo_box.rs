@@ -384,6 +384,25 @@ where
         &self.options
     }
 
+    /// Pushes a new option to the [`State`].
+    pub fn push(&mut self, new_option: T) {
+        let mut inner = self.inner.borrow_mut();
+
+        inner.option_matchers.push(build_matcher(&new_option));
+        self.options.push(new_option);
+
+        inner.filtered_options = Filtered::new(
+            search(&self.options, &inner.option_matchers, &inner.value)
+                .cloned()
+                .collect(),
+        );
+    }
+
+    /// Returns ownership of the options of the [`State`].
+    pub fn into_options(self) -> Vec<T> {
+        self.options
+    }
+
     fn value(&self) -> String {
         let inner = self.inner.borrow();
 
@@ -959,12 +978,14 @@ fn build_matchers<'a, T>(
 where
     T: Display + 'a,
 {
-    options
-        .into_iter()
-        .map(|opt| {
-            let mut matcher = opt.to_string();
-            matcher.retain(|c| c.is_ascii_alphanumeric());
-            matcher.to_lowercase()
-        })
-        .collect()
+    options.into_iter().map(build_matcher).collect()
+}
+
+fn build_matcher<T>(option: T) -> String
+where
+    T: Display,
+{
+    let mut matcher = option.to_string();
+    matcher.retain(|c| c.is_ascii_alphanumeric());
+    matcher.to_lowercase()
 }
