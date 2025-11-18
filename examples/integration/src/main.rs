@@ -286,11 +286,17 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 ..
                             } = state
                             {
-                                window.set_cursor(
-                                    conversion::mouse_interaction(
+                                // Update the mouse cursor
+                                if let Some(icon) =
+                                    iced_winit::conversion::mouse_interaction(
                                         mouse_interaction,
-                                    ),
-                                );
+                                    )
+                                {
+                                    window.set_cursor(icon);
+                                    window.set_cursor_visible(true);
+                                } else {
+                                    window.set_cursor_visible(false);
+                                }
                             }
 
                             // Draw the interface
