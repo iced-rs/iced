@@ -654,7 +654,7 @@ where
                     limits
                         .height(min_bounds.height)
                         .max()
-                        .expand(Size::new(0.0, self.padding.vertical())),
+                        .expand(Size::new(0.0, self.padding.y())),
                 )
             }
         }
