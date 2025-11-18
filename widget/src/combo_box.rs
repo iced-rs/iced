@@ -384,39 +384,23 @@ where
         &self.options
     }
 
-    /// Adds a `new_option` to the [`State`].
-    ///
-    /// A search is performed immediately after the `new_option` is added so the option will be displayed
-    /// (or not) depending on if it matches the existing search
-    pub fn add_option(&mut self, new_option: T) {
-        // add option to option matchers
-        self.inner
-            .borrow_mut()
-            .option_matchers
-            .push(build_matcher(&new_option));
+    /// Pushes a new option to the [`State`].
+    pub fn push(&mut self, new_option: T) {
+        let mut inner = self.inner.borrow_mut();
 
-        // add the option to options
+        inner.option_matchers.push(build_matcher(&new_option));
         self.options.push(new_option);
 
-        // perform a search to update the options displayed
-        let search_results = search(
-            &self.options,
-            &self.inner.borrow().option_matchers,
-            &self.inner.borrow().value,
-        )
-        .cloned()
-        .collect();
-
-        self.inner.borrow_mut().filtered_options.options = search_results;
-        self.inner.borrow_mut().filtered_options.updated = Instant::now();
+        inner.filtered_options = Filtered::new(
+            search(&self.options, &inner.option_matchers, &inner.value)
+                .cloned()
+                .collect(),
+        );
     }
 
-    /// clears all options from the  combobox returning the options that were in it.
-    pub fn extract_options(&mut self) -> Vec<T> {
-        let options = std::mem::replace(&mut self.options, vec![]);
-        *self = Self::new(vec![]);
-
-        options
+    /// Returns ownership of the options of the [`State`].
+    pub fn into_options(self) -> Vec<T> {
+        self.options
     }
 
     fn value(&self) -> String {
@@ -994,10 +978,9 @@ fn build_matchers<'a, T>(
 where
     T: Display + 'a,
 {
-    options.into_iter().map(|opt| build_matcher(opt)).collect()
+    options.into_iter().map(build_matcher).collect()
 }
 
-/// build an individual matcher, a matcher is the string representation of `T` with all non-alphanumeric characters filtered out and all alphanumeric characters mapped to lowercase
 fn build_matcher<T>(option: T) -> String
 where
     T: Display,
