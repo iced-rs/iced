@@ -165,7 +165,7 @@ pub fn is_focused() -> impl Selector<Output = Target> {
         }
 
         fn description(&self) -> String {
-            "is focused".to_string()
+            "is focused".to_owned()
         }
     }
 
