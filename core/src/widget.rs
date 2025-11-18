@@ -128,7 +128,7 @@ where
 
     /// Returns the current [`mouse::Interaction`] of the [`Widget`].
     ///
-    /// By default, it returns [`mouse::Interaction::Idle`].
+    /// By default, it returns [`mouse::Interaction::None`].
     fn mouse_interaction(
         &self,
         _state: &Tree,
