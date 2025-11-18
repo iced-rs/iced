@@ -327,7 +327,7 @@
 //! Tasks can also be used to interact with the iced runtime. Some modules
 //! expose functions that create tasks for different purposes—like [changing
 //! window settings](window#functions), [focusing a widget](widget::operation::focus_next), or
-//! [querying its visible bounds](widget::selector::find_by_id).
+//! [querying its visible bounds](widget::selector::find).
 //!
 //! Like futures and streams, tasks expose [a monadic interface](Task::then)—but they can also be
 //! [mapped](Task::map), [chained](Task::chain), [batched](Task::batch), [canceled](Task::abortable),
