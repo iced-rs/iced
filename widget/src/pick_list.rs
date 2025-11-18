@@ -665,7 +665,7 @@ where
                     line_height: self.text_line_height,
                     font,
                     bounds: Size::new(
-                        bounds.width - self.padding.horizontal(),
+                        bounds.width - self.padding.x(),
                         f32::from(self.text_line_height.to_absolute(text_size)),
                     ),
                     align_x: text::Alignment::Default,

@@ -383,7 +383,7 @@ where
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                (f32::from(text_line_height) + self.padding.vertical())
+                (f32::from(text_line_height) + self.padding.y())
                     * self.options.len() as f32,
             );
 
@@ -424,7 +424,7 @@ where
 
                     let option_height =
                         f32::from(self.text_line_height.to_absolute(text_size))
-                            + self.padding.vertical();
+                            + self.padding.y();
 
                     let new_hovered_option =
                         (cursor_position.y / option_height) as usize;
@@ -454,7 +454,7 @@ where
 
                     let option_height =
                         f32::from(self.text_line_height.to_absolute(text_size))
-                            + self.padding.vertical();
+                            + self.padding.y();
 
                     *self.hovered_option =
                         Some((cursor_position.y / option_height) as usize);
@@ -515,7 +515,7 @@ where
             self.text_size.unwrap_or_else(|| renderer.default_size());
         let option_height =
             f32::from(self.text_line_height.to_absolute(text_size))
-                + self.padding.vertical();
+                + self.padding.y();
 
         let offset = viewport.y - bounds.y;
         let start = (offset / option_height) as usize;

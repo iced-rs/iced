@@ -272,8 +272,8 @@ impl Rectangle<f32> {
         Self {
             x: self.x - padding.left,
             y: self.y - padding.top,
-            width: self.width + padding.horizontal(),
-            height: self.height + padding.vertical(),
+            width: self.width + padding.x(),
+            height: self.height + padding.y(),
         }
     }
 
@@ -284,8 +284,8 @@ impl Rectangle<f32> {
         Self {
             x: self.x + padding.left,
             y: self.y + padding.top,
-            width: self.width - padding.horizontal(),
-            height: self.height - padding.vertical(),
+            width: self.width - padding.x(),
+            height: self.height - padding.y(),
         }
     }
 

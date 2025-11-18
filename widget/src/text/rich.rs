@@ -287,10 +287,7 @@ where
                                     span.padding.top,
                                 ),
                             bounds.size()
-                                + Size::new(
-                                    span.padding.horizontal(),
-                                    span.padding.vertical(),
-                                ),
+                                + Size::new(span.padding.x(), span.padding.y()),
                         );
 
                         renderer.fill_quad(
