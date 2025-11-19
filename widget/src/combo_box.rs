@@ -152,6 +152,7 @@ pub struct ComboBox<
     menu_class: <Theme as menu::Catalog>::Class<'a>,
     padding: Padding,
     size: Option<f32>,
+    menu_height: Length,
 }
 
 impl<'a, T, Message, Theme, Renderer> ComboBox<'a, T, Message, Theme, Renderer>
@@ -188,6 +189,7 @@ where
             menu_class: <Theme as Catalog>::default_menu(),
             padding: text_input::DEFAULT_PADDING,
             size: None,
+            menu_height: Length::Shrink,
         }
     }
 
@@ -271,6 +273,12 @@ where
             text_input: self.text_input.width(width),
             ..self
         }
+    }
+
+    /// Sets the height of the menu of the [`ComboBox`].
+    pub fn menu_height(mut self, menu_height: impl Into<Length>) -> Self {
+        self.menu_height = menu_height.into();
+        self
     }
 
     /// Sets the style of the input of the [`ComboBox`].
@@ -908,6 +916,7 @@ where
                     layout.position() + translation,
                     *viewport,
                     bounds.height,
+                    self.menu_height,
                 ))
             }
         } else {
