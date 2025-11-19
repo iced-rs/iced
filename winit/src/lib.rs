@@ -1614,8 +1614,8 @@ fn run_action<'a, P, C>(
                 }
             }
             window::Action::Run(id, f) => {
-                if let Some(handle) = window_manager.get_mut(id) {
-                    f(handle);
+                if let Some(window) = window_manager.get_mut(id) {
+                    f(window);
                 }
             }
             window::Action::Screenshot(id, channel) => {
