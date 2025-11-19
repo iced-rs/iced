@@ -9,6 +9,7 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+pub mod accessibility;
 pub mod clipboard;
 pub mod font;
 pub mod image;
@@ -58,6 +59,9 @@ pub enum Action<T> {
     /// An image action.
     Image(image::Action),
 
+    /// An accessibility action.
+    Accessibility(accessibility::Action),
+
     /// Recreate all user interfaces and redraw all windows.
     Reload,
 
@@ -85,6 +89,7 @@ impl<T> Action<T> {
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
             Action::Image(action) => Err(Action::Image(action)),
+            Action::Accessibility(action) => Err(Action::Accessibility(action)),
             Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
         }
@@ -110,6 +115,9 @@ where
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
             Action::Image(_) => write!(f, "Action::Image"),
+            Action::Accessibility(action) => {
+                write!(f, "Action::Accessibility({action:?})")
+            }
             Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),
         }

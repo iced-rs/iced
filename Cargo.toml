@@ -231,6 +231,14 @@ wgpu = "27.0"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed" }
 
+# Accessibility
+accesskit = "0.21.1"
+accesskit_winit = "0.29.2"
+
+[patch.crates-io]
+# Redirect accesskit_winit's winit dependency to iced's fork
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed" }
+
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
 missing_docs = "deny"

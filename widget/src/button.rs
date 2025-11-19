@@ -81,6 +81,8 @@ where
     clip: bool,
     class: Theme::Class<'a>,
     status: Option<Status>,
+    id: Option<crate::core::widget::Id>,
+    accessibility_label: Option<String>,
 }
 
 enum OnPress<'a, Message> {
@@ -118,6 +120,8 @@ where
             clip: false,
             class: Theme::default(),
             status: None,
+            id: None,
+            accessibility_label: None,
         }
     }
 
@@ -196,6 +200,24 @@ where
         self.class = class.into();
         self
     }
+
+    /// Sets the ID of the [`Button`].
+    ///
+    /// This is useful for providing stable accessibility tree node IDs,
+    /// especially in dynamic UIs where widgets may be reordered or inserted.
+    pub fn id(mut self, id: impl Into<crate::core::widget::Id>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+
+    /// Sets the accessibility label for the [`Button`].
+    ///
+    /// This label will be used by screen readers and other assistive technologies.
+    /// If not set, a default "Button" label will be used.
+    pub fn accessibility_label(mut self, label: impl Into<String>) -> Self {
+        self.accessibility_label = Some(label.into());
+        self
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -206,7 +228,7 @@ struct State {
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Button<'a, Message, Theme, Renderer>
 where
-    Message: 'a + Clone,
+    Message: 'a + Clone + Send + 'static,
     Renderer: 'a + crate::core::Renderer,
     Theme: Catalog,
 {
@@ -261,7 +283,30 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds());
+        // Collect text from children if no explicit accessibility label is set
+        let collected_text = if self.accessibility_label.is_none() {
+            extract_text_from_children(
+                &mut self.content,
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+            )
+        } else {
+            None
+        };
+
+        // Provide accessibility information for this button
+        let accessibility_node = Self::build_accessibility_node(
+            &self.accessibility_label,
+            self.on_press.is_some(),
+            &self.id,
+            layout.bounds(),
+            collected_text,
+            &self.on_press,
+        );
+        operation.accessibility(accessibility_node);
+
+        // Continue traversal to children
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
                 &mut tree.children[0],
@@ -444,12 +489,121 @@ where
             translation,
         )
     }
+
+    fn accessibility(
+        &self,
+        _state: &Tree,
+        layout: Layout<'_>,
+    ) -> Option<crate::core::accessibility::AccessibilityNode> {
+        // This is called from Widget trait, but we don't have collected text here
+        // Use the helper with no collected text
+        Self::build_accessibility_node(
+            &self.accessibility_label,
+            self.on_press.is_some(),
+            &self.id,
+            layout.bounds(),
+            None,
+            &self.on_press,
+        )
+    }
+}
+
+impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
+where
+    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+{
+    /// Helper to build accessibility node with optional collected text
+    fn build_accessibility_node(
+        accessibility_label: &Option<String>,
+        enabled: bool,
+        id: &Option<crate::core::widget::Id>,
+        bounds: crate::core::Rectangle,
+        collected_text: Option<String>,
+        on_press: &Option<OnPress<'_, Message>>,
+    ) -> Option<crate::core::accessibility::AccessibilityNode>
+    where
+        Message: Clone + Send + 'static,
+    {
+        use crate::core::accessibility::{AccessibilityNode, Role};
+
+        // Priority: explicit label > collected text > default "Button"
+        let label = accessibility_label
+            .clone()
+            .or(collected_text)
+            .unwrap_or_else(|| "Button".to_string());
+
+        let mut node = AccessibilityNode::new(bounds)
+            .role(Role::Button)
+            .label(label)
+            .enabled(enabled)
+            .focusable(true)
+            .widget_id(id.clone())
+            .is_leaf_node(true); // Button is a leaf node - don't include children in accessibility tree
+
+        // Register the on_press callback for accessibility actions
+        if let Some(on_press) = on_press {
+            node = node.on_action(on_press.get());
+        }
+
+        Some(node)
+    }
+}
+
+/// Helper to extract text content from button's children for accessibility labels.
+///
+/// Uses the Operation pattern to traverse child widgets and collect text.
+fn extract_text_from_children<Message, Theme, Renderer>(
+    element: &mut Element<'_, Message, Theme, Renderer>,
+    tree: &mut Tree,
+    layout: Layout<'_>,
+    renderer: &Renderer,
+) -> Option<String>
+where
+    Renderer: crate::core::Renderer,
+{
+    use crate::core::Rectangle;
+    use crate::core::widget::Id;
+    use crate::core::widget::Operation;
+
+    /// Operation to collect text from widgets
+    struct TextCollector {
+        text: Vec<String>,
+    }
+
+    impl TextCollector {
+        fn new() -> Self {
+            Self { text: Vec::new() }
+        }
+    }
+
+    impl Operation for TextCollector {
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation)) {
+            operate(self);
+        }
+
+        fn text(&mut self, _id: Option<&Id>, _bounds: Rectangle, text: &str) {
+            self.text.push(text.to_string());
+        }
+    }
+
+    let mut collector = TextCollector::new();
+    element
+        .as_widget_mut()
+        .operate(tree, layout, renderer, &mut collector);
+
+    if collector.text.is_empty() {
+        None
+    } else {
+        // Join multiple text segments with spaces
+        Some(collector.text.join(" "))
+    }
 }
 
 impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Message: Clone + 'a,
+    Message: Clone + Send + 'static,
     Theme: Catalog + 'a,
     Renderer: crate::core::Renderer + 'a,
 {
@@ -539,11 +693,11 @@ impl Default for Style {
 ///
 /// impl Catalog for MyTheme {
 ///     type Class<'a> = ButtonClass;
-///     
+///
 ///     fn default<'a>() -> Self::Class<'a> {
 ///         ButtonClass::default()
 ///     }
-///     
+///
 ///
 ///     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
 ///         let mut style = Style::default();

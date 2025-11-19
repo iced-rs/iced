@@ -17,6 +17,7 @@ selector = ["dep:iced_selector"]
 workspace = true
 
 [dependencies]
+accesskit.workspace = true
 bytes.workspace = true
 iced_core.workspace = true
 iced_futures.workspace = true

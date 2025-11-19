@@ -273,6 +273,7 @@ impl<P: Program + 'static> Emulator<P> {
                 runtime::Action::Reload => {
                     // TODO
                 }
+                runtime::Action::Accessibility(_) => todo!(),
             },
         }
     }

@@ -292,7 +292,7 @@ async fn save_file(
     Ok(path)
 }
 
-fn action<'a, Message: Clone + 'a>(
+fn action<'a, Message: Clone + Send + 'static>(
     content: impl Into<Element<'a, Message>>,
     label: &'a str,
     on_press: Option<Message>,

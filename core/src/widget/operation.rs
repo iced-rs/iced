@@ -70,6 +70,18 @@ pub trait Operation<T = ()>: Send {
     ) {
     }
 
+    /// Collects accessibility information from a widget.
+    ///
+    /// This is called by widgets that provide accessibility information
+    /// via the [`Widget::accessibility`] method.
+    ///
+    /// [`Widget::accessibility`]: crate::Widget::accessibility
+    fn accessibility(
+        &mut self,
+        _node: Option<crate::accessibility::AccessibilityNode>,
+    ) {
+    }
+
     /// Finishes the [`Operation`] and returns its [`Outcome`].
     fn finish(&self) -> Outcome<T> {
         Outcome::None
@@ -134,6 +146,13 @@ where
         state: &mut dyn Any,
     ) {
         self.as_mut().custom(id, bounds, state);
+    }
+
+    fn accessibility(
+        &mut self,
+        node: Option<crate::accessibility::AccessibilityNode>,
+    ) {
+        self.as_mut().accessibility(node);
     }
 
     fn finish(&self) -> Outcome<O> {
@@ -239,6 +258,13 @@ where
             self.operation.custom(id, bounds, state);
         }
 
+        fn accessibility(
+            &mut self,
+            node: Option<crate::accessibility::AccessibilityNode>,
+        ) {
+            self.operation.accessibility(node);
+        }
+
         fn finish(&self) -> Outcome<O> {
             Outcome::None
         }
@@ -340,6 +366,13 @@ where
                 ) {
                     self.operation.custom(id, bounds, state);
                 }
+
+                fn accessibility(
+                    &mut self,
+                    node: Option<crate::accessibility::AccessibilityNode>,
+                ) {
+                    self.operation.accessibility(node);
+                }
             }
 
             self.operation.traverse(&mut |operation| {
@@ -397,6 +430,13 @@ where
             state: &mut dyn Any,
         ) {
             self.operation.custom(id, bounds, state);
+        }
+
+        fn accessibility(
+            &mut self,
+            node: Option<crate::accessibility::AccessibilityNode>,
+        ) {
+            self.operation.accessibility(node);
         }
 
         fn finish(&self) -> Outcome<B> {
@@ -501,6 +541,13 @@ where
             state: &mut dyn Any,
         ) {
             self.operation.custom(id, bounds, state);
+        }
+
+        fn accessibility(
+            &mut self,
+            node: Option<crate::accessibility::AccessibilityNode>,
+        ) {
+            self.operation.accessibility(node);
         }
 
         fn finish(&self) -> Outcome<B> {
