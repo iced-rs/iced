@@ -12,7 +12,7 @@ use crate::task::{self, Task};
 
 pub use raw_window_handle;
 
-use raw_window_handle::WindowHandle;
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 /// An operation to be performed on some window.
 pub enum Action {
@@ -145,8 +145,8 @@ pub enum Action {
     ///   said, it's usually in the same ballpark as on Windows.
     SetIcon(Id, Icon),
 
-    /// Runs the closure with the native window handle of the window with the given [`Id`].
-    RunWithHandle(Id, Box<dyn FnOnce(WindowHandle<'_>) + Send>),
+    /// Runs the closure with a reference to the [`Window`] with the given [`Id`].
+    Run(Id, Box<dyn FnOnce(&dyn Window) + Send>),
 
     /// Screenshot the viewport of the window.
     Screenshot(Id, oneshot::Sender<Screenshot>),
@@ -181,6 +181,13 @@ pub enum Action {
     /// Recomputes the layouts of all the windows.
     RelayoutAll,
 }
+
+/// A window managed by iced.
+///
+/// It implements both [`HasWindowHandle`] and [`HasDisplayHandle`].
+pub trait Window: HasWindowHandle + HasDisplayHandle {}
+
+impl<T> Window for T where T: HasWindowHandle + HasDisplayHandle {}
 
 /// Subscribes to the frames of the window of the running application.
 ///
@@ -442,18 +449,18 @@ pub fn set_icon<T>(id: Id, icon: Icon) -> Task<T> {
     task::effect(crate::Action::Window(Action::SetIcon(id, icon)))
 }
 
-/// Runs the given callback with the native window handle for the window with the given id.
+/// Runs the given callback with a reference to the [`Window`] with the given [`Id`].
 ///
 /// Note that if the window closes before this call is processed the callback will not be run.
-pub fn run_with_handle<T>(
+pub fn run<T>(
     id: Id,
-    f: impl FnOnce(WindowHandle<'_>) -> T + Send + 'static,
+    f: impl FnOnce(&dyn Window) -> T + Send + 'static,
 ) -> Task<T>
 where
     T: Send + 'static,
 {
     task::oneshot(move |channel| {
-        crate::Action::Window(Action::RunWithHandle(
+        crate::Action::Window(Action::Run(
             id,
             Box::new(move |handle| {
                 let _ = channel.send(f(handle));

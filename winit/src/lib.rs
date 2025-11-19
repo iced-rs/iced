@@ -1613,14 +1613,9 @@ fn run_action<'a, P, C>(
                     let _ = channel.send(window.raw.id().into());
                 }
             }
-            window::Action::RunWithHandle(id, f) => {
-                use window::raw_window_handle::HasWindowHandle;
-
-                if let Some(handle) = window_manager
-                    .get_mut(id)
-                    .and_then(|window| window.raw.window_handle().ok())
-                {
-                    f(handle);
+            window::Action::Run(id, f) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    f(window);
                 }
             }
             window::Action::Screenshot(id, channel) => {
