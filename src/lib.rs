@@ -647,6 +647,7 @@ pub use font::Font;
 pub use program::Program;
 pub use renderer::Renderer;
 pub use task::Task;
+pub use window::Window;
 
 #[doc(inline)]
 pub use application::application;
