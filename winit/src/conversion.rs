@@ -208,7 +208,21 @@ pub fn window_event(
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
-                    event.key_without_modifiers()
+                    if matches!(
+                        event.logical_key,
+                        winit::keyboard::Key::Named(_)
+                    ) {
+                        // Some layouts, e.g., ones in the Neo Family (https://neo-layout.org/Layouts/),
+                        // have modifier keys that will turn characters into navigation keys on higher
+                        // levels.
+                        // `key_without_modifiers()` turns that navigation key back into the character
+                        // key, which makes the key not work as intended by the user.
+                        // To prevent this, we just stick to the `logical_key` when it is a `Named` key
+                        // (which includes navigation keys).
+                        event.logical_key.clone()
+                    } else {
+                        event.key_without_modifiers()
+                    }
                 }
 
                 #[cfg(target_arch = "wasm32")]
