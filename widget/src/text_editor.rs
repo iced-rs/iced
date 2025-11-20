@@ -170,7 +170,7 @@ impl<'a, Highlighter, Message, Theme, Renderer>
     TextEditor<'a, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
-    Theme: Catalog + 'static + PartialEq,
+    Theme: Catalog + 'static,
     Renderer: text::Renderer,
 {
     /// Sets the placeholder of the [`TextEditor`].
@@ -508,7 +508,7 @@ where
 
 /// The state of a [`TextEditor`].
 #[derive(Debug)]
-pub struct State<Highlighter: text::Highlighter, Theme: PartialEq> {
+pub struct State<Highlighter: text::Highlighter, Theme> {
     focus: Option<Focus>,
     preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
@@ -548,17 +548,15 @@ impl Focus {
     }
 }
 
-impl<Highlighter: text::Highlighter, Theme: PartialEq + 'static>
-    State<Highlighter, Theme>
-{
+impl<Highlighter: text::Highlighter, Theme> State<Highlighter, Theme> {
     /// Returns whether the [`TextEditor`] is currently focused or not.
     pub fn is_focused(&self) -> bool {
         self.focus.is_some()
     }
 }
 
-impl<Highlighter: text::Highlighter, Theme: PartialEq + 'static>
-    operation::Focusable for State<Highlighter, Theme>
+impl<Highlighter: text::Highlighter, Theme> operation::Focusable
+    for State<Highlighter, Theme>
 {
     fn is_focused(&self) -> bool {
         self.focus.is_some()
@@ -577,7 +575,7 @@ impl<Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for TextEditor<'_, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
-    Theme: Catalog + 'static + PartialEq + Clone,
+    Theme: Catalog + 'static,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> widget::tree::Tag {
@@ -789,9 +787,9 @@ where
                 },
                 Update::Binding(binding) => {
                     fn apply_binding<
-                        T: PartialEq + 'static,
                         H: text::Highlighter,
                         R: text::Renderer,
+                        T,
                         Message,
                     >(
                         binding: Binding<Message>,
@@ -1091,7 +1089,7 @@ impl<'a, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
     Message: 'a,
-    Theme: Catalog + 'static + PartialEq + Clone,
+    Theme: Catalog + 'static,
     Renderer: text::Renderer,
 {
     fn from(
@@ -1247,7 +1245,7 @@ enum Ime {
 }
 
 impl<Message> Update<Message> {
-    fn from_event<H: Highlighter, T: PartialEq + 'static>(
+    fn from_event<H: Highlighter, T>(
         event: &Event,
         state: &State<H, T>,
         bounds: Rectangle,
@@ -1406,7 +1404,7 @@ pub struct Style {
 }
 
 /// The theme catalog of a [`TextEditor`].
-pub trait Catalog {
+pub trait Catalog: PartialEq + Clone {
     /// The item class of the [`Catalog`].
     type Class<'a>;
 
