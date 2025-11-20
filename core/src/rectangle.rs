@@ -394,19 +394,3 @@ where
         }
     }
 }
-
-impl<T> std::ops::Mul<Vector<T>> for Rectangle<T>
-where
-    T: std::ops::Mul<Output = T> + Copy,
-{
-    type Output = Rectangle<T>;
-
-    fn mul(self, scale: Vector<T>) -> Self {
-        Rectangle {
-            x: self.x * scale.x,
-            y: self.y * scale.y,
-            width: self.width * scale.x,
-            height: self.height * scale.y,
-        }
-    }
-}

@@ -150,6 +150,20 @@ where
     }
 }
 
+impl<T> std::ops::Div<T> for Size<T>
+where
+    T: std::ops::Div<Output = T> + Copy,
+{
+    type Output = Size<T>;
+
+    fn div(self, rhs: T) -> Self::Output {
+        Size {
+            width: self.width / rhs,
+            height: self.height / rhs,
+        }
+    }
+}
+
 impl<T> std::ops::Mul<Vector<T>> for Size<T>
 where
     T: std::ops::Mul<Output = T> + Copy,
