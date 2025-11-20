@@ -690,7 +690,7 @@ pub fn mix(a: Color, b: Color, factor: f32) -> Color {
 /// Computes a [`Color`] from the given text color that is
 /// readable on top of the given background color.
 pub fn readable(background: Color, text: Color) -> Color {
-    if is_readable(background, text) {
+    if text.is_readable_on(background) {
         return text;
     }
 
@@ -699,18 +699,18 @@ pub fn readable(background: Color, text: Color) -> Color {
     // TODO: Compute factor from relative contrast value
     let candidate = improve(text, 0.1);
 
-    if is_readable(background, candidate) {
+    if candidate.is_readable_on(background) {
         return candidate;
     }
 
     let candidate = improve(text, 0.2);
 
-    if is_readable(background, candidate) {
+    if candidate.is_readable_on(background) {
         return candidate;
     }
 
-    let white_contrast = relative_contrast(background, Color::WHITE);
-    let black_contrast = relative_contrast(background, Color::BLACK);
+    let white_contrast = background.relative_contrast(Color::WHITE);
+    let black_contrast = background.relative_contrast(Color::BLACK);
 
     if white_contrast >= black_contrast {
         mix(Color::WHITE, background, 0.05)
@@ -722,22 +722,6 @@ pub fn readable(background: Color, text: Color) -> Color {
 /// Returns true if the [`Color`] is dark.
 pub fn is_dark(color: Color) -> bool {
     to_oklch(color).l < 0.6
-}
-
-/// Returns true if text with the given [`Color`] is readable on top
-/// of the given background [`Color`].
-pub fn is_readable(background: Color, text: Color) -> bool {
-    relative_contrast(background, text) >= 6.0
-}
-
-/// Returns the [relative contrast ratio] of two colors.
-///
-/// [relative contrast ratio]: https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
-pub fn relative_contrast(a: Color, b: Color) -> f32 {
-    let lum_a = a.relative_luminance();
-    let lum_b = b.relative_luminance();
-
-    (lum_a.max(lum_b) + 0.05) / (lum_a.min(lum_b) + 0.05)
 }
 
 // https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces

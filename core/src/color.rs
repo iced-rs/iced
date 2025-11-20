@@ -202,6 +202,22 @@ impl Color {
         let linear = self.into_linear();
         0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
     }
+
+    /// Returns the [relative contrast ratio] of the [`Color`] against another one.
+    ///
+    /// [relative contrast ratio]: https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
+    pub fn relative_contrast(self, b: Color) -> f32 {
+        let lum_a = self.relative_luminance();
+        let lum_b = b.relative_luminance();
+
+        (lum_a.max(lum_b) + 0.05) / (lum_a.min(lum_b) + 0.05)
+    }
+
+    /// Returns true if the current [`Color`] is readable on top
+    /// of the given background [`Color`].
+    pub fn is_readable_on(self, background: Color) -> bool {
+        background.relative_contrast(self) >= 6.0
+    }
 }
 
 impl From<[f32; 3]> for Color {
