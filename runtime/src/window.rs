@@ -16,7 +16,7 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 /// An operation to be performed on some window.
 pub enum Action {
-    /// Opens a new window with some [`Settings`].
+    /// Open a new window with some [`Settings`].
     Open(Id, Settings, oneshot::Sender<Id>),
 
     /// Close the window and exits the application.
@@ -151,7 +151,7 @@ pub enum Action {
     /// Screenshot the viewport of the window.
     Screenshot(Id, oneshot::Sender<Screenshot>),
 
-    /// Enables mouse passthrough for the given window.
+    /// Enable mouse passthrough for the given window.
     ///
     /// This disables mouse events for the window and passes mouse events
     /// through to whatever window is underneath.
@@ -175,10 +175,13 @@ pub enum Action {
     /// Set the window size increment.
     SetResizeIncrements(Id, Option<Size>),
 
-    /// Redraws all the windows.
+    /// Get the logical dimensions of the monitor containing the window with the given [`Id`].
+    GetMonitorSize(Id, oneshot::Sender<Option<Size>>),
+
+    /// Redraw all the windows.
     RedrawAll,
 
-    /// Recomputes the layouts of all the windows.
+    /// Recompute the layouts of all the windows.
     RelayoutAll,
 }
 
@@ -490,4 +493,11 @@ pub fn enable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
 /// from being passed to whatever is underneath.
 pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
     task::effect(crate::Action::Window(Action::DisableMousePassthrough(id)))
+}
+
+/// Get the logical dimensions of the monitor containing the window with the given [`Id`].
+pub fn monitor_size(id: Id) -> Task<Option<Size>> {
+    task::oneshot(move |channel| {
+        crate::Action::Window(Action::GetMonitorSize(id, channel))
+    })
 }
