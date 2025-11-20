@@ -1792,25 +1792,25 @@ fn convert_macos_shortcut(
     key: &keyboard::Key,
     modifiers: keyboard::Modifiers,
 ) -> &keyboard::Key {
-    let control =
-        modifiers.control() && !modifiers.alt() && !modifiers.command();
+    if modifiers != keyboard::Modifiers::CTRL {
+        return key;
+    }
+
     match key.as_ref() {
-        keyboard::Key::Character("b") if control => {
+        keyboard::Key::Character("b") => {
             &keyboard::Key::Named(key::Named::ArrowLeft)
         }
-        keyboard::Key::Character("f") if control => {
+        keyboard::Key::Character("f") => {
             &keyboard::Key::Named(key::Named::ArrowRight)
         }
-        keyboard::Key::Character("a") if control => {
+        keyboard::Key::Character("a") => {
             &keyboard::Key::Named(key::Named::Home)
         }
-        keyboard::Key::Character("e") if control => {
-            &keyboard::Key::Named(key::Named::End)
-        }
-        keyboard::Key::Character("h") if control => {
+        keyboard::Key::Character("e") => &keyboard::Key::Named(key::Named::End),
+        keyboard::Key::Character("h") => {
             &keyboard::Key::Named(key::Named::Backspace)
         }
-        keyboard::Key::Character("d") if control => {
+        keyboard::Key::Character("d") => {
             &keyboard::Key::Named(key::Named::Delete)
         }
         _ => key,
