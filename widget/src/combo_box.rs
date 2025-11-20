@@ -149,9 +149,10 @@ pub struct ComboBox<
     on_open: Option<Message>,
     on_close: Option<Message>,
     on_input: Option<Box<dyn Fn(String) -> Message>>,
-    menu_class: <Theme as menu::Catalog>::Class<'a>,
     padding: Padding,
     size: Option<f32>,
+    text_shaping: text::Shaping,
+    menu_class: <Theme as menu::Catalog>::Class<'a>,
     menu_height: Length,
 }
 
@@ -186,9 +187,10 @@ where
             on_input: None,
             on_open: None,
             on_close: None,
-            menu_class: <Theme as Catalog>::default_menu(),
             padding: text_input::DEFAULT_PADDING,
             size: None,
+            text_shaping: text::Shaping::default(),
+            menu_class: <Theme as Catalog>::default_menu(),
             menu_height: Length::Shrink,
         }
     }
@@ -278,6 +280,12 @@ where
     /// Sets the height of the menu of the [`ComboBox`].
     pub fn menu_height(mut self, menu_height: impl Into<Length>) -> Self {
         self.menu_height = menu_height.into();
+        self
+    }
+
+    /// Sets the [`text::Shaping`] strategy of the [`ComboBox`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.text_shaping = shaping;
         self
     }
 
@@ -902,7 +910,8 @@ where
                     &self.menu_class,
                 )
                 .width(bounds.width)
-                .padding(self.padding);
+                .padding(self.padding)
+                .text_shaping(self.text_shaping);
 
                 if let Some(font) = self.font {
                     menu = menu.font(font);
