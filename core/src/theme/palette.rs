@@ -625,7 +625,8 @@ struct Oklch {
     a: f32,
 }
 
-fn darken(color: Color, amount: f32) -> Color {
+/// Darkens a [`Color`] by the given factor.
+pub fn darken(color: Color, amount: f32) -> Color {
     let mut oklch = to_oklch(color);
 
     // We try to bump the chroma a bit for more colorful palettes
@@ -643,7 +644,8 @@ fn darken(color: Color, amount: f32) -> Color {
     from_oklch(oklch)
 }
 
-fn lighten(color: Color, amount: f32) -> Color {
+/// Lightens a [`Color`] by the given factor.
+pub fn lighten(color: Color, amount: f32) -> Color {
     let mut oklch = to_oklch(color);
 
     // We try to bump the chroma a bit for more colorful palettes
@@ -659,7 +661,9 @@ fn lighten(color: Color, amount: f32) -> Color {
     from_oklch(oklch)
 }
 
-fn deviate(color: Color, amount: f32) -> Color {
+/// Deviates a [`Color`] by the given factor. Lightens if the [`Color`] is
+/// dark, darkens otherwise.
+pub fn deviate(color: Color, amount: f32) -> Color {
     if is_dark(color) {
         lighten(color, amount)
     } else {
@@ -667,7 +671,8 @@ fn deviate(color: Color, amount: f32) -> Color {
     }
 }
 
-fn mix(a: Color, b: Color, factor: f32) -> Color {
+/// Mixes two colors by the given factor.
+pub fn mix(a: Color, b: Color, factor: f32) -> Color {
     let b_amount = factor.clamp(0.0, 1.0);
     let a_amount = 1.0 - b_amount;
 
@@ -682,8 +687,10 @@ fn mix(a: Color, b: Color, factor: f32) -> Color {
     )
 }
 
-fn readable(background: Color, text: Color) -> Color {
-    if is_readable(background, text) {
+/// Computes a [`Color`] from the given text color that is
+/// readable on top of the given background color.
+pub fn readable(background: Color, text: Color) -> Color {
+    if text.is_readable_on(background) {
         return text;
     }
 
@@ -692,18 +699,18 @@ fn readable(background: Color, text: Color) -> Color {
     // TODO: Compute factor from relative contrast value
     let candidate = improve(text, 0.1);
 
-    if is_readable(background, candidate) {
+    if candidate.is_readable_on(background) {
         return candidate;
     }
 
     let candidate = improve(text, 0.2);
 
-    if is_readable(background, candidate) {
+    if candidate.is_readable_on(background) {
         return candidate;
     }
 
-    let white_contrast = relative_contrast(background, Color::WHITE);
-    let black_contrast = relative_contrast(background, Color::BLACK);
+    let white_contrast = background.relative_contrast(Color::WHITE);
+    let black_contrast = background.relative_contrast(Color::BLACK);
 
     if white_contrast >= black_contrast {
         mix(Color::WHITE, background, 0.05)
@@ -712,19 +719,9 @@ fn readable(background: Color, text: Color) -> Color {
     }
 }
 
-fn is_dark(color: Color) -> bool {
+/// Returns true if the [`Color`] is dark.
+pub fn is_dark(color: Color) -> bool {
     to_oklch(color).l < 0.6
-}
-
-fn is_readable(a: Color, b: Color) -> bool {
-    relative_contrast(a, b) >= 6.0
-}
-
-// https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
-fn relative_contrast(a: Color, b: Color) -> f32 {
-    let lum_a = a.relative_luminance();
-    let lum_b = b.relative_luminance();
-    (lum_a.max(lum_b) + 0.05) / (lum_a.min(lum_b) + 0.05)
 }
 
 // https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces
