@@ -625,7 +625,8 @@ struct Oklch {
     a: f32,
 }
 
-fn darken(color: Color, amount: f32) -> Color {
+/// Darkens a [`Color`] by the given factor.
+pub fn darken(color: Color, amount: f32) -> Color {
     let mut oklch = to_oklch(color);
 
     // We try to bump the chroma a bit for more colorful palettes
@@ -643,7 +644,8 @@ fn darken(color: Color, amount: f32) -> Color {
     from_oklch(oklch)
 }
 
-fn lighten(color: Color, amount: f32) -> Color {
+/// Lightens a [`Color`] by the given factor.
+pub fn lighten(color: Color, amount: f32) -> Color {
     let mut oklch = to_oklch(color);
 
     // We try to bump the chroma a bit for more colorful palettes
@@ -659,7 +661,9 @@ fn lighten(color: Color, amount: f32) -> Color {
     from_oklch(oklch)
 }
 
-fn deviate(color: Color, amount: f32) -> Color {
+/// Deviates a [`Color`] by the given factor. Lightens if the [`Color`] is
+/// dark, darkens otherwise.
+pub fn deviate(color: Color, amount: f32) -> Color {
     if is_dark(color) {
         lighten(color, amount)
     } else {
@@ -667,7 +671,8 @@ fn deviate(color: Color, amount: f32) -> Color {
     }
 }
 
-fn mix(a: Color, b: Color, factor: f32) -> Color {
+/// Mixes two colors by the given factor.
+pub fn mix(a: Color, b: Color, factor: f32) -> Color {
     let b_amount = factor.clamp(0.0, 1.0);
     let a_amount = 1.0 - b_amount;
 
@@ -682,7 +687,9 @@ fn mix(a: Color, b: Color, factor: f32) -> Color {
     )
 }
 
-fn readable(background: Color, text: Color) -> Color {
+/// Computes a [`Color`] from the given text color that is
+/// readable on top of the given background color.
+pub fn readable(background: Color, text: Color) -> Color {
     if is_readable(background, text) {
         return text;
     }
@@ -712,18 +719,24 @@ fn readable(background: Color, text: Color) -> Color {
     }
 }
 
-fn is_dark(color: Color) -> bool {
+/// Returns true if the [`Color`] is dark.
+pub fn is_dark(color: Color) -> bool {
     to_oklch(color).l < 0.6
 }
 
-fn is_readable(a: Color, b: Color) -> bool {
-    relative_contrast(a, b) >= 6.0
+/// Returns true if text with the given [`Color`] is readable on top
+/// of the given background [`Color`].
+pub fn is_readable(background: Color, text: Color) -> bool {
+    relative_contrast(background, text) >= 6.0
 }
 
-// https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
-fn relative_contrast(a: Color, b: Color) -> f32 {
+/// Returns the [relative contrast ratio] of two colors.
+///
+/// [relative contrast ratio]: https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
+pub fn relative_contrast(a: Color, b: Color) -> f32 {
     let lum_a = a.relative_luminance();
     let lum_b = b.relative_luminance();
+
     (lum_a.max(lum_b) + 0.05) / (lum_a.min(lum_b) + 0.05)
 }
 
