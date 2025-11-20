@@ -1010,7 +1010,9 @@ where
                     }
 
                     #[cfg(target_os = "macos")]
-                    let key = convert_macos_shortcut(key, modifiers);
+                    let key = crate::text_editor::convert_macos_shortcut(
+                        key, modifiers,
+                    );
 
                     match key.as_ref() {
                         keyboard::Key::Named(key::Named::Enter) => {
@@ -1784,35 +1786,5 @@ fn alignment_offset(
             }
             alignment::Horizontal::Right => text_bounds_width - text_min_width,
         }
-    }
-}
-
-#[cfg(target_os = "macos")]
-fn convert_macos_shortcut(
-    key: &keyboard::Key,
-    modifiers: keyboard::Modifiers,
-) -> &keyboard::Key {
-    if modifiers != keyboard::Modifiers::CTRL {
-        return key;
-    }
-
-    match key.as_ref() {
-        keyboard::Key::Character("b") => {
-            &keyboard::Key::Named(key::Named::ArrowLeft)
-        }
-        keyboard::Key::Character("f") => {
-            &keyboard::Key::Named(key::Named::ArrowRight)
-        }
-        keyboard::Key::Character("a") => {
-            &keyboard::Key::Named(key::Named::Home)
-        }
-        keyboard::Key::Character("e") => &keyboard::Key::Named(key::Named::End),
-        keyboard::Key::Character("h") => {
-            &keyboard::Key::Named(key::Named::Backspace)
-        }
-        keyboard::Key::Character("d") => {
-            &keyboard::Key::Named(key::Named::Delete)
-        }
-        _ => key,
     }
 }
