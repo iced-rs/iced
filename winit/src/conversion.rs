@@ -20,6 +20,20 @@ pub fn window_attributes(
 ) -> winit::window::WindowAttributes {
     let mut attributes = winit::window::WindowAttributes::default();
 
+    let mut buttons = winit::window::WindowButtons::empty();
+
+    if settings.resizable {
+        buttons |= winit::window::WindowButtons::MAXIMIZE;
+    }
+
+    if settings.closeable {
+        buttons |= winit::window::WindowButtons::CLOSE;
+    }
+
+    if settings.minimizable {
+        buttons |= winit::window::WindowButtons::MINIMIZE;
+    }
+
     attributes = attributes
         .with_title(title)
         .with_inner_size(winit::dpi::LogicalSize {
@@ -33,12 +47,7 @@ pub fn window_attributes(
                 .then_some(winit::window::Fullscreen::Borderless(None)),
         )
         .with_resizable(settings.resizable)
-        .with_enabled_buttons(if settings.resizable {
-            winit::window::WindowButtons::all()
-        } else {
-            winit::window::WindowButtons::CLOSE
-                | winit::window::WindowButtons::MINIMIZE
-        })
+        .with_enabled_buttons(buttons)
         .with_decorations(settings.decorations)
         .with_transparent(settings.transparent)
         .with_blur(settings.blur)
