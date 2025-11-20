@@ -45,6 +45,7 @@ use crate::core::clipboard::{self, Clipboard};
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
+use crate::core::keyboard::key::{Code, Physical};
 use crate::core::layout;
 use crate::core::mouse::{self, click};
 use crate::core::renderer;
@@ -873,15 +874,15 @@ where
                 }
             }
             Event::Keyboard(keyboard::Event::KeyPressed {
-                key, text, ..
+                key, text, physical_key, ..
             }) => {
                 let state = state::<Renderer>(tree);
 
                 if let Some(focus) = &mut state.is_focused {
                     let modifiers = state.keyboard_modifiers;
 
-                    match key.as_ref() {
-                        keyboard::Key::Character("c")
+                    match physical_key {
+                        Physical::Code(Code::KeyC)
                             if state.keyboard_modifiers.command()
                                 && !self.is_secure =>
                         {
@@ -897,7 +898,7 @@ where
                             shell.capture_event();
                             return;
                         }
-                        keyboard::Key::Character("x")
+                        Physical::Code(Code::KeyX)
                             if state.keyboard_modifiers.command()
                                 && !self.is_secure =>
                         {
@@ -926,7 +927,7 @@ where
                             update_cache(state, &self.value);
                             return;
                         }
-                        keyboard::Key::Character("v")
+                        Physical::Code(Code::KeyV)
                             if state.keyboard_modifiers.command()
                                 && !state.keyboard_modifiers.alt() =>
                         {
@@ -965,7 +966,7 @@ where
                             update_cache(state, &self.value);
                             return;
                         }
-                        keyboard::Key::Character("a")
+                        Physical::Code(Code::KeyA)
                             if state.keyboard_modifiers.command() =>
                         {
                             let cursor_before = state.cursor;
@@ -1231,11 +1232,11 @@ where
                     }
                 }
             }
-            Event::Keyboard(keyboard::Event::KeyReleased { key, .. }) => {
+            Event::Keyboard(keyboard::Event::KeyReleased { physical_key, .. }) => {
                 let state = state::<Renderer>(tree);
 
                 if state.is_focused.is_some()
-                    && let keyboard::Key::Character("v") = key.as_ref()
+                    && let Physical::Code(Code::KeyV) = physical_key
                 {
                     state.is_pasting = None;
 
