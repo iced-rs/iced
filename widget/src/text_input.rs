@@ -1009,6 +1009,11 @@ where
                         }
                     }
 
+                    #[cfg(target_os = "macos")]
+                    let key = crate::text_editor::convert_macos_shortcut(
+                        key, modifiers,
+                    );
+
                     match key.as_ref() {
                         keyboard::Key::Named(key::Named::Enter) => {
                             if let Some(on_submit) = self.on_submit.clone() {
