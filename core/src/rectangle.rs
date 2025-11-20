@@ -354,19 +354,6 @@ impl std::ops::Mul<f32> for Rectangle<f32> {
     }
 }
 
-impl std::ops::Div<f32> for Rectangle<f32> {
-    type Output = Self;
-
-    fn div(self, scale: f32) -> Self {
-        Self {
-            x: self.x / scale,
-            y: self.y / scale,
-            width: self.width / scale,
-            height: self.height / scale,
-        }
-    }
-}
-
 impl From<Rectangle<u32>> for Rectangle<f32> {
     fn from(rectangle: Rectangle<u32>) -> Rectangle<f32> {
         Rectangle {
@@ -404,38 +391,6 @@ where
             x: self.x - translation.x,
             y: self.y - translation.y,
             ..self
-        }
-    }
-}
-
-impl<T> std::ops::Mul<Vector<T>> for Rectangle<T>
-where
-    T: std::ops::Mul<Output = T> + Copy,
-{
-    type Output = Rectangle<T>;
-
-    fn mul(self, scale: Vector<T>) -> Self {
-        Rectangle {
-            x: self.x * scale.x,
-            y: self.y * scale.y,
-            width: self.width * scale.x,
-            height: self.height * scale.y,
-        }
-    }
-}
-
-impl<T> std::ops::Div<Vector<T>> for Rectangle<T>
-where
-    T: std::ops::Div<Output = T> + Copy,
-{
-    type Output = Rectangle<T>;
-
-    fn div(self, scale: Vector<T>) -> Self {
-        Rectangle {
-            x: self.x / scale.x,
-            y: self.y / scale.y,
-            width: self.width / scale.x,
-            height: self.height / scale.y,
         }
     }
 }
