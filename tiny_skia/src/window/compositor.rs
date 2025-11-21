@@ -66,18 +66,9 @@ impl crate::graphics::Compositor for Compositor {
         )
         .expect("Create softbuffer surface for window");
 
-        let clip_mask = {
-            if width > 0 && height > 0 {
-                tiny_skia::Mask::new(width, height)
-            } else {
-                tiny_skia::Mask::new(1, 1)
-            }
-        }
-        .expect("Create clip mask");
-
         let mut surface = Surface {
             window,
-            clip_mask,
+            clip_mask: tiny_skia::Mask::new(1, 1).expect("Create clip mask"),
             layer_stack: VecDeque::new(),
             background_color: Color::BLACK,
             max_age: 0,
