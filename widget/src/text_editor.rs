@@ -472,6 +472,17 @@ where
     pub fn cursor_position(&self) -> (usize, usize) {
         self.0.borrow().editor.cursor_position()
     }
+
+    /// Returns whether or not the the [`Content`] is empty.
+    pub fn is_empty(&self) -> bool {
+        let editor = &self.0.borrow().editor;
+
+        match editor.line_count() {
+            0 => true,
+            1 => editor.line(0).map(|l| l.text.is_empty()).unwrap_or(true),
+            _ => false,
+        }
+    }
 }
 
 impl<Renderer> Clone for Content<Renderer>
