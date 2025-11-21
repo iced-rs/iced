@@ -475,13 +475,7 @@ where
 
     /// Returns whether or not the the [`Content`] is empty.
     pub fn is_empty(&self) -> bool {
-        let editor = &self.0.borrow().editor;
-
-        match editor.line_count() {
-            0 => true,
-            1 => editor.line(0).map(|l| l.text.is_empty()).unwrap_or(true),
-            _ => false,
-        }
+        self.0.borrow().editor.is_empty()
     }
 }
 
