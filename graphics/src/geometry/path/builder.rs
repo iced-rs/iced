@@ -115,7 +115,8 @@ impl Builder {
 
         let _ = self.raw.move_to(arc.sample(0.0));
 
-        arc.for_each_quadratic_bezier(&mut |curve| {
+        arc.cast::<f64>().for_each_quadratic_bezier(&mut |curve| {
+            let curve = curve.cast::<f32>();
             let _ = self.raw.quadratic_bezier_to(curve.ctrl, curve.to);
         });
     }
