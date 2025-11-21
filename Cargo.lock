@@ -2598,7 +2598,6 @@ dependencies = [
  "rustc-hash 2.1.1",
  "thiserror 2.0.17",
  "unicode-segmentation",
- "url",
 ]
 
 [[package]]
@@ -3203,9 +3202,10 @@ version = "0.1.0"
 dependencies = [
  "iced",
  "image",
- "open",
  "reqwest",
  "tokio",
+ "url",
+ "webbrowser",
 ]
 
 [[package]]
