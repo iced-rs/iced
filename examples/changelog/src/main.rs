@@ -44,7 +44,7 @@ enum Message {
         Result<(Changelog, Vec<changelog::Contribution>), changelog::Error>,
     ),
     PullRequestFetched(Result<changelog::PullRequest, changelog::Error>),
-    UrlClicked(markdown::Url),
+    LinkClicked(markdown::Uri),
     TitleChanged(String),
     CategorySelected(changelog::Category),
     Next,
@@ -113,7 +113,7 @@ impl Generator {
 
                 Task::none()
             }
-            Message::UrlClicked(url) => {
+            Message::LinkClicked(url) => {
                 let _ = webbrowser::open(url.as_str());
 
                 Task::none()
@@ -281,7 +281,7 @@ impl Generator {
 
                             let description =
                                 markdown(description, self.theme())
-                                    .map(Message::UrlClicked);
+                                    .map(Message::LinkClicked);
 
                             let labels =
                                 row(pull_request.labels.iter().map(|label| {
@@ -351,7 +351,7 @@ impl Generator {
                                     self.theme(),
                                 ),
                             )
-                            .map(Message::UrlClicked),
+                            .map(Message::LinkClicked),
                         )
                         .spacing(10),
                     )

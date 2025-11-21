@@ -18,7 +18,7 @@
 //! }
 //!
 //! enum Message {
-//!     LinkClicked(markdown::Url),
+//!     LinkClicked(markdown::Uri),
 //! }
 //!
 //! impl State {
@@ -63,7 +63,11 @@ use std::sync::Arc;
 
 pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
-pub use url::Url;
+
+/// A [`String`] representing a [URI] in a Markdown document
+///
+/// [URI]: https://en.wikipedia.org/wiki/Uniform_Resource_Identifier
+pub type Uri = String;
 
 /// A bunch of Markdown that has been parsed.
 #[derive(Debug, Default)]
@@ -176,7 +180,7 @@ impl Content {
     }
 
     /// Returns the URLs of the Markdown images present in the [`Content`].
-    pub fn images(&self) -> &HashSet<Url> {
+    pub fn images(&self) -> &HashSet<Uri> {
         &self.state.images
     }
 }
@@ -209,7 +213,7 @@ pub enum Item {
     /// An image.
     Image {
         /// The destination URL of the image.
-        url: Url,
+        url: Uri,
         /// The title of the image.
         title: String,
         /// The alternative text of the image.
@@ -249,7 +253,7 @@ pub struct Row {
 pub struct Text {
     spans: Vec<Span>,
     last_style: Cell<Option<Style>>,
-    last_styled_spans: RefCell<Arc<[text::Span<'static, Url>]>>,
+    last_styled_spans: RefCell<Arc<[text::Span<'static, Uri>]>>,
 }
 
 impl Text {
@@ -265,7 +269,7 @@ impl Text {
     ///
     /// This method performs caching for you. It will only reallocate if the [`Style`]
     /// provided changes.
-    pub fn spans(&self, style: Style) -> Arc<[text::Span<'static, Url>]> {
+    pub fn spans(&self, style: Style) -> Arc<[text::Span<'static, Uri>]> {
         if Some(style) != self.last_style.get() {
             *self.last_styled_spans.borrow_mut() =
                 self.spans.iter().map(|span| span.view(&style)).collect();
@@ -282,7 +286,7 @@ enum Span {
     Standard {
         text: String,
         strikethrough: bool,
-        link: Option<Url>,
+        link: Option<Uri>,
         strong: bool,
         emphasis: bool,
         code: bool,
@@ -296,7 +300,7 @@ enum Span {
 }
 
 impl Span {
-    fn view(&self, style: &Style) -> text::Span<'static, Url> {
+    fn view(&self, style: &Style) -> text::Span<'static, Uri> {
         match self {
             Span::Standard {
                 text,
@@ -361,7 +365,7 @@ impl Span {
 /// }
 ///
 /// enum Message {
-///     LinkClicked(markdown::Url),
+///     LinkClicked(markdown::Uri),
 /// }
 ///
 /// impl State {
@@ -395,7 +399,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
 struct State {
     leftover: String,
     references: HashMap<String, String>,
-    images: HashSet<Url>,
+    images: HashSet<Uri>,
     #[cfg(feature = "highlighter")]
     highlighter: Option<Highlighter>,
 }
@@ -603,24 +607,13 @@ fn parse_with<'a>(
                 None
             }
             pulldown_cmark::Tag::Link { dest_url, .. } if !metadata => {
-                match Url::parse(&dest_url) {
-                    Ok(url)
-                        if url.scheme() == "http"
-                            || url.scheme() == "https" =>
-                    {
-                        link = Some(url);
-                    }
-                    _ => {}
-                }
-
+                link = Some(dest_url.into_string());
                 None
             }
             pulldown_cmark::Tag::Image {
                 dest_url, title, ..
             } if !metadata => {
-                image = Url::parse(&dest_url)
-                    .ok()
-                    .map(|url| (url, title.into_string()));
+                image = Some((dest_url.into_string(), title.into_string()));
                 None
             }
             pulldown_cmark::Tag::List(first_item) if !metadata => {
@@ -1113,7 +1106,7 @@ impl From<Theme> for Style {
 /// }
 ///
 /// enum Message {
-///     LinkClicked(markdown::Url),
+///     LinkClicked(markdown::Uri),
 /// }
 ///
 /// impl State {
@@ -1141,7 +1134,7 @@ impl From<Theme> for Style {
 pub fn view<'a, Theme, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: impl Into<Settings>,
-) -> Element<'a, Url, Theme, Renderer>
+) -> Element<'a, Uri, Theme, Renderer>
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
@@ -1218,7 +1211,7 @@ pub fn heading<'a, Message, Theme, Renderer>(
     level: &'a HeadingLevel,
     text: &'a Text,
     index: usize,
-    on_link_click: impl Fn(Url) -> Message + 'a,
+    on_link_click: impl Fn(Uri) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1260,7 +1253,7 @@ where
 pub fn paragraph<'a, Message, Theme, Renderer>(
     settings: Settings,
     text: &Text,
-    on_link_click: impl Fn(Url) -> Message + 'a,
+    on_link_click: impl Fn(Uri) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1346,7 +1339,7 @@ where
 pub fn code_block<'a, Message, Theme, Renderer>(
     settings: Settings,
     lines: &'a [Text],
-    on_link_click: impl Fn(Url) -> Message + Clone + 'a,
+    on_link_click: impl Fn(Uri) -> Message + Clone + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1495,8 +1488,8 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    /// Produces a message when a link is clicked with the given [`Url`].
-    fn on_link_click(url: Url) -> Message;
+    /// Produces a message when a link is clicked with the given [`Uri`].
+    fn on_link_click(url: Uri) -> Message;
 
     /// Displays an image.
     ///
@@ -1504,7 +1497,7 @@ where
     fn image(
         &self,
         settings: Settings,
-        url: &'a Url,
+        url: &'a Uri,
         title: &'a str,
         alt: &Text,
     ) -> Element<'a, Message, Theme, Renderer> {
@@ -1620,12 +1613,12 @@ where
 #[derive(Debug, Clone, Copy)]
 struct DefaultViewer;
 
-impl<'a, Theme, Renderer> Viewer<'a, Url, Theme, Renderer> for DefaultViewer
+impl<'a, Theme, Renderer> Viewer<'a, Uri, Theme, Renderer> for DefaultViewer
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    fn on_link_click(url: Url) -> Url {
+    fn on_link_click(url: Uri) -> Uri {
         url
     }
 }

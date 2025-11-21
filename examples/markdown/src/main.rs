@@ -32,7 +32,7 @@ pub fn main() -> iced::Result {
 struct Markdown {
     content: markdown::Content,
     raw: text_editor::Content,
-    images: HashMap<markdown::Url, Image>,
+    images: HashMap<markdown::Uri, Image>,
     mode: Mode,
     theme: Theme,
     now: Instant,
@@ -57,9 +57,9 @@ enum Image {
 enum Message {
     Edit(text_editor::Action),
     Copy(String),
-    LinkClicked(markdown::Url),
-    ImageShown(markdown::Url),
-    ImageDownloaded(markdown::Url, Result<image::Handle, Error>),
+    LinkClicked(markdown::Uri),
+    ImageShown(markdown::Uri),
+    ImageDownloaded(markdown::Uri, Result<image::Handle, Error>),
     ToggleStream(bool),
     NextToken,
     Tick,
@@ -100,20 +100,19 @@ impl Markdown {
             }
             Message::Copy(content) => clipboard::write(content),
             Message::LinkClicked(link) => {
-                let _ = open::that_in_background(link.to_string());
-
+                let _ = webbrowser::open(&link);
                 Task::none()
             }
-            Message::ImageShown(url) => {
-                if self.images.contains_key(&url) {
+            Message::ImageShown(uri) => {
+                if self.images.contains_key(&uri) {
                     return Task::none();
                 }
 
-                let _ = self.images.insert(url.clone(), Image::Loading);
+                let _ = self.images.insert(uri.clone(), Image::Loading);
 
                 Task::perform(
-                    download_image(url.clone()),
-                    Message::ImageDownloaded.with(url),
+                    download_image(uri.clone()),
+                    Message::ImageDownloaded.with(uri),
                 )
             }
             Message::ImageDownloaded(url, result) => {
@@ -240,19 +239,19 @@ impl Markdown {
 }
 
 struct CustomViewer<'a> {
-    images: &'a HashMap<markdown::Url, Image>,
+    images: &'a HashMap<markdown::Uri, Image>,
     now: Instant,
 }
 
 impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
-    fn on_link_click(url: markdown::Url) -> Message {
+    fn on_link_click(url: markdown::Uri) -> Message {
         Message::LinkClicked(url)
     }
 
     fn image(
         &self,
         _settings: markdown::Settings,
-        url: &'a markdown::Url,
+        url: &'a markdown::Uri,
         _title: &'a str,
         _alt: &markdown::Text,
     ) -> Element<'a, Message> {
@@ -295,21 +294,31 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
     }
 }
 
-async fn download_image(url: markdown::Url) -> Result<image::Handle, Error> {
+async fn download_image(uri: markdown::Uri) -> Result<image::Handle, Error> {
     use std::io;
     use tokio::task;
+    use url::Url;
 
-    println!("Trying to download image: {url}");
+    let bytes = match Url::parse(&uri) {
+        Ok(url) if url.scheme() == "http" || url.scheme() == "https" => {
+            println!("Trying to download image: {url}");
 
-    let client = reqwest::Client::new();
+            let client = reqwest::Client::new();
 
-    let bytes = client
-        .get(url)
-        .send()
-        .await?
-        .error_for_status()?
-        .bytes()
-        .await?;
+            client
+                .get(url)
+                .send()
+                .await?
+                .error_for_status()?
+                .bytes()
+                .await?
+        }
+        _ => {
+            return Err(Error::IOFailed(Arc::new(io::Error::other(format!(
+                "unsupported uri: {uri}"
+            )))));
+        }
+    };
 
     let image = task::spawn_blocking(move || {
         Ok::<_, Error>(
