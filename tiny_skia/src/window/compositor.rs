@@ -68,14 +68,15 @@ impl crate::graphics::Compositor for Compositor {
 
         let mut surface = Surface {
             window,
-            clip_mask: tiny_skia::Mask::new(width, height)
-                .expect("Create clip mask"),
+            clip_mask: tiny_skia::Mask::new(1, 1).expect("Create clip mask"),
             layer_stack: VecDeque::new(),
             background_color: Color::BLACK,
             max_age: 0,
         };
 
-        self.configure_surface(&mut surface, width, height);
+        if width > 0 && height > 0 {
+            self.configure_surface(&mut surface, width, height);
+        }
 
         surface
     }
