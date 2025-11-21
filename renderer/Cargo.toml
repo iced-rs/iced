@@ -14,7 +14,8 @@ keywords.workspace = true
 workspace = true
 
 [features]
-wgpu = ["iced_wgpu"]
+wgpu = ["iced_wgpu/default"]
+wgpu-bare = ["iced_wgpu"]
 tiny-skia = ["iced_tiny_skia"]
 image = ["iced_tiny_skia?/image", "iced_wgpu?/image"]
 svg = ["iced_tiny_skia?/svg", "iced_wgpu?/svg"]

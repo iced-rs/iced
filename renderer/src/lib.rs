@@ -1,7 +1,7 @@
 //! The official renderer for iced.
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "wgpu-bare")]
 pub use iced_wgpu as wgpu;
 
 pub mod fallback;
@@ -22,7 +22,7 @@ pub type Renderer = renderer::Renderer;
 /// [`iced`]: https://github.com/iced-rs/iced
 pub type Compositor = renderer::Compositor;
 
-#[cfg(all(feature = "wgpu", feature = "tiny-skia"))]
+#[cfg(all(feature = "wgpu-bare", feature = "tiny-skia"))]
 mod renderer {
     pub type Renderer = crate::fallback::Renderer<
         iced_wgpu::Renderer,
@@ -35,19 +35,19 @@ mod renderer {
     >;
 }
 
-#[cfg(all(feature = "wgpu", not(feature = "tiny-skia")))]
+#[cfg(all(feature = "wgpu-bare", not(feature = "tiny-skia")))]
 mod renderer {
     pub type Renderer = iced_wgpu::Renderer;
     pub type Compositor = iced_wgpu::window::Compositor;
 }
 
-#[cfg(all(not(feature = "wgpu"), feature = "tiny-skia"))]
+#[cfg(all(not(feature = "wgpu-bare"), feature = "tiny-skia"))]
 mod renderer {
     pub type Renderer = iced_tiny_skia::Renderer;
     pub type Compositor = iced_tiny_skia::window::Compositor;
 }
 
-#[cfg(not(any(feature = "wgpu", feature = "tiny-skia")))]
+#[cfg(not(any(feature = "wgpu-bare", feature = "tiny-skia")))]
 mod renderer {
     #[cfg(not(debug_assertions))]
     compile_error!(
