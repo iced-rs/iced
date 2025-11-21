@@ -411,7 +411,7 @@ where
     }
 }
 
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "wgpu-bare")]
 impl<A, B> iced_wgpu::primitive::Renderer for Renderer<A, B>
 where
     A: iced_wgpu::primitive::Renderer,
