@@ -1804,6 +1804,11 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
 ///
 /// Svg widgets display vector graphics in your application.
 ///
+/// Note that creating a [`Handle`] can be an expensive operation, so it is
+/// best practice to create the [`Handle`] once and store it in your app state. Your
+/// view function can then simply take a cheap clone of the stored [`Handle`], rather
+/// than needing to recreate it each time.
+///
 /// [`Svg`]: crate::Svg
 /// [`Handle`]: crate::svg::Handle
 ///
