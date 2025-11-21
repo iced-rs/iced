@@ -42,6 +42,7 @@ use crate::core::renderer;
 use crate::core::text::editor::{Cursor, Editor as _};
 use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{self, LineHeight, Text, Wrapping};
+use crate::core::theme;
 use crate::core::time::{Duration, Instant};
 use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
@@ -148,7 +149,7 @@ where
             max_height: f32::INFINITY,
             padding: Padding::new(5.0),
             wrapping: Wrapping::default(),
-            class: Theme::default(),
+            class: <Theme as Catalog>::default(),
             key_binding: None,
             on_edit: None,
             highlighter_settings: (),
@@ -514,6 +515,7 @@ pub struct State<Highlighter: text::Highlighter> {
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
     partial_scroll: f32,
+    last_theme: RefCell<Option<String>>,
     highlighter: RefCell<Highlighter>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format_address: usize,
@@ -588,6 +590,7 @@ where
             last_click: None,
             drag_click: None,
             partial_scroll: 0.0,
+            last_theme: RefCell::default(),
             highlighter: RefCell::new(Highlighter::new(
                 &self.highlighter_settings,
             )),
@@ -937,6 +940,19 @@ where
         let state = tree.state.downcast_ref::<State<Highlighter>>();
 
         let font = self.font.unwrap_or_else(|| renderer.default_font());
+
+        let theme_name = theme.name();
+
+        if state
+            .last_theme
+            .borrow()
+            .as_ref()
+            .is_none_or(|last_theme| last_theme != theme_name)
+        {
+            state.highlighter.borrow_mut().change_line(0);
+            let _ =
+                state.last_theme.borrow_mut().replace(theme_name.to_owned());
+        }
 
         internal.editor.highlight(
             font,
@@ -1391,7 +1407,7 @@ pub struct Style {
 }
 
 /// The theme catalog of a [`TextEditor`].
-pub trait Catalog {
+pub trait Catalog: theme::Base {
     /// The item class of the [`Catalog`].
     type Class<'a>;
 
