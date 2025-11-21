@@ -5,9 +5,22 @@ pub fn main() -> iced::Result {
     iced::run(Tiger::update, Tiger::view)
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Tiger {
     apply_color_filter: bool,
+    handle: svg::Handle,
+}
+
+impl Default for Tiger {
+    fn default() -> Self {
+        Self {
+            apply_color_filter: false,
+            handle: svg::Handle::from_path(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/resources/tiger.svg",
+            )),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -25,22 +38,15 @@ impl Tiger {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let handle = svg::Handle::from_path(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/resources/tiger.svg",
-        ));
-
-        let svg =
-            svg(handle)
-                .width(Fill)
-                .height(Fill)
-                .style(|_theme, _status| svg::Style {
-                    color: if self.apply_color_filter {
-                        Some(color!(0x0000ff))
-                    } else {
-                        None
-                    },
-                });
+        let svg = svg(self.handle.clone()).width(Fill).height(Fill).style(
+            |_theme, _status| svg::Style {
+                color: if self.apply_color_filter {
+                    Some(color!(0x0000ff))
+                } else {
+                    None
+                },
+            },
+        );
 
         let apply_color_filter =
             checkbox("Apply a color filter", self.apply_color_filter)
