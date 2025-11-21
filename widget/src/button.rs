@@ -459,7 +459,7 @@ where
 }
 
 /// The default [`Padding`] of a [`Button`].
-pub(crate) const DEFAULT_PADDING: Padding = Padding {
+pub const DEFAULT_PADDING: Padding = Padding {
     top: 5.0,
     bottom: 5.0,
     right: 10.0,
