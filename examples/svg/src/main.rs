@@ -26,7 +26,7 @@ impl Tiger {
 
     fn view(&self) -> Element<'_, Message> {
         let svg =
-            svg(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/tiger.svg",))
+            svg(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/tiger.svg"))
                 .width(Fill)
                 .height(Fill)
                 .style(|_theme, _status| svg::Style {
