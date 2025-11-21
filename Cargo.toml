@@ -207,7 +207,7 @@ png = "0.18"
 pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
-resvg = "0.42"
+resvg = "0.45"
 rfd = "0.15"
 rustc-hash = "2.0"
 semver = "1.0"
