@@ -360,6 +360,11 @@ where
     ) {
         self.position = position;
 
+        let background = Color {
+            a: 1.0,
+            ..background
+        };
+
         let spans = match &preedit.selection {
             Some(selection) => {
                 vec![
@@ -428,6 +433,11 @@ where
             .min(viewport.y + viewport.height - bounds.height);
 
         renderer.with_layer(bounds, |renderer| {
+            let background = Color {
+                a: 1.0,
+                ..background
+            };
+
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
