@@ -18,6 +18,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
 
 [features]
+default = ["wgpu/default"]
 geometry = ["iced_graphics/geometry", "lyon"]
 image = ["iced_graphics/image"]
 svg = ["iced_graphics/svg", "resvg/text"]
