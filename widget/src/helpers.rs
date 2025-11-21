@@ -634,19 +634,19 @@ where
 
         fn operate(
             &mut self,
-            state: &mut Tree,
+            tree: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
             self.content
                 .as_widget_mut()
-                .operate(state, layout, renderer, operation);
+                .operate(tree, layout, renderer, operation);
         }
 
         fn update(
             &mut self,
-            state: &mut Tree,
+            tree: &mut Tree,
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
@@ -661,7 +661,7 @@ where
             );
 
             self.content.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
+                tree, event, layout, cursor, renderer, clipboard, shell,
                 viewport,
             );
 

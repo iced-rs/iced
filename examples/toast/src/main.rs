@@ -342,7 +342,7 @@ mod toast {
 
         fn operate(
             &mut self,
-            state: &mut Tree,
+            tree: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn Operation,
@@ -350,7 +350,7 @@ mod toast {
             operation.container(None, layout.bounds());
             operation.traverse(&mut |operation| {
                 self.content.as_widget_mut().operate(
-                    &mut state.children[0],
+                    &mut tree.children[0],
                     layout,
                     renderer,
                     operation,
@@ -360,7 +360,7 @@ mod toast {
 
         fn update(
             &mut self,
-            state: &mut Tree,
+            tree: &mut Tree,
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
@@ -370,7 +370,7 @@ mod toast {
             viewport: &Rectangle,
         ) {
             self.content.as_widget_mut().update(
-                &mut state.children[0],
+                &mut tree.children[0],
                 event,
                 layout,
                 cursor,
@@ -383,7 +383,7 @@ mod toast {
 
         fn draw(
             &self,
-            state: &Tree,
+            tree: &Tree,
             renderer: &mut Renderer,
             theme: &Theme,
             style: &renderer::Style,
@@ -392,7 +392,7 @@ mod toast {
             viewport: &Rectangle,
         ) {
             self.content.as_widget().draw(
-                &state.children[0],
+                &tree.children[0],
                 renderer,
                 theme,
                 style,
@@ -404,14 +404,14 @@ mod toast {
 
         fn mouse_interaction(
             &self,
-            state: &Tree,
+            tree: &Tree,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
             self.content.as_widget().mouse_interaction(
-                &state.children[0],
+                &tree.children[0],
                 layout,
                 cursor,
                 viewport,
@@ -421,15 +421,15 @@ mod toast {
 
         fn overlay<'b>(
             &'b mut self,
-            state: &'b mut Tree,
+            tree: &'b mut Tree,
             layout: Layout<'b>,
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: Vector,
         ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-            let instants = state.state.downcast_mut::<Vec<Option<Instant>>>();
+            let instants = tree.state.downcast_mut::<Vec<Option<Instant>>>();
 
-            let (content_state, toasts_state) = state.children.split_at_mut(1);
+            let (content_state, toasts_state) = tree.children.split_at_mut(1);
 
             let content = self.content.as_widget_mut().overlay(
                 &mut content_state[0],
@@ -444,7 +444,7 @@ mod toast {
                     position: layout.bounds().position() + translation,
                     viewport: *viewport,
                     toasts: &mut self.toasts,
-                    state: toasts_state,
+                    trees: toasts_state,
                     instants,
                     on_close: &self.on_close,
                     timeout_secs: self.timeout_secs,
@@ -462,7 +462,7 @@ mod toast {
         position: Point,
         viewport: Rectangle,
         toasts: &'b mut [Element<'a, Message>],
-        state: &'b mut [Tree],
+        trees: &'b mut [Tree],
         instants: &'b mut [Option<Instant>],
         on_close: &'b dyn Fn(usize) -> Message,
         timeout_secs: u64,
@@ -488,7 +488,7 @@ mod toast {
                 10.0,
                 Alignment::End,
                 self.toasts,
-                self.state,
+                self.trees,
             )
             .translate(Vector::new(self.position.x, self.position.y))
         }
@@ -525,7 +525,7 @@ mod toast {
             for (((child, state), layout), instant) in self
                 .toasts
                 .iter_mut()
-                .zip(self.state.iter_mut())
+                .zip(self.trees.iter_mut())
                 .zip(layout.children())
                 .zip(self.instants.iter_mut())
             {
@@ -561,14 +561,14 @@ mod toast {
         ) {
             let viewport = layout.bounds();
 
-            for ((child, state), layout) in self
+            for ((child, tree), layout) in self
                 .toasts
                 .iter()
-                .zip(self.state.iter())
+                .zip(self.trees.iter())
                 .zip(layout.children())
             {
                 child.as_widget().draw(
-                    state, renderer, theme, style, layout, cursor, &viewport,
+                    tree, renderer, theme, style, layout, cursor, &viewport,
                 );
             }
         }
@@ -583,7 +583,7 @@ mod toast {
             operation.traverse(&mut |operation| {
                 self.toasts
                     .iter_mut()
-                    .zip(self.state.iter_mut())
+                    .zip(self.trees.iter_mut())
                     .zip(layout.children())
                     .for_each(|((child, state), layout)| {
                         child
@@ -601,7 +601,7 @@ mod toast {
         ) -> mouse::Interaction {
             self.toasts
                 .iter()
-                .zip(self.state.iter())
+                .zip(self.trees.iter())
                 .zip(layout.children())
                 .map(|((child, state), layout)| {
                     child

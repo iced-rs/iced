@@ -125,7 +125,7 @@ where
 
     fn update(
         &mut self,
-        state: &mut widget::Tree,
+        tree: &mut widget::Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -139,7 +139,7 @@ where
         }
 
         self.content.as_widget_mut().update(
-            state, event, layout, cursor, renderer, clipboard, shell, viewport,
+            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
         );
     }
 
@@ -180,7 +180,7 @@ where
 
     fn mouse_interaction(
         &self,
-        state: &widget::Tree,
+        tree: &widget::Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
@@ -192,19 +192,19 @@ where
 
         self.content
             .as_widget()
-            .mouse_interaction(state, layout, cursor, viewport, renderer)
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
     fn operate(
         &mut self,
-        state: &mut widget::Tree,
+        tree: &mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         self.content
             .as_widget_mut()
-            .operate(state, layout, renderer, operation);
+            .operate(tree, layout, renderer, operation);
     }
 
     fn overlay<'a>(

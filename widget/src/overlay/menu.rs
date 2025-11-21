@@ -168,7 +168,7 @@ where
 {
     position: Point,
     viewport: Rectangle,
-    state: &'a mut Tree,
+    tree: &'a mut Tree,
     list: Scrollable<'a, Message, Theme, Renderer>,
     width: f32,
     target_height: f32,
@@ -226,7 +226,7 @@ where
         Self {
             position,
             viewport,
-            state: &mut state.tree,
+            tree: &mut state.tree,
             list,
             width,
             target_height,
@@ -259,7 +259,7 @@ where
         )
         .width(self.width);
 
-        let node = self.list.layout(self.state, renderer, &limits);
+        let node = self.list.layout(self.tree, renderer, &limits);
         let size = node.size();
 
         node.move_to(if space_below > space_above {
@@ -281,7 +281,7 @@ where
         let bounds = layout.bounds();
 
         self.list.update(
-            self.state, event, layout, cursor, renderer, clipboard, shell,
+            self.tree, event, layout, cursor, renderer, clipboard, shell,
             &bounds,
         );
     }
@@ -293,7 +293,7 @@ where
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.list.mouse_interaction(
-            self.state,
+            self.tree,
             layout,
             cursor,
             &self.viewport,
@@ -323,7 +323,7 @@ where
         );
 
         self.list.draw(
-            self.state, renderer, theme, defaults, layout, cursor, &bounds,
+            self.tree, renderer, theme, defaults, layout, cursor, &bounds,
         );
     }
 }
@@ -487,7 +487,7 @@ where
 
     fn mouse_interaction(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
@@ -504,7 +504,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,

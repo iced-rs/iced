@@ -435,19 +435,19 @@ where
 
     fn operate(
         &mut self,
-        state: &mut Tree,
+        tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         self.element
             .widget
-            .operate(state, layout, renderer, operation);
+            .operate(tree, layout, renderer, operation);
     }
 
     fn update(
         &mut self,
-        state: &mut Tree,
+        tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -457,13 +457,13 @@ where
         viewport: &Rectangle,
     ) {
         self.element.widget.update(
-            state, event, layout, cursor, renderer, clipboard, shell, viewport,
+            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
         );
     }
 
     fn draw(
         &self,
-        state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
@@ -496,14 +496,14 @@ where
 
         self.element
             .widget
-            .draw(state, renderer, theme, style, layout, cursor, viewport);
+            .draw(tree, renderer, theme, style, layout, cursor, viewport);
 
         explain_layout(renderer, self.color, layout);
     }
 
     fn mouse_interaction(
         &self,
-        state: &Tree,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
@@ -511,19 +511,19 @@ where
     ) -> mouse::Interaction {
         self.element
             .widget
-            .mouse_interaction(state, layout, cursor, viewport, renderer)
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
     fn overlay<'b>(
         &'b mut self,
-        state: &'b mut Tree,
+        tree: &'b mut Tree,
         layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.element.widget.overlay(
-            state,
+            tree,
             layout,
             renderer,
             viewport,
