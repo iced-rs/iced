@@ -16,6 +16,11 @@ pub struct Settings {
     ///
     /// By default, it is `None`.
     pub antialiasing: Option<Antialiasing>,
+
+    /// Whether or not to synchronize frames.
+    ///
+    /// By default, it is `true`.
+    pub vsync: bool,
 }
 
 impl Default for Settings {
@@ -24,6 +29,7 @@ impl Default for Settings {
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: None,
+            vsync: true,
         }
     }
 }
@@ -42,6 +48,7 @@ impl From<core::Settings> for Settings {
             },
             default_text_size: settings.default_text_size,
             antialiasing: settings.antialiasing.then_some(Antialiasing::MSAAx4),
+            vsync: settings.vsync,
         }
     }
 }
