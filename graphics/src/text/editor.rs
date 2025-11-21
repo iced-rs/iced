@@ -409,6 +409,20 @@ impl editor::Editor for Editor {
                             cosmic_text::Action::Delete,
                         );
                     }
+                    Edit::ReplaceAll(text) => {
+                        let buffer = buffer_mut_from_editor(editor);
+
+                        buffer.set_rich_text(
+                            font_system.raw(),
+                            std::iter::once((
+                                &**text,
+                                cosmic_text::Attrs::new(),
+                            )),
+                            &cosmic_text::Attrs::new(),
+                            cosmic_text::Shaping::Advanced,
+                            None,
+                        );
+                    }
                 }
 
                 let cursor = editor.cursor();
