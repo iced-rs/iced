@@ -242,7 +242,7 @@ impl core::Renderer for Renderer {
         callback(self.engine.raster_pipeline.load(_handle));
 
         #[cfg(not(feature = "image"))]
-        callback(Err(core::image::Error::Unsupported))
+        callback(Err(core::image::Error::Unsupported));
     }
 }
 
