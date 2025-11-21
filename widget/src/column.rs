@@ -160,6 +160,17 @@ where
     ) -> Self {
         children.into_iter().fold(self, Self::push)
     }
+
+    /// Turns the [`Column`] into a [`Wrapping`] column.
+    ///
+    /// The original alignment of the [`Column`] is preserved per column wrapped.
+    pub fn wrap(self) -> Wrapping<'a, Message, Theme, Renderer> {
+        Wrapping {
+            column: self,
+            horizontal_spacing: None,
+            align_y: alignment::Vertical::Top,
+        }
+    }
 }
 
 impl<Message, Renderer> Default for Column<'_, Message, Renderer>
@@ -350,6 +361,257 @@ where
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(column: Column<'a, Message, Theme, Renderer>) -> Self {
+        Self::new(column)
+    }
+}
+
+/// A [`Column`] that wraps its contents.
+///
+/// Create a [`Column`] first, and then call [`Column::wrap`] to
+/// obtain a [`Column`] that wraps its contents.
+///
+/// The original alignment of the [`Column`] is preserved per column wrapped.
+#[allow(missing_debug_implementations)]
+pub struct Wrapping<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> {
+    column: Column<'a, Message, Theme, Renderer>,
+    horizontal_spacing: Option<f32>,
+    align_y: alignment::Vertical,
+}
+
+impl<Message, Theme, Renderer> Wrapping<'_, Message, Theme, Renderer> {
+    /// Sets the horizontal spacing _between_ columns.
+    pub fn horizontal_spacing(mut self, amount: impl Into<Pixels>) -> Self {
+        self.horizontal_spacing = Some(amount.into().0);
+        self
+    }
+
+    /// Sets the vertical alignment of the wrapping [`Column`].
+    pub fn align_x(mut self, align_y: impl Into<alignment::Vertical>) -> Self {
+        self.align_y = align_y.into();
+        self
+    }
+}
+
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Wrapping<'_, Message, Theme, Renderer>
+where
+    Renderer: crate::core::Renderer,
+{
+    fn children(&self) -> Vec<Tree> {
+        self.column.children()
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        self.column.diff(tree);
+    }
+
+    fn size(&self) -> Size<Length> {
+        self.column.size()
+    }
+
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits = limits
+            .width(self.column.width)
+            .height(self.column.height)
+            .shrink(self.column.padding);
+
+        let child_limits = limits.loose();
+        let spacing = self.column.spacing;
+        let horizontal_spacing = self.horizontal_spacing.unwrap_or(spacing);
+        let max_height = limits.max().height;
+
+        let mut children: Vec<layout::Node> = Vec::new();
+        let mut intrinsic_size = Size::ZERO;
+        let mut column_start = 0;
+        let mut column_width = 0.0;
+        let mut x = 0.0;
+        let mut y = 0.0;
+
+        let align_factor = match self.column.align {
+            Alignment::Start => 0.0,
+            Alignment::Center => 2.0,
+            Alignment::End => 1.0,
+        };
+
+        let align_x = |column_start: std::ops::Range<usize>,
+                       column_width: f32,
+                       children: &mut Vec<layout::Node>| {
+            if align_factor != 0.0 {
+                for node in &mut children[column_start] {
+                    let width = node.size().width;
+
+                    node.translate_mut(Vector::new(
+                        (column_width - width) / align_factor,
+                        0.0,
+                    ));
+                }
+            }
+        };
+
+        for (i, child) in self.column.children.iter_mut().enumerate() {
+            let node = child.as_widget_mut().layout(
+                &mut tree.children[i],
+                renderer,
+                &child_limits,
+            );
+
+            let child_size = node.size();
+
+            if y != 0.0 && y + child_size.height > max_height {
+                intrinsic_size.height = intrinsic_size.height.max(y - spacing);
+
+                align_x(column_start..i, column_width, &mut children);
+
+                x += column_width + horizontal_spacing;
+                y = 0.0;
+                column_start = i;
+                column_width = 0.0;
+            }
+
+            column_width = column_width.max(child_size.width);
+
+            children.push(node.move_to((
+                x + self.column.padding.left,
+                y + self.column.padding.top,
+            )));
+
+            y += child_size.height + spacing;
+        }
+
+        if y != 0.0 {
+            intrinsic_size.height = intrinsic_size.height.max(y - spacing);
+        }
+
+        intrinsic_size.width = x + column_width;
+        align_x(column_start..children.len(), column_width, &mut children);
+
+        let align_factor = match self.align_y {
+            alignment::Vertical::Top => 0.0,
+            alignment::Vertical::Center => 2.0,
+            alignment::Vertical::Bottom => 1.0,
+        };
+
+        if align_factor != 0.0 {
+            let total_height = intrinsic_size.height;
+
+            let mut column_start = 0;
+
+            for i in 0..children.len() {
+                let bounds = children[i].bounds();
+                let column_height = bounds.y + bounds.height;
+
+                let next_y = children
+                    .get(i + 1)
+                    .map(|node| node.bounds().y)
+                    .unwrap_or_default();
+
+                if next_y == 0.0 {
+                    let translation = Vector::new(
+                        0.0,
+                        (total_height - column_height) / align_factor,
+                    );
+
+                    for node in &mut children[column_start..=i] {
+                        node.translate_mut(translation);
+                    }
+
+                    column_start = i + 1;
+                }
+            }
+        }
+
+        let size = limits.resolve(
+            self.column.width,
+            self.column.height,
+            intrinsic_size,
+        );
+
+        layout::Node::with_children(size.expand(self.column.padding), children)
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn Operation,
+    ) {
+        self.column.operate(tree, layout, renderer, operation);
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut Tree,
+        event: &Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
+        self.column.update(
+            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
+        );
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.column
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        self.column
+            .draw(tree, renderer, theme, style, layout, cursor, viewport);
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        tree: &'b mut Tree,
+        layout: Layout<'b>,
+        renderer: &Renderer,
+        viewport: &Rectangle,
+        translation: Vector,
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        self.column
+            .overlay(tree, layout, renderer, viewport, translation)
+    }
+}
+
+impl<'a, Message, Theme, Renderer> From<Wrapping<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: 'a,
+    Renderer: crate::core::Renderer + 'a,
+{
+    fn from(column: Wrapping<'a, Message, Theme, Renderer>) -> Self {
         Self::new(column)
     }
 }
