@@ -237,7 +237,7 @@ where
 
                 state.cursor_grabbed_at = None;
             }
-            Event::Mouse(mouse::Event::CursorMoved { position }) => {
+            Event::Mouse(mouse::Event::CursorMoved { position, .. }) => {
                 let state = tree.state.downcast_mut::<State>();
 
                 if let Some(origin) = state.cursor_grabbed_at {
