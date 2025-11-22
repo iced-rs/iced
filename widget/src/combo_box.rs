@@ -897,14 +897,18 @@ where
                     menu,
                     &filtered_options.options,
                     hovered_option,
-                    |x| {
-                        tree.children[0]
-                    .state
-                    .downcast_mut::<text_input::State<Renderer::Paragraph>>(
-                    )
-                    .unfocus();
+                    |selection| {
+                        self.state.with_inner_mut(|state| {
+                            state.value = String::new();
+                            state.filtered_options.update(self.state.options.clone());
+                        });
 
-                        (self.on_selected)(x)
+                        tree.children[0]
+                            .state
+                            .downcast_mut::<text_input::State<Renderer::Paragraph>>()
+                            .unfocus();
+
+                        (self.on_selected)(selection)
                     },
                     self.on_option_hovered.as_deref(),
                     &self.menu_class,
