@@ -226,8 +226,8 @@ where
             .collect()
     }
 
-    fn diff(&self, state: &mut widget::Tree) {
-        state.diff_children(&self.cells);
+    fn diff(&self, tree: &mut widget::Tree) {
+        tree.diff_children(&self.cells);
     }
 
     fn layout(
@@ -472,14 +472,14 @@ where
         shell: &mut core::Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        for ((cell, state), layout) in self
+        for ((cell, tree), layout) in self
             .cells
             .iter_mut()
             .zip(&mut tree.children)
             .zip(layout.children())
         {
             cell.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
+                tree, event, layout, cursor, renderer, clipboard, shell,
                 viewport,
             );
         }
@@ -570,10 +570,9 @@ where
             .iter()
             .zip(&tree.children)
             .zip(layout.children())
-            .map(|((cell, state), layout)| {
-                cell.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                )
+            .map(|((cell, tree), layout)| {
+                cell.as_widget()
+                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -599,7 +598,7 @@ where
 
     fn overlay<'b>(
         &'b mut self,
-        state: &'b mut widget::Tree,
+        tree: &'b mut widget::Tree,
         layout: Layout<'b>,
         renderer: &Renderer,
         viewport: &Rectangle,
@@ -607,7 +606,7 @@ where
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.cells,
-            state,
+            tree,
             layout,
             renderer,
             viewport,

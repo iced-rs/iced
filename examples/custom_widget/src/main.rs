@@ -43,7 +43,7 @@ mod circle {
 
         fn draw(
             &self,
-            _state: &widget::Tree,
+            _tree: &widget::Tree,
             renderer: &mut Renderer,
             _theme: &Theme,
             _style: &renderer::Style,

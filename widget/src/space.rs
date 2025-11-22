@@ -81,7 +81,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         _renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,

@@ -1054,7 +1054,7 @@ where
 
     fn mouse_interaction(
         &self,
-        _state: &widget::Tree,
+        _tree: &widget::Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,

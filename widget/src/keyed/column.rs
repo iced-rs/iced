@@ -308,14 +308,14 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        for ((child, state), layout) in self
+        for ((child, tree), layout) in self
             .children
             .iter_mut()
             .zip(&mut tree.children)
             .zip(layout.children())
         {
             child.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
+                tree, event, layout, cursor, renderer, clipboard, shell,
                 viewport,
             );
         }
@@ -333,10 +333,10 @@ where
             .iter()
             .zip(&tree.children)
             .zip(layout.children())
-            .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                )
+            .map(|((child, tree), layout)| {
+                child
+                    .as_widget()
+                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
