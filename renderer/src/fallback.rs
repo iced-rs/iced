@@ -73,6 +73,14 @@ where
     ) {
         delegate!(self, renderer, renderer.allocate_image(handle, callback));
     }
+
+    fn hint(&mut self, scale_factor: f32) {
+        delegate!(self, renderer, renderer.hint(scale_factor));
+    }
+
+    fn scale_factor(&self) -> Option<f32> {
+        delegate!(self, renderer, renderer.scale_factor())
+    }
 }
 
 impl<A, B> core::text::Renderer for Renderer<A, B>

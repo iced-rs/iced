@@ -190,8 +190,8 @@ bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cargo-hot = { version = "0.1", package = "cargo-hot-protocol" }
-cosmic-text = "0.15"
-cryoglyph = "0.1"
+cosmic-text = { git = "https://github.com/pop-os/cosmic-text.git", rev = "a07a6190548c8e40a55f6b7761387047ff1bf6ff" }
+cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "89883bcf38b5bed0d7bade788ef738d9facc857c" }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 glam = "0.25"
 guillotiere = "0.6"

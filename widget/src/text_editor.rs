@@ -926,6 +926,7 @@ where
                         align_y: alignment::Vertical::Top,
                         shaping: text::Shaping::Advanced,
                         wrapping: self.wrapping,
+                        hint_factor: renderer.scale_factor(),
                     },
                     text_bounds.position(),
                     style.placeholder,

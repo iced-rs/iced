@@ -45,6 +45,7 @@ pub struct Renderer {
     default_text_size: Pixels,
     layers: layer::Stack,
     engine: Engine, // TODO: Shared engine
+    scale_factor: Option<f32>,
 }
 
 impl Renderer {
@@ -54,6 +55,7 @@ impl Renderer {
             default_text_size,
             layers: layer::Stack::new(),
             engine: Engine::new(),
+            scale_factor: None,
         }
     }
 
@@ -71,7 +73,6 @@ impl Renderer {
         background_color: Color,
     ) {
         let scale_factor = viewport.scale_factor();
-
         self.layers.flush();
 
         for &damage_bounds in damage {
@@ -230,6 +231,14 @@ impl core::Renderer for Renderer {
 
         #[cfg(not(feature = "image"))]
         callback(Err(core::image::Error::Unsupported));
+    }
+
+    fn hint(&mut self, scale_factor: f32) {
+        self.scale_factor = Some(scale_factor);
+    }
+
+    fn scale_factor(&self) -> Option<f32> {
+        self.scale_factor
     }
 }
 

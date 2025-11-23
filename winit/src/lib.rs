@@ -42,7 +42,7 @@ use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Size};
+use crate::core::{Point, Renderer, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -645,6 +645,7 @@ async fn run_instance<P>(
                 });
 
                 let logical_size = window.state.logical_size();
+                window.renderer.hint(window.state.scale_factor());
 
                 let _ = user_interfaces.insert(
                     id,
@@ -754,6 +755,8 @@ async fn run_instance<P>(
                         // Window was resized between redraws
                         if window.surface_version != window.state.surface_version() {
                             let ui = user_interfaces.remove(&id).expect("Remove user interface");
+
+                            window.renderer.hint(window.state.scale_factor());
 
                             let layout_span = debug::layout(id);
                             let _ = user_interfaces

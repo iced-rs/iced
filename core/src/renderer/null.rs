@@ -26,6 +26,12 @@ impl Renderer for () {
         #[allow(unsafe_code)]
         callback(Ok(unsafe { image::allocate(handle, Size::new(100, 100)) }));
     }
+
+    fn hint(&mut self, _scale_factor: f32) {}
+
+    fn scale_factor(&self) -> Option<f32> {
+        None
+    }
 }
 
 impl text::Renderer for () {
@@ -89,6 +95,10 @@ impl text::Paragraph for () {
 
     fn compare(&self, _text: Text<()>) -> text::Difference {
         text::Difference::None
+    }
+
+    fn hint_factor(&self) -> Option<f32> {
+        None
     }
 
     fn size(&self) -> Pixels {

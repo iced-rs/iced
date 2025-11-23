@@ -42,6 +42,16 @@ pub struct Text<Content = String, Font = crate::Font> {
 
     /// The [`Wrapping`] strategy of the [`Text`].
     pub wrapping: Wrapping,
+
+    /// The scale factor that may be used to internally scale the layout
+    /// calculation of the [`Paragraph`] and leverage metrics hinting.
+    ///
+    /// Effectively, this defines the "base" layout that will be used for
+    /// linear scaling.
+    ///
+    /// If `None`, hinting will be disabled and subpixel positioning will be
+    /// performed.
+    pub hint_factor: Option<f32>,
 }
 
 impl<Content, Font> Text<Content, Font>
@@ -61,6 +71,7 @@ where
             align_y: self.align_y,
             shaping: self.shaping,
             wrapping: self.wrapping,
+            hint_factor: self.hint_factor,
         }
     }
 }

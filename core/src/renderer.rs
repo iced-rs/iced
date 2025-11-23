@@ -58,6 +58,19 @@ pub trait Renderer {
         handle: &image::Handle,
         callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     );
+
+    /// Provides hints to the [`Renderer`] about the rendering target.
+    ///
+    /// This may be used internally by the [`Renderer`] to perform optimizations
+    /// and/or improve rendering quality.
+    ///
+    /// For instance, providing a `scale_factor` may be used by some renderers to
+    /// perform metrics hinting internally in physical coordinates while keeping
+    /// layout coordinates logical and, therefore, maintain linearity.
+    fn hint(&mut self, scale_factor: f32);
+
+    /// Returns the last scale factor provided as a [`hint`](Self::hint).
+    fn scale_factor(&self) -> Option<f32>;
 }
 
 /// A polygon with four sides.
