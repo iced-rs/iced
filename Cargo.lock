@@ -1051,8 +1051,7 @@ dependencies = [
 [[package]]
 name = "cosmic-text"
 version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "173852283a9a57a3cbe365d86e74dc428a09c50421477d5ad6fe9d9509e37737"
+source = "git+https://github.com/hecrj/cosmic-text.git?rev=951815a3c13e2c4633c17dfdf2d049a947196002#951815a3c13e2c4633c17dfdf2d049a947196002"
 dependencies = [
  "bitflags 2.10.0",
  "fontdb",
@@ -1168,7 +1167,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 [[package]]
 name = "cryoglyph"
 version = "0.1.0"
-source = "git+https://github.com/iced-rs/cryoglyph.git?rev=99b46959369f38a06c11353bf1be81d383b289fc#99b46959369f38a06c11353bf1be81d383b289fc"
+source = "git+https://github.com/iced-rs/cryoglyph.git?rev=1368b1ab446380576d74cd8d7bdd3f8c5a5f981d#1368b1ab446380576d74cd8d7bdd3f8c5a5f981d"
 dependencies = [
  "cosmic-text",
  "etagere",

@@ -419,6 +419,7 @@ where
                         align_y: alignment::Vertical::Center,
                         shaping: *shaping,
                         wrapping: text::Wrapping::default(),
+                        hint_factor: None,
                     },
                     bounds.center(),
                     style.icon_color,

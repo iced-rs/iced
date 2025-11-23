@@ -315,6 +315,7 @@ where
             align_y: format.align_y,
             shaping: format.shaping,
             wrapping: format.wrapping,
+            hint_factor: renderer.scale_factor(),
         });
 
         paragraph.min_bounds()

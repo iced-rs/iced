@@ -44,7 +44,8 @@ impl Cache {
                 key.size,
                 key.line_height.max(f32::MIN_POSITIVE),
             );
-            let mut buffer = cosmic_text::Buffer::new(font_system, metrics);
+            let mut buffer =
+                cosmic_text::Buffer::new(font_system, metrics, false);
 
             buffer.set_size(
                 font_system,

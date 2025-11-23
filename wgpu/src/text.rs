@@ -505,7 +505,7 @@ fn prepare(
 
     let text_areas = sections.iter().zip(allocations.iter()).filter_map(
         |(section, allocation)| {
-            let (buffer, position, color, clip_bounds, transformation) =
+            let (buffer, scale, position, color, clip_bounds, transformation) =
                 match section {
                     Text::Paragraph {
                         position,
@@ -519,8 +519,11 @@ fn prepare(
                             return None;
                         };
 
+                        use crate::core::text::Paragraph as _;
+
                         (
                             paragraph.buffer(),
+                            paragraph.hint_factor().unwrap_or(1.0),
                             *position,
                             *color,
                             *clip_bounds,
@@ -541,6 +544,7 @@ fn prepare(
 
                         (
                             editor.buffer(),
+                            1.0,
                             *position,
                             *color,
                             *clip_bounds,
@@ -588,6 +592,7 @@ fn prepare(
 
                         (
                             &entry.buffer,
+                            1.0,
                             position,
                             *color,
                             *clip_bounds,
@@ -604,6 +609,7 @@ fn prepare(
 
                         (
                             buffer.as_ref(),
+                            1.0,
                             raw.position,
                             raw.color,
                             raw.clip_bounds,
@@ -623,7 +629,8 @@ fn prepare(
                 left: position.x,
                 top: position.y,
                 scale: transformation.scale_factor()
-                    * layer_transformation.scale_factor(),
+                    * layer_transformation.scale_factor()
+                    / scale,
                 bounds: cryoglyph::TextBounds {
                     left: clip_bounds.x.round() as i32,
                     top: clip_bounds.y.round() as i32,

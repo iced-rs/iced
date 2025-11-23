@@ -62,10 +62,13 @@ impl editor::Editor for Editor {
     type Font = Font;
 
     fn with_text(text: &str) -> Self {
-        let mut buffer = cosmic_text::Buffer::new_empty(cosmic_text::Metrics {
-            font_size: 1.0,
-            line_height: 1.0,
-        });
+        let mut buffer = cosmic_text::Buffer::new_empty(
+            cosmic_text::Metrics {
+                font_size: 1.0,
+                line_height: 1.0,
+            },
+            false,
+        );
 
         let mut font_system =
             text::font_system().write().expect("Write font system");
@@ -677,6 +680,7 @@ impl Default for Internal {
                     font_size: 1.0,
                     line_height: 1.0,
                 },
+                false,
             )),
             cursor: RwLock::new(None),
             font: Font::default(),
