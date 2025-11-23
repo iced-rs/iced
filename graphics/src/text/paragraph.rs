@@ -61,6 +61,8 @@ impl Paragraph {
     }
 }
 
+const MAX_HINTING_SIZE: f32 = 18.0;
+
 impl core::text::Paragraph for Paragraph {
     type Font = Font;
 
@@ -70,13 +72,18 @@ impl core::text::Paragraph for Paragraph {
         let mut font_system =
             text::font_system().write().expect("Write font system");
 
-        let scale_factor = text.hint_factor.unwrap_or(1.0);
-        let hint = text.hint_factor.is_some();
+        let size = f32::from(text.size);
+        let (size, hint, scale_factor) = match text.hint_factor {
+            Some(hint_factor) if size * hint_factor < MAX_HINTING_SIZE => {
+                (size * hint_factor, true, hint_factor)
+            }
+            _ => (size, false, 1.0),
+        };
 
         let mut buffer = cosmic_text::Buffer::new(
             font_system.raw(),
             cosmic_text::Metrics::new(
-                f32::from(text.size) * scale_factor,
+                size,
                 f32::from(text.line_height.to_absolute(text.size))
                     * scale_factor,
             ),
@@ -124,13 +131,18 @@ impl core::text::Paragraph for Paragraph {
         let mut font_system =
             text::font_system().write().expect("Write font system");
 
-        let scale_factor = text.hint_factor.unwrap_or(1.0);
-        let hint = text.hint_factor.is_some();
+        let size = f32::from(text.size);
+        let (size, hint, scale_factor) = match text.hint_factor {
+            Some(hint_factor) if size * hint_factor < MAX_HINTING_SIZE => {
+                (size * hint_factor, true, hint_factor)
+            }
+            _ => (size, false, 1.0),
+        };
 
         let mut buffer = cosmic_text::Buffer::new(
             font_system.raw(),
             cosmic_text::Metrics::new(
-                f32::from(text.size) * scale_factor,
+                size,
                 f32::from(text.line_height.to_absolute(text.size))
                     * scale_factor,
             ),
