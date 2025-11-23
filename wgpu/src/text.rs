@@ -505,132 +505,140 @@ fn prepare(
 
     let text_areas = sections.iter().zip(allocations.iter()).filter_map(
         |(section, allocation)| {
-            let (buffer, scale, position, color, clip_bounds, transformation) =
-                match section {
-                    Text::Paragraph {
+            let (
+                buffer,
+                hint_factor,
+                position,
+                color,
+                clip_bounds,
+                transformation,
+            ) = match section {
+                Text::Paragraph {
+                    position,
+                    color,
+                    clip_bounds,
+                    transformation,
+                    ..
+                } => {
+                    let Some(Allocation::Paragraph(paragraph)) = allocation
+                    else {
+                        return None;
+                    };
+
+                    use crate::core::text::Paragraph as _;
+
+                    (
+                        paragraph.buffer(),
+                        paragraph.hint_factor(),
+                        *position,
+                        *color,
+                        *clip_bounds,
+                        *transformation,
+                    )
+                }
+                Text::Editor {
+                    position,
+                    color,
+                    clip_bounds,
+                    transformation,
+                    ..
+                } => {
+                    let Some(Allocation::Editor(editor)) = allocation else {
+                        return None;
+                    };
+
+                    (
+                        editor.buffer(),
+                        None,
+                        *position,
+                        *color,
+                        *clip_bounds,
+                        *transformation,
+                    )
+                }
+                Text::Cached {
+                    bounds,
+                    align_x,
+                    align_y,
+                    color,
+                    clip_bounds,
+                    ..
+                } => {
+                    let Some(Allocation::Cache(key)) = allocation else {
+                        return None;
+                    };
+
+                    let entry =
+                        buffer_cache.get(key).expect("Get cached buffer");
+
+                    let mut position = bounds.position();
+
+                    position.x = match align_x {
+                        Alignment::Default
+                        | Alignment::Left
+                        | Alignment::Justified => position.x,
+                        Alignment::Center => {
+                            position.x - entry.min_bounds.width / 2.0
+                        }
+                        Alignment::Right => position.x - entry.min_bounds.width,
+                    };
+
+                    position.y = match align_y {
+                        alignment::Vertical::Top => position.y,
+                        alignment::Vertical::Center => {
+                            position.y - entry.min_bounds.height / 2.0
+                        }
+                        alignment::Vertical::Bottom => {
+                            position.y - entry.min_bounds.height
+                        }
+                    };
+
+                    (
+                        &entry.buffer,
+                        None,
                         position,
-                        color,
-                        clip_bounds,
-                        transformation,
-                        ..
-                    } => {
-                        let Some(Allocation::Paragraph(paragraph)) = allocation
-                        else {
-                            return None;
-                        };
+                        *color,
+                        *clip_bounds,
+                        Transformation::IDENTITY,
+                    )
+                }
+                Text::Raw {
+                    raw,
+                    transformation,
+                } => {
+                    let Some(Allocation::Raw(buffer)) = allocation else {
+                        return None;
+                    };
 
-                        use crate::core::text::Paragraph as _;
-
-                        (
-                            paragraph.buffer(),
-                            paragraph.hint_factor().unwrap_or(1.0),
-                            *position,
-                            *color,
-                            *clip_bounds,
-                            *transformation,
-                        )
-                    }
-                    Text::Editor {
-                        position,
-                        color,
-                        clip_bounds,
-                        transformation,
-                        ..
-                    } => {
-                        let Some(Allocation::Editor(editor)) = allocation
-                        else {
-                            return None;
-                        };
-
-                        (
-                            editor.buffer(),
-                            1.0,
-                            *position,
-                            *color,
-                            *clip_bounds,
-                            *transformation,
-                        )
-                    }
-                    Text::Cached {
-                        bounds,
-                        align_x,
-                        align_y,
-                        color,
-                        clip_bounds,
-                        ..
-                    } => {
-                        let Some(Allocation::Cache(key)) = allocation else {
-                            return None;
-                        };
-
-                        let entry =
-                            buffer_cache.get(key).expect("Get cached buffer");
-
-                        let mut position = bounds.position();
-
-                        position.x = match align_x {
-                            Alignment::Default
-                            | Alignment::Left
-                            | Alignment::Justified => position.x,
-                            Alignment::Center => {
-                                position.x - entry.min_bounds.width / 2.0
-                            }
-                            Alignment::Right => {
-                                position.x - entry.min_bounds.width
-                            }
-                        };
-
-                        position.y = match align_y {
-                            alignment::Vertical::Top => position.y,
-                            alignment::Vertical::Center => {
-                                position.y - entry.min_bounds.height / 2.0
-                            }
-                            alignment::Vertical::Bottom => {
-                                position.y - entry.min_bounds.height
-                            }
-                        };
-
-                        (
-                            &entry.buffer,
-                            1.0,
-                            position,
-                            *color,
-                            *clip_bounds,
-                            Transformation::IDENTITY,
-                        )
-                    }
-                    Text::Raw {
-                        raw,
-                        transformation,
-                    } => {
-                        let Some(Allocation::Raw(buffer)) = allocation else {
-                            return None;
-                        };
-
-                        (
-                            buffer.as_ref(),
-                            1.0,
-                            raw.position,
-                            raw.color,
-                            raw.clip_bounds,
-                            *transformation,
-                        )
-                    }
-                };
-
-            let position = position * transformation * layer_transformation;
+                    (
+                        buffer.as_ref(),
+                        None,
+                        raw.position,
+                        raw.color,
+                        raw.clip_bounds,
+                        *transformation,
+                    )
+                }
+            };
 
             let clip_bounds = layer_bounds.intersection(
                 &(clip_bounds * transformation * layer_transformation),
             )?;
 
+            let mut position = position * transformation * layer_transformation;
+            let mut scale = transformation.scale_factor()
+                * layer_transformation.scale_factor();
+
+            if let Some(hint_factor) = hint_factor {
+                position.x = position.x.round();
+                scale /= hint_factor;
+            }
+
             Some(cryoglyph::TextArea {
                 buffer,
                 left: position.x,
                 top: position.y,
-                scale: transformation.scale_factor()
-                    * layer_transformation.scale_factor()
-                    / scale,
+                scale,
                 bounds: cryoglyph::TextBounds {
                     left: clip_bounds.x.round() as i32,
                     top: clip_bounds.y.round() as i32,
