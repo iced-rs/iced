@@ -630,7 +630,8 @@ fn prepare(
                 * layer_transformation.scale_factor();
 
             if let Some(hint_factor) = hint_factor {
-                position.x = position.x.round();
+                position.x = position.x.round()
+                    + (0.25 * (buffer.metrics().font_size + 1.0)).fract();
                 scale /= hint_factor;
             }
 
