@@ -5747,6 +5747,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "text"
+version = "0.1.0"
+dependencies = [
+ "iced",
+]
+
+[[package]]
 name = "the_matrix"
 version = "0.1.0"
 dependencies = [
