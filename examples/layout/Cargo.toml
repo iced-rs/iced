@@ -6,4 +6,4 @@ edition = "2024"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["canvas"] }
+iced = { path = "../..", features = ["canvas", "debug"] }
