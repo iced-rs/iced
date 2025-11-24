@@ -630,8 +630,20 @@ fn prepare(
                 * layer_transformation.scale_factor();
 
             if let Some(hint_factor) = hint_factor {
+                let font_size =
+                    (buffer.metrics().font_size / hint_factor).round() as u32;
+
                 position.x = position.x.round()
-                    + (0.25 * (buffer.metrics().font_size + 1.0)).fract();
+                    // This is a hack! Empirically and cluelessly derived
+                    // It tries to nudge hinted text to improve rasterization
+                    + if font_size.is_multiple_of(2) {
+                        0.25
+                    } else if font_size.is_multiple_of(5) {
+                        0.5
+                    } else {
+                        0.75
+                    };
+
                 scale /= hint_factor;
             }
 
