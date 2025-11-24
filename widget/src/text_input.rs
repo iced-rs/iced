@@ -781,7 +781,7 @@ where
                                 state.cursor.move_to(position);
                             }
 
-                            state.is_dragging = Some(Drag::SingleClick);
+                            state.is_dragging = Some(Drag::Select);
                         }
                         click::Kind::Double => {
                             if self.is_secure {
@@ -802,8 +802,8 @@ where
                                     self.value.next_end_of_word(position),
                                 );
 
-                                state.is_dragging = Some(Drag::DoubleClick {
-                                    click_position: position,
+                                state.is_dragging = Some(Drag::SelectWords {
+                                    anchor: position,
                                 });
                             }
                         }
@@ -863,24 +863,21 @@ where
                     let selection_before = state.cursor.selection(&value);
 
                     match is_dragging {
-                        Drag::SingleClick => {
+                        Drag::Select => {
                             state.cursor.select_range(
                                 state.cursor.start(&value),
                                 position,
                             );
                         }
-                        Drag::DoubleClick { click_position } => {
-                            if position < *click_position {
+                        Drag::SelectWords { anchor } => {
+                            if position < *anchor {
                                 state.cursor.select_range(
                                     self.value.previous_start_of_word(position),
-                                    self.value
-                                        .next_end_of_word(*click_position),
+                                    self.value.next_end_of_word(*anchor),
                                 );
                             } else {
                                 state.cursor.select_range(
-                                    self.value.previous_start_of_word(
-                                        *click_position,
-                                    ),
+                                    self.value.previous_start_of_word(*anchor),
                                     self.value.next_end_of_word(position),
                                 );
                             }
@@ -1480,8 +1477,8 @@ struct Focus {
 
 #[derive(Debug, Clone)]
 enum Drag {
-    SingleClick,
-    DoubleClick { click_position: usize },
+    Select,
+    SelectWords { anchor: usize },
 }
 
 impl<P: text::Paragraph> State<P> {
