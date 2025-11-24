@@ -52,7 +52,7 @@ impl Size {
         }
     }
 
-    /// Rotates the given [`Size`] and returns the minimum [`Size`]
+    /// Rotates this [`Size`] and returns the minimum [`Size`]
     /// containing it.
     pub fn rotate(self, rotation: Radians) -> Size {
         let radians = f32::from(rotation);
@@ -62,6 +62,15 @@ impl Size {
                 + (self.height * radians.sin()).abs(),
             height: (self.width * radians.sin()).abs()
                 + (self.height * radians.cos()).abs(),
+        }
+    }
+
+    /// Applies an aspect ratio to this [`Size`] without
+    /// exceeding its bounds.
+    pub const fn ratio(self, aspect_ratio: f32) -> Size {
+        Size {
+            width: (self.height * aspect_ratio).min(self.width),
+            height: (self.width / aspect_ratio).min(self.height),
         }
     }
 }
