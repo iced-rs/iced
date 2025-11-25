@@ -178,6 +178,11 @@ pub enum Action {
     /// Get the logical dimensions of the monitor containing the window with the given [`Id`].
     GetMonitorSize(Id, oneshot::Sender<Option<Size>>),
 
+    /// Set whether the system can automatically organize windows into tabs.
+    ///
+    /// See https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing
+    SetAllowAutomaticTabbing(bool),
+
     /// Redraw all the windows.
     RedrawAll,
 
@@ -329,7 +334,7 @@ pub fn set_resize_increments<T>(id: Id, increments: Option<Size>) -> Task<T> {
     )))
 }
 
-/// Get the window's size in logical dimensions.
+/// Gets the window size in logical dimensions.
 pub fn size(id: Id) -> Task<Size> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetSize(id, channel))
@@ -401,7 +406,7 @@ pub fn toggle_decorations<T>(id: Id) -> Task<T> {
     task::effect(crate::Action::Window(Action::ToggleDecorations(id)))
 }
 
-/// Request user attention to the window. This has no effect if the application
+/// Requests user attention to the window. This has no effect if the application
 /// is already focused. How requesting for user attention manifests is platform dependent,
 /// see [`UserAttention`] for details.
 ///
@@ -432,7 +437,7 @@ pub fn set_level<T>(id: Id, level: Level) -> Task<T> {
     task::effect(crate::Action::Window(Action::SetLevel(id, level)))
 }
 
-/// Show the [system menu] at cursor position.
+/// Shows the [system menu] at cursor position.
 ///
 /// [system menu]: https://en.wikipedia.org/wiki/Common_menus_in_Microsoft_Windows#System_menu
 pub fn show_system_menu<T>(id: Id) -> Task<T> {
@@ -487,7 +492,7 @@ pub fn enable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
     task::effect(crate::Action::Window(Action::EnableMousePassthrough(id)))
 }
 
-/// Disable mouse passthrough for the given window.
+/// Disables mouse passthrough for the given window.
 ///
 /// This enables mouse events for the window and stops mouse events
 /// from being passed to whatever is underneath.
@@ -495,9 +500,18 @@ pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
     task::effect(crate::Action::Window(Action::DisableMousePassthrough(id)))
 }
 
-/// Get the logical dimensions of the monitor containing the window with the given [`Id`].
+/// Gets the logical dimensions of the monitor containing the window with the given [`Id`].
 pub fn monitor_size(id: Id) -> Task<Option<Size>> {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::GetMonitorSize(id, channel))
     })
+}
+
+/// Sets whether the system can automatically organize windows into tabs.
+///
+/// See https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing
+pub fn allow_automatic_tabbing<T>(enabled: bool) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetAllowAutomaticTabbing(
+        enabled,
+    )))
 }
