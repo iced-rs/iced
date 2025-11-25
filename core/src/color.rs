@@ -1,7 +1,3 @@
-use std::{fmt::Display, num::ParseIntError, str::FromStr};
-
-use thiserror::Error;
-
 /// A color in the `sRGB` color space.
 ///
 /// # String Representation
@@ -202,11 +198,11 @@ impl From<[f32; 4]> for Color {
 /// An error which can be returned when parsing color from an RGB hexadecimal string.
 ///
 /// See [`Color`] for specifications for the string.
-#[derive(Debug, Error)]
-pub enum ParseColorError {
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
     /// The string could not be parsed to valid integers.
     #[error(transparent)]
-    ParseIntError(#[from] ParseIntError),
+    ParseIntError(#[from] std::num::ParseIntError),
     /// The string is of invalid length.
     #[error(
         "expected hex string of length 3, 4, 6 or 8 excluding optional prefix '#', found {0}"
@@ -214,14 +210,14 @@ pub enum ParseColorError {
     InvalidLength(usize),
 }
 
-impl FromStr for Color {
-    type Err = ParseColorError;
+impl std::str::FromStr for Color {
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let hex = s.strip_prefix('#').unwrap_or(s);
 
         let parse_channel =
-            |from: usize, to: usize| -> Result<f32, ParseIntError> {
+            |from: usize, to: usize| -> Result<f32, std::num::ParseIntError> {
                 let num =
                     usize::from_str_radix(&hex[from..=to], 16)? as f32 / 255.0;
 
@@ -252,14 +248,14 @@ impl FromStr for Color {
                 parse_channel(4, 5)?,
                 parse_channel(6, 7)?,
             ),
-            _ => return Err(ParseColorError::InvalidLength(hex.len())),
+            _ => return Err(ParseError::InvalidLength(hex.len())),
         };
 
         Ok(val)
     }
 }
 
-impl Display for Color {
+impl std::fmt::Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let [r, g, b, a] = self.into_rgba8();
 
