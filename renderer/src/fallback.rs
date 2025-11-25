@@ -8,6 +8,7 @@ use crate::core::{
 };
 use crate::graphics::compositor;
 use crate::graphics::mesh;
+use crate::graphics::text;
 use crate::graphics::{self, Shell};
 
 use std::borrow::Cow;
@@ -88,13 +89,11 @@ where
             Font = A::Font,
             Paragraph = A::Paragraph,
             Editor = A::Editor,
-            Raw = A::Raw,
         >,
 {
     type Font = A::Font;
     type Paragraph = A::Paragraph;
     type Editor = A::Editor;
-    type Raw = A::Raw;
 
     const ICON_FONT: Self::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
@@ -137,10 +136,6 @@ where
         );
     }
 
-    fn fill_raw(&mut self, raw: Self::Raw) {
-        delegate!(self, renderer, renderer.fill_raw(raw));
-    }
-
     fn fill_text(
         &mut self,
         text: core::Text<String, Self::Font>,
@@ -153,6 +148,16 @@ where
             renderer,
             renderer.fill_text(text, position, color, clip_bounds)
         );
+    }
+}
+
+impl<A, B> text::Renderer for Renderer<A, B>
+where
+    A: text::Renderer,
+    B: text::Renderer,
+{
+    fn fill_raw(&mut self, raw: text::Raw) {
+        delegate!(self, renderer, renderer.fill_raw(raw));
     }
 }
 
