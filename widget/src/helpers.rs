@@ -1847,10 +1847,10 @@ where
         From<container::StyleFn<'a, Theme>>,
     <Theme as text::Catalog>::Class<'a>: From<text::StyleFn<'a, Theme>>,
 {
-    use crate::core::{
-        Alignment, Color, Font, Radians, border, border::radius, color,
-        gradient::Linear,
-    };
+    use crate::core::border;
+    use crate::core::color;
+    use crate::core::gradient;
+    use crate::core::{Alignment, Color, Font, Radians};
 
     let text_size = text_size.into();
 
@@ -1865,12 +1865,12 @@ where
         .padding(text_size * 0.15)
         .style(move |_| container::Style {
             background: Some(
-                Linear::new(Radians::PI / 4.0)
+                gradient::Linear::new(Radians::PI / 4.0)
                     .add_stop(0.0, color!(0x0033ff))
                     .add_stop(1.0, color!(0x1177ff))
                     .into()
             ),
-            border: border::rounded(radius(text_size * 0.4)),
+            border: border::rounded(border::radius(text_size * 0.4)),
             ..container::Style::default()
         }),
         text("iced").size(text_size).font(Font::MONOSPACE)
