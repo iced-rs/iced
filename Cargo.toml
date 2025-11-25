@@ -88,7 +88,7 @@ linux-theme-detection = ["iced_winit/linux-theme-detection"]
 # Enables the Unix X11 backend
 x11 = ["iced_renderer/x11", "iced_winit/x11"]
 # Enables the Unix Wayland backend
-wayland = ["iced_renderer/wayland", "iced_winit/wayland", "iced_winit/wayland-csd-adwaita", "iced_tester?/wayland"]
+wayland = ["iced_renderer/wayland", "iced_winit/wayland"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -212,7 +212,7 @@ pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
 resvg = "0.45"
-rfd = { version = "0.16", default-features = false }
+rfd = "0.16"
 rustc-hash = "2.0"
 semver = "1.0"
 serde = "1.0"

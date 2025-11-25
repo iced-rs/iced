@@ -13,4 +13,3 @@ tokio.workspace = true
 tokio.features = ["fs"]
 
 rfd.workspace = true
-rfd.features = ["xdg-portal", "wayland", "tokio"]
