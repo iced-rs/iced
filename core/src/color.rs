@@ -9,6 +9,8 @@
 ///
 /// If you have a static color string, using the [`color!`] macro should be preferred
 /// since it leverages hexadecimal literal notation and arithmetic directly.
+///
+/// [`color!`]: crate::color!
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Color {
