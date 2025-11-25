@@ -78,7 +78,8 @@ impl Gradient {
         .align_y(Center);
 
         let transparency_toggle = iced::widget::Container::new(
-            checkbox("Transparent window", transparent)
+            checkbox(transparent)
+                .label("Transparent window")
                 .on_toggle(Message::TransparentToggled),
         )
         .padding(8);

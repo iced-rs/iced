@@ -1250,7 +1250,8 @@ pub use crate::markdown::view as markdown;
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     checkbox("Toggle me!", state.is_checked)
+///     checkbox(state.is_checked)
+///         .label("Toggle me!")
 ///         .on_toggle(Message::CheckboxToggled)
 ///         .into()
 /// }
@@ -1265,14 +1266,13 @@ pub use crate::markdown::view as markdown;
 /// ```
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 pub fn checkbox<'a, Message, Theme, Renderer>(
-    label: impl Into<String>,
     is_checked: bool,
 ) -> Checkbox<'a, Message, Theme, Renderer>
 where
     Theme: checkbox::Catalog + 'a,
     Renderer: core::text::Renderer,
 {
-    Checkbox::new(label, is_checked)
+    Checkbox::new(is_checked)
 }
 
 /// Creates a new [`Radio`].

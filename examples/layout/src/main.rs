@@ -71,7 +71,8 @@ impl Layout {
         let header = row![
             text(self.example.title).size(20).font(Font::MONOSPACE),
             space::horizontal(),
-            checkbox("Explain", self.explain)
+            checkbox(self.explain)
+                .label("Explain")
                 .on_toggle(Message::ExplainToggled),
             pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeSelected)
                 .placeholder("Theme"),

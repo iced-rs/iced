@@ -339,7 +339,8 @@ impl Task {
     fn view(&self, i: usize) -> Element<'_, TaskMessage> {
         match &self.state {
             TaskState::Idle => {
-                let checkbox = checkbox(&self.description, self.completed)
+                let checkbox = checkbox(self.completed)
+                    .label(&self.description)
                     .on_toggle(TaskMessage::Completed)
                     .width(Fill)
                     .size(17)

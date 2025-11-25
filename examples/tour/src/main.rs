@@ -386,11 +386,9 @@ impl Tour {
             .push(slider(100..=500, width, Message::ImageWidthChanged))
             .push(text!("Width: {width} px").width(Fill).align_x(Center))
             .push(
-                checkbox(
-                    "Use nearest interpolation",
-                    filter_method == image::FilterMethod::Nearest,
-                )
-                .on_toggle(Message::ImageUseNearestToggled),
+                checkbox(filter_method == image::FilterMethod::Nearest)
+                    .label("Use nearest interpolation")
+                    .on_toggle(Message::ImageUseNearestToggled),
             )
             .align_x(Center)
     }
@@ -441,11 +439,13 @@ impl Tour {
             .push("Use a text input to ask for different kinds of information.")
             .push(text_input.secure(is_secure))
             .push(
-                checkbox("Enable password mode", is_secure)
+                checkbox(is_secure)
+                    .label("Enable password mode")
                     .on_toggle(Message::ToggleSecureInput),
             )
             .push(
-                checkbox("Show icon", is_showing_icon)
+                checkbox(is_showing_icon)
+                    .label("Show icon")
                     .on_toggle(Message::ToggleTextInputIcon),
             )
             .push(
@@ -474,7 +474,8 @@ impl Tour {
                  see element boundaries.",
             )
             .push(
-                checkbox("Explain layout", self.debug)
+                checkbox(self.debug)
+                    .label("Explain layout")
                     .on_toggle(Message::DebugToggled),
             )
             .push("Feel free to go back and take a look.")

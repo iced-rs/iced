@@ -37,9 +37,9 @@ impl Tiger {
                     },
                 });
 
-        let apply_color_filter =
-            checkbox("Apply a color filter", self.apply_color_filter)
-                .on_toggle(Message::ToggleColorFilter);
+        let apply_color_filter = checkbox(self.apply_color_filter)
+            .label("Apply a color filter")
+            .on_toggle(Message::ToggleColorFilter);
 
         center(column![svg, center_x(apply_color_filter)].spacing(20))
             .padding(20)
