@@ -300,7 +300,7 @@ where
             Some(overlay::Element::new(Box::new(Overlay {
                 position: layout.position() + translation,
                 tooltip: &mut self.tooltip,
-                state: children.next().unwrap(),
+                tree: children.next().unwrap(),
                 cursor_position,
                 content_bounds: layout.bounds(),
                 snap_within_viewport: self.snap_within_viewport,
@@ -372,7 +372,7 @@ where
 {
     position: Point,
     tooltip: &'b mut Element<'a, Message, Theme, Renderer>,
-    state: &'b mut widget::Tree,
+    tree: &'b mut widget::Tree,
     cursor_position: Point,
     content_bounds: Rectangle,
     snap_within_viewport: bool,
@@ -392,7 +392,7 @@ where
         let viewport = Rectangle::with_size(bounds);
 
         let tooltip_layout = self.tooltip.as_widget_mut().layout(
-            self.state,
+            self.tree,
             renderer,
             &layout::Limits::new(
                 Size::ZERO,
@@ -507,7 +507,7 @@ where
         };
 
         self.tooltip.as_widget().draw(
-            self.state,
+            self.tree,
             renderer,
             theme,
             &defaults,

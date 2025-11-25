@@ -117,7 +117,7 @@ impl<Message> canvas::Program<Message> for State {
 
     fn draw(
         &self,
-        _state: &Self::State,
+        _tree: &Self::State,
         renderer: &Renderer,
         theme: &Theme,
         bounds: Rectangle,

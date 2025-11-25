@@ -269,14 +269,14 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        for ((child, state), layout) in self
+        for ((child, tree), layout) in self
             .children
             .iter_mut()
             .zip(&mut tree.children)
             .zip(layout.children())
         {
             child.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
+                tree, event, layout, cursor, renderer, clipboard, shell,
                 viewport,
             );
         }
@@ -294,10 +294,10 @@ where
             .iter()
             .zip(&tree.children)
             .zip(layout.children())
-            .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                )
+            .map(|((child, tree), layout)| {
+                child
+                    .as_widget()
+                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -320,7 +320,7 @@ where
                 viewport
             };
 
-            for ((child, state), layout) in self
+            for ((child, tree), layout) in self
                 .children
                 .iter()
                 .zip(&tree.children)
@@ -328,7 +328,7 @@ where
                 .filter(|(_, layout)| layout.bounds().intersects(viewport))
             {
                 child.as_widget().draw(
-                    state, renderer, theme, style, layout, cursor, viewport,
+                    tree, renderer, theme, style, layout, cursor, viewport,
                 );
             }
         }

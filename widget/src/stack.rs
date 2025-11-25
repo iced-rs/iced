@@ -224,7 +224,7 @@ where
         let is_over = cursor.is_over(layout.bounds());
         let end = self.children.len() - 1;
 
-        for (i, ((child, state), layout)) in self
+        for (i, ((child, tree), layout)) in self
             .children
             .iter_mut()
             .rev()
@@ -233,7 +233,7 @@ where
             .enumerate()
         {
             child.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
+                tree, event, layout, cursor, renderer, clipboard, shell,
                 viewport,
             );
 
@@ -243,7 +243,7 @@ where
 
             if i < end && is_over && !cursor.is_levitating() {
                 let interaction = child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
+                    tree, layout, cursor, viewport, renderer,
                 );
 
                 if interaction != mouse::Interaction::None {
@@ -266,10 +266,10 @@ where
             .rev()
             .zip(tree.children.iter().rev())
             .zip(layout.children().rev())
-            .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                )
+            .map(|((child, tree), layout)| {
+                child
+                    .as_widget()
+                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
             .find(|&interaction| interaction != mouse::Interaction::None)
             .unwrap_or_default()
@@ -298,9 +298,9 @@ where
                     .rev()
                     .zip(tree.children.iter().rev())
                     .zip(layout.children().rev())
-                    .position(|((layer, state), layout)| {
+                    .position(|((layer, tree), layout)| {
                         let interaction = layer.as_widget().mouse_interaction(
-                            state, layout, cursor, viewport, renderer,
+                            tree, layout, cursor, viewport, renderer,
                         );
 
                         interaction != mouse::Interaction::None
@@ -323,30 +323,30 @@ where
             let mut draw_layer =
                 |i,
                  layer: &Element<'a, Message, Theme, Renderer>,
-                 state,
+                 tree,
                  layout,
                  cursor| {
                     if i > 0 {
                         renderer.with_layer(*viewport, |renderer| {
                             layer.as_widget().draw(
-                                state, renderer, theme, style, layout, cursor,
+                                tree, renderer, theme, style, layout, cursor,
                                 viewport,
                             );
                         });
                     } else {
                         layer.as_widget().draw(
-                            state, renderer, theme, style, layout, cursor,
+                            tree, renderer, theme, style, layout, cursor,
                             viewport,
                         );
                     }
                 };
 
-            for (i, ((layer, state), layout)) in layers.take(layers_below) {
-                draw_layer(i, layer, state, layout, mouse::Cursor::Unavailable);
+            for (i, ((layer, tree), layout)) in layers.take(layers_below) {
+                draw_layer(i, layer, tree, layout, mouse::Cursor::Unavailable);
             }
 
-            for (i, ((layer, state), layout)) in layers {
-                draw_layer(i, layer, state, layout, cursor);
+            for (i, ((layer, tree), layout)) in layers {
+                draw_layer(i, layer, tree, layout, cursor);
             }
         }
     }
