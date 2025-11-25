@@ -66,4 +66,13 @@ impl Engine {
             &self._shell,
         )
     }
+
+    pub fn trim(&mut self) {
+        self.text_pipeline.trim();
+
+        self.primitive_storage
+            .write()
+            .expect("primitive storage should be writable")
+            .trim();
+    }
 }

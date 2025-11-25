@@ -19,23 +19,12 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
     ///
     /// All instances of this [`Primitive`] type will share the same
     /// [`Renderer`].
-    type Renderer: MaybeSend + MaybeSync;
-
-    /// Initializes the [`Renderer`](Self::Renderer) of the [`Primitive`].
-    ///
-    /// This will only be called once, when the first [`Primitive`] of this kind
-    /// is encountered.
-    fn initialize(
-        &self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        format: wgpu::TextureFormat,
-    ) -> Self::Renderer;
+    type Pipeline: Pipeline + MaybeSend + MaybeSync;
 
     /// Processes the [`Primitive`], allowing for GPU buffer allocation.
     fn prepare(
         &self,
-        renderer: &mut Self::Renderer,
+        pipeline: &mut Self::Pipeline,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         bounds: &Rectangle,
@@ -57,7 +46,7 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
     /// By default, it does nothing and returns `false`.
     fn draw(
         &self,
-        _renderer: &Self::Renderer,
+        _pipeline: &Self::Pipeline,
         _render_pass: &mut wgpu::RenderPass<'_>,
     ) -> bool {
         false
@@ -70,12 +59,32 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
     /// By default, it does nothing.
     fn render(
         &self,
-        _renderer: &Self::Renderer,
+        _pipeline: &Self::Pipeline,
         _encoder: &mut wgpu::CommandEncoder,
         _target: &wgpu::TextureView,
         _clip_bounds: &Rectangle<u32>,
     ) {
     }
+}
+
+/// The pipeline of a graphics [`Primitive`].
+pub trait Pipeline: Any + MaybeSend + MaybeSync {
+    /// Creates the [`Pipeline`] of a [`Primitive`].
+    ///
+    /// This will only be called once, when the first [`Primitive`] with this kind
+    /// of [`Pipeline`] is encountered.
+    fn new(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        format: wgpu::TextureFormat,
+    ) -> Self
+    where
+        Self: Sized;
+
+    /// Trims any cached data in the [`Pipeline`].
+    ///
+    /// This will normally be called at the end of a frame.
+    fn trim(&mut self) {}
 }
 
 pub(crate) trait Stored:
@@ -122,15 +131,13 @@ impl<P: Primitive> Stored for BlackBox<P> {
         viewport: &Viewport,
     ) {
         if !storage.has::<P>() {
-            storage.store::<P, _>(
-                self.primitive.initialize(device, queue, format),
-            );
+            storage.store::<P, _>(P::Pipeline::new(device, queue, format));
         }
 
         let renderer = storage
             .get_mut::<P>()
             .expect("renderer should be initialized")
-            .downcast_mut::<P::Renderer>()
+            .downcast_mut::<P::Pipeline>()
             .expect("renderer should have the proper type");
 
         self.primitive
@@ -145,7 +152,7 @@ impl<P: Primitive> Stored for BlackBox<P> {
         let renderer = storage
             .get::<P>()
             .expect("renderer should be initialized")
-            .downcast_ref::<P::Renderer>()
+            .downcast_ref::<P::Pipeline>()
             .expect("renderer should have the proper type");
 
         self.primitive.draw(renderer, render_pass)
@@ -161,7 +168,7 @@ impl<P: Primitive> Stored for BlackBox<P> {
         let renderer = storage
             .get::<P>()
             .expect("renderer should be initialized")
-            .downcast_ref::<P::Renderer>()
+            .downcast_ref::<P::Pipeline>()
             .expect("renderer should have the proper type");
 
         self.primitive
@@ -198,7 +205,7 @@ pub trait Renderer: core::Renderer {
 /// Stores custom, user-provided types.
 #[derive(Default)]
 pub struct Storage {
-    pipelines: FxHashMap<TypeId, Box<dyn AnyConcurrent>>,
+    pipelines: FxHashMap<TypeId, Box<dyn Pipeline>>,
 }
 
 impl Storage {
@@ -208,11 +215,8 @@ impl Storage {
     }
 
     /// Inserts the data `T` in to [`Storage`].
-    pub fn store<T: 'static, D: Any + MaybeSend + MaybeSync>(
-        &mut self,
-        data: D,
-    ) {
-        let _ = self.pipelines.insert(TypeId::of::<T>(), Box::new(data));
+    pub fn store<T: 'static, P: Pipeline>(&mut self, pipeline: P) {
+        let _ = self.pipelines.insert(TypeId::of::<T>(), Box::new(pipeline));
     }
 
     /// Returns a reference to the data with type `T` if it exists in [`Storage`].
@@ -228,8 +232,11 @@ impl Storage {
             .get_mut(&TypeId::of::<T>())
             .map(|pipeline| pipeline.as_mut() as &mut dyn Any)
     }
+
+    /// Trims the cache of all the pipelines in the [`Storage`].
+    pub fn trim(&mut self) {
+        for pipeline in self.pipelines.values_mut() {
+            pipeline.trim();
+        }
+    }
 }
-
-trait AnyConcurrent: Any + MaybeSend + MaybeSync {}
-
-impl<T> AnyConcurrent for T where T: Any + MaybeSend + MaybeSync {}
