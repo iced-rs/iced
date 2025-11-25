@@ -7,9 +7,12 @@ use thiserror::Error;
 /// # String Representation
 ///
 /// A color can be represented in either of the following valid formats: `#rrggbb`, `#rrggbbaa`, `#rgb`, and `#rgba`.
-/// Both uppercase and lowercase letters are supported.
+/// Where `rgba` represent hexadecimal digits. Both uppercase and lowercase letters are supported.
 ///
 /// If `a` (transparency) is not specified, `1.0` (completely opaque) would be used by default.
+///
+/// If you have a static color string, using the [`color!`] macro should be preferred
+/// since it leverages hexadecimal literal notation and arithmetic directly.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Color {
@@ -107,19 +110,6 @@ impl Color {
             gamma_component(b),
             a,
         )
-    }
-
-    /// Parses a [`Color`] from a hex string.
-    ///
-    /// Supported formats are `#rrggbb`, `#rrggbbaa`, `#rgb`, and `#rgba`.
-    /// The starting "#" is optional. Both uppercase and lowercase are supported.
-    ///
-    /// If you have a static color string, using the [`color!`] macro should be preferred
-    /// since it leverages hexadecimal literal notation and arithmetic directly.
-    ///
-    /// [`color!`]: crate::color!
-    pub fn parse(s: &str) -> Option<Color> {
-        s.parse().ok()
     }
 
     /// Converts the [`Color`] into its RGBA8 equivalent.
@@ -272,9 +262,11 @@ impl FromStr for Color {
 impl Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let [r, g, b, a] = self.into_rgba8();
+
         if self.a == 1.0 {
             return write!(f, "#{r:02x}{g:02x}{b:02x}");
         }
+
         write!(f, "#{r:02x}{g:02x}{b:02x}{a:02x}")
     }
 }
@@ -318,19 +310,20 @@ mod tests {
     #[test]
     fn parse() {
         let tests = [
-            ("#ff0000", [255, 0, 0, 255]),
-            ("00ff0080", [0, 255, 0, 128]),
-            ("#F80", [255, 136, 0, 255]),
-            ("#00f1", [0, 0, 255, 17]),
+            ("#ff0000", [255, 0, 0, 255], "#ff0000"),
+            ("00ff0080", [0, 255, 0, 128], "#00ff0080"),
+            ("#F80", [255, 136, 0, 255], "#ff8800"),
+            ("#00f1", [0, 0, 255, 17], "#0000ff11"),
+            ("#00ff", [0, 0, 255, 255], "#0000ff"),
         ];
 
-        for (arg, expected) in tests {
-            assert_eq!(
-                Color::parse(arg).expect("color must parse").into_rgba8(),
-                expected
-            );
+        for (arg, expected_rgba8, expected_str) in tests {
+            let color = arg.parse::<Color>().expect("color must parse");
+
+            assert_eq!(color.into_rgba8(), expected_rgba8);
+            assert_eq!(color.to_string(), expected_str);
         }
 
-        assert!(Color::parse("invalid").is_none());
+        assert!("invalid".parse::<Color>().is_err());
     }
 }
