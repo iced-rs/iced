@@ -8,6 +8,7 @@ use crate::core::{
 };
 use crate::graphics::compositor;
 use crate::graphics::mesh;
+use crate::graphics::text;
 use crate::graphics::{self, Shell};
 
 use std::borrow::Cow;
@@ -147,6 +148,16 @@ where
             renderer,
             renderer.fill_text(text, position, color, clip_bounds)
         );
+    }
+}
+
+impl<A, B> text::Renderer for Renderer<A, B>
+where
+    A: text::Renderer,
+    B: text::Renderer,
+{
+    fn fill_raw(&mut self, raw: text::Raw) {
+        delegate!(self, renderer, renderer.fill_raw(raw));
     }
 }
 

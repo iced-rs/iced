@@ -305,6 +305,13 @@ impl core::text::Renderer for Renderer {
     }
 }
 
+impl graphics::text::Renderer for Renderer {
+    fn fill_raw(&mut self, raw: graphics::text::Raw) {
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_text_raw(raw, transformation);
+    }
+}
+
 #[cfg(feature = "geometry")]
 impl graphics::geometry::Renderer for Renderer {
     type Geometry = Geometry;

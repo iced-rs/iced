@@ -126,6 +126,19 @@ impl Layer {
         self.pending_text.push(text);
     }
 
+    pub fn draw_text_raw(
+        &mut self,
+        raw: graphics::text::Raw,
+        transformation: Transformation,
+    ) {
+        let raw = Text::Raw {
+            raw,
+            transformation,
+        };
+
+        self.pending_text.push(raw);
+    }
+
     pub fn draw_image(&mut self, image: Image, transformation: Transformation) {
         match image {
             Image::Raster {

@@ -95,6 +95,19 @@ impl Layer {
         self.text.push(Item::Live(text));
     }
 
+    pub fn draw_text_raw(
+        &mut self,
+        raw: graphics::text::Raw,
+        transformation: Transformation,
+    ) {
+        let raw = Text::Raw {
+            raw,
+            transformation,
+        };
+
+        self.text.push(Item::Live(raw));
+    }
+
     pub fn draw_text_group(
         &mut self,
         text: Vec<Text>,

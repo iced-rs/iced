@@ -352,3 +352,9 @@ pub fn to_color(color: Color) -> cosmic_text::Color {
 
     cosmic_text::Color::rgba(r, g, b, a)
 }
+
+/// A text renderer coupled to `iced_graphics`.
+pub trait Renderer {
+    /// Draws the given [`Raw`] text.
+    fn fill_raw(&mut self, raw: Raw);
+}
