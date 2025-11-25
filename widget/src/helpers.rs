@@ -1841,10 +1841,7 @@ pub fn iced<'a, Message, Theme, Renderer>(
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Renderer: core::Renderer
-        + core::text::Renderer<Font = core::Font>
-        + core::svg::Renderer
-        + 'a,
+    Renderer: core::Renderer + core::text::Renderer<Font = core::Font> + 'a,
     Theme: text::Catalog + container::Catalog + 'a,
     <Theme as container::Catalog>::Class<'a>:
         From<container::StyleFn<'a, Theme>>,
