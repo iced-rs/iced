@@ -87,16 +87,16 @@ impl InputMethod {
     /// Merges two [`InputMethod`] strategies, prioritizing the first one when both open:
     /// ```
     /// # use iced_core::input_method::{InputMethod, Purpose, Preedit};
-    /// # use iced_core::Point;
+    /// # use iced_core::{Point, Rectangle, Size};
     ///
     /// let open = InputMethod::Enabled {
-    ///     position: Point::ORIGIN,
+    ///     cursor: Rectangle::new(Point::ORIGIN, Size::UNIT),
     ///     purpose: Purpose::Normal,
     ///     preedit: Some(Preedit { content: "1".to_owned(), selection: None, text_size: None }),
     /// };
     ///
     /// let open_2 = InputMethod::Enabled {
-    ///     position: Point::ORIGIN,
+    ///     cursor: Rectangle::new(Point::ORIGIN, Size::UNIT),
     ///     purpose: Purpose::Secure,
     ///     preedit: Some(Preedit { content: "2".to_owned(), selection: None, text_size: None }),
     /// };
