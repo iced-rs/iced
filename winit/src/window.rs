@@ -229,7 +229,7 @@ where
                             self.preedit.take().unwrap_or_else(Preedit::new);
 
                         overlay.update(
-                            cursor.position(),
+                            cursor,
                             &preedit,
                             self.state.background_color(),
                             &self.renderer,
@@ -357,12 +357,12 @@ where
 
     fn update(
         &mut self,
-        position: Point,
+        cursor: Rectangle,
         preedit: &input_method::Preedit,
         background: Color,
         renderer: &Renderer,
     ) {
-        self.position = position;
+        self.position = cursor.position() + Vector::new(0.0, cursor.height);
 
         let background = Color {
             a: 1.0,
