@@ -46,7 +46,7 @@ pub trait Paragraph: Sized + Default {
     /// Returns the [`Shaping`] strategy of the [`Paragraph`]>
     fn shaping(&self) -> Shaping;
 
-    /// Returns the availalbe bounds used to layout the [`Paragraph`].
+    /// Returns the available bounds used to layout the [`Paragraph`].
     fn bounds(&self) -> Size;
 
     /// Returns the minimum boundaries that can fit the contents of the
