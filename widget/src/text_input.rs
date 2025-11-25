@@ -428,7 +428,10 @@ where
             + alignment_offset;
 
         InputMethod::Enabled {
-            position: Point::new(x, text_bounds.y + text_bounds.height),
+            cursor: Rectangle::new(
+                Point::new(x, text_bounds.y),
+                Size::new(1.0, text_bounds.height),
+            ),
             purpose: if self.is_secure {
                 input_method::Purpose::Secure
             } else {
