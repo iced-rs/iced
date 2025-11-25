@@ -16,7 +16,7 @@ pub mod widget {
 pub use crate::core::Shell;
 pub use crate::core::clipboard::{self, Clipboard};
 pub use crate::core::image;
-pub use crate::core::input_method;
+pub use crate::core::input_method::{self, InputMethod};
 pub use crate::core::layout::{self, Layout};
 pub use crate::core::mouse;
 pub use crate::core::overlay::{self, Overlay};
