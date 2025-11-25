@@ -1866,7 +1866,7 @@ where
         .style(move |_| container::Style {
             background: Some(
                 Linear::new(Radians::PI / 4.0)
-                    .add_stop(0.0, color!(0x2820ff))
+                    .add_stop(0.0, color!(0x0033ff))
                     .add_stop(1.0, color!(0x1177ff))
                     .into()
             ),
