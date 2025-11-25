@@ -169,7 +169,6 @@ mod toast {
     use iced::advanced::widget::{self, Operation, Tree};
     use iced::advanced::{Clipboard, Shell, Widget};
     use iced::mouse;
-    use iced::theme;
     use iced::time::{self, Duration, Instant};
     use iced::widget::{button, column, container, row, rule, space, text};
     use iced::window;
@@ -187,11 +186,17 @@ mod toast {
         Secondary,
         Success,
         Danger,
+        Warning,
     }
 
     impl Status {
-        pub const ALL: &'static [Self] =
-            &[Self::Primary, Self::Secondary, Self::Success, Self::Danger];
+        pub const ALL: &'static [Self] = &[
+            Self::Primary,
+            Self::Secondary,
+            Self::Success,
+            Self::Danger,
+            Self::Warning,
+        ];
     }
 
     impl fmt::Display for Status {
@@ -201,6 +206,7 @@ mod toast {
                 Status::Secondary => "Secondary",
                 Status::Success => "Success",
                 Status::Danger => "Danger",
+                Status::Warning => "Warning",
             }
             .fmt(f)
         }
@@ -247,10 +253,11 @@ mod toast {
                         .width(Fill)
                         .padding(5)
                         .style(match toast.status {
-                            Status::Primary => primary,
-                            Status::Secondary => secondary,
-                            Status::Success => success,
-                            Status::Danger => danger,
+                            Status::Primary => container::primary,
+                            Status::Secondary => container::secondary,
+                            Status::Success => container::success,
+                            Status::Danger => container::danger,
+                            Status::Warning => container::warning,
                         }),
                         rule::horizontal(1),
                         container(text(toast.body.as_str()))
@@ -631,37 +638,5 @@ mod toast {
         fn from(manager: Manager<'a, Message>) -> Self {
             Element::new(manager)
         }
-    }
-
-    fn styled(pair: theme::palette::Pair) -> container::Style {
-        container::Style {
-            background: Some(pair.color.into()),
-            text_color: pair.text.into(),
-            ..Default::default()
-        }
-    }
-
-    fn primary(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        styled(palette.primary.weak)
-    }
-
-    fn secondary(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        styled(palette.secondary.weak)
-    }
-
-    fn success(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        styled(palette.success.weak)
-    }
-
-    fn danger(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        styled(palette.danger.weak)
     }
 }
