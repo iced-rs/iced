@@ -370,7 +370,7 @@ where
         InputMethod::Enabled {
             cursor: Rectangle::new(
                 position,
-                Size::new(0.0, f32::from(line_height)),
+                Size::new(1.0, f32::from(line_height)),
             ),
             purpose: input_method::Purpose::Normal,
             preedit: state.preedit.as_ref().map(input_method::Preedit::as_ref),
