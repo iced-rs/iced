@@ -1,4 +1,16 @@
 /// A color in the `sRGB` color space.
+///
+/// # String Representation
+///
+/// A color can be represented in either of the following valid formats: `#rrggbb`, `#rrggbbaa`, `#rgb`, and `#rgba`.
+/// Where `rgba` represent hexadecimal digits. Both uppercase and lowercase letters are supported.
+///
+/// If `a` (transparency) is not specified, `1.0` (completely opaque) would be used by default.
+///
+/// If you have a static color string, using the [`color!`] macro should be preferred
+/// since it leverages hexadecimal literal notation and arithmetic directly.
+///
+/// [`color!`]: crate::color!
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Color {
@@ -98,53 +110,6 @@ impl Color {
         )
     }
 
-    /// Parses a [`Color`] from a hex string.
-    ///
-    /// Supported formats are `#rrggbb`, `#rrggbbaa`, `#rgb`, and `#rgba`.
-    /// The starting "#" is optional. Both uppercase and lowercase are supported.
-    ///
-    /// If you have a static color string, using the [`color!`] macro should be preferred
-    /// since it leverages hexadecimal literal notation and arithmetic directly.
-    ///
-    /// [`color!`]: crate::color!
-    pub fn parse(s: &str) -> Option<Color> {
-        let hex = s.strip_prefix('#').unwrap_or(s);
-
-        let parse_channel = |from: usize, to: usize| {
-            let num =
-                usize::from_str_radix(&hex[from..=to], 16).ok()? as f32 / 255.0;
-
-            // If we only got half a byte (one letter), expand it into a full byte (two letters)
-            Some(if from == to { num + num * 16.0 } else { num })
-        };
-
-        Some(match hex.len() {
-            3 => Color::from_rgb(
-                parse_channel(0, 0)?,
-                parse_channel(1, 1)?,
-                parse_channel(2, 2)?,
-            ),
-            4 => Color::from_rgba(
-                parse_channel(0, 0)?,
-                parse_channel(1, 1)?,
-                parse_channel(2, 2)?,
-                parse_channel(3, 3)?,
-            ),
-            6 => Color::from_rgb(
-                parse_channel(0, 1)?,
-                parse_channel(2, 3)?,
-                parse_channel(4, 5)?,
-            ),
-            8 => Color::from_rgba(
-                parse_channel(0, 1)?,
-                parse_channel(2, 3)?,
-                parse_channel(4, 5)?,
-                parse_channel(6, 7)?,
-            ),
-            _ => None?,
-        })
-    }
-
     /// Converts the [`Color`] into its RGBA8 equivalent.
     #[must_use]
     pub fn into_rgba8(self) -> [u8; 4] {
@@ -232,6 +197,78 @@ impl From<[f32; 4]> for Color {
     }
 }
 
+/// An error which can be returned when parsing color from an RGB hexadecimal string.
+///
+/// See [`Color`] for specifications for the string.
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    /// The string could not be parsed to valid integers.
+    #[error(transparent)]
+    ParseIntError(#[from] std::num::ParseIntError),
+    /// The string is of invalid length.
+    #[error(
+        "expected hex string of length 3, 4, 6 or 8 excluding optional prefix '#', found {0}"
+    )]
+    InvalidLength(usize),
+}
+
+impl std::str::FromStr for Color {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let hex = s.strip_prefix('#').unwrap_or(s);
+
+        let parse_channel =
+            |from: usize, to: usize| -> Result<f32, std::num::ParseIntError> {
+                let num =
+                    usize::from_str_radix(&hex[from..=to], 16)? as f32 / 255.0;
+
+                // If we only got half a byte (one letter), expand it into a full byte (two letters)
+                Ok(if from == to { num + num * 16.0 } else { num })
+            };
+
+        let val = match hex.len() {
+            3 => Color::from_rgb(
+                parse_channel(0, 0)?,
+                parse_channel(1, 1)?,
+                parse_channel(2, 2)?,
+            ),
+            4 => Color::from_rgba(
+                parse_channel(0, 0)?,
+                parse_channel(1, 1)?,
+                parse_channel(2, 2)?,
+                parse_channel(3, 3)?,
+            ),
+            6 => Color::from_rgb(
+                parse_channel(0, 1)?,
+                parse_channel(2, 3)?,
+                parse_channel(4, 5)?,
+            ),
+            8 => Color::from_rgba(
+                parse_channel(0, 1)?,
+                parse_channel(2, 3)?,
+                parse_channel(4, 5)?,
+                parse_channel(6, 7)?,
+            ),
+            _ => return Err(ParseError::InvalidLength(hex.len())),
+        };
+
+        Ok(val)
+    }
+}
+
+impl std::fmt::Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let [r, g, b, a] = self.into_rgba8();
+
+        if self.a == 1.0 {
+            return write!(f, "#{r:02x}{g:02x}{b:02x}");
+        }
+
+        write!(f, "#{r:02x}{g:02x}{b:02x}{a:02x}")
+    }
+}
+
 /// Creates a [`Color`] with shorter and cleaner syntax.
 ///
 /// # Examples
@@ -271,19 +308,20 @@ mod tests {
     #[test]
     fn parse() {
         let tests = [
-            ("#ff0000", [255, 0, 0, 255]),
-            ("00ff0080", [0, 255, 0, 128]),
-            ("#F80", [255, 136, 0, 255]),
-            ("#00f1", [0, 0, 255, 17]),
+            ("#ff0000", [255, 0, 0, 255], "#ff0000"),
+            ("00ff0080", [0, 255, 0, 128], "#00ff0080"),
+            ("#F80", [255, 136, 0, 255], "#ff8800"),
+            ("#00f1", [0, 0, 255, 17], "#0000ff11"),
+            ("#00ff", [0, 0, 255, 255], "#0000ff"),
         ];
 
-        for (arg, expected) in tests {
-            assert_eq!(
-                Color::parse(arg).expect("color must parse").into_rgba8(),
-                expected
-            );
+        for (arg, expected_rgba8, expected_str) in tests {
+            let color = arg.parse::<Color>().expect("color must parse");
+
+            assert_eq!(color.into_rgba8(), expected_rgba8);
+            assert_eq!(color.to_string(), expected_str);
         }
 
-        assert!(Color::parse("invalid").is_none());
+        assert!("invalid".parse::<Color>().is_err());
     }
 }
