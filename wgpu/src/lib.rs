@@ -149,8 +149,8 @@ impl Renderer {
         self.triangle.trim();
         self.text.trim();
 
-        // TODO: Move to runtime!
-        self.engine.text_pipeline.trim();
+        // TODO: Provide window id (?)
+        self.engine.trim();
 
         #[cfg(any(feature = "svg", feature = "image"))]
         {
