@@ -180,7 +180,7 @@ pub enum Action {
 
     /// Set whether the system can automatically organize windows into tabs.
     ///
-    /// See https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing
+    /// See <https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing>
     SetAllowAutomaticTabbing(bool),
 
     /// Redraw all the windows.
@@ -509,7 +509,7 @@ pub fn monitor_size(id: Id) -> Task<Option<Size>> {
 
 /// Sets whether the system can automatically organize windows into tabs.
 ///
-/// See https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing
+/// See <https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing>
 pub fn allow_automatic_tabbing<T>(enabled: bool) -> Task<T> {
     task::effect(crate::Action::Window(Action::SetAllowAutomaticTabbing(
         enabled,
