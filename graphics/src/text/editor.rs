@@ -369,6 +369,12 @@ impl editor::Editor for Editor {
 
             // Editing events
             Action::Edit(edit) => {
+                let topmost_line_before_edit = editor
+                    .selection_bounds()
+                    .map(|(start, _)| start)
+                    .unwrap_or_else(|| editor.cursor())
+                    .line;
+
                 match edit {
                     Edit::Insert(c) => {
                         editor.action(
@@ -417,7 +423,8 @@ impl editor::Editor for Editor {
                     .map(|(start, _)| start)
                     .unwrap_or(cursor);
 
-                internal.topmost_line_changed = Some(selection_start.line);
+                internal.topmost_line_changed =
+                    Some(selection_start.line.min(topmost_line_before_edit));
             }
 
             // Mouse events
