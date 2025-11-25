@@ -435,6 +435,16 @@ where
                                 self.error = Some(error);
                                 event_loop.exit();
                             }
+                            Control::SetAutomaticWindowTabbing(_enabled) => {
+                                #[cfg(target_os = "macos")]
+                                {
+                                    use winit::platform::macos::ActiveEventLoopExtMacOS;
+                                    event_loop
+                                        .set_allows_automatic_window_tabbing(
+                                            _enabled,
+                                        );
+                                }
+                            }
                         },
                         _ => {
                             break;
@@ -492,6 +502,7 @@ enum Control {
         on_open: oneshot::Sender<window::Id>,
         scale_factor: f32,
     },
+    SetAutomaticWindowTabbing(bool),
 }
 
 async fn run_instance<P>(
@@ -1656,6 +1667,11 @@ fn run_action<'a, P, C>(
 
                     let _ = channel.send(size);
                 }
+            }
+            window::Action::SetAllowAutomaticTabbing(enabled) => {
+                control_sender
+                    .start_send(Control::SetAutomaticWindowTabbing(enabled))
+                    .expect("Send control action");
             }
             window::Action::RedrawAll => {
                 for (_id, window) in window_manager.iter_mut() {
