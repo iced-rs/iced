@@ -86,3 +86,12 @@ pub fn move_cursor_to<T>(id: impl Into<Id>, position: usize) -> Task<T> {
 pub fn select_all<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::select_all(id.into())))
 }
+
+/// Selects the given content range of the widget with the given [`Id`].
+pub fn select_range<T>(id: impl Into<Id>, start: usize, end: usize) -> Task<T> {
+    task::effect(Action::widget(operation::text_input::select_range(
+        id.into(),
+        start,
+        end,
+    )))
+}
