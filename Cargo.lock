@@ -5851,6 +5851,7 @@ checksum = "0324504befd01cab6e0c994f34b2ffa257849ee019d3fb3b64fb2c858887d89e"
 dependencies = [
  "as-raw-xcb-connection",
  "ctor-lite",
+ "libloading",
  "pkg-config",
  "tracing",
 ]
