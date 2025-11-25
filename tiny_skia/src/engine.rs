@@ -627,7 +627,7 @@ impl Engine {
                 self.vector_pipeline.draw(
                     &svg.handle,
                     svg.color,
-                    physical_bounds,
+                    *bounds,
                     svg.opacity,
                     _pixels,
                     transform,
