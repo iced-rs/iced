@@ -225,49 +225,47 @@ where
             let now = Instant::now();
             let cursor_position = cursor.position_over(layout.bounds());
 
-            match (&state, cursor_position) {
-                // Tooltip was idle, but is now hovered.
+            match (*state, cursor_position) {
                 (State::Idle, Some(cursor_position)) => {
-                    shell.invalidate_layout();
-                    shell.request_redraw_at(now + self.delay);
                     *state = State::Hovered {
                         cursor_position,
                         at: now,
                     };
-                }
 
-                // Tooltip was active and isn't hovered anymore.
-                (State::Hovered { .. }, None) => {
                     shell.invalidate_layout();
-                    shell.request_redraw();
-                    *state = State::Idle;
+                    shell.request_redraw_at(now + self.delay);
                 }
+                (State::Hovered { .. }, None) => {
+                    *state = State::Idle;
 
-                // Tooltip is active, but not for long enough.
+                    shell.invalidate_layout();
+                }
                 (State::Hovered { at, .. }, Some(cursor_position))
                     if at.elapsed() < self.delay =>
                 {
-                    let when = now + self.delay - at.elapsed();
-                    shell.request_redraw_at(when);
                     *state = State::Hovered {
-                        at: *at,
+                        at,
                         cursor_position,
                     };
-                }
 
-                // Tooltip has been active long enough, and is following the cursor
-                // (thus requiring a redraw)
-                (State::Hovered { at, .. }, Some(cursor_position))
-                    if self.position == Position::FollowCursor =>
+                    shell.request_redraw_at(now + self.delay - at.elapsed());
+                }
+                (
+                    State::Hovered {
+                        at,
+                        cursor_position: last_position,
+                    },
+                    Some(cursor_position),
+                ) if self.position == Position::FollowCursor
+                    && last_position != cursor_position =>
                 {
-                    shell.request_redraw();
                     *state = State::Hovered {
-                        at: *at,
+                        at,
                         cursor_position,
                     };
-                }
 
-                // No change in state.
+                    shell.request_redraw();
+                }
                 (State::Hovered { .. }, Some(_)) => (),
                 (State::Idle, None) => (),
             }

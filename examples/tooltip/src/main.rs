@@ -16,7 +16,7 @@ struct Tooltip {
 #[derive(Debug, Clone)]
 enum Message {
     ChangePosition,
-    SetImmediate(bool),
+    ToggleImmediate(bool),
 }
 
 impl Tooltip {
@@ -33,8 +33,7 @@ impl Tooltip {
 
                 self.position = position;
             }
-
-            Message::SetImmediate(is_immediate) => {
+            Message::ToggleImmediate(is_immediate) => {
                 self.is_immediate = is_immediate;
             }
         }
@@ -56,12 +55,12 @@ impl Tooltip {
 
         let checkbox = checkbox(self.is_immediate)
             .label("Show immediately")
-            .on_toggle(Message::SetImmediate);
+            .on_toggle(Message::ToggleImmediate);
 
         center(
             column![tooltip, checkbox]
                 .align_x(alignment::Horizontal::Center)
-                .spacing(7),
+                .spacing(10),
         )
         .into()
     }
