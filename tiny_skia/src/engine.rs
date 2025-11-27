@@ -538,10 +538,10 @@ impl Engine {
                     let bounds = path.bounds();
 
                     Rectangle {
-                        x: bounds.x(),
-                        y: bounds.y(),
-                        width: bounds.width(),
-                        height: bounds.height(),
+                        x: bounds.x() - stroke.width / 2.0,
+                        y: bounds.y() - stroke.width / 2.0,
+                        width: bounds.width() + stroke.width,
+                        height: bounds.height() + stroke.width,
                     } * transformation
                 };
 
