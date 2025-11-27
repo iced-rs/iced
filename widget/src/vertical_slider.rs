@@ -84,7 +84,6 @@ use crate::core::{
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct VerticalSlider<'a, T, Message, Theme = crate::Theme>
 where
     Theme: Catalog,
@@ -238,7 +237,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
@@ -361,14 +360,13 @@ where
                         shell.publish(on_release);
                     }
                     state.is_dragging = false;
-
-                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. })
             | Event::Touch(touch::Event::FingerMoved { .. }) => {
                 if is_dragging {
-                    let _ = cursor.position().and_then(locate).map(change);
+                    let _ =
+                        cursor.land().position().and_then(locate).map(change);
 
                     shell.capture_event();
                 }
@@ -396,14 +394,14 @@ where
                     match key {
                         Key::Named(key::Named::ArrowUp) => {
                             let _ = increment(current_value).map(change);
+                            shell.capture_event();
                         }
                         Key::Named(key::Named::ArrowDown) => {
                             let _ = decrement(current_value).map(change);
+                            shell.capture_event();
                         }
                         _ => (),
                     }
-
-                    shell.capture_event();
                 }
             }
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
@@ -525,12 +523,10 @@ where
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let state = tree.state.downcast_ref::<State>();
-        let bounds = layout.bounds();
-        let is_mouse_over = cursor.is_over(bounds);
 
         if state.is_dragging {
             mouse::Interaction::Grabbing
-        } else if is_mouse_over {
+        } else if cursor.is_over(layout.bounds()) {
             mouse::Interaction::Grab
         } else {
             mouse::Interaction::default()

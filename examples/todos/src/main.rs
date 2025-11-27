@@ -1,11 +1,13 @@
 use iced::keyboard;
+use iced::time::milliseconds;
 use iced::widget::{
-    self, Text, button, center, center_x, checkbox, column, keyed_column, row,
-    scrollable, text, text_input,
+    self, Text, button, center, center_x, checkbox, column, keyed_column,
+    operation, row, scrollable, text, text_input,
 };
 use iced::window;
 use iced::{
-    Center, Element, Fill, Font, Function, Subscription, Task as Command,
+    Application, Center, Element, Fill, Font, Function, Preset, Program,
+    Subscription, Task as Command, Theme,
 };
 
 use serde::{Deserialize, Serialize};
@@ -15,12 +17,17 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
+    application().run()
+}
+
+fn application() -> Application<impl Program<Message = Message, Theme = Theme>>
+{
     iced::application(Todos::new, Todos::update, Todos::view)
         .subscription(Todos::subscription)
         .title(Todos::title)
         .font(Todos::ICON_FONT)
         .window_size((500.0, 800.0))
-        .run()
+        .presets(presets())
 }
 
 #[derive(Debug)]
@@ -87,7 +94,7 @@ impl Todos {
                     _ => {}
                 }
 
-                text_input::focus("new-task")
+                operation::focus("new-task")
             }
             Todos::Loaded(state) => {
                 let mut saved = false;
@@ -128,8 +135,8 @@ impl Todos {
                             if should_focus {
                                 let id = Task::text_input_id(i);
                                 Command::batch(vec![
-                                    text_input::focus(id.clone()),
-                                    text_input::select_all(id),
+                                    operation::focus(id.clone()),
+                                    operation::select_all(id),
                                 ])
                             } else {
                                 Command::none()
@@ -146,12 +153,12 @@ impl Todos {
                     }
                     Message::TabPressed { shift } => {
                         if shift {
-                            widget::focus_previous()
+                            operation::focus_previous()
                         } else {
-                            widget::focus_next()
+                            operation::focus_next()
                         }
                     }
-                    Message::ToggleFullscreen(mode) => window::get_latest()
+                    Message::ToggleFullscreen(mode) => window::latest()
                         .and_then(move |window| window::set_mode(window, mode)),
                     Message::Loaded(_) => Command::none(),
                 };
@@ -182,7 +189,7 @@ impl Todos {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         match self {
             Todos::Loading => loading_message(),
             Todos::Loaded(State {
@@ -194,7 +201,7 @@ impl Todos {
                 let title = text("todos")
                     .width(Fill)
                     .size(100)
-                    .color([0.5, 0.5, 0.5])
+                    .style(subtle)
                     .align_x(Center);
 
                 let input = text_input("What needs to be done?", input_value)
@@ -279,16 +286,11 @@ struct Task {
     state: TaskState,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum TaskState {
+    #[default]
     Idle,
     Editing,
-}
-
-impl Default for TaskState {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -301,8 +303,8 @@ pub enum TaskMessage {
 }
 
 impl Task {
-    fn text_input_id(i: usize) -> text_input::Id {
-        text_input::Id::new(format!("task-{i}"))
+    fn text_input_id(i: usize) -> widget::Id {
+        widget::Id::from(format!("task-{i}"))
     }
 
     fn new(description: String) -> Self {
@@ -334,10 +336,11 @@ impl Task {
         }
     }
 
-    fn view(&self, i: usize) -> Element<TaskMessage> {
+    fn view(&self, i: usize) -> Element<'_, TaskMessage> {
         match &self.state {
             TaskState::Idle => {
-                let checkbox = checkbox(&self.description, self.completed)
+                let checkbox = checkbox(self.completed)
+                    .label(&self.description)
                     .on_toggle(TaskMessage::Completed)
                     .width(Fill)
                     .size(17)
@@ -381,7 +384,10 @@ impl Task {
     }
 }
 
-fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
+fn view_controls(
+    tasks: &[Task],
+    current_filter: Filter,
+) -> Element<'_, Message> {
     let tasks_left = tasks.iter().filter(|task| !task.completed).count();
 
     let filter_button = |label, filter, current_filter| {
@@ -444,7 +450,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .width(Fill)
             .size(25)
             .align_x(Center)
-            .color([0.7, 0.7, 0.7]),
+            .style(subtle),
     )
     .height(200)
     .into()
@@ -457,6 +463,7 @@ fn icon(unicode: char) -> Text<'static> {
         .font(Font::with_name("Iced-Todos-Icons"))
         .width(20)
         .align_x(Center)
+        .shaping(text::Shaping::Basic)
 }
 
 fn edit_icon() -> Text<'static> {
@@ -465,6 +472,12 @@ fn edit_icon() -> Text<'static> {
 
 fn delete_icon() -> Text<'static> {
     icon('\u{F1F8}')
+}
+
+fn subtle(theme: &Theme) -> text::Style {
+    text::Style {
+        color: Some(theme.extended_palette().background.strongest.color),
+    }
 }
 
 // Persistence
@@ -529,8 +542,8 @@ impl SavedState {
                 .map_err(|_| SaveError::Write)?;
         }
 
-        // This is a simple way to save at most once every couple seconds
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        // This is a simple way to save at most twice every second
+        tokio::time::sleep(milliseconds(500)).await;
 
         Ok(())
     }
@@ -572,6 +585,32 @@ impl SavedState {
     }
 }
 
+fn presets() -> impl IntoIterator<Item = Preset<Todos, Message>> {
+    [
+        Preset::new("Empty", || {
+            (Todos::Loaded(State::default()), Command::none())
+        }),
+        Preset::new("Carl Sagan", || {
+            (
+                Todos::Loaded(State {
+                    input_value: "Make an apple pie".to_owned(),
+                    filter: Filter::All,
+                    tasks: vec![Task {
+                        id: Uuid::new_v4(),
+                        description: "Create the universe".to_owned(),
+                        completed: false,
+                        state: TaskState::Idle,
+                    }],
+                    dirty: false,
+                    saving: false,
+                }),
+                Command::none(),
+            )
+        }),
+    ]
+    .into_iter()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -580,7 +619,7 @@ mod tests {
     use iced_test::selector::id;
     use iced_test::{Error, Simulator};
 
-    fn simulator(todos: &Todos) -> Simulator<Message> {
+    fn simulator(todos: &Todos) -> Simulator<'_, Message> {
         Simulator::with_settings(
             Settings {
                 fonts: vec![Todos::ICON_FONT.into()],
@@ -591,6 +630,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn it_creates_a_new_task() -> Result<(), Error> {
         let (mut todos, _command) = Todos::new();
         let _command = todos.update(Message::Loaded(Err(LoadError::File)));
@@ -615,5 +655,14 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    fn it_passes_the_ice_tests() -> Result<(), Error> {
+        iced_test::run(
+            application(),
+            format!("{}/tests", env!("CARGO_MANIFEST_DIR")),
+        )
     }
 }

@@ -3,12 +3,11 @@ use crate::core::Color;
 use crate::graphics::color;
 use crate::graphics::compositor;
 use crate::graphics::error;
-use crate::graphics::{self, Viewport};
+use crate::graphics::{self, Shell, Viewport};
 use crate::settings::{self, Settings};
 use crate::{Engine, Renderer};
 
 /// A window graphics backend for iced powered by `wgpu`.
-#[allow(missing_debug_implementations)]
 pub struct Compositor {
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
@@ -51,6 +50,7 @@ impl Compositor {
     pub async fn request<W: compositor::Window>(
         settings: Settings,
         compatible_window: Option<W>,
+        shell: Shell,
     ) -> Result<Self, Error> {
         let instance = wgpu::util::new_instance_with_webgpu_detection(
             &wgpu::InstanceDescriptor {
@@ -82,21 +82,16 @@ impl Compositor {
             .and_then(|window| instance.create_surface(window).ok());
 
         let adapter_options = wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::from_env().unwrap_or(
-                if settings.antialiasing.is_none() {
-                    wgpu::PowerPreference::LowPower
-                } else {
-                    wgpu::PowerPreference::HighPerformance
-                },
-            ),
+            power_preference: wgpu::PowerPreference::from_env()
+                .unwrap_or(wgpu::PowerPreference::HighPerformance),
             compatible_surface: compatible_surface.as_ref(),
             force_fallback_adapter: false,
         };
 
-        let adapter = instance
-            .request_adapter(&adapter_options)
-            .await
-            .ok_or(Error::NoAdapterFound(format!("{:?}", adapter_options)))?;
+        let adapter =
+            instance.request_adapter(&adapter_options).await.map_err(
+                |_error| Error::NoAdapterFound(format!("{adapter_options:?}")),
+            )?;
 
         log::info!("Selected: {:#?}", adapter.get_info());
 
@@ -105,9 +100,13 @@ impl Compositor {
             .and_then(|surface| {
                 let capabilities = surface.get_capabilities(&adapter);
 
-                let mut formats = capabilities.formats.iter().copied();
+                let formats = capabilities.formats.iter().copied();
 
                 log::info!("Available formats: {formats:#?}");
+
+                let mut formats = formats.filter(|format| {
+                    format.required_features() == wgpu::Features::empty()
+                });
 
                 let format = if color::GAMMA_CORRECTION {
                     formats.find(wgpu::TextureFormat::is_srgb)
@@ -155,6 +154,7 @@ impl Compositor {
 
         let limits = limits.into_iter().map(|limits| wgpu::Limits {
             max_bind_groups: 2,
+            max_non_sampler_bindings: 2048,
             ..limits
         });
 
@@ -162,17 +162,17 @@ impl Compositor {
 
         for required_limits in limits {
             let result = adapter
-                .request_device(
-                    &wgpu::DeviceDescriptor {
-                        label: Some(
-                            "iced_wgpu::window::compositor device descriptor",
-                        ),
-                        required_features: wgpu::Features::empty(),
-                        required_limits: required_limits.clone(),
-                        memory_hints: wgpu::MemoryHints::MemoryUsage,
-                    },
-                    None,
-                )
+                .request_device(&wgpu::DeviceDescriptor {
+                    label: Some(
+                        "iced_wgpu::window::compositor device descriptor",
+                    ),
+                    required_features: wgpu::Features::empty(),
+                    required_limits: required_limits.clone(),
+                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+                    trace: wgpu::Trace::Off,
+                    experimental_features: wgpu::ExperimentalFeatures::disabled(
+                    ),
+                })
                 .await;
 
             match result {
@@ -183,6 +183,7 @@ impl Compositor {
                         queue,
                         format,
                         settings.antialiasing,
+                        shell,
                     );
 
                     return Ok(Compositor {
@@ -208,8 +209,9 @@ impl Compositor {
 pub async fn new<W: compositor::Window>(
     settings: Settings,
     compatible_window: W,
+    shell: Shell,
 ) -> Result<Compositor, Error> {
-    Compositor::request(settings, Some(compatible_window)).await
+    Compositor::request(settings, Some(compatible_window), shell).await
 }
 
 /// Presents the given primitives with the given [`Compositor`].
@@ -262,6 +264,7 @@ impl graphics::Compositor for Compositor {
     async fn with_backend<W: compositor::Window>(
         settings: graphics::Settings,
         compatible_window: W,
+        shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
         match backend {
@@ -276,7 +279,7 @@ impl graphics::Compositor for Compositor {
                     settings.present_mode = present_mode;
                 }
 
-                Ok(new(settings, compatible_window).await?)
+                Ok(new(settings, compatible_window, shell).await?)
             }
             Some(backend) => Err(graphics::Error::GraphicsAdapterNotFound {
                 backend: "wgpu",
@@ -334,7 +337,7 @@ impl graphics::Compositor for Compositor {
         );
     }
 
-    fn fetch_information(&self) -> compositor::Information {
+    fn information(&self) -> compositor::Information {
         let information = self.adapter.get_info();
 
         compositor::Information {

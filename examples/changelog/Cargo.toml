@@ -14,10 +14,13 @@ iced.features = ["tokio", "markdown", "highlighter", "debug"]
 
 log.workspace = true
 thiserror.workspace = true
+
 tokio.features = ["fs", "process"]
 tokio.workspace = true
 
-serde = "1"
+serde.workspace = true
+serde.features = ["derive"]
+
 webbrowser = "1"
 tracing-subscriber = "0.3"
 

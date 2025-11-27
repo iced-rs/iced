@@ -34,8 +34,11 @@ where
 }
 
 impl Rectangle<f32> {
-    /// A rectangle starting at [`Point::ORIGIN`] with infinite width and height.
-    pub const INFINITE: Self = Self::new(Point::ORIGIN, Size::INFINITY);
+    /// A rectangle starting at negative infinity and with infinite width and height.
+    pub const INFINITE: Self = Self::new(
+        Point::new(f32::NEG_INFINITY, f32::NEG_INFINITY),
+        Size::INFINITE,
+    );
 
     /// Creates a new [`Rectangle`] with its top-left corner in the given
     /// [`Point`] and with the provided [`Size`].
@@ -269,8 +272,8 @@ impl Rectangle<f32> {
         Self {
             x: self.x - padding.left,
             y: self.y - padding.top,
-            width: self.width + padding.horizontal(),
-            height: self.height + padding.vertical(),
+            width: self.width + padding.x(),
+            height: self.height + padding.y(),
         }
     }
 
@@ -281,8 +284,8 @@ impl Rectangle<f32> {
         Self {
             x: self.x + padding.left,
             y: self.y + padding.top,
-            width: self.width - padding.horizontal(),
-            height: self.height - padding.vertical(),
+            width: self.width - padding.x(),
+            height: self.height - padding.y(),
         }
     }
 
@@ -388,22 +391,6 @@ where
             x: self.x - translation.x,
             y: self.y - translation.y,
             ..self
-        }
-    }
-}
-
-impl<T> std::ops::Mul<Vector<T>> for Rectangle<T>
-where
-    T: std::ops::Mul<Output = T> + Copy,
-{
-    type Output = Rectangle<T>;
-
-    fn mul(self, scale: Vector<T>) -> Self {
-        Rectangle {
-            x: self.x * scale.x,
-            y: self.y * scale.y,
-            width: self.width * scale.x,
-            height: self.height * scale.y,
         }
     }
 }

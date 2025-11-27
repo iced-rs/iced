@@ -74,7 +74,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let border::Radius {
             top_left,
             top_right,
@@ -97,13 +97,13 @@ impl Example {
                 self.snap,
             ),
             text!("Radius: {top_left:.2}/{top_right:.2}/{bottom_right:.2}/{bottom_left:.2}"),
-            slider(1.0..=100.0, top_left, Message::RadiusTopLeftChanged).step(0.01),
-            slider(1.0..=100.0, top_right, Message::RadiusTopRightChanged).step(0.01),
-            slider(1.0..=100.0, bottom_right, Message::RadiusBottomRightChanged)
+            slider(1.0..=200.0, top_left, Message::RadiusTopLeftChanged).step(0.01),
+            slider(1.0..=200.0, top_right, Message::RadiusTopRightChanged).step(0.01),
+            slider(1.0..=200.0, bottom_right, Message::RadiusBottomRightChanged)
                 .step(0.01),
-            slider(1.0..=100.0, bottom_left, Message::RadiusBottomLeftChanged)
+            slider(1.0..=200.0, bottom_left, Message::RadiusBottomLeftChanged)
                 .step(0.01),
-            slider(1.0..=10.0, self.border_width, Message::BorderWidthChanged)
+            slider(0.0..=10.0, self.border_width, Message::BorderWidthChanged)
                 .step(0.01),
             text!("Shadow: {sx:.2}x{sy:.2}, {sr:.2}"),
             slider(-100.0..=100.0, sx, Message::ShadowXOffsetChanged)
@@ -175,7 +175,7 @@ mod quad {
         }
 
         fn layout(
-            &self,
+            &mut self,
             _tree: &mut widget::Tree,
             _renderer: &Renderer,
             _limits: &layout::Limits,
@@ -185,7 +185,7 @@ mod quad {
 
         fn draw(
             &self,
-            _state: &widget::Tree,
+            _tree: &widget::Tree,
             renderer: &mut Renderer,
             _theme: &Theme,
             _style: &renderer::Style,

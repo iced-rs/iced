@@ -7,7 +7,7 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 mod antialiasing;
 mod settings;
 mod viewport;
@@ -21,6 +21,7 @@ pub mod gradient;
 pub mod image;
 pub mod layer;
 pub mod mesh;
+pub mod shell;
 pub mod text;
 
 #[cfg(feature = "geometry")]
@@ -35,6 +36,7 @@ pub use image::Image;
 pub use layer::Layer;
 pub use mesh::Mesh;
 pub use settings::Settings;
+pub use shell::Shell;
 pub use text::Text;
 pub use viewport::Viewport;
 

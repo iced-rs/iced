@@ -5,7 +5,7 @@
 //! # mod iced { pub mod widget { pub use iced_widget::*; } }
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-//! use iced::widget::horizontal_rule;
+//! use iced::widget::rule;
 //!
 //! #[derive(Clone)]
 //! enum Message {
@@ -13,7 +13,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     horizontal_rule(2).into()
+//!     rule::horizontal(2).into()
 //! }
 //! ```
 use crate::core;
@@ -26,6 +26,30 @@ use crate::core::{
     Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget,
 };
 
+/// Creates a new horizontal [`Rule`] with the given height.
+pub fn horizontal<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
+where
+    Theme: Catalog,
+{
+    Rule {
+        thickness: Length::Fixed(height.into().0),
+        is_vertical: false,
+        class: Theme::default(),
+    }
+}
+
+/// Creates a new vertical [`Rule`] with the given width.
+pub fn vertical<'a, Theme>(width: impl Into<Pixels>) -> Rule<'a, Theme>
+where
+    Theme: Catalog,
+{
+    Rule {
+        thickness: Length::Fixed(width.into().0),
+        is_vertical: true,
+        class: Theme::default(),
+    }
+}
+
 /// Display a horizontal or vertical rule for dividing content.
 ///
 /// # Example
@@ -33,7 +57,7 @@ use crate::core::{
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::horizontal_rule;
+/// use iced::widget::rule;
 ///
 /// #[derive(Clone)]
 /// enum Message {
@@ -41,17 +65,15 @@ use crate::core::{
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     horizontal_rule(2).into()
+///     rule::horizontal(2).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Rule<'a, Theme = crate::Theme>
 where
     Theme: Catalog,
 {
-    width: Length,
-    height: Length,
-    is_horizontal: bool,
+    thickness: Length,
+    is_vertical: bool,
     class: Theme::Class<'a>,
 }
 
@@ -59,26 +81,6 @@ impl<'a, Theme> Rule<'a, Theme>
 where
     Theme: Catalog,
 {
-    /// Creates a horizontal [`Rule`] with the given height.
-    pub fn horizontal(height: impl Into<Pixels>) -> Self {
-        Rule {
-            width: Length::Fill,
-            height: Length::Fixed(height.into().0),
-            is_horizontal: true,
-            class: Theme::default(),
-        }
-    }
-
-    /// Creates a vertical [`Rule`] with the given width.
-    pub fn vertical(width: impl Into<Pixels>) -> Self {
-        Rule {
-            width: Length::Fixed(width.into().0),
-            height: Length::Fill,
-            is_horizontal: false,
-            class: Theme::default(),
-        }
-    }
-
     /// Sets the style of the [`Rule`].
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
@@ -105,24 +107,33 @@ where
     Theme: Catalog,
 {
     fn size(&self) -> Size<Length> {
-        Size {
-            width: self.width,
-            height: self.height,
+        if self.is_vertical {
+            Size {
+                width: self.thickness,
+                height: Length::Fill,
+            }
+        } else {
+            Size {
+                width: Length::Fill,
+                height: self.thickness,
+            }
         }
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout::atomic(limits, self.width, self.height)
+        let size = <Self as Widget<(), Theme, Renderer>>::size(self);
+
+        layout::atomic(limits, size.width, size.height)
     }
 
     fn draw(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
@@ -133,10 +144,20 @@ where
         let bounds = layout.bounds();
         let style = theme.style(&self.class);
 
-        let bounds = if self.is_horizontal {
-            let line_y = (bounds.y + (bounds.height / 2.0)
-                - (style.width as f32 / 2.0))
-                .round();
+        let bounds = if self.is_vertical {
+            let line_x = bounds.x.round();
+
+            let (offset, line_height) = style.fill_mode.fill(bounds.height);
+            let line_y = bounds.y + offset;
+
+            Rectangle {
+                x: line_x,
+                y: line_y,
+                width: bounds.width,
+                height: line_height,
+            }
+        } else {
+            let line_y = bounds.y.round();
 
             let (offset, line_width) = style.fill_mode.fill(bounds.width);
             let line_x = bounds.x + offset;
@@ -145,21 +166,7 @@ where
                 x: line_x,
                 y: line_y,
                 width: line_width,
-                height: style.width as f32,
-            }
-        } else {
-            let line_x = (bounds.x + (bounds.width / 2.0)
-                - (style.width as f32 / 2.0))
-                .round();
-
-            let (offset, line_height) = style.fill_mode.fill(bounds.height);
-            let line_y = bounds.y + offset;
-
-            Rectangle {
-                x: line_x,
-                y: line_y,
-                width: style.width as f32,
-                height: line_height,
+                height: bounds.height,
             }
         };
 
@@ -192,8 +199,6 @@ where
 pub struct Style {
     /// The color of the rule.
     pub color: Color,
-    /// The width (thickness) of the rule line.
-    pub width: u16,
     /// The radius of the line corners.
     pub radius: border::Radius,
     /// The [`FillMode`] of the rule.
@@ -301,7 +306,18 @@ pub fn default(theme: &Theme) -> Style {
 
     Style {
         color: palette.background.strong.color,
-        width: 1,
+        radius: 0.0.into(),
+        fill_mode: FillMode::Full,
+        snap: true,
+    }
+}
+
+/// A [`Rule`] styling using the weak background color.
+pub fn weak(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    Style {
+        color: palette.background.weak.color,
         radius: 0.0.into(),
         fill_mode: FillMode::Full,
         snap: true,

@@ -64,6 +64,17 @@ where
     }
 }
 
+impl<T> std::ops::Div<T> for Vector<T>
+where
+    T: std::ops::Div<Output = T> + Copy,
+{
+    type Output = Self;
+
+    fn div(self, scale: T) -> Self {
+        Self::new(self.x / scale, self.y / scale)
+    }
+}
+
 impl<T> Default for Vector<T>
 where
     T: Default,

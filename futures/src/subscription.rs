@@ -4,6 +4,7 @@ mod tracker;
 pub use tracker::Tracker;
 
 use crate::core::event;
+use crate::core::theme;
 use crate::core::window;
 use crate::futures::Stream;
 use crate::{BoxStream, MaybeSend};
@@ -26,6 +27,9 @@ pub enum Event {
         /// The [`event::Status`] of the interaction.
         status: event::Status,
     },
+
+    /// The system theme has changed.
+    SystemThemeChanged(theme::Mode),
 
     /// A platform specific event.
     PlatformSpecific(PlatformSpecific),
@@ -422,7 +426,8 @@ where
     }
 }
 
-pub(crate) fn filter_map<I, F, T>(id: I, f: F) -> Subscription<T>
+/// Creates a [`Subscription`] from a hashable id and a filter function.
+pub fn filter_map<I, F, T>(id: I, f: F) -> Subscription<T>
 where
     I: Hash + 'static,
     F: Fn(Event) -> Option<T> + MaybeSend + 'static,

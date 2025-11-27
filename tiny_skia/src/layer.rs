@@ -17,8 +17,8 @@ pub struct Layer {
     pub bounds: Rectangle,
     pub quads: Vec<(Quad, Background)>,
     pub primitives: Vec<Item<Primitive>>,
-    pub text: Vec<Item<Text>>,
     pub images: Vec<Image>,
+    pub text: Vec<Item<Text>>,
 }
 
 impl Layer {
@@ -95,6 +95,19 @@ impl Layer {
         self.text.push(Item::Live(text));
     }
 
+    pub fn draw_text_raw(
+        &mut self,
+        raw: graphics::text::Raw,
+        transformation: Transformation,
+    ) {
+        let raw = Text::Raw {
+            raw,
+            transformation,
+        };
+
+        self.text.push(Item::Live(raw));
+    }
+
     pub fn draw_text_group(
         &mut self,
         text: Vec<Text>,
@@ -117,11 +130,19 @@ impl Layer {
 
     pub fn draw_image(&mut self, image: Image, transformation: Transformation) {
         match image {
-            Image::Raster(raster, bounds) => {
-                self.draw_raster(raster, bounds, transformation);
+            Image::Raster {
+                image,
+                bounds,
+                clip_bounds,
+            } => {
+                self.draw_raster(image, bounds, clip_bounds, transformation);
             }
-            Image::Vector(svg, bounds) => {
-                self.draw_svg(svg, bounds, transformation);
+            Image::Vector {
+                svg,
+                bounds,
+                clip_bounds,
+            } => {
+                self.draw_svg(svg, bounds, clip_bounds, transformation);
             }
         }
     }
@@ -130,9 +151,18 @@ impl Layer {
         &mut self,
         image: core::Image,
         bounds: Rectangle,
+        clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
-        let image = Image::Raster(image, bounds * transformation);
+        let image = Image::Raster {
+            image: core::Image {
+                border_radius: image.border_radius
+                    * transformation.scale_factor(),
+                ..image
+            },
+            bounds: bounds * transformation,
+            clip_bounds: clip_bounds * transformation,
+        };
 
         self.images.push(image);
     }
@@ -141,9 +171,14 @@ impl Layer {
         &mut self,
         svg: Svg,
         bounds: Rectangle,
+        clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
-        let svg = Image::Vector(svg, bounds * transformation);
+        let svg = Image::Vector {
+            svg,
+            bounds: bounds * transformation,
+            clip_bounds: clip_bounds * transformation,
+        };
 
         self.images.push(svg);
     }
@@ -156,7 +191,7 @@ impl Layer {
     ) {
         self.primitives.push(Item::Group(
             primitives,
-            clip_bounds,
+            clip_bounds * transformation,
             transformation,
         ));
     }
@@ -169,7 +204,7 @@ impl Layer {
     ) {
         self.primitives.push(Item::Cached(
             primitives,
-            clip_bounds,
+            clip_bounds * transformation,
             transformation,
         ));
     }
@@ -233,8 +268,8 @@ impl Layer {
                         .filter_map(|bounds| bounds.intersection(group_bounds))
                         .collect()
                 }
-                Item::Cached(_, bounds, _) => {
-                    vec![*bounds]
+                Item::Cached(_, bounds, transformation) => {
+                    vec![*bounds * *transformation]
                 }
             },
             |primitive_a, primitive_b| match (primitive_a, primitive_b) {
@@ -284,6 +319,10 @@ impl graphics::Layer for Layer {
         }
     }
 
+    fn bounds(&self) -> Rectangle {
+        self.bounds
+    }
+
     fn flush(&mut self) {}
 
     fn resize(&mut self, bounds: Rectangle) {
@@ -297,6 +336,53 @@ impl graphics::Layer for Layer {
         self.primitives.clear();
         self.text.clear();
         self.images.clear();
+    }
+
+    fn start(&self) -> usize {
+        if !self.quads.is_empty() {
+            return 1;
+        }
+
+        if !self.primitives.is_empty() {
+            return 2;
+        }
+
+        if !self.images.is_empty() {
+            return 3;
+        }
+
+        if !self.text.is_empty() {
+            return 4;
+        }
+
+        usize::MAX
+    }
+
+    fn end(&self) -> usize {
+        if !self.text.is_empty() {
+            return 4;
+        }
+
+        if !self.images.is_empty() {
+            return 3;
+        }
+
+        if !self.primitives.is_empty() {
+            return 2;
+        }
+
+        if !self.quads.is_empty() {
+            return 1;
+        }
+
+        0
+    }
+
+    fn merge(&mut self, layer: &mut Self) {
+        self.quads.append(&mut layer.quads);
+        self.primitives.append(&mut layer.primitives);
+        self.text.append(&mut layer.text);
+        self.images.append(&mut layer.images);
     }
 }
 

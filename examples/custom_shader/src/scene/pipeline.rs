@@ -32,7 +32,6 @@ impl Pipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
-        target_size: Size<u32>,
     ) -> Self {
         //vertices of one cube
         let vertices =
@@ -62,8 +61,8 @@ impl Pipeline {
         let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("cubes depth texture"),
             size: wgpu::Extent3d {
-                width: target_size.width,
-                height: target_size.height,
+                width: 1,
+                height: 1,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -297,7 +296,7 @@ impl Pipeline {
             uniforms,
             uniform_bind_group,
             vertices,
-            depth_texture_size: target_size,
+            depth_texture_size: Size::new(1, 1),
             depth_view,
             depth_pipeline,
         }
@@ -358,7 +357,7 @@ impl Pipeline {
         &self,
         target: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
-        viewport: Rectangle<u32>,
+        clip_bounds: Rectangle<u32>,
         num_cubes: u32,
         show_depth: bool,
     ) {
@@ -369,6 +368,7 @@ impl Pipeline {
                     color_attachments: &[Some(
                         wgpu::RenderPassColorAttachment {
                             view: target,
+                            depth_slice: None,
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: wgpu::LoadOp::Load,
@@ -390,11 +390,13 @@ impl Pipeline {
                     occlusion_query_set: None,
                 });
 
-            pass.set_scissor_rect(
-                viewport.x,
-                viewport.y,
-                viewport.width,
-                viewport.height,
+            pass.set_viewport(
+                clip_bounds.x as f32,
+                clip_bounds.y as f32,
+                clip_bounds.width as f32,
+                clip_bounds.height as f32,
+                0.0,
+                1.0,
             );
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &self.uniform_bind_group, &[]);
@@ -404,7 +406,7 @@ impl Pipeline {
         }
 
         if show_depth {
-            self.depth_pipeline.render(encoder, target, viewport);
+            self.depth_pipeline.render(encoder, target, clip_bounds);
         }
     }
 }
@@ -562,12 +564,13 @@ impl DepthPipeline {
         &self,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
-        viewport: Rectangle<u32>,
+        clip_bounds: Rectangle<u32>,
     ) {
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("cubes.pipeline.depth_pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: target,
+                depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Load,
@@ -585,11 +588,13 @@ impl DepthPipeline {
             occlusion_query_set: None,
         });
 
-        pass.set_scissor_rect(
-            viewport.x,
-            viewport.y,
-            viewport.width,
-            viewport.height,
+        pass.set_viewport(
+            clip_bounds.x as f32,
+            clip_bounds.y as f32,
+            clip_bounds.width as f32,
+            clip_bounds.height as f32,
+            0.0,
+            1.0,
         );
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, &self.bind_group, &[]);

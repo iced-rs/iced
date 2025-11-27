@@ -7,6 +7,6 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["system"]
+iced.features = ["sysinfo"]
 
 bytesize = "1.1"

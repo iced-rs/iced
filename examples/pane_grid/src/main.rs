@@ -71,11 +71,10 @@ impl Example {
                 }
             }
             Message::FocusAdjacent(direction) => {
-                if let Some(pane) = self.focus {
-                    if let Some(adjacent) = self.panes.adjacent(pane, direction)
-                    {
-                        self.focus = Some(adjacent);
-                    }
+                if let Some(pane) = self.focus
+                    && let Some(adjacent) = self.panes.adjacent(pane, direction)
+                {
+                    self.focus = Some(adjacent);
                 }
             }
             Message::Clicked(pane) => {
@@ -106,14 +105,12 @@ impl Example {
                 }
             }
             Message::CloseFocused => {
-                if let Some(pane) = self.focus {
-                    if let Some(Pane { is_pinned, .. }) = self.panes.get(pane) {
-                        if !is_pinned {
-                            if let Some((_, sibling)) = self.panes.close(pane) {
-                                self.focus = Some(sibling);
-                            }
-                        }
-                    }
+                if let Some(pane) = self.focus
+                    && let Some(Pane { is_pinned, .. }) = self.panes.get(pane)
+                    && !is_pinned
+                    && let Some((_, sibling)) = self.panes.close(pane)
+                {
+                    self.focus = Some(sibling);
                 }
             }
         }
@@ -129,7 +126,7 @@ impl Example {
         })
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
@@ -276,13 +273,13 @@ fn view_content<'a>(
         button(
             "Split vertically",
             Message::Split(pane_grid::Axis::Vertical, pane),
-        )
+        ),
+        if total_panes > 1 && !is_pinned {
+            Some(button("Close", Message::Close(pane)).style(button::danger))
+        } else {
+            None
+        }
     ]
-    .push_maybe(if total_panes > 1 && !is_pinned {
-        Some(button("Close", Message::Close(pane)).style(button::danger))
-    } else {
-        None
-    })
     .spacing(5)
     .max_width(160);
 
@@ -300,7 +297,7 @@ fn view_controls<'a>(
     is_pinned: bool,
     is_maximized: bool,
 ) -> Element<'a, Message> {
-    let row = row![].spacing(5).push_maybe(if total_panes > 1 {
+    let maximize = if total_panes > 1 {
         let (content, message) = if is_maximized {
             ("Restore", Message::Restore)
         } else {
@@ -315,7 +312,7 @@ fn view_controls<'a>(
         )
     } else {
         None
-    });
+    };
 
     let close = button(text("Close").size(14))
         .style(button::danger)
@@ -326,7 +323,7 @@ fn view_controls<'a>(
             None
         });
 
-    row.push(close).into()
+    row![maximize, close].spacing(5).into()
 }
 
 mod style {

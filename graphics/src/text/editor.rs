@@ -75,6 +75,7 @@ impl editor::Editor for Editor {
             text,
             &cosmic_text::Attrs::new(),
             cosmic_text::Shaping::Advanced,
+            None,
         );
 
         Editor(Some(Arc::new(Internal {
@@ -321,10 +322,11 @@ impl editor::Editor for Editor {
                 );
 
                 // Deselect if selection matches cursor position
-                if let Some((start, end)) = editor.selection_bounds() {
-                    if start.line == end.line && start.index == end.index {
-                        editor.set_selection(cosmic_text::Selection::None);
-                    }
+                if let Some((start, end)) = editor.selection_bounds()
+                    && start.line == end.line
+                    && start.index == end.index
+                {
+                    editor.set_selection(cosmic_text::Selection::None);
                 }
             }
             Action::SelectWord => {
@@ -367,6 +369,12 @@ impl editor::Editor for Editor {
 
             // Editing events
             Action::Edit(edit) => {
+                let topmost_line_before_edit = editor
+                    .selection_bounds()
+                    .map(|(start, _)| start)
+                    .unwrap_or_else(|| editor.cursor())
+                    .line;
+
                 match edit {
                     Edit::Insert(c) => {
                         editor.action(
@@ -415,7 +423,8 @@ impl editor::Editor for Editor {
                     .map(|(start, _)| start)
                     .unwrap_or(cursor);
 
-                internal.topmost_line_changed = Some(selection_start.line);
+                internal.topmost_line_changed =
+                    Some(selection_start.line.min(topmost_line_before_edit));
             }
 
             // Mouse events
@@ -438,16 +447,20 @@ impl editor::Editor for Editor {
                 );
 
                 // Deselect if selection matches cursor position
-                if let Some((start, end)) = editor.selection_bounds() {
-                    if start.line == end.line && start.index == end.index {
-                        editor.set_selection(cosmic_text::Selection::None);
-                    }
+                if let Some((start, end)) = editor.selection_bounds()
+                    && start.line == end.line
+                    && start.index == end.index
+                {
+                    editor.set_selection(cosmic_text::Selection::None);
                 }
             }
             Action::Scroll { lines } => {
                 editor.action(
                     font_system.raw(),
-                    cosmic_text::Action::Scroll { lines },
+                    cosmic_text::Action::Scroll {
+                        pixels: lines as f32
+                            * buffer_from_editor(editor).metrics().line_height,
+                    },
                 );
             }
         }

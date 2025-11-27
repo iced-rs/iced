@@ -38,12 +38,14 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
-        let default_checkbox = checkbox("Default", self.default)
+    fn view(&self) -> Element<'_, Message> {
+        let default_checkbox = checkbox(self.default)
+            .label("Default")
             .on_toggle(Message::DefaultToggled);
 
         let styled_checkbox = |label| {
-            checkbox(label, self.styled)
+            checkbox(self.styled)
+                .label(label)
                 .on_toggle_maybe(self.default.then_some(Message::StyledToggled))
         };
 
@@ -55,7 +57,8 @@ impl Example {
         ]
         .spacing(20);
 
-        let custom_checkbox = checkbox("Custom", self.custom)
+        let custom_checkbox = checkbox(self.custom)
+            .label("Custom")
             .on_toggle(Message::CustomToggled)
             .icon(checkbox::Icon {
                 font: ICON_FONT,

@@ -1,11 +1,9 @@
-use iced::border;
 use iced::widget::{Button, Column, Container, Slider};
 use iced::widget::{
-    button, center_x, center_y, checkbox, column, horizontal_space, image,
-    radio, rich_text, row, scrollable, slider, span, text, text_input, toggler,
-    vertical_space,
+    button, center_x, center_y, checkbox, column, image, radio, rich_text, row,
+    scrollable, slider, space, span, text, text_input, toggler,
 };
-use iced::{Center, Color, Element, Fill, Font, Pixels, Theme};
+use iced::{Center, Color, Element, Fill, Font, Pixels, color};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -76,7 +74,7 @@ impl Tour {
             Screen::End => "End",
         };
 
-        format!("{} - Iced", screen)
+        format!("{screen} - Iced")
     }
 
     fn update(&mut self, event: Message) {
@@ -141,18 +139,18 @@ impl Tour {
         }
     }
 
-    fn view(&self) -> Element<Message> {
-        let controls =
-            row![]
-                .push_maybe(self.screen.previous().is_some().then(|| {
-                    padded_button("Back")
-                        .on_press(Message::BackPressed)
-                        .style(button::secondary)
-                }))
-                .push(horizontal_space())
-                .push_maybe(self.can_continue().then(|| {
-                    padded_button("Next").on_press(Message::NextPressed)
-                }));
+    fn view(&self) -> Element<'_, Message> {
+        let controls = row![
+            self.screen.previous().is_some().then(|| {
+                padded_button("Back")
+                    .on_press(Message::BackPressed)
+                    .style(button::secondary)
+            }),
+            space::horizontal(),
+            self.can_continue().then(|| {
+                padded_button("Next").on_press(Message::NextPressed)
+            })
+        ];
 
         let screen = match self.screen {
             Screen::Welcome => self.welcome(),
@@ -197,11 +195,11 @@ impl Tour {
         }
     }
 
-    fn welcome(&self) -> Column<Message> {
+    fn welcome(&self) -> Column<'_, Message> {
         Self::container("Welcome!")
             .push(
                 "This is a simple tour meant to showcase a bunch of \
-                widgets that can be easily implemented on top of Iced.",
+                widgets that come bundled in Iced.",
             )
             .push(
                 "Iced is a cross-platform GUI library for Rust focused on \
@@ -216,35 +214,26 @@ impl Tour {
                  built on top of wgpu, a graphics library supporting Vulkan, \
                  Metal, DX11, and DX12.",
             )
-            .push({
-                let theme = Theme::default();
-                let palette = theme.extended_palette();
-
+            .push(
                 rich_text![
                     "Additionally, this tour can also run on WebAssembly ",
                     "by leveraging ",
                     span("trunk")
-                        .color(palette.primary.base.color)
-                        .background(palette.background.weakest.color)
-                        .border(
-                            border::rounded(2)
-                                .width(1)
-                                .color(palette.background.weak.color)
-                        )
-                        .padding([0, 2])
+                        .color(color!(0x7777FF))
+                        .underline(true)
                         .font(Font::MONOSPACE)
                         .link(Message::OpenTrunk),
                     "."
                 ]
-                .on_link_click(std::convert::identity)
-            })
+                .on_link_click(std::convert::identity),
+            )
             .push(
                 "You will need to interact with the UI in order to reach \
                  the end!",
             )
     }
 
-    fn slider(&self) -> Column<Message> {
+    fn slider(&self) -> Column<'_, Message> {
         Self::container("Slider")
             .push(
                 "A slider allows you to smoothly select a value from a range \
@@ -258,7 +247,7 @@ impl Tour {
             .push(text(self.slider.to_string()).width(Fill).align_x(Center))
     }
 
-    fn rows_and_columns(&self) -> Column<Message> {
+    fn rows_and_columns(&self) -> Column<'_, Message> {
         let row_radio = radio(
             "Row",
             Layout::Row,
@@ -303,7 +292,7 @@ impl Tour {
             .push(spacing_section)
     }
 
-    fn text(&self) -> Column<Message> {
+    fn text(&self) -> Column<'_, Message> {
         let size = self.text_size;
         let color = self.text_color;
 
@@ -339,7 +328,7 @@ impl Tour {
             .push(color_section)
     }
 
-    fn radio(&self) -> Column<Message> {
+    fn radio(&self) -> Column<'_, Message> {
         let question = column![
             text("Iced is written in...").size(24),
             column(
@@ -374,7 +363,7 @@ impl Tour {
             )
     }
 
-    fn toggler(&self) -> Column<Message> {
+    fn toggler(&self) -> Column<'_, Message> {
         Self::container("Toggler")
             .push("A toggler is mostly used to enable or disable something.")
             .push(
@@ -387,7 +376,7 @@ impl Tour {
             )
     }
 
-    fn image(&self) -> Column<Message> {
+    fn image(&self) -> Column<'_, Message> {
         let width = self.image_width;
         let filter_method = self.image_filter_method;
 
@@ -397,16 +386,14 @@ impl Tour {
             .push(slider(100..=500, width, Message::ImageWidthChanged))
             .push(text!("Width: {width} px").width(Fill).align_x(Center))
             .push(
-                checkbox(
-                    "Use nearest interpolation",
-                    filter_method == image::FilterMethod::Nearest,
-                )
-                .on_toggle(Message::ImageUseNearestToggled),
+                checkbox(filter_method == image::FilterMethod::Nearest)
+                    .label("Use nearest interpolation")
+                    .on_toggle(Message::ImageUseNearestToggled),
             )
             .align_x(Center)
     }
 
-    fn scrollable(&self) -> Column<Message> {
+    fn scrollable(&self) -> Column<'_, Message> {
         Self::container("Scrollable")
             .push(
                 "Iced supports scrollable content. Try it out! Find the \
@@ -416,19 +403,19 @@ impl Tour {
                 text("Tip: You can use the scrollbar to scroll down faster!")
                     .size(16),
             )
-            .push(vertical_space().height(4096))
+            .push(space().height(4096))
             .push(
                 text("You are halfway there!")
                     .width(Fill)
                     .size(30)
                     .align_x(Center),
             )
-            .push(vertical_space().height(4096))
+            .push(space().height(4096))
             .push(ferris(300, image::FilterMethod::Linear))
             .push(text("You made it!").width(Fill).size(50).align_x(Center))
     }
 
-    fn text_input(&self) -> Column<Message> {
+    fn text_input(&self) -> Column<'_, Message> {
         let value = &self.input_value;
         let is_secure = self.input_is_secure;
         let is_showing_icon = self.input_is_showing_icon;
@@ -452,11 +439,13 @@ impl Tour {
             .push("Use a text input to ask for different kinds of information.")
             .push(text_input.secure(is_secure))
             .push(
-                checkbox("Enable password mode", is_secure)
+                checkbox(is_secure)
+                    .label("Enable password mode")
                     .on_toggle(Message::ToggleSecureInput),
             )
             .push(
-                checkbox("Show icon", is_showing_icon)
+                checkbox(is_showing_icon)
+                    .label("Show icon")
                     .on_toggle(Message::ToggleTextInputIcon),
             )
             .push(
@@ -474,7 +463,7 @@ impl Tour {
             )
     }
 
-    fn debugger(&self) -> Column<Message> {
+    fn debugger(&self) -> Column<'_, Message> {
         Self::container("Debugger")
             .push(
                 "You can ask Iced to visually explain the layouting of the \
@@ -485,13 +474,14 @@ impl Tour {
                  see element boundaries.",
             )
             .push(
-                checkbox("Explain layout", self.debug)
+                checkbox(self.debug)
+                    .label("Explain layout")
                     .on_toggle(Message::DebugToggled),
             )
             .push("Feel free to go back and take a look.")
     }
 
-    fn end(&self) -> Column<Message> {
+    fn end(&self) -> Column<'_, Message> {
         Self::container("You reached the end!")
             .push("This tour will be updated as more features are added.")
             .push("Make sure to keep an eye on it!")
@@ -570,7 +560,7 @@ fn ferris<'a>(
         if cfg!(target_arch = "wasm32") {
             image("tour/images/ferris.png")
         } else {
-            image(format!("{}/images/ferris.png", env!("CARGO_MANIFEST_DIR")))
+            image(concat!(env!("CARGO_MANIFEST_DIR"), "/images/ferris.png"))
         }
         .filter_method(filter_method)
         .width(width),

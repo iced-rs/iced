@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 pub mod window;
 
 mod engine;
@@ -72,19 +72,19 @@ impl Renderer {
         damage: &[Rectangle],
         background_color: Color,
     ) {
-        let scale_factor = viewport.scale_factor() as f32;
+        let scale_factor = viewport.scale_factor();
 
         self.layers.flush();
 
-        for &region in damage {
-            let region = region * scale_factor;
+        for &damage_bounds in damage {
+            let damage_bounds = damage_bounds * scale_factor;
 
             let path = tiny_skia::PathBuilder::from_rect(
                 tiny_skia::Rect::from_xywh(
-                    region.x,
-                    region.y,
-                    region.width,
-                    region.height,
+                    damage_bounds.x,
+                    damage_bounds.y,
+                    damage_bounds.width,
+                    damage_bounds.height,
                 )
                 .expect("Create damage rectangle"),
             );
@@ -105,13 +105,13 @@ impl Renderer {
             );
 
             for layer in self.layers.iter() {
-                let Some(clip_bounds) =
-                    region.intersection(&(layer.bounds * scale_factor))
+                let Some(layer_bounds) =
+                    damage_bounds.intersection(&(layer.bounds * scale_factor))
                 else {
                     continue;
                 };
 
-                engine::adjust_clip_mask(clip_mask, clip_bounds);
+                engine::adjust_clip_mask(clip_mask, layer_bounds);
 
                 if !layer.quads.is_empty() {
                     let render_span = debug::render(debug::Primitive::Quad);
@@ -122,7 +122,7 @@ impl Renderer {
                             Transformation::scale(scale_factor),
                             pixels,
                             clip_mask,
-                            clip_bounds,
+                            layer_bounds,
                         );
                     }
                     render_span.finish();
@@ -132,14 +132,15 @@ impl Renderer {
                     let render_span = debug::render(debug::Primitive::Triangle);
 
                     for group in &layer.primitives {
-                        let Some(new_clip_bounds) = (group.clip_bounds()
+                        let Some(group_bounds) = (group.clip_bounds()
+                            * group.transformation()
                             * scale_factor)
-                            .intersection(&clip_bounds)
+                            .intersection(&layer_bounds)
                         else {
                             continue;
                         };
 
-                        engine::adjust_clip_mask(clip_mask, new_clip_bounds);
+                        engine::adjust_clip_mask(clip_mask, group_bounds);
 
                         for primitive in group.as_slice() {
                             self.engine.draw_primitive(
@@ -148,11 +149,11 @@ impl Renderer {
                                     * Transformation::scale(scale_factor),
                                 pixels,
                                 clip_mask,
-                                clip_bounds,
+                                group_bounds,
                             );
                         }
 
-                        engine::adjust_clip_mask(clip_mask, clip_bounds);
+                        engine::adjust_clip_mask(clip_mask, layer_bounds);
                     }
 
                     render_span.finish();
@@ -167,7 +168,7 @@ impl Renderer {
                             Transformation::scale(scale_factor),
                             pixels,
                             clip_mask,
-                            clip_bounds,
+                            layer_bounds,
                         );
                     }
 
@@ -185,7 +186,7 @@ impl Renderer {
                                     * Transformation::scale(scale_factor),
                                 pixels,
                                 clip_mask,
-                                clip_bounds,
+                                layer_bounds,
                             );
                         }
                     }
@@ -225,8 +226,24 @@ impl core::Renderer for Renderer {
         layer.draw_quad(quad, background.into(), transformation);
     }
 
-    fn clear(&mut self) {
-        self.layers.clear();
+    fn reset(&mut self, new_bounds: Rectangle) {
+        self.layers.reset(new_bounds);
+    }
+
+    fn allocate_image(
+        &mut self,
+        _handle: &core::image::Handle,
+        callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>)
+        + Send
+        + 'static,
+    ) {
+        #[cfg(feature = "image")]
+        #[allow(unsafe_code)]
+        // TODO: Concurrency
+        callback(self.engine.raster_pipeline.load(_handle));
+
+        #[cfg(not(feature = "image"))]
+        callback(Err(core::image::Error::Unsupported))
     }
 }
 
@@ -235,10 +252,10 @@ impl core::text::Renderer for Renderer {
     type Paragraph = Paragraph;
     type Editor = Editor;
 
-    const MONOSPACE_FONT: Font = Font::MONOSPACE;
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
     const ARROW_DOWN_ICON: char = '\u{e800}';
+    const ICED_LOGO: char = '\u{e801}';
 
     fn default_font(&self) -> Self::Font {
         self.default_font
@@ -289,13 +306,20 @@ impl core::text::Renderer for Renderer {
     }
 }
 
+impl graphics::text::Renderer for Renderer {
+    fn fill_raw(&mut self, raw: graphics::text::Raw) {
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_text_raw(raw, transformation);
+    }
+}
+
 #[cfg(feature = "geometry")]
 impl graphics::geometry::Renderer for Renderer {
     type Geometry = Geometry;
     type Frame = geometry::Frame;
 
-    fn new_frame(&self, size: core::Size) -> Self::Frame {
-        geometry::Frame::new(size)
+    fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
+        geometry::Frame::new(bounds)
     }
 
     fn draw_geometry(&mut self, geometry: Self::Geometry) {
@@ -351,13 +375,28 @@ impl graphics::mesh::Renderer for Renderer {
 impl core::image::Renderer for Renderer {
     type Handle = core::image::Handle;
 
-    fn measure_image(&self, handle: &Self::Handle) -> crate::core::Size<u32> {
+    fn load_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Result<core::image::Allocation, core::image::Error> {
+        self.engine.raster_pipeline.load(handle)
+    }
+
+    fn measure_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Option<crate::core::Size<u32>> {
         self.engine.raster_pipeline.dimensions(handle)
     }
 
-    fn draw_image(&mut self, image: core::Image, bounds: Rectangle) {
+    fn draw_image(
+        &mut self,
+        image: core::Image,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_raster(image, bounds, transformation);
+        layer.draw_raster(image, bounds, clip_bounds, transformation);
     }
 }
 
@@ -370,9 +409,14 @@ impl core::svg::Renderer for Renderer {
         self.engine.vector_pipeline.viewport_dimensions(handle)
     }
 
-    fn draw_svg(&mut self, svg: core::Svg, bounds: Rectangle) {
+    fn draw_svg(
+        &mut self,
+        svg: core::Svg,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_svg(svg, bounds, transformation);
+        layer.draw_svg(svg, bounds, clip_bounds, transformation);
     }
 }
 
@@ -405,8 +449,7 @@ impl renderer::Headless for Renderer {
         scale_factor: f32,
         background_color: Color,
     ) -> Vec<u8> {
-        let viewport =
-            Viewport::with_physical_size(size, f64::from(scale_factor));
+        let viewport = Viewport::with_physical_size(size, scale_factor);
 
         window::compositor::screenshot(self, &viewport, background_color)
     }

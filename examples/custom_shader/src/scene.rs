@@ -128,26 +128,16 @@ impl Primitive {
 }
 
 impl shader::Primitive for Primitive {
+    type Pipeline = Pipeline;
+
     fn prepare(
         &self,
+        pipeline: &mut Pipeline,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        format: wgpu::TextureFormat,
-        storage: &mut shader::Storage,
         _bounds: &Rectangle,
         viewport: &Viewport,
     ) {
-        if !storage.has::<Pipeline>() {
-            storage.store(Pipeline::new(
-                device,
-                queue,
-                format,
-                viewport.physical_size(),
-            ));
-        }
-
-        let pipeline = storage.get_mut::<Pipeline>().unwrap();
-
         // Upload data to GPU
         pipeline.update(
             device,
@@ -161,14 +151,11 @@ impl shader::Primitive for Primitive {
 
     fn render(
         &self,
+        pipeline: &Pipeline,
         encoder: &mut wgpu::CommandEncoder,
-        storage: &shader::Storage,
         target: &wgpu::TextureView,
         clip_bounds: &Rectangle<u32>,
     ) {
-        // At this point our pipeline should always be initialized
-        let pipeline = storage.get::<Pipeline>().unwrap();
-
         // Render primitive
         pipeline.render(
             target,
@@ -186,4 +173,14 @@ fn rnd_origin() -> Vec3 {
         rand::thread_rng().gen_range(-4.0..4.0),
         rand::thread_rng().gen_range(-4.0..2.0),
     )
+}
+
+impl shader::Pipeline for Pipeline {
+    fn new(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        format: wgpu::TextureFormat,
+    ) -> Pipeline {
+        Self::new(device, queue, format)
+    }
 }

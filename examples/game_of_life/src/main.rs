@@ -16,7 +16,7 @@ pub fn main() -> iced::Result {
 
     iced::application(GameOfLife::default, GameOfLife::update, GameOfLife::view)
         .subscription(GameOfLife::subscription)
-        .theme(|_| Theme::Dark)
+        .theme(Theme::Dark)
         .centered()
         .run()
 }
@@ -111,7 +111,7 @@ impl GameOfLife {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let version = self.version;
         let selected_speed = self.next_speed.unwrap_or(self.speed);
         let controls = view_controls(
@@ -162,7 +162,9 @@ fn view_controls<'a>(
     row![
         playback_controls,
         speed_controls,
-        checkbox("Grid", is_grid_enabled).on_toggle(Message::ToggleGrid),
+        checkbox(is_grid_enabled)
+            .label("Grid")
+            .on_toggle(Message::ToggleGrid),
         row![
             pick_list(preset::ALL, Some(preset), Message::PresetPicked),
             button("Clear")
@@ -320,7 +322,7 @@ mod grid {
             }
         }
 
-        pub fn view(&self) -> Element<Message> {
+        pub fn view(&self) -> Element<'_, Message> {
             Canvas::new(self).width(Fill).height(Fill).into()
         }
 
@@ -882,16 +884,15 @@ mod grid {
         }
     }
 
+    #[derive(Default)]
     pub enum Interaction {
+        #[default]
         None,
         Drawing,
         Erasing,
-        Panning { translation: Vector, start: Point },
-    }
-
-    impl Default for Interaction {
-        fn default() -> Self {
-            Self::None
-        }
+        Panning {
+            translation: Vector,
+            start: Point,
+        },
     }
 }

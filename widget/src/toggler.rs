@@ -76,7 +76,6 @@ use crate::core::{
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Toggler<
     'a,
     Message,
@@ -270,7 +269,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -288,8 +287,8 @@ where
             |limits| {
                 if let Some(label) = self.label.as_deref() {
                     let state = tree
-                    .state
-                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+                        .state
+                        .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
 
                     widget::text::layout(
                         state,
@@ -317,7 +316,7 @@ where
 
     fn update(
         &mut self,
-        _state: &mut Tree,
+        _tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -344,7 +343,9 @@ where
         }
 
         let current_status = if self.on_toggle.is_none() {
-            Status::Disabled
+            Status::Disabled {
+                is_toggled: self.is_toggled,
+            }
         } else if cursor.is_over(layout.bounds()) {
             Status::Hovered {
                 is_toggled: self.is_toggled,
@@ -367,7 +368,7 @@ where
 
     fn mouse_interaction(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
@@ -389,20 +390,24 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        style: &renderer::Style,
+        defaults: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        /// Makes sure that the border radius of the toggler looks good at every size.
-        const BORDER_RADIUS_RATIO: f32 = 32.0 / 13.0;
-
         /// The space ratio between the background Quad and the Toggler bounds, and
         /// between the background Quad and foreground Quad.
         const SPACE_RATIO: f32 = 0.05;
 
         let mut children = layout.children();
         let toggler_layout = children.next().unwrap();
+
+        let style = theme.style(
+            &self.class,
+            self.last_status.unwrap_or(Status::Disabled {
+                is_toggled: self.is_toggled,
+            }),
+        );
 
         if self.label.is_some() {
             let label_layout = children.next().unwrap();
@@ -411,19 +416,19 @@ where
 
             crate::text::draw(
                 renderer,
-                style,
+                defaults,
                 label_layout.bounds(),
                 state.raw(),
-                crate::text::Style::default(),
+                crate::text::Style {
+                    color: style.text_color,
+                },
                 viewport,
             );
         }
 
         let bounds = toggler_layout.bounds();
-        let style = theme
-            .style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
-        let border_radius = bounds.height / BORDER_RADIUS_RATIO;
+        let border_radius = bounds.height / 2.0;
         let space = (SPACE_RATIO * bounds.height).round();
 
         let toggler_background_bounds = Rectangle {
@@ -501,7 +506,10 @@ pub enum Status {
         is_toggled: bool,
     },
     /// The [`Toggler`] is disabled.
-    Disabled,
+    Disabled {
+        /// Indicates whether the [`Toggler`] is toggled.
+        is_toggled: bool,
+    },
 }
 
 /// The appearance of a toggler.
@@ -519,6 +527,8 @@ pub struct Style {
     pub foreground_border_width: f32,
     /// The [`Color`] of the foreground border of the toggler.
     pub foreground_border_color: Color,
+    /// The text [`Color`] of the toggler.
+    pub text_color: Option<Color>,
 }
 
 /// The theme catalog of a [`Toggler`].
@@ -557,18 +567,24 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let background = match status {
         Status::Active { is_toggled } | Status::Hovered { is_toggled } => {
             if is_toggled {
-                palette.primary.strong.color
+                palette.primary.base.color
             } else {
                 palette.background.strong.color
             }
         }
-        Status::Disabled => palette.background.weak.color,
+        Status::Disabled { is_toggled } => {
+            if is_toggled {
+                palette.background.strong.color
+            } else {
+                palette.background.weak.color
+            }
+        }
     };
 
     let foreground = match status {
         Status::Active { is_toggled } => {
             if is_toggled {
-                palette.primary.strong.text
+                palette.primary.base.text
             } else {
                 palette.background.base.color
             }
@@ -577,13 +593,13 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             if is_toggled {
                 Color {
                     a: 0.5,
-                    ..palette.primary.strong.text
+                    ..palette.primary.base.text
                 }
             } else {
                 palette.background.weak.color
             }
         }
-        Status::Disabled => palette.background.base.color,
+        Status::Disabled { .. } => palette.background.weakest.color,
     };
 
     Style {
@@ -593,5 +609,6 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         foreground_border_color: Color::TRANSPARENT,
         background_border_width: 0.0,
         background_border_color: Color::TRANSPARENT,
+        text_color: None,
     }
 }

@@ -88,7 +88,8 @@ impl core::text::Paragraph for Paragraph {
             font_system.raw(),
             text.content,
             &text::to_attributes(text.font),
-            text::to_shaping(text.shaping),
+            text::to_shaping(text.shaping, text.content),
+            None,
         );
 
         let min_bounds =
@@ -158,7 +159,7 @@ impl core::text::Paragraph for Paragraph {
                 (span.text.as_ref(), attrs.metadata(i))
             }),
             &text::to_attributes(text.font),
-            text::to_shaping(text.shaping),
+            cosmic_text::Shaping::Advanced,
             None,
         );
 

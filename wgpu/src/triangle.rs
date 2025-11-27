@@ -335,6 +335,7 @@ fn render<'a>(
                 label: Some("iced_wgpu.triangle.render_pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: target,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
@@ -367,7 +368,6 @@ fn render<'a>(
 #[derive(Debug)]
 pub struct Layer {
     index_buffer: Buffer<u32>,
-    index_strides: Vec<u32>,
     solid: solid::Layer,
     gradient: gradient::Layer,
 }
@@ -385,7 +385,6 @@ impl Layer {
                 INITIAL_INDEX_COUNT,
                 wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             ),
-            index_strides: Vec::new(),
             solid: solid::Layer::new(device, &solid.constants_layout),
             gradient: gradient::Layer::new(device, &gradient.constants_layout),
         }
@@ -431,13 +430,6 @@ impl Layer {
             );
         }
 
-        self.index_strides.clear();
-        self.index_buffer.clear();
-        self.solid.vertices.clear();
-        self.solid.uniforms.clear();
-        self.gradient.vertices.clear();
-        self.gradient.uniforms.clear();
-
         let mut solid_vertex_offset = 0;
         let mut solid_uniform_offset = 0;
         let mut gradient_vertex_offset = 0;
@@ -472,8 +464,6 @@ impl Layer {
                 index_offset,
                 indices,
             );
-
-            self.index_strides.push(indices.len() as u32);
 
             match mesh {
                 Mesh::Solid { buffers, .. } => {
@@ -525,18 +515,23 @@ impl Layer {
     ) {
         let mut num_solids = 0;
         let mut num_gradients = 0;
+        let mut solid_offset = 0;
+        let mut gradient_offset = 0;
+        let mut index_offset = 0;
         let mut last_is_solid = None;
 
-        for (index, mesh) in meshes.iter().enumerate() {
+        for mesh in meshes {
             let Some(clip_bounds) = bounds
                 .intersection(&(mesh.clip_bounds() * transformation))
                 .and_then(Rectangle::snap)
             else {
                 match mesh {
-                    Mesh::Solid { .. } => {
+                    Mesh::Solid { buffers, .. } => {
+                        solid_offset += buffers.vertices.len();
                         num_solids += 1;
                     }
-                    Mesh::Gradient { .. } => {
+                    Mesh::Gradient { buffers, .. } => {
+                        gradient_offset += buffers.vertices.len();
                         num_gradients += 1;
                     }
                 }
@@ -551,7 +546,7 @@ impl Layer {
             );
 
             match mesh {
-                Mesh::Solid { .. } => {
+                Mesh::Solid { buffers, .. } => {
                     if !last_is_solid.unwrap_or(false) {
                         render_pass.set_pipeline(&solid.pipeline);
 
@@ -567,12 +562,16 @@ impl Layer {
 
                     render_pass.set_vertex_buffer(
                         0,
-                        self.solid.vertices.slice_from_index(num_solids),
+                        self.solid.vertices.range(
+                            solid_offset,
+                            solid_offset + buffers.vertices.len(),
+                        ),
                     );
 
                     num_solids += 1;
+                    solid_offset += buffers.vertices.len();
                 }
-                Mesh::Gradient { .. } => {
+                Mesh::Gradient { buffers, .. } => {
                     if last_is_solid.unwrap_or(true) {
                         render_pass.set_pipeline(&gradient.pipeline);
 
@@ -588,19 +587,26 @@ impl Layer {
 
                     render_pass.set_vertex_buffer(
                         0,
-                        self.gradient.vertices.slice_from_index(num_gradients),
+                        self.gradient.vertices.range(
+                            gradient_offset,
+                            gradient_offset + buffers.vertices.len(),
+                        ),
                     );
 
                     num_gradients += 1;
+                    gradient_offset += buffers.vertices.len();
                 }
             };
 
             render_pass.set_index_buffer(
-                self.index_buffer.slice_from_index(index),
+                self.index_buffer
+                    .range(index_offset, index_offset + mesh.indices().len()),
                 wgpu::IndexFormat::Uint32,
             );
 
-            render_pass.draw_indexed(0..self.index_strides[index], 0, 0..1);
+            render_pass.draw_indexed(0..mesh.indices().len() as u32, 0, 0..1);
+
+            index_offset += mesh.indices().len();
         }
     }
 }
@@ -826,7 +832,6 @@ mod solid {
 mod gradient {
     use crate::Buffer;
     use crate::graphics::Antialiasing;
-    use crate::graphics::color;
     use crate::graphics::mesh;
     use crate::triangle;
 
@@ -921,35 +926,15 @@ mod gradient {
                 device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some("iced_wgpu.triangle.gradient.shader"),
                     source: wgpu::ShaderSource::Wgsl(
-                        std::borrow::Cow::Borrowed(
-                            if color::GAMMA_CORRECTION {
-                                concat!(
-                                    include_str!("shader/triangle.wgsl"),
-                                    "\n",
-                                    include_str!(
-                                        "shader/triangle/gradient.wgsl"
-                                    ),
-                                    "\n",
-                                    include_str!("shader/color.wgsl"),
-                                    "\n",
-                                    include_str!("shader/color/oklab.wgsl")
-                                )
-                            } else {
-                                concat!(
-                                    include_str!("shader/triangle.wgsl"),
-                                    "\n",
-                                    include_str!(
-                                        "shader/triangle/gradient.wgsl"
-                                    ),
-                                    "\n",
-                                    include_str!("shader/color.wgsl"),
-                                    "\n",
-                                    include_str!(
-                                        "shader/color/linear_rgb.wgsl"
-                                    )
-                                )
-                            },
-                        ),
+                        std::borrow::Cow::Borrowed(concat!(
+                            include_str!("shader/triangle.wgsl"),
+                            "\n",
+                            include_str!("shader/triangle/gradient.wgsl"),
+                            "\n",
+                            include_str!("shader/color.wgsl"),
+                            "\n",
+                            include_str!("shader/color/linear_rgb.wgsl")
+                        )),
                     ),
                 });
 

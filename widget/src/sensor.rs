@@ -15,8 +15,7 @@ use crate::core::{
 /// A widget that can generate messages when its content pops in and out of view.
 ///
 /// It can even notify you with anticipation at a given distance!
-#[allow(missing_debug_implementations)]
-pub struct Pop<
+pub struct Sensor<
     'a,
     Key,
     Message,
@@ -32,12 +31,11 @@ pub struct Pop<
     delay: Duration,
 }
 
-impl<'a, Message, Theme, Renderer> Pop<'a, (), Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> Sensor<'a, (), Message, Theme, Renderer>
 where
-    Message: Clone,
     Renderer: core::Renderer,
 {
-    /// Creates a new [`Pop`] widget with the given content.
+    /// Creates a new [`Sensor`] widget with the given content.
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -53,9 +51,9 @@ where
     }
 }
 
-impl<'a, Key, Message, Theme, Renderer> Pop<'a, Key, Message, Theme, Renderer>
+impl<'a, Key, Message, Theme, Renderer>
+    Sensor<'a, Key, Message, Theme, Renderer>
 where
-    Message: Clone,
     Key: self::Key,
     Renderer: core::Renderer,
 {
@@ -84,17 +82,17 @@ where
         self
     }
 
-    /// Sets the key of the [`Pop`] widget, for continuity.
+    /// Sets the key of the [`Sensor`] widget, for continuity.
     ///
-    /// If the key changes, the [`Pop`] widget will trigger again.
+    /// If the key changes, the [`Sensor`] widget will trigger again.
     pub fn key<K>(
         self,
         key: K,
-    ) -> Pop<'a, impl self::Key, Message, Theme, Renderer>
+    ) -> Sensor<'a, impl self::Key, Message, Theme, Renderer>
     where
         K: Clone + PartialEq + 'static,
     {
-        Pop {
+        Sensor {
             content: self.content,
             key: OwnedKey(key),
             on_show: self.on_show,
@@ -105,18 +103,18 @@ where
         }
     }
 
-    /// Sets the key of the [`Pop`] widget, for continuity; using a reference.
+    /// Sets the key of the [`Sensor`], for continuity; using a reference.
     ///
-    /// If the key changes, the [`Pop`] widget will trigger again.
+    /// If the key changes, the [`Sensor`] will trigger again.
     pub fn key_ref<K>(
         self,
         key: &'a K,
-    ) -> Pop<'a, &'a K, Message, Theme, Renderer>
+    ) -> Sensor<'a, &'a K, Message, Theme, Renderer>
     where
         K: ToOwned + PartialEq<K::Owned> + ?Sized,
         K::Owned: 'static,
     {
-        Pop {
+        Sensor {
             content: self.content,
             key,
             on_show: self.on_show,
@@ -160,10 +158,9 @@ struct State<Key> {
 }
 
 impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Pop<'_, Key, Message, Theme, Renderer>
+    for Sensor<'_, Key, Message, Theme, Renderer>
 where
     Key: self::Key,
-    Message: Clone,
     Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -215,7 +212,16 @@ where
 
             let distance = top_left_distance.min(bottom_right_distance);
 
-            if state.has_popped_in {
+            if self.on_show.is_none() {
+                if let Some(on_resize) = &self.on_resize {
+                    let size = bounds.size();
+
+                    if Some(size) != state.last_size {
+                        state.last_size = Some(size);
+                        shell.publish(on_resize(size));
+                    }
+                }
+            } else if state.has_popped_in {
                 if distance <= self.anticipate.0 {
                     if let Some(on_resize) = &self.on_resize {
                         let size = bounds.size();
@@ -229,7 +235,7 @@ where
                     state.has_popped_in = false;
                     state.should_notify_at = Some((false, *now + self.delay));
                 }
-            } else if self.on_show.is_some() && distance <= self.anticipate.0 {
+            } else if distance <= self.anticipate.0 {
                 let size = bounds.size();
 
                 state.has_popped_in = true;
@@ -243,8 +249,8 @@ where
                         if let Some(on_show) = &self.on_show {
                             shell.publish(on_show(layout.bounds().size()));
                         }
-                    } else if let Some(on_hide) = &self.on_hide {
-                        shell.publish(on_hide.clone());
+                    } else if let Some(on_hide) = self.on_hide.take() {
+                        shell.publish(on_hide);
                     }
 
                     state.should_notify_at = None;
@@ -277,14 +283,16 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content
-            .as_widget()
-            .layout(&mut tree.children[0], renderer, limits)
+        self.content.as_widget_mut().layout(
+            &mut tree.children[0],
+            renderer,
+            limits,
+        )
     }
 
     fn draw(
@@ -309,13 +317,13 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: core::Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.as_widget().operate(
+        self.content.as_widget_mut().operate(
             &mut tree.children[0],
             layout,
             renderer,
@@ -359,15 +367,15 @@ where
 }
 
 impl<'a, Key, Message, Theme, Renderer>
-    From<Pop<'a, Key, Message, Theme, Renderer>>
+    From<Sensor<'a, Key, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Message: Clone + 'a,
+    Message: 'a,
     Key: self::Key + 'a,
     Renderer: core::Renderer + 'a,
     Theme: 'a,
 {
-    fn from(pop: Pop<'a, Key, Message, Theme, Renderer>) -> Self {
+    fn from(pop: Sensor<'a, Key, Message, Theme, Renderer>) -> Self {
         Element::new(pop)
     }
 }

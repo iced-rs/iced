@@ -6,9 +6,10 @@ use crate::core::{
     self, Background, Color, Font, Image, Pixels, Point, Rectangle, Size, Svg,
     Transformation,
 };
-use crate::graphics;
 use crate::graphics::compositor;
 use crate::graphics::mesh;
+use crate::graphics::text;
+use crate::graphics::{self, Shell};
 
 use std::borrow::Cow;
 
@@ -46,8 +47,8 @@ where
         delegate!(self, renderer, renderer.fill_quad(quad, background.into()));
     }
 
-    fn clear(&mut self) {
-        delegate!(self, renderer, renderer.clear());
+    fn reset(&mut self, new_bounds: Rectangle) {
+        delegate!(self, renderer, renderer.reset(new_bounds));
     }
 
     fn start_layer(&mut self, bounds: Rectangle) {
@@ -69,6 +70,16 @@ where
     fn end_transformation(&mut self) {
         delegate!(self, renderer, renderer.end_transformation());
     }
+
+    fn allocate_image(
+        &mut self,
+        handle: &image::Handle,
+        callback: impl FnOnce(Result<image::Allocation, image::Error>)
+        + Send
+        + 'static,
+    ) {
+        delegate!(self, renderer, renderer.allocate_image(handle, callback));
+    }
 }
 
 impl<A, B> core::text::Renderer for Renderer<A, B>
@@ -84,10 +95,10 @@ where
     type Paragraph = A::Paragraph;
     type Editor = A::Editor;
 
-    const MONOSPACE_FONT: Self::Font = A::MONOSPACE_FONT;
     const ICON_FONT: Self::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
+    const ICED_LOGO: char = A::ICED_LOGO;
 
     fn default_font(&self) -> Self::Font {
         delegate!(self, renderer, renderer.default_font())
@@ -140,6 +151,16 @@ where
     }
 }
 
+impl<A, B> text::Renderer for Renderer<A, B>
+where
+    A: text::Renderer,
+    B: text::Renderer,
+{
+    fn fill_raw(&mut self, raw: text::Raw) {
+        delegate!(self, renderer, renderer.fill_raw(raw));
+    }
+}
+
 impl<A, B> image::Renderer for Renderer<A, B>
 where
     A: image::Renderer,
@@ -147,12 +168,28 @@ where
 {
     type Handle = A::Handle;
 
-    fn measure_image(&self, handle: &Self::Handle) -> Size<u32> {
+    fn load_image(
+        &self,
+        handle: &Self::Handle,
+    ) -> Result<image::Allocation, image::Error> {
+        delegate!(self, renderer, renderer.load_image(handle))
+    }
+
+    fn measure_image(&self, handle: &Self::Handle) -> Option<Size<u32>> {
         delegate!(self, renderer, renderer.measure_image(handle))
     }
 
-    fn draw_image(&mut self, image: Image<A::Handle>, bounds: Rectangle) {
-        delegate!(self, renderer, renderer.draw_image(image, bounds));
+    fn draw_image(
+        &mut self,
+        image: Image<A::Handle>,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    ) {
+        delegate!(
+            self,
+            renderer,
+            renderer.draw_image(image, bounds, clip_bounds)
+        );
     }
 }
 
@@ -165,8 +202,13 @@ where
         delegate!(self, renderer, renderer.measure_svg(handle))
     }
 
-    fn draw_svg(&mut self, svg: Svg, bounds: Rectangle) {
-        delegate!(self, renderer, renderer.draw_svg(svg, bounds));
+    fn draw_svg(
+        &mut self,
+        svg: Svg,
+        bounds: Rectangle,
+        clip_bounds: Rectangle,
+    ) {
+        delegate!(self, renderer, renderer.draw_svg(svg, bounds, clip_bounds));
     }
 }
 
@@ -217,6 +259,7 @@ where
     async fn with_backend<W: compositor::Window + Clone>(
         settings: graphics::Settings,
         compatible_window: W,
+        shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
         use std::env;
@@ -243,8 +286,13 @@ where
         let mut errors = vec![];
 
         for backend in candidates.iter().map(Option::as_deref) {
-            match A::with_backend(settings, compatible_window.clone(), backend)
-                .await
+            match A::with_backend(
+                settings,
+                compatible_window.clone(),
+                shell.clone(),
+                backend,
+            )
+            .await
             {
                 Ok(compositor) => return Ok(Self::Primary(compositor)),
                 Err(error) => {
@@ -252,8 +300,13 @@ where
                 }
             }
 
-            match B::with_backend(settings, compatible_window.clone(), backend)
-                .await
+            match B::with_backend(
+                settings,
+                compatible_window.clone(),
+                shell.clone(),
+                backend,
+            )
+            .await
             {
                 Ok(compositor) => return Ok(Self::Secondary(compositor)),
                 Err(error) => {
@@ -313,8 +366,8 @@ where
         delegate!(self, compositor, compositor.load_font(font));
     }
 
-    fn fetch_information(&self) -> compositor::Information {
-        delegate!(self, compositor, compositor.fetch_information())
+    fn information(&self) -> compositor::Information {
+        delegate!(self, compositor, compositor.information())
     }
 
     fn present(
@@ -370,7 +423,7 @@ where
     }
 }
 
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "wgpu-bare")]
 impl<A, B> iced_wgpu::primitive::Renderer for Renderer<A, B>
 where
     A: iced_wgpu::primitive::Renderer,
@@ -409,13 +462,13 @@ mod geometry {
         type Geometry = Geometry<A::Geometry, B::Geometry>;
         type Frame = Frame<A::Frame, B::Frame>;
 
-        fn new_frame(&self, size: iced_graphics::core::Size) -> Self::Frame {
+        fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
             match self {
                 Self::Primary(renderer) => {
-                    Frame::Primary(renderer.new_frame(size))
+                    Frame::Primary(renderer.new_frame(bounds))
                 }
                 Self::Secondary(renderer) => {
-                    Frame::Secondary(renderer.new_frame(size))
+                    Frame::Secondary(renderer.new_frame(bounds))
                 }
             }
         }

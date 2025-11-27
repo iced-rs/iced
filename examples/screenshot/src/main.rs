@@ -49,7 +49,7 @@ impl Example {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Screenshot => {
-                return window::get_latest()
+                return window::latest()
                     .and_then(window::screenshot)
                     .map(Message::Screenshotted);
             }
@@ -59,7 +59,7 @@ impl Example {
                     image::Handle::from_rgba(
                         screenshot.size.width,
                         screenshot.size.height,
-                        screenshot.bytes,
+                        screenshot.rgba,
                     ),
                 ));
             }
@@ -105,7 +105,7 @@ impl Example {
                                 image::Handle::from_rgba(
                                     screenshot.size.width,
                                     screenshot.size.height,
-                                    screenshot.bytes,
+                                    screenshot.rgba,
                                 ),
                             ));
                             self.crop_error = None;
@@ -158,15 +158,15 @@ impl Example {
         .spacing(10)
         .align_y(Center);
 
-        let crop_controls =
-            column![crop_origin_controls, crop_dimension_controls]
-                .push_maybe(
-                    self.crop_error
-                        .as_ref()
-                        .map(|error| text!("Crop error! \n{error}")),
-                )
-                .spacing(10)
-                .align_x(Center);
+        let crop_controls = column![
+            crop_origin_controls,
+            crop_dimension_controls,
+            self.crop_error
+                .as_ref()
+                .map(|error| text!("Crop error! \n{error}")),
+        ]
+        .spacing(10)
+        .align_x(Center);
 
         let controls = {
             let save_result =
@@ -174,7 +174,7 @@ impl Example {
                     |png_result| match png_result {
                         Ok(path) => format!("Png saved as: {path:?}!"),
                         Err(PngError(error)) => {
-                            format!("Png could not be saved due to:\n{}", error)
+                            format!("Png could not be saved due to:\n{error}")
                         }
                     },
                 );
@@ -208,8 +208,8 @@ impl Example {
                 ]
                 .spacing(10)
                 .align_x(Center),
+                save_result.map(text)
             ]
-            .push_maybe(save_result.map(text))
             .spacing(40)
         };
 
@@ -243,7 +243,7 @@ async fn save_to_png(screenshot: Screenshot) -> Result<String, PngError> {
     tokio::task::spawn_blocking(move || {
         img::save_buffer(
             &path,
-            &screenshot.bytes,
+            &screenshot.rgba,
             screenshot.size.width,
             screenshot.size.height,
             ColorType::Rgba8,

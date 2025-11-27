@@ -13,7 +13,6 @@ use crate::core::{
 };
 
 /// A bunch of [`Rich`] text.
-#[allow(missing_debug_implementations)]
 pub struct Rich<
     'a,
     Link,
@@ -134,11 +133,15 @@ where
 
     /// Sets the message that will be produced when a link of the [`Rich`] text
     /// is clicked.
+    ///
+    /// If the spans of the [`Rich`] text contain no links, you may need to call
+    /// this method with `on_link_click(never)` in order for the compiler to infer
+    /// the proper `Link` generic type.
     pub fn on_link_click(
         mut self,
-        on_link_clicked: impl Fn(Link) -> Message + 'a,
+        on_link_click: impl Fn(Link) -> Message + 'a,
     ) -> Self {
-        self.on_link_click = Some(Box::new(on_link_clicked));
+        self.on_link_click = Some(Box::new(on_link_click));
         self
     }
 
@@ -225,7 +228,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -288,10 +291,7 @@ where
                                     span.padding.top,
                                 ),
                             bounds.size()
-                                + Size::new(
-                                    span.padding.horizontal(),
-                                    span.padding.vertical(),
-                                ),
+                                + Size::new(span.padding.x(), span.padding.y()),
                         );
 
                         renderer.fill_quad(

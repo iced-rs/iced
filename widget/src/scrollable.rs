@@ -5,7 +5,7 @@
 //! # mod iced { pub mod widget { pub use iced_widget::*; } }
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-//! use iced::widget::{column, scrollable, vertical_space};
+//! use iced::widget::{column, scrollable, space};
 //!
 //! enum Message {
 //!     // ...
@@ -14,7 +14,7 @@
 //! fn view(state: &State) -> Element<'_, Message> {
 //!     scrollable(column![
 //!         "Scroll me!",
-//!         vertical_space().height(3000),
+//!         space().height(3000),
 //!         "You did it!",
 //!     ]).into()
 //! }
@@ -37,8 +37,6 @@ use crate::core::{
     Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
     Widget,
 };
-use crate::runtime::Action;
-use crate::runtime::task::{self, Task};
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
@@ -50,7 +48,7 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{column, scrollable, vertical_space};
+/// use iced::widget::{column, scrollable, space};
 ///
 /// enum Message {
 ///     // ...
@@ -59,12 +57,11 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     scrollable(column![
 ///         "Scroll me!",
-///         vertical_space().height(3000),
+///         space().height(3000),
 ///         "You did it!",
 ///     ]).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Scrollable<
     'a,
     Message,
@@ -74,7 +71,7 @@ pub struct Scrollable<
     Theme: Catalog,
     Renderer: core::Renderer,
 {
-    id: Option<Id>,
+    id: Option<widget::Id>,
     width: Length,
     height: Length,
     direction: Direction,
@@ -111,21 +108,11 @@ where
             class: Theme::default(),
             last_status: None,
         }
-        .validate()
+        .enclose()
     }
 
-    fn validate(mut self) -> Self {
+    fn enclose(mut self) -> Self {
         let size_hint = self.content.as_widget().size_hint();
-
-        debug_assert!(
-            self.direction.vertical().is_none() || !size_hint.height.is_fill(),
-            "scrollable content must not fill its vertical scrolling axis"
-        );
-
-        debug_assert!(
-            self.direction.horizontal().is_none() || !size_hint.width.is_fill(),
-            "scrollable content must not fill its horizontal scrolling axis"
-        );
 
         if self.direction.horizontal().is_none() {
             self.width = self.width.enclose(size_hint.width);
@@ -146,11 +133,11 @@ where
     /// Sets the [`Direction`] of the [`Scrollable`].
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
-        self.validate()
+        self.enclose()
     }
 
-    /// Sets the [`Id`] of the [`Scrollable`].
-    pub fn id(mut self, id: impl Into<Id>) -> Self {
+    /// Sets the [`widget::Id`] of the [`Scrollable`].
+    pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
         self.id = Some(id.into());
         self
     }
@@ -345,6 +332,12 @@ impl Scrollbar {
         Self::default()
     }
 
+    /// Create a [`Scrollbar`] with zero width to allow a [`Scrollable`] to scroll without a visible
+    /// scroller.
+    pub fn hidden() -> Self {
+        Self::default().width(0).scroller_width(0)
+    }
+
     /// Sets the scrollbar width of the [`Scrollbar`] .
     pub fn width(mut self, width: impl Into<Pixels>) -> Self {
         self.width = width.into().0.max(0.0);
@@ -421,7 +414,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -437,23 +430,27 @@ where
                     ..Padding::ZERO
                 },
                 |limits| {
-                    let child_limits = layout::Limits::new(
-                        Size::new(limits.min().width, limits.min().height),
+                    let is_horizontal = self.direction.horizontal().is_some();
+                    let is_vertical = self.direction.vertical().is_some();
+
+                    let child_limits = layout::Limits::with_compression(
+                        limits.min(),
                         Size::new(
-                            if self.direction.horizontal().is_some() {
+                            if is_horizontal {
                                 f32::INFINITY
                             } else {
                                 limits.max().width
                             },
-                            if self.direction.vertical().is_some() {
+                            if is_vertical {
                                 f32::INFINITY
                             } else {
                                 limits.max().height
                             },
                         ),
+                        Size::new(is_horizontal, is_vertical),
                     );
 
-                    self.content.as_widget().layout(
+                    self.content.as_widget_mut().layout(
                         &mut tree.children[0],
                         renderer,
                         &child_limits,
@@ -527,7 +524,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -542,25 +539,21 @@ where
             state.translation(self.direction, bounds, content_bounds);
 
         operation.scrollable(
-            self.id.as_ref().map(|id| &id.0),
+            self.id.as_ref(),
             bounds,
             content_bounds,
             translation,
             state,
         );
 
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            bounds,
-            &mut |operation| {
-                self.content.as_widget().operate(
-                    &mut tree.children[0],
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.traverse(&mut |operation| {
+            self.content.as_widget_mut().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn update(
@@ -761,27 +754,20 @@ where
                     Event::Mouse(mouse::Event::WheelScrolled { .. })
                 )
             {
+                let translation =
+                    state.translation(self.direction, bounds, content_bounds);
+
                 let cursor = match cursor_over_scrollable {
                     Some(cursor_position)
                         if !(mouse_over_x_scrollbar
                             || mouse_over_y_scrollbar) =>
                     {
-                        mouse::Cursor::Available(
-                            cursor_position
-                                + state.translation(
-                                    self.direction,
-                                    bounds,
-                                    content_bounds,
-                                ),
-                        )
+                        mouse::Cursor::Available(cursor_position + translation)
                     }
-                    _ => mouse::Cursor::Unavailable,
+                    _ => cursor.levitate() + translation,
                 };
 
                 let had_input_method = shell.input_method().is_enabled();
-
-                let translation =
-                    state.translation(self.direction, bounds, content_bounds);
 
                 self.content.as_widget_mut().update(
                     &mut tree.children[0],
@@ -798,12 +784,11 @@ where
                     },
                 );
 
-                if !had_input_method {
-                    if let InputMethod::Enabled { position, .. } =
+                if !had_input_method
+                    && let InputMethod::Enabled { cursor, .. } =
                         shell.input_method_mut()
-                    {
-                        *position = *position - translation;
-                    }
+                {
+                    *cursor = *cursor - translation;
                 }
             };
 
@@ -891,18 +876,16 @@ where
                 }
                 Event::Touch(event)
                     if state.scroll_area_touched_at.is_some()
-                        || !mouse_over_y_scrollbar
-                            && !mouse_over_x_scrollbar =>
+                        || (!mouse_over_y_scrollbar
+                            && !mouse_over_x_scrollbar) =>
                 {
                     match event {
                         touch::Event::FingerPressed { .. } => {
-                            let Some(cursor_position) = cursor.position()
-                            else {
+                            if cursor_over_scrollable.is_none() {
                                 return;
-                            };
+                            }
 
-                            state.scroll_area_touched_at =
-                                Some(cursor_position);
+                            state.scroll_area_touched_at = cursor.position();
                         }
                         touch::Event::FingerMoved { .. } => {
                             if let Some(scroll_box_touched_at) =
@@ -1091,23 +1074,22 @@ where
                         );
                     }
 
-                    if let Some(scroller) = scrollbar.scroller {
-                        if scroller.bounds.width > 0.0
-                            && scroller.bounds.height > 0.0
-                            && (style.scroller.color != Color::TRANSPARENT
-                                || (style.scroller.border.color
-                                    != Color::TRANSPARENT
-                                    && style.scroller.border.width > 0.0))
-                        {
-                            renderer.fill_quad(
-                                renderer::Quad {
-                                    bounds: scroller.bounds,
-                                    border: style.scroller.border,
-                                    ..renderer::Quad::default()
-                                },
-                                style.scroller.color,
-                            );
-                        }
+                    if let Some(scroller) = scrollbar.scroller
+                        && scroller.bounds.width > 0.0
+                        && scroller.bounds.height > 0.0
+                        && (style.scroller.color != Color::TRANSPARENT
+                            || (style.scroller.border.color
+                                != Color::TRANSPARENT
+                                && style.scroller.border.width > 0.0))
+                    {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: scroller.bounds,
+                                border: style.scroller.border,
+                                ..renderer::Quad::default()
+                            },
+                            style.scroller.color,
+                        );
                     }
                 };
 
@@ -1193,35 +1175,33 @@ where
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
             scrollbars.is_mouse_over(cursor);
 
-        if (mouse_over_x_scrollbar || mouse_over_y_scrollbar)
-            || state.scrollers_grabbed()
-        {
-            mouse::Interaction::None
-        } else {
-            let translation =
-                state.translation(self.direction, bounds, content_bounds);
-
-            let cursor = match cursor_over_scrollable {
-                Some(cursor_position)
-                    if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
-                {
-                    mouse::Cursor::Available(cursor_position + translation)
-                }
-                _ => mouse::Cursor::Unavailable,
-            };
-
-            self.content.as_widget().mouse_interaction(
-                &tree.children[0],
-                content_layout,
-                cursor,
-                &Rectangle {
-                    y: bounds.y + translation.y,
-                    x: bounds.x + translation.x,
-                    ..bounds
-                },
-                renderer,
-            )
+        if state.scrollers_grabbed() {
+            return mouse::Interaction::None;
         }
+
+        let translation =
+            state.translation(self.direction, bounds, content_bounds);
+
+        let cursor = match cursor_over_scrollable {
+            Some(cursor_position)
+                if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
+            {
+                mouse::Cursor::Available(cursor_position + translation)
+            }
+            _ => cursor.levitate() + translation,
+        };
+
+        self.content.as_widget().mouse_interaction(
+            &tree.children[0],
+            content_layout,
+            cursor,
+            &Rectangle {
+                y: bounds.y + translation.y,
+                x: bounds.x + translation.x,
+                ..bounds
+            },
+            renderer,
+        )
     }
 
     fn overlay<'b>(
@@ -1266,63 +1246,6 @@ where
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text_input)
     }
-}
-
-/// The identifier of a [`Scrollable`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
-    }
-}
-
-impl From<&'static str> for Id {
-    fn from(id: &'static str) -> Self {
-        Self::new(id)
-    }
-}
-
-/// Produces a [`Task`] that snaps the [`Scrollable`] with the given [`Id`]
-/// to the provided [`RelativeOffset`].
-pub fn snap_to<T>(id: impl Into<Id>, offset: RelativeOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::snap_to(
-        id.into().0,
-        offset,
-    )))
-}
-
-/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
-/// to the provided [`AbsoluteOffset`].
-pub fn scroll_to<T>(id: impl Into<Id>, offset: AbsoluteOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::scroll_to(
-        id.into().0,
-        offset,
-    )))
-}
-
-/// Produces a [`Task`] that scrolls the [`Scrollable`] with the given [`Id`]
-/// by the provided [`AbsoluteOffset`].
-pub fn scroll_by<T>(id: impl Into<Id>, offset: AbsoluteOffset) -> Task<T> {
-    task::effect(Action::widget(operation::scrollable::scroll_by(
-        id.into().0,
-        offset,
-    )))
 }
 
 fn notify_scroll<Message>(
@@ -2069,7 +1992,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         background: Some(palette.background.weak.color.into()),
         border: border::rounded(2),
         scroller: Scroller {
-            color: palette.background.strong.color,
+            color: palette.background.strongest.color,
             border: border::rounded(2),
         },
     };

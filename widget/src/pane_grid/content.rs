@@ -13,7 +13,6 @@ use crate::pane_grid::{Draggable, TitleBar};
 /// The content of a [`Pane`].
 ///
 /// [`Pane`]: super::Pane
-#[allow(missing_debug_implementations)]
 pub struct Content<
     'a,
     Message,
@@ -165,12 +164,12 @@ where
     }
 
     pub(crate) fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        if let Some(title_bar) = &self.title_bar {
+        if let Some(title_bar) = &mut self.title_bar {
             let max_size = limits.max();
 
             let title_bar_layout = title_bar.layout(
@@ -181,7 +180,7 @@ where
 
             let title_bar_size = title_bar_layout.size();
 
-            let body_layout = self.body.as_widget().layout(
+            let body_layout = self.body.as_widget_mut().layout(
                 &mut tree.children[0],
                 renderer,
                 &layout::Limits::new(
@@ -201,7 +200,7 @@ where
                 ],
             )
         } else {
-            self.body.as_widget().layout(
+            self.body.as_widget_mut().layout(
                 &mut tree.children[0],
                 renderer,
                 limits,
@@ -210,13 +209,13 @@ where
     }
 
     pub(crate) fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let body_layout = if let Some(title_bar) = &self.title_bar {
+        let body_layout = if let Some(title_bar) = &mut self.title_bar {
             let mut children = layout.children();
 
             title_bar.operate(
@@ -231,7 +230,7 @@ where
             layout
         };
 
-        self.body.as_widget().operate(
+        self.body.as_widget_mut().operate(
             &mut tree.children[0],
             body_layout,
             renderer,

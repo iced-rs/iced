@@ -2,19 +2,17 @@ use crate::core::{Color, Rectangle, Size};
 use crate::graphics::compositor::{self, Information};
 use crate::graphics::damage;
 use crate::graphics::error::{self, Error};
-use crate::graphics::{self, Viewport};
+use crate::graphics::{self, Shell, Viewport};
 use crate::{Layer, Renderer, Settings};
 
 use std::collections::VecDeque;
 use std::num::NonZeroU32;
 
-#[allow(missing_debug_implementations)]
 pub struct Compositor {
     context: softbuffer::Context<Box<dyn compositor::Window>>,
     settings: Settings,
 }
 
-#[allow(missing_debug_implementations)]
 pub struct Surface {
     window: softbuffer::Surface<
         Box<dyn compositor::Window>,
@@ -33,6 +31,7 @@ impl crate::graphics::Compositor for Compositor {
     async fn with_backend<W: compositor::Window>(
         settings: graphics::Settings,
         compatible_window: W,
+        _shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, Error> {
         match backend {
@@ -69,14 +68,15 @@ impl crate::graphics::Compositor for Compositor {
 
         let mut surface = Surface {
             window,
-            clip_mask: tiny_skia::Mask::new(width, height)
-                .expect("Create clip mask"),
+            clip_mask: tiny_skia::Mask::new(1, 1).expect("Create clip mask"),
             layer_stack: VecDeque::new(),
             background_color: Color::BLACK,
             max_age: 0,
         };
 
-        self.configure_surface(&mut surface, width, height);
+        if width > 0 && height > 0 {
+            self.configure_surface(&mut surface, width, height);
+        }
 
         surface
     }
@@ -100,7 +100,7 @@ impl crate::graphics::Compositor for Compositor {
         surface.layer_stack.clear();
     }
 
-    fn fetch_information(&self) -> Information {
+    fn information(&self) -> Information {
         Information {
             adapter: String::from("CPU"),
             backend: String::from("tiny-skia"),

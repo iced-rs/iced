@@ -68,7 +68,6 @@ use crate::core::{
 ///     button("I am disabled!").into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Renderer: crate::core::Renderer,
@@ -235,7 +234,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -246,7 +245,7 @@ where
             self.height,
             self.padding,
             |limits| {
-                self.content.as_widget().layout(
+                self.content.as_widget_mut().layout(
                     &mut tree.children[0],
                     renderer,
                     limits,
@@ -256,14 +255,15 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds(), &mut |operation| {
-            self.content.as_widget().operate(
+        operation.container(None, layout.bounds());
+        operation.traverse(&mut |operation| {
+            self.content.as_widget_mut().operate(
                 &mut tree.children[0],
                 layout.children().next().unwrap(),
                 renderer,
@@ -459,7 +459,7 @@ where
 }
 
 /// The default [`Padding`] of a [`Button`].
-pub(crate) const DEFAULT_PADDING: Padding = Padding {
+pub const DEFAULT_PADDING: Padding = Padding {
     top: 5.0,
     bottom: 5.0,
     right: 10.0,
@@ -682,6 +682,50 @@ pub fn text(theme: &Theme, status: Status) -> Style {
         Status::Active | Status::Pressed => base,
         Status::Hovered => Style {
             text_color: palette.background.base.text.scale_alpha(0.8),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
+/// A button using background shades.
+pub fn background(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
+    let base = styled(palette.background.base);
+
+    match status {
+        Status::Active => base,
+        Status::Pressed => Style {
+            background: Some(Background::Color(
+                palette.background.strong.color,
+            )),
+            ..base
+        },
+        Status::Hovered => Style {
+            background: Some(Background::Color(palette.background.weak.color)),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
+/// A subtle button using weak background shades.
+pub fn subtle(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
+    let base = styled(palette.background.weakest);
+
+    match status {
+        Status::Active => base,
+        Status::Pressed => Style {
+            background: Some(Background::Color(
+                palette.background.strong.color,
+            )),
+            ..base
+        },
+        Status::Hovered => Style {
+            background: Some(Background::Color(
+                palette.background.weaker.color,
+            )),
             ..base
         },
         Status::Disabled => disabled(base),

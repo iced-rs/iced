@@ -4,10 +4,17 @@ pub use iced_runtime as runtime;
 pub use iced_runtime::core;
 pub use iced_runtime::futures;
 
-use crate::core::Element;
+pub mod message;
+
+mod preset;
+
+pub use preset::Preset;
+
+use crate::core::renderer;
 use crate::core::text;
 use crate::core::theme;
 use crate::core::window;
+use crate::core::{Element, Font, Settings};
 use crate::futures::{Executor, Subscription};
 use crate::graphics::compositor;
 use crate::runtime::Task;
@@ -22,10 +29,10 @@ pub trait Program: Sized {
     type State;
 
     /// The message of the program.
-    type Message: Message + 'static;
+    type Message: Send + 'static;
 
     /// The theme of the program.
-    type Theme: Default + theme::Base;
+    type Theme: theme::Base;
 
     /// The renderer of the program.
     type Renderer: Renderer;
@@ -35,6 +42,10 @@ pub trait Program: Sized {
 
     /// Returns the unique name of the [`Program`].
     fn name() -> &'static str;
+
+    fn settings(&self) -> Settings;
+
+    fn window(&self) -> Option<window::Settings>;
 
     fn boot(&self) -> (Self::State, Task<Self::Message>);
 
@@ -86,16 +97,24 @@ pub trait Program: Sized {
         Subscription::none()
     }
 
-    fn theme(&self, _state: &Self::State, _window: window::Id) -> Self::Theme {
-        <Self::Theme as Default>::default()
+    fn theme(
+        &self,
+        _state: &Self::State,
+        _window: window::Id,
+    ) -> Option<Self::Theme> {
+        None
     }
 
     fn style(&self, _state: &Self::State, theme: &Self::Theme) -> theme::Style {
         theme::Base::base(theme)
     }
 
-    fn scale_factor(&self, _state: &Self::State, _window: window::Id) -> f64 {
+    fn scale_factor(&self, _state: &Self::State, _window: window::Id) -> f32 {
         1.0
+    }
+
+    fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
+        &[]
     }
 }
 
@@ -128,6 +147,14 @@ pub fn with_title<P: Program>(
             P::name()
         }
 
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -152,7 +179,7 @@ pub fn with_title<P: Program>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
@@ -171,7 +198,7 @@ pub fn with_title<P: Program>(
             self.program.style(state, theme)
         }
 
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
             self.program.scale_factor(state, window)
         }
     }
@@ -210,6 +237,14 @@ pub fn with_subscription<P: Program>(
             P::name()
         }
 
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -238,7 +273,7 @@ pub fn with_subscription<P: Program>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
@@ -250,7 +285,7 @@ pub fn with_subscription<P: Program>(
             self.program.style(state, theme)
         }
 
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
             self.program.scale_factor(state, window)
         }
     }
@@ -264,7 +299,7 @@ pub fn with_subscription<P: Program>(
 /// Decorates a [`Program`] with the given theme function.
 pub fn with_theme<P: Program>(
     program: P,
-    f: impl Fn(&P::State, window::Id) -> P::Theme,
+    f: impl Fn(&P::State, window::Id) -> Option<P::Theme>,
 ) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithTheme<P, F> {
         program: P,
@@ -273,7 +308,7 @@ pub fn with_theme<P: Program>(
 
     impl<P: Program, F> Program for WithTheme<P, F>
     where
-        F: Fn(&P::State, window::Id) -> P::Theme,
+        F: Fn(&P::State, window::Id) -> Option<P::Theme>,
     {
         type State = P::State;
         type Message = P::Message;
@@ -285,12 +320,20 @@ pub fn with_theme<P: Program>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             (self.theme)(state, window)
         }
 
         fn name() -> &'static str {
             P::name()
+        }
+
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
         }
 
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
@@ -332,7 +375,7 @@ pub fn with_theme<P: Program>(
             self.program.style(state, theme)
         }
 
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
             self.program.scale_factor(state, window)
         }
     }
@@ -372,6 +415,14 @@ pub fn with_style<P: Program>(
             P::name()
         }
 
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -407,11 +458,11 @@ pub fn with_style<P: Program>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
             self.program.scale_factor(state, window)
         }
     }
@@ -422,7 +473,7 @@ pub fn with_style<P: Program>(
 /// Decorates a [`Program`] with the given scale factor function.
 pub fn with_scale_factor<P: Program>(
     program: P,
-    f: impl Fn(&P::State, window::Id) -> f64,
+    f: impl Fn(&P::State, window::Id) -> f32,
 ) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithScaleFactor<P, F> {
         program: P,
@@ -431,7 +482,7 @@ pub fn with_scale_factor<P: Program>(
 
     impl<P: Program, F> Program for WithScaleFactor<P, F>
     where
-        F: Fn(&P::State, window::Id) -> f64,
+        F: Fn(&P::State, window::Id) -> f32,
     {
         type State = P::State;
         type Message = P::Message;
@@ -447,6 +498,14 @@ pub fn with_scale_factor<P: Program>(
             P::name()
         }
 
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -478,7 +537,7 @@ pub fn with_scale_factor<P: Program>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
@@ -490,7 +549,7 @@ pub fn with_scale_factor<P: Program>(
             self.program.style(state, theme)
         }
 
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
             (self.scale_factor)(state, window)
         }
     }
@@ -530,6 +589,14 @@ pub fn with_executor<P: Program, E: Executor>(
             P::name()
         }
 
+        fn settings(&self) -> Settings {
+            self.program.settings()
+        }
+
+        fn window(&self) -> Option<window::Settings> {
+            self.program.window()
+        }
+
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
@@ -561,7 +628,7 @@ pub fn with_executor<P: Program, E: Executor>(
             &self,
             state: &Self::State,
             window: window::Id,
-        ) -> Self::Theme {
+        ) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
@@ -573,7 +640,7 @@ pub fn with_executor<P: Program, E: Executor>(
             self.program.style(state, theme)
         }
 
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f64 {
+        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
             self.program.scale_factor(state, window)
         }
     }
@@ -585,12 +652,17 @@ pub fn with_executor<P: Program, E: Executor>(
 }
 
 /// The renderer of some [`Program`].
-pub trait Renderer: text::Renderer + compositor::Default {}
+pub trait Renderer:
+    text::Renderer<Font = Font> + compositor::Default + renderer::Headless
+{
+}
 
-impl<T> Renderer for T where T: text::Renderer + compositor::Default {}
+impl<T> Renderer for T where
+    T: text::Renderer<Font = Font> + compositor::Default + renderer::Headless
+{
+}
 
 /// A particular instance of a running [`Program`].
-#[allow(missing_debug_implementations)]
 pub struct Instance<P: Program> {
     program: P,
     state: P::State,
@@ -628,7 +700,7 @@ impl<P: Program> Instance<P> {
     }
 
     /// Returns the current theme of the [`Instance`].
-    pub fn theme(&self, window: window::Id) -> P::Theme {
+    pub fn theme(&self, window: window::Id) -> Option<P::Theme> {
         self.program.theme(&self.state, window)
     }
 
@@ -638,21 +710,7 @@ impl<P: Program> Instance<P> {
     }
 
     /// Returns the current scale factor of the [`Instance`].
-    pub fn scale_factor(&self, window: window::Id) -> f64 {
+    pub fn scale_factor(&self, window: window::Id) -> f32 {
         self.program.scale_factor(&self.state, window)
     }
 }
-
-/// A trait alias for the [`Message`](Program::Message) of a [`Program`].
-#[cfg(feature = "time-travel")]
-pub trait Message: Send + std::fmt::Debug + Clone {}
-
-#[cfg(feature = "time-travel")]
-impl<T: Send + std::fmt::Debug + Clone> Message for T {}
-
-/// A trait alias for the [`Message`](Program::Message) of a [`Program`].
-#[cfg(not(feature = "time-travel"))]
-pub trait Message: Send + std::fmt::Debug {}
-
-#[cfg(not(feature = "time-travel"))]
-impl<T: Send + std::fmt::Debug> Message for T {}

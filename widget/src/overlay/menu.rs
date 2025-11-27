@@ -17,7 +17,6 @@ use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
 
 /// A list of selectable options.
-#[allow(missing_debug_implementations)]
 pub struct Menu<
     'a,
     'b,
@@ -73,7 +72,7 @@ where
             padding: Padding::ZERO,
             text_size: None,
             text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::default(),
             font: None,
             class,
         }
@@ -129,12 +128,14 @@ where
         position: Point,
         viewport: Rectangle,
         target_height: f32,
+        menu_height: Length,
     ) -> overlay::Element<'a, Message, Theme, Renderer> {
         overlay::Element::new(Box::new(Overlay::new(
             position,
             viewport,
             self,
             target_height,
+            menu_height,
         )))
     }
 }
@@ -167,7 +168,7 @@ where
 {
     position: Point,
     viewport: Rectangle,
-    state: &'a mut Tree,
+    tree: &'a mut Tree,
     list: Scrollable<'a, Message, Theme, Renderer>,
     width: f32,
     target_height: f32,
@@ -186,6 +187,7 @@ where
         viewport: Rectangle,
         menu: Menu<'a, 'b, T, Message, Theme, Renderer>,
         target_height: f32,
+        menu_height: Length,
     ) -> Self
     where
         T: Clone + ToString,
@@ -216,14 +218,15 @@ where
             text_shaping,
             padding,
             class,
-        });
+        })
+        .height(menu_height);
 
         state.tree.diff(&list as &dyn Widget<_, _, _>);
 
         Self {
             position,
             viewport,
-            state: &mut state.tree,
+            tree: &mut state.tree,
             list,
             width,
             target_height,
@@ -256,7 +259,7 @@ where
         )
         .width(self.width);
 
-        let node = self.list.layout(self.state, renderer, &limits);
+        let node = self.list.layout(self.tree, renderer, &limits);
         let size = node.size();
 
         node.move_to(if space_below > space_above {
@@ -278,7 +281,7 @@ where
         let bounds = layout.bounds();
 
         self.list.update(
-            self.state, event, layout, cursor, renderer, clipboard, shell,
+            self.tree, event, layout, cursor, renderer, clipboard, shell,
             &bounds,
         );
     }
@@ -290,7 +293,7 @@ where
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.list.mouse_interaction(
-            self.state,
+            self.tree,
             layout,
             cursor,
             &self.viewport,
@@ -320,7 +323,7 @@ where
         );
 
         self.list.draw(
-            self.state, renderer, theme, defaults, layout, cursor, &bounds,
+            self.tree, renderer, theme, defaults, layout, cursor, &bounds,
         );
     }
 }
@@ -369,7 +372,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -384,7 +387,7 @@ where
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                (f32::from(text_line_height) + self.padding.vertical())
+                (f32::from(text_line_height) + self.padding.y())
                     * self.options.len() as f32,
             );
 
@@ -407,13 +410,12 @@ where
     ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if cursor.is_over(layout.bounds()) {
-                    if let Some(index) = *self.hovered_option {
-                        if let Some(option) = self.options.get(index) {
-                            shell.publish((self.on_selected)(option.clone()));
-                            shell.capture_event();
-                        }
-                    }
+                if cursor.is_over(layout.bounds())
+                    && let Some(index) = *self.hovered_option
+                    && let Some(option) = self.options.get(index)
+                {
+                    shell.publish((self.on_selected)(option.clone()));
+                    shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
@@ -426,24 +428,21 @@ where
 
                     let option_height =
                         f32::from(self.text_line_height.to_absolute(text_size))
-                            + self.padding.vertical();
+                            + self.padding.y();
 
                     let new_hovered_option =
                         (cursor_position.y / option_height) as usize;
 
-                    if *self.hovered_option != Some(new_hovered_option) {
-                        if let Some(option) =
+                    if *self.hovered_option != Some(new_hovered_option)
+                        && let Some(option) =
                             self.options.get(new_hovered_option)
+                    {
+                        if let Some(on_option_hovered) = self.on_option_hovered
                         {
-                            if let Some(on_option_hovered) =
-                                self.on_option_hovered
-                            {
-                                shell
-                                    .publish(on_option_hovered(option.clone()));
-                            }
-
-                            shell.request_redraw();
+                            shell.publish(on_option_hovered(option.clone()));
                         }
+
+                        shell.request_redraw();
                     }
 
                     *self.hovered_option = Some(new_hovered_option);
@@ -459,16 +458,16 @@ where
 
                     let option_height =
                         f32::from(self.text_line_height.to_absolute(text_size))
-                            + self.padding.vertical();
+                            + self.padding.y();
 
                     *self.hovered_option =
                         Some((cursor_position.y / option_height) as usize);
 
-                    if let Some(index) = *self.hovered_option {
-                        if let Some(option) = self.options.get(index) {
-                            shell.publish((self.on_selected)(option.clone()));
-                            shell.capture_event();
-                        }
+                    if let Some(index) = *self.hovered_option
+                        && let Some(option) = self.options.get(index)
+                    {
+                        shell.publish((self.on_selected)(option.clone()));
+                        shell.capture_event();
                     }
                 }
             }
@@ -488,7 +487,7 @@ where
 
     fn mouse_interaction(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
@@ -505,7 +504,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
@@ -520,7 +519,7 @@ where
             self.text_size.unwrap_or_else(|| renderer.default_size());
         let option_height =
             f32::from(self.text_line_height.to_absolute(text_size))
-                + self.padding.vertical();
+                + self.padding.y();
 
         let offset = viewport.y - bounds.y;
         let start = (offset / option_height) as usize;

@@ -42,17 +42,20 @@ impl Pipeline {
         if let Some(image) = self.cache.borrow_mut().draw(
             handle,
             color,
-            Size::new(bounds.width as u32, bounds.height as u32),
+            Size::new(
+                (bounds.width * transform.sx) as u32,
+                (bounds.height * transform.sy) as u32,
+            ),
         ) {
             pixels.draw_pixmap(
-                bounds.x as i32,
-                bounds.y as i32,
+                (bounds.x * transform.sx) as i32,
+                (bounds.y * transform.sy) as i32,
                 image,
                 &tiny_skia::PixmapPaint {
                     opacity,
                     ..tiny_skia::PixmapPaint::default()
                 },
-                transform,
+                Transform::default(),
                 clip_mask,
             );
         }

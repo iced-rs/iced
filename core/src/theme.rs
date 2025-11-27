@@ -166,58 +166,9 @@ impl Theme {
     }
 }
 
-impl Default for Theme {
-    fn default() -> Self {
-        #[cfg(feature = "auto-detect-theme")]
-        {
-            use std::sync::LazyLock;
-
-            static DEFAULT: LazyLock<Theme> = LazyLock::new(|| {
-                match dark_light::detect()
-                    .unwrap_or(dark_light::Mode::Unspecified)
-                {
-                    dark_light::Mode::Dark => Theme::Dark,
-                    dark_light::Mode::Light | dark_light::Mode::Unspecified => {
-                        Theme::Light
-                    }
-                }
-            });
-
-            DEFAULT.clone()
-        }
-
-        #[cfg(not(feature = "auto-detect-theme"))]
-        Theme::Light
-    }
-}
-
 impl fmt::Display for Theme {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Light => write!(f, "Light"),
-            Self::Dark => write!(f, "Dark"),
-            Self::Dracula => write!(f, "Dracula"),
-            Self::Nord => write!(f, "Nord"),
-            Self::SolarizedLight => write!(f, "Solarized Light"),
-            Self::SolarizedDark => write!(f, "Solarized Dark"),
-            Self::GruvboxLight => write!(f, "Gruvbox Light"),
-            Self::GruvboxDark => write!(f, "Gruvbox Dark"),
-            Self::CatppuccinLatte => write!(f, "Catppuccin Latte"),
-            Self::CatppuccinFrappe => write!(f, "Catppuccin Frappé"),
-            Self::CatppuccinMacchiato => write!(f, "Catppuccin Macchiato"),
-            Self::CatppuccinMocha => write!(f, "Catppuccin Mocha"),
-            Self::TokyoNight => write!(f, "Tokyo Night"),
-            Self::TokyoNightStorm => write!(f, "Tokyo Night Storm"),
-            Self::TokyoNightLight => write!(f, "Tokyo Night Light"),
-            Self::KanagawaWave => write!(f, "Kanagawa Wave"),
-            Self::KanagawaDragon => write!(f, "Kanagawa Dragon"),
-            Self::KanagawaLotus => write!(f, "Kanagawa Lotus"),
-            Self::Moonfly => write!(f, "Moonfly"),
-            Self::Nightfly => write!(f, "Nightfly"),
-            Self::Oxocarbon => write!(f, "Oxocarbon"),
-            Self::Ferra => write!(f, "Ferra"),
-            Self::Custom(custom) => custom.fmt(f),
-        }
+        f.write_str(self.name())
     }
 }
 
@@ -256,6 +207,18 @@ impl fmt::Display for Custom {
     }
 }
 
+/// A theme mode, denoting the tone or brightness of a theme.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Mode {
+    /// No specific tone.
+    #[default]
+    None,
+    /// A mode referring to themes with light tones.
+    Light,
+    /// A mode referring to themes with dark tones.
+    Dark,
+}
+
 /// The base style of a theme.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
@@ -268,7 +231,13 @@ pub struct Style {
 
 /// The default blank style of a theme.
 pub trait Base {
-    /// Returns the default base [`Style`] of a theme.
+    /// Returns the default theme for the preferred [`Mode`].
+    fn default(preference: Mode) -> Self;
+
+    /// Returns the [`Mode`] of the theme.
+    fn mode(&self) -> Mode;
+
+    /// Returns the default base [`Style`] of the theme.
     fn base(&self) -> Style;
 
     /// Returns the color [`Palette`] of the theme.
@@ -277,15 +246,82 @@ pub trait Base {
     /// debugging purposes; like displaying performance
     /// metrics or devtools.
     fn palette(&self) -> Option<Palette>;
+
+    /// Returns the unique name of the theme.
+    ///
+    /// This name may be used to efficiently detect theme
+    /// changes in some widgets.
+    fn name(&self) -> &str;
 }
 
 impl Base for Theme {
+    fn default(preference: Mode) -> Self {
+        use std::env;
+        use std::sync::OnceLock;
+
+        static SYSTEM: OnceLock<Option<Theme>> = OnceLock::new();
+
+        let system = SYSTEM.get_or_init(|| {
+            let name = env::var("ICED_THEME").ok()?;
+
+            Theme::ALL
+                .iter()
+                .find(|theme| theme.to_string() == name)
+                .cloned()
+        });
+
+        if let Some(system) = system {
+            return system.clone();
+        }
+
+        match preference {
+            Mode::None | Mode::Light => Self::Light,
+            Mode::Dark => Self::Dark,
+        }
+    }
+
+    fn mode(&self) -> Mode {
+        if self.extended_palette().is_dark {
+            Mode::Dark
+        } else {
+            Mode::Light
+        }
+    }
+
     fn base(&self) -> Style {
         default(self)
     }
 
     fn palette(&self) -> Option<Palette> {
         Some(self.palette())
+    }
+
+    fn name(&self) -> &str {
+        match self {
+            Self::Light => "Light",
+            Self::Dark => "Dark",
+            Self::Dracula => "Dracula",
+            Self::Nord => "Nord",
+            Self::SolarizedLight => "Solarized Light",
+            Self::SolarizedDark => "Solarized Dark",
+            Self::GruvboxLight => "Gruvbox Light",
+            Self::GruvboxDark => "Gruvbox Dark",
+            Self::CatppuccinLatte => "Catppuccin Latte",
+            Self::CatppuccinFrappe => "Catppuccin Frappé",
+            Self::CatppuccinMacchiato => "Catppuccin Macchiato",
+            Self::CatppuccinMocha => "Catppuccin Mocha",
+            Self::TokyoNight => "Tokyo Night",
+            Self::TokyoNightStorm => "Tokyo Night Storm",
+            Self::TokyoNightLight => "Tokyo Night Light",
+            Self::KanagawaWave => "Kanagawa Wave",
+            Self::KanagawaDragon => "Kanagawa Dragon",
+            Self::KanagawaLotus => "Kanagawa Lotus",
+            Self::Moonfly => "Moonfly",
+            Self::Nightfly => "Nightfly",
+            Self::Oxocarbon => "Oxocarbon",
+            Self::Ferra => "Ferra",
+            Self::Custom(custom) => &custom.name,
+        }
     }
 }
 

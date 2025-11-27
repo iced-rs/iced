@@ -5,6 +5,9 @@ authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2024"
 publish = false
 
+[features]
+tester = ["iced/tester"]
+
 [dependencies]
 iced.workspace = true
 iced.features = ["tokio", "debug", "time-travel"]

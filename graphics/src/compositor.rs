@@ -2,7 +2,7 @@
 //! surfaces.
 use crate::core::Color;
 use crate::futures::{MaybeSend, MaybeSync};
-use crate::{Error, Settings, Viewport};
+use crate::{Error, Settings, Shell, Viewport};
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
@@ -21,8 +21,9 @@ pub trait Compositor: Sized {
     fn new<W: Window + Clone>(
         settings: Settings,
         compatible_window: W,
+        shell: Shell,
     ) -> impl Future<Output = Result<Self, Error>> {
-        Self::with_backend(settings, compatible_window, None)
+        Self::with_backend(settings, compatible_window, shell, None)
     }
 
     /// Creates a new [`Compositor`] with a backend preference.
@@ -32,6 +33,7 @@ pub trait Compositor: Sized {
     fn with_backend<W: Window + Clone>(
         _settings: Settings,
         _compatible_window: W,
+        _shell: Shell,
         _backend: Option<&str>,
     ) -> impl Future<Output = Result<Self, Error>>;
 
@@ -59,7 +61,7 @@ pub trait Compositor: Sized {
     );
 
     /// Returns [`Information`] used by this [`Compositor`].
-    fn fetch_information(&self) -> Information;
+    fn information(&self) -> Information;
 
     /// Loads a font from its bytes.
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
@@ -153,6 +155,7 @@ impl Compositor for () {
     async fn with_backend<W: Window + Clone>(
         _settings: Settings,
         _compatible_window: W,
+        _shell: Shell,
         _preferred_backend: Option<&str>,
     ) -> Result<Self, Error> {
         Ok(())
@@ -178,7 +181,7 @@ impl Compositor for () {
 
     fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 
-    fn fetch_information(&self) -> Information {
+    fn information(&self) -> Information {
         Information {
             adapter: String::from("Null Renderer"),
             backend: String::from("Null"),

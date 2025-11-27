@@ -92,7 +92,6 @@ impl Cached for Geometry {
 }
 
 /// A frame for drawing some geometry.
-#[allow(missing_debug_implementations)]
 pub struct Frame {
     clip_bounds: Rectangle,
     buffers: BufferStack,
@@ -105,13 +104,8 @@ pub struct Frame {
 }
 
 impl Frame {
-    /// Creates a new [`Frame`] with the given [`Size`].
-    pub fn new(size: Size) -> Frame {
-        Self::with_clip(Rectangle::with_size(size))
-    }
-
     /// Creates a new [`Frame`] with the given clip bounds.
-    pub fn with_clip(bounds: Rectangle) -> Frame {
+    pub fn new(bounds: Rectangle) -> Frame {
         Frame {
             clip_bounds: bounds,
             buffers: BufferStack::new(),
@@ -120,9 +114,7 @@ impl Frame {
             text: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
-                current: Transform(lyon::math::Transform::translation(
-                    bounds.x, bounds.y,
-                )),
+                current: Transform(lyon::math::Transform::identity()),
             },
             fill_tessellator: tessellation::FillTessellator::new(),
             stroke_tessellator: tessellation::StrokeTessellator::new(),
@@ -409,7 +401,7 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn draft(&mut self, clip_bounds: Rectangle) -> Frame {
-        Frame::with_clip(clip_bounds)
+        Frame::new(clip_bounds)
     }
 
     fn paste(&mut self, frame: Frame) {
@@ -439,8 +431,14 @@ impl geometry::frame::Backend for Frame {
             self.transforms.current.transform_rectangle(bounds);
 
         image.rotation += external_rotation;
+        image.border_radius =
+            image.border_radius * self.transforms.current.scale().0;
 
-        self.images.push(Image::Raster(image, bounds));
+        self.images.push(Image::Raster {
+            image,
+            bounds,
+            clip_bounds: self.clip_bounds,
+        });
     }
 
     fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>) {
@@ -451,7 +449,11 @@ impl geometry::frame::Backend for Frame {
 
         svg.rotation += external_rotation;
 
-        self.images.push(Image::Vector(svg, bounds));
+        self.images.push(Image::Vector {
+            svg,
+            bounds,
+            clip_bounds: self.clip_bounds,
+        });
     }
 }
 

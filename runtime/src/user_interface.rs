@@ -2,13 +2,13 @@
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
+use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{
     Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector,
 };
-use crate::overlay;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -22,7 +22,6 @@ use crate::overlay;
 /// existing graphical application.
 ///
 /// [`integration`]: https://github.com/iced-rs/iced/tree/0.13/examples/integration
-#[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Theme, Renderer> {
     root: Element<'a, Message, Theme, Renderer>,
     base: layout::Node,
@@ -97,12 +96,12 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let root = root.into();
+        let mut root = root.into();
 
         let Cache { mut state } = cache;
         state.diff(root.as_widget());
 
-        let base = root.as_widget().layout(
+        let base = root.as_widget_mut().layout(
             &mut state,
             renderer,
             &layout::Limits::new(Size::ZERO, bounds),
@@ -193,6 +192,7 @@ where
         let mut outdated = false;
         let mut redraw_request = window::RedrawRequest::Wait;
         let mut input_method = InputMethod::Disabled;
+        let mut has_layout_changed = false;
         let viewport = Rectangle::with_size(self.bounds);
 
         let mut maybe_overlay = self
@@ -234,7 +234,7 @@ where
                     if shell.is_layout_invalid() {
                         drop(maybe_overlay);
 
-                        self.base = self.root.as_widget().layout(
+                        self.base = self.root.as_widget_mut().layout(
                             &mut self.state,
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
@@ -260,6 +260,7 @@ where
 
                         shell.revalidate_layout(|| {
                             layout = overlay.layout(renderer, bounds);
+                            has_layout_changed = true;
                         });
                     }
 
@@ -335,7 +336,9 @@ where
                 input_method.merge(shell.input_method());
 
                 shell.revalidate_layout(|| {
-                    self.base = self.root.as_widget().layout(
+                    has_layout_changed = true;
+
+                    self.base = self.root.as_widget_mut().layout(
                         &mut self.state,
                         renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
@@ -396,6 +399,7 @@ where
                     mouse_interaction,
                     redraw_request,
                     input_method,
+                    has_layout_changed,
                 }
             },
             event_statuses,
@@ -482,10 +486,8 @@ where
         style: &renderer::Style,
         cursor: mouse::Cursor,
     ) {
-        // TODO: Move to shell level (?)
-        renderer.clear();
-
         let viewport = Rectangle::with_size(self.bounds);
+        renderer.reset(viewport);
 
         let base_cursor = match &self.overlay {
             None
@@ -541,7 +543,7 @@ where
     ) {
         let viewport = Rectangle::with_size(self.bounds);
 
-        self.root.as_widget().operate(
+        self.root.as_widget_mut().operate(
             &mut self.state,
             Layout::new(&self.base),
             renderer,
@@ -627,5 +629,19 @@ pub enum State {
         redraw_request: window::RedrawRequest,
         /// The current [`InputMethod`] strategy of the user interface.
         input_method: InputMethod,
+        /// Whether the layout of the [`UserInterface`] has changed.
+        has_layout_changed: bool,
     },
+}
+
+impl State {
+    /// Returns whether the layout of the [`UserInterface`] has changed.
+    pub fn has_layout_changed(&self) -> bool {
+        match self {
+            State::Outdated => true,
+            State::Updated {
+                has_layout_changed, ..
+            } => *has_layout_changed,
+        }
+    }
 }

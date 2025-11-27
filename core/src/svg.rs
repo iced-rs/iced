@@ -155,5 +155,5 @@ pub trait Renderer: crate::Renderer {
     fn measure_svg(&self, handle: &Handle) -> Size<u32>;
 
     /// Draws an SVG with the given [`Handle`], an optional [`Color`] filter, and inside the provided `bounds`.
-    fn draw_svg(&mut self, svg: Svg, bounds: Rectangle);
+    fn draw_svg(&mut self, svg: Svg, bounds: Rectangle, clip_bounds: Rectangle);
 }

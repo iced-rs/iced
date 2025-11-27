@@ -1,6 +1,4 @@
-use iced::widget::{
-    center, column, combo_box, scrollable, text, vertical_space,
-};
+use iced::widget::{center, column, combo_box, scrollable, space, text};
 use iced::{Center, Element, Fill};
 
 pub fn main() -> iced::Result {
@@ -47,7 +45,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let combo_box = combo_box(
             &self.languages,
             "Type a language...",
@@ -62,7 +60,7 @@ impl Example {
             text(&self.text),
             "What is your language?",
             combo_box,
-            vertical_space().height(150),
+            space().height(150),
         ]
         .width(Fill)
         .align_x(Center)
@@ -86,18 +84,20 @@ pub enum Language {
     French,
     German,
     Italian,
+    Japanese,
     Portuguese,
     Spanish,
     Other,
 }
 
 impl Language {
-    const ALL: [Language; 8] = [
+    const ALL: [Language; 9] = [
         Language::Danish,
         Language::English,
         Language::French,
         Language::German,
         Language::Italian,
+        Language::Japanese,
         Language::Portuguese,
         Language::Spanish,
         Language::Other,
@@ -110,6 +110,7 @@ impl Language {
             Language::French => "Salut!",
             Language::German => "Hallo!",
             Language::Italian => "Ciao!",
+            Language::Japanese => "こんにちは!",
             Language::Portuguese => "Olá!",
             Language::Spanish => "¡Hola!",
             Language::Other => "... hello?",
@@ -128,6 +129,7 @@ impl std::fmt::Display for Language {
                 Language::French => "French",
                 Language::German => "German",
                 Language::Italian => "Italian",
+                Language::Japanese => "日本語",
                 Language::Portuguese => "Portuguese",
                 Language::Spanish => "Spanish",
                 Language::Other => "Some other language",

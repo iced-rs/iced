@@ -18,7 +18,7 @@
 //! }
 //!
 //! enum Message {
-//!     LinkClicked(markdown::Url),
+//!     LinkClicked(markdown::Uri),
 //! }
 //!
 //! impl State {
@@ -43,6 +43,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::alignment;
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
@@ -50,7 +51,7 @@ use crate::core::theme;
 use crate::core::{
     self, Color, Element, Length, Padding, Pixels, Theme, color,
 };
-use crate::{column, container, rich_text, row, scrollable, span, text};
+use crate::{column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
@@ -62,7 +63,11 @@ use std::sync::Arc;
 
 pub use core::text::Highlight;
 pub use pulldown_cmark::HeadingLevel;
-pub use url::Url;
+
+/// A [`String`] representing a [URI] in a Markdown document
+///
+/// [URI]: https://en.wikipedia.org/wiki/Uniform_Resource_Identifier
+pub type Uri = String;
 
 /// A bunch of Markdown that has been parsed.
 #[derive(Debug, Default)]
@@ -104,13 +109,17 @@ impl Content {
         let mut leftover = std::mem::take(&mut self.state.leftover);
         leftover.push_str(markdown);
 
+        let input = if leftover.trim_end().ends_with('|') {
+            leftover.trim_end().trim_end_matches('|')
+        } else {
+            leftover.as_str()
+        };
+
         // Pop the last item
         let _ = self.items.pop();
 
         // Re-parse last item and new text
-        for (item, source, broken_links) in
-            parse_with(&mut self.state, &leftover)
-        {
+        for (item, source, broken_links) in parse_with(&mut self.state, input) {
             if !broken_links.is_empty() {
                 let _ = self.incomplete.insert(
                     self.items.len(),
@@ -123,6 +132,8 @@ impl Content {
 
             self.items.push(item);
         }
+
+        self.state.leftover.push_str(&leftover[input.len()..]);
 
         // Re-parse incomplete sections if new references are available
         if !self.incomplete.is_empty() {
@@ -169,7 +180,7 @@ impl Content {
     }
 
     /// Returns the URLs of the Markdown images present in the [`Content`].
-    pub fn images(&self) -> &HashSet<Url> {
+    pub fn images(&self) -> &HashSet<Uri> {
         &self.state.images
     }
 }
@@ -202,12 +213,39 @@ pub enum Item {
     /// An image.
     Image {
         /// The destination URL of the image.
-        url: Url,
+        url: Uri,
         /// The title of the image.
         title: String,
         /// The alternative text of the image.
         alt: Text,
     },
+    /// A quote.
+    Quote(Vec<Item>),
+    /// A horizontal separator.
+    Rule,
+    /// A table.
+    Table {
+        /// The columns of the table.
+        columns: Vec<Column>,
+        /// The rows of the table.
+        rows: Vec<Row>,
+    },
+}
+
+/// The column of a table.
+#[derive(Debug, Clone)]
+pub struct Column {
+    /// The header of the column.
+    pub header: Vec<Item>,
+    /// The alignment of the column.
+    pub alignment: pulldown_cmark::Alignment,
+}
+
+/// The row of a table.
+#[derive(Debug, Clone)]
+pub struct Row {
+    /// The cells of the row.
+    cells: Vec<Vec<Item>>,
 }
 
 /// A bunch of parsed Markdown text.
@@ -215,7 +253,7 @@ pub enum Item {
 pub struct Text {
     spans: Vec<Span>,
     last_style: Cell<Option<Style>>,
-    last_styled_spans: RefCell<Arc<[text::Span<'static, Url>]>>,
+    last_styled_spans: RefCell<Arc<[text::Span<'static, Uri>]>>,
 }
 
 impl Text {
@@ -231,7 +269,7 @@ impl Text {
     ///
     /// This method performs caching for you. It will only reallocate if the [`Style`]
     /// provided changes.
-    pub fn spans(&self, style: Style) -> Arc<[text::Span<'static, Url>]> {
+    pub fn spans(&self, style: Style) -> Arc<[text::Span<'static, Uri>]> {
         if Some(style) != self.last_style.get() {
             *self.last_styled_spans.borrow_mut() =
                 self.spans.iter().map(|span| span.view(&style)).collect();
@@ -248,7 +286,7 @@ enum Span {
     Standard {
         text: String,
         strikethrough: bool,
-        link: Option<Url>,
+        link: Option<Uri>,
         strong: bool,
         emphasis: bool,
         code: bool,
@@ -262,7 +300,7 @@ enum Span {
 }
 
 impl Span {
-    fn view(&self, style: &Style) -> text::Span<'static, Url> {
+    fn view(&self, style: &Style) -> text::Span<'static, Uri> {
         match self {
             Span::Standard {
                 text,
@@ -327,7 +365,7 @@ impl Span {
 /// }
 ///
 /// enum Message {
-///     LinkClicked(markdown::Url),
+///     LinkClicked(markdown::Uri),
 /// }
 ///
 /// impl State {
@@ -339,8 +377,8 @@ impl Span {
 ///
 ///     fn view(&self) -> Element<'_, Message> {
 ///         markdown::view(&self.markdown, Theme::TokyoNight)
-///            .map(Message::LinkClicked)
-///            .into()
+///             .map(Message::LinkClicked)
+///             .into()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -361,7 +399,7 @@ pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
 struct State {
     leftover: String,
     references: HashMap<String, String>,
-    images: HashSet<Url>,
+    images: HashSet<Uri>,
     #[cfg(feature = "highlighter")]
     highlighter: Option<Highlighter>,
 }
@@ -454,6 +492,13 @@ fn parse_with<'a>(
 ) -> impl Iterator<Item = (Item, &'a str, HashSet<String>)> + 'a {
     enum Scope {
         List(List),
+        Quote(Vec<Item>),
+        Table {
+            alignment: Vec<pulldown_cmark::Alignment>,
+            columns: Vec<Column>,
+            rows: Vec<Row>,
+            current: Vec<Item>,
+        },
     }
 
     struct List {
@@ -471,7 +516,6 @@ fn parse_with<'a>(
     let mut emphasis = false;
     let mut strikethrough = false;
     let mut metadata = false;
-    let mut table = false;
     let mut code_block = false;
     let mut link = None;
     let mut image = None;
@@ -524,6 +568,12 @@ fn parse_with<'a>(
                 Scope::List(list) => {
                     list.items.last_mut().expect("item context").push(item);
                 }
+                Scope::Quote(items) => {
+                    items.push(item);
+                }
+                Scope::Table { current, .. } => {
+                    current.push(item);
+                }
             }
 
             None
@@ -544,42 +594,29 @@ fn parse_with<'a>(
     #[allow(clippy::drain_collect)]
     parser.filter_map(move |(event, source)| match event {
         pulldown_cmark::Event::Start(tag) => match tag {
-            pulldown_cmark::Tag::Strong if !metadata && !table => {
+            pulldown_cmark::Tag::Strong if !metadata => {
                 strong = true;
                 None
             }
-            pulldown_cmark::Tag::Emphasis if !metadata && !table => {
+            pulldown_cmark::Tag::Emphasis if !metadata => {
                 emphasis = true;
                 None
             }
-            pulldown_cmark::Tag::Strikethrough if !metadata && !table => {
+            pulldown_cmark::Tag::Strikethrough if !metadata => {
                 strikethrough = true;
                 None
             }
-            pulldown_cmark::Tag::Link { dest_url, .. }
-                if !metadata && !table =>
-            {
-                match Url::parse(&dest_url) {
-                    Ok(url)
-                        if url.scheme() == "http"
-                            || url.scheme() == "https" =>
-                    {
-                        link = Some(url);
-                    }
-                    _ => {}
-                }
-
+            pulldown_cmark::Tag::Link { dest_url, .. } if !metadata => {
+                link = Some(dest_url.into_string());
                 None
             }
             pulldown_cmark::Tag::Image {
                 dest_url, title, ..
-            } if !metadata && !table => {
-                image = Url::parse(&dest_url)
-                    .ok()
-                    .map(|url| (url, title.into_string()));
+            } if !metadata => {
+                image = Some((dest_url.into_string(), title.into_string()));
                 None
             }
-            pulldown_cmark::Tag::List(first_item) if !metadata && !table => {
+            pulldown_cmark::Tag::List(first_item) if !metadata => {
                 let prev = if spans.is_empty() {
                     None
                 } else {
@@ -605,9 +642,25 @@ fn parse_with<'a>(
 
                 None
             }
+            pulldown_cmark::Tag::BlockQuote(_kind) if !metadata => {
+                let prev = if spans.is_empty() {
+                    None
+                } else {
+                    produce(
+                        state.borrow_mut(),
+                        &mut stack,
+                        Item::Paragraph(Text::new(spans.drain(..).collect())),
+                        source,
+                    )
+                };
+
+                stack.push(Scope::Quote(Vec::new()));
+
+                prev
+            }
             pulldown_cmark::Tag::CodeBlock(
                 pulldown_cmark::CodeBlockKind::Fenced(language),
-            ) if !metadata && !table => {
+            ) if !metadata => {
                 #[cfg(feature = "highlighter")]
                 {
                     highlighter = Some({
@@ -645,38 +698,54 @@ fn parse_with<'a>(
                 metadata = true;
                 None
             }
-            pulldown_cmark::Tag::Table(_) => {
-                table = true;
+            pulldown_cmark::Tag::Table(alignment) => {
+                stack.push(Scope::Table {
+                    columns: Vec::with_capacity(alignment.len()),
+                    alignment,
+                    current: Vec::new(),
+                    rows: Vec::new(),
+                });
+
+                None
+            }
+            pulldown_cmark::Tag::TableHead => {
+                strong = true;
+                None
+            }
+            pulldown_cmark::Tag::TableRow => {
+                let Scope::Table { rows, .. } = stack.last_mut()? else {
+                    return None;
+                };
+
+                rows.push(Row { cells: Vec::new() });
                 None
             }
             _ => None,
         },
         pulldown_cmark::Event::End(tag) => match tag {
-            pulldown_cmark::TagEnd::Heading(level) if !metadata && !table => {
-                produce(
-                    state.borrow_mut(),
-                    &mut stack,
-                    Item::Heading(level, Text::new(spans.drain(..).collect())),
-                    source,
-                )
-            }
-            pulldown_cmark::TagEnd::Strong if !metadata && !table => {
+            pulldown_cmark::TagEnd::Heading(level) if !metadata => produce(
+                state.borrow_mut(),
+                &mut stack,
+                Item::Heading(level, Text::new(spans.drain(..).collect())),
+                source,
+            ),
+            pulldown_cmark::TagEnd::Strong if !metadata => {
                 strong = false;
                 None
             }
-            pulldown_cmark::TagEnd::Emphasis if !metadata && !table => {
+            pulldown_cmark::TagEnd::Emphasis if !metadata => {
                 emphasis = false;
                 None
             }
-            pulldown_cmark::TagEnd::Strikethrough if !metadata && !table => {
+            pulldown_cmark::TagEnd::Strikethrough if !metadata => {
                 strikethrough = false;
                 None
             }
-            pulldown_cmark::TagEnd::Link if !metadata && !table => {
+            pulldown_cmark::TagEnd::Link if !metadata => {
                 link = None;
                 None
             }
-            pulldown_cmark::TagEnd::Paragraph if !metadata && !table => {
+            pulldown_cmark::TagEnd::Paragraph if !metadata => {
                 if spans.is_empty() {
                     None
                 } else {
@@ -688,7 +757,7 @@ fn parse_with<'a>(
                     )
                 }
             }
-            pulldown_cmark::TagEnd::Item if !metadata && !table => {
+            pulldown_cmark::TagEnd::Item if !metadata => {
                 if spans.is_empty() {
                     None
                 } else {
@@ -700,10 +769,12 @@ fn parse_with<'a>(
                     )
                 }
             }
-            pulldown_cmark::TagEnd::List(_) if !metadata && !table => {
+            pulldown_cmark::TagEnd::List(_) if !metadata => {
                 let scope = stack.pop()?;
 
-                let Scope::List(list) = scope;
+                let Scope::List(list) = scope else {
+                    return None;
+                };
 
                 produce(
                     state.borrow_mut(),
@@ -715,7 +786,21 @@ fn parse_with<'a>(
                     source,
                 )
             }
-            pulldown_cmark::TagEnd::Image if !metadata && !table => {
+            pulldown_cmark::TagEnd::BlockQuote(_kind) if !metadata => {
+                let scope = stack.pop()?;
+
+                let Scope::Quote(quote) = scope else {
+                    return None;
+                };
+
+                produce(
+                    state.borrow_mut(),
+                    &mut stack,
+                    Item::Quote(quote),
+                    source,
+                )
+            }
+            pulldown_cmark::TagEnd::Image if !metadata => {
                 let (url, title) = image.take()?;
                 let alt = Text::new(spans.drain(..).collect());
 
@@ -729,7 +814,7 @@ fn parse_with<'a>(
                     source,
                 )
             }
-            pulldown_cmark::TagEnd::CodeBlock if !metadata && !table => {
+            pulldown_cmark::TagEnd::CodeBlock if !metadata => {
                 code_block = false;
 
                 #[cfg(feature = "highlighter")]
@@ -753,12 +838,60 @@ fn parse_with<'a>(
                 None
             }
             pulldown_cmark::TagEnd::Table => {
-                table = false;
+                let scope = stack.pop()?;
+
+                let Scope::Table { columns, rows, .. } = scope else {
+                    return None;
+                };
+
+                produce(
+                    state.borrow_mut(),
+                    &mut stack,
+                    Item::Table { columns, rows },
+                    source,
+                )
+            }
+            pulldown_cmark::TagEnd::TableHead => {
+                strong = false;
+                None
+            }
+            pulldown_cmark::TagEnd::TableCell => {
+                if !spans.is_empty() {
+                    let _ = produce(
+                        state.borrow_mut(),
+                        &mut stack,
+                        Item::Paragraph(Text::new(spans.drain(..).collect())),
+                        source,
+                    );
+                }
+
+                let Scope::Table {
+                    alignment,
+                    columns,
+                    rows,
+                    current,
+                } = stack.last_mut()?
+                else {
+                    return None;
+                };
+
+                if columns.len() < alignment.len() {
+                    columns.push(Column {
+                        header: std::mem::take(current),
+                        alignment: alignment[columns.len()],
+                    });
+                } else {
+                    rows.last_mut()
+                        .expect("table row")
+                        .cells
+                        .push(std::mem::take(current));
+                }
+
                 None
             }
             _ => None,
         },
-        pulldown_cmark::Event::Text(text) if !metadata && !table => {
+        pulldown_cmark::Event::Text(text) if !metadata => {
             if code_block {
                 code.push_str(&text);
 
@@ -799,7 +932,7 @@ fn parse_with<'a>(
 
             None
         }
-        pulldown_cmark::Event::Code(code) if !metadata && !table => {
+        pulldown_cmark::Event::Code(code) if !metadata => {
             let span = Span::Standard {
                 text: code.into_string(),
                 strong,
@@ -812,7 +945,7 @@ fn parse_with<'a>(
             spans.push(span);
             None
         }
-        pulldown_cmark::Event::SoftBreak if !metadata && !table => {
+        pulldown_cmark::Event::SoftBreak if !metadata => {
             spans.push(Span::Standard {
                 text: String::from(" "),
                 strikethrough,
@@ -823,7 +956,7 @@ fn parse_with<'a>(
             });
             None
         }
-        pulldown_cmark::Event::HardBreak if !metadata && !table => {
+        pulldown_cmark::Event::HardBreak if !metadata => {
             spans.push(Span::Standard {
                 text: String::from("\n"),
                 strikethrough,
@@ -833,6 +966,9 @@ fn parse_with<'a>(
                 code: false,
             });
             None
+        }
+        pulldown_cmark::Event::Rule => {
+            produce(state.borrow_mut(), &mut stack, Item::Rule, source)
         }
         _ => None,
     })
@@ -926,8 +1062,8 @@ impl Style {
         Self {
             inline_code_padding: padding::left(1).right(1),
             inline_code_highlight: Highlight {
-                background: color!(0x111).into(),
-                border: border::rounded(2),
+                background: color!(0x111111).into(),
+                border: border::rounded(4),
             },
             inline_code_color: Color::WHITE,
             link_color: palette.primary,
@@ -970,7 +1106,7 @@ impl From<Theme> for Style {
 /// }
 ///
 /// enum Message {
-///     LinkClicked(markdown::Url),
+///     LinkClicked(markdown::Uri),
 /// }
 ///
 /// impl State {
@@ -998,7 +1134,7 @@ impl From<Theme> for Style {
 pub fn view<'a, Theme, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: impl Into<Settings>,
-) -> Element<'a, Url, Theme, Renderer>
+) -> Element<'a, Uri, Theme, Renderer>
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
@@ -1063,6 +1199,9 @@ where
             start: Some(start),
             items,
         } => viewer.ordered_list(settings, *start, items),
+        Item::Quote(quote) => viewer.quote(settings, quote),
+        Item::Rule => viewer.rule(settings),
+        Item::Table { columns, rows } => viewer.table(settings, columns, rows),
     }
 }
 
@@ -1072,7 +1211,7 @@ pub fn heading<'a, Message, Theme, Renderer>(
     level: &'a HeadingLevel,
     text: &'a Text,
     index: usize,
-    on_link_click: impl Fn(Url) -> Message + 'a,
+    on_link_click: impl Fn(Uri) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1114,7 +1253,7 @@ where
 pub fn paragraph<'a, Message, Theme, Renderer>(
     settings: Settings,
     text: &Text,
-    on_link_click: impl Fn(Url) -> Message + 'a,
+    on_link_click: impl Fn(Uri) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1172,9 +1311,14 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
+    let digits = ((start + items.len() as u64).max(1) as f32).log10().ceil();
+
     column(items.iter().enumerate().map(|(i, items)| {
         row![
-            text!("{}.", i as u64 + start).size(settings.text_size),
+            text!("{}.", i as u64 + start)
+                .size(settings.text_size)
+                .align_x(alignment::Horizontal::Right)
+                .width(settings.text_size * ((digits / 2.0).ceil() + 1.0)),
             view_with(
                 items,
                 Settings {
@@ -1188,7 +1332,6 @@ where
         .into()
     }))
     .spacing(settings.spacing * 0.75)
-    .padding([0.0, settings.spacing.0])
     .into()
 }
 
@@ -1196,7 +1339,7 @@ where
 pub fn code_block<'a, Message, Theme, Renderer>(
     settings: Settings,
     lines: &'a [Text],
-    on_link_click: impl Fn(Url) -> Message + Clone + 'a,
+    on_link_click: impl Fn(Uri) -> Message + Clone + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1226,7 +1369,118 @@ where
     .into()
 }
 
-/// A view strategy to display a Markdown [`Item`].j
+/// Displays a quote using the default look.
+pub fn quote<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
+    settings: Settings,
+    contents: &'a [Item],
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    row![
+        rule::vertical(4),
+        column(
+            contents
+                .iter()
+                .enumerate()
+                .map(|(i, content)| item(viewer, settings, content, i)),
+        )
+        .spacing(settings.spacing.0),
+    ]
+    .height(Length::Shrink)
+    .spacing(settings.spacing.0)
+    .into()
+}
+
+/// Displays a rule using the default look.
+pub fn rule<'a, Message, Theme, Renderer>()
+-> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    rule::horizontal(2).into()
+}
+
+/// Displays a table using the default look.
+pub fn table<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
+    settings: Settings,
+    columns: &'a [Column],
+    rows: &'a [Row],
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    use crate::table;
+
+    let table = table(
+        columns.iter().enumerate().map(move |(i, column)| {
+            table::column(
+                items(viewer, settings, &column.header),
+                move |row: &Row| {
+                    if let Some(cells) = row.cells.get(i) {
+                        items(viewer, settings, cells)
+                    } else {
+                        text("").into()
+                    }
+                },
+            )
+            .align_x(match column.alignment {
+                pulldown_cmark::Alignment::None
+                | pulldown_cmark::Alignment::Left => {
+                    alignment::Horizontal::Left
+                }
+                pulldown_cmark::Alignment::Center => {
+                    alignment::Horizontal::Center
+                }
+                pulldown_cmark::Alignment::Right => {
+                    alignment::Horizontal::Right
+                }
+            })
+        }),
+        rows,
+    )
+    .padding_x(settings.spacing.0)
+    .padding_y(settings.spacing.0 / 2.0)
+    .separator_x(0);
+
+    scrollable(table)
+        .direction(scrollable::Direction::Horizontal(
+            scrollable::Scrollbar::default(),
+        ))
+        .spacing(settings.spacing.0 / 2.0)
+        .into()
+}
+
+/// Displays a column of items with the default look.
+pub fn items<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
+    settings: Settings,
+    items: &'a [Item],
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::text::Renderer<Font = Font> + 'a,
+{
+    column(
+        items
+            .iter()
+            .enumerate()
+            .map(|(i, content)| item(viewer, settings, content, i)),
+    )
+    .spacing(settings.spacing.0)
+    .into()
+}
+
+/// A view strategy to display a Markdown [`Item`].
 pub trait Viewer<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Self: Sized + 'a,
@@ -1234,8 +1488,8 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    /// Produces a message when a link is clicked with the given [`Url`].
-    fn on_link_click(url: Url) -> Message;
+    /// Produces a message when a link is clicked with the given [`Uri`].
+    fn on_link_click(url: Uri) -> Message;
 
     /// Displays an image.
     ///
@@ -1243,7 +1497,7 @@ where
     fn image(
         &self,
         settings: Settings,
-        url: &'a Url,
+        url: &'a Uri,
         title: &'a str,
         alt: &Text,
     ) -> Element<'a, Message, Theme, Renderer> {
@@ -1321,24 +1575,61 @@ where
     ) -> Element<'a, Message, Theme, Renderer> {
         ordered_list(self, settings, start, items)
     }
+
+    /// Displays a quote.
+    ///
+    /// By default, it calls [`quote`].
+    fn quote(
+        &self,
+        settings: Settings,
+        contents: &'a [Item],
+    ) -> Element<'a, Message, Theme, Renderer> {
+        quote(self, settings, contents)
+    }
+
+    /// Displays a rule.
+    ///
+    /// By default, it calls [`rule`](self::rule()).
+    fn rule(
+        &self,
+        _settings: Settings,
+    ) -> Element<'a, Message, Theme, Renderer> {
+        rule()
+    }
+
+    /// Displays a table.
+    ///
+    /// By default, it calls [`table`].
+    fn table(
+        &self,
+        settings: Settings,
+        columns: &'a [Column],
+        rows: &'a [Row],
+    ) -> Element<'a, Message, Theme, Renderer> {
+        table(self, settings, columns, rows)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
 struct DefaultViewer;
 
-impl<'a, Theme, Renderer> Viewer<'a, Url, Theme, Renderer> for DefaultViewer
+impl<'a, Theme, Renderer> Viewer<'a, Uri, Theme, Renderer> for DefaultViewer
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    fn on_link_click(url: Url) -> Url {
+    fn on_link_click(url: Uri) -> Uri {
         url
     }
 }
 
 /// The theme catalog of Markdown items.
 pub trait Catalog:
-    container::Catalog + scrollable::Catalog + text::Catalog
+    container::Catalog
+    + scrollable::Catalog
+    + text::Catalog
+    + crate::rule::Catalog
+    + crate::table::Catalog
 {
     /// The styling class of a Markdown code block.
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a>;

@@ -33,6 +33,13 @@ pub struct Settings {
     ///
     /// By default, it is enabled.
     pub antialiasing: bool,
+
+    /// Whether or not to attempt to synchronize rendering when possible.
+    ///
+    /// Disabling it can improve rendering performance on some platforms.
+    ///
+    /// By default, it is enabled.
+    pub vsync: bool,
 }
 
 impl Default for Settings {
@@ -43,6 +50,7 @@ impl Default for Settings {
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: true,
+            vsync: true,
         }
     }
 }

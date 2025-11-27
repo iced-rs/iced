@@ -134,7 +134,6 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
 }
 
 /// A set of system fonts.
-#[allow(missing_debug_implementations)]
 pub struct FontSystem {
     raw: cosmic_text::FontSystem,
     loaded_fonts: HashSet<usize>,
@@ -176,7 +175,7 @@ impl FontSystem {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Version(u32);
 
-/// A weak reference to a [`cosmic-text::Buffer`] that can be drawn.
+/// A weak reference to a [`cosmic_text::Buffer`] that can be drawn.
 #[derive(Debug, Clone)]
 pub struct Raw {
     /// A weak reference to a [`cosmic_text::Buffer`].
@@ -323,8 +322,15 @@ fn to_align(alignment: Alignment) -> Option<cosmic_text::Align> {
 }
 
 /// Converts some [`Shaping`] strategy to a [`cosmic_text::Shaping`] strategy.
-pub fn to_shaping(shaping: Shaping) -> cosmic_text::Shaping {
+pub fn to_shaping(shaping: Shaping, text: &str) -> cosmic_text::Shaping {
     match shaping {
+        Shaping::Auto => {
+            if text.is_ascii() {
+                cosmic_text::Shaping::Basic
+            } else {
+                cosmic_text::Shaping::Advanced
+            }
+        }
         Shaping::Basic => cosmic_text::Shaping::Basic,
         Shaping::Advanced => cosmic_text::Shaping::Advanced,
     }
@@ -345,4 +351,10 @@ pub fn to_color(color: Color) -> cosmic_text::Color {
     let [r, g, b, a] = color.into_rgba8();
 
     cosmic_text::Color::rgba(r, g, b, a)
+}
+
+/// A text renderer coupled to `iced_graphics`.
+pub trait Renderer {
+    /// Draws the given [`Raw`] text.
+    fn fill_raw(&mut self, raw: Raw);
 }

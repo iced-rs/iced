@@ -23,15 +23,14 @@ image = ["iced_renderer/image"]
 svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
 qr_code = ["canvas", "dep:qrcode"]
-wgpu = ["iced_renderer/wgpu"]
-markdown = ["dep:pulldown-cmark", "dep:url"]
+wgpu = ["iced_renderer/wgpu-bare"]
+markdown = ["dep:pulldown-cmark"]
 highlighter = ["dep:iced_highlighter"]
 advanced = []
 crisp = []
 
 [dependencies]
 iced_renderer.workspace = true
-iced_runtime.workspace = true
 
 num-traits.workspace = true
 log.workspace = true
@@ -50,6 +49,3 @@ pulldown-cmark.optional = true
 
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
-
-url.workspace = true
-url.optional = true

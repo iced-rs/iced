@@ -10,7 +10,7 @@ use iced::{Element, Fill, Point, Rectangle, Renderer, Subscription, Theme};
 pub fn main() -> iced::Result {
     iced::application(Arc::new, Arc::update, Arc::view)
         .subscription(Arc::subscription)
-        .theme(|_| Theme::Dark)
+        .theme(Theme::Dark)
         .run()
 }
 
@@ -36,7 +36,7 @@ impl Arc {
         self.cache.clear();
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         Canvas::new(self).width(Fill).height(Fill).into()
     }
 

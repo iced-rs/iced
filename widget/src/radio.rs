@@ -129,7 +129,6 @@ use crate::core::{
 ///     column![a, b, c, all].into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Radio<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
@@ -290,7 +289,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -327,7 +326,7 @@ where
 
     fn update(
         &mut self,
-        _state: &mut Tree,
+        _tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -370,7 +369,7 @@ where
 
     fn mouse_interaction(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,

@@ -1,3 +1,5 @@
+use crate::core;
+
 use guillotiere::{AtlasAllocator, Size};
 
 pub struct Allocator {
@@ -6,6 +8,8 @@ pub struct Allocator {
 }
 
 impl Allocator {
+    const PADDING: u32 = 1;
+
     pub fn new(size: u32) -> Allocator {
         let raw = AtlasAllocator::new(Size::new(size as i32, size as i32));
 
@@ -16,12 +20,38 @@ impl Allocator {
     }
 
     pub fn allocate(&mut self, width: u32, height: u32) -> Option<Region> {
-        let allocation =
-            self.raw.allocate(Size::new(width as i32, height as i32))?;
+        let size = self.raw.size();
+
+        let padded_width = width + Self::PADDING * 2;
+        let padded_height = height + Self::PADDING * 2;
+
+        let pad_width = padded_width as i32 <= size.width;
+        let pad_height = padded_height as i32 <= size.height;
+
+        let mut allocation = self.raw.allocate(Size::new(
+            if pad_width { padded_width } else { width } as i32,
+            if pad_height { padded_height } else { height } as i32,
+        ))?;
+
+        if pad_width {
+            allocation.rectangle.min.x += Self::PADDING as i32;
+            allocation.rectangle.max.x -= Self::PADDING as i32;
+        }
+
+        if pad_height {
+            allocation.rectangle.min.y += Self::PADDING as i32;
+            allocation.rectangle.max.y -= Self::PADDING as i32;
+        }
 
         self.allocations += 1;
 
-        Some(Region { allocation })
+        Some(Region {
+            allocation,
+            padding: core::Size::new(
+                if pad_width { Self::PADDING } else { 0 },
+                if pad_height { Self::PADDING } else { 0 },
+            ),
+        })
     }
 
     pub fn deallocate(&mut self, region: &Region) {
@@ -41,6 +71,7 @@ impl Allocator {
 
 pub struct Region {
     allocation: guillotiere::Allocation,
+    padding: core::Size<u32>,
 }
 
 impl Region {
@@ -50,10 +81,14 @@ impl Region {
         (rectangle.min.x as u32, rectangle.min.y as u32)
     }
 
-    pub fn size(&self) -> crate::core::Size<u32> {
+    pub fn size(&self) -> core::Size<u32> {
         let size = self.allocation.rectangle.size();
 
-        crate::core::Size::new(size.width as u32, size.height as u32)
+        core::Size::new(size.width as u32, size.height as u32)
+    }
+
+    pub fn padding(&self) -> crate::core::Size<u32> {
+        self.padding
     }
 }
 

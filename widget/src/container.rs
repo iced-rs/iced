@@ -31,10 +31,9 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
     self, Background, Clipboard, Color, Element, Event, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector,
-    Widget, color,
+    Padding, Pixels, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    color,
 };
-use crate::runtime::task::{self, Task};
 
 /// A widget that aligns its contents inside of its boundaries.
 ///
@@ -57,7 +56,6 @@ use crate::runtime::task::{self, Task};
 ///         .into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Container<
     'a,
     Message,
@@ -67,7 +65,7 @@ pub struct Container<
     Theme: Catalog,
     Renderer: core::Renderer,
 {
-    id: Option<Id>,
+    id: Option<widget::Id>,
     padding: Padding,
     width: Length,
     height: Length,
@@ -107,8 +105,8 @@ where
         }
     }
 
-    /// Sets the [`Id`] of the [`Container`].
-    pub fn id(mut self, id: impl Into<Id>) -> Self {
+    /// Sets the [`widget::Id`] of the [`Container`].
+    pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
         self.id = Some(id.into());
         self
     }
@@ -153,8 +151,8 @@ where
         self.height(height).align_y(alignment::Vertical::Center)
     }
 
-    /// Centers the contents in both the horizontal and vertical axes of the
-    /// [`Container`].
+    /// Sets the width and height of the [`Container`] and centers its contents in
+    /// both the horizontal and vertical axes.
     ///
     /// This is equivalent to chaining [`center_x`] and [`center_y`].
     ///
@@ -166,22 +164,22 @@ where
         self.center_x(length).center_y(length)
     }
 
-    /// Aligns the contents of the [`Container`] to the left.
+    /// Sets the width of the [`Container`] and aligns its contents to the left.
     pub fn align_left(self, width: impl Into<Length>) -> Self {
         self.width(width).align_x(alignment::Horizontal::Left)
     }
 
-    /// Aligns the contents of the [`Container`] to the right.
+    /// Sets the width of the [`Container`] and aligns its contents to the right.
     pub fn align_right(self, width: impl Into<Length>) -> Self {
         self.width(width).align_x(alignment::Horizontal::Right)
     }
 
-    /// Aligns the contents of the [`Container`] to the top.
+    /// Sets the height of the [`Container`] and aligns its contents to the top.
     pub fn align_top(self, height: impl Into<Length>) -> Self {
         self.height(height).align_y(alignment::Vertical::Top)
     }
 
-    /// Aligns the contents of the [`Container`] to the bottom.
+    /// Sets the height of the [`Container`] and aligns its contents to the bottom.
     pub fn align_bottom(self, height: impl Into<Length>) -> Self {
         self.height(height).align_y(alignment::Vertical::Bottom)
     }
@@ -259,7 +257,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -273,29 +271,28 @@ where
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |limits| self.content.as_widget().layout(tree, renderer, limits),
+            |limits| {
+                self.content.as_widget_mut().layout(tree, renderer, limits)
+            },
         )
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            layout.bounds(),
-            &mut |operation| {
-                self.content.as_widget().operate(
-                    tree,
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.container(self.id.as_ref(), layout.bounds());
+        operation.traverse(&mut |operation| {
+            self.content.as_widget_mut().operate(
+                tree,
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn update(
@@ -400,9 +397,9 @@ where
     Renderer: core::Renderer + 'a,
 {
     fn from(
-        column: Container<'a, Message, Theme, Renderer>,
+        container: Container<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(column)
+        Element::new(container)
     }
 }
 
@@ -460,130 +457,8 @@ pub fn draw_background<Renderer>(
     }
 }
 
-/// The identifier of a [`Container`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
-    }
-}
-
-impl From<&'static str> for Id {
-    fn from(value: &'static str) -> Self {
-        Id::new(value)
-    }
-}
-
-/// Produces a [`Task`] that queries the visible screen bounds of the
-/// [`Container`] with the given [`Id`].
-pub fn visible_bounds(id: impl Into<Id>) -> Task<Option<Rectangle>> {
-    let id = id.into();
-
-    struct VisibleBounds {
-        target: widget::Id,
-        depth: usize,
-        scrollables: Vec<(Vector, Rectangle, usize)>,
-        bounds: Option<Rectangle>,
-    }
-
-    impl Operation<Option<Rectangle>> for VisibleBounds {
-        fn scrollable(
-            &mut self,
-            _id: Option<&widget::Id>,
-            bounds: Rectangle,
-            _content_bounds: Rectangle,
-            translation: Vector,
-            _state: &mut dyn widget::operation::Scrollable,
-        ) {
-            match self.scrollables.last() {
-                Some((last_translation, last_viewport, _depth)) => {
-                    let viewport = last_viewport
-                        .intersection(&(bounds - *last_translation))
-                        .unwrap_or(Rectangle::new(Point::ORIGIN, Size::ZERO));
-
-                    self.scrollables.push((
-                        translation + *last_translation,
-                        viewport,
-                        self.depth,
-                    ));
-                }
-                None => {
-                    self.scrollables.push((translation, bounds, self.depth));
-                }
-            }
-        }
-
-        fn container(
-            &mut self,
-            id: Option<&widget::Id>,
-            bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(
-                &mut dyn Operation<Option<Rectangle>>,
-            ),
-        ) {
-            if self.bounds.is_some() {
-                return;
-            }
-
-            if id == Some(&self.target) {
-                match self.scrollables.last() {
-                    Some((translation, viewport, _)) => {
-                        self.bounds =
-                            viewport.intersection(&(bounds - *translation));
-                    }
-                    None => {
-                        self.bounds = Some(bounds);
-                    }
-                }
-
-                return;
-            }
-
-            self.depth += 1;
-
-            operate_on_children(self);
-
-            self.depth -= 1;
-
-            match self.scrollables.last() {
-                Some((_, _, depth)) if self.depth == *depth => {
-                    let _ = self.scrollables.pop();
-                }
-                _ => {}
-            }
-        }
-
-        fn finish(&self) -> widget::operation::Outcome<Option<Rectangle>> {
-            widget::operation::Outcome::Some(self.bounds)
-        }
-    }
-
-    task::widget(VisibleBounds {
-        target: id.into(),
-        depth: 0,
-        scrollables: Vec::new(),
-        bounds: None,
-    })
-}
-
 /// The appearance of a container.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The text [`Color`] of the container.
     pub text_color: Option<Color>,
@@ -595,6 +470,18 @@ pub struct Style {
     pub shadow: Shadow,
     /// Whether the container should be snapped to the pixel grid.
     pub snap: bool,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            text_color: None,
+            background: None,
+            border: Border::default(),
+            shadow: Shadow::default(),
+            snap: cfg!(feature = "crisp"),
+        }
+    }
 }
 
 impl Style {
@@ -698,6 +585,7 @@ pub fn rounded_box(theme: &Theme) -> Style {
 
     Style {
         background: Some(palette.background.weak.color.into()),
+        text_color: Some(palette.background.weak.text),
         border: border::rounded(2),
         ..Style::default()
     }
@@ -709,10 +597,11 @@ pub fn bordered_box(theme: &Theme) -> Style {
 
     Style {
         background: Some(palette.background.weakest.color.into()),
+        text_color: Some(palette.background.weakest.text),
         border: Border {
             width: 1.0,
             radius: 5.0.into(),
-            color: palette.background.strong.color,
+            color: palette.background.weak.color,
         },
         ..Style::default()
     }
@@ -745,6 +634,13 @@ pub fn success(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
     style(palette.success.base)
+}
+
+/// A [`Container`] with a warning background color.
+pub fn warning(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.warning.base)
 }
 
 /// A [`Container`] with a danger background color.

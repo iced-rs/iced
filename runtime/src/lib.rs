@@ -8,24 +8,24 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 pub mod clipboard;
 pub mod font;
+pub mod image;
 pub mod keyboard;
-pub mod overlay;
 pub mod system;
 pub mod task;
 pub mod user_interface;
+pub mod widget;
 pub mod window;
 
 pub use iced_core as core;
-pub use iced_debug as debug;
 pub use iced_futures as futures;
 
 pub use task::Task;
 pub use user_interface::UserInterface;
+pub use window::Window;
 
-use crate::core::widget;
 use crate::futures::futures::channel::oneshot;
 
 use std::borrow::Cow;
@@ -45,7 +45,7 @@ pub enum Action<T> {
     },
 
     /// Run a widget operation.
-    Widget(Box<dyn widget::Operation>),
+    Widget(Box<dyn core::widget::Operation>),
 
     /// Run a clipboard action.
     Clipboard(clipboard::Action),
@@ -56,6 +56,12 @@ pub enum Action<T> {
     /// Run a system action.
     System(system::Action),
 
+    /// An image action.
+    Image(image::Action),
+
+    /// Recreate all user interfaces and redraw all windows.
+    Reload,
+
     /// Exits the runtime.
     ///
     /// This will normally close any application windows and
@@ -64,8 +70,8 @@ pub enum Action<T> {
 }
 
 impl<T> Action<T> {
-    /// Creates a new [`Action::Widget`] with the given [`widget::Operation`].
-    pub fn widget(operation: impl widget::Operation + 'static) -> Self {
+    /// Creates a new [`Action::Widget`] with the given [`widget::Operation`](core::widget::Operation).
+    pub fn widget(operation: impl core::widget::Operation + 'static) -> Self {
         Self::Widget(Box::new(operation))
     }
 
@@ -79,6 +85,8 @@ impl<T> Action<T> {
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
+            Action::Image(action) => Err(Action::Image(action)),
+            Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
         }
     }
@@ -102,6 +110,8 @@ where
             }
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
+            Action::Image(_) => write!(f, "Action::Image"),
+            Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),
         }
     }

@@ -2,17 +2,18 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 pub use iced_renderer as renderer;
+pub use iced_renderer::core;
 pub use iced_renderer::graphics;
-pub use iced_runtime as runtime;
-pub use iced_runtime::core;
+
+pub use core::widget::Id;
 
 mod action;
 mod column;
 mod mouse_area;
 mod pin;
-mod space;
+mod responsive;
 mod stack;
 mod themer;
 
@@ -26,13 +27,15 @@ pub mod keyed;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
-pub mod pop;
 pub mod progress_bar;
 pub mod radio;
 pub mod row;
 pub mod rule;
 pub mod scrollable;
+pub mod sensor;
 pub mod slider;
+pub mod space;
+pub mod table;
 pub mod text;
 pub mod text_editor;
 pub mod text_input;
@@ -73,17 +76,19 @@ pub use pick_list::PickList;
 #[doc(no_inline)]
 pub use pin::Pin;
 #[doc(no_inline)]
-pub use pop::Pop;
-#[doc(no_inline)]
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
 pub use radio::Radio;
+#[doc(no_inline)]
+pub use responsive::Responsive;
 #[doc(no_inline)]
 pub use row::Row;
 #[doc(no_inline)]
 pub use rule::Rule;
 #[doc(no_inline)]
 pub use scrollable::Scrollable;
+#[doc(no_inline)]
+pub use sensor::Sensor;
 #[doc(no_inline)]
 pub use slider::Slider;
 #[doc(no_inline)]

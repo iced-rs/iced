@@ -52,7 +52,6 @@ use crate::core::{
 ///         .into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Pin<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Renderer: core::Renderer,
@@ -139,7 +138,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -151,7 +150,7 @@ where
 
         let node = self
             .content
-            .as_widget()
+            .as_widget_mut()
             .layout(tree, renderer, &layout::Limits::new(Size::ZERO, available))
             .move_to(self.position);
 
@@ -160,13 +159,13 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.as_widget().operate(
+        self.content.as_widget_mut().operate(
             tree,
             layout.children().next().unwrap(),
             renderer,

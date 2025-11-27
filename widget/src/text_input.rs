@@ -61,8 +61,6 @@ use crate::core::{
     Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
     Widget,
 };
-use crate::runtime::Action;
-use crate::runtime::task::{self, Task};
 
 /// A field that can be filled with text.
 ///
@@ -96,7 +94,6 @@ use crate::runtime::task::{self, Task};
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct TextInput<
     'a,
     Message,
@@ -106,7 +103,7 @@ pub struct TextInput<
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    id: Option<Id>,
+    id: Option<widget::Id>,
     placeholder: String,
     value: Value,
     is_secure: bool,
@@ -156,8 +153,8 @@ where
         }
     }
 
-    /// Sets the [`Id`] of the [`TextInput`].
-    pub fn id(mut self, id: impl Into<Id>) -> Self {
+    /// Sets the [`widget::Id`] of the [`TextInput`].
+    pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
         self.id = Some(id.into());
         self
     }
@@ -297,7 +294,7 @@ where
     ///
     /// [`Renderer`]: text::Renderer
     pub fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -431,7 +428,10 @@ where
             + alignment_offset;
 
         InputMethod::Enabled {
-            position: Point::new(x, text_bounds.y + text_bounds.height),
+            cursor: Rectangle::new(
+                Point::new(x, text_bounds.y),
+                Size::new(1.0, text_bounds.height),
+            ),
             purpose: if self.is_secure {
                 input_method::Purpose::Secure
             } else {
@@ -515,8 +515,7 @@ where
                     let is_cursor_visible = !is_disabled
                         && ((focus.now - focus.updated_at).as_millis()
                             / CURSOR_BLINK_INTERVAL_MILLIS)
-                            % 2
-                            == 0;
+                            .is_multiple_of(2);
 
                     let cursor = if is_cursor_visible {
                         Some((
@@ -671,7 +670,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -680,7 +679,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
@@ -688,17 +687,8 @@ where
     ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
-        operation.focusable(
-            self.id.as_ref().map(|id| &id.0),
-            layout.bounds(),
-            state,
-        );
-
-        operation.text_input(
-            self.id.as_ref().map(|id| &id.0),
-            layout.bounds(),
-            state,
-        );
+        operation.text_input(self.id.as_ref(), layout.bounds(), state);
+        operation.focusable(self.id.as_ref(), layout.bounds(), state);
     }
 
     fn update(
@@ -793,11 +783,14 @@ where
                             } else {
                                 state.cursor.move_to(position);
                             }
-                            state.is_dragging = true;
+
+                            state.is_dragging = Some(Drag::Select);
                         }
                         click::Kind::Double => {
                             if self.is_secure {
                                 state.cursor.select_all(&self.value);
+
+                                state.is_dragging = None;
                             } else {
                                 let position = find_cursor_position(
                                     text_layout.bounds(),
@@ -811,13 +804,15 @@ where
                                     self.value.previous_start_of_word(position),
                                     self.value.next_end_of_word(position),
                                 );
-                            }
 
-                            state.is_dragging = false;
+                                state.is_dragging = Some(Drag::SelectWords {
+                                    anchor: position,
+                                });
+                            }
                         }
                         click::Kind::Triple => {
                             state.cursor.select_all(&self.value);
-                            state.is_dragging = false;
+                            state.is_dragging = None;
                         }
                     }
 
@@ -833,13 +828,13 @@ where
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. })
             | Event::Touch(touch::Event::FingerLost { .. }) => {
-                state::<Renderer>(tree).is_dragging = false;
+                state::<Renderer>(tree).is_dragging = None;
             }
             Event::Mouse(mouse::Event::CursorMoved { position })
             | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
                 let state = state::<Renderer>(tree);
 
-                if state.is_dragging {
+                if let Some(is_dragging) = &state.is_dragging {
                     let text_layout = layout.children().next().unwrap();
 
                     let target = {
@@ -870,9 +865,27 @@ where
 
                     let selection_before = state.cursor.selection(&value);
 
-                    state
-                        .cursor
-                        .select_range(state.cursor.start(&value), position);
+                    match is_dragging {
+                        Drag::Select => {
+                            state.cursor.select_range(
+                                state.cursor.start(&value),
+                                position,
+                            );
+                        }
+                        Drag::SelectWords { anchor } => {
+                            if position < *anchor {
+                                state.cursor.select_range(
+                                    self.value.previous_start_of_word(position),
+                                    self.value.next_end_of_word(*anchor),
+                                );
+                            } else {
+                                state.cursor.select_range(
+                                    self.value.previous_start_of_word(*anchor),
+                                    self.value.next_end_of_word(position),
+                                );
+                            }
+                        }
+                    }
 
                     if let Some(focus) = &mut state.is_focused {
                         focus.updated_at = Instant::now();
@@ -1022,6 +1035,11 @@ where
                         }
                     }
 
+                    #[cfg(target_os = "macos")]
+                    let key = crate::text_editor::convert_macos_shortcut(
+                        key, modifiers,
+                    );
+
                     match key.as_ref() {
                         keyboard::Key::Named(key::Named::Enter) => {
                             if let Some(on_submit) = self.on_submit.clone() {
@@ -1034,14 +1052,15 @@ where
                                 return;
                             };
 
-                            if modifiers.jump()
-                                && state.cursor.selection(&self.value).is_none()
-                            {
-                                if self.is_secure {
-                                    let cursor_pos =
-                                        state.cursor.end(&self.value);
-                                    state.cursor.select_range(0, cursor_pos);
-                                } else {
+                            if state.cursor.selection(&self.value).is_none() {
+                                if (self.is_secure && modifiers.jump())
+                                    || modifiers.macos_command()
+                                {
+                                    state.cursor.select_range(
+                                        state.cursor.start(&self.value),
+                                        0,
+                                    );
+                                } else if modifiers.jump() {
                                     state
                                         .cursor
                                         .select_left_by_words(&self.value);
@@ -1064,17 +1083,15 @@ where
                                 return;
                             };
 
-                            if modifiers.jump()
-                                && state.cursor.selection(&self.value).is_none()
-                            {
-                                if self.is_secure {
-                                    let cursor_pos =
-                                        state.cursor.end(&self.value);
+                            if state.cursor.selection(&self.value).is_none() {
+                                if (self.is_secure && modifiers.jump())
+                                    || modifiers.macos_command()
+                                {
                                     state.cursor.select_range(
-                                        cursor_pos,
+                                        state.cursor.start(&self.value),
                                         self.value.len(),
                                     );
-                                } else {
+                                } else if modifiers.jump() {
                                     state
                                         .cursor
                                         .select_right_by_words(&self.value);
@@ -1132,54 +1149,21 @@ where
 
                             shell.capture_event();
                         }
-                        keyboard::Key::Named(key::Named::ArrowLeft)
-                            if modifiers.macos_command() =>
-                        {
-                            let cursor_before = state.cursor;
-
-                            if modifiers.shift() {
-                                state.cursor.select_range(
-                                    state.cursor.start(&self.value),
-                                    0,
-                                );
-                            } else {
-                                state.cursor.move_to(0);
-                            }
-
-                            if cursor_before != state.cursor {
-                                focus.updated_at = Instant::now();
-
-                                shell.request_redraw();
-                            }
-
-                            shell.capture_event();
-                        }
-                        keyboard::Key::Named(key::Named::ArrowRight)
-                            if modifiers.macos_command() =>
-                        {
-                            let cursor_before = state.cursor;
-
-                            if modifiers.shift() {
-                                state.cursor.select_range(
-                                    state.cursor.start(&self.value),
-                                    self.value.len(),
-                                );
-                            } else {
-                                state.cursor.move_to(self.value.len());
-                            }
-
-                            if cursor_before != state.cursor {
-                                focus.updated_at = Instant::now();
-
-                                shell.request_redraw();
-                            }
-
-                            shell.capture_event();
-                        }
                         keyboard::Key::Named(key::Named::ArrowLeft) => {
                             let cursor_before = state.cursor;
 
-                            if modifiers.jump() && !self.is_secure {
+                            if (self.is_secure && modifiers.jump())
+                                || modifiers.macos_command()
+                            {
+                                if modifiers.shift() {
+                                    state.cursor.select_range(
+                                        state.cursor.start(&self.value),
+                                        0,
+                                    );
+                                } else {
+                                    state.cursor.move_to(0);
+                                }
+                            } else if modifiers.jump() {
                                 if modifiers.shift() {
                                     state
                                         .cursor
@@ -1206,7 +1190,18 @@ where
                         keyboard::Key::Named(key::Named::ArrowRight) => {
                             let cursor_before = state.cursor;
 
-                            if modifiers.jump() && !self.is_secure {
+                            if (self.is_secure && modifiers.jump())
+                                || modifiers.macos_command()
+                            {
+                                if modifiers.shift() {
+                                    state.cursor.select_range(
+                                        state.cursor.start(&self.value),
+                                        self.value.len(),
+                                    );
+                                } else {
+                                    state.cursor.move_to(self.value.len());
+                                }
+                            } else if modifiers.jump() {
                                 if modifiers.shift() {
                                     state
                                         .cursor
@@ -1232,7 +1227,7 @@ where
                         }
                         keyboard::Key::Named(key::Named::Escape) => {
                             state.is_focused = None;
-                            state.is_dragging = false;
+                            state.is_dragging = None;
                             state.is_pasting = None;
 
                             state.keyboard_modifiers =
@@ -1247,12 +1242,12 @@ where
             Event::Keyboard(keyboard::Event::KeyReleased { key, .. }) => {
                 let state = state::<Renderer>(tree);
 
-                if state.is_focused.is_some() {
-                    if let keyboard::Key::Character("v") = key.as_ref() {
-                        state.is_pasting = None;
+                if state.is_focused.is_some()
+                    && let keyboard::Key::Character("v") = key.as_ref()
+                {
+                    state.is_pasting = None;
 
-                        shell.capture_event();
-                    }
+                    shell.capture_event();
                 }
 
                 state.is_pasting = None;
@@ -1328,32 +1323,31 @@ where
             Event::Window(window::Event::RedrawRequested(now)) => {
                 let state = state::<Renderer>(tree);
 
-                if let Some(focus) = &mut state.is_focused {
-                    if focus.is_window_focused {
-                        if matches!(
-                            state.cursor.state(&self.value),
-                            cursor::State::Index(_)
-                        ) {
-                            focus.now = *now;
+                if let Some(focus) = &mut state.is_focused
+                    && focus.is_window_focused
+                {
+                    if matches!(
+                        state.cursor.state(&self.value),
+                        cursor::State::Index(_)
+                    ) {
+                        focus.now = *now;
 
-                            let millis_until_redraw =
-                                CURSOR_BLINK_INTERVAL_MILLIS
-                                    - (*now - focus.updated_at).as_millis()
-                                        % CURSOR_BLINK_INTERVAL_MILLIS;
+                        let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
+                            - (*now - focus.updated_at).as_millis()
+                                % CURSOR_BLINK_INTERVAL_MILLIS;
 
-                            shell.request_redraw_at(
-                                *now + Duration::from_millis(
-                                    millis_until_redraw as u64,
-                                ),
-                            );
-                        }
-
-                        shell.request_input_method(&self.input_method(
-                            state,
-                            layout,
-                            &self.value,
-                        ));
+                        shell.request_redraw_at(
+                            *now + Duration::from_millis(
+                                millis_until_redraw as u64,
+                            ),
+                        );
                     }
+
+                    shell.request_input_method(&self.input_method(
+                        state,
+                        layout,
+                        &self.value,
+                    ));
                 }
             }
             _ => {}
@@ -1399,7 +1393,7 @@ where
 
     fn mouse_interaction(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
@@ -1455,84 +1449,6 @@ pub enum Side {
     Right,
 }
 
-/// The identifier of a [`TextInput`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
-    }
-}
-
-impl From<&'static str> for Id {
-    fn from(id: &'static str) -> Self {
-        Self::new(id)
-    }
-}
-
-impl From<String> for Id {
-    fn from(id: String) -> Self {
-        Self::new(id)
-    }
-}
-
-/// Produces a [`Task`] that returns whether the [`TextInput`] with the given [`Id`] is focused or not.
-pub fn is_focused(id: impl Into<Id>) -> Task<bool> {
-    task::widget(operation::focusable::is_focused(id.into().into()))
-}
-
-/// Produces a [`Task`] that focuses the [`TextInput`] with the given [`Id`].
-pub fn focus<T>(id: impl Into<Id>) -> Task<T> {
-    task::effect(Action::widget(operation::focusable::focus(id.into().0)))
-}
-
-/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
-/// end.
-pub fn move_cursor_to_end<T>(id: impl Into<Id>) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::move_cursor_to_end(
-        id.into().0,
-    )))
-}
-
-/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
-/// front.
-pub fn move_cursor_to_front<T>(id: impl Into<Id>) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::move_cursor_to_front(
-        id.into().0,
-    )))
-}
-
-/// Produces a [`Task`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
-/// provided position.
-pub fn move_cursor_to<T>(id: impl Into<Id>, position: usize) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::move_cursor_to(
-        id.into().0,
-        position,
-    )))
-}
-
-/// Produces a [`Task`] that selects all the content of the [`TextInput`] with the given [`Id`].
-pub fn select_all<T>(id: impl Into<Id>) -> Task<T> {
-    task::effect(Action::widget(operation::text_input::select_all(
-        id.into().0,
-    )))
-}
-
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
 pub struct State<P: text::Paragraph> {
@@ -1540,7 +1456,7 @@ pub struct State<P: text::Paragraph> {
     placeholder: paragraph::Plain<P>,
     icon: paragraph::Plain<P>,
     is_focused: Option<Focus>,
-    is_dragging: bool,
+    is_dragging: Option<Drag>,
     is_pasting: Option<Value>,
     preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
@@ -1560,6 +1476,12 @@ struct Focus {
     updated_at: Instant,
     now: Instant,
     is_window_focused: bool,
+}
+
+#[derive(Debug, Clone)]
+enum Drag {
+    Select,
+    SelectWords { anchor: usize },
 }
 
 impl<P: text::Paragraph> State<P> {
@@ -1615,6 +1537,11 @@ impl<P: text::Paragraph> State<P> {
     pub fn select_all(&mut self) {
         self.cursor.select_range(0, usize::MAX);
     }
+
+    /// Selects the given range of the content of the [`TextInput`].
+    pub fn select_range(&mut self, start: usize, end: usize) {
+        self.cursor.select_range(start, end);
+    }
 }
 
 impl<P: text::Paragraph> operation::Focusable for State<P> {
@@ -1632,6 +1559,14 @@ impl<P: text::Paragraph> operation::Focusable for State<P> {
 }
 
 impl<P: text::Paragraph> operation::TextInput for State<P> {
+    fn text(&self) -> &str {
+        if self.value.content().is_empty() {
+            self.placeholder.content()
+        } else {
+            self.value.content()
+        }
+    }
+
     fn move_cursor_to_front(&mut self) {
         State::move_cursor_to_front(self);
     }
@@ -1646,6 +1581,10 @@ impl<P: text::Paragraph> operation::TextInput for State<P> {
 
     fn select_all(&mut self) {
         State::select_all(self);
+    }
+
+    fn select_range(&mut self, start: usize, end: usize) {
+        State::select_range(self, start, end);
     }
 }
 
@@ -1817,10 +1756,10 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
-            color: palette.background.strongest.color,
+            color: palette.background.strong.color,
         },
         icon: palette.background.weak.text,
-        placeholder: palette.background.strongest.color,
+        placeholder: palette.secondary.base.color,
         value: palette.background.base.text,
         selection: palette.primary.weak.color,
     };
@@ -1844,6 +1783,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Disabled => Style {
             background: Background::Color(palette.background.weak.color),
             value: active.placeholder,
+            placeholder: palette.background.strongest.color,
             ..active
         },
     }

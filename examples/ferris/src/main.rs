@@ -11,7 +11,7 @@ use iced::{
 pub fn main() -> iced::Result {
     iced::application(Image::default, Image::update, Image::view)
         .subscription(Image::subscription)
-        .theme(|_| Theme::TokyoNight)
+        .theme(Theme::TokyoNight)
         .run()
 }
 
@@ -91,13 +91,13 @@ impl Image {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let i_am_ferris = column![
             "Hello!",
             Element::from(
-                image(format!(
-                    "{}/../tour/images/ferris.png",
-                    env!("CARGO_MANIFEST_DIR")
+                image(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/../tour/images/ferris.png",
                 ))
                 .width(self.width)
                 .content_fit(self.content_fit)
@@ -153,7 +153,8 @@ impl Image {
                         self.rotation.degrees(),
                         Message::RotationChanged
                     ),
-                    checkbox("Spin!", self.spin)
+                    checkbox(self.spin)
+                        .label("Spin!")
                         .text_size(12)
                         .on_toggle(Message::SpinToggled)
                         .size(12)
