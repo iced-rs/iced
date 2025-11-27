@@ -38,9 +38,6 @@ use crate::core::{
     Shell, Size, Vector,
 };
 
-// Default tooltip delay, 2 seconds. Chosen because it's the default on macOS.
-const DEFAULT_TOOLTIP_DELAY: Duration = Duration::from_millis(2000);
-
 /// An element to display a widget over another.
 ///
 /// # Example
@@ -91,6 +88,9 @@ where
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: f32 = 5.0;
 
+    /// The default delay before a [`Tooltip`] is shown.
+    const DEFAULT_DELAY: Duration = Duration::from_secs(2);
+
     /// Creates a new [`Tooltip`].
     ///
     /// [`Tooltip`]: struct.Tooltip.html
@@ -106,7 +106,7 @@ where
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
-            delay: DEFAULT_TOOLTIP_DELAY,
+            delay: Self::DEFAULT_DELAY,
             class: Theme::default(),
         }
     }
