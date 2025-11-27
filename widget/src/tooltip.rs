@@ -228,47 +228,41 @@ where
 
             match (*state, cursor_position) {
                 (State::Idle, Some(cursor_position)) => {
-                    *state = State::Hovered {
-                        cursor_position,
-                        at: now,
-                    };
+                    if self.delay == Duration::ZERO {
+                        *state = State::Open { cursor_position };
+                        shell.invalidate_layout();
+                    } else {
+                        *state = State::Hovered { at: now };
+                    }
 
-                    shell.invalidate_layout();
                     shell.request_redraw_at(now + self.delay);
                 }
                 (State::Hovered { .. }, None) => {
                     *state = State::Idle;
-
-                    shell.invalidate_layout();
                 }
-                (State::Hovered { at, .. }, Some(cursor_position))
-                    if at.elapsed() < self.delay =>
-                {
-                    *state = State::Hovered {
-                        at,
-                        cursor_position,
-                    };
-
+                (State::Hovered { at, .. }, _) if at.elapsed() < self.delay => {
                     shell.request_redraw_at(now + self.delay - at.elapsed());
                 }
+                (State::Hovered { .. }, Some(cursor_position)) => {
+                    *state = State::Open { cursor_position };
+                    shell.invalidate_layout();
+                }
                 (
-                    State::Hovered {
-                        at,
+                    State::Open {
                         cursor_position: last_position,
                     },
                     Some(cursor_position),
                 ) if self.position == Position::FollowCursor
                     && last_position != cursor_position =>
                 {
-                    *state = State::Hovered {
-                        at,
-                        cursor_position,
-                    };
-
+                    *state = State::Open { cursor_position };
                     shell.request_redraw();
                 }
-                (State::Hovered { .. }, Some(_)) => (),
-                (State::Idle, None) => (),
+                (State::Open { .. }, None) => {
+                    *state = State::Idle;
+                    shell.invalidate_layout();
+                }
+                (State::Open { .. }, Some(_)) | (State::Idle, None) => (),
             }
         }
 
@@ -342,25 +336,21 @@ where
             translation,
         );
 
-        let tooltip = match *state {
-            State::Hovered {
+        let tooltip = if let State::Open { cursor_position } = *state {
+            Some(overlay::Element::new(Box::new(Overlay {
+                position: layout.position() + translation,
+                tooltip: &mut self.tooltip,
+                tree: children.next().unwrap(),
                 cursor_position,
-                at,
-            } if at.elapsed() > self.delay => {
-                Some(overlay::Element::new(Box::new(Overlay {
-                    position: layout.position() + translation,
-                    tooltip: &mut self.tooltip,
-                    tree: children.next().unwrap(),
-                    cursor_position,
-                    content_bounds: layout.bounds(),
-                    snap_within_viewport: self.snap_within_viewport,
-                    positioning: self.position,
-                    gap: self.gap,
-                    padding: self.padding,
-                    class: &self.class,
-                })))
-            }
-            _ => None,
+                content_bounds: layout.bounds(),
+                snap_within_viewport: self.snap_within_viewport,
+                positioning: self.position,
+                gap: self.gap,
+                padding: self.padding,
+                class: &self.class,
+            })))
+        } else {
+            None
         };
 
         if content.is_some() || tooltip.is_some() {
@@ -411,8 +401,10 @@ enum State {
     #[default]
     Idle,
     Hovered {
-        cursor_position: Point,
         at: Instant,
+    },
+    Open {
+        cursor_position: Point,
     },
 }
 
