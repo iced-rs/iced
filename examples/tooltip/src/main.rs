@@ -1,7 +1,8 @@
 use iced::Element;
+use iced::alignment;
+use iced::time::seconds;
 use iced::widget::tooltip::Position;
 use iced::widget::{button, center, checkbox, column, container, tooltip};
-use iced::{alignment, time::Duration};
 
 pub fn main() -> iced::Result {
     iced::run(Tooltip::update, Tooltip::view)
@@ -40,9 +41,6 @@ impl Tooltip {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let delay =
-            Duration::from_millis(if self.is_immediate { 0 } else { 2000 });
-
         let tooltip = tooltip(
             button("Press to change position")
                 .on_press(Message::ChangePosition),
@@ -50,7 +48,7 @@ impl Tooltip {
             self.position,
         )
         .gap(10)
-        .delay(delay)
+        .delay(seconds(if self.is_immediate { 0 } else { 2 }))
         .style(container::rounded_box);
 
         let checkbox = checkbox(self.is_immediate)
