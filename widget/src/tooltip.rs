@@ -1,5 +1,8 @@
 //! Tooltips display a hint of information over some element when hovered.
 //!
+//! By default, the tooltip is only displayed when hovered for 2 seconds.
+//! This delay can be adjusted with [`Tooltip::delay`].
+//!
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } }
@@ -27,6 +30,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::time::{Duration, Instant};
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
@@ -72,6 +76,7 @@ pub struct Tooltip<
     gap: f32,
     padding: f32,
     snap_within_viewport: bool,
+    delay: Duration,
     class: Theme::Class<'a>,
 }
 
@@ -82,6 +87,9 @@ where
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: f32 = 5.0;
+
+    /// The default delay before a [`Tooltip`] is shown.
+    const DEFAULT_DELAY: Duration = Duration::from_secs(2);
 
     /// Creates a new [`Tooltip`].
     ///
@@ -98,6 +106,7 @@ where
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
+            delay: Self::DEFAULT_DELAY,
             class: Theme::default(),
         }
     }
@@ -111,6 +120,14 @@ where
     /// Sets the padding of the [`Tooltip`].
     pub fn padding(mut self, padding: impl Into<Pixels>) -> Self {
         self.padding = padding.into().0;
+        self
+    }
+
+    /// Sets the delay before the [`Tooltip`] is shown.
+    ///
+    /// Set to [`Duration::ZERO`] to be shown immediately.
+    pub fn delay(mut self, delay: Duration) -> Self {
+        self.delay = delay;
         self
     }
 
@@ -206,23 +223,46 @@ where
         | Event::Window(window::Event::RedrawRequested(_)) = event
         {
             let state = tree.state.downcast_mut::<State>();
-            let previous_state = *state;
-            let was_idle = *state == State::Idle;
+            let now = Instant::now();
+            let cursor_position = cursor.position_over(layout.bounds());
 
-            *state = cursor
-                .position_over(layout.bounds())
-                .map(|cursor_position| State::Hovered { cursor_position })
-                .unwrap_or_default();
+            match (*state, cursor_position) {
+                (State::Idle, Some(cursor_position)) => {
+                    if self.delay == Duration::ZERO {
+                        *state = State::Open { cursor_position };
+                        shell.invalidate_layout();
+                    } else {
+                        *state = State::Hovered { at: now };
+                    }
 
-            let is_idle = *state == State::Idle;
-
-            if was_idle != is_idle {
-                shell.invalidate_layout();
-                shell.request_redraw();
-            } else if self.position == Position::FollowCursor
-                && *state != previous_state
-            {
-                shell.request_redraw();
+                    shell.request_redraw_at(now + self.delay);
+                }
+                (State::Hovered { .. }, None) => {
+                    *state = State::Idle;
+                }
+                (State::Hovered { at, .. }, _) if at.elapsed() < self.delay => {
+                    shell.request_redraw_at(now + self.delay - at.elapsed());
+                }
+                (State::Hovered { .. }, Some(cursor_position)) => {
+                    *state = State::Open { cursor_position };
+                    shell.invalidate_layout();
+                }
+                (
+                    State::Open {
+                        cursor_position: last_position,
+                    },
+                    Some(cursor_position),
+                ) if self.position == Position::FollowCursor
+                    && last_position != cursor_position =>
+                {
+                    *state = State::Open { cursor_position };
+                    shell.request_redraw();
+                }
+                (State::Open { .. }, None) => {
+                    *state = State::Idle;
+                    shell.invalidate_layout();
+                }
+                (State::Open { .. }, Some(_)) | (State::Idle, None) => (),
             }
         }
 
@@ -296,7 +336,7 @@ where
             translation,
         );
 
-        let tooltip = if let State::Hovered { cursor_position } = *state {
+        let tooltip = if let State::Open { cursor_position } = *state {
             Some(overlay::Element::new(Box::new(Overlay {
                 position: layout.position() + translation,
                 tooltip: &mut self.tooltip,
@@ -361,6 +401,9 @@ enum State {
     #[default]
     Idle,
     Hovered {
+        at: Instant,
+    },
+    Open {
         cursor_position: Point,
     },
 }
