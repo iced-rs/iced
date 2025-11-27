@@ -1,7 +1,7 @@
 //! Tooltips display a hint of information over some element when hovered.
 //!
-//! By default, the tooltip is only displayed after a short duration. (This
-//! delay can be customized.)
+//! By default, the tooltip is only displayed when hovered for 2 seconds.
+//! This delay can be adjusted with [`Tooltip::delay`].
 //!
 //! # Example
 //! ```no_run
@@ -123,8 +123,9 @@ where
         self
     }
 
-    /// Sets the delay before the [`Tooltip`] is shown. Set to 0 milliseconds
-    /// to be shown immediately.
+    /// Sets the delay before the [`Tooltip`] is shown.
+    ///
+    /// Set to [`Duration::ZERO`] to be shown immediately.
     pub fn delay(mut self, delay: Duration) -> Self {
         self.delay = delay;
         self
