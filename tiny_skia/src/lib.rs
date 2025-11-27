@@ -76,15 +76,15 @@ impl Renderer {
 
         self.layers.flush();
 
-        for &region in damage {
-            let region = region * scale_factor;
+        for &damage_bounds in damage {
+            let damage_bounds = damage_bounds * scale_factor;
 
             let path = tiny_skia::PathBuilder::from_rect(
                 tiny_skia::Rect::from_xywh(
-                    region.x,
-                    region.y,
-                    region.width,
-                    region.height,
+                    damage_bounds.x,
+                    damage_bounds.y,
+                    damage_bounds.width,
+                    damage_bounds.height,
                 )
                 .expect("Create damage rectangle"),
             );
@@ -105,13 +105,13 @@ impl Renderer {
             );
 
             for layer in self.layers.iter() {
-                let Some(clip_bounds) =
-                    region.intersection(&(layer.bounds * scale_factor))
+                let Some(layer_bounds) =
+                    damage_bounds.intersection(&(layer.bounds * scale_factor))
                 else {
                     continue;
                 };
 
-                engine::adjust_clip_mask(clip_mask, clip_bounds);
+                engine::adjust_clip_mask(clip_mask, layer_bounds);
 
                 if !layer.quads.is_empty() {
                     let render_span = debug::render(debug::Primitive::Quad);
@@ -122,7 +122,7 @@ impl Renderer {
                             Transformation::scale(scale_factor),
                             pixels,
                             clip_mask,
-                            clip_bounds,
+                            layer_bounds,
                         );
                     }
                     render_span.finish();
@@ -132,14 +132,15 @@ impl Renderer {
                     let render_span = debug::render(debug::Primitive::Triangle);
 
                     for group in &layer.primitives {
-                        let Some(new_clip_bounds) = (group.clip_bounds()
+                        let Some(group_bounds) = (group.clip_bounds()
+                            * group.transformation()
                             * scale_factor)
-                            .intersection(&clip_bounds)
+                            .intersection(&layer_bounds)
                         else {
                             continue;
                         };
 
-                        engine::adjust_clip_mask(clip_mask, new_clip_bounds);
+                        engine::adjust_clip_mask(clip_mask, group_bounds);
 
                         for primitive in group.as_slice() {
                             self.engine.draw_primitive(
@@ -148,11 +149,11 @@ impl Renderer {
                                     * Transformation::scale(scale_factor),
                                 pixels,
                                 clip_mask,
-                                clip_bounds,
+                                group_bounds,
                             );
                         }
 
-                        engine::adjust_clip_mask(clip_mask, clip_bounds);
+                        engine::adjust_clip_mask(clip_mask, layer_bounds);
                     }
 
                     render_span.finish();
@@ -167,7 +168,7 @@ impl Renderer {
                             Transformation::scale(scale_factor),
                             pixels,
                             clip_mask,
-                            clip_bounds,
+                            layer_bounds,
                         );
                     }
 
@@ -185,7 +186,7 @@ impl Renderer {
                                     * Transformation::scale(scale_factor),
                                 pixels,
                                 clip_mask,
-                                clip_bounds,
+                                layer_bounds,
                             );
                         }
                     }
