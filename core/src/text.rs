@@ -312,6 +312,26 @@ pub trait Renderer: crate::Renderer {
     /// [`ICON_FONT`]: Self::ICON_FONT
     const ARROW_DOWN_ICON: char;
 
+    /// The `char` representing a ^ icon in the built-in [`ICON_FONT`].
+    ///
+    /// [`ICON_FONT`]: Self::ICON_FONT
+    const SCROLL_UP_ICON: char;
+
+    /// The `char` representing a v icon in the built-in [`ICON_FONT`].
+    ///
+    /// [`ICON_FONT`]: Self::ICON_FONT
+    const SCROLL_DOWN_ICON: char;
+
+    /// The `char` representing a < icon in the built-in [`ICON_FONT`].
+    ///
+    /// [`ICON_FONT`]: Self::ICON_FONT
+    const SCROLL_LEFT_ICON: char;
+
+    /// The `char` representing a > icon in the built-in [`ICON_FONT`].
+    ///
+    /// [`ICON_FONT`]: Self::ICON_FONT
+    const SCROLL_RIGHT_ICON: char;
+
     /// The 'char' representing the iced logo in the built-in ['ICON_FONT'].
     ///
     /// ['ICON_FONT']: Self::ICON_FONT

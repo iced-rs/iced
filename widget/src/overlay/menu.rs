@@ -164,7 +164,7 @@ impl Default for State {
 struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Theme: Catalog,
-    Renderer: crate::core::Renderer,
+    Renderer: text::Renderer,
 {
     position: Point,
     viewport: Rectangle,
