@@ -210,7 +210,8 @@ impl ScrollableDemo {
                 .width(Fill)
                 .height(Fill)
                 .id(SCROLLABLE)
-                .on_scroll(Message::Scrolled),
+                .on_scroll(Message::Scrolled)
+                .auto_scroll(true),
                 Direction::Horizontal => scrollable(
                     row![
                         scroll_to_end_button(),
@@ -236,7 +237,8 @@ impl ScrollableDemo {
                 .width(Fill)
                 .height(Fill)
                 .id(SCROLLABLE)
-                .on_scroll(Message::Scrolled),
+                .on_scroll(Message::Scrolled)
+                .auto_scroll(true),
                 Direction::Multi => scrollable(
                     //horizontal content
                     row![
@@ -283,7 +285,8 @@ impl ScrollableDemo {
                 .width(Fill)
                 .height(Fill)
                 .id(SCROLLABLE)
-                .on_scroll(Message::Scrolled),
+                .on_scroll(Message::Scrolled)
+                .auto_scroll(true),
             });
 
         let progress_bars: Element<Message> = match self.scrollable_direction {

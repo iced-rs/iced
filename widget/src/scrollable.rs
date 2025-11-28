@@ -75,6 +75,7 @@ pub struct Scrollable<
     width: Length,
     height: Length,
     direction: Direction,
+    auto_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
     class: Theme::Class<'a>,
@@ -103,6 +104,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             direction: direction.into(),
+            auto_scroll: false,
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
@@ -222,6 +224,15 @@ where
             Direction::Both { .. } => {}
         }
 
+        self
+    }
+
+    /// Sets whether the user should be allowed to auto-scroll the [`Scrollable`]
+    /// with the middle mouse button.
+    ///
+    /// By default, it is disabled.
+    pub fn auto_scroll(mut self, auto_scroll: bool) -> Self {
+        self.auto_scroll = auto_scroll;
         self
     }
 
@@ -812,8 +823,10 @@ where
             if matches!(state.interaction, Interaction::AutoScrolling { .. })
                 && matches!(
                     event,
-                    Event::Mouse(mouse::Event::ButtonPressed(_))
-                        | Event::Touch(_)
+                    Event::Mouse(
+                        mouse::Event::ButtonPressed(_)
+                            | mouse::Event::WheelScrolled { .. }
+                    ) | Event::Touch(_)
                         | Event::Keyboard(_)
                 )
             {
@@ -881,7 +894,9 @@ where
                 }
                 Event::Mouse(mouse::Event::ButtonPressed(
                     mouse::Button::Middle,
-                )) if matches!(state.interaction, Interaction::None) => {
+                )) if self.auto_scroll
+                    && matches!(state.interaction, Interaction::None) =>
+                {
                     let Some(origin) = cursor_over_scrollable else {
                         return;
                     };

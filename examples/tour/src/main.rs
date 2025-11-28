@@ -174,7 +174,8 @@ impl Tour {
         } else {
             content
         }))
-        .spacing(10);
+        .spacing(10)
+        .auto_scroll(true);
 
         center_y(scrollable).padding(10).into()
     }
@@ -626,7 +627,7 @@ pub enum Layout {
 impl Default for Tour {
     fn default() -> Self {
         Self {
-            screen: Screen::Welcome,
+            screen: Screen::Scrollable,
             slider: 50,
             layout: Layout::Row,
             spacing: 20,

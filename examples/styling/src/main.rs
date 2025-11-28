@@ -131,7 +131,8 @@ impl Styling {
             "You did it!"
         ])
         .width(Fill)
-        .height(Fill);
+        .height(Fill)
+        .auto_scroll(true);
 
         let check = checkbox(self.checkbox_value)
             .label("Check me!")
