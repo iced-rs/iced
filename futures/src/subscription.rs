@@ -7,7 +7,7 @@ use crate::core::event;
 use crate::core::theme;
 use crate::core::window;
 use crate::futures::Stream;
-use crate::{BoxStream, MaybeSend, MaybeSync};
+use crate::{BoxStream, MaybeSend};
 
 use std::any::TypeId;
 use std::hash::Hash;
@@ -368,7 +368,7 @@ impl<T> Subscription<T> {
     pub fn filter_map<F, A>(mut self, f: F) -> Subscription<A>
     where
         T: MaybeSend + 'static,
-        F: Fn(T) -> Option<A> + MaybeSend + MaybeSync + Clone + 'static,
+        F: Fn(T) -> Option<A> + MaybeSend + Clone + 'static,
         A: MaybeSend + 'static,
     {
         debug_assert!(
