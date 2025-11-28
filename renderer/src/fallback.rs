@@ -98,6 +98,10 @@ where
     const ICON_FONT: Self::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
+    const SCROLL_UP_ICON: char = A::SCROLL_UP_ICON;
+    const SCROLL_DOWN_ICON: char = A::SCROLL_DOWN_ICON;
+    const SCROLL_LEFT_ICON: char = A::SCROLL_LEFT_ICON;
+    const SCROLL_RIGHT_ICON: char = A::SCROLL_RIGHT_ICON;
     const ICED_LOGO: char = A::ICED_LOGO;
 
     fn default_font(&self) -> Self::Font {

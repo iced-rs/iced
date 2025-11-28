@@ -275,7 +275,9 @@ impl Gallery {
             .height(grid::aspect_ratio(Preview::WIDTH, Preview::HEIGHT))
             .spacing(10);
 
-        let content = container(scrollable(gallery).spacing(10)).padding(10);
+        let content =
+            container(scrollable(gallery).spacing(10).auto_scroll(true))
+                .padding(10);
         let viewer = self.viewer.view(self.now);
 
         stack![content, viewer].into()

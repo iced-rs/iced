@@ -1048,7 +1048,7 @@ pub fn scrollable<'a, Message, Theme, Renderer>(
 ) -> Scrollable<'a, Message, Theme, Renderer>
 where
     Theme: scrollable::Catalog + 'a,
-    Renderer: core::Renderer,
+    Renderer: core::text::Renderer,
 {
     Scrollable::new(content)
 }
