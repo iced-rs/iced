@@ -579,7 +579,7 @@ where
         _viewport: &Rectangle,
     ) {
         const AUTOSCROLL_DEADZONE: f32 = 20.0;
-        const AUTOSCROLL_SPEED: f32 = 10.0;
+        const AUTOSCROLL_SMOOTHNESS: f32 = 1.5;
 
         let state = tree.state.downcast_mut::<State>();
         let bounds = layout.bounds();
@@ -764,6 +764,21 @@ where
                 }
             }
 
+            if matches!(state.interaction, Interaction::AutoScrolling { .. })
+                && matches!(
+                    event,
+                    Event::Mouse(
+                        mouse::Event::ButtonPressed(_)
+                            | mouse::Event::WheelScrolled { .. }
+                    ) | Event::Touch(_)
+                        | Event::Keyboard(_)
+                )
+            {
+                state.interaction = Interaction::None;
+                shell.capture_event();
+                return;
+            }
+
             if state.last_scrolled.is_none()
                 || !matches!(
                     event,
@@ -816,20 +831,6 @@ where
                             | touch::Event::FingerLost { .. }
                     )
             ) {
-                state.interaction = Interaction::None;
-                return;
-            }
-
-            if matches!(state.interaction, Interaction::AutoScrolling { .. })
-                && matches!(
-                    event,
-                    Event::Mouse(
-                        mouse::Event::ButtonPressed(_)
-                            | mouse::Event::WheelScrolled { .. }
-                    ) | Event::Touch(_)
-                        | Event::Keyboard(_)
-                )
-            {
                 state.interaction = Interaction::None;
                 return;
             }
@@ -1025,13 +1026,22 @@ where
                                     Duration::ZERO
                                 };
 
-                            let scroll_factor =
-                                time_delta.as_secs_f32() * AUTOSCROLL_SPEED;
+                            let scroll_factor = time_delta.as_secs_f32();
 
                             state.scroll(
                                 self.direction.align(Vector::new(
-                                    delta.x * scroll_factor,
-                                    delta.y * scroll_factor,
+                                    delta.x.signum()
+                                        * delta
+                                            .x
+                                            .abs()
+                                            .powf(AUTOSCROLL_SMOOTHNESS)
+                                        * scroll_factor,
+                                    delta.y.signum()
+                                        * delta
+                                            .y
+                                            .abs()
+                                            .powf(AUTOSCROLL_SMOOTHNESS)
+                                        * scroll_factor,
                                 )),
                                 bounds,
                                 content_bounds,
