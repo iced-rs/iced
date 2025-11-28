@@ -4,7 +4,9 @@ use crate::futures::futures::{
     select,
     task::{Context, Poll},
 };
+use crate::graphics::shell;
 use crate::runtime::Action;
+use crate::runtime::window;
 use std::pin::Pin;
 
 /// An event loop proxy with backpressure that implements `Sink`.
@@ -77,10 +79,7 @@ impl<T: 'static> Proxy<T> {
     ///
     /// Note: This skips the backpressure mechanism with an unbounded
     /// channel. Use sparingly!
-    pub fn send(&mut self, value: T)
-    where
-        T: std::fmt::Debug,
-    {
+    pub fn send(&self, value: T) {
         self.send_action(Action::Output(value));
     }
 
@@ -88,13 +87,8 @@ impl<T: 'static> Proxy<T> {
     ///
     /// Note: This skips the backpressure mechanism with an unbounded
     /// channel. Use sparingly!
-    pub fn send_action(&mut self, action: Action<T>)
-    where
-        T: std::fmt::Debug,
-    {
-        self.raw
-            .send_event(action)
-            .expect("Send message to event loop");
+    pub fn send_action(&self, action: Action<T>) {
+        let _ = self.raw.send_event(action);
     }
 
     /// Frees an amount of slots for additional messages to be queued in
@@ -140,5 +134,18 @@ impl<T: 'static> Sink<Action<T>> for Proxy<T> {
     ) -> Poll<Result<(), Self::Error>> {
         self.sender.disconnect();
         Poll::Ready(Ok(()))
+    }
+}
+
+impl<T> shell::Notifier for Proxy<T>
+where
+    T: Send,
+{
+    fn request_redraw(&self) {
+        self.send_action(Action::Window(window::Action::RedrawAll));
+    }
+
+    fn invalidate_layout(&self) {
+        self.send_action(Action::Window(window::Action::RelayoutAll));
     }
 }

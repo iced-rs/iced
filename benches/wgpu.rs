@@ -8,46 +8,17 @@ use iced::{
     Color, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme,
 };
 use iced_wgpu::Renderer;
+use iced_wgpu::wgpu;
 
 criterion_main!(benches);
 criterion_group!(benches, wgpu_benchmark);
 
 #[allow(unused_results)]
 pub fn wgpu_benchmark(c: &mut Criterion) {
-    c.bench_function("wgpu — canvas (light)", |b| {
-        benchmark(b, |_| scene(10));
-    });
-    c.bench_function("wgpu — canvas (heavy)", |b| {
-        benchmark(b, |_| scene(1_000));
-    });
-
-    c.bench_function("wgpu - layered text (light)", |b| {
-        benchmark(b, |_| layered_text(10));
-    });
-    c.bench_function("wgpu - layered text (heavy)", |b| {
-        benchmark(b, |_| layered_text(1_000));
-    });
-
-    c.bench_function("wgpu - dynamic text (light)", |b| {
-        benchmark(b, |i| dynamic_text(1_000, i));
-    });
-    c.bench_function("wgpu - dynamic text (heavy)", |b| {
-        benchmark(b, |i| dynamic_text(100_000, i));
-    });
-}
-
-fn benchmark<'a>(
-    bencher: &mut Bencher<'_>,
-    view: impl Fn(usize) -> Element<'a, (), Theme, Renderer>,
-) {
     use iced_futures::futures::executor;
-    use iced_wgpu::graphics;
-    use iced_wgpu::graphics::Antialiasing;
     use iced_wgpu::wgpu;
-    use iced_winit::core;
-    use iced_winit::runtime;
 
-    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
         backends: wgpu::Backends::all(),
         ..Default::default()
     });
@@ -61,29 +32,73 @@ fn benchmark<'a>(
     ))
     .expect("request adapter");
 
-    let (device, queue) = executor::block_on(adapter.request_device(
-        &wgpu::DeviceDescriptor {
+    let (device, queue) =
+        executor::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: None,
             required_features: wgpu::Features::empty(),
             required_limits: wgpu::Limits::default(),
             memory_hints: wgpu::MemoryHints::MemoryUsage,
-        },
-        None,
-    ))
-    .expect("request device");
+            trace: wgpu::Trace::Off,
+            experimental_features: wgpu::ExperimentalFeatures::disabled(),
+        }))
+        .expect("request device");
+
+    c.bench_function("wgpu — canvas (light)", |b| {
+        benchmark(b, &adapter, &device, &queue, |_| scene(10));
+    });
+    c.bench_function("wgpu — canvas (heavy)", |b| {
+        benchmark(b, &adapter, &device, &queue, |_| scene(1_000));
+    });
+
+    c.bench_function("wgpu - layered text (light)", |b| {
+        benchmark(b, &adapter, &device, &queue, |_| layered_text(10));
+    });
+    c.bench_function("wgpu - layered text (heavy)", |b| {
+        benchmark(b, &adapter, &device, &queue, |_| layered_text(1_000));
+    });
+
+    c.bench_function("wgpu - dynamic text (light)", |b| {
+        benchmark(b, &adapter, &device, &queue, |i| dynamic_text(1_000, i));
+    });
+    c.bench_function("wgpu - dynamic text (heavy)", |b| {
+        benchmark(b, &adapter, &device, &queue, |i| dynamic_text(100_000, i));
+    });
+
+    c.bench_function("wgpu - advanced shaping (light)", |b| {
+        benchmark(b, &adapter, &device, &queue, |i| advanced_shaping(1_000, i));
+    });
+    c.bench_function("wgpu - advanced shaping (heavy)", |b| {
+        benchmark(b, &adapter, &device, &queue, |i| {
+            advanced_shaping(100_000, i)
+        });
+    });
+}
+
+fn benchmark<'a>(
+    bencher: &mut Bencher<'_>,
+    adapter: &wgpu::Adapter,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    view: impl Fn(usize) -> Element<'a, (), Theme, Renderer>,
+) {
+    use iced_wgpu::graphics;
+    use iced_wgpu::graphics::{Antialiasing, Shell};
+    use iced_wgpu::wgpu;
+    use iced_winit::core;
+    use iced_winit::runtime;
 
     let format = wgpu::TextureFormat::Bgra8UnormSrgb;
 
-    let mut engine = iced_wgpu::Engine::new(
-        &adapter,
-        &device,
-        &queue,
+    let engine = iced_wgpu::Engine::new(
+        adapter,
+        device.clone(),
+        queue.clone(),
         format,
         Some(Antialiasing::MSAAx4),
+        Shell::headless(),
     );
 
-    let mut renderer =
-        Renderer::new(&device, &engine, Font::DEFAULT, Pixels::from(16));
+    let mut renderer = Renderer::new(engine, Font::DEFAULT, Pixels::from(16));
 
     let viewport =
         graphics::Viewport::with_physical_size(Size::new(3840, 2160), 2.0);
@@ -117,7 +132,7 @@ fn benchmark<'a>(
             &mut renderer,
         );
 
-        let _ = user_interface.draw(
+        user_interface.draw(
             &mut renderer,
             &Theme::Dark,
             &core::renderer::Style {
@@ -128,25 +143,17 @@ fn benchmark<'a>(
 
         cache = Some(user_interface.into_cache());
 
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: None,
-            });
-
-        renderer.present::<&str>(
-            &mut engine,
-            &device,
-            &queue,
-            &mut encoder,
+        let submission = renderer.present(
             Some(Color::BLACK),
             format,
             &texture_view,
             &viewport,
-            &[],
         );
 
-        let submission = engine.submit(&queue, encoder);
-        let _ = device.poll(wgpu::Maintain::WaitForSubmissionIndex(submission));
+        let _ = device.poll(wgpu::PollType::Wait {
+            submission_index: Some(submission),
+            timeout: None,
+        });
 
         i += 1;
     });
@@ -185,9 +192,10 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
                         size: Pixels::from(16),
                         line_height: text::LineHeight::default(),
                         font: Font::DEFAULT,
-                        horizontal_alignment: alignment::Horizontal::Left,
-                        vertical_alignment: alignment::Vertical::Top,
+                        align_x: text::Alignment::Left,
+                        align_y: alignment::Vertical::Top,
                         shaping: text::Shaping::Basic,
+                        max_width: f32::INFINITY,
                     });
                 }
             })]
@@ -203,7 +211,7 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
 fn layered_text<'a, Message: 'a>(
     n: usize,
 ) -> Element<'a, Message, Theme, Renderer> {
-    stack((0..n).map(|i| text(format!("I am paragraph {i}!")).into()))
+    stack((0..n).map(|i| text!("I am paragraph {i}!").into()))
         .width(Length::Fill)
         .height(Length::Fill)
         .into()
@@ -216,13 +224,33 @@ fn dynamic_text<'a, Message: 'a>(
     const LOREM_IPSUM: &str = include_str!("ipsum.txt");
 
     scrollable(
-        text(format!(
+        text!(
             "{}... Iteration {i}",
             std::iter::repeat(LOREM_IPSUM.chars())
                 .flatten()
                 .take(n)
                 .collect::<String>(),
-        ))
+        )
+        .size(10),
+    )
+    .into()
+}
+
+fn advanced_shaping<'a, Message: 'a>(
+    n: usize,
+    i: usize,
+) -> Element<'a, Message, Theme, Renderer> {
+    const LOREM_IPSUM: &str = include_str!("ipsum.txt");
+
+    scrollable(
+        text!(
+            "{}... Iteration {i} 😎",
+            std::iter::repeat(LOREM_IPSUM.chars())
+                .flatten()
+                .take(n)
+                .collect::<String>(),
+        )
+        .shaping(text::Shaping::Advanced)
         .size(10),
     )
     .into()

@@ -4,7 +4,7 @@ use iced::widget::{button, center, column, row, text};
 use iced::{Center, Element, Subscription, Theme};
 
 pub fn main() -> iced::Result {
-    iced::application("Stopwatch - Iced", Stopwatch::update, Stopwatch::view)
+    iced::application(Stopwatch::default, Stopwatch::update, Stopwatch::view)
         .subscription(Stopwatch::subscription)
         .theme(Stopwatch::theme)
         .run()
@@ -83,7 +83,7 @@ impl Stopwatch {
         Subscription::batch(vec![tick, keyboard::on_key_press(handle_hotkey)])
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         const MINUTE: u64 = 60;
         const HOUR: u64 = 60 * MINUTE;
 

@@ -42,6 +42,7 @@ use crate::core::renderer;
 use crate::core::text::editor::{Cursor, Editor as _};
 use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{self, LineHeight, Text, Wrapping};
+use crate::core::theme;
 use crate::core::time::{Duration, Instant};
 use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
@@ -93,7 +94,6 @@ pub use text::editor::{Action, Edit, Line, LineEnding, Motion};
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct TextEditor<
     'a,
     Highlighter,
@@ -105,6 +105,7 @@ pub struct TextEditor<
     Theme: Catalog,
     Renderer: text::Renderer,
 {
+    id: Option<widget::Id>,
     content: &'a Content<Renderer>,
     placeholder: Option<text::Fragment<'a>>,
     font: Option<Renderer::Font>,
@@ -136,6 +137,7 @@ where
     /// Creates new [`TextEditor`] with the given [`Content`].
     pub fn new(content: &'a Content<Renderer>) -> Self {
         Self {
+            id: None,
             content,
             placeholder: None,
             font: None,
@@ -147,7 +149,7 @@ where
             max_height: f32::INFINITY,
             padding: Padding::new(5.0),
             wrapping: Wrapping::default(),
-            class: Theme::default(),
+            class: <Theme as Catalog>::default(),
             key_binding: None,
             on_edit: None,
             highlighter_settings: (),
@@ -156,6 +158,12 @@ where
             },
             last_status: None,
         }
+    }
+
+    /// Sets the [`Id`](widget::Id) of the [`TextEditor`].
+    pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
+        self.id = Some(id.into());
+        self
     }
 }
 
@@ -276,6 +284,7 @@ where
         ) -> highlighter::Format<Renderer::Font>,
     ) -> TextEditor<'a, H, Message, Theme, Renderer> {
         TextEditor {
+            id: self.id,
             content: self.content,
             placeholder: self.placeholder,
             font: self.font,
@@ -356,11 +365,13 @@ where
             self.text_size.unwrap_or_else(|| renderer.default_size()),
         );
 
-        let position =
-            cursor + translation + Vector::new(0.0, f32::from(line_height));
+        let position = cursor + translation;
 
         InputMethod::Enabled {
-            position,
+            cursor: Rectangle::new(
+                position,
+                Size::new(1.0, f32::from(line_height)),
+            ),
             purpose: input_method::Purpose::Normal,
             preedit: state.preedit.as_ref().map(input_method::Preedit::as_ref),
         }
@@ -465,6 +476,15 @@ where
     }
 }
 
+impl<Renderer> Clone for Content<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn clone(&self) -> Self {
+        Self::with_text(&self.text())
+    }
+}
+
 impl<Renderer> Default for Content<Renderer>
 where
     Renderer: text::Renderer,
@@ -497,6 +517,7 @@ pub struct State<Highlighter: text::Highlighter> {
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
     partial_scroll: f32,
+    last_theme: RefCell<Option<String>>,
     highlighter: RefCell<Highlighter>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format_address: usize,
@@ -526,8 +547,7 @@ impl Focus {
         self.is_window_focused
             && ((self.now - self.updated_at).as_millis()
                 / Self::CURSOR_BLINK_INTERVAL_MILLIS)
-                % 2
-                == 0
+                .is_multiple_of(2)
     }
 }
 
@@ -572,6 +592,7 @@ where
             last_click: None,
             drag_click: None,
             partial_scroll: 0.0,
+            last_theme: RefCell::default(),
             highlighter: RefCell::new(Highlighter::new(
                 &self.highlighter_settings,
             )),
@@ -588,7 +609,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -638,7 +659,7 @@ where
                     limits
                         .height(min_bounds.height)
                         .max()
-                        .expand(Size::new(0.0, self.padding.vertical())),
+                        .expand(Size::new(0.0, self.padding.y())),
                 )
             }
         }
@@ -680,22 +701,20 @@ where
                 }
             }
             Event::Window(window::Event::RedrawRequested(now)) => {
-                if let Some(focus) = &mut state.focus {
-                    if focus.is_window_focused {
-                        focus.now = *now;
+                if let Some(focus) = &mut state.focus
+                    && focus.is_window_focused
+                {
+                    focus.now = *now;
 
-                        let millis_until_redraw =
-                            Focus::CURSOR_BLINK_INTERVAL_MILLIS
-                                - (focus.now - focus.updated_at).as_millis()
-                                    % Focus::CURSOR_BLINK_INTERVAL_MILLIS;
+                    let millis_until_redraw =
+                        Focus::CURSOR_BLINK_INTERVAL_MILLIS
+                            - (focus.now - focus.updated_at).as_millis()
+                                % Focus::CURSOR_BLINK_INTERVAL_MILLIS;
 
-                        shell.request_redraw_at(
-                            focus.now
-                                + Duration::from_millis(
-                                    millis_until_redraw as u64,
-                                ),
-                        );
-                    }
+                    shell.request_redraw_at(
+                        focus.now
+                            + Duration::from_millis(millis_until_redraw as u64),
+                    );
                 }
             }
             _ => {}
@@ -924,6 +943,19 @@ where
 
         let font = self.font.unwrap_or_else(|| renderer.default_font());
 
+        let theme_name = theme.name();
+
+        if state
+            .last_theme
+            .borrow()
+            .as_ref()
+            .is_none_or(|last_theme| last_theme != theme_name)
+        {
+            state.highlighter.borrow_mut().change_line(0);
+            let _ =
+                state.last_theme.borrow_mut().replace(theme_name.to_owned());
+        }
+
         internal.editor.highlight(
             font,
             state.highlighter.borrow_mut().deref_mut(),
@@ -955,8 +987,8 @@ where
                             .unwrap_or_else(|| renderer.default_size()),
                         line_height: self.line_height,
                         font,
-                        horizontal_alignment: alignment::Horizontal::Left,
-                        vertical_alignment: alignment::Vertical::Top,
+                        align_x: text::Alignment::Default,
+                        align_y: alignment::Vertical::Top,
                         shaping: text::Shaping::Advanced,
                         wrapping: self.wrapping,
                     },
@@ -1024,7 +1056,7 @@ where
 
     fn mouse_interaction(
         &self,
-        _state: &widget::Tree,
+        _tree: &widget::Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
@@ -1044,7 +1076,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
@@ -1052,7 +1084,7 @@ where
     ) {
         let state = tree.state.downcast_mut::<State<Highlighter>>();
 
-        operation.focusable(None, layout.bounds(), state);
+        operation.focusable(self.id.as_ref(), layout.bounds(), state);
     }
 }
 
@@ -1133,6 +1165,9 @@ impl<Message> Binding<Message> {
         if !matches!(status, Status::Focused { .. }) {
             return None;
         }
+
+        #[cfg(target_os = "macos")]
+        let key = convert_macos_shortcut(&key, modifiers);
 
         match key.as_ref() {
             keyboard::Key::Named(key::Named::Enter) => Some(Self::Enter),
@@ -1230,7 +1265,7 @@ impl<Message> Update<Message> {
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
                     if let Some(cursor_position) = cursor.position_in(bounds) {
                         let cursor_position = cursor_position
-                            - Vector::new(padding.top, padding.left);
+                            - Vector::new(padding.left, padding.top);
 
                         let click = mouse::Click::new(
                             cursor_position,
@@ -1251,7 +1286,7 @@ impl<Message> Update<Message> {
                 mouse::Event::CursorMoved { .. } => match state.drag_click {
                     Some(mouse::click::Kind::Single) => {
                         let cursor_position = cursor.position_in(bounds)?
-                            - Vector::new(padding.top, padding.left);
+                            - Vector::new(padding.left, padding.top);
 
                         Some(Update::Drag(cursor_position))
                     }
@@ -1365,8 +1400,6 @@ pub struct Style {
     pub background: Background,
     /// The [`Border`] of the text input.
     pub border: Border,
-    /// The [`Color`] of the icon of the text input.
-    pub icon: Color,
     /// The [`Color`] of the placeholder of the text input.
     pub placeholder: Color,
     /// The [`Color`] of the value of the text input.
@@ -1376,7 +1409,7 @@ pub struct Style {
 }
 
 /// The theme catalog of a [`TextEditor`].
-pub trait Catalog {
+pub trait Catalog: theme::Base {
     /// The item class of the [`Catalog`].
     type Class<'a>;
 
@@ -1413,8 +1446,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             width: 1.0,
             color: palette.background.strong.color,
         },
-        icon: palette.background.weak.text,
-        placeholder: palette.background.strong.color,
+        placeholder: palette.secondary.base.color,
         value: palette.background.base.text,
         selection: palette.primary.weak.color,
     };
@@ -1438,7 +1470,38 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Disabled => Style {
             background: Background::Color(palette.background.weak.color),
             value: active.placeholder,
+            placeholder: palette.background.strongest.color,
             ..active
         },
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn convert_macos_shortcut(
+    key: &keyboard::Key,
+    modifiers: keyboard::Modifiers,
+) -> &keyboard::Key {
+    if modifiers != keyboard::Modifiers::CTRL {
+        return key;
+    }
+
+    match key.as_ref() {
+        keyboard::Key::Character("b") => {
+            &keyboard::Key::Named(key::Named::ArrowLeft)
+        }
+        keyboard::Key::Character("f") => {
+            &keyboard::Key::Named(key::Named::ArrowRight)
+        }
+        keyboard::Key::Character("a") => {
+            &keyboard::Key::Named(key::Named::Home)
+        }
+        keyboard::Key::Character("e") => &keyboard::Key::Named(key::Named::End),
+        keyboard::Key::Character("h") => {
+            &keyboard::Key::Named(key::Named::Backspace)
+        }
+        keyboard::Key::Character("d") => {
+            &keyboard::Key::Named(key::Named::Delete)
+        }
+        _ => key,
     }
 }

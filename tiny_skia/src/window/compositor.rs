@@ -2,19 +2,17 @@ use crate::core::{Color, Rectangle, Size};
 use crate::graphics::compositor::{self, Information};
 use crate::graphics::damage;
 use crate::graphics::error::{self, Error};
-use crate::graphics::{self, Viewport};
+use crate::graphics::{self, Shell, Viewport};
 use crate::{Layer, Renderer, Settings};
 
 use std::collections::VecDeque;
 use std::num::NonZeroU32;
 
-#[allow(missing_debug_implementations)]
 pub struct Compositor {
     context: softbuffer::Context<Box<dyn compositor::Window>>,
     settings: Settings,
 }
 
-#[allow(missing_debug_implementations)]
 pub struct Surface {
     window: softbuffer::Surface<
         Box<dyn compositor::Window>,
@@ -33,6 +31,7 @@ impl crate::graphics::Compositor for Compositor {
     async fn with_backend<W: compositor::Window>(
         settings: graphics::Settings,
         compatible_window: W,
+        _shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, Error> {
         match backend {
@@ -69,14 +68,15 @@ impl crate::graphics::Compositor for Compositor {
 
         let mut surface = Surface {
             window,
-            clip_mask: tiny_skia::Mask::new(width, height)
-                .expect("Create clip mask"),
+            clip_mask: tiny_skia::Mask::new(1, 1).expect("Create clip mask"),
             layer_stack: VecDeque::new(),
             background_color: Color::BLACK,
             max_age: 0,
         };
 
-        self.configure_surface(&mut surface, width, height);
+        if width > 0 && height > 0 {
+            self.configure_surface(&mut surface, width, height);
+        }
 
         surface
     }
@@ -100,32 +100,37 @@ impl crate::graphics::Compositor for Compositor {
         surface.layer_stack.clear();
     }
 
-    fn fetch_information(&self) -> Information {
+    fn information(&self) -> Information {
         Information {
             adapter: String::from("CPU"),
             backend: String::from("tiny-skia"),
         }
     }
 
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
+        on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
-        present(renderer, surface, viewport, background_color, overlay)
+        present(
+            renderer,
+            surface,
+            viewport,
+            background_color,
+            on_pre_present,
+        )
     }
 
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8> {
-        screenshot(renderer, viewport, background_color, overlay)
+        screenshot(renderer, viewport, background_color)
     }
 }
 
@@ -140,12 +145,12 @@ pub fn new<W: compositor::Window>(
     Compositor { context, settings }
 }
 
-pub fn present<T: AsRef<str>>(
+pub fn present(
     renderer: &mut Renderer,
     surface: &mut Surface,
     viewport: &Viewport,
     background_color: Color,
-    overlay: &[T],
+    on_pre_present: impl FnOnce(),
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
 
@@ -203,17 +208,16 @@ pub fn present<T: AsRef<str>>(
         viewport,
         &damage,
         background_color,
-        overlay,
     );
 
+    on_pre_present();
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
 }
 
-pub fn screenshot<T: AsRef<str>>(
+pub fn screenshot(
     renderer: &mut Renderer,
     viewport: &Viewport,
     background_color: Color,
-    overlay: &[T],
 ) -> Vec<u8> {
     let size = viewport.physical_size();
 
@@ -237,7 +241,6 @@ pub fn screenshot<T: AsRef<str>>(
             size.height as f32,
         ))],
         background_color,
-        overlay,
     );
 
     offscreen_buffer.iter().fold(

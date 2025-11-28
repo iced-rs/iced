@@ -9,4 +9,4 @@ publish = false
 iced.workspace = true
 iced.features = ["canvas"]
 
-palette.workspace = true
+palette = "0.7"

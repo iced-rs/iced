@@ -1,4 +1,5 @@
 //! Zoom and pan on an image.
+use crate::core::border;
 use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
 use crate::core::mouse;
@@ -10,7 +11,6 @@ use crate::core::{
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
-#[allow(missing_debug_implementations)]
 pub struct Viewer<Handle> {
     padding: f32,
     width: Length,
@@ -125,13 +125,15 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         // The raw w/h of the underlying image
-        let image_size = renderer.measure_image(&self.handle);
+        let image_size =
+            renderer.measure_image(&self.handle).unwrap_or_default();
+
         let image_size =
             Size::new(image_size.width as f32, image_size.height as f32);
 
@@ -240,17 +242,12 @@ where
                 state.cursor_grabbed_at = Some(cursor_position);
                 state.starting_offset = state.current_offset;
 
-                shell.request_redraw();
                 shell.capture_event();
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 let state = tree.state.downcast_mut::<State>();
 
-                if state.cursor_grabbed_at.is_some() {
-                    state.cursor_grabbed_at = None;
-                    shell.request_redraw();
-                    shell.capture_event();
-                }
+                state.cursor_grabbed_at = None;
             }
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 let state = tree.state.downcast_mut::<State>();
@@ -327,7 +324,7 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
@@ -362,12 +359,14 @@ where
                 renderer.draw_image(
                     Image {
                         handle: self.handle.clone(),
+                        border_radius: border::Radius::default(),
                         filter_method: self.filter_method,
                         rotation: self.rotation.radians(),
                         opacity: 1.0,
                         snap: true,
                     },
                     drawing_bounds,
+                    *viewport,
                 );
             });
         };
@@ -449,7 +448,9 @@ pub fn scaled_image_size<Renderer>(
 where
     Renderer: image::Renderer,
 {
-    let Size { width, height } = renderer.measure_image(handle);
+    let Size { width, height } =
+        renderer.measure_image(handle).unwrap_or_default();
+
     let image_size = Size::new(width as f32, height as f32);
     let rotated_size = rotation.apply(image_size);
     let adjusted_fit = content_fit.fit(rotated_size, bounds);

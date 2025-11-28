@@ -52,7 +52,6 @@ use std::ops::RangeInclusive;
 ///     progress_bar(0.0..=100.0, state.progress).into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct ProgressBar<'a, Theme = crate::Theme>
 where
     Theme: Catalog,
@@ -157,7 +156,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
@@ -167,7 +166,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,

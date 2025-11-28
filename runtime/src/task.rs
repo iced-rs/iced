@@ -7,22 +7,32 @@ use crate::futures::futures::future::{self, FutureExt};
 use crate::futures::futures::stream::{self, Stream, StreamExt};
 use crate::futures::{BoxStream, MaybeSend, boxed_stream};
 
+use std::convert::Infallible;
+use std::pin::Pin;
 use std::sync::Arc;
+use std::task;
+use std::thread;
 
+#[cfg(feature = "sipper")]
 #[doc(no_inline)]
 pub use sipper::{Never, Sender, Sipper, Straw, sipper, stream};
 
 /// A set of concurrent actions to be performed by the iced runtime.
 ///
 /// A [`Task`] _may_ produce a bunch of values of type `T`.
-#[allow(missing_debug_implementations)]
 #[must_use = "`Task` must be returned to the runtime to take effect; normally in your `update` or `new` functions."]
-pub struct Task<T>(Option<BoxStream<Action<T>>>);
+pub struct Task<T> {
+    stream: Option<BoxStream<Action<T>>>,
+    units: usize,
+}
 
 impl<T> Task<T> {
     /// Creates a [`Task`] that does nothing.
     pub fn none() -> Self {
-        Self(None)
+        Self {
+            stream: None,
+            units: 0,
+        }
     }
 
     /// Creates a new [`Task`] that instantly produces the given value.
@@ -37,7 +47,7 @@ impl<T> Task<T> {
     /// output with the given closure.
     pub fn perform<A>(
         future: impl Future<Output = A> + MaybeSend + 'static,
-        f: impl Fn(A) -> T + MaybeSend + 'static,
+        f: impl FnOnce(A) -> T + MaybeSend + 'static,
     ) -> Self
     where
         T: MaybeSend + 'static,
@@ -60,6 +70,7 @@ impl<T> Task<T> {
 
     /// Creates a [`Task`] that runs the given [`Sipper`] to completion, mapping
     /// progress with the first closure and the output with the second one.
+    #[cfg(feature = "sipper")]
     pub fn sip<S>(
         sipper: S,
         on_progress: impl FnMut(S::Progress) -> T + MaybeSend + 'static,
@@ -80,9 +91,21 @@ impl<T> Task<T> {
     where
         T: 'static,
     {
-        Self(Some(boxed_stream(stream::select_all(
-            tasks.into_iter().filter_map(|task| task.0),
-        ))))
+        let mut select_all = stream::SelectAll::new();
+        let mut units = 0;
+
+        for task in tasks.into_iter() {
+            if let Some(stream) = task.stream {
+                select_all.push(stream);
+            }
+
+            units += task.units;
+        }
+
+        Self {
+            stream: Some(boxed_stream(select_all)),
+            units,
+        }
     }
 
     /// Maps the output of a [`Task`] with the given closure.
@@ -110,21 +133,26 @@ impl<T> Task<T> {
         T: MaybeSend + 'static,
         O: MaybeSend + 'static,
     {
-        Task(match self.0 {
-            None => None,
-            Some(stream) => {
-                Some(boxed_stream(stream.flat_map(move |action| {
-                    match action.output() {
-                        Ok(output) => f(output)
-                            .0
-                            .unwrap_or_else(|| boxed_stream(stream::empty())),
-                        Err(action) => {
-                            boxed_stream(stream::once(async move { action }))
+        Task {
+            stream: match self.stream {
+                None => None,
+                Some(stream) => {
+                    Some(boxed_stream(stream.flat_map(move |action| {
+                        match action.output() {
+                            Ok(output) => {
+                                f(output).stream.unwrap_or_else(|| {
+                                    boxed_stream(stream::empty())
+                                })
+                            }
+                            Err(action) => boxed_stream(stream::once(
+                                async move { action },
+                            )),
                         }
-                    }
-                })))
-            }
-        })
+                    })))
+                }
+            },
+            units: self.units,
+        }
     }
 
     /// Chains a new [`Task`] to be performed once the current one finishes completely.
@@ -132,11 +160,17 @@ impl<T> Task<T> {
     where
         T: 'static,
     {
-        match self.0 {
+        match self.stream {
             None => task,
-            Some(first) => match task.0 {
-                None => Task(Some(first)),
-                Some(second) => Task(Some(boxed_stream(first.chain(second)))),
+            Some(first) => match task.stream {
+                None => Self {
+                    stream: Some(first),
+                    units: self.units,
+                },
+                Some(second) => Self {
+                    stream: Some(boxed_stream(first.chain(second))),
+                    units: self.units + task.units,
+                },
             },
         }
     }
@@ -146,35 +180,39 @@ impl<T> Task<T> {
     where
         T: MaybeSend + 'static,
     {
-        match self.0 {
+        match self.stream {
             None => Task::done(Vec::new()),
-            Some(stream) => Task(Some(boxed_stream(
-                stream::unfold(
-                    (stream, Some(Vec::new())),
-                    move |(mut stream, outputs)| async move {
-                        let mut outputs = outputs?;
+            Some(stream) => Task {
+                stream: Some(boxed_stream(
+                    stream::unfold(
+                        (stream, Some(Vec::new())),
+                        move |(mut stream, outputs)| async move {
+                            let mut outputs = outputs?;
 
-                        let Some(action) = stream.next().await else {
-                            return Some((
-                                Some(Action::Output(outputs)),
-                                (stream, None),
-                            ));
-                        };
+                            let Some(action) = stream.next().await else {
+                                return Some((
+                                    Some(Action::Output(outputs)),
+                                    (stream, None),
+                                ));
+                            };
 
-                        match action.output() {
-                            Ok(output) => {
-                                outputs.push(output);
+                            match action.output() {
+                                Ok(output) => {
+                                    outputs.push(output);
 
-                                Some((None, (stream, Some(outputs))))
+                                    Some((None, (stream, Some(outputs))))
+                                }
+                                Err(action) => Some((
+                                    Some(action),
+                                    (stream, Some(outputs)),
+                                )),
                             }
-                            Err(action) => {
-                                Some((Some(action), (stream, Some(outputs))))
-                            }
-                        }
-                    },
-                )
-                .filter_map(future::ready),
-            ))),
+                        },
+                    )
+                    .filter_map(future::ready),
+                )),
+                units: self.units,
+            },
         }
     }
 
@@ -194,26 +232,25 @@ impl<T> Task<T> {
     where
         T: 'static,
     {
-        match self.0 {
+        let (stream, handle) = match self.stream {
             Some(stream) => {
                 let (stream, handle) = stream::abortable(stream);
 
-                (
-                    Self(Some(boxed_stream(stream))),
-                    Handle {
-                        internal: InternalHandle::Manual(handle),
-                    },
-                )
+                (Some(boxed_stream(stream)), InternalHandle::Manual(handle))
             }
             None => (
-                Self(None),
-                Handle {
-                    internal: InternalHandle::Manual(
-                        stream::AbortHandle::new_pair().0,
-                    ),
-                },
+                None,
+                InternalHandle::Manual(stream::AbortHandle::new_pair().0),
             ),
-        }
+        };
+
+        (
+            Self {
+                stream,
+                units: self.units,
+            },
+            Handle { internal: handle },
+        )
     }
 
     /// Creates a new [`Task`] that runs the given [`Future`] and produces
@@ -231,7 +268,27 @@ impl<T> Task<T> {
     where
         T: 'static,
     {
-        Self(Some(boxed_stream(stream.map(Action::Output))))
+        Self {
+            stream: Some(boxed_stream(
+                stream::once(yield_now())
+                    .filter_map(|_| async { None })
+                    .chain(stream.map(Action::Output)),
+            )),
+            units: 1,
+        }
+    }
+
+    /// Returns the amount of work "units" of the [`Task`].
+    pub fn units(&self) -> usize {
+        self.units
+    }
+}
+
+impl<T> std::fmt::Debug for Task<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(&format!("Task<{}>", std::any::type_name::<T>()))
+            .field("units", &self.units)
+            .finish()
     }
 }
 
@@ -322,14 +379,36 @@ impl<T, E> Task<Result<T, E>> {
     /// The success value is provided to the closure to create the subsequent [`Task`].
     pub fn and_then<A>(
         self,
-        f: impl Fn(T) -> Task<A> + MaybeSend + 'static,
-    ) -> Task<A>
+        f: impl Fn(T) -> Task<Result<A, E>> + MaybeSend + 'static,
+    ) -> Task<Result<A, E>>
     where
         T: MaybeSend + 'static,
         E: MaybeSend + 'static,
         A: MaybeSend + 'static,
     {
-        self.then(move |option| option.map_or_else(|_| Task::none(), &f))
+        self.then(move |result| {
+            result.map_or_else(|error| Task::done(Err(error)), &f)
+        })
+    }
+
+    /// Maps the error type of this [`Task`] to a different one using the given
+    /// function.
+    pub fn map_err<E2>(
+        self,
+        f: impl Fn(E) -> E2 + MaybeSend + 'static,
+    ) -> Task<Result<T, E2>>
+    where
+        T: MaybeSend + 'static,
+        E: MaybeSend + 'static,
+        E2: MaybeSend + 'static,
+    {
+        self.map(move |result| result.map_err(&f))
+    }
+}
+
+impl<T> Default for Task<T> {
+    fn default() -> Self {
+        Self::none()
     }
 }
 
@@ -365,13 +444,14 @@ where
 
     let action = f(sender);
 
-    Task(Some(boxed_stream(
-        stream::once(async move { action }).chain(
+    Task {
+        stream: Some(boxed_stream(stream::once(async move { action }).chain(
             receiver.into_stream().filter_map(|result| async move {
                 Some(Action::Output(result.ok()?))
             }),
-        ),
-    )))
+        ))),
+        units: 1,
+    }
 }
 
 /// Creates a new [`Task`] that executes the [`Action`] returned by the closure and
@@ -384,22 +464,99 @@ where
 
     let action = f(sender);
 
-    Task(Some(boxed_stream(
-        stream::once(async move { action })
-            .chain(receiver.map(|result| Action::Output(result))),
-    )))
+    Task {
+        stream: Some(boxed_stream(
+            stream::once(async move { action })
+                .chain(receiver.map(|result| Action::Output(result))),
+        )),
+        units: 1,
+    }
 }
 
 /// Creates a new [`Task`] that executes the given [`Action`] and produces no output.
-pub fn effect<T>(action: impl Into<Action<Never>>) -> Task<T> {
+pub fn effect<T>(action: impl Into<Action<Infallible>>) -> Task<T> {
     let action = action.into();
 
-    Task(Some(boxed_stream(stream::once(async move {
-        action.output().expect_err("no output")
-    }))))
+    Task {
+        stream: Some(boxed_stream(stream::once(async move {
+            action.output().expect_err("no output")
+        }))),
+        units: 1,
+    }
 }
 
 /// Returns the underlying [`Stream`] of the [`Task`].
 pub fn into_stream<T>(task: Task<T>) -> Option<BoxStream<Action<T>>> {
-    task.0
+    task.stream
+}
+
+/// Creates a new [`Task`] that will run the given closure in a new thread.
+///
+/// Any data sent by the closure through the [`mpsc::Sender`] will be produced
+/// by the [`Task`].
+pub fn blocking<T>(f: impl FnOnce(mpsc::Sender<T>) + Send + 'static) -> Task<T>
+where
+    T: Send + 'static,
+{
+    let (sender, receiver) = mpsc::channel(1);
+
+    let _ = thread::spawn(move || {
+        f(sender);
+    });
+
+    Task::stream(receiver)
+}
+
+/// Creates a new [`Task`] that will run the given closure that can fail in a new
+/// thread.
+///
+/// Any data sent by the closure through the [`mpsc::Sender`] will be produced
+/// by the [`Task`].
+pub fn try_blocking<T, E>(
+    f: impl FnOnce(mpsc::Sender<T>) -> Result<(), E> + Send + 'static,
+) -> Task<Result<T, E>>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+{
+    let (sender, receiver) = mpsc::channel(1);
+    let (error_sender, error_receiver) = oneshot::channel();
+
+    let _ = thread::spawn(move || {
+        if let Err(error) = f(sender) {
+            let _ = error_sender.send(Err(error));
+        }
+    });
+
+    Task::stream(stream::select(
+        receiver.map(Ok),
+        stream::once(error_receiver).filter_map(async |result| result.ok()),
+    ))
+}
+
+async fn yield_now() {
+    struct YieldNow {
+        yielded: bool,
+    }
+
+    impl Future for YieldNow {
+        type Output = ();
+
+        fn poll(
+            mut self: Pin<&mut Self>,
+            cx: &mut task::Context<'_>,
+        ) -> task::Poll<()> {
+            if self.yielded {
+                return task::Poll::Ready(());
+            }
+
+            self.yielded = true;
+
+            cx.waker().wake_by_ref();
+
+            task::Poll::Pending
+        }
+    }
+
+    YieldNow { yielded: false }.await;
 }

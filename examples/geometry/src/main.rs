@@ -27,7 +27,7 @@ mod rainbow {
         }
 
         fn layout(
-            &self,
+            &mut self,
             _tree: &mut widget::Tree,
             _renderer: &Renderer,
             limits: &layout::Limits,
@@ -157,7 +157,7 @@ use iced::widget::{center_x, center_y, column, scrollable};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
-    iced::run("Custom 2D Geometry - Iced", |_: &mut _, _| {}, view)
+    iced::run((), view)
 }
 
 fn view(_state: &()) -> Element<'_, ()> {

@@ -2,14 +2,14 @@ use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{
-    self, button, center, column, pick_list, row, slider, text, text_input,
+    button, center, column, operation, pick_list, row, slider, text, text_input,
 };
 use iced::{Center, Element, Fill, Subscription, Task};
 
 use toast::{Status, Toast};
 
 pub fn main() -> iced::Result {
-    iced::application("Toast - Iced", App::update, App::view)
+    iced::application(App::default, App::update, App::view)
         .subscription(App::subscription)
         .run()
 }
@@ -83,11 +83,11 @@ impl App {
                 key: keyboard::Key::Named(key::Named::Tab),
                 modifiers,
                 ..
-            })) if modifiers.shift() => widget::focus_previous(),
+            })) if modifiers.shift() => operation::focus_previous(),
             Message::Event(Event::Keyboard(keyboard::Event::KeyPressed {
                 key: keyboard::Key::Named(key::Named::Tab),
                 ..
-            })) => widget::focus_next(),
+            })) => operation::focus_next(),
             Message::Event(_) => Task::none(),
         }
     }
@@ -169,11 +169,8 @@ mod toast {
     use iced::advanced::widget::{self, Operation, Tree};
     use iced::advanced::{Clipboard, Shell, Widget};
     use iced::mouse;
-    use iced::theme;
     use iced::time::{self, Duration, Instant};
-    use iced::widget::{
-        button, column, container, horizontal_rule, horizontal_space, row, text,
-    };
+    use iced::widget::{button, column, container, row, rule, space, text};
     use iced::window;
     use iced::{
         Alignment, Center, Element, Event, Fill, Length, Point, Rectangle,
@@ -189,11 +186,17 @@ mod toast {
         Secondary,
         Success,
         Danger,
+        Warning,
     }
 
     impl Status {
-        pub const ALL: &'static [Self] =
-            &[Self::Primary, Self::Secondary, Self::Success, Self::Danger];
+        pub const ALL: &'static [Self] = &[
+            Self::Primary,
+            Self::Secondary,
+            Self::Success,
+            Self::Danger,
+            Self::Warning,
+        ];
     }
 
     impl fmt::Display for Status {
@@ -203,6 +206,7 @@ mod toast {
                 Status::Secondary => "Secondary",
                 Status::Success => "Success",
                 Status::Danger => "Danger",
+                Status::Warning => "Warning",
             }
             .fmt(f)
         }
@@ -239,7 +243,7 @@ mod toast {
                         container(
                             row![
                                 text(toast.title.as_str()),
-                                horizontal_space(),
+                                space::horizontal(),
                                 button("X")
                                     .on_press((on_close)(index))
                                     .padding(3),
@@ -249,12 +253,13 @@ mod toast {
                         .width(Fill)
                         .padding(5)
                         .style(match toast.status {
-                            Status::Primary => primary,
-                            Status::Secondary => secondary,
-                            Status::Success => success,
-                            Status::Danger => danger,
+                            Status::Primary => container::primary,
+                            Status::Secondary => container::secondary,
+                            Status::Success => container::success,
+                            Status::Danger => container::danger,
+                            Status::Warning => container::warning,
                         }),
-                        horizontal_rule(1),
+                        rule::horizontal(1),
                         container(text(toast.body.as_str()))
                             .width(Fill)
                             .padding(5)
@@ -287,12 +292,12 @@ mod toast {
         }
 
         fn layout(
-            &self,
+            &mut self,
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.content.as_widget().layout(
+            self.content.as_widget_mut().layout(
                 &mut tree.children[0],
                 renderer,
                 limits,
@@ -327,9 +332,10 @@ mod toast {
                     instants.truncate(new);
                 }
                 (old, new) if old < new => {
-                    instants.extend(
-                        std::iter::repeat(Some(Instant::now())).take(new - old),
-                    );
+                    instants.extend(std::iter::repeat_n(
+                        Some(Instant::now()),
+                        new - old,
+                    ));
                 }
                 _ => {}
             }
@@ -342,15 +348,16 @@ mod toast {
         }
 
         fn operate(
-            &self,
-            state: &mut Tree,
+            &mut self,
+            tree: &mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn Operation,
         ) {
-            operation.container(None, layout.bounds(), &mut |operation| {
-                self.content.as_widget().operate(
-                    &mut state.children[0],
+            operation.container(None, layout.bounds());
+            operation.traverse(&mut |operation| {
+                self.content.as_widget_mut().operate(
+                    &mut tree.children[0],
                     layout,
                     renderer,
                     operation,
@@ -360,7 +367,7 @@ mod toast {
 
         fn update(
             &mut self,
-            state: &mut Tree,
+            tree: &mut Tree,
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
@@ -370,7 +377,7 @@ mod toast {
             viewport: &Rectangle,
         ) {
             self.content.as_widget_mut().update(
-                &mut state.children[0],
+                &mut tree.children[0],
                 event,
                 layout,
                 cursor,
@@ -383,7 +390,7 @@ mod toast {
 
         fn draw(
             &self,
-            state: &Tree,
+            tree: &Tree,
             renderer: &mut Renderer,
             theme: &Theme,
             style: &renderer::Style,
@@ -392,7 +399,7 @@ mod toast {
             viewport: &Rectangle,
         ) {
             self.content.as_widget().draw(
-                &state.children[0],
+                &tree.children[0],
                 renderer,
                 theme,
                 style,
@@ -404,14 +411,14 @@ mod toast {
 
         fn mouse_interaction(
             &self,
-            state: &Tree,
+            tree: &Tree,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
             self.content.as_widget().mouse_interaction(
-                &state.children[0],
+                &tree.children[0],
                 layout,
                 cursor,
                 viewport,
@@ -421,27 +428,30 @@ mod toast {
 
         fn overlay<'b>(
             &'b mut self,
-            state: &'b mut Tree,
-            layout: Layout<'_>,
+            tree: &'b mut Tree,
+            layout: Layout<'b>,
             renderer: &Renderer,
+            viewport: &Rectangle,
             translation: Vector,
         ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-            let instants = state.state.downcast_mut::<Vec<Option<Instant>>>();
+            let instants = tree.state.downcast_mut::<Vec<Option<Instant>>>();
 
-            let (content_state, toasts_state) = state.children.split_at_mut(1);
+            let (content_state, toasts_state) = tree.children.split_at_mut(1);
 
             let content = self.content.as_widget_mut().overlay(
                 &mut content_state[0],
                 layout,
                 renderer,
+                viewport,
                 translation,
             );
 
             let toasts = (!self.toasts.is_empty()).then(|| {
                 overlay::Element::new(Box::new(Overlay {
                     position: layout.bounds().position() + translation,
+                    viewport: *viewport,
                     toasts: &mut self.toasts,
-                    state: toasts_state,
+                    trees: toasts_state,
                     instants,
                     on_close: &self.on_close,
                     timeout_secs: self.timeout_secs,
@@ -457,8 +467,9 @@ mod toast {
 
     struct Overlay<'a, 'b, Message> {
         position: Point,
+        viewport: Rectangle,
         toasts: &'b mut [Element<'a, Message>],
-        state: &'b mut [Tree],
+        trees: &'b mut [Tree],
         instants: &'b mut [Option<Instant>],
         on_close: &'b dyn Fn(usize) -> Message,
         timeout_secs: u64,
@@ -484,7 +495,7 @@ mod toast {
                 10.0,
                 Alignment::End,
                 self.toasts,
-                self.state,
+                self.trees,
             )
             .translate(Vector::new(self.position.x, self.position.y))
         }
@@ -521,7 +532,7 @@ mod toast {
             for (((child, state), layout), instant) in self
                 .toasts
                 .iter_mut()
-                .zip(self.state.iter_mut())
+                .zip(self.trees.iter_mut())
                 .zip(layout.children())
                 .zip(self.instants.iter_mut())
             {
@@ -557,14 +568,14 @@ mod toast {
         ) {
             let viewport = layout.bounds();
 
-            for ((child, state), layout) in self
+            for ((child, tree), layout) in self
                 .toasts
                 .iter()
-                .zip(self.state.iter())
+                .zip(self.trees.iter())
                 .zip(layout.children())
             {
                 child.as_widget().draw(
-                    state, renderer, theme, style, layout, cursor, &viewport,
+                    tree, renderer, theme, style, layout, cursor, &viewport,
                 );
             }
         }
@@ -575,14 +586,15 @@ mod toast {
             renderer: &Renderer,
             operation: &mut dyn widget::Operation,
         ) {
-            operation.container(None, layout.bounds(), &mut |operation| {
+            operation.container(None, layout.bounds());
+            operation.traverse(&mut |operation| {
                 self.toasts
-                    .iter()
-                    .zip(self.state.iter_mut())
+                    .iter_mut()
+                    .zip(self.trees.iter_mut())
                     .zip(layout.children())
                     .for_each(|((child, state), layout)| {
                         child
-                            .as_widget()
+                            .as_widget_mut()
                             .operate(state, layout, renderer, operation);
                     });
             });
@@ -592,31 +604,30 @@ mod toast {
             &self,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
-            viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
             self.toasts
                 .iter()
-                .zip(self.state.iter())
+                .zip(self.trees.iter())
                 .zip(layout.children())
                 .map(|((child, state), layout)| {
-                    child.as_widget().mouse_interaction(
-                        state, layout, cursor, viewport, renderer,
-                    )
+                    child
+                        .as_widget()
+                        .mouse_interaction(
+                            state,
+                            layout,
+                            cursor,
+                            &self.viewport,
+                            renderer,
+                        )
+                        .max(if cursor.is_over(layout.bounds()) {
+                            mouse::Interaction::Idle
+                        } else {
+                            Default::default()
+                        })
                 })
                 .max()
                 .unwrap_or_default()
-        }
-
-        fn is_over(
-            &self,
-            layout: Layout<'_>,
-            _renderer: &Renderer,
-            cursor_position: Point,
-        ) -> bool {
-            layout
-                .children()
-                .any(|layout| layout.bounds().contains(cursor_position))
         }
     }
 
@@ -627,37 +638,5 @@ mod toast {
         fn from(manager: Manager<'a, Message>) -> Self {
             Element::new(manager)
         }
-    }
-
-    fn styled(pair: theme::palette::Pair) -> container::Style {
-        container::Style {
-            background: Some(pair.color.into()),
-            text_color: pair.text.into(),
-            ..Default::default()
-        }
-    }
-
-    fn primary(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        styled(palette.primary.weak)
-    }
-
-    fn secondary(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        styled(palette.secondary.weak)
-    }
-
-    fn success(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        styled(palette.success.weak)
-    }
-
-    fn danger(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        styled(palette.danger.weak)
     }
 }

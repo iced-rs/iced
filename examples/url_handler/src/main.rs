@@ -3,7 +3,7 @@ use iced::widget::{center, text};
 use iced::{Element, Subscription};
 
 pub fn main() -> iced::Result {
-    iced::application("URL Handler - Iced", App::update, App::view)
+    iced::application(App::default, App::update, App::view)
         .subscription(App::subscription)
         .run()
 }
@@ -31,7 +31,7 @@ impl App {
         event::listen_url().map(Message::UrlReceived)
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let content = match &self.url {
             Some(url) => text(url),
             None => text("No URL received yet!"),

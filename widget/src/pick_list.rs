@@ -142,7 +142,6 @@ use std::f32;
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct PickList<
     'a,
     T,
@@ -174,6 +173,7 @@ pub struct PickList<
     class: <Theme as Catalog>::Class<'a>,
     menu_class: <Theme as menu::Catalog>::Class<'a>,
     last_status: Option<Status>,
+    menu_height: Length,
 }
 
 impl<'a, T, L, V, Message, Theme, Renderer>
@@ -210,6 +210,7 @@ where
             class: <Theme as Catalog>::default(),
             menu_class: <Theme as Catalog>::default_menu(),
             last_status: None,
+            menu_height: Length::Shrink,
         }
     }
 
@@ -222,6 +223,12 @@ where
     /// Sets the width of the [`PickList`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
+        self
+    }
+
+    /// Sets the height of the [`Menu`].
+    pub fn menu_height(mut self, menu_height: impl Into<Length>) -> Self {
+        self.menu_height = menu_height.into();
         self
     }
 
@@ -348,7 +355,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -371,8 +378,8 @@ where
             size: text_size,
             line_height: self.text_line_height,
             font,
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
+            align_x: text::Alignment::Default,
+            align_y: alignment::Vertical::Center,
             shaping: self.text_shaping,
             wrapping: text::Wrapping::default(),
         };
@@ -381,14 +388,14 @@ where
         {
             let label = option.to_string();
 
-            paragraph.update(Text {
+            let _ = paragraph.update(Text {
                 content: &label,
                 ..option_text
             });
         }
 
         if let Some(placeholder) = &self.placeholder {
-            state.placeholder.update(Text {
+            let _ = state.placeholder.update(Text {
                 content: placeholder,
                 ..option_text
             });
@@ -639,8 +646,8 @@ where
                         bounds.width,
                         f32::from(line_height.to_absolute(size)),
                     ),
-                    horizontal_alignment: alignment::Horizontal::Right,
-                    vertical_alignment: alignment::Vertical::Center,
+                    align_x: text::Alignment::Right,
+                    align_y: alignment::Vertical::Center,
                     shaping,
                     wrapping: text::Wrapping::default(),
                 },
@@ -666,11 +673,11 @@ where
                     line_height: self.text_line_height,
                     font,
                     bounds: Size::new(
-                        bounds.width - self.padding.horizontal(),
+                        bounds.width - self.padding.x(),
                         f32::from(self.text_line_height.to_absolute(text_size)),
                     ),
-                    horizontal_alignment: alignment::Horizontal::Left,
-                    vertical_alignment: alignment::Vertical::Center,
+                    align_x: text::Alignment::Default,
+                    align_y: alignment::Vertical::Center,
                     shaping: self.text_shaping,
                     wrapping: text::Wrapping::default(),
                 },
@@ -690,6 +697,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
@@ -721,7 +729,12 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            Some(menu.overlay(layout.position() + translation, bounds.height))
+            Some(menu.overlay(
+                layout.position() + translation,
+                *viewport,
+                bounds.height,
+                self.menu_height,
+            ))
         } else {
             None
         }
@@ -894,7 +907,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let active = Style {
         text_color: palette.background.weak.text,
         background: palette.background.weak.color.into(),
-        placeholder_color: palette.background.strong.color,
+        placeholder_color: palette.secondary.base.color,
         handle_color: palette.background.weak.text,
         border: Border {
             radius: 2.0.into(),

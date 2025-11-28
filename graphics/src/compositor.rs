@@ -2,7 +2,7 @@
 //! surfaces.
 use crate::core::Color;
 use crate::futures::{MaybeSend, MaybeSync};
-use crate::{Error, Settings, Viewport};
+use crate::{Error, Settings, Shell, Viewport};
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
@@ -21,8 +21,9 @@ pub trait Compositor: Sized {
     fn new<W: Window + Clone>(
         settings: Settings,
         compatible_window: W,
+        shell: Shell,
     ) -> impl Future<Output = Result<Self, Error>> {
-        Self::with_backend(settings, compatible_window, None)
+        Self::with_backend(settings, compatible_window, shell, None)
     }
 
     /// Creates a new [`Compositor`] with a backend preference.
@@ -32,6 +33,7 @@ pub trait Compositor: Sized {
     fn with_backend<W: Window + Clone>(
         _settings: Settings,
         _compatible_window: W,
+        _shell: Shell,
         _backend: Option<&str>,
     ) -> impl Future<Output = Result<Self, Error>>;
 
@@ -59,7 +61,7 @@ pub trait Compositor: Sized {
     );
 
     /// Returns [`Information`] used by this [`Compositor`].
-    fn fetch_information(&self) -> Information;
+    fn information(&self) -> Information;
 
     /// Loads a font from its bytes.
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
@@ -73,25 +75,24 @@ pub trait Compositor: Sized {
     ///
     /// [`Renderer`]: Self::Renderer
     /// [`Surface`]: Self::Surface
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
+        on_pre_present: impl FnOnce(),
     ) -> Result<(), SurfaceError>;
 
     /// Screenshots the current [`Renderer`] primitives to an offscreen texture, and returns the bytes of
     /// the texture ordered as `RGBA` in the `sRGB` color space.
     ///
     /// [`Renderer`]: Self::Renderer
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8>;
 }
 
@@ -132,6 +133,9 @@ pub enum SurfaceError {
     /// There is no more memory left to allocate a new frame.
     #[error("There is no more memory left to allocate a new frame")]
     OutOfMemory,
+    /// Acquiring a texture failed with a generic error.
+    #[error("Acquiring a texture failed with a generic error")]
+    Other,
 }
 
 /// Contains information about the graphics (e.g. graphics adapter, graphics backend).
@@ -151,6 +155,7 @@ impl Compositor for () {
     async fn with_backend<W: Window + Clone>(
         _settings: Settings,
         _compatible_window: W,
+        _shell: Shell,
         _preferred_backend: Option<&str>,
     ) -> Result<Self, Error> {
         Ok(())
@@ -176,30 +181,29 @@ impl Compositor for () {
 
     fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 
-    fn fetch_information(&self) -> Information {
+    fn information(&self) -> Information {
         Information {
             adapter: String::from("Null Renderer"),
             backend: String::from("Null"),
         }
     }
 
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         _renderer: &mut Self::Renderer,
         _surface: &mut Self::Surface,
         _viewport: &Viewport,
         _background_color: Color,
-        _overlay: &[T],
+        _on_pre_present: impl FnOnce(),
     ) -> Result<(), SurfaceError> {
         Ok(())
     }
 
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         _renderer: &mut Self::Renderer,
         _viewport: &Viewport,
         _background_color: Color,
-        _overlay: &[T],
     ) -> Vec<u8> {
         vec![]
     }

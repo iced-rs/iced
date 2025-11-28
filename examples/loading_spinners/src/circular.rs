@@ -21,7 +21,6 @@ const MIN_ANGLE: Radians = Radians(PI / 8.0);
 const WRAP_ANGLE: Radians = Radians(2.0 * PI - PI / 4.0);
 const BASE_ROTATION_SPEED: u32 = u32::MAX / 80;
 
-#[allow(missing_debug_implementations)]
 pub struct Circular<'a, Theme>
 where
     Theme: StyleSheet,
@@ -253,7 +252,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,

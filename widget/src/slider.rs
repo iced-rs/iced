@@ -80,7 +80,6 @@ use std::ops::RangeInclusive;
 ///     }
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Slider<'a, T, Message, Theme = crate::Theme>
 where
     Theme: Catalog,
@@ -234,7 +233,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
@@ -261,7 +260,7 @@ where
             let locate = |cursor_position: Point| -> Option<T> {
                 let bounds = layout.bounds();
 
-                let new_value = if cursor_position.x <= bounds.x {
+                if cursor_position.x <= bounds.x {
                     Some(*self.range.start())
                 } else if cursor_position.x >= bounds.x + bounds.width {
                     Some(*self.range.end())
@@ -283,9 +282,7 @@ where
                     let value = steps * step + start;
 
                     T::from_f64(value.min(end))
-                };
-
-                new_value
+                }
             };
 
             let increment = |value: T| -> Option<T> {
@@ -361,14 +358,16 @@ where
                             shell.publish(on_release);
                         }
                         state.is_dragging = false;
-
-                        shell.capture_event();
                     }
                 }
                 Event::Mouse(mouse::Event::CursorMoved { .. })
                 | Event::Touch(touch::Event::FingerMoved { .. }) => {
                     if state.is_dragging {
-                        let _ = cursor.position().and_then(locate).map(change);
+                        let _ = cursor
+                            .land()
+                            .position()
+                            .and_then(locate)
+                            .map(change);
 
                         shell.capture_event();
                     }
@@ -398,14 +397,14 @@ where
                         match key {
                             Key::Named(key::Named::ArrowUp) => {
                                 let _ = increment(current_value).map(change);
+                                shell.capture_event();
                             }
                             Key::Named(key::Named::ArrowDown) => {
                                 let _ = decrement(current_value).map(change);
+                                shell.capture_event();
                             }
                             _ => (),
                         }
-
-                        shell.capture_event();
                     }
                 }
                 Event::Keyboard(keyboard::Event::ModifiersChanged(
@@ -532,12 +531,10 @@ where
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let state = tree.state.downcast_ref::<State>();
-        let bounds = layout.bounds();
-        let is_mouse_over = cursor.is_over(bounds);
 
         if state.is_dragging {
             mouse::Interaction::Grabbing
-        } else if is_mouse_over {
+        } else if cursor.is_over(layout.bounds()) {
             mouse::Interaction::Grab
         } else {
             mouse::Interaction::default()

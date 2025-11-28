@@ -129,7 +129,6 @@ use crate::core::{
 ///     column![a, b, c, all].into()
 /// }
 /// ```
-#[allow(missing_debug_implementations)]
 pub struct Radio<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
@@ -290,7 +289,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -308,16 +307,18 @@ where
                     state,
                     renderer,
                     limits,
-                    self.width,
-                    Length::Shrink,
                     &self.label,
-                    self.text_line_height,
-                    self.text_size,
-                    self.font,
-                    alignment::Horizontal::Left,
-                    alignment::Vertical::Top,
-                    self.text_shaping,
-                    self.text_wrapping,
+                    widget::text::Format {
+                        width: self.width,
+                        height: Length::Shrink,
+                        line_height: self.text_line_height,
+                        size: self.text_size,
+                        font: self.font,
+                        align_x: text::Alignment::Default,
+                        align_y: alignment::Vertical::Top,
+                        shaping: self.text_shaping,
+                        wrapping: self.text_wrapping,
+                    },
                 )
             },
         )
@@ -325,7 +326,7 @@ where
 
     fn update(
         &mut self,
-        _state: &mut Tree,
+        _tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -368,7 +369,7 @@ where
 
     fn mouse_interaction(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
@@ -445,8 +446,8 @@ where
             crate::text::draw(
                 renderer,
                 defaults,
-                label_layout,
-                state.0.raw(),
+                label_layout.bounds(),
+                state.raw(),
                 crate::text::Style {
                     color: style.text_color,
                 },

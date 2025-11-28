@@ -4,7 +4,7 @@ use iced::{Center, Element};
 use loupe::loupe;
 
 pub fn main() -> iced::Result {
-    iced::run("Loupe - Iced", Loupe::update, Loupe::view)
+    iced::run(Loupe::update, Loupe::view)
 }
 
 #[derive(Default)]
@@ -30,7 +30,7 @@ impl Loupe {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         center(loupe(
             3.0,
             column![
@@ -96,12 +96,12 @@ mod loupe {
         }
 
         fn layout(
-            &self,
+            &mut self,
             tree: &mut widget::Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.content.as_widget().layout(tree, renderer, limits)
+            self.content.as_widget_mut().layout(tree, renderer, limits)
         }
 
         fn draw(
@@ -146,7 +146,7 @@ mod loupe {
 
         fn mouse_interaction(
             &self,
-            _state: &widget::Tree,
+            _tree: &widget::Tree,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             _viewport: &Rectangle,

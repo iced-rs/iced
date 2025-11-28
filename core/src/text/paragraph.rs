@@ -1,7 +1,9 @@
 //! Draw paragraphs.
 use crate::alignment;
-use crate::text::{Difference, Hit, Span, Text};
-use crate::{Point, Rectangle, Size};
+use crate::text::{
+    Alignment, Difference, Hit, LineHeight, Shaping, Span, Text, Wrapping,
+};
+use crate::{Pixels, Point, Rectangle, Size};
 
 /// A text paragraph.
 pub trait Paragraph: Sized + Default {
@@ -23,11 +25,29 @@ pub trait Paragraph: Sized + Default {
     /// [`Difference`].
     fn compare(&self, text: Text<(), Self::Font>) -> Difference;
 
+    /// Returns the text size of the [`Paragraph`] in [`Pixels`].
+    fn size(&self) -> Pixels;
+
+    /// Returns the font of the [`Paragraph`].
+    fn font(&self) -> Self::Font;
+
+    /// Returns the [`LineHeight`] of the [`Paragraph`].
+    fn line_height(&self) -> LineHeight;
+
     /// Returns the horizontal alignment of the [`Paragraph`].
-    fn horizontal_alignment(&self) -> alignment::Horizontal;
+    fn align_x(&self) -> Alignment;
 
     /// Returns the vertical alignment of the [`Paragraph`].
-    fn vertical_alignment(&self) -> alignment::Vertical;
+    fn align_y(&self) -> alignment::Vertical;
+
+    /// Returns the [`Wrapping`] strategy of the [`Paragraph`]>
+    fn wrapping(&self) -> Wrapping;
+
+    /// Returns the [`Shaping`] strategy of the [`Paragraph`]>
+    fn shaping(&self) -> Shaping;
+
+    /// Returns the available bounds used to layout the [`Paragraph`].
+    fn bounds(&self) -> Size;
 
     /// Returns the minimum boundaries that can fit the contents of the
     /// [`Paragraph`].
@@ -69,52 +89,44 @@ pub struct Plain<P: Paragraph> {
 
 impl<P: Paragraph> Plain<P> {
     /// Creates a new [`Plain`] paragraph.
-    pub fn new(text: Text<&str, P::Font>) -> Self {
-        let content = text.content.to_owned();
-
+    pub fn new(text: Text<String, P::Font>) -> Self {
         Self {
-            raw: P::with_text(text),
-            content,
+            raw: P::with_text(text.as_ref()),
+            content: text.content,
         }
     }
 
     /// Updates the plain [`Paragraph`] to match the given [`Text`], if needed.
-    pub fn update(&mut self, text: Text<&str, P::Font>) {
+    ///
+    /// Returns true if the [`Paragraph`] changed.
+    pub fn update(&mut self, text: Text<&str, P::Font>) -> bool {
         if self.content != text.content {
             text.content.clone_into(&mut self.content);
             self.raw = P::with_text(text);
-            return;
+            return true;
         }
 
-        match self.raw.compare(Text {
-            content: (),
-            bounds: text.bounds,
-            size: text.size,
-            line_height: text.line_height,
-            font: text.font,
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
-            shaping: text.shaping,
-            wrapping: text.wrapping,
-        }) {
-            Difference::None => {}
+        match self.raw.compare(text.with_content(())) {
+            Difference::None => false,
             Difference::Bounds => {
                 self.raw.resize(text.bounds);
+                true
             }
             Difference::Shape => {
                 self.raw = P::with_text(text);
+                true
             }
         }
     }
 
     /// Returns the horizontal alignment of the [`Paragraph`].
-    pub fn horizontal_alignment(&self) -> alignment::Horizontal {
-        self.raw.horizontal_alignment()
+    pub fn align_x(&self) -> Alignment {
+        self.raw.align_x()
     }
 
     /// Returns the vertical alignment of the [`Paragraph`].
-    pub fn vertical_alignment(&self) -> alignment::Vertical {
-        self.raw.vertical_alignment()
+    pub fn align_y(&self) -> alignment::Vertical {
+        self.raw.align_y()
     }
 
     /// Returns the minimum boundaries that can fit the contents of the
@@ -138,5 +150,25 @@ impl<P: Paragraph> Plain<P> {
     /// Returns the cached [`Paragraph`].
     pub fn raw(&self) -> &P {
         &self.raw
+    }
+
+    /// Returns the current content of the plain [`Paragraph`].
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
+    /// Returns the [`Paragraph`] as a [`Text`] definition.
+    pub fn as_text(&self) -> Text<&str, P::Font> {
+        Text {
+            content: &self.content,
+            bounds: self.raw.bounds(),
+            size: self.raw.size(),
+            line_height: self.raw.line_height(),
+            font: self.raw.font(),
+            align_x: self.raw.align_x(),
+            align_y: self.raw.align_y(),
+            shaping: self.raw.shaping(),
+            wrapping: self.raw.wrapping(),
+        }
     }
 }

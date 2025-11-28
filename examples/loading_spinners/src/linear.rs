@@ -12,7 +12,6 @@ use super::easing::{self, Easing};
 
 use std::time::Duration;
 
-#[allow(missing_debug_implementations)]
 pub struct Linear<'a, Theme>
 where
     Theme: StyleSheet,
@@ -167,7 +166,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,

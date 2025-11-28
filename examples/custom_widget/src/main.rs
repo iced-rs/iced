@@ -33,7 +33,7 @@ mod circle {
         }
 
         fn layout(
-            &self,
+            &mut self,
             _tree: &mut widget::Tree,
             _renderer: &Renderer,
             _limits: &layout::Limits,
@@ -43,7 +43,7 @@ mod circle {
 
         fn draw(
             &self,
-            _state: &widget::Tree,
+            _tree: &widget::Tree,
             renderer: &mut Renderer,
             _theme: &Theme,
             _style: &renderer::Style,
@@ -78,7 +78,7 @@ use iced::widget::{center, column, slider, text};
 use iced::{Center, Element};
 
 pub fn main() -> iced::Result {
-    iced::run("Custom Widget - Iced", Example::update, Example::view)
+    iced::run(Example::update, Example::view)
 }
 
 struct Example {
@@ -103,7 +103,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let content = column![
             circle(self.radius),
             text!("Radius: {:.2}", self.radius),

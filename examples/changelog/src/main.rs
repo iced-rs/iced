@@ -12,9 +12,9 @@ use iced::{Center, Element, Fill, FillPortion, Font, Task, Theme};
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application("Changelog Generator", Generator::update, Generator::view)
+    iced::application(Generator::new, Generator::update, Generator::view)
         .theme(Generator::theme)
-        .run_with(Generator::new)
+        .run()
 }
 
 enum Generator {
@@ -44,7 +44,7 @@ enum Message {
         Result<(Changelog, Vec<changelog::Contribution>), changelog::Error>,
     ),
     PullRequestFetched(Result<changelog::PullRequest, changelog::Error>),
-    UrlClicked(markdown::Url),
+    LinkClicked(markdown::Uri),
     TitleChanged(String),
     CategorySelected(changelog::Category),
     Next,
@@ -113,7 +113,7 @@ impl Generator {
 
                 Task::none()
             }
-            Message::UrlClicked(url) => {
+            Message::LinkClicked(url) => {
                 let _ = webbrowser::open(url.as_str());
 
                 Task::none()
@@ -217,7 +217,7 @@ impl Generator {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         match self {
             Self::Loading => center("Loading...").into(),
             Self::Done => center(
@@ -281,7 +281,7 @@ impl Generator {
 
                             let description =
                                 markdown(description, self.theme())
-                                    .map(Message::UrlClicked);
+                                    .map(Message::LinkClicked);
 
                             let labels =
                                 row(pull_request.labels.iter().map(|label| {
@@ -351,7 +351,7 @@ impl Generator {
                                     self.theme(),
                                 ),
                             )
-                            .map(Message::UrlClicked),
+                            .map(Message::LinkClicked),
                         )
                         .spacing(10),
                     )

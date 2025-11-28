@@ -12,10 +12,13 @@ iced.features = ["markdown", "highlighter", "image", "tokio", "debug"]
 reqwest.version = "0.12"
 reqwest.features = ["json"]
 
-image.workspace = true
 tokio.workspace = true
+tokio.features = ["fs"]
 
-open = "5.3"
+image.workspace = true
+url.workspace = true
+
+webbrowser = "1"
 
 # Disabled to keep amount of build dependencies low
 # This can be re-enabled on demand

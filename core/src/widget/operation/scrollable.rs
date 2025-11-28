@@ -28,13 +28,8 @@ pub fn snap_to<T>(target: Id, offset: RelativeOffset) -> impl Operation<T> {
     }
 
     impl<T> Operation<T> for SnapTo {
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
 
         fn scrollable(
@@ -63,13 +58,8 @@ pub fn scroll_to<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
     }
 
     impl<T> Operation<T> for ScrollTo {
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
 
         fn scrollable(
@@ -98,13 +88,8 @@ pub fn scroll_by<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
     }
 
     impl<T> Operation<T> for ScrollBy {
-        fn container(
-            &mut self,
-            _id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-        ) {
-            operate_on_children(self);
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
         }
 
         fn scrollable(

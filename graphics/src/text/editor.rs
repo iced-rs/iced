@@ -73,8 +73,9 @@ impl editor::Editor for Editor {
         buffer.set_text(
             font_system.raw(),
             text,
-            cosmic_text::Attrs::new(),
+            &cosmic_text::Attrs::new(),
             cosmic_text::Shaping::Advanced,
+            None,
         );
 
         Editor(Some(Arc::new(Internal {
@@ -178,10 +179,8 @@ impl editor::Editor for Editor {
                     .get(cursor.line)
                     .expect("Cursor line should be present");
 
-                let layout = line
-                    .layout_opt()
-                    .as_ref()
-                    .expect("Line layout should be cached");
+                let layout =
+                    line.layout_opt().expect("Line layout should be cached");
 
                 let mut lines = layout.iter().enumerate();
 
@@ -323,10 +322,11 @@ impl editor::Editor for Editor {
                 );
 
                 // Deselect if selection matches cursor position
-                if let Some((start, end)) = editor.selection_bounds() {
-                    if start.line == end.line && start.index == end.index {
-                        editor.set_selection(cosmic_text::Selection::None);
-                    }
+                if let Some((start, end)) = editor.selection_bounds()
+                    && start.line == end.line
+                    && start.index == end.index
+                {
+                    editor.set_selection(cosmic_text::Selection::None);
                 }
             }
             Action::SelectWord => {
@@ -369,6 +369,12 @@ impl editor::Editor for Editor {
 
             // Editing events
             Action::Edit(edit) => {
+                let topmost_line_before_edit = editor
+                    .selection_bounds()
+                    .map(|(start, _)| start)
+                    .unwrap_or_else(|| editor.cursor())
+                    .line;
+
                 match edit {
                     Edit::Insert(c) => {
                         editor.action(
@@ -378,6 +384,18 @@ impl editor::Editor for Editor {
                     }
                     Edit::Paste(text) => {
                         editor.insert_string(&text, None);
+                    }
+                    Edit::Indent => {
+                        editor.action(
+                            font_system.raw(),
+                            cosmic_text::Action::Indent,
+                        );
+                    }
+                    Edit::Unindent => {
+                        editor.action(
+                            font_system.raw(),
+                            cosmic_text::Action::Unindent,
+                        );
                     }
                     Edit::Enter => {
                         editor.action(
@@ -405,7 +423,8 @@ impl editor::Editor for Editor {
                     .map(|(start, _)| start)
                     .unwrap_or(cursor);
 
-                internal.topmost_line_changed = Some(selection_start.line);
+                internal.topmost_line_changed =
+                    Some(selection_start.line.min(topmost_line_before_edit));
             }
 
             // Mouse events
@@ -428,16 +447,20 @@ impl editor::Editor for Editor {
                 );
 
                 // Deselect if selection matches cursor position
-                if let Some((start, end)) = editor.selection_bounds() {
-                    if start.line == end.line && start.index == end.index {
-                        editor.set_selection(cosmic_text::Selection::None);
-                    }
+                if let Some((start, end)) = editor.selection_bounds()
+                    && start.line == end.line
+                    && start.index == end.index
+                {
+                    editor.set_selection(cosmic_text::Selection::None);
                 }
             }
             Action::Scroll { lines } => {
                 editor.action(
                     font_system.raw(),
-                    cosmic_text::Action::Scroll { lines },
+                    cosmic_text::Action::Scroll {
+                        pixels: lines as f32
+                            * buffer_from_editor(editor).metrics().line_height,
+                    },
                 );
             }
         }
@@ -452,7 +475,10 @@ impl editor::Editor for Editor {
     fn min_bounds(&self) -> Size {
         let internal = self.internal();
 
-        text::measure(buffer_from_editor(&internal.editor))
+        let (bounds, _has_rtl) =
+            text::measure(buffer_from_editor(&internal.editor));
+
+        bounds
     }
 
     fn update(
@@ -491,7 +517,7 @@ impl editor::Editor for Editor {
 
             for line in buffer.lines.iter_mut() {
                 let _ = line.set_attrs_list(cosmic_text::AttrsList::new(
-                    text::to_attributes(new_font),
+                    &text::to_attributes(new_font),
                 ));
             }
 
@@ -606,7 +632,7 @@ impl editor::Editor for Editor {
         for line in &mut buffer_mut_from_editor(&mut internal.editor).lines
             [current_line..=last_visible_line]
         {
-            let mut list = cosmic_text::AttrsList::new(attributes);
+            let mut list = cosmic_text::AttrsList::new(&attributes);
 
             for (range, highlight) in highlighter.highlight_line(line.text()) {
                 let format = format_highlight(&highlight);
@@ -614,12 +640,12 @@ impl editor::Editor for Editor {
                 if format.color.is_some() || format.font.is_some() {
                     list.add_span(
                         range,
-                        cosmic_text::Attrs {
+                        &cosmic_text::Attrs {
                             color_opt: format.color.map(text::to_color),
                             ..if let Some(font) = format.font {
                                 text::to_attributes(font)
                             } else {
-                                attributes
+                                attributes.clone()
                             }
                         },
                     );
@@ -706,11 +732,7 @@ fn highlight_line(
     from: usize,
     to: usize,
 ) -> impl Iterator<Item = (f32, f32)> + '_ {
-    let layout = line
-        .layout_opt()
-        .as_ref()
-        .map(Vec::as_slice)
-        .unwrap_or_default();
+    let layout = line.layout_opt().map(Vec::as_slice).unwrap_or_default();
 
     layout.iter().map(move |visual_line| {
         let start = visual_line
@@ -761,9 +783,7 @@ fn visual_lines_offset(line: usize, buffer: &cosmic_text::Buffer) -> i32 {
     let visual_lines_offset: usize = buffer.lines[start..]
         .iter()
         .take(end - start)
-        .map(|line| {
-            line.layout_opt().as_ref().map(Vec::len).unwrap_or_default()
-        })
+        .map(|line| line.layout_opt().map(Vec::len).unwrap_or_default())
         .sum();
 
     visual_lines_offset as i32 * if scroll.line < line { 1 } else { -1 }

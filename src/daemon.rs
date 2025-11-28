@@ -1,13 +1,20 @@
 //! Create and run daemons that run in the background.
 use crate::application;
+use crate::message;
 use crate::program::{self, Program};
+use crate::shell;
 use crate::theme;
 use crate::window;
-use crate::{Element, Executor, Font, Result, Settings, Subscription, Task};
+use crate::{
+    Element, Executor, Font, Preset, Result, Settings, Subscription, Task,
+    Theme,
+};
+
+use iced_debug as debug;
 
 use std::borrow::Cow;
 
-/// Creates an iced [`Daemon`] given its title, update, and view logic.
+/// Creates an iced [`Daemon`] given its boot, update, and view logic.
 ///
 /// A [`Daemon`] will not open a window by default, but will run silently
 /// instead until a [`Task`] from [`window::open`] is returned by its update logic.
@@ -18,19 +25,20 @@ use std::borrow::Cow;
 ///
 /// [`exit`]: crate::exit
 pub fn daemon<State, Message, Theme, Renderer>(
-    title: impl Title<State>,
-    update: impl application::Update<State, Message>,
-    view: impl for<'a> self::View<'a, State, Message, Theme, Renderer>,
+    boot: impl application::BootFn<State, Message>,
+    update: impl application::UpdateFn<State, Message>,
+    view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
 ) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
-    Message: Send + std::fmt::Debug + 'static,
-    Theme: Default + theme::Base,
+    Message: Send + 'static,
+    Theme: theme::Base,
     Renderer: program::Renderer,
 {
     use std::marker::PhantomData;
 
-    struct Instance<State, Message, Theme, Renderer, Update, View> {
+    struct Instance<State, Message, Theme, Renderer, Boot, Update, View> {
+        boot: Boot,
         update: Update,
         view: View,
         _state: PhantomData<State>,
@@ -39,14 +47,15 @@ where
         _renderer: PhantomData<Renderer>,
     }
 
-    impl<State, Message, Theme, Renderer, Update, View> Program
-        for Instance<State, Message, Theme, Renderer, Update, View>
+    impl<State, Message, Theme, Renderer, Boot, Update, View> Program
+        for Instance<State, Message, Theme, Renderer, Boot, Update, View>
     where
-        Message: Send + std::fmt::Debug + 'static,
-        Theme: Default + theme::Base,
+        Message: Send + 'static,
+        Theme: theme::Base,
         Renderer: program::Renderer,
-        Update: application::Update<State, Message>,
-        View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
+        Boot: application::BootFn<State, Message>,
+        Update: application::UpdateFn<State, Message>,
+        View: for<'a> self::ViewFn<'a, State, Message, Theme, Renderer>,
     {
         type State = State;
         type Message = Message;
@@ -54,12 +63,30 @@ where
         type Renderer = Renderer;
         type Executor = iced_futures::backend::default::Executor;
 
+        fn name() -> &'static str {
+            let name = std::any::type_name::<State>();
+
+            name.split("::").next().unwrap_or("a_cool_daemon")
+        }
+
+        fn settings(&self) -> Settings {
+            Settings::default()
+        }
+
+        fn window(&self) -> Option<iced_core::window::Settings> {
+            None
+        }
+
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+            self.boot.boot()
+        }
+
         fn update(
             &self,
             state: &mut Self::State,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.update.update(state, message).into()
+            self.update.update(state, message)
         }
 
         fn view<'a>(
@@ -67,12 +94,13 @@ where
             state: &'a Self::State,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.view.view(state, window).into()
+            self.view.view(state, window)
         }
     }
 
     Daemon {
         raw: Instance {
+            boot,
             update,
             view,
             _state: PhantomData,
@@ -81,8 +109,8 @@ where
             _renderer: PhantomData,
         },
         settings: Settings::default(),
+        presets: Vec::new(),
     }
-    .title(title)
 }
 
 /// The underlying definition and configuration of an iced daemon.
@@ -96,31 +124,33 @@ where
 pub struct Daemon<P: Program> {
     raw: P,
     settings: Settings,
+    presets: Vec<Preset<P::State, P::Message>>,
 }
 
 impl<P: Program> Daemon<P> {
     /// Runs the [`Daemon`].
-    ///
-    /// The state of the [`Daemon`] must implement [`Default`].
-    /// If your state does not implement [`Default`], use [`run_with`]
-    /// instead.
-    ///
-    /// [`run_with`]: Self::run_with
     pub fn run(self) -> Result
     where
         Self: 'static,
-        P::State: Default,
+        P::Message: message::MaybeDebug + message::MaybeClone,
     {
-        self.raw.run(self.settings, None)
-    }
+        #[cfg(feature = "debug")]
+        iced_debug::init(iced_debug::Metadata {
+            name: P::name(),
+            theme: None,
+            can_time_travel: cfg!(feature = "time-travel"),
+        });
 
-    /// Runs the [`Daemon`] with a closure that creates the initial state.
-    pub fn run_with<I>(self, initialize: I) -> Result
-    where
-        Self: 'static,
-        I: FnOnce() -> (P::State, Task<P::Message>) + 'static,
-    {
-        self.raw.run_with(self.settings, None, initialize)
+        #[cfg(feature = "tester")]
+        let program = iced_tester::attach(self);
+
+        #[cfg(all(feature = "debug", not(feature = "tester")))]
+        let program = iced_devtools::attach(self);
+
+        #[cfg(not(any(feature = "tester", feature = "debug")))]
+        let program = self;
+
+        Ok(shell::run(program)?)
     }
 
     /// Sets the [`Settings`] that will be used to run the [`Daemon`].
@@ -156,10 +186,10 @@ impl<P: Program> Daemon<P> {
         self
     }
 
-    /// Sets the [`Title`] of the [`Daemon`].
-    pub(crate) fn title(
+    /// Sets the title of the [`Daemon`].
+    pub fn title(
         self,
-        title: impl Title<P::State>,
+        title: impl TitleFn<P::State>,
     ) -> Daemon<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
@@ -168,6 +198,7 @@ impl<P: Program> Daemon<P> {
                 title.title(state, window)
             }),
             settings: self.settings,
+            presets: self.presets,
         }
     }
 
@@ -181,19 +212,23 @@ impl<P: Program> Daemon<P> {
         Daemon {
             raw: program::with_subscription(self.raw, f),
             settings: self.settings,
+            presets: self.presets,
         }
     }
 
     /// Sets the theme logic of the [`Daemon`].
     pub fn theme(
         self,
-        f: impl Fn(&P::State, window::Id) -> P::Theme,
+        f: impl ThemeFn<P::State, P::Theme>,
     ) -> Daemon<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
-            raw: program::with_theme(self.raw, f),
+            raw: program::with_theme(self.raw, move |state, window| {
+                f.theme(state, window)
+            }),
             settings: self.settings,
+            presets: self.presets,
         }
     }
 
@@ -207,19 +242,21 @@ impl<P: Program> Daemon<P> {
         Daemon {
             raw: program::with_style(self.raw, f),
             settings: self.settings,
+            presets: self.presets,
         }
     }
 
     /// Sets the scale factor of the [`Daemon`].
     pub fn scale_factor(
         self,
-        f: impl Fn(&P::State, window::Id) -> f64,
+        f: impl Fn(&P::State, window::Id) -> f32,
     ) -> Daemon<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
         Daemon {
             raw: program::with_scale_factor(self.raw, f),
             settings: self.settings,
+            presets: self.presets,
         }
     }
 
@@ -235,7 +272,91 @@ impl<P: Program> Daemon<P> {
         Daemon {
             raw: program::with_executor::<P, E>(self.raw),
             settings: self.settings,
+            presets: self.presets,
         }
+    }
+
+    /// Sets the boot presets of the [`Daemon`].
+    ///
+    /// Presets can be used to override the default booting strategy
+    /// of your application during testing to create reproducible
+    /// environments.
+    pub fn presets(
+        self,
+        presets: impl IntoIterator<Item = Preset<P::State, P::Message>>,
+    ) -> Self {
+        Self {
+            presets: presets.into_iter().collect(),
+            ..self
+        }
+    }
+}
+
+impl<P: Program> Program for Daemon<P> {
+    type State = P::State;
+    type Message = P::Message;
+    type Theme = P::Theme;
+    type Renderer = P::Renderer;
+    type Executor = P::Executor;
+
+    fn name() -> &'static str {
+        P::name()
+    }
+
+    fn settings(&self) -> Settings {
+        self.settings.clone()
+    }
+
+    fn window(&self) -> Option<window::Settings> {
+        None
+    }
+
+    fn boot(&self) -> (Self::State, Task<Self::Message>) {
+        self.raw.boot()
+    }
+
+    fn update(
+        &self,
+        state: &mut Self::State,
+        message: Self::Message,
+    ) -> Task<Self::Message> {
+        debug::hot(|| self.raw.update(state, message))
+    }
+
+    fn view<'a>(
+        &self,
+        state: &'a Self::State,
+        window: window::Id,
+    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        debug::hot(|| self.raw.view(state, window))
+    }
+
+    fn title(&self, state: &Self::State, window: window::Id) -> String {
+        debug::hot(|| self.raw.title(state, window))
+    }
+
+    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+        debug::hot(|| self.raw.subscription(state))
+    }
+
+    fn theme(
+        &self,
+        state: &Self::State,
+        window: iced_core::window::Id,
+    ) -> Option<Self::Theme> {
+        debug::hot(|| self.raw.theme(state, window))
+    }
+
+    fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
+        debug::hot(|| self.raw.style(state, theme))
+    }
+
+    fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
+        debug::hot(|| self.raw.scale_factor(state, window))
+    }
+
+    fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
+        &self.presets
     }
 }
 
@@ -245,18 +366,18 @@ impl<P: Program> Daemon<P> {
 /// any closure `Fn(&State, window::Id) -> String`.
 ///
 /// This trait allows the [`daemon`] builder to take any of them.
-pub trait Title<State> {
+pub trait TitleFn<State> {
     /// Produces the title of the [`Daemon`].
     fn title(&self, state: &State, window: window::Id) -> String;
 }
 
-impl<State> Title<State> for &'static str {
+impl<State> TitleFn<State> for &'static str {
     fn title(&self, _state: &State, _window: window::Id) -> String {
         self.to_string()
     }
 }
 
-impl<T, State> Title<State> for T
+impl<T, State> TitleFn<State> for T
 where
     T: Fn(&State, window::Id) -> String,
 {
@@ -269,17 +390,17 @@ where
 ///
 /// This trait allows the [`daemon`] builder to take any closure that
 /// returns any `Into<Element<'_, Message>>`.
-pub trait View<'a, State, Message, Theme, Renderer> {
+pub trait ViewFn<'a, State, Message, Theme, Renderer> {
     /// Produces the widget of the [`Daemon`].
     fn view(
         &self,
         state: &'a State,
         window: window::Id,
-    ) -> impl Into<Element<'a, Message, Theme, Renderer>>;
+    ) -> Element<'a, Message, Theme, Renderer>;
 }
 
 impl<'a, T, State, Message, Theme, Renderer, Widget>
-    View<'a, State, Message, Theme, Renderer> for T
+    ViewFn<'a, State, Message, Theme, Renderer> for T
 where
     T: Fn(&'a State, window::Id) -> Widget,
     State: 'static,
@@ -289,7 +410,39 @@ where
         &self,
         state: &'a State,
         window: window::Id,
-    ) -> impl Into<Element<'a, Message, Theme, Renderer>> {
-        self(state, window)
+    ) -> Element<'a, Message, Theme, Renderer> {
+        self(state, window).into()
+    }
+}
+
+/// The theme logic of some [`Daemon`].
+///
+/// Any implementors of this trait can be provided as an argument to
+/// [`Daemon::theme`].
+///
+/// `iced` provides two implementors:
+/// - the built-in [`Theme`] itself
+/// - and any `Fn(&State, window::Id) -> impl Into<Option<Theme>>`.
+pub trait ThemeFn<State, Theme> {
+    /// Returns the theme of the [`Daemon`] for the current state and window.
+    ///
+    /// If `None` is returned, `iced` will try to use a theme that
+    /// matches the system color scheme.
+    fn theme(&self, state: &State, window: window::Id) -> Option<Theme>;
+}
+
+impl<State> ThemeFn<State, Theme> for Theme {
+    fn theme(&self, _state: &State, _window: window::Id) -> Option<Theme> {
+        Some(self.clone())
+    }
+}
+
+impl<F, T, State, Theme> ThemeFn<State, Theme> for F
+where
+    F: Fn(&State, window::Id) -> T,
+    T: Into<Option<Theme>>,
+{
+    fn theme(&self, state: &State, window: window::Id) -> Option<Theme> {
+        (self)(state, window).into()
     }
 }

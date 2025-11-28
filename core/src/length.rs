@@ -37,8 +37,8 @@ impl Length {
         }
     }
 
-    /// Returns `true` iff the [`Length`] is either [`Length::Fill`] or
-    // [`Length::FillPortion`].
+    /// Returns `true` if the [`Length`] is either [`Length::Fill`] or
+    /// [`Length::FillPortion`].
     pub fn is_fill(&self) -> bool {
         self.fill_factor() != 0
     }
@@ -57,6 +57,7 @@ impl Length {
 
     /// Adapts the [`Length`] so it can contain the other [`Length`] and
     /// match its fluidity.
+    #[inline]
     pub fn enclose(self, other: Length) -> Self {
         match (self, other) {
             (Length::Shrink, Length::Fill | Length::FillPortion(_)) => other,

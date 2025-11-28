@@ -18,25 +18,16 @@ use std::sync::Arc;
 /// A piece of logic that can traverse the widget tree of an application in
 /// order to query or update some widget state.
 pub trait Operation<T = ()>: Send {
-    /// Operates on a widget that contains other widgets.
+    /// Requests further traversal of the widget tree to keep operating.
     ///
-    /// The `operate_on_children` function can be called to return control to
-    /// the widget tree and keep traversing it.
-    fn container(
-        &mut self,
-        id: Option<&Id>,
-        bounds: Rectangle,
-        operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-    );
+    /// The provided `operate` closure may be called by an [`Operation`]
+    /// to return control to the widget tree and keep traversing it. If
+    /// the closure is not called, the children of the widget asking for
+    /// traversal will be skipped.
+    fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>));
 
-    /// Operates on a widget that can be focused.
-    fn focusable(
-        &mut self,
-        _id: Option<&Id>,
-        _bounds: Rectangle,
-        _state: &mut dyn Focusable,
-    ) {
-    }
+    /// Operates on a widget that contains other widgets.
+    fn container(&mut self, _id: Option<&Id>, _bounds: Rectangle) {}
 
     /// Operates on a widget that can be scrolled.
     fn scrollable(
@@ -46,6 +37,15 @@ pub trait Operation<T = ()>: Send {
         _content_bounds: Rectangle,
         _translation: Vector,
         _state: &mut dyn Scrollable,
+    ) {
+    }
+
+    /// Operates on a widget that can be focused.
+    fn focusable(
+        &mut self,
+        _id: Option<&Id>,
+        _bounds: Rectangle,
+        _state: &mut dyn Focusable,
     ) {
     }
 
@@ -80,13 +80,12 @@ impl<T, O> Operation<O> for Box<T>
 where
     T: Operation<O> + ?Sized,
 {
-    fn container(
-        &mut self,
-        id: Option<&Id>,
-        bounds: Rectangle,
-        operate_on_children: &mut dyn FnMut(&mut dyn Operation<O>),
-    ) {
-        self.as_mut().container(id, bounds, operate_on_children);
+    fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<O>)) {
+        self.as_mut().traverse(operate);
+    }
+
+    fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
+        self.as_mut().container(id, bounds);
     }
 
     fn focusable(
@@ -179,15 +178,17 @@ where
     }
 
     impl<T, O> Operation<O> for BlackBox<'_, T> {
-        fn container(
-            &mut self,
-            id: Option<&Id>,
-            bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<O>),
-        ) {
-            self.operation.container(id, bounds, &mut |operation| {
-                operate_on_children(&mut BlackBox { operation });
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<O>))
+        where
+            Self: Sized,
+        {
+            self.operation.traverse(&mut |operation| {
+                operate(&mut BlackBox { operation });
             });
+        }
+
+        fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
+            self.operation.container(id, bounds);
         }
 
         fn focusable(
@@ -255,7 +256,6 @@ where
     A: 'static,
     B: 'static,
 {
-    #[allow(missing_debug_implementations)]
     struct Map<O, A, B> {
         operation: O,
         f: Arc<dyn Fn(A) -> B + Send + Sync>,
@@ -267,28 +267,25 @@ where
         A: 'static,
         B: 'static,
     {
-        fn container(
-            &mut self,
-            id: Option<&Id>,
-            bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<B>),
-        ) {
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<B>)) {
             struct MapRef<'a, A> {
                 operation: &'a mut dyn Operation<A>,
             }
 
             impl<A, B> Operation<B> for MapRef<'_, A> {
-                fn container(
+                fn traverse(
                     &mut self,
-                    id: Option<&Id>,
-                    bounds: Rectangle,
-                    operate_on_children: &mut dyn FnMut(&mut dyn Operation<B>),
+                    operate: &mut dyn FnMut(&mut dyn Operation<B>),
                 ) {
+                    self.operation.traverse(&mut |operation| {
+                        operate(&mut MapRef { operation });
+                    });
+                }
+
+                fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
                     let Self { operation, .. } = self;
 
-                    operation.container(id, bounds, &mut |operation| {
-                        operate_on_children(&mut MapRef { operation });
-                    });
+                    operation.container(id, bounds);
                 }
 
                 fn scrollable(
@@ -345,9 +342,13 @@ where
                 }
             }
 
-            let Self { operation, .. } = self;
+            self.operation.traverse(&mut |operation| {
+                operate(&mut MapRef { operation });
+            });
+        }
 
-            MapRef { operation }.container(id, bounds, operate_on_children);
+        fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
+            self.operation.container(id, bounds);
         }
 
         fn focusable(
@@ -444,15 +445,14 @@ where
         A: 'static,
         B: Send + 'static,
     {
-        fn container(
-            &mut self,
-            id: Option<&Id>,
-            bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<B>),
-        ) {
-            self.operation.container(id, bounds, &mut |operation| {
-                operate_on_children(&mut black_box(operation));
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<B>)) {
+            self.operation.traverse(&mut |operation| {
+                operate(&mut black_box(operation));
             });
+        }
+
+        fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
+            self.operation.container(id, bounds);
         }
 
         fn focusable(
@@ -531,21 +531,26 @@ pub fn scope<T: 'static>(
 ) -> impl Operation<T> {
     struct ScopedOperation<Message> {
         target: Id,
+        current: Option<Id>,
         operation: Box<dyn Operation<Message>>,
     }
 
     impl<Message: 'static> Operation<Message> for ScopedOperation<Message> {
-        fn container(
+        fn traverse(
             &mut self,
-            id: Option<&Id>,
-            _bounds: Rectangle,
-            operate_on_children: &mut dyn FnMut(&mut dyn Operation<Message>),
+            operate: &mut dyn FnMut(&mut dyn Operation<Message>),
         ) {
-            if id == Some(&self.target) {
-                operate_on_children(self.operation.as_mut());
+            if self.current.as_ref() == Some(&self.target) {
+                self.operation.as_mut().traverse(operate);
             } else {
-                operate_on_children(self);
+                operate(self);
             }
+
+            self.current = None;
+        }
+
+        fn container(&mut self, id: Option<&Id>, _bounds: Rectangle) {
+            self.current = id.cloned();
         }
 
         fn finish(&self) -> Outcome<Message> {
@@ -553,6 +558,7 @@ pub fn scope<T: 'static>(
                 Outcome::Chain(next) => {
                     Outcome::Chain(Box::new(ScopedOperation {
                         target: self.target.clone(),
+                        current: None,
                         operation: next,
                     }))
                 }
@@ -563,6 +569,7 @@ pub fn scope<T: 'static>(
 
     ScopedOperation {
         target,
+        current: None,
         operation: Box::new(operation),
     }
 }

@@ -3,7 +3,6 @@ use crate::core::{Point, Radians, Rectangle, Size, Vector};
 use crate::geometry::{self, Fill, Image, Path, Stroke, Svg, Text};
 
 /// The region of a surface that can be used to draw geometry.
-#[allow(missing_debug_implementations)]
 pub struct Frame<Renderer>
 where
     Renderer: geometry::Renderer,
@@ -16,9 +15,17 @@ where
     Renderer: geometry::Renderer,
 {
     /// Creates a new [`Frame`] with the given dimensions.
+    ///
+    /// Any geometry drawn outside of the dimensions will be clipped.
+    /// If you need further control, use [`with_bounds`](Self::with_bounds).
     pub fn new(renderer: &Renderer, size: Size) -> Self {
+        Self::with_bounds(renderer, Rectangle::with_size(size))
+    }
+
+    /// Creates a new [`Frame`] with the given clip bounds.
+    pub fn with_bounds(renderer: &Renderer, bounds: Rectangle) -> Self {
         Self {
-            raw: renderer.new_frame(size),
+            raw: renderer.new_frame(bounds),
         }
     }
 
@@ -217,6 +224,11 @@ pub trait Backend: Sized {
         size: Size,
         stroke: impl Into<Stroke<'a>>,
     );
+    fn stroke_text<'a>(
+        &mut self,
+        text: impl Into<Text>,
+        stroke: impl Into<Stroke<'a>>,
+    );
 
     fn fill(&mut self, path: &Path, fill: impl Into<Fill>);
     fn fill_text(&mut self, text: impl Into<Text>);
@@ -269,6 +281,12 @@ impl Backend for () {
         &mut self,
         _top_left: Point,
         _size: Size,
+        _stroke: impl Into<Stroke<'a>>,
+    ) {
+    }
+    fn stroke_text<'a>(
+        &mut self,
+        _text: impl Into<Text>,
         _stroke: impl Into<Stroke<'a>>,
     ) {
     }

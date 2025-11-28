@@ -1,13 +1,9 @@
+use iced::system;
 use iced::widget::{button, center, column, text};
-use iced::{Element, Task, system};
+use iced::{Element, Task};
 
 pub fn main() -> iced::Result {
-    iced::application(
-        "System Information - Iced",
-        Example::update,
-        Example::view,
-    )
-    .run_with(Example::new)
+    iced::application(Example::new, Example::update, Example::view).run()
 }
 
 #[derive(Default)]
@@ -31,7 +27,7 @@ impl Example {
     fn new() -> (Self, Task<Message>) {
         (
             Self::Loading,
-            system::fetch_information().map(Message::InformationReceived),
+            system::information().map(Message::InformationReceived),
         )
     }
 
@@ -52,7 +48,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         use bytesize::ByteSize;
 
         let content: Element<_> = match self {

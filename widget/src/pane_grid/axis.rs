@@ -17,12 +17,20 @@ impl Axis {
         rectangle: &Rectangle,
         ratio: f32,
         spacing: f32,
-    ) -> (Rectangle, Rectangle) {
+        min_size_a: f32,
+        min_size_b: f32,
+    ) -> (Rectangle, Rectangle, f32) {
         match self {
             Axis::Horizontal => {
-                let height_top =
-                    (rectangle.height * ratio - spacing / 2.0).round();
-                let height_bottom = rectangle.height - height_top - spacing;
+                let height_top = (rectangle.height * ratio - spacing / 2.0)
+                    .round()
+                    .max(min_size_a)
+                    .min(rectangle.height - min_size_b - spacing);
+
+                let height_bottom =
+                    (rectangle.height - height_top - spacing).max(min_size_b);
+
+                let ratio = (height_top + spacing / 2.0) / rectangle.height;
 
                 (
                     Rectangle {
@@ -34,12 +42,19 @@ impl Axis {
                         height: height_bottom,
                         ..*rectangle
                     },
+                    ratio,
                 )
             }
             Axis::Vertical => {
-                let width_left =
-                    (rectangle.width * ratio - spacing / 2.0).round();
-                let width_right = rectangle.width - width_left - spacing;
+                let width_left = (rectangle.width * ratio - spacing / 2.0)
+                    .round()
+                    .max(min_size_a)
+                    .min(rectangle.width - min_size_b - spacing);
+
+                let width_right =
+                    (rectangle.width - width_left - spacing).max(min_size_b);
+
+                let ratio = (width_left + spacing / 2.0) / rectangle.width;
 
                 (
                     Rectangle {
@@ -51,6 +66,7 @@ impl Axis {
                         width: width_right,
                         ..*rectangle
                     },
+                    ratio,
                 )
             }
         }
@@ -187,7 +203,8 @@ mod tests {
                         width: 10.0,
                         height: overall_height,
                     };
-                    let (top, bottom) = a.split(&r, 0.5, spacing);
+                    let (top, bottom, _ratio) =
+                        a.split(&r, 0.5, spacing, 0.0, 0.0);
                     assert_eq!(
                         top,
                         Rectangle {
@@ -218,7 +235,8 @@ mod tests {
                         width: overall_width,
                         height: 10.0,
                     };
-                    let (left, right) = a.split(&r, 0.5, spacing);
+                    let (left, right, _ratio) =
+                        a.split(&r, 0.5, spacing, 0.0, 0.0);
                     assert_eq!(
                         left,
                         Rectangle {

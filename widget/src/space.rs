@@ -1,10 +1,26 @@
-//! Distribute content vertically.
+//! Add some explicit spacing between elements.
 use crate::core;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{Element, Layout, Length, Rectangle, Size, Widget};
+
+/// Creates a new [`Space`] widget that fills the available
+/// horizontal space.
+///
+/// This can be useful to separate widgets in a [`Row`](crate::Row).
+pub fn horizontal() -> Space {
+    Space::new().width(Length::Fill)
+}
+
+/// Creates a new [`Space`] widget that fills the available
+/// vertical space.
+///
+/// This can be useful to separate widgets in a [`Column`](crate::Column).
+pub fn vertical() -> Space {
+    Space::new().height(Length::Fill)
+}
 
 /// An amount of empty space.
 ///
@@ -16,27 +32,11 @@ pub struct Space {
 }
 
 impl Space {
-    /// Creates an amount of empty [`Space`] with the given width and height.
-    pub fn new(width: impl Into<Length>, height: impl Into<Length>) -> Self {
-        Space {
-            width: width.into(),
-            height: height.into(),
-        }
-    }
-
-    /// Creates an amount of horizontal [`Space`].
-    pub fn with_width(width: impl Into<Length>) -> Self {
-        Space {
-            width: width.into(),
-            height: Length::Shrink,
-        }
-    }
-
-    /// Creates an amount of vertical [`Space`].
-    pub fn with_height(height: impl Into<Length>) -> Self {
+    /// Creates some empty [`Space`] with no size.
+    pub fn new() -> Self {
         Space {
             width: Length::Shrink,
-            height: height.into(),
+            height: Length::Shrink,
         }
     }
 
@@ -53,6 +53,12 @@ impl Space {
     }
 }
 
+impl Default for Space {
+    fn default() -> Self {
+        Space::new()
+    }
+}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Space
 where
     Renderer: core::Renderer,
@@ -65,7 +71,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
@@ -75,7 +81,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         _renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,

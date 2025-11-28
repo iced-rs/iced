@@ -1,5 +1,5 @@
 use iced::mouse;
-use iced::time::{self, Instant, milliseconds};
+use iced::time::{self, milliseconds};
 use iced::widget::canvas;
 use iced::{
     Color, Element, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme,
@@ -10,9 +10,8 @@ use std::cell::RefCell;
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application("The Matrix - Iced", TheMatrix::update, TheMatrix::view)
+    iced::application(TheMatrix::default, TheMatrix::update, TheMatrix::view)
         .subscription(TheMatrix::subscription)
-        .antialiasing(true)
         .run()
 }
 
@@ -23,24 +22,24 @@ struct TheMatrix {
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    Tick(Instant),
+    Tick,
 }
 
 impl TheMatrix {
     fn update(&mut self, message: Message) {
         match message {
-            Message::Tick(_now) => {
+            Message::Tick => {
                 self.tick += 1;
             }
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         canvas(self).width(Fill).height(Fill).into()
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(milliseconds(50)).map(Message::Tick)
+        time::every(milliseconds(50)).map(|_| Message::Tick)
     }
 }
 

@@ -4,7 +4,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::{Paragraph, Span};
 use crate::core::widget::text::{
-    self, Catalog, LineHeight, Shaping, Style, StyleFn, Wrapping,
+    self, Alignment, Catalog, LineHeight, Shaping, Style, StyleFn, Wrapping,
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
@@ -13,7 +13,6 @@ use crate::core::{
 };
 
 /// A bunch of [`Rich`] text.
-#[allow(missing_debug_implementations)]
 pub struct Rich<
     'a,
     Link,
@@ -31,7 +30,7 @@ pub struct Rich<
     width: Length,
     height: Length,
     font: Option<Renderer::Font>,
-    align_x: alignment::Horizontal,
+    align_x: Alignment,
     align_y: alignment::Vertical,
     wrapping: Wrapping,
     class: Theme::Class<'a>,
@@ -56,7 +55,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             font: None,
-            align_x: alignment::Horizontal::Left,
+            align_x: Alignment::Default,
             align_y: alignment::Vertical::Top,
             wrapping: Wrapping::default(),
             class: Theme::default(),
@@ -112,10 +111,7 @@ where
     }
 
     /// Sets the [`alignment::Horizontal`] of the [`Rich`] text.
-    pub fn align_x(
-        mut self,
-        alignment: impl Into<alignment::Horizontal>,
-    ) -> Self {
+    pub fn align_x(mut self, alignment: impl Into<Alignment>) -> Self {
         self.align_x = alignment.into();
         self
     }
@@ -137,11 +133,15 @@ where
 
     /// Sets the message that will be produced when a link of the [`Rich`] text
     /// is clicked.
+    ///
+    /// If the spans of the [`Rich`] text contain no links, you may need to call
+    /// this method with `on_link_click(never)` in order for the compiler to infer
+    /// the proper `Link` generic type.
     pub fn on_link_click(
         mut self,
-        on_link_clicked: impl Fn(Link) -> Message + 'a,
+        on_link_click: impl Fn(Link) -> Message + 'a,
     ) -> Self {
-        self.on_link_click = Some(Box::new(on_link_clicked));
+        self.on_link_click = Some(Box::new(on_link_click));
         self
     }
 
@@ -228,7 +228,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -291,10 +291,7 @@ where
                                     span.padding.top,
                                 ),
                             bounds.size()
-                                + Size::new(
-                                    span.padding.horizontal(),
-                                    span.padding.vertical(),
-                                ),
+                                + Size::new(span.padding.x(), span.padding.y()),
                         );
 
                         renderer.fill_quad(
@@ -368,7 +365,7 @@ where
         text::draw(
             renderer,
             defaults,
-            layout,
+            layout.bounds(),
             &state.paragraph,
             style,
             viewport,
@@ -476,8 +473,8 @@ fn layout<Link, Renderer>(
     line_height: LineHeight,
     size: Option<Pixels>,
     font: Option<Renderer::Font>,
-    horizontal_alignment: alignment::Horizontal,
-    vertical_alignment: alignment::Vertical,
+    align_x: Alignment,
+    align_y: alignment::Vertical,
     wrapping: Wrapping,
 ) -> layout::Node
 where
@@ -496,8 +493,8 @@ where
             size,
             line_height,
             font,
-            horizontal_alignment,
-            vertical_alignment,
+            align_x,
+            align_y,
             shaping: Shaping::Advanced,
             wrapping,
         };
@@ -513,8 +510,8 @@ where
                 size,
                 line_height,
                 font,
-                horizontal_alignment,
-                vertical_alignment,
+                align_x,
+                align_y,
                 shaping: Shaping::Advanced,
                 wrapping,
             }) {

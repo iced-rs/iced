@@ -4,7 +4,7 @@ use iced::window;
 use iced::{Center, Element, Fill, Subscription, Task};
 
 pub fn main() -> iced::Result {
-    iced::application("Events - Iced", Events::update, Events::view)
+    iced::application(Events::default, Events::update, Events::view)
         .subscription(Events::subscription)
         .exit_on_close_request(false)
         .run()
@@ -37,7 +37,7 @@ impl Events {
             }
             Message::EventOccurred(event) => {
                 if let Event::Window(window::Event::CloseRequested) = event {
-                    window::get_latest().and_then(window::close)
+                    window::latest().and_then(window::close)
                 } else {
                     Task::none()
                 }
@@ -47,7 +47,7 @@ impl Events {
 
                 Task::none()
             }
-            Message::Exit => window::get_latest().and_then(window::close),
+            Message::Exit => window::latest().and_then(window::close),
         }
     }
 
@@ -55,7 +55,7 @@ impl Events {
         event::listen().map(Message::EventOccurred)
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let events = Column::with_children(
             self.last
                 .iter()
@@ -63,7 +63,8 @@ impl Events {
                 .map(Element::from),
         );
 
-        let toggle = checkbox("Listen to runtime events", self.enabled)
+        let toggle = checkbox(self.enabled)
+            .label("Listen to runtime events")
             .on_toggle(Message::Toggled);
 
         let exit = button(text("Exit").width(Fill).align_x(Center))

@@ -2,7 +2,7 @@ use iced::widget::{column, container, iced, slider, text, vertical_slider};
 use iced::{Center, Element, Fill};
 
 pub fn main() -> iced::Result {
-    iced::run("Slider - Iced", Slider::update, Slider::view)
+    iced::run(Slider::update, Slider::view)
 }
 
 #[derive(Debug, Clone)]
@@ -27,7 +27,7 @@ impl Slider {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let h_slider = container(
             slider(1..=100, self.value, Message::SliderChanged)
                 .default(50)

@@ -2,6 +2,7 @@
 #[cfg(debug_assertions)]
 mod null;
 
+use crate::image;
 use crate::{
     Background, Border, Color, Font, Pixels, Rectangle, Shadow, Size,
     Transformation, Vector,
@@ -60,8 +61,17 @@ pub trait Renderer {
     /// Fills a [`Quad`] with the provided [`Background`].
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
 
-    /// Clears all of the recorded primitives in the [`Renderer`].
-    fn clear(&mut self);
+    /// Resets the [`Renderer`] to start drawing in the `new_bounds` from scratch.
+    fn reset(&mut self, new_bounds: Rectangle);
+
+    /// Creates an [`image::Allocation`] for the given [`image::Handle`] and calls the given callback with it.
+    fn allocate_image(
+        &mut self,
+        handle: &image::Handle,
+        callback: impl FnOnce(Result<image::Allocation, image::Error>)
+        + Send
+        + 'static,
+    );
 }
 
 /// A polygon with four sides.
@@ -75,6 +85,9 @@ pub struct Quad {
 
     /// The [`Shadow`] of the [`Quad`].
     pub shadow: Shadow,
+
+    /// Whether the [`Quad`] should be snapped to the pixel grid.
+    pub snap: bool,
 }
 
 impl Default for Quad {
@@ -83,6 +96,7 @@ impl Default for Quad {
             bounds: Rectangle::with_size(Size::ZERO),
             border: Border::default(),
             shadow: Shadow::default(),
+            snap: cfg!(feature = "crisp"),
         }
     }
 }
@@ -106,7 +120,19 @@ impl Default for Style {
 /// a window nor a compositor.
 pub trait Headless {
     /// Creates a new [`Headless`] renderer;
-    fn new(default_font: Font, default_text_size: Pixels) -> Self;
+    fn new(
+        default_font: Font,
+        default_text_size: Pixels,
+        backend: Option<&str>,
+    ) -> impl Future<Output = Option<Self>>
+    where
+        Self: Sized;
+
+    /// Returns the unique name of the renderer.
+    ///
+    /// This name may be used by testing libraries to uniquely identify
+    /// snapshots.
+    fn name(&self) -> String;
 
     /// Draws offscreen into a screenshot, returning a collection of
     /// bytes representing the rendered pixels in RGBA order.

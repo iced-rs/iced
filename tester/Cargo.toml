@@ -1,0 +1,20 @@
+[package]
+name = "iced_tester"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+iced_test.workspace = true
+iced_widget.workspace = true
+log.workspace = true
+rfd.workspace = true
+
+[lints]
+workspace = true

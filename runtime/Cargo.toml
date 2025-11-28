@@ -10,19 +10,22 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[features]
+selector = ["dep:iced_selector"]
+
 [lints]
 workspace = true
-
-[features]
-debug = []
-multi-window = []
 
 [dependencies]
 bytes.workspace = true
 iced_core.workspace = true
 iced_futures.workspace = true
-iced_futures.features = ["thread-pool"]
 
 raw-window-handle.workspace = true
-sipper.workspace = true
 thiserror.workspace = true
+
+sipper.workspace = true
+sipper.optional = true
+
+iced_selector.workspace = true
+iced_selector.optional = true

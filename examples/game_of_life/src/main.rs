@@ -14,16 +14,11 @@ use iced::{Center, Element, Fill, Function, Subscription, Task, Theme};
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application(
-        "Game of Life - Iced",
-        GameOfLife::update,
-        GameOfLife::view,
-    )
-    .subscription(GameOfLife::subscription)
-    .theme(|_| Theme::Dark)
-    .antialiasing(true)
-    .centered()
-    .run()
+    iced::application(GameOfLife::default, GameOfLife::update, GameOfLife::view)
+        .subscription(GameOfLife::subscription)
+        .theme(Theme::Dark)
+        .centered()
+        .run()
 }
 
 struct GameOfLife {
@@ -116,7 +111,7 @@ impl GameOfLife {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let version = self.version;
         let selected_speed = self.next_speed.unwrap_or(self.speed);
         let controls = view_controls(
@@ -167,7 +162,9 @@ fn view_controls<'a>(
     row![
         playback_controls,
         speed_controls,
-        checkbox("Grid", is_grid_enabled).on_toggle(Message::ToggleGrid),
+        checkbox(is_grid_enabled)
+            .label("Grid")
+            .on_toggle(Message::ToggleGrid),
         row![
             pick_list(preset::ALL, Some(preset), Message::PresetPicked),
             button("Clear")
@@ -192,6 +189,7 @@ mod grid {
     use iced::widget::canvas::{
         Cache, Canvas, Event, Frame, Geometry, Path, Text,
     };
+    use iced::widget::text;
     use iced::{
         Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
@@ -324,7 +322,7 @@ mod grid {
             }
         }
 
-        pub fn view(&self) -> Element<Message> {
+        pub fn view(&self) -> Element<'_, Message> {
             Canvas::new(self).width(Fill).height(Fill).into()
         }
 
@@ -580,8 +578,8 @@ mod grid {
                     color: Color::WHITE,
                     size: 14.0.into(),
                     position: Point::new(frame.width(), frame.height()),
-                    horizontal_alignment: alignment::Horizontal::Right,
-                    vertical_alignment: alignment::Vertical::Bottom,
+                    align_x: text::Alignment::Right,
+                    align_y: alignment::Vertical::Bottom,
                     ..Text::default()
                 };
 
@@ -886,16 +884,15 @@ mod grid {
         }
     }
 
+    #[derive(Default)]
     pub enum Interaction {
+        #[default]
         None,
         Drawing,
         Erasing,
-        Panning { translation: Vector, start: Point },
-    }
-
-    impl Default for Interaction {
-        fn default() -> Self {
-            Self::None
-        }
+        Panning {
+            translation: Vector,
+            start: Point,
+        },
     }
 }

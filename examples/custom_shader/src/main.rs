@@ -9,13 +9,9 @@ use iced::window;
 use iced::{Center, Color, Element, Fill, Subscription};
 
 fn main() -> iced::Result {
-    iced::application(
-        "Custom Shader - Iced",
-        IcedCubes::update,
-        IcedCubes::view,
-    )
-    .subscription(IcedCubes::subscription)
-    .run()
+    iced::application(IcedCubes::default, IcedCubes::update, IcedCubes::view)
+        .subscription(IcedCubes::subscription)
+        .run()
 }
 
 struct IcedCubes {
@@ -77,7 +73,8 @@ impl IcedCubes {
                     .step(0.01)
                     .width(100),
             ),
-            checkbox("Show Depth Buffer", self.scene.show_depth_buffer)
+            checkbox(self.scene.show_depth_buffer)
+                .label("Show Depth Buffer")
                 .on_toggle(Message::ShowDepthBuffer),
         ]
         .spacing(40);

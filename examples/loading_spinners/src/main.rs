@@ -12,11 +12,10 @@ use linear::Linear;
 
 pub fn main() -> iced::Result {
     iced::application(
-        "Loading Spinners - Iced",
+        LoadingSpinners::default,
         LoadingSpinners::update,
         LoadingSpinners::view,
     )
-    .antialiasing(true)
     .run()
 }
 
@@ -38,7 +37,7 @@ impl LoadingSpinners {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let column = [
             &easing::EMPHASIZED,
             &easing::EMPHASIZED_DECELERATE,

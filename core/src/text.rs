@@ -34,10 +34,10 @@ pub struct Text<Content = String, Font = crate::Font> {
     pub font: Font,
 
     /// The horizontal alignment of the [`Text`].
-    pub horizontal_alignment: alignment::Horizontal,
+    pub align_x: Alignment,
 
     /// The vertical alignment of the [`Text`].
-    pub vertical_alignment: alignment::Vertical,
+    pub align_y: alignment::Vertical,
 
     /// The [`Shaping`] strategy of the [`Text`].
     pub shaping: Shaping,
@@ -46,9 +46,101 @@ pub struct Text<Content = String, Font = crate::Font> {
     pub wrapping: Wrapping,
 }
 
-/// The shaping strategy of some text.
+impl<Content, Font> Text<Content, Font>
+where
+    Font: Copy,
+{
+    /// Returns a new [`Text`] replacing only the content with the
+    /// given value.
+    pub fn with_content<T>(&self, content: T) -> Text<T, Font> {
+        Text {
+            content,
+            bounds: self.bounds,
+            size: self.size,
+            line_height: self.line_height,
+            font: self.font,
+            align_x: self.align_x,
+            align_y: self.align_y,
+            shaping: self.shaping,
+            wrapping: self.wrapping,
+        }
+    }
+}
+
+impl<Content, Font> Text<Content, Font>
+where
+    Content: AsRef<str>,
+    Font: Copy,
+{
+    /// Returns a borrowed version of [`Text`].
+    pub fn as_ref(&self) -> Text<&str, Font> {
+        self.with_content(self.content.as_ref())
+    }
+}
+
+/// The alignment of some text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Alignment {
+    /// No specific alignment.
+    ///
+    /// Left-to-right text will be aligned to the left, while
+    /// right-to-left text will be aligned to the right.
+    #[default]
+    Default,
+    /// Align text to the left.
+    Left,
+    /// Center text.
+    Center,
+    /// Align text to the right.
+    Right,
+    /// Justify text.
+    Justified,
+}
+
+impl From<alignment::Horizontal> for Alignment {
+    fn from(alignment: alignment::Horizontal) -> Self {
+        match alignment {
+            alignment::Horizontal::Left => Self::Left,
+            alignment::Horizontal::Center => Self::Center,
+            alignment::Horizontal::Right => Self::Right,
+        }
+    }
+}
+
+impl From<crate::Alignment> for Alignment {
+    fn from(alignment: crate::Alignment) -> Self {
+        match alignment {
+            crate::Alignment::Start => Self::Left,
+            crate::Alignment::Center => Self::Center,
+            crate::Alignment::End => Self::Right,
+        }
+    }
+}
+
+impl From<Alignment> for alignment::Horizontal {
+    fn from(alignment: Alignment) -> Self {
+        match alignment {
+            Alignment::Default | Alignment::Left | Alignment::Justified => {
+                alignment::Horizontal::Left
+            }
+            Alignment::Center => alignment::Horizontal::Center,
+            Alignment::Right => alignment::Horizontal::Right,
+        }
+    }
+}
+
+/// The shaping strategy of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Shaping {
+    /// Auto-detect the best shaping strategy from the text.
+    ///
+    /// This strategy will use [`Basic`](Self::Basic) shaping if the
+    /// text consists of only ASCII characters; otherwise, it will
+    /// use [`Advanced`](Self::Advanced) shaping.
+    ///
+    /// This is the default, if neither the `basic-shaping` nor `advanced-shaping`
+    /// features are enabled.
+    Auto,
     /// No shaping and no font fallback.
     ///
     /// This shaping strategy is very cheap, but it will not display complex
@@ -57,8 +149,8 @@ pub enum Shaping {
     /// You should use this strategy when you have complete control of the text
     /// and the font you are displaying in your application.
     ///
-    /// This is the default.
-    #[default]
+    /// This will be the default if the `basic-shaping` feature is enabled and
+    /// the `advanced-shaping` feature is disabled.
     Basic,
     /// Advanced text shaping and font fallback.
     ///
@@ -67,7 +159,21 @@ pub enum Shaping {
     /// may be needed to display all of the glyphs.
     ///
     /// Advanced shaping is expensive! You should only enable it when necessary.
+    ///
+    /// This will be the default if the `advanced-shaping` feature is enabled.
     Advanced,
+}
+
+impl Default for Shaping {
+    fn default() -> Self {
+        if cfg!(feature = "advanced-shaping") {
+            Self::Advanced
+        } else if cfg!(feature = "basic-shaping") {
+            Self::Basic
+        } else {
+            Self::Auto
+        }
+    }
 }
 
 /// The wrapping strategy of some text.
@@ -205,6 +311,31 @@ pub trait Renderer: crate::Renderer {
     ///
     /// [`ICON_FONT`]: Self::ICON_FONT
     const ARROW_DOWN_ICON: char;
+
+    /// The `char` representing a ^ icon in the built-in [`ICON_FONT`].
+    ///
+    /// [`ICON_FONT`]: Self::ICON_FONT
+    const SCROLL_UP_ICON: char;
+
+    /// The `char` representing a v icon in the built-in [`ICON_FONT`].
+    ///
+    /// [`ICON_FONT`]: Self::ICON_FONT
+    const SCROLL_DOWN_ICON: char;
+
+    /// The `char` representing a < icon in the built-in [`ICON_FONT`].
+    ///
+    /// [`ICON_FONT`]: Self::ICON_FONT
+    const SCROLL_LEFT_ICON: char;
+
+    /// The `char` representing a > icon in the built-in [`ICON_FONT`].
+    ///
+    /// [`ICON_FONT`]: Self::ICON_FONT
+    const SCROLL_RIGHT_ICON: char;
+
+    /// The 'char' representing the iced logo in the built-in ['ICON_FONT'].
+    ///
+    /// ['ICON_FONT']: Self::ICON_FONT
+    const ICED_LOGO: char;
 
     /// Returns the default [`Self::Font`].
     fn default_font(&self) -> Self::Font;

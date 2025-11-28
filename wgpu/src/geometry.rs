@@ -92,7 +92,6 @@ impl Cached for Geometry {
 }
 
 /// A frame for drawing some geometry.
-#[allow(missing_debug_implementations)]
 pub struct Frame {
     clip_bounds: Rectangle,
     buffers: BufferStack,
@@ -105,13 +104,8 @@ pub struct Frame {
 }
 
 impl Frame {
-    /// Creates a new [`Frame`] with the given [`Size`].
-    pub fn new(size: Size) -> Frame {
-        Self::with_clip(Rectangle::with_size(size))
-    }
-
     /// Creates a new [`Frame`] with the given clip bounds.
-    pub fn with_clip(bounds: Rectangle) -> Frame {
+    pub fn new(bounds: Rectangle) -> Frame {
         Frame {
             clip_bounds: bounds,
             buffers: BufferStack::new(),
@@ -120,9 +114,7 @@ impl Frame {
             text: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
-                current: Transform(lyon::math::Transform::translation(
-                    bounds.x, bounds.y,
-                )),
+                current: Transform(lyon::math::Transform::identity()),
             },
             fill_tessellator: tessellation::FillTessellator::new(),
             stroke_tessellator: tessellation::StrokeTessellator::new(),
@@ -291,6 +283,17 @@ impl geometry::frame::Backend for Frame {
             .expect("Stroke rectangle");
     }
 
+    fn stroke_text<'a>(
+        &mut self,
+        text: impl Into<geometry::Text>,
+        stroke: impl Into<Stroke<'a>>,
+    ) {
+        let text = text.into();
+        let stroke = stroke.into();
+
+        text.draw_with(|glyph, _color| self.stroke(&glyph, stroke));
+    }
+
     fn fill_text(&mut self, text: impl Into<geometry::Text>) {
         let text = text.into();
 
@@ -301,9 +304,16 @@ impl geometry::frame::Backend for Frame {
             && scale_x > 0.0
             && scale_y > 0.0
         {
-            let (position, size, line_height) =
+            let (bounds, size, line_height) =
                 if self.transforms.current.is_identity() {
-                    (text.position, text.size, text.line_height)
+                    (
+                        Rectangle::new(
+                            text.position,
+                            Size::new(text.max_width, f32::INFINITY),
+                        ),
+                        text.size,
+                        text.line_height,
+                    )
                 } else {
                     let position =
                         self.transforms.current.transform_point(text.position);
@@ -319,15 +329,15 @@ impl geometry::frame::Backend for Frame {
                         }
                     };
 
-                    (position, size, line_height)
+                    (
+                        Rectangle::new(
+                            position,
+                            Size::new(text.max_width, f32::INFINITY),
+                        ),
+                        size,
+                        line_height,
+                    )
                 };
-
-            let bounds = Rectangle {
-                x: position.x,
-                y: position.y,
-                width: f32::INFINITY,
-                height: f32::INFINITY,
-            };
 
             self.text.push(Text::Cached {
                 content: text.content,
@@ -336,8 +346,8 @@ impl geometry::frame::Backend for Frame {
                 size,
                 line_height: line_height.to_absolute(size),
                 font: text.font,
-                horizontal_alignment: text.horizontal_alignment,
-                vertical_alignment: text.vertical_alignment,
+                align_x: text.align_x,
+                align_y: text.align_y,
                 shaping: text.shaping,
                 clip_bounds: self.clip_bounds,
             });
@@ -391,7 +401,7 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn draft(&mut self, clip_bounds: Rectangle) -> Frame {
-        Frame::with_clip(clip_bounds)
+        Frame::new(clip_bounds)
     }
 
     fn paste(&mut self, frame: Frame) {
@@ -421,8 +431,14 @@ impl geometry::frame::Backend for Frame {
             self.transforms.current.transform_rectangle(bounds);
 
         image.rotation += external_rotation;
+        image.border_radius =
+            image.border_radius * self.transforms.current.scale().0;
 
-        self.images.push(Image::Raster(image, bounds));
+        self.images.push(Image::Raster {
+            image,
+            bounds,
+            clip_bounds: self.clip_bounds,
+        });
     }
 
     fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>) {
@@ -433,7 +449,11 @@ impl geometry::frame::Backend for Frame {
 
         svg.rotation += external_rotation;
 
-        self.images.push(Image::Vector(svg, bounds));
+        self.images.push(Image::Vector {
+            svg,
+            bounds,
+            clip_bounds: self.clip_bounds,
+        });
     }
 }
 
