@@ -1390,6 +1390,7 @@ where
                 origin,
                 vertical: scrollbars.y.is_some(),
                 horizontal: scrollbars.x.is_some(),
+                class: &self.class,
             })))
         } else {
             None
@@ -1406,22 +1407,24 @@ where
     }
 }
 
-struct AutoScrollIcon {
+struct AutoScrollIcon<'a, Class> {
     origin: Point,
     vertical: bool,
     horizontal: bool,
+    class: &'a Class,
 }
 
-impl AutoScrollIcon {
+impl<Class> AutoScrollIcon<'_, Class> {
     const SIZE: f32 = 40.0;
     const DOT: f32 = Self::SIZE / 10.0;
     const PADDING: f32 = Self::SIZE / 10.0;
 }
 
 impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for AutoScrollIcon
+    for AutoScrollIcon<'_, Theme::Class<'_>>
 where
     Renderer: text::Renderer,
+    Theme: Catalog,
 {
     fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
         layout::Node::new(Size::new(Self::SIZE, Self::SIZE))
@@ -1431,20 +1434,27 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _theme: &Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
     ) {
         let bounds = layout.bounds();
+        let style = theme
+            .style(
+                self.class,
+                Status::Active {
+                    is_horizontal_scrollbar_disabled: false,
+                    is_vertical_scrollbar_disabled: false,
+                },
+            )
+            .auto_scroll;
 
         renderer.with_layer(Rectangle::INFINITE, |renderer| {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border: border::rounded(bounds.width)
-                        .color(Color::BLACK)
-                        .width(1.0),
+                    border: style.border,
                     shadow: core::Shadow {
                         color: Color::BLACK.scale_alpha(0.8),
                         offset: Vector::new(1.0, 1.0),
@@ -1452,7 +1462,7 @@ where
                     },
                     snap: false,
                 },
-                Color::WHITE.scale_alpha(0.8),
+                style.background,
             );
 
             renderer.fill_quad(
@@ -1466,7 +1476,7 @@ where
                     snap: false,
                     ..renderer::Quad::default()
                 },
-                Color::BLACK.scale_alpha(0.8),
+                style.icon,
             );
 
             let arrow = core::Text {
@@ -1492,7 +1502,7 @@ where
                         bounds.center_x(),
                         bounds.y + Self::PADDING - 1.0,
                     ),
-                    Color::BLACK.scale_alpha(0.8),
+                    style.icon,
                     bounds,
                 );
 
@@ -1506,7 +1516,7 @@ where
                         bounds.center_x(),
                         bounds.y + bounds.height - Self::PADDING + 1.0,
                     ),
-                    Color::BLACK.scale_alpha(0.8),
+                    style.icon,
                     bounds,
                 );
             }
@@ -1522,7 +1532,7 @@ where
                         bounds.x + Self::PADDING,
                         bounds.center_y() + 1.0,
                     ),
-                    Color::BLACK.scale_alpha(0.8),
+                    style.icon,
                     bounds,
                 );
 
@@ -1536,7 +1546,7 @@ where
                         bounds.x + bounds.width - Self::PADDING,
                         bounds.center_y() + 1.0,
                     ),
-                    Color::BLACK.scale_alpha(0.8),
+                    style.icon,
                     bounds,
                 );
             }
@@ -2263,6 +2273,8 @@ pub struct Style {
     pub horizontal_rail: Rail,
     /// The [`Background`] of the gap between a horizontal and vertical scrollbar.
     pub gap: Option<Background>,
+    /// The appearance of the [`AutoScroll`] overlay.
+    pub auto_scroll: AutoScroll,
 }
 
 /// The appearance of the scrollbar of a scrollable.
@@ -2283,6 +2295,17 @@ pub struct Scroller {
     pub color: Color,
     /// The [`Border`] of the scroller.
     pub border: Border,
+}
+
+/// The appearance of the autoscroll overlay of a scrollable.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AutoScroll {
+    /// The [`Background`] of the [`AutoScroll`] overlay.
+    pub background: Background,
+    /// The [`Border`] of the [`AutoScroll`] overlay.
+    pub border: Border,
+    /// The [`Color`] for the arrow icons of the [`AutoScroll`] overlay.
+    pub icon: Color,
 }
 
 /// The theme catalog of a [`Scrollable`].
@@ -2325,12 +2348,21 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         },
     };
 
+    let auto_scroll = AutoScroll {
+        background: palette.background.weak.color.scale_alpha(0.9).into(),
+        border: border::rounded(u32::MAX)
+            .width(1)
+            .color(palette.background.weak.text.scale_alpha(0.8)),
+        icon: palette.background.weak.text.scale_alpha(0.8),
+    };
+
     match status {
         Status::Active { .. } => Style {
             container: container::Style::default(),
             vertical_rail: scrollbar,
             horizontal_rail: scrollbar,
             gap: None,
+            auto_scroll,
         },
         Status::Hovered {
             is_horizontal_scrollbar_hovered,
@@ -2358,6 +2390,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                     scrollbar
                 },
                 gap: None,
+                auto_scroll,
             }
         }
         Status::Dragged {
@@ -2386,6 +2419,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                     scrollbar
                 },
                 gap: None,
+                auto_scroll,
             }
         }
     }
