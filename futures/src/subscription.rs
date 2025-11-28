@@ -244,7 +244,7 @@ impl<T> Subscription<T> {
     /// Adds a value to the [`Subscription`] context.
     ///
     /// The value will be part of the identity of a [`Subscription`].
-    pub fn with<A>(mut self, value: A) -> Subscription<(A, T)>
+    pub fn with<A>(self, value: A) -> Subscription<(A, T)>
     where
         T: 'static,
         A: std::hash::Hash + Clone + Send + Sync + 'static,
@@ -252,7 +252,7 @@ impl<T> Subscription<T> {
         Subscription {
             recipes: self
                 .recipes
-                .drain(..)
+                .into_iter()
                 .map(|recipe| {
                     Box::new(With::new(recipe, value.clone()))
                         as Box<dyn Recipe<Output = (A, T)>>
@@ -266,7 +266,7 @@ impl<T> Subscription<T> {
     /// # Panics
     /// The closure provided must be a non-capturing closure. The method
     /// will panic in debug mode otherwise.
-    pub fn map<F, A>(mut self, f: F) -> Subscription<A>
+    pub fn map<F, A>(self, f: F) -> Subscription<A>
     where
         T: 'static,
         F: Fn(T) -> A + MaybeSend + Clone + 'static,
@@ -281,7 +281,7 @@ impl<T> Subscription<T> {
         Subscription {
             recipes: self
                 .recipes
-                .drain(..)
+                .into_iter()
                 .map(move |recipe| {
                     Box::new(Map::new(recipe, f.clone()))
                         as Box<dyn Recipe<Output = A>>
