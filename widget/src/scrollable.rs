@@ -36,8 +36,8 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     self, Background, Clipboard, Color, Element, Event, InputMethod, Layout,
-    Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
-    Widget,
+    Length, Padding, Pixels, Point, Rectangle, Shadow, Shell, Size, Theme,
+    Vector, Widget,
 };
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
@@ -1455,11 +1455,7 @@ where
                 renderer::Quad {
                     bounds,
                     border: style.border,
-                    shadow: core::Shadow {
-                        color: Color::BLACK.scale_alpha(0.8),
-                        offset: Vector::new(1.0, 1.0),
-                        blur_radius: 3.0,
-                    },
+                    shadow: style.shadow,
                     snap: false,
                 },
                 style.background,
@@ -1498,10 +1494,7 @@ where
                         align_y: alignment::Vertical::Top,
                         ..arrow
                     },
-                    Point::new(
-                        bounds.center_x(),
-                        bounds.y + Self::PADDING - 1.0,
-                    ),
+                    Point::new(bounds.center_x(), bounds.y + Self::PADDING),
                     style.icon,
                     bounds,
                 );
@@ -1514,7 +1507,7 @@ where
                     },
                     Point::new(
                         bounds.center_x(),
-                        bounds.y + bounds.height - Self::PADDING + 1.0,
+                        bounds.y + bounds.height - Self::PADDING - 0.5,
                     ),
                     style.icon,
                     bounds,
@@ -1529,7 +1522,7 @@ where
                         ..arrow
                     },
                     Point::new(
-                        bounds.x + Self::PADDING,
+                        bounds.x + Self::PADDING + 1.0,
                         bounds.center_y() + 1.0,
                     ),
                     style.icon,
@@ -1543,7 +1536,7 @@ where
                         ..arrow
                     },
                     Point::new(
-                        bounds.x + bounds.width - Self::PADDING,
+                        bounds.x + bounds.width - Self::PADDING - 1.0,
                         bounds.center_y() + 1.0,
                     ),
                     style.icon,
@@ -2304,6 +2297,8 @@ pub struct AutoScroll {
     pub background: Background,
     /// The [`Border`] of the [`AutoScroll`] overlay.
     pub border: Border,
+    /// Thje [`Shadow`] of the [`AutoScroll`] overlay.
+    pub shadow: Shadow,
     /// The [`Color`] for the arrow icons of the [`AutoScroll`] overlay.
     pub icon: Color,
 }
@@ -2349,11 +2344,16 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     };
 
     let auto_scroll = AutoScroll {
-        background: palette.background.weak.color.scale_alpha(0.9).into(),
+        background: palette.background.base.color.scale_alpha(0.9).into(),
         border: border::rounded(u32::MAX)
             .width(1)
-            .color(palette.background.weak.text.scale_alpha(0.8)),
-        icon: palette.background.weak.text.scale_alpha(0.8),
+            .color(palette.background.base.text.scale_alpha(0.8)),
+        shadow: Shadow {
+            color: Color::BLACK.scale_alpha(0.7),
+            offset: Vector::ZERO,
+            blur_radius: 2.0,
+        },
+        icon: palette.background.base.text.scale_alpha(0.8),
     };
 
     match status {
