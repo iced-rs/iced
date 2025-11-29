@@ -449,13 +449,15 @@ impl Atlas {
             return;
         }
 
-        // On the GL backend if layers.len() == 6 we need to help wgpu figure out that this texture
-        // is still a `GL_TEXTURE_2D_ARRAY` rather than `GL_TEXTURE_CUBE_MAP`. This will over-allocate
-        // some unused memory on GL, but it's better than not being able to grow the atlas past a depth
-        // of 6!
+        // On the GL backend if layers.len() is a multiple of 6 we need to help wgpu figure out that this texture
+        // is still a `GL_TEXTURE_2D_ARRAY` rather than `GL_TEXTURE_CUBE_MAP` or `GL_TEXTURE_CUBE_ARRAY`.
+        // This will over-allocate some unused memory on GL, but it's better than not being able to
+        // grow the atlas past multiples of 6!
         // https://github.com/gfx-rs/wgpu/blob/004e3efe84a320d9331371ed31fa50baa2414911/wgpu-hal/src/gles/mod.rs#L371
         let depth_or_array_layers = match backend {
-            wgpu::Backend::Gl if self.layers.len() == 6 => 7,
+            wgpu::Backend::Gl if self.layers.len().is_multiple_of(6) => {
+                self.layers.len() as u32 + 1
+            }
             _ => self.layers.len() as u32,
         };
 
