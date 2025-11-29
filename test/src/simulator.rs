@@ -381,6 +381,7 @@ pub fn press_key(
         ),
         location: keyboard::Location::Standard,
         modifiers: keyboard::Modifiers::default(),
+        repeat: false,
         text,
     })
 }
