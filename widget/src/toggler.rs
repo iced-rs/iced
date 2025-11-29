@@ -439,7 +439,7 @@ where
             renderer::Quad {
                 bounds: toggler_background_bounds,
                 border: Border {
-                    radius: border_radius.into(),
+                    radius: border_radius,
                     width: style.background_border_width,
                     color: style.background_border_color,
                 },
@@ -464,7 +464,7 @@ where
             renderer::Quad {
                 bounds: toggler_foreground_bounds,
                 border: Border {
-                    radius: border_radius.into(),
+                    radius: border_radius,
                     width: style.foreground_border_width,
                     color: style.foreground_border_color,
                 },
