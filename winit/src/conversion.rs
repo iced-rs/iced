@@ -331,9 +331,9 @@ pub fn window_event(
 
             Some(Event::Window(window::Event::Moved(Point::new(x, y))))
         }
-        WindowEvent::ScaleFactorChanged { scale_factor, .. } => Some(
-            Event::Window(window::Event::ScaleFactorChanged(scale_factor)),
-        ),
+        WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+            Some(Event::Window(window::Event::Rescaled(scale_factor as f32)))
+        }
         _ => None,
     }
 }
