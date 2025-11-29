@@ -114,6 +114,8 @@ pub enum Edit {
     Backspace,
     /// Delete the next character.
     Delete,
+    /// Replace all the text in the editor.
+    ReplaceAll(Arc<String>),
 }
 
 /// A cursor movement.
