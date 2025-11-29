@@ -210,7 +210,7 @@ pub enum Item {
         /// The first number of the list, if it is ordered.
         start: Option<u64>,
         /// The items of the list.
-        items: Vec<ListItem>,
+        bullets: Vec<Bullet>,
     },
     /// An image.
     Image {
@@ -354,14 +354,32 @@ impl Span {
 
 /// The item of a list.
 #[derive(Debug, Clone)]
-pub struct ListItem {
-    checked: Option<bool>,
-    items: Vec<Item>,
+pub enum Bullet {
+    /// A simple bullet point.
+    Point {
+        /// The contents of the bullet point.
+        items: Vec<Item>,
+    },
+    /// A task.
+    Task {
+        /// The contents of the task.
+        items: Vec<Item>,
+        /// Whether the task is done or not.
+        done: bool,
+    },
 }
 
-impl ListItem {
+impl Bullet {
+    fn items(&self) -> &[Item] {
+        match self {
+            Bullet::Point { items } | Bullet::Task { items, .. } => items,
+        }
+    }
+
     fn push(&mut self, item: Item) {
-        self.items.push(item);
+        let (Bullet::Point { items } | Bullet::Task { items, .. }) = self;
+
+        items.push(item);
     }
 }
 
@@ -518,7 +536,7 @@ fn parse_with<'a>(
 
     struct List {
         start: Option<u64>,
-        items: Vec<ListItem>,
+        bullets: Vec<Bullet>,
     }
 
     let broken_links = Rc::new(RefCell::new(HashSet::new()));
@@ -582,7 +600,7 @@ fn parse_with<'a>(
         if let Some(scope) = stack.last_mut() {
             match scope {
                 Scope::List(list) => {
-                    list.items.last_mut().expect("item context").push(item);
+                    list.bullets.last_mut().expect("item context").push(item);
                 }
                 Scope::Quote(items) => {
                     items.push(item);
@@ -646,17 +664,14 @@ fn parse_with<'a>(
 
                 stack.push(Scope::List(List {
                     start: first_item,
-                    items: Vec::new(),
+                    bullets: Vec::new(),
                 }));
 
                 prev
             }
             pulldown_cmark::Tag::Item => {
                 if let Some(Scope::List(list)) = stack.last_mut() {
-                    list.items.push(ListItem {
-                        checked: None,
-                        items: Vec::new(),
-                    });
+                    list.bullets.push(Bullet::Point { items: Vec::new() });
                 }
 
                 None
@@ -800,7 +815,7 @@ fn parse_with<'a>(
                     &mut stack,
                     Item::List {
                         start: list.start,
-                        items: list.items,
+                        bullets: list.bullets,
                     },
                     source,
                 )
@@ -989,11 +1004,15 @@ fn parse_with<'a>(
         pulldown_cmark::Event::Rule => {
             produce(state.borrow_mut(), &mut stack, Item::Rule, source)
         }
-        pulldown_cmark::Event::TaskListMarker(checked) => {
+        pulldown_cmark::Event::TaskListMarker(done) => {
             if let Some(Scope::List(list)) = stack.last_mut()
-                && let Some(item) = list.items.last_mut()
+                && let Some(item) = list.bullets.last_mut()
+                && let Bullet::Point { items } = item
             {
-                item.checked = Some(checked);
+                *item = Bullet::Task {
+                    items: std::mem::take(items),
+                    done,
+                };
             }
 
             None
@@ -1229,13 +1248,14 @@ where
             code,
             lines,
         } => viewer.code_block(settings, language.as_deref(), code, lines),
-        Item::List { start: None, items } => {
-            viewer.unordered_list(settings, items)
-        }
+        Item::List {
+            start: None,
+            bullets,
+        } => viewer.unordered_list(settings, bullets),
         Item::List {
             start: Some(start),
-            items,
-        } => viewer.ordered_list(settings, *start, items),
+            bullets,
+        } => viewer.ordered_list(settings, *start, bullets),
         Item::Quote(quote) => viewer.quote(settings, quote),
         Item::Rule => viewer.rule(settings),
         Item::Table { columns, rows } => viewer.table(settings, columns, rows),
@@ -1308,28 +1328,29 @@ where
 pub fn unordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    items: &'a [ListItem],
+    bullets: &'a [Bullet],
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    column(items.iter().map(|list_item| {
+    column(bullets.iter().map(|bullet| {
         row![
-            list_item
-                .checked
-                .map(|is_checked| Element::from(
-                    checkbox(is_checked).text_size(settings.text_size)
-                ))
-                .unwrap_or_else(|| Element::from(
+            match bullet {
+                Bullet::Point { .. } => {
                     text("•")
                         .width(settings.text_size)
                         .center()
                         .size(settings.text_size)
-                )),
+                        .into()
+                }
+                Bullet::Task { done, .. } => {
+                    Element::from(checkbox(*done).size(settings.text_size))
+                }
+            },
             view_with(
-                &list_item.items,
+                bullet.items(),
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
@@ -1351,39 +1372,25 @@ pub fn ordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     start: u64,
-    items: &'a [ListItem],
+    bullets: &'a [Bullet],
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    let digits = ((start + items.len() as u64).max(1) as f32).log10().ceil();
+    let digits = ((start + bullets.len() as u64).max(1) as f32)
+        .log10()
+        .ceil();
 
-    column(items.iter().enumerate().map(|(i, list_item)| {
+    column(bullets.iter().enumerate().map(|(i, bullet)| {
         row![
-            list_item
-                .checked
-                .map(|is_checked| {
-                    Element::from(
-                        container(
-                            checkbox(is_checked).text_size(settings.text_size),
-                        )
-                        .align_right(
-                            settings.text_size * ((digits / 2.0).ceil() + 1.0),
-                        ),
-                    )
-                })
-                .unwrap_or_else(|| Element::from(
-                    text!("{}.", i as u64 + start)
-                        .size(settings.text_size)
-                        .align_x(alignment::Horizontal::Right)
-                        .width(
-                            settings.text_size * ((digits / 2.0).ceil() + 1.0)
-                        ),
-                )),
+            text!("{}.", i as u64 + start)
+                .size(settings.text_size)
+                .align_x(alignment::Horizontal::Right)
+                .width(settings.text_size * ((digits / 2.0).ceil() + 1.0),),
             view_with(
-                &list_item.items,
+                bullet.items(),
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
@@ -1622,9 +1629,9 @@ where
     fn unordered_list(
         &self,
         settings: Settings,
-        items: &'a [ListItem],
+        bullets: &'a [Bullet],
     ) -> Element<'a, Message, Theme, Renderer> {
-        unordered_list(self, settings, items)
+        unordered_list(self, settings, bullets)
     }
 
     /// Displays an ordered list.
@@ -1634,9 +1641,9 @@ where
         &self,
         settings: Settings,
         start: u64,
-        items: &'a [ListItem],
+        bullets: &'a [Bullet],
     ) -> Element<'a, Message, Theme, Renderer> {
-        ordered_list(self, settings, start, items)
+        ordered_list(self, settings, start, bullets)
     }
 
     /// Displays a quote.
