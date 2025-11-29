@@ -204,9 +204,9 @@ pub enum LineHeight {
 
 impl LineHeight {
     /// Returns the [`LineHeight`] in absolute logical pixels.
-    pub fn to_absolute(self, text_size: Pixels) -> Pixels {
+    pub fn to_absolute(self, text_size: impl Into<Pixels>) -> Pixels {
         match self {
-            Self::Relative(factor) => Pixels(factor * text_size.0),
+            Self::Relative(factor) => Pixels(factor * text_size.into().0),
             Self::Absolute(pixels) => pixels,
         }
     }
