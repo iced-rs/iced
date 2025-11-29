@@ -373,6 +373,10 @@ impl graphics::mesh::Renderer for Renderer {
     fn draw_mesh(&mut self, _mesh: graphics::Mesh) {
         log::warn!("iced_tiny_skia does not support drawing meshes");
     }
+
+    fn draw_mesh_cache(&mut self, _cache: iced_graphics::mesh::Cache) {
+        log::warn!("iced_tiny_skia does not support drawing meshes");
+    }
 }
 
 #[cfg(feature = "image")]

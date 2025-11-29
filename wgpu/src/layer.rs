@@ -5,6 +5,7 @@ use crate::graphics;
 use crate::graphics::Mesh;
 use crate::graphics::color;
 use crate::graphics::layer;
+use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
 use crate::image::{self, Image};
 use crate::primitive::{self, Primitive};
@@ -230,7 +231,7 @@ impl Layer {
 
     pub fn draw_mesh_cache(
         &mut self,
-        cache: triangle::Cache,
+        cache: mesh::Cache,
         transformation: Transformation,
     ) {
         self.flush_meshes();

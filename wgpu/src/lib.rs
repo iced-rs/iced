@@ -65,6 +65,7 @@ use crate::core::renderer;
 use crate::core::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
+use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::{Shell, Viewport};
 
@@ -844,6 +845,11 @@ impl graphics::mesh::Renderer for Renderer {
 
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_mesh(mesh, transformation);
+    }
+
+    fn draw_mesh_cache(&mut self, cache: mesh::Cache) {
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_mesh_cache(cache, transformation);
     }
 }
 

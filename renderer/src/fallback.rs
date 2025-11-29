@@ -224,6 +224,10 @@ where
     fn draw_mesh(&mut self, mesh: graphics::Mesh) {
         delegate!(self, renderer, renderer.draw_mesh(mesh));
     }
+
+    fn draw_mesh_cache(&mut self, cache: mesh::Cache) {
+        delegate!(self, renderer, renderer.draw_mesh_cache(cache));
+    }
 }
 
 /// A compositor `A` with a fallback strategy `B`.

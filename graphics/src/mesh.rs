@@ -5,6 +5,9 @@ use crate::gradient;
 
 use bytemuck::{Pod, Zeroable};
 
+use std::sync::atomic::{self, AtomicU64};
+use std::sync::{Arc, Weak};
+
 /// A low-level primitive to render a mesh of triangles.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Mesh {
@@ -141,8 +144,67 @@ pub fn attribute_count_of(meshes: &[Mesh]) -> AttributeCount {
         })
 }
 
+/// A cache of multiple meshes.
+#[derive(Debug, Clone)]
+pub struct Cache {
+    id: Id,
+    batch: Arc<[Mesh]>,
+    version: usize,
+}
+
+/// The unique id of a [`Cache`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Id(u64);
+
+impl Cache {
+    /// Creates a new [`Cache`] for the given meshes.
+    pub fn new(meshes: Arc<[Mesh]>) -> Self {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+        Self {
+            id: Id(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed)),
+            batch: meshes,
+            version: 0,
+        }
+    }
+
+    /// Returns the [`Id`] of the [`Cache`].
+    pub fn id(&self) -> Id {
+        self.id
+    }
+
+    /// Returns the current version of the [`Cache`].
+    pub fn version(&self) -> usize {
+        self.version
+    }
+
+    /// Returns the batch of meshes in the [`Cache`].
+    pub fn batch(&self) -> &[Mesh] {
+        &self.batch
+    }
+
+    /// Returns a [`Weak`] reference to the contents of the [`Cache`].
+    pub fn downgrade(&self) -> Weak<[Mesh]> {
+        Arc::downgrade(&self.batch)
+    }
+
+    /// Returns true if the [`Cache`] is empty.
+    pub fn is_empty(&self) -> bool {
+        self.batch.is_empty()
+    }
+
+    /// Updates the [`Cache`] with the given meshes.
+    pub fn update(&mut self, meshes: Arc<[Mesh]>) {
+        self.batch = meshes;
+        self.version += 1;
+    }
+}
+
 /// A renderer capable of drawing a [`Mesh`].
 pub trait Renderer {
     /// Draws the given [`Mesh`].
     fn draw_mesh(&mut self, mesh: Mesh);
+
+    /// Draws the given [`Cache`].
+    fn draw_mesh_cache(&mut self, cache: Cache);
 }
