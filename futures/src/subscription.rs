@@ -341,9 +341,7 @@ impl<T> Subscription<T> {
             ) -> BoxStream<Self::Output> {
                 use futures::StreamExt;
 
-                let mapper = self.mapper;
-
-                Box::pin(self.recipe.stream(input).map(mapper))
+                Box::pin(self.recipe.stream(input).map(self.mapper))
             }
         }
 
@@ -353,6 +351,76 @@ impl<T> Subscription<T> {
                 .into_iter()
                 .map(|recipe| {
                     Box::new(Map {
+                        recipe,
+                        mapper: f.clone(),
+                    }) as Box<dyn Recipe<Output = A>>
+                })
+                .collect(),
+        }
+    }
+
+    /// Transforms the [`Subscription`] output with the given function, yielding only
+    /// values only when the function returns `Some(A)`.
+    ///
+    /// # Panics
+    /// The closure provided must be a non-capturing closure. The method
+    /// will panic in debug mode otherwise.
+    pub fn filter_map<F, A>(mut self, f: F) -> Subscription<A>
+    where
+        T: MaybeSend + 'static,
+        F: Fn(T) -> Option<A> + MaybeSend + Clone + 'static,
+        A: MaybeSend + 'static,
+    {
+        debug_assert!(
+            std::mem::size_of::<F>() == 0,
+            "the closure {} provided in `Subscription::filter_map` is capturing",
+            std::any::type_name::<F>(),
+        );
+
+        struct FilterMap<A, B, F>
+        where
+            F: Fn(A) -> Option<B> + 'static,
+        {
+            recipe: Box<dyn Recipe<Output = A>>,
+            mapper: F,
+        }
+
+        impl<A, B, F> Recipe for FilterMap<A, B, F>
+        where
+            A: 'static,
+            B: 'static + MaybeSend,
+            F: Fn(A) -> Option<B> + MaybeSend,
+        {
+            type Output = B;
+
+            fn hash(&self, state: &mut Hasher) {
+                TypeId::of::<F>().hash(state);
+                self.recipe.hash(state);
+            }
+
+            fn stream(
+                self: Box<Self>,
+                input: EventStream,
+            ) -> BoxStream<Self::Output> {
+                use futures::StreamExt;
+                use futures::future;
+
+                let mapper = self.mapper;
+
+                Box::pin(
+                    self.recipe
+                        .stream(input)
+                        .filter_map(move |a| future::ready(mapper(a))),
+                )
+            }
+        }
+
+        Subscription {
+            recipes: self
+                .recipes
+                .drain(..)
+                .map(|recipe| {
+                    Box::new(FilterMap {
                         recipe,
                         mapper: f.clone(),
                     }) as Box<dyn Recipe<Output = A>>
