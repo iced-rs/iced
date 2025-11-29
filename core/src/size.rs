@@ -96,6 +96,12 @@ impl<T> From<(T, T)> for Size<T> {
     }
 }
 
+impl From<(u32, u32)> for Size {
+    fn from((width, height): (u32, u32)) -> Self {
+        Size::new(width as f32, height as f32)
+    }
+}
+
 impl<T> From<Vector<T>> for Size<T> {
     fn from(vector: Vector<T>) -> Self {
         Size {

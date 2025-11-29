@@ -249,6 +249,7 @@ pub fn window_event(
                 location,
                 logical_key,
                 physical_key,
+                repeat,
                 ..
             } = event;
 
@@ -279,6 +280,7 @@ pub fn window_event(
                         modifiers,
                         location,
                         text,
+                        repeat,
                     }
                 }
                 winit::event::ElementState::Released => {
@@ -328,6 +330,9 @@ pub fn window_event(
                 position.to_logical(f64::from(scale_factor));
 
             Some(Event::Window(window::Event::Moved(Point::new(x, y))))
+        }
+        WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+            Some(Event::Window(window::Event::Rescaled(scale_factor as f32)))
         }
         _ => None,
     }

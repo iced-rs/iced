@@ -842,7 +842,7 @@ async fn run_instance<P>(
                             .expect("Get user interface");
 
                         let interact_span = debug::interact(id);
-                        let mut change_count = 0;
+                        let mut redraw_count = 0;
 
                         let state = loop {
                             let message_count = messages.len();
@@ -854,22 +854,22 @@ async fn run_instance<P>(
                                 &mut messages,
                             );
 
-                            change_count += 1;
-
                             if message_count == messages.len()
                                 && !state.has_layout_changed()
                             {
                                 break state;
                             }
 
-                            if change_count >= 10 {
+                            if redraw_count >= 2 {
                                 log::warn!(
-                                    "More than 10 consecutive RedrawRequested events \
+                                    "More than 3 consecutive RedrawRequested events \
                                     produced layout invalidation"
                                 );
 
                                 break state;
                             }
+
+                            redraw_count += 1;
 
                             if !messages.is_empty() {
                                 let caches: FxHashMap<_, _> =
@@ -1009,9 +1009,34 @@ async fn run_instance<P>(
                                 present_span.finish();
                             }
                             Err(error) => match error {
-                                // This is an unrecoverable error.
                                 compositor::SurfaceError::OutOfMemory => {
+                                    // This is an unrecoverable error.
                                     panic!("{error:?}");
+                                }
+                                compositor::SurfaceError::Outdated
+                                | compositor::SurfaceError::Lost => {
+                                    present_span.finish();
+
+                                    // Reconfigure surface and try redrawing
+                                    let physical_size =
+                                        window.state.physical_size();
+
+                                    if error == compositor::SurfaceError::Lost {
+                                        window.surface = current_compositor
+                                            .create_surface(
+                                                window.raw.clone(),
+                                                physical_size.width,
+                                                physical_size.height,
+                                            );
+                                    } else {
+                                        current_compositor.configure_surface(
+                                            &mut window.surface,
+                                            physical_size.width,
+                                            physical_size.height,
+                                        );
+                                    }
+
+                                    window.raw.request_redraw();
                                 }
                                 _ => {
                                     present_span.finish();

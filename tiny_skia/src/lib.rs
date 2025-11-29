@@ -256,6 +256,10 @@ impl core::text::Renderer for Renderer {
     const CHECKMARK_ICON: char = '\u{f00c}';
     const ARROW_DOWN_ICON: char = '\u{e800}';
     const ICED_LOGO: char = '\u{e801}';
+    const SCROLL_UP_ICON: char = '\u{e802}';
+    const SCROLL_DOWN_ICON: char = '\u{e803}';
+    const SCROLL_LEFT_ICON: char = '\u{e804}';
+    const SCROLL_RIGHT_ICON: char = '\u{e805}';
 
     fn default_font(&self) -> Self::Font {
         self.default_font
@@ -367,6 +371,10 @@ impl graphics::geometry::Renderer for Renderer {
 
 impl graphics::mesh::Renderer for Renderer {
     fn draw_mesh(&mut self, _mesh: graphics::Mesh) {
+        log::warn!("iced_tiny_skia does not support drawing meshes");
+    }
+
+    fn draw_mesh_cache(&mut self, _cache: iced_graphics::mesh::Cache) {
         log::warn!("iced_tiny_skia does not support drawing meshes");
     }
 }

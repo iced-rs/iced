@@ -45,6 +45,10 @@ impl text::Renderer for () {
     const ICON_FONT: Font = Font::DEFAULT;
     const CHECKMARK_ICON: char = '0';
     const ARROW_DOWN_ICON: char = '0';
+    const SCROLL_UP_ICON: char = '0';
+    const SCROLL_DOWN_ICON: char = '0';
+    const SCROLL_LEFT_ICON: char = '0';
+    const SCROLL_RIGHT_ICON: char = '0';
     const ICED_LOGO: char = '0';
 
     fn default_font(&self) -> Self::Font {

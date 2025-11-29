@@ -28,6 +28,9 @@ pub enum Event {
     /// A window was resized.
     Resized(Size),
 
+    /// A window changed its scale factor.
+    Rescaled(f32),
+
     /// A window redraw was requested.
     ///
     /// The [`Instant`] contains the current time.

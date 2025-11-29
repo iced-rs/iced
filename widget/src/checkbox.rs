@@ -439,6 +439,10 @@ where
             }
         }
 
+        if self.label.is_none() {
+            return;
+        }
+
         {
             let label_layout = children.next().unwrap();
             let state: &widget::text::State<Renderer::Paragraph> =

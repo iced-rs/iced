@@ -91,7 +91,7 @@ impl Event {
 }
 
 pub fn is_running() -> bool {
-    std::net::TcpListener::bind(client::SERVER_ADDRESS).is_err()
+    std::net::TcpListener::bind(client::server_address_from_env()).is_err()
 }
 
 pub fn run() -> impl Stream<Item = Event> {
@@ -99,7 +99,9 @@ pub fn run() -> impl Stream<Item = Event> {
         let mut buffer = Vec::new();
 
         let server = loop {
-            match net::TcpListener::bind(client::SERVER_ADDRESS).await {
+            match net::TcpListener::bind(client::server_address_from_env())
+                .await
+            {
                 Ok(server) => break server,
                 Err(error) => {
                     if error.kind() == io::ErrorKind::AddrInUse {

@@ -244,18 +244,54 @@ impl<T> Subscription<T> {
     /// Adds a value to the [`Subscription`] context.
     ///
     /// The value will be part of the identity of a [`Subscription`].
-    pub fn with<A>(mut self, value: A) -> Subscription<(A, T)>
+    pub fn with<A>(self, value: A) -> Subscription<(A, T)>
     where
         T: 'static,
         A: std::hash::Hash + Clone + Send + Sync + 'static,
     {
+        struct With<A, B> {
+            recipe: Box<dyn Recipe<Output = A>>,
+            value: B,
+        }
+
+        impl<A, B> Recipe for With<A, B>
+        where
+            A: 'static,
+            B: 'static + std::hash::Hash + Clone + Send + Sync,
+        {
+            type Output = (B, A);
+
+            fn hash(&self, state: &mut Hasher) {
+                std::any::TypeId::of::<B>().hash(state);
+                self.value.hash(state);
+                self.recipe.hash(state);
+            }
+
+            fn stream(
+                self: Box<Self>,
+                input: EventStream,
+            ) -> BoxStream<Self::Output> {
+                use futures::StreamExt;
+
+                let value = self.value;
+
+                Box::pin(
+                    self.recipe
+                        .stream(input)
+                        .map(move |element| (value.clone(), element)),
+                )
+            }
+        }
+
         Subscription {
             recipes: self
                 .recipes
-                .drain(..)
+                .into_iter()
                 .map(|recipe| {
-                    Box::new(With::new(recipe, value.clone()))
-                        as Box<dyn Recipe<Output = (A, T)>>
+                    Box::new(With {
+                        recipe,
+                        value: value.clone(),
+                    }) as Box<dyn Recipe<Output = (A, T)>>
                 })
                 .collect(),
         }
@@ -266,7 +302,7 @@ impl<T> Subscription<T> {
     /// # Panics
     /// The closure provided must be a non-capturing closure. The method
     /// will panic in debug mode otherwise.
-    pub fn map<F, A>(mut self, f: F) -> Subscription<A>
+    pub fn map<F, A>(self, f: F) -> Subscription<A>
     where
         T: 'static,
         F: Fn(T) -> A + MaybeSend + Clone + 'static,
@@ -278,13 +314,116 @@ impl<T> Subscription<T> {
             std::any::type_name::<F>(),
         );
 
+        struct Map<A, B, F>
+        where
+            F: Fn(A) -> B + 'static,
+        {
+            recipe: Box<dyn Recipe<Output = A>>,
+            mapper: F,
+        }
+
+        impl<A, B, F> Recipe for Map<A, B, F>
+        where
+            A: 'static,
+            B: 'static,
+            F: Fn(A) -> B + 'static + MaybeSend,
+        {
+            type Output = B;
+
+            fn hash(&self, state: &mut Hasher) {
+                TypeId::of::<F>().hash(state);
+                self.recipe.hash(state);
+            }
+
+            fn stream(
+                self: Box<Self>,
+                input: EventStream,
+            ) -> BoxStream<Self::Output> {
+                use futures::StreamExt;
+
+                Box::pin(self.recipe.stream(input).map(self.mapper))
+            }
+        }
+
+        Subscription {
+            recipes: self
+                .recipes
+                .into_iter()
+                .map(|recipe| {
+                    Box::new(Map {
+                        recipe,
+                        mapper: f.clone(),
+                    }) as Box<dyn Recipe<Output = A>>
+                })
+                .collect(),
+        }
+    }
+
+    /// Transforms the [`Subscription`] output with the given function, yielding only
+    /// values only when the function returns `Some(A)`.
+    ///
+    /// # Panics
+    /// The closure provided must be a non-capturing closure. The method
+    /// will panic in debug mode otherwise.
+    pub fn filter_map<F, A>(mut self, f: F) -> Subscription<A>
+    where
+        T: MaybeSend + 'static,
+        F: Fn(T) -> Option<A> + MaybeSend + Clone + 'static,
+        A: MaybeSend + 'static,
+    {
+        debug_assert!(
+            std::mem::size_of::<F>() == 0,
+            "the closure {} provided in `Subscription::filter_map` is capturing",
+            std::any::type_name::<F>(),
+        );
+
+        struct FilterMap<A, B, F>
+        where
+            F: Fn(A) -> Option<B> + 'static,
+        {
+            recipe: Box<dyn Recipe<Output = A>>,
+            mapper: F,
+        }
+
+        impl<A, B, F> Recipe for FilterMap<A, B, F>
+        where
+            A: 'static,
+            B: 'static + MaybeSend,
+            F: Fn(A) -> Option<B> + MaybeSend,
+        {
+            type Output = B;
+
+            fn hash(&self, state: &mut Hasher) {
+                TypeId::of::<F>().hash(state);
+                self.recipe.hash(state);
+            }
+
+            fn stream(
+                self: Box<Self>,
+                input: EventStream,
+            ) -> BoxStream<Self::Output> {
+                use futures::StreamExt;
+                use futures::future;
+
+                let mapper = self.mapper;
+
+                Box::pin(
+                    self.recipe
+                        .stream(input)
+                        .filter_map(move |a| future::ready(mapper(a))),
+                )
+            }
+        }
+
         Subscription {
             recipes: self
                 .recipes
                 .drain(..)
-                .map(move |recipe| {
-                    Box::new(Map::new(recipe, f.clone()))
-                        as Box<dyn Recipe<Output = A>>
+                .map(|recipe| {
+                    Box::new(FilterMap {
+                        recipe,
+                        mapper: f.clone(),
+                    }) as Box<dyn Recipe<Output = A>>
                 })
                 .collect(),
         }
@@ -348,82 +487,6 @@ pub trait Recipe {
     /// Executes the [`Recipe`] and produces the stream of events of its
     /// [`Subscription`].
     fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output>;
-}
-
-struct Map<A, B, F>
-where
-    F: Fn(A) -> B + 'static,
-{
-    recipe: Box<dyn Recipe<Output = A>>,
-    mapper: F,
-}
-
-impl<A, B, F> Map<A, B, F>
-where
-    F: Fn(A) -> B + 'static,
-{
-    fn new(recipe: Box<dyn Recipe<Output = A>>, mapper: F) -> Self {
-        Map { recipe, mapper }
-    }
-}
-
-impl<A, B, F> Recipe for Map<A, B, F>
-where
-    A: 'static,
-    B: 'static,
-    F: Fn(A) -> B + 'static + MaybeSend,
-{
-    type Output = B;
-
-    fn hash(&self, state: &mut Hasher) {
-        TypeId::of::<F>().hash(state);
-        self.recipe.hash(state);
-    }
-
-    fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
-        use futures::StreamExt;
-
-        let mapper = self.mapper;
-
-        Box::pin(self.recipe.stream(input).map(mapper))
-    }
-}
-
-struct With<A, B> {
-    recipe: Box<dyn Recipe<Output = A>>,
-    value: B,
-}
-
-impl<A, B> With<A, B> {
-    fn new(recipe: Box<dyn Recipe<Output = A>>, value: B) -> Self {
-        With { recipe, value }
-    }
-}
-
-impl<A, B> Recipe for With<A, B>
-where
-    A: 'static,
-    B: 'static + std::hash::Hash + Clone + Send + Sync,
-{
-    type Output = (B, A);
-
-    fn hash(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<B>().hash(state);
-        self.value.hash(state);
-        self.recipe.hash(state);
-    }
-
-    fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
-        use futures::StreamExt;
-
-        let value = self.value;
-
-        Box::pin(
-            self.recipe
-                .stream(input)
-                .map(move |element| (value.clone(), element)),
-        )
-    }
 }
 
 /// Creates a [`Subscription`] from a hashable id and a filter function.

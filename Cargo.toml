@@ -224,13 +224,13 @@ softbuffer = { version = "0.4", default-features = false }
 syntect = { version = "5", default-features = false, features = ["default-fancy"] }
 sysinfo = "0.33"
 thiserror = "2"
-tiny-skia = "0.11"
+tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
 tokio = "1.0"
 tracing = "0.1"
 unicode-segmentation = "1.0"
 url = "2.5"
 wasm-bindgen-futures = "0.4"
-wasmtimer = "0.4.1"
+wasmtimer = "0.4.2"
 web-sys = "0.3.69"
 web-time = "1.1"
 wgpu = { version = "27.0", default-features = false, features = ["std", "wgsl"] }

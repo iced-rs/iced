@@ -11,7 +11,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     Background, Clipboard, Color, Event, Length, Padding, Pixels, Point,
-    Rectangle, Size, Theme, Vector,
+    Rectangle, Shadow, Size, Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -164,7 +164,7 @@ impl Default for State {
 struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Theme: Catalog,
-    Renderer: crate::core::Renderer,
+    Renderer: text::Renderer,
 {
     position: Point,
     viewport: Rectangle,
@@ -317,6 +317,7 @@ where
             renderer::Quad {
                 bounds,
                 border: style.border,
+                shadow: style.shadow,
                 ..renderer::Quad::default()
             },
             style.background,
@@ -605,6 +606,8 @@ pub struct Style {
     pub selected_text_color: Color,
     /// The background [`Color`] of a selected option in the menu.
     pub selected_background: Background,
+    /// The [`Shadow`] of the menu.
+    pub shadow: Shadow,
 }
 
 /// The theme catalog of a [`Menu`].
@@ -653,5 +656,6 @@ pub fn default(theme: &Theme) -> Style {
         text_color: palette.background.weak.text,
         selected_text_color: palette.primary.strong.text,
         selected_background: palette.primary.strong.color.into(),
+        shadow: Shadow::default(),
     }
 }

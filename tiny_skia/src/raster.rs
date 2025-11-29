@@ -106,6 +106,10 @@ impl Cache {
                 }
             };
 
+            if image.width() == 0 || image.height() == 0 {
+                return Err(raster::Error::Empty);
+            }
+
             let mut buffer =
                 vec![0u32; image.width() as usize * image.height() as usize];
 

@@ -15,8 +15,6 @@ use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool};
 use std::thread;
 
-pub const SERVER_ADDRESS: &str = "127.0.0.1:9167";
-
 #[derive(Debug, Clone)]
 pub struct Client {
     sender: mpsc::Sender<Action>,
@@ -222,9 +220,22 @@ async fn run(
     }
 }
 
+/// Returns the address of the beacon server in this environment.
+///
+/// The value of the `ICED_BEACON_SERVER_ADDRESS` env variable will
+/// be returned, if defined.
+///
+/// Otherwise, a default local server address will be returned.
+pub fn server_address_from_env() -> String {
+    const DEFAULT_ADDRESS: &str = "127.0.0.1:9167";
+
+    std::env::var("ICED_BEACON_SERVER_ADDRESS")
+        .unwrap_or_else(|_| String::from(DEFAULT_ADDRESS))
+}
+
 async fn _connect() -> Result<net::TcpStream, io::Error> {
     log::debug!("Attempting to connect to server...");
-    let stream = net::TcpStream::connect(SERVER_ADDRESS).await?;
+    let stream = net::TcpStream::connect(server_address_from_env()).await?;
 
     stream.set_nodelay(true)?;
     stream.writable().await?;

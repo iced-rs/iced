@@ -5,10 +5,11 @@ mod rainbow {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
+    use iced::advanced::{Clipboard, Shell};
     use iced::mouse;
     use iced::{
-        Element, Length, Rectangle, Renderer, Size, Theme, Transformation,
-        Vector,
+        Element, Event, Length, Rectangle, Renderer, Size, Theme,
+        Transformation, Vector,
     };
 
     #[derive(Debug, Clone, Copy, Default)]
@@ -35,6 +36,22 @@ mod rainbow {
             let width = limits.max().width;
 
             layout::Node::new(Size::new(width, width))
+        }
+
+        fn update(
+            &mut self,
+            _state: &mut widget::Tree,
+            _event: &Event,
+            layout: Layout<'_>,
+            cursor: mouse::Cursor,
+            _renderer: &Renderer,
+            _clipboard: &mut dyn Clipboard,
+            shell: &mut Shell<'_, Message>,
+            _viewport: &Rectangle,
+        ) {
+            if cursor.is_over(layout.bounds()) {
+                shell.request_redraw();
+            }
         }
 
         fn draw(

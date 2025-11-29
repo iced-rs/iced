@@ -174,7 +174,8 @@ impl Tour {
         } else {
             content
         }))
-        .spacing(10);
+        .spacing(10)
+        .auto_scroll(true);
 
         center_y(scrollable).padding(10).into()
     }
