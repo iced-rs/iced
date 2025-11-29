@@ -51,7 +51,9 @@ use crate::core::theme;
 use crate::core::{
     self, Color, Element, Length, Padding, Pixels, Theme, color,
 };
-use crate::{column, container, rich_text, row, rule, scrollable, span, text};
+use crate::{
+    checkbox, column, container, rich_text, row, rule, scrollable, span, text,
+};
 
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
@@ -208,7 +210,7 @@ pub enum Item {
         /// The first number of the list, if it is ordered.
         start: Option<u64>,
         /// The items of the list.
-        items: Vec<Vec<Item>>,
+        bullets: Vec<Bullet>,
     },
     /// An image.
     Image {
@@ -347,6 +349,37 @@ impl Span {
                 span(text.clone()).color_maybe(*color).font_maybe(*font)
             }
         }
+    }
+}
+
+/// The item of a list.
+#[derive(Debug, Clone)]
+pub enum Bullet {
+    /// A simple bullet point.
+    Point {
+        /// The contents of the bullet point.
+        items: Vec<Item>,
+    },
+    /// A task.
+    Task {
+        /// The contents of the task.
+        items: Vec<Item>,
+        /// Whether the task is done or not.
+        done: bool,
+    },
+}
+
+impl Bullet {
+    fn items(&self) -> &[Item] {
+        match self {
+            Bullet::Point { items } | Bullet::Task { items, .. } => items,
+        }
+    }
+
+    fn push(&mut self, item: Item) {
+        let (Bullet::Point { items } | Bullet::Task { items, .. }) = self;
+
+        items.push(item);
     }
 }
 
@@ -503,7 +536,7 @@ fn parse_with<'a>(
 
     struct List {
         start: Option<u64>,
-        items: Vec<Vec<Item>>,
+        bullets: Vec<Bullet>,
     }
 
     let broken_links = Rc::new(RefCell::new(HashSet::new()));
@@ -529,7 +562,8 @@ fn parse_with<'a>(
         pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
             | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
             | pulldown_cmark::Options::ENABLE_TABLES
-            | pulldown_cmark::Options::ENABLE_STRIKETHROUGH,
+            | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
+            | pulldown_cmark::Options::ENABLE_TASKLISTS,
         {
             let references = state.borrow().references.clone();
             let broken_links = broken_links.clone();
@@ -566,7 +600,7 @@ fn parse_with<'a>(
         if let Some(scope) = stack.last_mut() {
             match scope {
                 Scope::List(list) => {
-                    list.items.last_mut().expect("item context").push(item);
+                    list.bullets.last_mut().expect("item context").push(item);
                 }
                 Scope::Quote(items) => {
                     items.push(item);
@@ -630,14 +664,14 @@ fn parse_with<'a>(
 
                 stack.push(Scope::List(List {
                     start: first_item,
-                    items: Vec::new(),
+                    bullets: Vec::new(),
                 }));
 
                 prev
             }
             pulldown_cmark::Tag::Item => {
                 if let Some(Scope::List(list)) = stack.last_mut() {
-                    list.items.push(Vec::new());
+                    list.bullets.push(Bullet::Point { items: Vec::new() });
                 }
 
                 None
@@ -781,7 +815,7 @@ fn parse_with<'a>(
                     &mut stack,
                     Item::List {
                         start: list.start,
-                        items: list.items,
+                        bullets: list.bullets,
                     },
                     source,
                 )
@@ -969,6 +1003,19 @@ fn parse_with<'a>(
         }
         pulldown_cmark::Event::Rule => {
             produce(state.borrow_mut(), &mut stack, Item::Rule, source)
+        }
+        pulldown_cmark::Event::TaskListMarker(done) => {
+            if let Some(Scope::List(list)) = stack.last_mut()
+                && let Some(item) = list.bullets.last_mut()
+                && let Bullet::Point { items } = item
+            {
+                *item = Bullet::Task {
+                    items: std::mem::take(items),
+                    done,
+                };
+            }
+
+            None
         }
         _ => None,
     })
@@ -1201,13 +1248,14 @@ where
             code,
             lines,
         } => viewer.code_block(settings, language.as_deref(), code, lines),
-        Item::List { start: None, items } => {
-            viewer.unordered_list(settings, items)
-        }
+        Item::List {
+            start: None,
+            bullets,
+        } => viewer.unordered_list(settings, bullets),
         Item::List {
             start: Some(start),
-            items,
-        } => viewer.ordered_list(settings, *start, items),
+            bullets,
+        } => viewer.ordered_list(settings, *start, bullets),
         Item::Quote(quote) => viewer.quote(settings, quote),
         Item::Rule => viewer.rule(settings),
         Item::Table { columns, rows } => viewer.table(settings, columns, rows),
@@ -1280,18 +1328,31 @@ where
 pub fn unordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    items: &'a [Vec<Item>],
+    bullets: &'a [Bullet],
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    column(items.iter().map(|items| {
+    column(bullets.iter().map(|bullet| {
         row![
-            text("•").size(settings.text_size),
+            match bullet {
+                Bullet::Point { .. } => {
+                    text("•").size(settings.text_size).into()
+                }
+                Bullet::Task { done, .. } => {
+                    Element::from(
+                        container(checkbox(*done).size(settings.text_size))
+                            .center_y(
+                                text::LineHeight::default()
+                                    .to_absolute(settings.text_size),
+                            ),
+                    )
+                }
+            },
             view_with(
-                items,
+                bullet.items(),
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
@@ -1313,23 +1374,25 @@ pub fn ordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     start: u64,
-    items: &'a [Vec<Item>],
+    bullets: &'a [Bullet],
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    let digits = ((start + items.len() as u64).max(1) as f32).log10().ceil();
+    let digits = ((start + bullets.len() as u64).max(1) as f32)
+        .log10()
+        .ceil();
 
-    column(items.iter().enumerate().map(|(i, items)| {
+    column(bullets.iter().enumerate().map(|(i, bullet)| {
         row![
             text!("{}.", i as u64 + start)
                 .size(settings.text_size)
                 .align_x(alignment::Horizontal::Right)
                 .width(settings.text_size * ((digits / 2.0).ceil() + 1.0)),
             view_with(
-                items,
+                bullet.items(),
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
@@ -1568,9 +1631,9 @@ where
     fn unordered_list(
         &self,
         settings: Settings,
-        items: &'a [Vec<Item>],
+        bullets: &'a [Bullet],
     ) -> Element<'a, Message, Theme, Renderer> {
-        unordered_list(self, settings, items)
+        unordered_list(self, settings, bullets)
     }
 
     /// Displays an ordered list.
@@ -1580,9 +1643,9 @@ where
         &self,
         settings: Settings,
         start: u64,
-        items: &'a [Vec<Item>],
+        bullets: &'a [Bullet],
     ) -> Element<'a, Message, Theme, Renderer> {
-        ordered_list(self, settings, start, items)
+        ordered_list(self, settings, start, bullets)
     }
 
     /// Displays a quote.
@@ -1638,6 +1701,7 @@ pub trait Catalog:
     + scrollable::Catalog
     + text::Catalog
     + crate::rule::Catalog
+    + checkbox::Catalog
     + crate::table::Catalog
 {
     /// The styling class of a Markdown code block.
