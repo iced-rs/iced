@@ -1173,9 +1173,6 @@ impl<Message> Binding<Message> {
             return None;
         }
 
-        #[cfg(target_os = "macos")]
-        let key = convert_macos_shortcut(&key, modifiers);
-
         let combination = match key.as_ref() {
             keyboard::Key::Character("c") if modifiers.command() => {
                 Some(Self::Copy)
@@ -1197,6 +1194,10 @@ impl<Message> Binding<Message> {
         if let Some(binding) = combination {
             return Some(binding);
         }
+
+        #[cfg(target_os = "macos")]
+        let modified_key =
+            convert_macos_shortcut(&key, modifiers).unwrap_or(modified_key);
 
         match modified_key.as_ref() {
             keyboard::Key::Named(key::Named::Enter) => Some(Self::Enter),
@@ -1497,28 +1498,20 @@ pub fn default(theme: &Theme, status: Status) -> Style {
 pub(crate) fn convert_macos_shortcut(
     key: &keyboard::Key,
     modifiers: keyboard::Modifiers,
-) -> &keyboard::Key {
+) -> Option<keyboard::Key> {
     if modifiers != keyboard::Modifiers::CTRL {
-        return key;
+        return None;
     }
 
-    match key.as_ref() {
-        keyboard::Key::Character("b") => {
-            &keyboard::Key::Named(key::Named::ArrowLeft)
-        }
-        keyboard::Key::Character("f") => {
-            &keyboard::Key::Named(key::Named::ArrowRight)
-        }
-        keyboard::Key::Character("a") => {
-            &keyboard::Key::Named(key::Named::Home)
-        }
-        keyboard::Key::Character("e") => &keyboard::Key::Named(key::Named::End),
-        keyboard::Key::Character("h") => {
-            &keyboard::Key::Named(key::Named::Backspace)
-        }
-        keyboard::Key::Character("d") => {
-            &keyboard::Key::Named(key::Named::Delete)
-        }
-        _ => key,
-    }
+    let key = match key.as_ref() {
+        keyboard::Key::Character("b") => key::Named::ArrowLeft,
+        keyboard::Key::Character("f") => key::Named::ArrowRight,
+        keyboard::Key::Character("a") => key::Named::Home,
+        keyboard::Key::Character("e") => key::Named::End,
+        keyboard::Key::Character("h") => key::Named::Backspace,
+        keyboard::Key::Character("d") => key::Named::Delete,
+        _ => return None,
+    };
+
+    Some(keyboard::Key::Named(key))
 }

@@ -1039,9 +1039,14 @@ where
                     }
 
                     #[cfg(target_os = "macos")]
-                    let key = crate::text_editor::convert_macos_shortcut(
-                        key, modifiers,
-                    );
+                    let macos_shortcut =
+                        crate::text_editor::convert_macos_shortcut(
+                            key, modifiers,
+                        );
+
+                    #[cfg(target_os = "macos")]
+                    let modified_key =
+                        macos_shortcut.as_ref().unwrap_or(modified_key);
 
                     match modified_key.as_ref() {
                         keyboard::Key::Named(key::Named::Enter) => {
