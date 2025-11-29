@@ -313,7 +313,7 @@ impl Span {
                 let span = span(text.clone()).strikethrough(*strikethrough);
 
                 let span = if *code {
-                    span.font(Font::MONOSPACE)
+                    span.font(style.inline_code_font)
                         .color(style.inline_code_color)
                         .background(style.inline_code_highlight.background)
                         .border(style.inline_code_highlight.border)
@@ -330,10 +330,10 @@ impl Span {
                         } else {
                             font::Style::Normal
                         },
-                        ..Font::default()
+                        ..style.font
                     })
                 } else {
-                    span
+                    span.font(style.font)
                 };
 
                 if let Some(link) = link.as_ref() {
@@ -1046,12 +1046,18 @@ impl From<Theme> for Settings {
 /// The text styling of some Markdown rendering in [`view`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
+    /// The [`Font`] to be applied to basic text.
+    pub font: Font,
     /// The [`Highlight`] to be applied to the background of inline code.
     pub inline_code_highlight: Highlight,
     /// The [`Padding`] to be applied to the background of inline code.
     pub inline_code_padding: Padding,
     /// The [`Color`] to be applied to inline code.
     pub inline_code_color: Color,
+    /// The [`Font`] to be applied to inline code.
+    pub inline_code_font: Font,
+    /// The [`Font`] to be applied to code blocks.
+    pub code_block_font: Font,
     /// The [`Color`] to be applied to links.
     pub link_color: Color,
 }
@@ -1060,12 +1066,15 @@ impl Style {
     /// Creates a new [`Style`] from the given [`theme::Palette`].
     pub fn from_palette(palette: theme::Palette) -> Self {
         Self {
+            font: Font::default(),
             inline_code_padding: padding::left(1).right(1),
             inline_code_highlight: Highlight {
                 background: color!(0x111111).into(),
                 border: border::rounded(4),
             },
             inline_code_color: Color::WHITE,
+            inline_code_font: Font::MONOSPACE,
+            code_block_font: Font::MONOSPACE,
             link_color: palette.primary,
         }
     }
@@ -1351,7 +1360,7 @@ where
             container(column(lines.iter().map(|line| {
                 rich_text(line.spans(settings.style))
                     .on_link_click(on_link_click.clone())
-                    .font(Font::MONOSPACE)
+                    .font(settings.style.code_block_font)
                     .size(settings.code_size)
                     .into()
             })))
