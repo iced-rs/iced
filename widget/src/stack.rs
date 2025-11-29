@@ -13,7 +13,10 @@ use crate::core::{
 ///
 /// The first [`Element`] dictates the intrinsic [`Size`] of a [`Stack`] and
 /// will be displayed as the base layer. Every consecutive [`Element`] will be
-/// renderer on top; on its own layer.
+/// rendered on top; on its own layer.
+///
+/// You can use [`push_under`](Self::push_under) to push an [`Element`] under
+/// the current [`Stack`] without affecting its intrinsic [`Size`].
 ///
 /// Keep in mind that too much layering will normally produce bad UX as well as
 /// introduce certain rendering overhead. Use this widget sparingly!
@@ -23,6 +26,7 @@ pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
     height: Length,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
     clip: bool,
+    base_layer: usize,
 }
 
 impl<'a, Message, Theme, Renderer> Stack<'a, Message, Theme, Renderer>
@@ -63,6 +67,7 @@ where
             height: Length::Shrink,
             children,
             clip: false,
+            base_layer: 0,
         }
     }
 
@@ -78,7 +83,7 @@ where
         self
     }
 
-    /// Adds an element to the [`Stack`].
+    /// Adds an element on top of the [`Stack`].
     pub fn push(
         mut self,
         child: impl Into<Element<'a, Message, Theme, Renderer>>,
@@ -95,6 +100,16 @@ where
             self.children.push(child);
         }
 
+        self
+    }
+
+    /// Adds an element under the [`Stack`].
+    pub fn push_under(
+        mut self,
+        child: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        self.children.insert(0, child.into());
+        self.base_layer += 1;
         self
     }
 
@@ -154,7 +169,7 @@ where
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
-        if self.children.is_empty() {
+        if self.children.len() <= self.base_layer {
             return layout::Node::new(limits.resolve(
                 self.width,
                 self.height,
@@ -162,8 +177,8 @@ where
             ));
         }
 
-        let base = self.children[0].as_widget_mut().layout(
-            &mut tree.children[0],
+        let base = self.children[self.base_layer].as_widget_mut().layout(
+            &mut tree.children[self.base_layer],
             renderer,
             &limits,
         );
@@ -171,15 +186,22 @@ where
         let size = limits.resolve(self.width, self.height, base.size());
         let limits = layout::Limits::new(Size::ZERO, size);
 
-        let nodes = std::iter::once(base)
-            .chain(
-                self.children[1..]
-                    .iter_mut()
-                    .zip(&mut tree.children[1..])
-                    .map(|(layer, tree)| {
-                        layer.as_widget_mut().layout(tree, renderer, &limits)
-                    }),
-            )
+        let (under, above) = self.children.split_at_mut(self.base_layer);
+        let (tree_under, tree_above) =
+            tree.children.split_at_mut(self.base_layer);
+
+        let nodes = under
+            .iter_mut()
+            .zip(tree_under)
+            .map(|(layer, tree)| {
+                layer.as_widget_mut().layout(tree, renderer, &limits)
+            })
+            .chain(std::iter::once(base))
+            .chain(above[1..].iter_mut().zip(&mut tree_above[1..]).map(
+                |(layer, tree)| {
+                    layer.as_widget_mut().layout(tree, renderer, &limits)
+                },
+            ))
             .collect();
 
         layout::Node::with_children(size, nodes)
@@ -292,7 +314,7 @@ where
                 viewport
             };
 
-            let layers_below = if cursor.is_over(layout.bounds()) {
+            let layers_under = if cursor.is_over(layout.bounds()) {
                 self.children
                     .iter()
                     .rev()
@@ -341,7 +363,7 @@ where
                     }
                 };
 
-            for (i, ((layer, tree), layout)) in layers.take(layers_below) {
+            for (i, ((layer, tree), layout)) in layers.take(layers_under) {
                 draw_layer(i, layer, tree, layout, mouse::Cursor::Unavailable);
             }
 
