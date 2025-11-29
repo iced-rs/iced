@@ -1,7 +1,7 @@
 //! Configure your windows.
 #[cfg(target_os = "windows")]
 #[path = "settings/windows.rs"]
-mod platform;
+pub mod platform;
 
 #[cfg(target_os = "macos")]
 #[path = "settings/macos.rs"]
