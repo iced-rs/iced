@@ -1673,11 +1673,11 @@ impl Default for State {
 }
 
 impl operation::Scrollable for State {
-    fn snap_to(&mut self, offset: RelativeOffset) {
+    fn snap_to(&mut self, offset: RelativeOffset<Option<f32>>) {
         State::snap_to(self, offset);
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset) {
+    fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
         State::scroll_to(self, offset);
     }
 
@@ -1829,18 +1829,28 @@ impl State {
         self.unsnap(bounds, content_bounds);
     }
 
-    fn snap_to(&mut self, offset: RelativeOffset) {
-        self.offset_x = Offset::Relative(offset.x.clamp(0.0, 1.0));
-        self.offset_y = Offset::Relative(offset.y.clamp(0.0, 1.0));
+    fn snap_to(&mut self, offset: RelativeOffset<Option<f32>>) {
+        if let Some(x) = offset.x {
+            self.offset_x = Offset::Relative(x.clamp(0.0, 1.0));
+        }
+
+        if let Some(y) = offset.y {
+            self.offset_y = Offset::Relative(y.clamp(0.0, 1.0));
+        }
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        self.offset_x = Offset::Absolute(offset.x.max(0.0));
-        self.offset_y = Offset::Absolute(offset.y.max(0.0));
+    fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
+        if let Some(x) = offset.x {
+            self.offset_x = Offset::Absolute(x.max(0.0));
+        }
+
+        if let Some(y) = offset.y {
+            self.offset_y = Offset::Absolute(y.max(0.0));
+        }
     }
 
     /// Scroll by the provided [`AbsoluteOffset`].
-    pub fn scroll_by(
+    fn scroll_by(
         &mut self,
         offset: AbsoluteOffset,
         bounds: Rectangle,
@@ -1851,7 +1861,7 @@ impl State {
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the
     /// [`Scrollable`] and its contents.
-    pub fn unsnap(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
+    fn unsnap(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
         self.offset_x = Offset::Absolute(
             self.offset_x.absolute(bounds.width, content_bounds.width),
         );
