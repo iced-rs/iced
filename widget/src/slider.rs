@@ -533,9 +533,19 @@ where
         let state = tree.state.downcast_ref::<State>();
 
         if state.is_dragging {
-            mouse::Interaction::Grabbing
+            // FIXME: Fall back to `Pointer` on Windows
+            // See https://github.com/rust-windowing/winit/issues/1043
+            if cfg!(target_os = "windows") {
+                mouse::Interaction::Pointer
+            } else {
+                mouse::Interaction::Grabbing
+            }
         } else if cursor.is_over(layout.bounds()) {
-            mouse::Interaction::Grab
+            if cfg!(target_os = "windows") {
+                mouse::Interaction::Pointer
+            } else {
+                mouse::Interaction::Grab
+            }
         } else {
             mouse::Interaction::default()
         }
