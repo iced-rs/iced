@@ -1346,7 +1346,13 @@ where
                         .into()
                 }
                 Bullet::Task { done, .. } => {
-                    Element::from(checkbox(*done).size(settings.text_size))
+                    Element::from(
+                        container(checkbox(*done).size(settings.text_size))
+                            .center_y(
+                                text::LineHeight::default()
+                                    .to_absolute(settings.text_size),
+                            ),
+                    )
                 }
             },
             view_with(
