@@ -320,7 +320,6 @@ impl Span {
                         .padding(style.inline_code_padding)
                 } else if *strong || *emphasis {
                     span.font(Font {
-                        family: style.text_font_family,
                         weight: if *strong {
                             font::Weight::Bold
                         } else {
@@ -331,13 +330,10 @@ impl Span {
                         } else {
                             font::Style::Normal
                         },
-                        ..Font::default()
+                        ..style.font
                     })
                 } else {
-                    span.font(Font {
-                        family: style.text_font_family,
-                        ..Font::default()
-                    })
+                    span.font(style.font)
                 };
 
                 if let Some(link) = link.as_ref() {
@@ -1050,8 +1046,8 @@ impl From<Theme> for Settings {
 /// The text styling of some Markdown rendering in [`view`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
-    /// The [`font::Family`] to be applied to non-code text.
-    pub text_font_family: font::Family,
+    /// The [`Font`] to be applied to basic text.
+    pub font: Font,
     /// The [`Highlight`] to be applied to the background of inline code.
     pub inline_code_highlight: Highlight,
     /// The [`Padding`] to be applied to the background of inline code.
@@ -1070,7 +1066,7 @@ impl Style {
     /// Creates a new [`Style`] from the given [`theme::Palette`].
     pub fn from_palette(palette: theme::Palette) -> Self {
         Self {
-            text_font_family: font::Family::default(),
+            font: Font::default(),
             inline_code_padding: padding::left(1).right(1),
             inline_code_highlight: Highlight {
                 background: color!(0x111111).into(),
