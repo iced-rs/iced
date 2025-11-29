@@ -605,8 +605,8 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     Style {
         background: background.into(),
         foreground: foreground.into(),
-        foreground_border_width: 0.0,
-        foreground_border_color: Color::TRANSPARENT,
+        foreground_border_width: 2.0,
+        foreground_border_color: background,
         background_border_width: 0.0,
         background_border_color: Color::TRANSPARENT,
         text_color: None,
