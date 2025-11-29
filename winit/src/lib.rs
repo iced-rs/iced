@@ -1021,11 +1021,20 @@ async fn run_instance<P>(
                                     let physical_size =
                                         window.state.physical_size();
 
-                                    current_compositor.configure_surface(
-                                        &mut window.surface,
-                                        physical_size.width,
-                                        physical_size.height,
-                                    );
+                                    if error == compositor::SurfaceError::Lost {
+                                        window.surface = current_compositor
+                                            .create_surface(
+                                                window.raw.clone(),
+                                                physical_size.width,
+                                                physical_size.height,
+                                            );
+                                    } else {
+                                        current_compositor.configure_surface(
+                                            &mut window.surface,
+                                            physical_size.width,
+                                            physical_size.height,
+                                        );
+                                    }
 
                                     window.raw.request_redraw();
                                 }
