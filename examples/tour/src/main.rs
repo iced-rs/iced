@@ -627,7 +627,7 @@ pub enum Layout {
 impl Default for Tour {
     fn default() -> Self {
         Self {
-            screen: Screen::Scrollable,
+            screen: Screen::Welcome,
             slider: 50,
             layout: Layout::Row,
             spacing: 20,
