@@ -1339,11 +1339,7 @@ where
         row![
             match bullet {
                 Bullet::Point { .. } => {
-                    text("•")
-                        .width(settings.text_size)
-                        .center()
-                        .size(settings.text_size)
-                        .into()
+                    text("•").size(settings.text_size).into()
                 }
                 Bullet::Task { done, .. } => {
                     Element::from(
