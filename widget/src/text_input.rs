@@ -899,7 +899,10 @@ where
                 }
             }
             Event::Keyboard(keyboard::Event::KeyPressed {
-                key, text, ..
+                key,
+                text,
+                modified_key,
+                ..
             }) => {
                 let state = state::<Renderer>(tree);
 
@@ -1040,7 +1043,7 @@ where
                         key, modifiers,
                     );
 
-                    match key.as_ref() {
+                    match modified_key.as_ref() {
                         keyboard::Key::Named(key::Named::Enter) => {
                             if let Some(on_submit) = self.on_submit.clone() {
                                 shell.publish(on_submit);

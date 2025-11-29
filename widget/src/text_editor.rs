@@ -1142,8 +1142,14 @@ pub enum Binding<Message> {
 /// A key press.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyPress {
-    /// The key pressed.
+    /// The original key pressed without modifiers applied to it.
+    ///
+    /// You should use this key for combinations (e.g. Ctrl+C).
     pub key: keyboard::Key,
+    /// The key pressed with modifiers applied to it.
+    ///
+    /// You should use this key for any single key bindings (e.g. motions).
+    pub modified_key: keyboard::Key,
     /// The state of the keyboard modifiers.
     pub modifiers: keyboard::Modifiers,
     /// The text produced by the key press.
@@ -1157,6 +1163,7 @@ impl<Message> Binding<Message> {
     pub fn from_key_press(event: KeyPress) -> Option<Self> {
         let KeyPress {
             key,
+            modified_key,
             modifiers,
             text,
             status,
@@ -1169,17 +1176,7 @@ impl<Message> Binding<Message> {
         #[cfg(target_os = "macos")]
         let key = convert_macos_shortcut(&key, modifiers);
 
-        match key.as_ref() {
-            keyboard::Key::Named(key::Named::Enter) => Some(Self::Enter),
-            keyboard::Key::Named(key::Named::Backspace) => {
-                Some(Self::Backspace)
-            }
-            keyboard::Key::Named(key::Named::Delete)
-                if text.is_none() || text.as_deref() == Some("\u{7f}") =>
-            {
-                Some(Self::Delete)
-            }
-            keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
+        let combination = match key.as_ref() {
             keyboard::Key::Character("c") if modifiers.command() => {
                 Some(Self::Copy)
             }
@@ -1194,6 +1191,24 @@ impl<Message> Binding<Message> {
             keyboard::Key::Character("a") if modifiers.command() => {
                 Some(Self::SelectAll)
             }
+            _ => None,
+        };
+
+        if let Some(binding) = combination {
+            return Some(binding);
+        }
+
+        match modified_key.as_ref() {
+            keyboard::Key::Named(key::Named::Enter) => Some(Self::Enter),
+            keyboard::Key::Named(key::Named::Backspace) => {
+                Some(Self::Backspace)
+            }
+            keyboard::Key::Named(key::Named::Delete)
+                if text.is_none() || text.as_deref() == Some("\u{7f}") =>
+            {
+                Some(Self::Delete)
+            }
+            keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
             _ => {
                 if let Some(text) = text {
                     let c = text.chars().find(|c| !c.is_control())?;
@@ -1332,6 +1347,7 @@ impl<Message> Update<Message> {
             },
             Event::Keyboard(keyboard::Event::KeyPressed {
                 key,
+                modified_key,
                 modifiers,
                 text,
                 ..
@@ -1346,6 +1362,7 @@ impl<Message> Update<Message> {
 
                 let key_press = KeyPress {
                     key: key.clone(),
+                    modified_key: modified_key.clone(),
                     modifiers: *modifiers,
                     text: text.clone(),
                     status,
