@@ -186,29 +186,33 @@ pub fn present(
         .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
 
     if damage.is_empty() {
-        return Ok(());
+        if let Some(last_layers) = last_layers {
+            surface.layer_stack.push_front(last_layers.clone());
+        }
+    } else {
+        surface.layer_stack.push_front(renderer.layers().to_vec());
+        surface.background_color = background_color;
+
+        let damage = damage::group(
+            damage,
+            Rectangle::with_size(viewport.logical_size()),
+        );
+
+        let mut pixels = tiny_skia::PixmapMut::from_bytes(
+            bytemuck::cast_slice_mut(&mut buffer),
+            physical_size.width,
+            physical_size.height,
+        )
+        .expect("Create pixel map");
+
+        renderer.draw(
+            &mut pixels,
+            &mut surface.clip_mask,
+            viewport,
+            &damage,
+            background_color,
+        );
     }
-
-    surface.layer_stack.push_front(renderer.layers().to_vec());
-    surface.background_color = background_color;
-
-    let damage =
-        damage::group(damage, Rectangle::with_size(viewport.logical_size()));
-
-    let mut pixels = tiny_skia::PixmapMut::from_bytes(
-        bytemuck::cast_slice_mut(&mut buffer),
-        physical_size.width,
-        physical_size.height,
-    )
-    .expect("Create pixel map");
-
-    renderer.draw(
-        &mut pixels,
-        &mut surface.clip_mask,
-        viewport,
-        &damage,
-        background_color,
-    );
 
     on_pre_present();
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
