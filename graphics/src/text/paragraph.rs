@@ -271,28 +271,30 @@ impl core::text::Paragraph for Paragraph {
         let cursor = internal.buffer.hit(point.x, point.y)?;
         let line = internal.buffer.lines.get(cursor.line)?;
 
-        let mut last_glyph = None;
-        let mut glyphs = line
+        if cursor.index >= line.text().len() {
+            return None;
+        }
+
+        let index = match cursor.affinity {
+            cosmic_text::Affinity::Before => cursor.index.saturating_sub(1),
+            cosmic_text::Affinity::After => cursor.index,
+        };
+
+        let mut hit = None;
+        let glyphs = line
             .layout_opt()
             .as_ref()?
             .iter()
-            .flat_map(|line| line.glyphs.iter())
-            .peekable();
+            .flat_map(|line| line.glyphs.iter());
 
-        while let Some(glyph) = glyphs.peek() {
-            if glyph.start <= cursor.index && cursor.index < glyph.end {
+        for glyph in glyphs {
+            if glyph.start <= index && index < glyph.end {
+                hit = Some(glyph);
                 break;
             }
-
-            last_glyph = glyphs.next();
         }
 
-        let glyph = match cursor.affinity {
-            cosmic_text::Affinity::Before => last_glyph,
-            cosmic_text::Affinity::After => glyphs.next(),
-        }?;
-
-        Some(glyph.metadata)
+        Some(hit?.metadata)
     }
 
     fn span_bounds(&self, index: usize) -> Vec<Rectangle> {
