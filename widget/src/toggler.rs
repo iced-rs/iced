@@ -526,7 +526,8 @@ pub struct Style {
     pub foreground_border_color: Color,
     /// The text [`Color`] of the toggler.
     pub text_color: Option<Color>,
-    /// The optional border [`Radius`] of the toggler
+    /// The optional border [`Radius`] of the toggler.
+    /// If [`None`], the radius will be rounded.
     pub border_radius: Option<Radius>,
 }
 
