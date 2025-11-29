@@ -348,6 +348,9 @@ pub enum Error {
     /// Loading images is unsupported.
     #[error("loading images is unsupported")]
     Unsupported,
+    /// The image is empty.
+    #[error("the image is empty")]
+    Empty,
     /// Not enough memory to allocate the image.
     #[error("not enough memory to allocate the image")]
     OutOfMemory,
