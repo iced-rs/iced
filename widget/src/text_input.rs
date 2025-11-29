@@ -899,7 +899,10 @@ where
                 }
             }
             Event::Keyboard(keyboard::Event::KeyPressed {
-                key, text, ..
+                key,
+                text,
+                modified_key,
+                ..
             }) => {
                 let state = state::<Renderer>(tree);
 
@@ -1036,11 +1039,16 @@ where
                     }
 
                     #[cfg(target_os = "macos")]
-                    let key = crate::text_editor::convert_macos_shortcut(
-                        key, modifiers,
-                    );
+                    let macos_shortcut =
+                        crate::text_editor::convert_macos_shortcut(
+                            key, modifiers,
+                        );
 
-                    match key.as_ref() {
+                    #[cfg(target_os = "macos")]
+                    let modified_key =
+                        macos_shortcut.as_ref().unwrap_or(modified_key);
+
+                    match modified_key.as_ref() {
                         keyboard::Key::Named(key::Named::Enter) => {
                             if let Some(on_submit) = self.on_submit.clone() {
                                 shell.publish(on_submit);
