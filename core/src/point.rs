@@ -74,6 +74,16 @@ where
     }
 }
 
+impl<T> std::ops::AddAssign<Vector<T>> for Point<T>
+where
+    T: std::ops::AddAssign,
+{
+    fn add_assign(&mut self, vector: Vector<T>) {
+        self.x += vector.x;
+        self.y += vector.y;
+    }
+}
+
 impl<T> std::ops::Sub<Vector<T>> for Point<T>
 where
     T: std::ops::Sub<Output = T>,
@@ -85,6 +95,16 @@ where
             x: self.x - vector.x,
             y: self.y - vector.y,
         }
+    }
+}
+
+impl<T> std::ops::SubAssign<Vector<T>> for Point<T>
+where
+    T: std::ops::SubAssign,
+{
+    fn sub_assign(&mut self, vector: Vector<T>) {
+        self.x -= vector.x;
+        self.y -= vector.y;
     }
 }
 
