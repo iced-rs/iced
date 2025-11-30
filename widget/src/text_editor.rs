@@ -474,6 +474,11 @@ where
     pub fn cursor_position(&self) -> (usize, usize) {
         self.0.borrow().editor.cursor_position()
     }
+
+    /// Returns whether or not the the [`Content`] is empty.
+    pub fn is_empty(&self) -> bool {
+        self.0.borrow().editor.is_empty()
+    }
 }
 
 impl<Renderer> Clone for Content<Renderer>
