@@ -364,6 +364,24 @@ where
             None
         }
     }
+
+    fn operate(
+        &mut self,
+        tree: &mut widget::Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        operation.container(None, layout.bounds());
+        operation.traverse(&mut |operation| {
+            self.content.as_widget_mut().operate(
+                &mut tree.children[0],
+                layout,
+                renderer,
+                operation,
+            );
+        });
+    }
 }
 
 impl<'a, Message, Theme, Renderer> From<Tooltip<'a, Message, Theme, Renderer>>
