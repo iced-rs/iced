@@ -311,7 +311,7 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
-        viewport: &Rectangle,
+        _viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
@@ -352,7 +352,7 @@ where
                         snap: true,
                     },
                     drawing_bounds,
-                    *viewport,
+                    Rectangle::INFINITE,
                 );
             });
         };
