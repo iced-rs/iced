@@ -261,9 +261,10 @@ impl graphics::Compositor for Compositor {
     type Renderer = Renderer;
     type Surface = wgpu::Surface<'static>;
 
-    async fn with_backend<W: compositor::Window>(
+    async fn with_backend(
         settings: graphics::Settings,
-        compatible_window: W,
+        _display: impl compositor::Display,
+        compatible_window: impl compositor::Window,
         shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {

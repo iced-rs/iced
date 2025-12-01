@@ -18,23 +18,25 @@ pub trait Compositor: Sized {
     type Surface;
 
     /// Creates a new [`Compositor`].
-    fn new<W: Window + Clone>(
+    fn new(
         settings: Settings,
-        compatible_window: W,
+        display: impl Display + Clone,
+        compatible_window: impl Window + Clone,
         shell: Shell,
     ) -> impl Future<Output = Result<Self, Error>> {
-        Self::with_backend(settings, compatible_window, shell, None)
+        Self::with_backend(settings, display, compatible_window, shell, None)
     }
 
     /// Creates a new [`Compositor`] with a backend preference.
     ///
     /// If the backend does not match the preference, it will return
     /// [`Error::GraphicsAdapterNotFound`].
-    fn with_backend<W: Window + Clone>(
-        _settings: Settings,
-        _compatible_window: W,
-        _shell: Shell,
-        _backend: Option<&str>,
+    fn with_backend(
+        settings: Settings,
+        display: impl Display + Clone,
+        compatible_window: impl Window + Clone,
+        shell: Shell,
+        backend: Option<&str>,
     ) -> impl Future<Output = Result<Self, Error>>;
 
     /// Creates a [`Self::Renderer`] for the [`Compositor`].
@@ -110,6 +112,15 @@ impl<T> Window for T where
 {
 }
 
+/// An owned display handle that can be used in a [`Compositor`].
+///
+/// This is just a convenient super trait of the `raw-window-handle`
+/// trait.
+pub trait Display: HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+
+impl<T> Display for T where T: HasDisplayHandle + MaybeSend + MaybeSync + 'static
+{}
+
 /// Defines the default compositor of a renderer.
 pub trait Default {
     /// The compositor of the renderer.
@@ -152,9 +163,10 @@ impl Compositor for () {
     type Renderer = ();
     type Surface = ();
 
-    async fn with_backend<W: Window + Clone>(
+    async fn with_backend(
         _settings: Settings,
-        _compatible_window: W,
+        _display: impl Display,
+        _compatible_window: impl Window + Clone,
         _shell: Shell,
         _preferred_backend: Option<&str>,
     ) -> Result<Self, Error> {
