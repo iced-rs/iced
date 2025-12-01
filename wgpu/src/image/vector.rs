@@ -6,6 +6,7 @@ use resvg::tiny_skia;
 use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
+use std::panic;
 use std::sync::Arc;
 
 /// Entry in cache corresponding to an svg handle
@@ -154,7 +155,18 @@ impl Cache {
                     tiny_skia::Transform::default()
                 };
 
-                resvg::render(tree, transform, &mut img.as_mut());
+                // SVG rendering can panic on malformed or complex vectors.
+                // We catch panics to prevent crashes and continue gracefully.
+                let render =
+                    panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                        resvg::render(tree, transform, &mut img.as_mut());
+                    }));
+
+                if let Err(error) = render {
+                    log::warn!(
+                        "SVG rendering for {handle:?} panicked: {error:?}"
+                    );
+                }
 
                 let mut rgba = img.take();
 
