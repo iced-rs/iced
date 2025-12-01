@@ -1,5 +1,5 @@
 /// A 2D vector.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Vector<T = f32> {
     /// The X component of the [`Vector`]
     pub x: T,
@@ -42,6 +42,16 @@ where
     }
 }
 
+impl<T> std::ops::AddAssign for Vector<T>
+where
+    T: std::ops::AddAssign,
+{
+    fn add_assign(&mut self, b: Self) {
+        self.x += b.x;
+        self.y += b.y;
+    }
+}
+
 impl<T> std::ops::Sub for Vector<T>
 where
     T: std::ops::Sub<Output = T>,
@@ -50,6 +60,16 @@ where
 
     fn sub(self, b: Self) -> Self {
         Self::new(self.x - b.x, self.y - b.y)
+    }
+}
+
+impl<T> std::ops::SubAssign for Vector<T>
+where
+    T: std::ops::SubAssign,
+{
+    fn sub_assign(&mut self, b: Self) {
+        self.x -= b.x;
+        self.y -= b.y;
     }
 }
 
@@ -64,6 +84,16 @@ where
     }
 }
 
+impl<T> std::ops::MulAssign<T> for Vector<T>
+where
+    T: std::ops::MulAssign + Copy,
+{
+    fn mul_assign(&mut self, scale: T) {
+        self.x *= scale;
+        self.y *= scale;
+    }
+}
+
 impl<T> std::ops::Div<T> for Vector<T>
 where
     T: std::ops::Div<Output = T> + Copy,
@@ -75,15 +105,13 @@ where
     }
 }
 
-impl<T> Default for Vector<T>
+impl<T> std::ops::DivAssign<T> for Vector<T>
 where
-    T: Default,
+    T: std::ops::DivAssign + Copy,
 {
-    fn default() -> Self {
-        Self {
-            x: T::default(),
-            y: T::default(),
-        }
+    fn div_assign(&mut self, scale: T) {
+        self.x /= scale;
+        self.y /= scale;
     }
 }
 

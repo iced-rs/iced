@@ -211,7 +211,7 @@ where
             state,
         });
 
-        self.translation = self.translation - translation;
+        self.translation -= translation;
         self.viewport = visible_bounds.unwrap_or_default();
     }
 
