@@ -11,13 +11,13 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct Tooltip {
     position: Position,
-    is_immediate: bool,
+    delay: bool,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     ChangePosition,
-    ToggleImmediate(bool),
+    ToggleDelay(bool),
 }
 
 impl Tooltip {
@@ -34,8 +34,8 @@ impl Tooltip {
 
                 self.position = position;
             }
-            Message::ToggleImmediate(is_immediate) => {
-                self.is_immediate = is_immediate;
+            Message::ToggleDelay(is_immediate) => {
+                self.delay = is_immediate;
             }
         }
     }
@@ -48,12 +48,12 @@ impl Tooltip {
             self.position,
         )
         .gap(10)
-        .delay(seconds(if self.is_immediate { 0 } else { 2 }))
+        .delay(seconds(if self.delay { 1 } else { 0 }))
         .style(container::rounded_box);
 
-        let checkbox = checkbox(self.is_immediate)
-            .label("Show immediately")
-            .on_toggle(Message::ToggleImmediate);
+        let checkbox = checkbox(self.delay)
+            .label("Delay")
+            .on_toggle(Message::ToggleDelay);
 
         center(
             column![tooltip, checkbox]

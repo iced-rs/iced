@@ -88,9 +88,6 @@ where
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: f32 = 5.0;
 
-    /// The default delay before a [`Tooltip`] is shown.
-    const DEFAULT_DELAY: Duration = Duration::from_secs(2);
-
     /// Creates a new [`Tooltip`].
     ///
     /// [`Tooltip`]: struct.Tooltip.html
@@ -106,7 +103,7 @@ where
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
-            delay: Self::DEFAULT_DELAY,
+            delay: Duration::ZERO,
             class: Theme::default(),
         }
     }
