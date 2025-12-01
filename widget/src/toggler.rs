@@ -396,10 +396,6 @@ where
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        /// The space ratio between the background Quad and the Toggler bounds, and
-        /// between the background Quad and foreground Quad.
-        const SPACE_RATIO: f32 = 0.05;
-
         let mut children = layout.children();
         let toggler_layout = children.next().unwrap();
 
@@ -431,18 +427,10 @@ where
         let border_radius = style
             .border_radius
             .unwrap_or_else(|| border::Radius::new(bounds.height / 2.0));
-        let space = (SPACE_RATIO * bounds.height).round();
-
-        let toggler_background_bounds = Rectangle {
-            x: bounds.x + space,
-            y: bounds.y + space,
-            width: bounds.width - (2.0 * space),
-            height: bounds.height - (2.0 * space),
-        };
 
         renderer.fill_quad(
             renderer::Quad {
-                bounds: toggler_background_bounds,
+                bounds,
                 border: Border {
                     radius: border_radius,
                     width: style.background_border_width,
@@ -453,16 +441,17 @@ where
             style.background,
         );
 
+        let padding = (style.padding_ratio * bounds.height).round();
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
                 + if self.is_toggled {
-                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
+                    bounds.width - bounds.height + padding
                 } else {
-                    2.0 * space
+                    padding
                 },
-            y: bounds.y + (2.0 * space),
-            width: bounds.height - (4.0 * space),
-            height: bounds.height - (4.0 * space),
+            y: bounds.y + padding,
+            width: bounds.height - (2.0 * padding),
+            height: bounds.height - (2.0 * padding),
         };
 
         renderer.fill_quad(
@@ -535,6 +524,8 @@ pub struct Style {
     ///
     /// If `None`, the toggler will be perfectly round.
     pub border_radius: Option<border::Radius>,
+    /// The ratio of separation between the background and the toggle in relative height.
+    pub padding_ratio: f32,
 }
 
 /// The theme catalog of a [`Toggler`].
@@ -617,5 +608,6 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         background_border_color: Color::TRANSPARENT,
         text_color: None,
         border_radius: None,
+        padding_ratio: 0.1,
     }
 }
