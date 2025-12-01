@@ -35,6 +35,9 @@ pub trait Editor: Sized + Default {
     /// Performs an [`Action`] on the [`Editor`].
     fn perform(&mut self, action: Action);
 
+    /// Moves the cursor to the given position.
+    fn move_to(&mut self, cursor: Cursor);
+
     /// Returns the current boundaries of the [`Editor`].
     fn bounds(&self) -> Size;
 

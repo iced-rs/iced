@@ -390,7 +390,6 @@ where
     R: text::Renderer,
 {
     editor: R::Editor,
-    is_dirty: bool,
 }
 
 impl<R> Content<R>
@@ -406,7 +405,6 @@ where
     pub fn with_text(text: &str) -> Self {
         Self(RefCell::new(Internal {
             editor: R::Editor::with_text(text),
-            is_dirty: true,
         }))
     }
 
@@ -415,7 +413,13 @@ where
         let internal = self.0.get_mut();
 
         internal.editor.perform(action);
-        internal.is_dirty = true;
+    }
+
+    /// Moves the current cursor to reflect the given one.
+    pub fn move_to(&mut self, cursor: Cursor) {
+        let internal = self.0.get_mut();
+
+        internal.editor.move_to(cursor);
     }
 
     /// Returns the current cursor position of the [`Content`].
@@ -511,7 +515,6 @@ where
 
         f.debug_struct("Content")
             .field("editor", &internal.editor)
-            .field("is_dirty", &internal.is_dirty)
             .finish()
     }
 }

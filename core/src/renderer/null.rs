@@ -190,6 +190,8 @@ impl text::Editor for () {
 
     fn perform(&mut self, _action: text::editor::Action) {}
 
+    fn move_to(&mut self, _cursor: text::editor::Cursor) {}
+
     fn bounds(&self) -> Size {
         Size::ZERO
     }
