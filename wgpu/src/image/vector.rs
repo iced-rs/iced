@@ -5,7 +5,8 @@ use crate::image::atlas::{self, Atlas};
 use resvg::tiny_skia;
 use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{fs, panic};
+use std::fs;
+use std::panic;
 use std::sync::Arc;
 
 /// Entry in cache corresponding to an svg handle
@@ -156,17 +157,15 @@ impl Cache {
 
                 // SVG rendering can panic on malformed or complex vectors.
                 // We catch panics to prevent crashes and continue gracefully.
-                let render_result =
+                let render =
                     panic::catch_unwind(panic::AssertUnwindSafe(|| {
                         resvg::render(tree, transform, &mut img.as_mut());
                     }));
 
-                if render_result.is_err() {
+                if let Err(error) = render {
                     log::warn!(
-                        "SVG rendering panicked for handle ID: {}",
-                        handle.id()
+                        "SVG rendering for {handle:?} panicked: {error:?}"
                     );
-                    return None;
                 }
 
                 let mut rgba = img.take();
