@@ -1,6 +1,6 @@
 //! Draw and edit text.
 use crate::core::text::editor::{
-    self, Action, Cursor, Direction, Edit, Motion,
+    self, Action, Cursor, Direction, Edit, Motion, Position, Selection,
 };
 use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{LineHeight, Wrapping};
@@ -19,7 +19,7 @@ pub struct Editor(Option<Arc<Internal>>);
 
 struct Internal {
     editor: cosmic_text::Editor<'static>,
-    cursor: RwLock<Option<Cursor>>,
+    selection: RwLock<Option<Selection>>,
     font: Font,
     bounds: Size,
     topmost_line_changed: Option<usize>,
@@ -109,14 +109,14 @@ impl editor::Editor for Editor {
         self.buffer().lines.len()
     }
 
-    fn selection(&self) -> Option<String> {
+    fn copy(&self) -> Option<String> {
         self.internal().editor.copy_selection()
     }
 
-    fn cursor(&self) -> editor::Cursor {
+    fn selection(&self) -> editor::Selection {
         let internal = self.internal();
 
-        if let Ok(Some(cursor)) = internal.cursor.read().as_deref() {
+        if let Ok(Some(cursor)) = internal.selection.read().as_deref() {
             return cursor.clone();
         }
 
@@ -166,7 +166,7 @@ impl editor::Editor for Editor {
                     })
                     .collect();
 
-                Cursor::Selection(regions)
+                Selection::Range(regions)
             }
             _ => {
                 let line_height = buffer.metrics().line_height;
@@ -234,7 +234,7 @@ impl editor::Editor for Editor {
                         layout.last().map(|line| line.w).unwrap_or(0.0),
                     ));
 
-                Cursor::Caret(Point::new(
+                Selection::Caret(Point::new(
                     offset,
                     (visual_lines_offset + visual_line as i32) as f32
                         * line_height
@@ -243,16 +243,38 @@ impl editor::Editor for Editor {
             }
         };
 
-        *internal.cursor.write().expect("Write to cursor cache") =
+        *internal.selection.write().expect("Write to cursor cache") =
             Some(cursor.clone());
 
         cursor
     }
 
-    fn cursor_position(&self) -> (usize, usize) {
-        let cursor = self.internal().editor.cursor();
+    fn cursor(&self) -> Cursor {
+        let editor = &self.internal().editor;
 
-        (cursor.line, cursor.index)
+        let position = {
+            let cursor = editor.cursor();
+
+            Position {
+                line: cursor.line,
+                column: cursor.index,
+            }
+        };
+
+        let selection = match editor.selection() {
+            cosmic_text::Selection::None => None,
+            cosmic_text::Selection::Normal(cursor)
+            | cosmic_text::Selection::Line(cursor)
+            | cosmic_text::Selection::Word(cursor) => Some(Position {
+                line: cursor.line,
+                column: cursor.index,
+            }),
+        };
+
+        Cursor {
+            position,
+            selection,
+        }
     }
 
     fn perform(&mut self, action: Action) {
@@ -270,7 +292,7 @@ impl editor::Editor for Editor {
 
         // Clear cursor cache
         let _ = internal
-            .cursor
+            .selection
             .write()
             .expect("Write to cursor cache")
             .take();
@@ -572,7 +594,7 @@ impl editor::Editor for Editor {
 
         // Clear cursor cache
         let _ = internal
-            .cursor
+            .selection
             .write()
             .expect("Write to cursor cache")
             .take();
@@ -685,7 +707,7 @@ impl Default for Internal {
                     line_height: 1.0,
                 },
             )),
-            cursor: RwLock::new(None),
+            selection: RwLock::new(None),
             font: Font::default(),
             bounds: Size::ZERO,
             topmost_line_changed: None,

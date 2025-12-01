@@ -55,11 +55,13 @@ use crate::core::{
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::fmt;
+use std::ops;
 use std::ops::DerefMut;
-use std::ops::Range;
 use std::sync::Arc;
 
-pub use text::editor::{Action, Edit, Line, LineEnding, Motion};
+pub use text::editor::{
+    Action, Edit, Line, LineEnding, Motion, Position, Selection,
+};
 
 /// A multi-line text input.
 ///
@@ -354,9 +356,9 @@ where
         let text_bounds = bounds.shrink(self.padding);
         let translation = text_bounds.position() - Point::ORIGIN;
 
-        let cursor = match internal.editor.cursor() {
-            Cursor::Caret(position) => position,
-            Cursor::Selection(ranges) => {
+        let cursor = match internal.editor.selection() {
+            Selection::Caret(position) => position,
+            Selection::Range(ranges) => {
                 ranges.first().cloned().unwrap_or_default().position()
             }
         };
@@ -416,6 +418,11 @@ where
         internal.is_dirty = true;
     }
 
+    /// Returns the current cursor position of the [`Content`].
+    pub fn cursor(&self) -> Cursor {
+        self.0.borrow().editor.cursor()
+    }
+
     /// Returns the amount of lines of the [`Content`].
     pub fn line_count(&self) -> usize {
         self.0.borrow().editor.line_count()
@@ -460,19 +467,14 @@ where
         contents
     }
 
+    /// Returns the selected text of the [`Content`].
+    pub fn selection(&self) -> Option<String> {
+        self.0.borrow().editor.copy()
+    }
+
     /// Returns the kind of [`LineEnding`] used for separating lines in the [`Content`].
     pub fn line_ending(&self) -> Option<LineEnding> {
         Some(self.line(0)?.ending)
-    }
-
-    /// Returns the selected text of the [`Content`].
-    pub fn selection(&self) -> Option<String> {
-        self.0.borrow().editor.selection()
-    }
-
-    /// Returns the current cursor position of the [`Content`].
-    pub fn cursor_position(&self) -> (usize, usize) {
-        self.0.borrow().editor.cursor_position()
     }
 
     /// Returns whether or not the the [`Content`] is empty.
@@ -1014,8 +1016,8 @@ where
         let translation = text_bounds.position() - Point::ORIGIN;
 
         if let Some(focus) = state.focus.as_ref() {
-            match internal.editor.cursor() {
-                Cursor::Caret(position) if focus.is_cursor_visible() => {
+            match internal.editor.selection() {
+                Selection::Caret(position) if focus.is_cursor_visible() => {
                     let cursor =
                         Rectangle::new(
                             position + translation,
@@ -1041,7 +1043,7 @@ where
                         );
                     }
                 }
-                Cursor::Selection(ranges) => {
+                Selection::Range(ranges) => {
                     for range in ranges.into_iter().filter_map(|range| {
                         text_bounds.intersection(&(range + translation))
                     }) {
@@ -1054,7 +1056,7 @@ where
                         );
                     }
                 }
-                Cursor::Caret(_) => {}
+                Selection::Caret(_) => {}
             }
         }
     }
@@ -1265,7 +1267,7 @@ enum Ime {
     Toggle(bool),
     Preedit {
         content: String,
-        selection: Option<Range<usize>>,
+        selection: Option<ops::Range<usize>>,
     },
     Commit(String),
 }
