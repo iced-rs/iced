@@ -39,7 +39,7 @@ use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::text::editor::{Cursor, Editor as _};
+use crate::core::text::editor::Editor as _;
 use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{self, LineHeight, Text, Wrapping};
 use crate::core::theme;
@@ -60,7 +60,7 @@ use std::ops::DerefMut;
 use std::sync::Arc;
 
 pub use text::editor::{
-    Action, Edit, Line, LineEnding, Motion, Position, Selection,
+    Action, Cursor, Edit, Line, LineEnding, Motion, Position, Selection,
 };
 
 /// A multi-line text input.
