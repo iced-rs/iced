@@ -190,9 +190,13 @@ impl Editor {
             }),
             space::horizontal(),
             text({
-                let (line, column) = self.content.cursor_position();
+                let cursor = self.content.cursor();
 
-                format!("{}:{}", line + 1, column + 1)
+                format!(
+                    "{}:{}",
+                    cursor.position.line + 1,
+                    cursor.position.column + 1
+                )
             })
         ]
         .spacing(10);

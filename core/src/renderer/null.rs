@@ -166,14 +166,17 @@ impl text::Editor for () {
     }
 
     fn cursor(&self) -> text::editor::Cursor {
-        text::editor::Cursor::Caret(Point::ORIGIN)
+        text::editor::Cursor {
+            position: text::editor::Position { line: 0, column: 0 },
+            selection: None,
+        }
     }
 
-    fn cursor_position(&self) -> (usize, usize) {
-        (0, 0)
+    fn selection(&self) -> text::editor::Selection {
+        text::editor::Selection::Caret(Point::ORIGIN)
     }
 
-    fn selection(&self) -> Option<String> {
+    fn copy(&self) -> Option<String> {
         None
     }
 
@@ -186,6 +189,8 @@ impl text::Editor for () {
     }
 
     fn perform(&mut self, _action: text::editor::Action) {}
+
+    fn move_to(&mut self, _cursor: text::editor::Cursor) {}
 
     fn bounds(&self) -> Size {
         Size::ZERO
