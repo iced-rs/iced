@@ -31,6 +31,7 @@
 //! }
 //! ```
 use crate::core::alignment;
+use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -427,8 +428,9 @@ where
         }
 
         let bounds = toggler_layout.bounds();
-
-        let border_radius = bounds.height / 2.0;
+        let border_radius = style
+            .border_radius
+            .unwrap_or_else(|| border::Radius::new(bounds.height / 2.0));
         let space = (SPACE_RATIO * bounds.height).round();
 
         let toggler_background_bounds = Rectangle {
@@ -442,7 +444,7 @@ where
             renderer::Quad {
                 bounds: toggler_background_bounds,
                 border: Border {
-                    radius: border_radius.into(),
+                    radius: border_radius,
                     width: style.background_border_width,
                     color: style.background_border_color,
                 },
@@ -467,7 +469,7 @@ where
             renderer::Quad {
                 bounds: toggler_foreground_bounds,
                 border: Border {
-                    radius: border_radius.into(),
+                    radius: border_radius,
                     width: style.foreground_border_width,
                     color: style.foreground_border_color,
                 },
@@ -529,6 +531,10 @@ pub struct Style {
     pub foreground_border_color: Color,
     /// The text [`Color`] of the toggler.
     pub text_color: Option<Color>,
+    /// The border radius of the toggler.
+    ///
+    /// If `None`, the toggler will be perfectly round.
+    pub border_radius: Option<border::Radius>,
 }
 
 /// The theme catalog of a [`Toggler`].
@@ -610,5 +616,6 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         background_border_width: 0.0,
         background_border_color: Color::TRANSPARENT,
         text_color: None,
+        border_radius: None,
     }
 }
