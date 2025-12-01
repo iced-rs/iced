@@ -40,8 +40,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Theme, Widget,
+    Background, Border, Clipboard, Color, Element, Event, Layout, Length,
+    Pixels, Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A toggler widget.
@@ -516,13 +516,13 @@ pub enum Status {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The background [`Color`] of the toggler.
-    pub background: Color,
+    pub background: Background,
     /// The width of the background border of the toggler.
     pub background_border_width: f32,
     /// The [`Color`] of the background border of the toggler.
     pub background_border_color: Color,
     /// The foreground [`Color`] of the toggler.
-    pub foreground: Color,
+    pub foreground: Background,
     /// The width of the foreground border of the toggler.
     pub foreground_border_width: f32,
     /// The [`Color`] of the foreground border of the toggler.
@@ -603,8 +603,8 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     };
 
     Style {
-        background,
-        foreground,
+        background: background.into(),
+        foreground: foreground.into(),
         foreground_border_width: 0.0,
         foreground_border_color: Color::TRANSPARENT,
         background_border_width: 0.0,
