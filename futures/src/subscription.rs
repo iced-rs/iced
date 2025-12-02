@@ -299,20 +299,14 @@ impl<T> Subscription<T> {
 
     /// Transforms the [`Subscription`] output with the given function.
     ///
-    /// # Panics
-    /// The closure provided must be a non-capturing closure. The method
-    /// will panic in debug mode otherwise.
+    /// The closure provided must be a non-capturing closure.
     pub fn map<F, A>(self, f: F) -> Subscription<A>
     where
         T: 'static,
         F: Fn(T) -> A + MaybeSend + Clone + 'static,
         A: 'static,
     {
-        debug_assert!(
-            std::mem::size_of::<F>() == 0,
-            "the closure {} provided in `Subscription::map` is capturing",
-            std::any::type_name::<F>(),
-        );
+        F::assert_zero_size();
 
         struct Map<A, B, F>
         where
@@ -362,20 +356,14 @@ impl<T> Subscription<T> {
     /// Transforms the [`Subscription`] output with the given function, yielding only
     /// values only when the function returns `Some(A)`.
     ///
-    /// # Panics
-    /// The closure provided must be a non-capturing closure. The method
-    /// will panic in debug mode otherwise.
+    /// The closure provided must be a non-capturing closure.
     pub fn filter_map<F, A>(mut self, f: F) -> Subscription<A>
     where
         T: MaybeSend + 'static,
         F: Fn(T) -> Option<A> + MaybeSend + Clone + 'static,
         A: MaybeSend + 'static,
     {
-        debug_assert!(
-            std::mem::size_of::<F>() == 0,
-            "the closure {} provided in `Subscription::filter_map` is capturing",
-            std::any::type_name::<F>(),
-        );
+        F::assert_zero_size();
 
         struct FilterMap<A, B, F>
         where
@@ -531,5 +519,27 @@ where
 
     fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
         crate::boxed_stream((self.spawn)(&self.data, input))
+    }
+}
+
+trait PanicWhenNotZeroSized: Sized {
+    const _CHECK: () = check_zero_sized::<Self>();
+
+    #[allow(path_statements, clippy::no_effect)]
+    fn assert_zero_size() {
+        <Self as PanicWhenNotZeroSized>::_CHECK;
+    }
+}
+
+impl<T> PanicWhenNotZeroSized for T {}
+
+const fn check_zero_sized<T>() {
+    if std::mem::size_of::<T>() != 0 {
+        panic!(
+            "The Subscription closure provided is not non-capturing. \
+            Closures given to Subscription::map or filter_map cannot \
+            capture external variables. If you need to capture state, \
+            consider using Subscription::with."
+        );
     }
 }
