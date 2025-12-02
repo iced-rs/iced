@@ -1,5 +1,4 @@
 use iced::keyboard;
-use iced::time::milliseconds;
 use iced::widget::{
     self, Text, button, center, center_x, checkbox, column, keyed_column,
     operation, row, scrollable, text, text_input,
@@ -526,6 +525,8 @@ impl SavedState {
     }
 
     async fn save(self) -> Result<(), SaveError> {
+        use iced::time::milliseconds;
+
         let json = serde_json::to_string_pretty(&self)
             .map_err(|_| SaveError::Format)?;
 
