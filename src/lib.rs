@@ -368,8 +368,8 @@
 //! visible widgets of your user interface, at every moment.
 //!
 //! As with tasks, some modules expose convenient functions that build a [`Subscription`] for you—like
-//! [`time::every`] which can be used to listen to time, or [`keyboard::on_key_press`] which will notify you
-//! of any key presses. But you can also create your own with [`Subscription::run`] and [`run_with`].
+//! [`time::every`] which can be used to listen to time, or [`keyboard::listen`] which will notify you
+//! of any keyboard events. But you can also create your own with [`Subscription::run`] and [`run_with`].
 //!
 //! [`run_with`]: Subscription::run_with
 //!
