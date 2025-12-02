@@ -193,6 +193,7 @@ impl Styling {
         keyboard::listen().filter_map(|event| {
             let keyboard::Event::KeyPressed {
                 modified_key: keyboard::Key::Named(modified_key),
+                repeat: false,
                 ..
             } = event
             else {

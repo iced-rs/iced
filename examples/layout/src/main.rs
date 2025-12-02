@@ -59,7 +59,12 @@ impl Layout {
         use keyboard::key;
 
         keyboard::listen().filter_map(|event| {
-            let keyboard::Event::KeyPressed { modified_key, .. } = event else {
+            let keyboard::Event::KeyPressed {
+                modified_key,
+                repeat: false,
+                ..
+            } = event
+            else {
                 return None;
             };
 
