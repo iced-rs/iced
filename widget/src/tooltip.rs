@@ -258,7 +258,13 @@ where
                 (State::Open { .. }, None) => {
                     *state = State::Idle;
                     shell.invalidate_layout();
-                    shell.request_redraw();
+
+                    if !matches!(
+                        event,
+                        Event::Window(window::Event::RedrawRequested(_)),
+                    ) {
+                        shell.request_redraw();
+                    }
                 }
                 (State::Open { .. }, Some(_)) | (State::Idle, None) => (),
             }
