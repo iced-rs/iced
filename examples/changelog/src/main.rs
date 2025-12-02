@@ -273,6 +273,7 @@ impl Generator {
                                 span(&pull_request.title)
                                     .size(24)
                                     .link(pull_request.id),
+                                "\n",
                                 span(format!(" by {}", pull_request.author))
                                     .font(Font {
                                         style: font::Style::Italic,
@@ -366,6 +367,7 @@ impl Generator {
                             )
                             .map(Message::LinkClicked),
                         )
+                        .width(Fill)
                         .spacing(10),
                     )
                     .width(Fill)
