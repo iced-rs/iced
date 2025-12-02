@@ -65,7 +65,7 @@ impl Key {
         let mut chars = s.chars();
         let c = chars.next()?;
 
-        if chars.next().is_none() && c <= '\u{ff}' {
+        if chars.next().is_none() && c < '\u{370}' {
             return Some(c);
         }
 

@@ -227,8 +227,12 @@ impl Example {
     fn subscription(&self) -> Subscription<Message> {
         use keyboard::key;
 
-        keyboard::on_key_press(|key, _modifiers| {
-            if let keyboard::Key::Named(key::Named::F5) = key {
+        keyboard::listen().filter_map(|event| {
+            if let keyboard::Event::KeyPressed {
+                modified_key: keyboard::Key::Named(key::Named::F5),
+                ..
+            } = event
+            {
                 Some(Message::Screenshot)
             } else {
                 None

@@ -117,12 +117,17 @@ impl Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key_code, modifiers| {
+        keyboard::listen().filter_map(|event| {
+            let keyboard::Event::KeyPressed { key, modifiers, .. } = event
+            else {
+                return None;
+            };
+
             if !modifiers.command() {
                 return None;
             }
 
-            handle_hotkey(key_code)
+            handle_hotkey(key)
         })
     }
 
