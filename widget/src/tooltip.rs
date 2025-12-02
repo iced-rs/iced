@@ -258,6 +258,7 @@ where
                 (State::Open { .. }, None) => {
                     *state = State::Idle;
                     shell.invalidate_layout();
+                    shell.request_redraw();
                 }
                 (State::Open { .. }, Some(_)) | (State::Idle, None) => (),
             }
