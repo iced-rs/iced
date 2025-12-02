@@ -1,3 +1,4 @@
+use jiff::Timestamp;
 use serde::Deserialize;
 use tokio::fs;
 use tokio::process;
@@ -306,6 +307,7 @@ pub struct PullRequest {
     pub description: Option<String>,
     pub labels: Vec<String>,
     pub author: String,
+    pub created_at: Timestamp,
 }
 
 impl PullRequest {
@@ -334,6 +336,7 @@ impl PullRequest {
             body: Option<String>,
             user: User,
             labels: Vec<Label>,
+            created_at: String,
         }
 
         #[derive(Deserialize)]
@@ -354,6 +357,7 @@ impl PullRequest {
             description: schema.body,
             labels: schema.labels.into_iter().map(|label| label.name).collect(),
             author: schema.user.login,
+            created_at: schema.created_at.parse()?,
         })
     }
 }
@@ -371,6 +375,9 @@ pub enum Error {
 
     #[error("the changelog format is not valid")]
     InvalidFormat,
+
+    #[error("date could not be parsed: {0}")]
+    InvalidDate(#[from] jiff::Error),
 }
 
 impl From<io::Error> for Error {

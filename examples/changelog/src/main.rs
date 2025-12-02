@@ -24,6 +24,7 @@ enum Generator {
         pending: Vec<changelog::Contribution>,
         state: State,
         preview: Vec<markdown::Item>,
+        timezone: jiff::tz::TimeZone,
     },
     Done,
 }
@@ -73,6 +74,7 @@ impl Generator {
                         pending,
                         state: State::Loading(contribution.clone()),
                         preview,
+                        timezone: jiff::tz::TimeZone::system(),
                     };
 
                     Task::perform(
@@ -235,6 +237,7 @@ impl Generator {
                 pending,
                 state,
                 preview,
+                timezone,
             } => {
                 let progress = {
                     let total = pending.len() + changelog.len();
@@ -297,9 +300,19 @@ impl Generator {
                                 .spacing(10)
                                 .wrap();
 
+                            let created_at = text(
+                                timezone
+                                    .to_datetime(pull_request.created_at)
+                                    .strftime("%B %d, %Y at %I:%M%p")
+                                    .to_string(),
+                            )
+                            .size(12);
+
                             column![
                                 title,
-                                labels,
+                                row![labels, created_at]
+                                    .align_y(Center)
+                                    .spacing(10),
                                 scrollable(description)
                                     .spacing(10)
                                     .width(Fill)
@@ -370,6 +383,6 @@ impl Generator {
     }
 
     fn theme(&self) -> Theme {
-        Theme::TokyoNightStorm
+        Theme::CatppuccinMocha
     }
 }
