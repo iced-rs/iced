@@ -254,7 +254,7 @@ impl Todos {
     fn subscription(&self) -> Subscription<Message> {
         use keyboard::key;
 
-        keyboard::on_key_press(|key, modifiers| {
+        keyboard::on_key_press(|key, _physical_key, modifiers| {
             let keyboard::Key::Named(key) = key else {
                 return None;
             };

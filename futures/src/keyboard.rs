@@ -2,7 +2,7 @@
 use crate::MaybeSend;
 use crate::core;
 use crate::core::event;
-use crate::core::keyboard::{Event, Key, Modifiers};
+use crate::core::keyboard::{Event, Key, Modifiers, key};
 use crate::subscription::{self, Subscription};
 
 /// Listens to keyboard key presses and calls the given function
@@ -11,7 +11,7 @@ use crate::subscription::{self, Subscription};
 /// If the function returns `None`, the key press will be simply
 /// ignored.
 pub fn on_key_press<Message>(
-    f: fn(Key, Modifiers) -> Option<Message>,
+    f: fn(Key, key::Physical, Modifiers) -> Option<Message>,
 ) -> Subscription<Message>
 where
     Message: MaybeSend + 'static,
@@ -22,10 +22,15 @@ where
     subscription::filter_map((OnKeyPress, f), move |event| match event {
         subscription::Event::Interaction {
             event:
-                core::Event::Keyboard(Event::KeyPressed { key, modifiers, .. }),
+                core::Event::Keyboard(Event::KeyPressed {
+                    key,
+                    physical_key,
+                    modifiers,
+                    ..
+                }),
             status: event::Status::Ignored,
             ..
-        } => f(key, modifiers),
+        } => f(key, physical_key, modifiers),
         _ => None,
     })
 }
@@ -36,7 +41,7 @@ where
 /// If the function returns `None`, the key release will be simply
 /// ignored.
 pub fn on_key_release<Message>(
-    f: fn(Key, Modifiers) -> Option<Message>,
+    f: fn(Key, key::Physical, Modifiers) -> Option<Message>,
 ) -> Subscription<Message>
 where
     Message: MaybeSend + 'static,
@@ -47,10 +52,15 @@ where
     subscription::filter_map((OnKeyRelease, f), move |event| match event {
         subscription::Event::Interaction {
             event:
-                core::Event::Keyboard(Event::KeyReleased { key, modifiers, .. }),
+                core::Event::Keyboard(Event::KeyReleased {
+                    key,
+                    physical_key,
+                    modifiers,
+                    ..
+                }),
             status: event::Status::Ignored,
             ..
-        } => f(key, modifiers),
+        } => f(key, physical_key, modifiers),
         _ => None,
     })
 }

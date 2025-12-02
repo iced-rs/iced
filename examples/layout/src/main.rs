@@ -58,7 +58,7 @@ impl Layout {
     fn subscription(&self) -> Subscription<Message> {
         use keyboard::key;
 
-        keyboard::on_key_release(|key, _modifiers| match key {
+        keyboard::on_key_release(|key, _physical_key, _modifiers| match key {
             keyboard::Key::Named(key::Named::ArrowLeft) => {
                 Some(Message::Previous)
             }

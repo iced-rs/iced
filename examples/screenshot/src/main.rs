@@ -227,7 +227,7 @@ impl Example {
     fn subscription(&self) -> Subscription<Message> {
         use keyboard::key;
 
-        keyboard::on_key_press(|key, _modifiers| {
+        keyboard::on_key_press(|key, _physical_key, _modifiers| {
             if let keyboard::Key::Named(key::Named::F5) = key {
                 Some(Message::Screenshot)
             } else {

@@ -190,7 +190,7 @@ impl Styling {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key, _modifiers| match key {
+        keyboard::on_key_press(|key, _physical_key, _modifiers| match key {
             keyboard::Key::Named(
                 keyboard::key::Named::ArrowUp | keyboard::key::Named::ArrowLeft,
             ) => Some(Message::PreviousTheme),

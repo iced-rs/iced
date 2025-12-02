@@ -381,14 +381,15 @@ where
             program.subscription(&self.state).map(Event::Program);
         debug::subscriptions_tracked(subscription.units());
 
-        let hotkeys =
-            futures::keyboard::on_key_press(|key, _modifiers| match key {
+        let hotkeys = futures::keyboard::on_key_press(
+            |key, _physical_key, _modifiers| match key {
                 keyboard::Key::Named(keyboard::key::Named::F12) => {
                     Some(Message::ToggleComet)
                 }
                 _ => None,
-            })
-            .map(Event::Message);
+            },
+        )
+        .map(Event::Message);
 
         let commands = debug::commands().map(Event::Command);
 

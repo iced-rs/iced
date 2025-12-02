@@ -117,12 +117,12 @@ impl Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key_code, modifiers| {
+        keyboard::on_key_press(|key, _physical_key, modifiers| {
             if !modifiers.command() {
                 return None;
             }
 
-            handle_hotkey(key_code)
+            handle_hotkey(key)
         })
     }
 
