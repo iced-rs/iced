@@ -306,7 +306,9 @@ impl<T> Subscription<T> {
         F: Fn(T) -> A + MaybeSend + Clone + 'static,
         A: 'static,
     {
-        F::assert_zero_size();
+        const {
+            check_zero_sized::<F>();
+        }
 
         struct Map<A, B, F>
         where
@@ -363,7 +365,9 @@ impl<T> Subscription<T> {
         F: Fn(T) -> Option<A> + MaybeSend + Clone + 'static,
         A: MaybeSend + 'static,
     {
-        F::assert_zero_size();
+        const {
+            check_zero_sized::<F>();
+        }
 
         struct FilterMap<A, B, F>
         where
@@ -521,17 +525,6 @@ where
         crate::boxed_stream((self.spawn)(&self.data, input))
     }
 }
-
-trait PanicWhenNotZeroSized: Sized {
-    const _CHECK: () = check_zero_sized::<Self>();
-
-    #[allow(path_statements, clippy::no_effect)]
-    fn assert_zero_size() {
-        <Self as PanicWhenNotZeroSized>::_CHECK;
-    }
-}
-
-impl<T> PanicWhenNotZeroSized for T {}
 
 const fn check_zero_sized<T>() {
     if std::mem::size_of::<T>() != 0 {
