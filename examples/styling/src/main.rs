@@ -190,18 +190,25 @@ impl Styling {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key, _physical_key, _modifiers| match key {
-            keyboard::Key::Named(
-                keyboard::key::Named::ArrowUp | keyboard::key::Named::ArrowLeft,
-            ) => Some(Message::PreviousTheme),
-            keyboard::Key::Named(
+        keyboard::listen().filter_map(|event| {
+            let keyboard::Event::KeyPressed {
+                modified_key: keyboard::Key::Named(modified_key),
+                ..
+            } = event
+            else {
+                return None;
+            };
+
+            match modified_key {
+                keyboard::key::Named::ArrowUp
+                | keyboard::key::Named::ArrowLeft => {
+                    Some(Message::PreviousTheme)
+                }
                 keyboard::key::Named::ArrowDown
-                | keyboard::key::Named::ArrowRight,
-            ) => Some(Message::NextTheme),
-            keyboard::Key::Named(keyboard::key::Named::Space) => {
-                Some(Message::ClearTheme)
+                | keyboard::key::Named::ArrowRight => Some(Message::NextTheme),
+                keyboard::key::Named::Space => Some(Message::ClearTheme),
+                _ => None,
             }
-            _ => None,
         })
     }
 

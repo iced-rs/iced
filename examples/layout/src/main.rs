@@ -58,12 +58,20 @@ impl Layout {
     fn subscription(&self) -> Subscription<Message> {
         use keyboard::key;
 
-        keyboard::on_key_release(|key, _physical_key, _modifiers| match key {
-            keyboard::Key::Named(key::Named::ArrowLeft) => {
-                Some(Message::Previous)
+        keyboard::listen().filter_map(|event| {
+            let keyboard::Event::KeyPressed { modified_key, .. } = event else {
+                return None;
+            };
+
+            match modified_key {
+                keyboard::Key::Named(key::Named::ArrowLeft) => {
+                    Some(Message::Previous)
+                }
+                keyboard::Key::Named(key::Named::ArrowRight) => {
+                    Some(Message::Next)
+                }
+                _ => None,
             }
-            keyboard::Key::Named(key::Named::ArrowRight) => Some(Message::Next),
-            _ => None,
         })
     }
 
