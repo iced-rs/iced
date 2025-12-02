@@ -352,7 +352,7 @@ where
                         snap: true,
                     },
                     drawing_bounds,
-                    *viewport,
+                    *viewport - translation,
                 );
             });
         };
