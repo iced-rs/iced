@@ -11,6 +11,7 @@ pub fn listen() -> Subscription<Event> {
     subscription::filter_map(Listen, move |event| match event {
         subscription::Event::Interaction {
             event: core::Event::Keyboard(event),
+            status: core::event::Status::Ignored,
             ..
         } => Some(event),
         _ => None,
