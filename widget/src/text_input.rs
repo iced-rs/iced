@@ -902,6 +902,7 @@ where
                 key,
                 text,
                 modified_key,
+                physical_key,
                 ..
             }) => {
                 let state = state::<Renderer>(tree);
@@ -909,8 +910,8 @@ where
                 if let Some(focus) = &mut state.is_focused {
                     let modifiers = state.keyboard_modifiers;
 
-                    match key.as_ref() {
-                        keyboard::Key::Character("c")
+                    match key.to_latin(*physical_key) {
+                        Some('c')
                             if state.keyboard_modifiers.command()
                                 && !self.is_secure =>
                         {
@@ -926,7 +927,7 @@ where
                             shell.capture_event();
                             return;
                         }
-                        keyboard::Key::Character("x")
+                        Some('x')
                             if state.keyboard_modifiers.command()
                                 && !self.is_secure =>
                         {
@@ -955,7 +956,7 @@ where
                             update_cache(state, &self.value);
                             return;
                         }
-                        keyboard::Key::Character("v")
+                        Some('v')
                             if state.keyboard_modifiers.command()
                                 && !state.keyboard_modifiers.alt() =>
                         {
@@ -994,9 +995,7 @@ where
                             update_cache(state, &self.value);
                             return;
                         }
-                        keyboard::Key::Character("a")
-                            if state.keyboard_modifiers.command() =>
-                        {
+                        Some('a') if state.keyboard_modifiers.command() => {
                             let cursor_before = state.cursor;
 
                             state.cursor.select_all(&self.value);

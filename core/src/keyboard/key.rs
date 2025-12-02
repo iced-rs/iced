@@ -30,6 +30,91 @@ impl Key {
             Self::Unidentified => Key::Unidentified,
         }
     }
+
+    /// Tries to convert this logical [`Key`] into its latin character, using the
+    /// [`Physical`] key provided for translation if it isn't already in latin.
+    ///
+    /// Returns `None` if no latin variant could be found.
+    ///
+    /// ```
+    /// use iced_core::keyboard::key::{Key, Named, Physical, Code};
+    ///
+    /// // Latin c
+    /// assert_eq!(
+    ///     Key::Character("c".into()).to_latin(Physical::Code(Code::KeyC)),
+    ///     Some('c'),
+    /// );
+    ///
+    /// // Cyrillic с
+    /// assert_eq!(
+    ///     Key::Character("с".into()).to_latin(Physical::Code(Code::KeyC)),
+    ///     Some('c'),
+    /// );
+    ///
+    /// // Arrow Left
+    /// assert_eq!(
+    ///     Key::Named(Named::ArrowLeft).to_latin(Physical::Code(Code::ArrowLeft)),
+    ///     None,
+    /// );
+    /// ```
+    pub fn to_latin(&self, physical_key: Physical) -> Option<char> {
+        let Self::Character(s) = self else {
+            return None;
+        };
+
+        let mut chars = s.chars();
+        let c = chars.next()?;
+
+        if chars.next().is_none() && c <= '\u{ff}' {
+            return Some(c);
+        }
+
+        let Physical::Code(code) = physical_key else {
+            return None;
+        };
+
+        let latin = match code {
+            Code::KeyA => 'a',
+            Code::KeyB => 'b',
+            Code::KeyC => 'c',
+            Code::KeyD => 'd',
+            Code::KeyE => 'e',
+            Code::KeyF => 'f',
+            Code::KeyG => 'g',
+            Code::KeyH => 'h',
+            Code::KeyI => 'i',
+            Code::KeyJ => 'j',
+            Code::KeyK => 'k',
+            Code::KeyL => 'l',
+            Code::KeyM => 'm',
+            Code::KeyN => 'n',
+            Code::KeyO => 'o',
+            Code::KeyP => 'p',
+            Code::KeyQ => 'q',
+            Code::KeyR => 'r',
+            Code::KeyS => 's',
+            Code::KeyT => 't',
+            Code::KeyU => 'u',
+            Code::KeyV => 'v',
+            Code::KeyW => 'w',
+            Code::KeyX => 'x',
+            Code::KeyY => 'y',
+            Code::KeyZ => 'z',
+            Code::Digit0 => '0',
+            Code::Digit1 => '1',
+            Code::Digit2 => '2',
+            Code::Digit3 => '3',
+            Code::Digit4 => '4',
+            Code::Digit5 => '5',
+            Code::Digit6 => '6',
+            Code::Digit7 => '7',
+            Code::Digit8 => '8',
+            Code::Digit9 => '9',
+            _ => return None,
+        };
+
+        Some(latin)
+    }
 }
 
 impl From<Named> for Key {

@@ -1160,6 +1160,10 @@ pub struct KeyPress {
     ///
     /// You should use this key for any single key bindings (e.g. motions).
     pub modified_key: keyboard::Key,
+    /// The physical key pressed.
+    ///
+    /// You should use this key for layout-independent bindings.
+    pub physical_key: keyboard::key::Physical,
     /// The state of the keyboard modifiers.
     pub modifiers: keyboard::Modifiers,
     /// The text produced by the key press.
@@ -1174,6 +1178,7 @@ impl<Message> Binding<Message> {
         let KeyPress {
             key,
             modified_key,
+            physical_key,
             modifiers,
             text,
             status,
@@ -1183,21 +1188,13 @@ impl<Message> Binding<Message> {
             return None;
         }
 
-        let combination = match key.as_ref() {
-            keyboard::Key::Character("c") if modifiers.command() => {
-                Some(Self::Copy)
-            }
-            keyboard::Key::Character("x") if modifiers.command() => {
-                Some(Self::Cut)
-            }
-            keyboard::Key::Character("v")
-                if modifiers.command() && !modifiers.alt() =>
-            {
+        let combination = match key.to_latin(physical_key) {
+            Some('c') if modifiers.command() => Some(Self::Copy),
+            Some('x') if modifiers.command() => Some(Self::Cut),
+            Some('v') if modifiers.command() && !modifiers.alt() => {
                 Some(Self::Paste)
             }
-            keyboard::Key::Character("a") if modifiers.command() => {
-                Some(Self::SelectAll)
-            }
+            Some('a') if modifiers.command() => Some(Self::SelectAll),
             _ => None,
         };
 
@@ -1359,6 +1356,7 @@ impl<Message> Update<Message> {
             Event::Keyboard(keyboard::Event::KeyPressed {
                 key,
                 modified_key,
+                physical_key,
                 modifiers,
                 text,
                 ..
@@ -1374,6 +1372,7 @@ impl<Message> Update<Message> {
                 let key_press = KeyPress {
                     key: key.clone(),
                     modified_key: modified_key.clone(),
+                    physical_key: *physical_key,
                     modifiers: *modifiers,
                     text: text.clone(),
                     status,
