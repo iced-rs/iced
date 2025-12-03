@@ -287,9 +287,18 @@ macro_rules! color {
         $crate::Color::from_rgb8($r, $g, $b)
     };
     ($r:expr, $g:expr, $b:expr, $a:expr) => {{ $crate::Color::from_rgba8($r, $g, $b, $a) }};
-    ($hex:expr) => {{ $crate::color!($hex, 1.0) }};
-    ($hex:expr, $a:expr) => {{
-        let hex = $hex as u32;
+    ($hex:literal) => {{ $crate::color!($hex, 1.0) }};
+    ($hex:literal, $a:expr) => {{
+        let mut hex = $hex as u32;
+
+        // Shorthand notation: 0x123
+        if stringify!($hex).len() == 5 {
+            let r = hex & 0xF00;
+            let g = hex & 0xF0;
+            let b = hex & 0xF;
+
+            hex = (r << 12) | (r << 8) | (g << 8) | (g << 4) | (b << 4) | b;
+        }
 
         debug_assert!(hex <= 0xffffff, "color! value must not exceed 0xffffff");
 
@@ -323,5 +332,12 @@ mod tests {
         }
 
         assert!("invalid".parse::<Color>().is_err());
+    }
+
+    const SHORTHAND: Color = color!(0x123);
+
+    #[test]
+    fn shorthand_notation() {
+        assert_eq!(SHORTHAND, Color::from_rgb8(0x11, 0x22, 0x33));
     }
 }
