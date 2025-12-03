@@ -117,6 +117,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CornerPreference` window setting for Windows. [#3128](https://github.com/iced-rs/iced/pull/3128)
 - `move_to` method for `Editor` API. [#3125](https://github.com/iced-rs/iced/pull/3125)
 - `Background` and `padding_ratio` support for `toggler` styling. [#3129](https://github.com/iced-rs/iced/pull/3129)
+- More syntaxes for `iced_highlighter`. [#2822](https://github.com/iced-rs/iced/pull/2822)
 
 ### Changed
 - Replace `Rc` with `Arc` for `markdown` caching. [#2599](https://github.com/iced-rs/iced/pull/2599)
@@ -280,7 +281,6 @@ Many thanks to...
 - @alex-ds13
 - @B0ney
 - @bbb651
-- @EmmanuelDodoo
 - @JL710
 - @kenz-gelsoft
 - @mfreeborn
@@ -289,7 +289,9 @@ Many thanks to...
 - @13r0ck
 - @airstrike
 - @bungoboingo
+- @EmmanuelDodoo
 - @karolisr
+- @Redhawk18
 - @Remmirad
 - @semiversus
 - @Ultrasquid9

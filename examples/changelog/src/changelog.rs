@@ -170,7 +170,7 @@ impl Changelog {
 
         target.push(item);
 
-        *self.contributions.entry(entry.author.clone()).or_default() += 1;
+        let _ = self.contributions.entry(entry.author.clone()).or_default();
 
         if entry.author != "hecrj" && !self.authors.contains(&entry.author) {
             self.authors.push(entry.author);
