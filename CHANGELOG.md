@@ -280,6 +280,7 @@ Many thanks to...
 - @alex-ds13
 - @B0ney
 - @bbb651
+- @EmmanuelDodoo
 - @JL710
 - @kenz-gelsoft
 - @mfreeborn
@@ -288,7 +289,6 @@ Many thanks to...
 - @13r0ck
 - @airstrike
 - @bungoboingo
-- @EmmanuelDodoo
 - @karolisr
 - @Remmirad
 - @semiversus
@@ -296,9 +296,11 @@ Many thanks to...
 - @xosxos
 - @Zarthus
 - @7h0ma5
+- @7sDream
 - @Adam-Ladd
 - @AMS21
 - @Atreyagaurav
+- @AustinEvansWX
 - @Azorlogh
 - @berserkware
 - @biglizards
@@ -312,6 +314,7 @@ Many thanks to...
 - @DavidAguilo
 - @dcz-self
 - @dejang
+- @dependabot[bot]
 - @EleDiaz
 - @ellieplayswow
 - @Exidex
@@ -325,6 +328,7 @@ Many thanks to...
 - @ids1024
 - @iMohmmedSA
 - @Integral-Tech
+- @inthehack
 - @jakobhellermann
 - @janTatesa
 - @jbirnick
@@ -347,6 +351,7 @@ Many thanks to...
 - @lmaxyz
 - @mariinkys
 - @max-privatevoid
+- @MichelleGranat
 - @misaka10987
 - @mytdragon
 - @njust
@@ -363,17 +368,12 @@ Many thanks to...
 - @sgued
 - @sopvop
 - @T-256
+- @tafia
 - @thorn132
 - @tigerros
 - @tsuza
 - @vincenthz
 - @will-lynas
-- @7sDream
-- @AustinEvansWX
-- @dependabot[bot]
-- @inthehack
-- @MichelleGranat
-- @tafia
 
 ## [0.13.1] - 2024-09-19
 ### Added

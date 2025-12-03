@@ -103,13 +103,17 @@ impl Changelog {
 
         let mut candidates = Contribution::list().await?;
 
-        dbg!(candidates.len());
-
         for candidate in &candidates {
             *changelog
                 .contributions
                 .entry(candidate.author.clone())
                 .or_default() += 1;
+        }
+
+        for author in &changelog.authors {
+            if !changelog.contributions.contains_key(author) {
+                changelog.contributions.insert(author.clone(), 1);
+            }
         }
 
         for reviewed_entry in changelog.entries() {
@@ -166,13 +170,20 @@ impl Changelog {
 
         target.push(item);
 
+        *self.contributions.entry(entry.author.clone()).or_default() += 1;
+
         if entry.author != "hecrj" && !self.authors.contains(&entry.author) {
             self.authors.push(entry.author);
         }
 
-        self.authors.sort_by_key(|author| {
-            usize::MAX
-                - self.contributions.get(author).copied().unwrap_or_default()
+        self.authors.sort_by(|a, b| {
+            self.contributions
+                .get(a)
+                .copied()
+                .unwrap_or_default()
+                .cmp(&self.contributions.get(b).copied().unwrap_or_default())
+                .reverse()
+                .then(a.to_lowercase().cmp(&b.to_lowercase()))
         });
     }
 }
