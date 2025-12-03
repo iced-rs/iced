@@ -221,12 +221,12 @@ sipper = "0.1"
 smol = "2"
 smol_str = "0.2"
 softbuffer = { version = "0.4", default-features = false }
-syntect = { version = "5", default-features = false, features = ["default-fancy"] }
 sysinfo = "0.33"
 thiserror = "2"
 tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
 tokio = "1.0"
 tracing = "0.1"
+two-face = { version = "0.4", default-features = false, features = ["syntect-default-fancy"] }
 unicode-segmentation = "1.0"
 url = "2.5"
 wasm-bindgen-futures = "0.4"

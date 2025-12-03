@@ -10,9 +10,10 @@ use std::sync::LazyLock;
 
 use syntect::highlighting;
 use syntect::parsing;
+use two_face::re_exports::syntect;
 
 static SYNTAXES: LazyLock<parsing::SyntaxSet> =
-    LazyLock::new(parsing::SyntaxSet::load_defaults_nonewlines);
+    LazyLock::new(two_face::syntax::extra_no_newlines);
 
 static THEMES: LazyLock<highlighting::ThemeSet> =
     LazyLock::new(highlighting::ThemeSet::load_defaults);
