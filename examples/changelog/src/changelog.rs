@@ -3,7 +3,7 @@ use serde::Deserialize;
 use tokio::fs;
 use tokio::process;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fmt;
 use std::io;
@@ -17,6 +17,7 @@ pub struct Changelog {
     fixed: Vec<String>,
     removed: Vec<String>,
     authors: Vec<String>,
+    contributions: BTreeMap<String, usize>,
 }
 
 impl Changelog {
@@ -28,6 +29,7 @@ impl Changelog {
             fixed: Vec::new(),
             removed: Vec::new(),
             authors: Vec::new(),
+            contributions: BTreeMap::new(),
         }
     }
 
@@ -101,6 +103,15 @@ impl Changelog {
 
         let mut candidates = Contribution::list().await?;
 
+        dbg!(candidates.len());
+
+        for candidate in &candidates {
+            *changelog
+                .contributions
+                .entry(candidate.author.clone())
+                .or_default() += 1;
+        }
+
         for reviewed_entry in changelog.entries() {
             candidates.retain(|candidate| candidate.id != reviewed_entry);
         }
@@ -157,8 +168,12 @@ impl Changelog {
 
         if entry.author != "hecrj" && !self.authors.contains(&entry.author) {
             self.authors.push(entry.author);
-            self.authors.sort_by_key(|author| author.to_lowercase());
         }
+
+        self.authors.sort_by_key(|author| {
+            usize::MAX
+                - self.contributions.get(author).copied().unwrap_or_default()
+        });
     }
 }
 
@@ -263,6 +278,7 @@ impl fmt::Display for Category {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Contribution {
     pub id: u64,
+    pub author: String,
 }
 
 impl Contribution {
@@ -284,11 +300,15 @@ impl Contribution {
             .lines()
             .filter(|title| !title.is_empty())
             .filter_map(|title| {
-                let (_, pull_request) = title.split_once("#")?;
+                let (_, pull_request) = title.split_once('#')?;
                 let (pull_request, _) = pull_request.split_once([')', ' '])?;
+
+                let (author, _) = title.split_once('/').unwrap_or_default();
+                let (_, author) = author.rsplit_once(' ').unwrap_or_default();
 
                 Some(Contribution {
                     id: pull_request.parse().ok()?,
+                    author: author.to_owned(),
                 })
             })
             .collect();
