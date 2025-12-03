@@ -164,6 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `resvg` to `0.45`. [#2846](https://github.com/iced-rs/iced/pull/2846)
 - Updated `wasmtimer` to `0.4.2`. [#3012](https://github.com/iced-rs/iced/pull/3012)
 - Updated `dark-light` to `2.0`. [#2724](https://github.com/iced-rs/iced/pull/2724)
+- Updated `openssl` to `0.10.70`. [#2783](https://github.com/iced-rs/iced/pull/2783)
 - Updated our `winit` fork with `0.30.8` fixes. [#2737](https://github.com/iced-rs/iced/pull/2737)
 
 ### Fixed
@@ -192,7 +193,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unnecessary cast in `the_matrix` example. [#2731](https://github.com/iced-rs/iced/pull/2731)
 - Incorrect layer counting in `iced_wgpu`. [#2701](https://github.com/iced-rs/iced/pull/2701)
 - `Image` not respecting `viewport` bounds. [#2752](https://github.com/iced-rs/iced/pull/2752)
-- Updated `openssl` to `0.10.70`. [#2783](https://github.com/iced-rs/iced/pull/2783)
 - Attempting to draw empty meshes in `iced_wgpu`. [#2782](https://github.com/iced-rs/iced/pull/2782)
 - Input placeholder text not clearing when IME is activated. [#2785](https://github.com/iced-rs/iced/pull/2785)
 - Missing redraw request in `image::Viewer`. [#2795](https://github.com/iced-rs/iced/pull/2795)
