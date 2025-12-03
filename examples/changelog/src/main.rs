@@ -241,15 +241,13 @@ impl Generator {
             } => {
                 let progress = {
                     let total = pending.len() + changelog.len();
+                    let percent = 100.0 * changelog.len() as f32 / total as f32;
 
-                    let bar = progress_bar(
-                        0.0..=1.0,
-                        changelog.len() as f32 / total as f32,
-                    )
-                    .style(progress_bar::secondary);
+                    let bar = progress_bar(0.0..=100.0, percent)
+                        .style(progress_bar::secondary);
 
                     let label = text!(
-                        "{amount_reviewed} / {total}",
+                        "{amount_reviewed} / {total} ({percent:.0}%)",
                         amount_reviewed = changelog.len()
                     )
                     .font(Font::MONOSPACE)
@@ -326,7 +324,8 @@ impl Generator {
                             "Type a changelog entry title...",
                             title,
                         )
-                        .on_input(Message::TitleChanged);
+                        .on_input(Message::TitleChanged)
+                        .on_submit(Message::Next);
 
                         let category = pick_list(
                             changelog::Category::ALL,
