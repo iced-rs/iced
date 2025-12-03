@@ -705,7 +705,14 @@ fn parse_with<'a>(
                             .filter(|highlighter| {
                                 highlighter.language == language.as_ref()
                             })
-                            .unwrap_or_else(|| Highlighter::new(&language));
+                            .unwrap_or_else(|| {
+                                Highlighter::new(
+                                    language
+                                        .split(',')
+                                        .next()
+                                        .unwrap_or_default(),
+                                )
+                            });
 
                         highlighter.prepare();
 
