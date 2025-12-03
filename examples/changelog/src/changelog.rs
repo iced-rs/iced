@@ -354,7 +354,7 @@ impl PullRequest {
         Ok(Self {
             id: contribution.id,
             title: schema.title,
-            description: schema.body,
+            description: schema.body.map(|body| body.replace("\r", "")),
             labels: schema.labels.into_iter().map(|label| label.name).collect(),
             author: schema.user.login,
             created_at: schema.created_at.parse()?,
