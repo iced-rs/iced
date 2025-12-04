@@ -89,6 +89,20 @@ impl std::ops::Add<Vector> for Cursor {
     }
 }
 
+impl std::ops::Sub<Vector> for Cursor {
+    type Output = Self;
+
+    fn sub(self, translation: Vector) -> Self::Output {
+        match self {
+            Cursor::Available(point) => Cursor::Available(point - translation),
+            Cursor::Levitating(point) => {
+                Cursor::Levitating(point - translation)
+            }
+            Cursor::Unavailable => Cursor::Unavailable,
+        }
+    }
+}
+
 impl std::ops::Mul<Transformation> for Cursor {
     type Output = Self;
 
