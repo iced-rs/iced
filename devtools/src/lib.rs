@@ -344,7 +344,7 @@ where
                     .background(Color::BLACK.scale_alpha(0.8))
             });
 
-            Some(themer(theme(), Element::from(setup).map(Event::Message)))
+            Some(themer(theme(), opaque(setup).map(Event::Message)))
         } else {
             None
         };
