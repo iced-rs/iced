@@ -142,7 +142,7 @@ And that's everything! We just wrote a whole user interface. Let's run it:
 
 ```rust
 fn main() -> iced::Result {
-    iced::run("A cool counter", Counter::update, Counter::view)
+    iced::run(Counter::update, Counter::view)
 }
 ```
 
