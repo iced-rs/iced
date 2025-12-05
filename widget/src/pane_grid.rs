@@ -52,7 +52,7 @@
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
 //! drag and drop, and hotkey support.
 //!
-//! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.13/examples/pane_grid
+//! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/master/examples/pane_grid
 mod axis;
 mod configuration;
 mod content;

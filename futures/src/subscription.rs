@@ -199,7 +199,7 @@ impl<T> Subscription<T> {
     /// Check out the [`websocket`] example, which showcases this pattern to maintain a `WebSocket`
     /// connection open.
     ///
-    /// [`websocket`]: https://github.com/iced-rs/iced/tree/0.13/examples/websocket
+    /// [`websocket`]: https://github.com/iced-rs/iced/tree/master/examples/websocket
     pub fn run<S>(builder: fn() -> S) -> Self
     where
         S: Stream<Item = T> + MaybeSend + 'static,
@@ -454,18 +454,6 @@ impl<T> std::fmt::Debug for Subscription<T> {
 /// A [`Recipe`] is the internal definition of a [`Subscription`]. It is used
 /// by runtimes to run and identify subscriptions. You can use it to create your
 /// own!
-///
-/// # Examples
-/// The repository has a couple of [examples] that use a custom [`Recipe`]:
-///
-/// - [`download_progress`], a basic application that asynchronously downloads
-///   a dummy file of 100 MB and tracks the download progress.
-/// - [`stopwatch`], a watch with start/stop and reset buttons showcasing how
-///   to listen to time.
-///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.13/examples
-/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.13/examples/download_progress
-/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.13/examples/stopwatch
 pub trait Recipe {
     /// The events that will be produced by a [`Subscription`] with this
     /// [`Recipe`].
