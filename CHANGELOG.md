@@ -118,6 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `move_to` method for `Editor` API. [#3125](https://github.com/iced-rs/iced/pull/3125)
 - `Background` and `padding_ratio` support for `toggler` styling. [#3129](https://github.com/iced-rs/iced/pull/3129)
 - More syntaxes for `iced_highlighter`. [#2822](https://github.com/iced-rs/iced/pull/2822)
+- Implement `Sub<Vector>` for `Cursor`. [#3137](https://github.com/iced-rs/iced/pull/3137)
 
 ### Changed
 - Replace `Rc` with `Arc` for `markdown` caching. [#2599](https://github.com/iced-rs/iced/pull/2599)
@@ -291,7 +292,6 @@ Many thanks to...
 - @bungoboingo
 - @EmmanuelDodoo
 - @karolisr
-- @Redhawk18
 - @Remmirad
 - @semiversus
 - @Ultrasquid9
@@ -361,6 +361,7 @@ Many thanks to...
 - @nz366
 - @OpenSauce
 - @Ottatop
+- @Redhawk18
 - @rhogenson
 - @rizzen-yazston
 - @rotmh
