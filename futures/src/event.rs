@@ -37,8 +37,7 @@ where
             event: Event::Window(window::Event::RedrawRequested(_)),
             ..
         }
-        | subscription::Event::SystemThemeChanged(_)
-        | subscription::Event::PlatformSpecific(_) => None,
+        | subscription::Event::SystemThemeChanged(_) => None,
         subscription::Event::Interaction {
             window,
             event,
@@ -67,27 +66,6 @@ where
             event,
             status,
         } => f(event, status, window),
-        subscription::Event::SystemThemeChanged(_)
-        | subscription::Event::PlatformSpecific(_) => None,
-    })
-}
-
-/// Creates a [`Subscription`] that notifies of custom application URL
-/// received from the system.
-///
-/// _**Note:** Currently, it only triggers on macOS and the executable needs to be properly [bundled]!_
-///
-/// [bundled]: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW19
-pub fn listen_url() -> Subscription<String> {
-    #[derive(Hash)]
-    struct ListenUrl;
-
-    subscription::filter_map(ListenUrl, move |event| match event {
-        subscription::Event::PlatformSpecific(
-            subscription::PlatformSpecific::MacOS(
-                subscription::MacOS::ReceivedUrl(url),
-            ),
-        ) => Some(url),
-        _ => None,
+        subscription::Event::SystemThemeChanged(_) => None,
     })
 }
