@@ -89,5 +89,5 @@ Read the [book], the [documentation], and the [examples] to learn more!
 
 [book]: https://book.iced.rs/
 [documentation]: https://docs.rs/iced/
-[examples]: https://github.com/iced-rs/iced/tree/master/examples#examples
+[examples]: https://github.com/iced-rs/iced/tree/0.14/examples#examples
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
