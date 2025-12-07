@@ -2348,7 +2348,7 @@ dependencies = [
 
 [[package]]
 name = "iced"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "criterion",
  "iced_core",
@@ -2368,7 +2368,7 @@ dependencies = [
 
 [[package]]
 name = "iced_beacon"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "bincode 1.3.3",
  "futures",
@@ -2382,7 +2382,7 @@ dependencies = [
 
 [[package]]
 name = "iced_core"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "bitflags 2.10.0",
  "bytes",
@@ -2399,7 +2399,7 @@ dependencies = [
 
 [[package]]
 name = "iced_debug"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "cargo-hot-protocol",
  "iced_beacon",
@@ -2410,7 +2410,7 @@ dependencies = [
 
 [[package]]
 name = "iced_devtools"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "iced_debug",
  "iced_program",
@@ -2420,7 +2420,7 @@ dependencies = [
 
 [[package]]
 name = "iced_futures"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "futures",
  "iced_core",
@@ -2434,7 +2434,7 @@ dependencies = [
 
 [[package]]
 name = "iced_graphics"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "bitflags 2.10.0",
  "bytemuck",
@@ -2454,7 +2454,7 @@ dependencies = [
 
 [[package]]
 name = "iced_highlighter"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "iced_core",
  "two-face",
@@ -2462,7 +2462,7 @@ dependencies = [
 
 [[package]]
 name = "iced_program"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "iced_graphics",
  "iced_runtime",
@@ -2470,7 +2470,7 @@ dependencies = [
 
 [[package]]
 name = "iced_renderer"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "iced_graphics",
  "iced_tiny_skia",
@@ -2481,7 +2481,7 @@ dependencies = [
 
 [[package]]
 name = "iced_runtime"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "bytes",
  "iced_core",
@@ -2494,14 +2494,14 @@ dependencies = [
 
 [[package]]
 name = "iced_selector"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "iced_core",
 ]
 
 [[package]]
 name = "iced_test"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "iced_futures",
  "iced_program",
@@ -2516,7 +2516,7 @@ dependencies = [
 
 [[package]]
 name = "iced_tester"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "iced_test",
  "iced_widget",
@@ -2526,7 +2526,7 @@ dependencies = [
 
 [[package]]
 name = "iced_tiny_skia"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "bytemuck",
  "cosmic-text",
@@ -2542,7 +2542,7 @@ dependencies = [
 
 [[package]]
 name = "iced_wgpu"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "bitflags 2.10.0",
  "bytemuck",
@@ -2562,7 +2562,7 @@ dependencies = [
 
 [[package]]
 name = "iced_widget"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "iced_highlighter",
  "iced_renderer",
@@ -2578,7 +2578,7 @@ dependencies = [
 
 [[package]]
 name = "iced_winit"
-version = "0.14.0-dev"
+version = "0.14.0"
 dependencies = [
  "iced_debug",
  "iced_program",
