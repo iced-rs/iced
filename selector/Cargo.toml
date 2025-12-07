@@ -1,5 +1,6 @@
 [package]
 name = "iced_selector"
+description = "A set of abstractions for selecting data from the widget tree."
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

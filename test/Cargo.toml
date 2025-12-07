@@ -1,5 +1,6 @@
 [package]
 name = "iced_test"
+description = "A library for testing iced applications in headless mode"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
