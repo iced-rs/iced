@@ -192,7 +192,7 @@ bytes = "1.6"
 cargo-hot = { version = "0.1", package = "cargo-hot-protocol" }
 cosmic-text = "0.15"
 cryoglyph = "0.1"
-futures = { version = "0.3", default-features = false }
+futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 glam = "0.25"
 guillotiere = "0.6"
 half = "2.2"
