@@ -169,15 +169,15 @@ mod rainbow {
     }
 }
 
-use iced::Element;
 use iced::widget::{center_x, center_y, column, scrollable};
+use iced::{Element, Never};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
     iced::run((), view)
 }
 
-fn view(_state: &()) -> Element<'_, ()> {
+fn view(_state: &()) -> Element<'_, Never> {
     let content = column![
         rainbow(),
         "In this example we draw a custom widget Rainbow, using \

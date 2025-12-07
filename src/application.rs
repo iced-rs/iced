@@ -36,8 +36,8 @@ use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{
-    Element, Executor, Font, Preset, Result, Settings, Size, Subscription,
-    Task, Theme,
+    Element, Executor, Font, Never, Preset, Result, Settings, Size,
+    Subscription, Task, Theme,
 };
 
 use iced_debug as debug;
@@ -600,8 +600,8 @@ pub trait UpdateFn<State, Message> {
     fn update(&self, state: &mut State, message: Message) -> Task<Message>;
 }
 
-impl<State, Message> UpdateFn<State, Message> for () {
-    fn update(&self, _state: &mut State, _message: Message) -> Task<Message> {
+impl<State> UpdateFn<State, Never> for () {
+    fn update(&self, _state: &mut State, _message: Never) -> Task<Never> {
         Task::none()
     }
 }

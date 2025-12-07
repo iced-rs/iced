@@ -85,13 +85,14 @@ pub use widget::Widget;
 
 pub use bytes::Bytes;
 pub use smol_str::SmolStr;
+pub use std::convert::Infallible as Never;
 
 /// A function that can _never_ be called.
 ///
 /// This is useful to turn generic types into anything
 /// you want by coercing them into a type with no possible
 /// values.
-pub fn never<T>(never: std::convert::Infallible) -> T {
+pub fn never<T>(never: Never) -> T {
     match never {}
 }
 
