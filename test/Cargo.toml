@@ -19,6 +19,9 @@ iced_runtime.workspace = true
 iced_program.workspace = true
 iced_selector.workspace = true
 
+iced_futures.workspace = true
+iced_futures.features = ["thread-pool"]
+
 iced_renderer.workspace = true
 iced_renderer.features = ["fira-sans"]
 

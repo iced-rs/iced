@@ -83,6 +83,7 @@
 //! [`typewrite`](Simulator::typewrite)—and even perform [_snapshot testing_](Simulator::snapshot)!
 //!
 //! [the classical counter interface]: https://book.iced.rs/architecture.html#dissecting-an-interface
+pub use iced_futures as futures;
 pub use iced_program as program;
 pub use iced_renderer as renderer;
 pub use iced_runtime as runtime;
@@ -122,9 +123,9 @@ pub fn run(
     program: impl program::Program + 'static,
     tests_dir: impl AsRef<Path>,
 ) -> Result<(), Error> {
-    use crate::runtime::futures::futures::StreamExt;
-    use crate::runtime::futures::futures::channel::mpsc;
-    use crate::runtime::futures::futures::executor;
+    use crate::futures::futures::StreamExt;
+    use crate::futures::futures::channel::mpsc;
+    use crate::futures::futures::executor;
 
     use std::ffi::OsStr;
     use std::fs;

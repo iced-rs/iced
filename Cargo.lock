@@ -2502,6 +2502,7 @@ dependencies = [
 name = "iced_test"
 version = "0.14.0-dev"
 dependencies = [
+ "iced_futures",
  "iced_program",
  "iced_renderer",
  "iced_runtime",

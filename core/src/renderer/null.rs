@@ -259,3 +259,29 @@ impl svg::Renderer for () {
     ) {
     }
 }
+
+impl renderer::Headless for () {
+    async fn new(
+        _default_font: Font,
+        _default_text_size: Pixels,
+        _backend: Option<&str>,
+    ) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        Some(())
+    }
+
+    fn name(&self) -> String {
+        "null renderer".to_owned()
+    }
+
+    fn screenshot(
+        &mut self,
+        _size: Size<u32>,
+        _scale_factor: f32,
+        _background_color: Color,
+    ) -> Vec<u8> {
+        Vec::new()
+    }
+}
