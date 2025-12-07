@@ -5,7 +5,7 @@ use crate::SmolStr;
 ///
 /// This is mostly the `Key` type found in [`winit`].
 ///
-/// [`winit`]: https://docs.rs/winit/0.29.10/winit/keyboard/enum.Key.html
+/// [`winit`]: https://docs.rs/winit/0.30/winit/keyboard/enum.Key.html
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Key<C = SmolStr> {
     /// A key with an established name.
@@ -127,7 +127,7 @@ impl From<Named> for Key {
 ///
 /// This is mostly the `NamedKey` type found in [`winit`].
 ///
-/// [`winit`]: https://docs.rs/winit/0.29.10/winit/keyboard/enum.Key.html
+/// [`winit`]: https://docs.rs/winit/0.30/winit/keyboard/enum.Key.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[allow(missing_docs)]
 pub enum Named {

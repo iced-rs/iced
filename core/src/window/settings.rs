@@ -77,7 +77,7 @@ pub struct Settings {
     /// This option is only supported on macOS and Linux. Please read the [winit document][winit]
     /// for more details.
     ///
-    /// [winit]: https://docs.rs/winit/latest/winit/window/struct.Window.html#method.set_blur
+    /// [winit]: https://docs.rs/winit/0.30/winit/window/struct.Window.html#method.set_blur
     pub blur: bool,
 
     /// The window [`Level`].
