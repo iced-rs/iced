@@ -2562,7 +2562,7 @@ dependencies = [
 
 [[package]]
 name = "iced_widget"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "iced_highlighter",
  "iced_renderer",
