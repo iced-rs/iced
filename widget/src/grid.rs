@@ -192,6 +192,14 @@ where
             Constraint::Amount(amount) => amount,
         };
 
+        if self.children.is_empty() || cells_per_row == 0 {
+            return layout::Node::new(limits.resolve(
+                size.width,
+                size.height,
+                Size::ZERO,
+            ));
+        }
+
         let cell_width = (available.width
             - self.spacing * (cells_per_row - 1) as f32)
             / cells_per_row as f32;
