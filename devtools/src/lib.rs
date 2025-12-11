@@ -14,17 +14,15 @@ use crate::core::keyboard;
 use crate::core::theme::{self, Theme};
 use crate::core::time::seconds;
 use crate::core::window;
-use crate::core::{
-    Alignment::Center, Color, Element, Font, Length::Fill, Settings,
-};
+use crate::core::{Alignment::Center, Color, Element, Font, Length::Fill, Settings};
 use crate::futures::Subscription;
 use crate::program::Program;
 use crate::program::message;
 use crate::runtime::task::{self, Task};
 use crate::time_machine::TimeMachine;
 use crate::widget::{
-    bottom_right, button, center, column, container, opaque, row, scrollable,
-    space, stack, text, themer,
+    bottom_right, button, center, column, container, opaque, row, scrollable, space, stack, text,
+    themer,
 };
 
 use std::fmt;
@@ -74,11 +72,7 @@ where
         )
     }
 
-    fn update(
-        &self,
-        state: &mut Self::State,
-        message: Self::Message,
-    ) -> Task<Self::Message> {
+    fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
         state.update(&self.program, message)
     }
 
@@ -98,11 +92,7 @@ where
         state.subscription(&self.program)
     }
 
-    fn theme(
-        &self,
-        state: &Self::State,
-        window: window::Id,
-    ) -> Option<Self::Theme> {
+    fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
         state.theme(&self.program, window)
     }
 
@@ -220,16 +210,14 @@ where
                     Task::none()
                 }
                 Message::InstallComet => {
-                    self.mode =
-                        Mode::Setup(Setup::Running { logs: Vec::new() });
+                    self.mode = Mode::Setup(Setup::Running { logs: Vec::new() });
 
                     comet::install()
                         .map(Message::Installing)
                         .map(Event::Message)
                 }
                 Message::Installing(Ok(installation)) => {
-                    let Mode::Setup(Setup::Running { logs }) = &mut self.mode
-                    else {
+                    let Mode::Setup(Setup::Running { logs }) = &mut self.mode else {
                         return Task::none();
                     };
 
@@ -245,8 +233,7 @@ where
                     }
                 }
                 Message::Installing(Err(error)) => {
-                    let Mode::Setup(Setup::Running { logs }) = &mut self.mode
-                    else {
+                    let Mode::Setup(Setup::Running { logs }) = &mut self.mode else {
                         return Task::none();
                     };
 
@@ -339,10 +326,7 @@ where
                     .style(container::bordered_box),
             )
             .padding(10)
-            .style(|_theme| {
-                container::Style::default()
-                    .background(Color::BLACK.scale_alpha(0.8))
-            });
+            .style(|_theme| container::Style::default().background(Color::BLACK.scale_alpha(0.8)));
 
             Some(themer(theme(), opaque(setup).map(Event::Message)))
         } else {
@@ -353,19 +337,14 @@ where
             .show_notification
             .then(|| text("Press F12 to open debug metrics"))
             .or_else(|| {
-                debug::is_stale().then(|| {
-                    text(
-                        "Types have changed. Restart to re-enable hotpatching.",
-                    )
-                })
+                debug::is_stale()
+                    .then(|| text("Types have changed. Restart to re-enable hotpatching."))
             })
             .map(|notification| {
                 themer(
                     theme(),
                     bottom_right(opaque(
-                        container(notification)
-                            .padding(10)
-                            .style(container::dark),
+                        container(notification).padding(10).style(container::dark),
                     )),
                 )
             });
@@ -377,15 +356,13 @@ where
     }
 
     pub fn subscription(&self, program: &P) -> Subscription<Event<P>> {
-        let subscription =
-            program.subscription(&self.state).map(Event::Program);
+        let subscription = program.subscription(&self.state).map(Event::Program);
         debug::subscriptions_tracked(subscription.units());
 
         let hotkeys = futures::keyboard::listen()
             .filter_map(|event| match event {
                 keyboard::Event::KeyPressed {
-                    modified_key:
-                        keyboard::Key::Named(keyboard::key::Named::F12),
+                    modified_key: keyboard::Key::Named(keyboard::key::Named::F12),
                     ..
                 } => Some(Message::ToggleComet),
                 _ => None,
@@ -527,9 +504,7 @@ where
     })
 }
 
-fn installation<'a, Renderer>(
-    logs: &'a [String],
-) -> Element<'a, Message, Theme, Renderer>
+fn installation<'a, Renderer>(logs: &'a [String]) -> Element<'a, Message, Theme, Renderer>
 where
     Renderer: program::Renderer + 'a,
 {
@@ -537,9 +512,10 @@ where
         text("Installing comet...").size(20),
         container(
             scrollable(
-                column(logs.iter().map(|log| {
-                    text(log).size(12).font(Font::MONOSPACE).into()
-                }))
+                column(
+                    logs.iter()
+                        .map(|log| { text(log).size(12).font(Font::MONOSPACE).into() })
+                )
                 .spacing(3),
             )
             .spacing(10)

@@ -33,12 +33,7 @@ pub fn move_cursor_to_front<T>(target: Id) -> impl Operation<T> {
     }
 
     impl<T> Operation<T> for MoveCursor {
-        fn text_input(
-            &mut self,
-            id: Option<&Id>,
-            _bounds: Rectangle,
-            state: &mut dyn TextInput,
-        ) {
+        fn text_input(&mut self, id: Option<&Id>, _bounds: Rectangle, state: &mut dyn TextInput) {
             match id {
                 Some(id) if id == &self.target => {
                     state.move_cursor_to_front();
@@ -63,12 +58,7 @@ pub fn move_cursor_to_end<T>(target: Id) -> impl Operation<T> {
     }
 
     impl<T> Operation<T> for MoveCursor {
-        fn text_input(
-            &mut self,
-            id: Option<&Id>,
-            _bounds: Rectangle,
-            state: &mut dyn TextInput,
-        ) {
+        fn text_input(&mut self, id: Option<&Id>, _bounds: Rectangle, state: &mut dyn TextInput) {
             match id {
                 Some(id) if id == &self.target => {
                     state.move_cursor_to_end();
@@ -94,12 +84,7 @@ pub fn move_cursor_to<T>(target: Id, position: usize) -> impl Operation<T> {
     }
 
     impl<T> Operation<T> for MoveCursor {
-        fn text_input(
-            &mut self,
-            id: Option<&Id>,
-            _bounds: Rectangle,
-            state: &mut dyn TextInput,
-        ) {
+        fn text_input(&mut self, id: Option<&Id>, _bounds: Rectangle, state: &mut dyn TextInput) {
             match id {
                 Some(id) if id == &self.target => {
                     state.move_cursor_to(self.position);
@@ -123,12 +108,7 @@ pub fn select_all<T>(target: Id) -> impl Operation<T> {
     }
 
     impl<T> Operation<T> for MoveCursor {
-        fn text_input(
-            &mut self,
-            id: Option<&Id>,
-            _bounds: Rectangle,
-            state: &mut dyn TextInput,
-        ) {
+        fn text_input(&mut self, id: Option<&Id>, _bounds: Rectangle, state: &mut dyn TextInput) {
             match id {
                 Some(id) if id == &self.target => {
                     state.select_all();
@@ -146,11 +126,7 @@ pub fn select_all<T>(target: Id) -> impl Operation<T> {
 }
 
 /// Produces an [`Operation`] that selects the given content range of the widget with the given [`Id`].
-pub fn select_range<T>(
-    target: Id,
-    start: usize,
-    end: usize,
-) -> impl Operation<T> {
+pub fn select_range<T>(target: Id, start: usize, end: usize) -> impl Operation<T> {
     struct SelectRange {
         target: Id,
         start: usize,
@@ -158,12 +134,7 @@ pub fn select_range<T>(
     }
 
     impl<T> Operation<T> for SelectRange {
-        fn text_input(
-            &mut self,
-            id: Option<&Id>,
-            _bounds: Rectangle,
-            state: &mut dyn TextInput,
-        ) {
+        fn text_input(&mut self, id: Option<&Id>, _bounds: Rectangle, state: &mut dyn TextInput) {
             match id {
                 Some(id) if id == &self.target => {
                     state.select_range(self.start, self.end);

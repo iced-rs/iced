@@ -7,10 +7,7 @@ mod rainbow {
     use iced::advanced::widget::{self, Widget};
     use iced::advanced::{Clipboard, Shell};
     use iced::mouse;
-    use iced::{
-        Element, Event, Length, Rectangle, Renderer, Size, Theme,
-        Transformation, Vector,
-    };
+    use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation, Vector};
 
     #[derive(Debug, Clone, Copy, Default)]
     pub struct Rainbow;
@@ -65,9 +62,7 @@ mod rainbow {
             _viewport: &Rectangle,
         ) {
             use iced::advanced::Renderer as _;
-            use iced::advanced::graphics::mesh::{
-                self, Mesh, Renderer as _, SolidVertex2D,
-            };
+            use iced::advanced::graphics::mesh::{self, Mesh, Renderer as _, SolidVertex2D};
 
             let bounds = layout.bounds();
 
@@ -153,12 +148,9 @@ mod rainbow {
                 clip_bounds: Rectangle::INFINITE,
             };
 
-            renderer.with_translation(
-                Vector::new(bounds.x, bounds.y),
-                |renderer| {
-                    renderer.draw_mesh(mesh);
-                },
-            );
+            renderer.with_translation(Vector::new(bounds.x, bounds.y), |renderer| {
+                renderer.draw_mesh(mesh);
+            });
         }
     }
 

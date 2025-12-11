@@ -73,9 +73,7 @@ impl<Message> Action<Message> {
     ///
     /// This method is meant to be used by runtimes, libraries, or internal
     /// widget implementations.
-    pub fn into_inner(
-        self,
-    ) -> (Option<Message>, window::RedrawRequest, event::Status) {
+    pub fn into_inner(self) -> (Option<Message>, window::RedrawRequest, event::Status) {
         (
             self.message_to_publish,
             self.redraw_request,

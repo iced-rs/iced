@@ -27,8 +27,7 @@ use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme,
-    Vector, Widget,
+    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme, Vector, Widget,
 };
 
 use std::cell::RefCell;
@@ -90,8 +89,7 @@ where
 
     /// Sets the size of the entire [`QRCode`].
     pub fn total_size(mut self, total_size: impl Into<Pixels>) -> Self {
-        self.cell_size =
-            total_size.into().0 / (self.data.width + 2 * QUIET_ZONE) as f32;
+        self.cell_size = total_size.into().0 / (self.data.width + 2 * QUIET_ZONE) as f32;
 
         self
     }
@@ -140,8 +138,7 @@ where
         _renderer: &Renderer,
         _limits: &layout::Limits,
     ) -> layout::Node {
-        let side_length =
-            (self.data.width + 2 * QUIET_ZONE) as f32 * self.cell_size;
+        let side_length = (self.data.width + 2 * QUIET_ZONE) as f32 * self.cell_size;
 
         layout::Node::new(Size::new(side_length, side_length))
     }
@@ -203,19 +200,15 @@ where
                 });
         });
 
-        renderer.with_translation(
-            bounds.position() - Point::ORIGIN,
-            |renderer| {
-                use crate::graphics::geometry::Renderer as _;
+        renderer.with_translation(bounds.position() - Point::ORIGIN, |renderer| {
+            use crate::graphics::geometry::Renderer as _;
 
-                renderer.draw_geometry(geometry);
-            },
-        );
+            renderer.draw_geometry(geometry);
+        });
     }
 }
 
-impl<'a, Message, Theme> From<QRCode<'a, Theme>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme> From<QRCode<'a, Theme>> for Element<'a, Message, Theme, Renderer>
 where
     Theme: Catalog + 'a,
 {
@@ -250,10 +243,7 @@ impl Data {
         data: impl AsRef<[u8]>,
         error_correction: ErrorCorrection,
     ) -> Result<Self, Error> {
-        let encoded = qrcode::QrCode::with_error_correction_level(
-            data,
-            error_correction.into(),
-        )?;
+        let encoded = qrcode::QrCode::with_error_correction_level(data, error_correction.into())?;
 
         Ok(Self::build(encoded))
     }
@@ -265,11 +255,7 @@ impl Data {
         version: Version,
         error_correction: ErrorCorrection,
     ) -> Result<Self, Error> {
-        let encoded = qrcode::QrCode::with_version(
-            data,
-            version.into(),
-            error_correction.into(),
-        )?;
+        let encoded = qrcode::QrCode::with_version(data, version.into(), error_correction.into())?;
 
         Ok(Self::build(encoded))
     }
@@ -341,15 +327,11 @@ impl From<ErrorCorrection> for qrcode::EcLevel {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum Error {
     /// The data is too long to encode in a QR code for the chosen [`Version`].
-    #[error(
-        "The data is too long to encode in a QR code for the chosen version"
-    )]
+    #[error("The data is too long to encode in a QR code for the chosen version")]
     DataTooLong,
 
     /// The chosen [`Version`] and [`ErrorCorrection`] combination is invalid.
-    #[error(
-        "The chosen version and error correction level combination is invalid."
-    )]
+    #[error("The chosen version and error correction level combination is invalid.")]
     InvalidVersion,
 
     /// One or more characters in the provided data are not supported by the

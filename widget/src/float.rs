@@ -8,8 +8,8 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree;
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size,
-    Transformation, Vector, Widget,
+    Clipboard, Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation,
+    Vector, Widget,
 };
 
 /// A widget that can make its contents float over other widgets.
@@ -28,9 +28,7 @@ where
     Theme: Catalog,
 {
     /// Creates a new [`Float`] widget with the given content.
-    pub fn new(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             content: content.into(),
             scale: 1.0,
@@ -50,10 +48,7 @@ where
     /// The logic takes the original (non-scaled) bounds of the contents and the
     /// viewport bounds. These bounds can be useful to ensure the floating elements
     /// always stay on screen.
-    pub fn translate(
-        mut self,
-        translate: impl Fn(Rectangle, Rectangle) -> Vector + 'a,
-    ) -> Self {
+    pub fn translate(mut self, translate: impl Fn(Rectangle, Rectangle) -> Vector + 'a) -> Self {
         self.translate = Some(Box::new(translate));
         self
     }
@@ -78,9 +73,10 @@ where
 
     fn is_floating(&self, bounds: Rectangle, viewport: Rectangle) -> bool {
         self.scale > 1.0
-            || self.translate.as_ref().is_some_and(|translate| {
-                translate(bounds, viewport) != Vector::ZERO
-            })
+            || self
+                .translate
+                .as_ref()
+                .is_some_and(|translate| translate(bounds, viewport) != Vector::ZERO)
     }
 }
 
@@ -329,9 +325,7 @@ where
                             renderer::Quad {
                                 bounds: bounds.shrink(1.0),
                                 shadow: style.shadow,
-                                border: border::rounded(
-                                    style.shadow_border_radius,
-                                ),
+                                border: border::rounded(style.shadow_border_radius),
                                 snap: false,
                             },
                             style.shadow.color,

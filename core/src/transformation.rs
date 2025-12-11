@@ -89,12 +89,9 @@ impl Mul<Transformation> for Size {
     type Output = Self;
 
     fn mul(self, transformation: Transformation) -> Self {
-        let new_size = transformation.0.mul_vec4(Vec4::new(
-            self.width,
-            self.height,
-            1.0,
-            0.0,
-        ));
+        let new_size = transformation
+            .0
+            .mul_vec4(Vec4::new(self.width, self.height, 1.0, 0.0));
 
         Size::new(new_size.x, new_size.y)
     }

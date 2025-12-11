@@ -29,9 +29,7 @@ pub use settings::Settings;
 pub use geometry::Geometry;
 
 use crate::core::renderer;
-use crate::core::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
-};
+use crate::core::{Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation};
 use crate::engine::Engine;
 use crate::graphics::Viewport;
 use crate::graphics::compositor;
@@ -92,9 +90,7 @@ impl Renderer {
             pixels.fill_path(
                 &path,
                 &tiny_skia::Paint {
-                    shader: tiny_skia::Shader::SolidColor(engine::into_color(
-                        background_color,
-                    )),
+                    shader: tiny_skia::Shader::SolidColor(engine::into_color(background_color)),
                     anti_alias: false,
                     blend_mode: tiny_skia::BlendMode::Source,
                     ..Default::default()
@@ -105,8 +101,7 @@ impl Renderer {
             );
 
             for layer in self.layers.iter() {
-                let Some(layer_bounds) =
-                    damage_bounds.intersection(&(layer.bounds * scale_factor))
+                let Some(layer_bounds) = damage_bounds.intersection(&(layer.bounds * scale_factor))
                 else {
                     continue;
                 };
@@ -132,10 +127,9 @@ impl Renderer {
                     let render_span = debug::render(debug::Primitive::Triangle);
 
                     for group in &layer.primitives {
-                        let Some(group_bounds) = (group.clip_bounds()
-                            * group.transformation()
-                            * scale_factor)
-                            .intersection(&layer_bounds)
+                        let Some(group_bounds) =
+                            (group.clip_bounds() * group.transformation() * scale_factor)
+                                .intersection(&layer_bounds)
                         else {
                             continue;
                         };
@@ -145,8 +139,7 @@ impl Renderer {
                         for primitive in group.as_slice() {
                             self.engine.draw_primitive(
                                 primitive,
-                                group.transformation()
-                                    * Transformation::scale(scale_factor),
+                                group.transformation() * Transformation::scale(scale_factor),
                                 pixels,
                                 clip_mask,
                                 group_bounds,
@@ -182,8 +175,7 @@ impl Renderer {
                         for text in group.as_slice() {
                             self.engine.draw_text(
                                 text,
-                                group.transformation()
-                                    * Transformation::scale(scale_factor),
+                                group.transformation() * Transformation::scale(scale_factor),
                                 pixels,
                                 clip_mask,
                                 layer_bounds,
@@ -217,11 +209,7 @@ impl core::Renderer for Renderer {
         self.layers.pop_transformation();
     }
 
-    fn fill_quad(
-        &mut self,
-        quad: renderer::Quad,
-        background: impl Into<Background>,
-    ) {
+    fn fill_quad(&mut self, quad: renderer::Quad, background: impl Into<Background>) {
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_quad(quad, background.into(), transformation);
     }
@@ -233,9 +221,7 @@ impl core::Renderer for Renderer {
     fn allocate_image(
         &mut self,
         _handle: &core::image::Handle,
-        callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>)
-        + Send
-        + 'static,
+        callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>) + Send + 'static,
     ) {
         #[cfg(feature = "image")]
         #[allow(unsafe_code)]
@@ -278,13 +264,7 @@ impl core::text::Renderer for Renderer {
     ) {
         let (layer, transformation) = self.layers.current_mut();
 
-        layer.draw_paragraph(
-            text,
-            position,
-            color,
-            clip_bounds,
-            transformation,
-        );
+        layer.draw_paragraph(text, position, color, clip_bounds, transformation);
     }
 
     fn fill_editor(
@@ -336,11 +316,7 @@ impl graphics::geometry::Renderer for Renderer {
                 text,
                 clip_bounds,
             } => {
-                layer.draw_primitive_group(
-                    primitives,
-                    clip_bounds,
-                    transformation,
-                );
+                layer.draw_primitive_group(primitives, clip_bounds, transformation);
 
                 for image in images {
                     layer.draw_image(image, transformation);
@@ -349,21 +325,13 @@ impl graphics::geometry::Renderer for Renderer {
                 layer.draw_text_group(text, clip_bounds, transformation);
             }
             Geometry::Cache(cache) => {
-                layer.draw_primitive_cache(
-                    cache.primitives,
-                    cache.clip_bounds,
-                    transformation,
-                );
+                layer.draw_primitive_cache(cache.primitives, cache.clip_bounds, transformation);
 
                 for image in cache.images.iter() {
                     layer.draw_image(image.clone(), transformation);
                 }
 
-                layer.draw_text_cache(
-                    cache.text,
-                    cache.clip_bounds,
-                    transformation,
-                );
+                layer.draw_text_cache(cache.text, cache.clip_bounds, transformation);
             }
         }
     }
@@ -390,19 +358,11 @@ impl core::image::Renderer for Renderer {
         self.engine.raster_pipeline.load(handle)
     }
 
-    fn measure_image(
-        &self,
-        handle: &Self::Handle,
-    ) -> Option<crate::core::Size<u32>> {
+    fn measure_image(&self, handle: &Self::Handle) -> Option<crate::core::Size<u32>> {
         self.engine.raster_pipeline.dimensions(handle)
     }
 
-    fn draw_image(
-        &mut self,
-        image: core::Image,
-        bounds: Rectangle,
-        clip_bounds: Rectangle,
-    ) {
+    fn draw_image(&mut self, image: core::Image, bounds: Rectangle, clip_bounds: Rectangle) {
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_raster(image, bounds, clip_bounds, transformation);
     }
@@ -410,19 +370,11 @@ impl core::image::Renderer for Renderer {
 
 #[cfg(feature = "svg")]
 impl core::svg::Renderer for Renderer {
-    fn measure_svg(
-        &self,
-        handle: &core::svg::Handle,
-    ) -> crate::core::Size<u32> {
+    fn measure_svg(&self, handle: &core::svg::Handle) -> crate::core::Size<u32> {
         self.engine.vector_pipeline.viewport_dimensions(handle)
     }
 
-    fn draw_svg(
-        &mut self,
-        svg: core::Svg,
-        bounds: Rectangle,
-        clip_bounds: Rectangle,
-    ) {
+    fn draw_svg(&mut self, svg: core::Svg, bounds: Rectangle, clip_bounds: Rectangle) {
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_svg(svg, bounds, clip_bounds, transformation);
     }
@@ -438,9 +390,7 @@ impl renderer::Headless for Renderer {
         default_text_size: Pixels,
         backend: Option<&str>,
     ) -> Option<Self> {
-        if backend.is_some_and(|backend| {
-            !["tiny-skia", "tiny_skia"].contains(&backend)
-        }) {
+        if backend.is_some_and(|backend| !["tiny-skia", "tiny_skia"].contains(&backend)) {
             return None;
         }
 

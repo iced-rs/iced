@@ -141,10 +141,6 @@ impl Animation<bool> {
 
     /// Returns the remaining [`Duration`] of the [`Animation`].
     pub fn remaining(&self, at: Instant) -> Duration {
-        Duration::from_secs_f32(self.interpolate(
-            self.duration.as_secs_f32(),
-            0.0,
-            at,
-        ))
+        Duration::from_secs_f32(self.interpolate(self.duration.as_secs_f32(), 0.0, at))
     }
 }

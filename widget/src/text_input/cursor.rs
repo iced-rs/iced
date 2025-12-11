@@ -53,9 +53,7 @@ impl Cursor {
     /// `start` is guaranteed to be <= than `end`.
     pub fn selection(&self, value: &Value) -> Option<(usize, usize)> {
         match self.state(value) {
-            State::Selection { start, end } => {
-                Some((start.min(end), start.max(end)))
-            }
+            State::Selection { start, end } => Some((start.min(end), start.max(end))),
             State::Index(_) => None,
         }
     }
@@ -72,11 +70,7 @@ impl Cursor {
         self.move_to(value.next_end_of_word(self.right(value)));
     }
 
-    pub(crate) fn move_right_by_amount(
-        &mut self,
-        value: &Value,
-        amount: usize,
-    ) {
+    pub(crate) fn move_right_by_amount(&mut self, value: &Value, amount: usize) {
         match self.state(value) {
             State::Index(index) => {
                 self.move_to(index.saturating_add(amount).min(value.len()));

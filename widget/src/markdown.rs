@@ -48,12 +48,8 @@ use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
 use crate::core::theme;
-use crate::core::{
-    self, Color, Element, Length, Padding, Pixels, Theme, color,
-};
-use crate::{
-    checkbox, column, container, rich_text, row, rule, scrollable, span, text,
-};
+use crate::core::{self, Color, Element, Length, Padding, Pixels, Theme, color};
+use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
@@ -424,8 +420,7 @@ impl Bullet {
 /// }
 /// ```
 pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
-    parse_with(State::default(), markdown)
-        .map(|(item, _source, _broken_links)| item)
+    parse_with(State::default(), markdown).map(|(item, _source, _broken_links)| item)
 }
 
 #[derive(Debug, Default)]
@@ -451,12 +446,10 @@ impl Highlighter {
     pub fn new(language: &str) -> Self {
         Self {
             lines: Vec::new(),
-            parser: iced_highlighter::Stream::new(
-                &iced_highlighter::Settings {
-                    theme: iced_highlighter::Theme::Base16Ocean,
-                    token: language.to_owned(),
-                },
-            ),
+            parser: iced_highlighter::Stream::new(&iced_highlighter::Settings {
+                theme: iced_highlighter::Theme::Base16Ocean,
+                token: language.to_owned(),
+            }),
             language: language.to_owned(),
             current: 0,
         }
@@ -476,10 +469,7 @@ impl Highlighter {
                     self.lines.truncate(self.current);
 
                     for line in &self.lines {
-                        log::debug!(
-                            "Refeeding {n} lines",
-                            n = self.lines.len()
-                        );
+                        log::debug!("Refeeding {n} lines", n = self.lines.len());
 
                         let _ = self.parser.highlight_line(&line.0);
                     }
@@ -569,9 +559,7 @@ fn parse_with<'a>(
             let broken_links = broken_links.clone();
 
             Some(move |broken_link: pulldown_cmark::BrokenLink<'_>| {
-                if let Some(reference) =
-                    references.get(broken_link.reference.as_ref())
-                {
+                if let Some(reference) = references.get(broken_link.reference.as_ref()) {
                     Some((
                         pulldown_cmark::CowStr::from(reference.to_owned()),
                         broken_link.reference.into_static(),
@@ -589,14 +577,10 @@ fn parse_with<'a>(
     let references = &mut state.borrow_mut().references;
 
     for reference in parser.reference_definitions().iter() {
-        let _ = references
-            .insert(reference.0.to_owned(), reference.1.dest.to_string());
+        let _ = references.insert(reference.0.to_owned(), reference.1.dest.to_string());
     }
 
-    let produce = move |state: &mut State,
-                        stack: &mut Vec<Scope>,
-                        item,
-                        source: Range<usize>| {
+    let produce = move |state: &mut State, stack: &mut Vec<Scope>, item, source: Range<usize>| {
         if let Some(scope) = stack.last_mut() {
             match scope {
                 Scope::List(list) => {
@@ -692,9 +676,9 @@ fn parse_with<'a>(
 
                 prev
             }
-            pulldown_cmark::Tag::CodeBlock(
-                pulldown_cmark::CodeBlockKind::Fenced(language),
-            ) if !metadata => {
+            pulldown_cmark::Tag::CodeBlock(pulldown_cmark::CodeBlockKind::Fenced(language))
+                if !metadata =>
+            {
                 #[cfg(feature = "highlighter")]
                 {
                     highlighter = Some({
@@ -702,16 +686,9 @@ fn parse_with<'a>(
                             .borrow_mut()
                             .highlighter
                             .take()
-                            .filter(|highlighter| {
-                                highlighter.language == language.as_ref()
-                            })
+                            .filter(|highlighter| highlighter.language == language.as_ref())
                             .unwrap_or_else(|| {
-                                Highlighter::new(
-                                    language
-                                        .split(',')
-                                        .next()
-                                        .unwrap_or_default(),
-                                )
+                                Highlighter::new(language.split(',').next().unwrap_or_default())
                             });
 
                         highlighter.prepare();
@@ -721,8 +698,7 @@ fn parse_with<'a>(
                 }
 
                 code_block = true;
-                code_language =
-                    (!language.is_empty()).then(|| language.into_string());
+                code_language = (!language.is_empty()).then(|| language.into_string());
 
                 if spans.is_empty() {
                     None
@@ -834,12 +810,7 @@ fn parse_with<'a>(
                     return None;
                 };
 
-                produce(
-                    state.borrow_mut(),
-                    &mut stack,
-                    Item::Quote(quote),
-                    source,
-                )
+                produce(state.borrow_mut(), &mut stack, Item::Quote(quote), source)
             }
             pulldown_cmark::TagEnd::Image if !metadata => {
                 let (url, title) = image.take()?;
@@ -848,12 +819,7 @@ fn parse_with<'a>(
                 let state = state.borrow_mut();
                 let _ = state.images.insert(url.clone());
 
-                produce(
-                    state,
-                    &mut stack,
-                    Item::Image { url, title, alt },
-                    source,
-                )
+                produce(state, &mut stack, Item::Image { url, title, alt }, source)
             }
             pulldown_cmark::TagEnd::CodeBlock if !metadata => {
                 code_block = false;
@@ -939,9 +905,7 @@ fn parse_with<'a>(
                 #[cfg(feature = "highlighter")]
                 if let Some(highlighter) = &mut highlighter {
                     for line in text.lines() {
-                        code_lines.push(Text::new(
-                            highlighter.highlight_line(line).to_vec(),
-                        ));
+                        code_lines.push(Text::new(highlighter.highlight_line(line).to_vec()));
                     }
                 }
 
@@ -1008,9 +972,7 @@ fn parse_with<'a>(
             });
             None
         }
-        pulldown_cmark::Event::Rule => {
-            produce(state.borrow_mut(), &mut stack, Item::Rule, source)
-        }
+        pulldown_cmark::Event::Rule => produce(state.borrow_mut(), &mut stack, Item::Rule, source),
         pulldown_cmark::Event::TaskListMarker(done) => {
             if let Some(Scope::List(list)) = stack.last_mut()
                 && let Some(item) = list.bullets.last_mut()
@@ -1064,10 +1026,7 @@ impl Settings {
     /// Heading levels will be adjusted automatically. Specifically,
     /// the first level will be twice the base size, and then every level
     /// after that will be 25% smaller.
-    pub fn with_text_size(
-        text_size: impl Into<Pixels>,
-        style: impl Into<Style>,
-    ) -> Self {
+    pub fn with_text_size(text_size: impl Into<Pixels>, style: impl Into<Style>) -> Self {
         let text_size = text_size.into();
 
         Self {
@@ -1243,12 +1202,8 @@ where
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     match item {
-        Item::Image { url, title, alt } => {
-            viewer.image(settings, url, title, alt)
-        }
-        Item::Heading(level, text) => {
-            viewer.heading(settings, level, text, index)
-        }
+        Item::Image { url, title, alt } => viewer.image(settings, url, title, alt),
+        Item::Heading(level, text) => viewer.heading(settings, level, text, index),
         Item::Paragraph(text) => viewer.paragraph(settings, text),
         Item::CodeBlock {
             language,
@@ -1351,10 +1306,7 @@ where
                 Bullet::Task { done, .. } => {
                     Element::from(
                         container(checkbox(*done).size(settings.text_size))
-                            .center_y(
-                                text::LineHeight::default()
-                                    .to_absolute(settings.text_size),
-                            ),
+                            .center_y(text::LineHeight::default().to_absolute(settings.text_size)),
                     )
                 }
             },
@@ -1475,8 +1427,7 @@ where
 }
 
 /// Displays a rule using the default look.
-pub fn rule<'a, Message, Theme, Renderer>()
--> Element<'a, Message, Theme, Renderer>
+pub fn rule<'a, Message, Theme, Renderer>() -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
@@ -1501,27 +1452,19 @@ where
 
     let table = table(
         columns.iter().enumerate().map(move |(i, column)| {
-            table::column(
-                items(viewer, settings, &column.header),
-                move |row: &Row| {
-                    if let Some(cells) = row.cells.get(i) {
-                        items(viewer, settings, cells)
-                    } else {
-                        text("").into()
-                    }
-                },
-            )
+            table::column(items(viewer, settings, &column.header), move |row: &Row| {
+                if let Some(cells) = row.cells.get(i) {
+                    items(viewer, settings, cells)
+                } else {
+                    text("").into()
+                }
+            })
             .align_x(match column.alignment {
-                pulldown_cmark::Alignment::None
-                | pulldown_cmark::Alignment::Left => {
+                pulldown_cmark::Alignment::None | pulldown_cmark::Alignment::Left => {
                     alignment::Horizontal::Left
                 }
-                pulldown_cmark::Alignment::Center => {
-                    alignment::Horizontal::Center
-                }
-                pulldown_cmark::Alignment::Right => {
-                    alignment::Horizontal::Right
-                }
+                pulldown_cmark::Alignment::Center => alignment::Horizontal::Center,
+                pulldown_cmark::Alignment::Right => alignment::Horizontal::Right,
             })
         }),
         rows,
@@ -1583,13 +1526,10 @@ where
         let _url = url;
         let _title = title;
 
-        container(
-            rich_text(alt.spans(settings.style))
-                .on_link_click(Self::on_link_click),
-        )
-        .padding(settings.spacing.0)
-        .class(Theme::code_block())
-        .into()
+        container(rich_text(alt.spans(settings.style)).on_link_click(Self::on_link_click))
+            .padding(settings.spacing.0)
+            .class(Theme::code_block())
+            .into()
     }
 
     /// Displays a heading.
@@ -1608,11 +1548,7 @@ where
     /// Displays a paragraph.
     ///
     /// By default, it calls [`paragraph`].
-    fn paragraph(
-        &self,
-        settings: Settings,
-        text: &Text,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn paragraph(&self, settings: Settings, text: &Text) -> Element<'a, Message, Theme, Renderer> {
         paragraph(settings, text, Self::on_link_click)
     }
 
@@ -1669,10 +1605,7 @@ where
     /// Displays a rule.
     ///
     /// By default, it calls [`rule`](self::rule()).
-    fn rule(
-        &self,
-        _settings: Settings,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn rule(&self, _settings: Settings) -> Element<'a, Message, Theme, Renderer> {
         rule()
     }
 

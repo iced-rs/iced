@@ -147,12 +147,11 @@ mod internal {
     pub fn init(metadata: Metadata) {
         let name = metadata.name.split("::").next().unwrap_or(metadata.name);
 
-        *METADATA.write().expect("Write application metadata") =
-            client::Metadata {
-                name,
-                theme: metadata.theme,
-                can_time_travel: metadata.can_time_travel,
-            };
+        *METADATA.write().expect("Write application metadata") = client::Metadata {
+            name,
+            theme: metadata.theme,
+            can_time_travel: metadata.can_time_travel,
+        };
     }
 
     pub fn quit() -> bool {
@@ -170,9 +169,7 @@ mod internal {
             return;
         };
 
-        if METADATA.read().expect("Read last palette").theme.as_ref()
-            != Some(&palette)
-        {
+        if METADATA.read().expect("Read last palette").theme.as_ref() != Some(&palette) {
             log(client::Event::ThemeChanged(palette));
 
             METADATA.write().expect("Write last palette").theme = Some(palette);
@@ -205,9 +202,7 @@ mod internal {
         let elapsed = start.elapsed();
 
         if elapsed.as_millis() >= 1 {
-            log::warn!(
-                "Slow `Debug` implementation of `Message` (took {elapsed:?})!"
-            );
+            log::warn!("Slow `Debug` implementation of `Message` (took {elapsed:?})!");
         }
 
         let message = if message.len() > 49 {
@@ -271,9 +266,7 @@ mod internal {
 
             stream::unfold(BEACON.subscribe(), async move |mut receiver| {
                 let command = match receiver.recv().await? {
-                    client::Command::RewindTo { message } => {
-                        Command::RewindTo { message }
-                    }
+                    client::Command::RewindTo { message } => Command::RewindTo { message },
                     client::Command::GoLive => Command::GoLive,
                 };
 
@@ -421,8 +414,7 @@ mod hot {
 
     static IS_STALE: AtomicBool = AtomicBool::new(false);
 
-    static HOT_FUNCTIONS_PENDING: Mutex<BTreeSet<u64>> =
-        Mutex::new(BTreeSet::new());
+    static HOT_FUNCTIONS_PENDING: Mutex<BTreeSet<u64>> = Mutex::new(BTreeSet::new());
 
     static HOT_FUNCTIONS: OnceLock<BTreeSet<u64>> = OnceLock::new();
 
@@ -433,9 +425,7 @@ mod hot {
             if HOT_FUNCTIONS.get().is_none() {
                 HOT_FUNCTIONS
                     .set(std::mem::take(
-                        &mut HOT_FUNCTIONS_PENDING
-                            .lock()
-                            .expect("Lock hot functions"),
+                        &mut HOT_FUNCTIONS_PENDING.lock().expect("Lock hot functions"),
                     ))
                     .expect("Set hot functions");
             }

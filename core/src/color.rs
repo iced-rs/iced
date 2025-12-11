@@ -206,9 +206,7 @@ pub enum ParseError {
     #[error(transparent)]
     ParseIntError(#[from] std::num::ParseIntError),
     /// The string is of invalid length.
-    #[error(
-        "expected hex string of length 3, 4, 6 or 8 excluding optional prefix '#', found {0}"
-    )]
+    #[error("expected hex string of length 3, 4, 6 or 8 excluding optional prefix '#', found {0}")]
     InvalidLength(usize),
 }
 
@@ -218,14 +216,12 @@ impl std::str::FromStr for Color {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let hex = s.strip_prefix('#').unwrap_or(s);
 
-        let parse_channel =
-            |from: usize, to: usize| -> Result<f32, std::num::ParseIntError> {
-                let num =
-                    usize::from_str_radix(&hex[from..=to], 16)? as f32 / 255.0;
+        let parse_channel = |from: usize, to: usize| -> Result<f32, std::num::ParseIntError> {
+            let num = usize::from_str_radix(&hex[from..=to], 16)? as f32 / 255.0;
 
-                // If we only got half a byte (one letter), expand it into a full byte (two letters)
-                Ok(if from == to { num + num * 16.0 } else { num })
-            };
+            // If we only got half a byte (one letter), expand it into a full byte (two letters)
+            Ok(if from == to { num + num * 16.0 } else { num })
+        };
 
         let val = match hex.len() {
             3 => Color::from_rgb(

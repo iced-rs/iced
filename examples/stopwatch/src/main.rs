@@ -59,9 +59,7 @@ impl Stopwatch {
     fn subscription(&self) -> Subscription<Message> {
         let tick = match self.state {
             State::Idle => Subscription::none(),
-            State::Ticking { .. } => {
-                time::every(milliseconds(10)).map(Message::Tick)
-            }
+            State::Ticking { .. } => time::every(milliseconds(10)).map(Message::Tick),
         };
 
         fn handle_hotkey(event: keyboard::Event) -> Option<Message> {
@@ -72,18 +70,13 @@ impl Stopwatch {
             };
 
             match modified_key.as_ref() {
-                keyboard::Key::Named(key::Named::Space) => {
-                    Some(Message::Toggle)
-                }
+                keyboard::Key::Named(key::Named::Space) => Some(Message::Toggle),
                 keyboard::Key::Character("r") => Some(Message::Reset),
                 _ => None,
             }
         }
 
-        Subscription::batch(vec![
-            tick,
-            keyboard::listen().filter_map(handle_hotkey),
-        ])
+        Subscription::batch(vec![tick, keyboard::listen().filter_map(handle_hotkey)])
     }
 
     fn view(&self) -> Element<'_, Message> {
@@ -101,8 +94,7 @@ impl Stopwatch {
         )
         .size(40);
 
-        let button =
-            |label| button(text(label).align_x(Center)).padding(10).width(80);
+        let button = |label| button(text(label).align_x(Center)).padding(10).width(80);
 
         let toggle_button = {
             let label = match self.state {

@@ -49,9 +49,7 @@ pub struct Information {
 
 /// Returns available system information.
 pub fn information() -> Task<Information> {
-    task::oneshot(|channel| {
-        crate::Action::System(Action::GetInformation(channel))
-    })
+    task::oneshot(|channel| crate::Action::System(Action::GetInformation(channel)))
 }
 
 /// Returns the current system theme.

@@ -34,16 +34,14 @@ impl Value {
     /// Returns the position of the previous start of a word from the given
     /// grapheme `index`.
     pub fn previous_start_of_word(&self, index: usize) -> usize {
-        let previous_string =
-            &self.graphemes[..index.min(self.graphemes.len())].concat();
+        let previous_string = &self.graphemes[..index.min(self.graphemes.len())].concat();
 
         UnicodeSegmentation::split_word_bound_indices(previous_string as &str)
             .filter(|(_, word)| !word.trim_start().is_empty())
             .next_back()
             .map(|(i, previous_word)| {
                 index
-                    - UnicodeSegmentation::graphemes(previous_word, true)
-                        .count()
+                    - UnicodeSegmentation::graphemes(previous_word, true).count()
                     - UnicodeSegmentation::graphemes(
                         &previous_string[i + previous_word.len()..] as &str,
                         true,
@@ -63,11 +61,7 @@ impl Value {
             .map(|(i, next_word)| {
                 index
                     + UnicodeSegmentation::graphemes(next_word, true).count()
-                    + UnicodeSegmentation::graphemes(
-                        &next_string[..i] as &str,
-                        true,
-                    )
-                    .count()
+                    + UnicodeSegmentation::graphemes(&next_string[..i] as &str, true).count()
             })
             .unwrap_or(self.len())
     }
@@ -75,8 +69,7 @@ impl Value {
     /// Returns a new [`Value`] containing the graphemes from `start` until the
     /// given `end`.
     pub fn select(&self, start: usize, end: usize) -> Self {
-        let graphemes =
-            self.graphemes[start.min(self.len())..end.min(self.len())].to_vec();
+        let graphemes = self.graphemes[start.min(self.len())..end.min(self.len())].to_vec();
 
         Self { graphemes }
     }
@@ -93,10 +86,9 @@ impl Value {
     pub fn insert(&mut self, index: usize, c: char) {
         self.graphemes.insert(index, c.to_string());
 
-        self.graphemes =
-            UnicodeSegmentation::graphemes(&self.to_string() as &str, true)
-                .map(String::from)
-                .collect();
+        self.graphemes = UnicodeSegmentation::graphemes(&self.to_string() as &str, true)
+            .map(String::from)
+            .collect();
     }
 
     /// Inserts a bunch of graphemes at the given grapheme `index`.
@@ -120,11 +112,7 @@ impl Value {
     /// dot ('•') character.
     pub fn secure(&self) -> Self {
         Self {
-            graphemes: std::iter::repeat_n(
-                String::from("•"),
-                self.graphemes.len(),
-            )
-            .collect(),
+            graphemes: std::iter::repeat_n(String::from("•"), self.graphemes.len()).collect(),
         }
     }
 }

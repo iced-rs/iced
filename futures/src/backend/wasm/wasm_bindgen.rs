@@ -29,9 +29,7 @@ pub mod time {
             use futures::stream::StreamExt;
 
             let mut interval = wasmtimer::tokio::interval(*duration);
-            interval.set_missed_tick_behavior(
-                wasmtimer::tokio::MissedTickBehavior::Skip,
-            );
+            interval.set_missed_tick_behavior(wasmtimer::tokio::MissedTickBehavior::Skip);
 
             let stream = {
                 futures::stream::unfold(interval, |mut interval| async move {

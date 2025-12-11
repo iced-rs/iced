@@ -6,8 +6,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, ContentFit, Element, Event, Image, Layout, Length, Pixels,
-    Point, Radians, Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, ContentFit, Element, Event, Image, Layout, Length, Pixels, Point, Radians,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -95,8 +95,7 @@ impl<Handle> Viewer<Handle> {
     }
 }
 
-impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
-    for Viewer<Handle>
+impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Viewer<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -123,11 +122,9 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         // The raw w/h of the underlying image
-        let image_size =
-            renderer.measure_image(&self.handle).unwrap_or_default();
+        let image_size = renderer.measure_image(&self.handle).unwrap_or_default();
 
-        let image_size =
-            Size::new(image_size.width as f32, image_size.height as f32);
+        let image_size = Size::new(image_size.width as f32, image_size.height as f32);
 
         // The size to be available to the widget prior to `Shrink`ing
         let raw_size = limits.resolve(self.width, self.height, image_size);
@@ -170,8 +167,7 @@ where
                 };
 
                 match *delta {
-                    mouse::ScrollDelta::Lines { y, .. }
-                    | mouse::ScrollDelta::Pixels { y, .. } => {
+                    mouse::ScrollDelta::Lines { y, .. } | mouse::ScrollDelta::Pixels { y, .. } => {
                         let state = tree.state.downcast_mut::<State>();
                         let previous_scale = state.scale;
 
@@ -195,11 +191,10 @@ where
 
                             let factor = state.scale / previous_scale - 1.0;
 
-                            let cursor_to_center =
-                                cursor_position - bounds.center();
+                            let cursor_to_center = cursor_position - bounds.center();
 
-                            let adjustment = cursor_to_center * factor
-                                + state.current_offset * factor;
+                            let adjustment =
+                                cursor_to_center * factor + state.current_offset * factor;
 
                             state.current_offset = Vector::new(
                                 if scaled_size.width > bounds.width {
@@ -248,27 +243,20 @@ where
                         bounds.size(),
                         self.content_fit,
                     );
-                    let hidden_width = (scaled_size.width - bounds.width / 2.0)
-                        .max(0.0)
-                        .round();
+                    let hidden_width = (scaled_size.width - bounds.width / 2.0).max(0.0).round();
 
-                    let hidden_height = (scaled_size.height
-                        - bounds.height / 2.0)
-                        .max(0.0)
-                        .round();
+                    let hidden_height = (scaled_size.height - bounds.height / 2.0).max(0.0).round();
 
                     let delta = *position - origin;
 
                     let x = if bounds.width < scaled_size.width {
-                        (state.starting_offset.x - delta.x)
-                            .clamp(-hidden_width, hidden_width)
+                        (state.starting_offset.x - delta.x).clamp(-hidden_width, hidden_width)
                     } else {
                         0.0
                     };
 
                     let y = if bounds.height < scaled_size.height {
-                        (state.starting_offset.y - delta.y)
-                            .clamp(-hidden_height, hidden_height)
+                        (state.starting_offset.y - delta.y).clamp(-hidden_height, hidden_height)
                     } else {
                         0.0
                     };
@@ -329,9 +317,7 @@ where
             let diff_h = bounds.height - final_size.height;
 
             let image_top_left = match self.content_fit {
-                ContentFit::None => {
-                    Vector::new(diff_w.max(0.0) / 2.0, diff_h.max(0.0) / 2.0)
-                }
+                ContentFit::None => Vector::new(diff_w.max(0.0) / 2.0, diff_h.max(0.0) / 2.0),
                 _ => Vector::new(diff_w / 2.0, diff_h / 2.0),
             };
 
@@ -390,11 +376,9 @@ impl State {
     /// Returns the current offset of the [`State`], given the bounds
     /// of the [`Viewer`] and its image.
     fn offset(&self, bounds: Rectangle, image_size: Size) -> Vector {
-        let hidden_width =
-            (image_size.width - bounds.width / 2.0).max(0.0).round();
+        let hidden_width = (image_size.width - bounds.width / 2.0).max(0.0).round();
 
-        let hidden_height =
-            (image_size.height - bounds.height / 2.0).max(0.0).round();
+        let hidden_height = (image_size.height - bounds.height / 2.0).max(0.0).round();
 
         Vector::new(
             self.current_offset.x.clamp(-hidden_width, hidden_width),
@@ -433,8 +417,7 @@ pub fn scaled_image_size<Renderer>(
 where
     Renderer: image::Renderer,
 {
-    let Size { width, height } =
-        renderer.measure_image(handle).unwrap_or_default();
+    let Size { width, height } = renderer.measure_image(handle).unwrap_or_default();
 
     let image_size = Size::new(width as f32, height as f32);
 

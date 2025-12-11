@@ -47,8 +47,9 @@ impl Mesh {
     /// Returns the [`Transformation`] of the [`Mesh`].
     pub fn transformation(&self) -> Transformation {
         match self {
-            Self::Solid { transformation, .. }
-            | Self::Gradient { transformation, .. } => *transformation,
+            Self::Solid { transformation, .. } | Self::Gradient { transformation, .. } => {
+                *transformation
+            }
         }
     }
 

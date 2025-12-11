@@ -68,12 +68,7 @@ impl<P: Program + 'static> Emulator<P> {
     /// The [`Emulator`] will send [`Event`] notifications through the provided [`mpsc::Sender`].
     ///
     /// When the [`Emulator`] has finished booting, an [`Event::Ready`] will be produced.
-    pub fn new(
-        sender: mpsc::Sender<Event<P>>,
-        program: &P,
-        mode: Mode,
-        size: Size,
-    ) -> Emulator<P> {
+    pub fn new(sender: mpsc::Sender<Event<P>>, program: &P, mode: Mode, size: Size) -> Emulator<P> {
         Self::with_preset(sender, program, mode, size, None)
     }
 
@@ -219,8 +214,7 @@ impl<P: Program + 'static> Emulator<P> {
 
                             let _ = sender.send(self.window);
                         }
-                        window::Action::GetOldest(sender)
-                        | window::Action::GetLatest(sender) => {
+                        window::Action::GetOldest(sender) | window::Action::GetLatest(sender) => {
                             let _ = sender.send(Some(self.window));
                         }
                         window::Action::GetSize(id, sender) => {
@@ -250,8 +244,7 @@ impl<P: Program + 'static> Emulator<P> {
                         }
                         window::Action::GetMode(id, sender) => {
                             if id == self.window {
-                                let _ =
-                                    sender.send(core::window::Mode::Windowed);
+                                let _ = sender.send(core::window::Mode::Windowed);
                             }
                         }
                         _ => {
@@ -321,10 +314,7 @@ impl<P: Program + 'static> Emulator<P> {
                 };
 
                 for event in &events {
-                    if let core::Event::Mouse(mouse::Event::CursorMoved {
-                        position,
-                    }) = event
-                    {
+                    if let core::Event::Mouse(mouse::Event::CursorMoved { position }) = event {
                         self.cursor = mouse::Cursor::Available(*position);
                     }
                 }
@@ -340,9 +330,11 @@ impl<P: Program + 'static> Emulator<P> {
                 self.cache = Some(user_interface.into_cache());
 
                 let task = self.runtime.enter(|| {
-                    Task::batch(messages.into_iter().map(|message| {
-                        program.update(&mut self.state, message)
-                    }))
+                    Task::batch(
+                        messages
+                            .into_iter()
+                            .map(|message| program.update(&mut self.state, message)),
+                    )
                 });
 
                 self.resubscribe(program);
@@ -421,18 +413,13 @@ impl<P: Program + 'static> Emulator<P> {
         self.runtime
             .track(subscription::into_recipes(self.runtime.enter(|| {
                 program.subscription(&self.state).map(|message| {
-                    Event::Action(Action(Action_::Runtime(
-                        runtime::Action::Output(message),
-                    )))
+                    Event::Action(Action(Action_::Runtime(runtime::Action::Output(message))))
                 })
             })));
     }
 
     /// Returns the current view of the [`Emulator`].
-    pub fn view(
-        &self,
-        program: &P,
-    ) -> Element<'_, P::Message, P::Theme, P::Renderer> {
+    pub fn view(&self, program: &P) -> Element<'_, P::Message, P::Theme, P::Renderer> {
         program.view(&self.state, self.window)
     }
 
@@ -484,11 +471,9 @@ impl<P: Program + 'static> Emulator<P> {
             (self.size.height * scale_factor).round() as u32,
         );
 
-        let rgba = self.renderer.screenshot(
-            physical_size,
-            scale_factor,
-            style.background_color,
-        );
+        let rgba = self
+            .renderer
+            .screenshot(physical_size, scale_factor, style.background_color);
 
         window::Screenshot {
             rgba: Bytes::from(rgba),

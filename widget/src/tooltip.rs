@@ -34,8 +34,7 @@ use crate::core::time::{Duration, Instant};
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Clipboard, Element, Event, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Size, Vector,
+    Clipboard, Element, Event, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector,
 };
 
 /// An element to display a widget over another.
@@ -61,12 +60,8 @@ use crate::core::{
 ///     ).into()
 /// }
 /// ```
-pub struct Tooltip<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> where
+pub struct Tooltip<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
     Theme: container::Catalog,
     Renderer: text::Renderer,
 {
@@ -136,10 +131,7 @@ where
 
     /// Sets the style of the [`Tooltip`].
     #[must_use]
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme) -> container::Style + 'a,
-    ) -> Self
+    pub fn style(mut self, style: impl Fn(&Theme) -> container::Style + 'a) -> Self
     where
         Theme::Class<'a>: From<container::StyleFn<'a, Theme>>,
     {
@@ -170,10 +162,7 @@ where
     }
 
     fn diff(&self, tree: &mut widget::Tree) {
-        tree.diff_children(&[
-            self.content.as_widget(),
-            self.tooltip.as_widget(),
-        ]);
+        tree.diff_children(&[self.content.as_widget(), self.tooltip.as_widget()]);
     }
 
     fn state(&self) -> widget::tree::State {
@@ -198,11 +187,9 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content.as_widget_mut().layout(
-            &mut tree.children[0],
-            renderer,
-            limits,
-        )
+        self.content
+            .as_widget_mut()
+            .layout(&mut tree.children[0], renderer, limits)
     }
 
     fn update(
@@ -216,9 +203,7 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        if let Event::Mouse(_)
-        | Event::Window(window::Event::RedrawRequested(_)) = event
-        {
+        if let Event::Mouse(_) | Event::Window(window::Event::RedrawRequested(_)) = event {
             let state = tree.state.downcast_mut::<State>();
             let now = Instant::now();
             let cursor_position = cursor.position_over(layout.bounds());
@@ -259,10 +244,7 @@ where
                     *state = State::Idle;
                     shell.invalidate_layout();
 
-                    if !matches!(
-                        event,
-                        Event::Window(window::Event::RedrawRequested(_)),
-                    ) {
+                    if !matches!(event, Event::Window(window::Event::RedrawRequested(_)),) {
                         shell.request_redraw();
                     }
                 }
@@ -359,10 +341,8 @@ where
 
         if content.is_some() || tooltip.is_some() {
             Some(
-                overlay::Group::with_children(
-                    content.into_iter().chain(tooltip).collect(),
-                )
-                .overlay(),
+                overlay::Group::with_children(content.into_iter().chain(tooltip).collect())
+                    .overlay(),
             )
         } else {
             None
@@ -471,44 +451,29 @@ where
         );
 
         let text_bounds = tooltip_layout.bounds();
-        let x_center = self.position.x
-            + (self.content_bounds.width - text_bounds.width) / 2.0;
-        let y_center = self.position.y
-            + (self.content_bounds.height - text_bounds.height) / 2.0;
+        let x_center = self.position.x + (self.content_bounds.width - text_bounds.width) / 2.0;
+        let y_center = self.position.y + (self.content_bounds.height - text_bounds.height) / 2.0;
 
         let mut tooltip_bounds = {
             let offset = match self.positioning {
                 Position::Top => Vector::new(
                     x_center,
-                    self.position.y
-                        - text_bounds.height
-                        - self.gap
-                        - self.padding,
+                    self.position.y - text_bounds.height - self.gap - self.padding,
                 ),
                 Position::Bottom => Vector::new(
                     x_center,
-                    self.position.y
-                        + self.content_bounds.height
-                        + self.gap
-                        + self.padding,
+                    self.position.y + self.content_bounds.height + self.gap + self.padding,
                 ),
                 Position::Left => Vector::new(
-                    self.position.x
-                        - text_bounds.width
-                        - self.gap
-                        - self.padding,
+                    self.position.x - text_bounds.width - self.gap - self.padding,
                     y_center,
                 ),
                 Position::Right => Vector::new(
-                    self.position.x
-                        + self.content_bounds.width
-                        + self.gap
-                        + self.padding,
+                    self.position.x + self.content_bounds.width + self.gap + self.padding,
                     y_center,
                 ),
                 Position::FollowCursor => {
-                    let translation =
-                        self.position - self.content_bounds.position();
+                    let translation = self.position - self.content_bounds.position();
 
                     Vector::new(
                         self.cursor_position.x,
@@ -528,29 +493,20 @@ where
         if self.snap_within_viewport {
             if tooltip_bounds.x < viewport.x {
                 tooltip_bounds.x = viewport.x;
-            } else if viewport.x + viewport.width
-                < tooltip_bounds.x + tooltip_bounds.width
-            {
-                tooltip_bounds.x =
-                    viewport.x + viewport.width - tooltip_bounds.width;
+            } else if viewport.x + viewport.width < tooltip_bounds.x + tooltip_bounds.width {
+                tooltip_bounds.x = viewport.x + viewport.width - tooltip_bounds.width;
             }
 
             if tooltip_bounds.y < viewport.y {
                 tooltip_bounds.y = viewport.y;
-            } else if viewport.y + viewport.height
-                < tooltip_bounds.y + tooltip_bounds.height
-            {
-                tooltip_bounds.y =
-                    viewport.y + viewport.height - tooltip_bounds.height;
+            } else if viewport.y + viewport.height < tooltip_bounds.y + tooltip_bounds.height {
+                tooltip_bounds.y = viewport.y + viewport.height - tooltip_bounds.height;
             }
         }
 
         layout::Node::with_children(
             tooltip_bounds.size(),
-            vec![
-                tooltip_layout
-                    .translate(Vector::new(self.padding, self.padding)),
-            ],
+            vec![tooltip_layout.translate(Vector::new(self.padding, self.padding))],
         )
         .translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
     }

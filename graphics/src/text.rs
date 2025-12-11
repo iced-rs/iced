@@ -109,8 +109,7 @@ impl Text {
 ///
 /// [Fira Sans]: https://mozilla.github.io/Fira/
 #[cfg(feature = "fira-sans")]
-pub const FIRA_SANS_REGULAR: &[u8] =
-    include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice();
+pub const FIRA_SANS_REGULAR: &[u8] = include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice();
 
 /// Returns the global [`FontSystem`].
 pub fn font_system() -> &'static RwLock<FontSystem> {
@@ -156,9 +155,12 @@ impl FontSystem {
             }
         }
 
-        let _ = self.raw.db_mut().load_font_source(
-            cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
-        );
+        let _ = self
+            .raw
+            .db_mut()
+            .load_font_source(cosmic_text::fontdb::Source::Binary(Arc::new(
+                bytes.into_owned(),
+            )));
 
         self.version = Version(self.version.0 + 1);
     }
@@ -200,16 +202,16 @@ impl PartialEq for Raw {
 
 /// Measures the dimensions of the given [`cosmic_text::Buffer`].
 pub fn measure(buffer: &cosmic_text::Buffer) -> (Size, bool) {
-    let (width, height, has_rtl) = buffer.layout_runs().fold(
-        (0.0, 0.0, false),
-        |(width, height, has_rtl), run| {
-            (
-                run.line_w.max(width),
-                height + run.line_height,
-                has_rtl || run.rtl,
-            )
-        },
-    );
+    let (width, height, has_rtl) =
+        buffer
+            .layout_runs()
+            .fold((0.0, 0.0, false), |(width, height, has_rtl), run| {
+                (
+                    run.line_w.max(width),
+                    height + run.line_height,
+                    has_rtl || run.rtl,
+                )
+            });
 
     (Size::new(width, height), has_rtl)
 }
@@ -226,9 +228,10 @@ pub fn align(
 
     if let Some(align) = to_align(alignment) {
         let has_multiple_lines = buffer.lines.len() > 1
-            || buffer.lines.first().is_some_and(|line| {
-                line.layout_opt().is_some_and(|layout| layout.len() > 1)
-            });
+            || buffer
+                .lines
+                .first()
+                .is_some_and(|line| line.layout_opt().is_some_and(|layout| layout.len() > 1));
 
         if has_multiple_lines {
             for line in &mut buffer.lines {
@@ -245,11 +248,7 @@ pub fn align(
     if needs_relayout {
         log::trace!("Relayouting paragraph...");
 
-        buffer.set_size(
-            font_system,
-            Some(min_bounds.width),
-            Some(min_bounds.height),
-        );
+        buffer.set_size(font_system, Some(min_bounds.width), Some(min_bounds.height));
     }
 
     min_bounds

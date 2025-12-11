@@ -51,10 +51,7 @@ mod loupe {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::mouse;
-    use iced::{
-        Color, Element, Length, Rectangle, Renderer, Size, Theme,
-        Transformation,
-    };
+    use iced::{Color, Element, Length, Rectangle, Renderer, Size, Theme, Transformation};
 
     pub fn loupe<'a, Message>(
         zoom: f32,
@@ -138,9 +135,9 @@ mod loupe {
                     );
                 });
             } else {
-                self.content.as_widget().draw(
-                    tree, renderer, theme, style, layout, cursor, viewport,
-                );
+                self.content
+                    .as_widget()
+                    .draw(tree, renderer, theme, style, layout, cursor, viewport);
             }
         }
 
@@ -160,8 +157,7 @@ mod loupe {
         }
     }
 
-    impl<'a, Message> From<Loupe<'a, Message>>
-        for Element<'a, Message, Theme, Renderer>
+    impl<'a, Message> From<Loupe<'a, Message>> for Element<'a, Message, Theme, Renderer>
     where
         Message: 'a,
     {

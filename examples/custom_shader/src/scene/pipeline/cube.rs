@@ -46,10 +46,8 @@ impl Cube {
     }
 
     pub fn update(&mut self, size: f32, time: f32) {
-        self.rotation = glam::Quat::from_axis_angle(
-            self.rotation_axis,
-            time / 2.0 * self.rotation_dir,
-        );
+        self.rotation =
+            glam::Quat::from_axis_angle(self.rotation_axis, time / 2.0 * self.rotation_dir);
         self.size = size;
     }
 }

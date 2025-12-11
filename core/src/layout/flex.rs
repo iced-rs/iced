@@ -100,17 +100,14 @@ where
     // We lay out non-fluid elements in the main axis.
     // If we need to compress the cross axis, then we skip any of these elements
     // that are also fluid in the cross axis.
-    for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate()
-    {
+    for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
         let (fill_main_factor, fill_cross_factor) = {
             let size = child.as_widget().size();
 
             axis.pack(size.width.fill_factor(), size.height.fill_factor())
         };
 
-        if (main_compress || fill_main_factor == 0)
-            && (!cross_compress || fill_cross_factor == 0)
-        {
+        if (main_compress || fill_main_factor == 0) && (!cross_compress || fill_cross_factor == 0) {
             let (max_width, max_height) = axis.pack(
                 available,
                 if fill_cross_factor == 0 {
@@ -120,14 +117,10 @@ where
                 },
             );
 
-            let child_limits = Limits::with_compression(
-                Size::ZERO,
-                Size::new(max_width, max_height),
-                compression,
-            );
+            let child_limits =
+                Limits::with_compression(Size::ZERO, Size::new(max_width, max_height), compression);
 
-            let layout =
-                child.as_widget_mut().layout(tree, renderer, &child_limits);
+            let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
             let size = layout.size();
 
             available -= axis.main(size);
@@ -151,18 +144,14 @@ where
     // We can defer the layout of any elements that have a fixed size in the main axis,
     // allowing them to use the cross calculations of the next pass.
     if cross_compress && some_fill_cross {
-        for (i, (child, tree)) in
-            items.iter_mut().zip(trees.iter_mut()).enumerate()
-        {
+        for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
             let (main_size, cross_size) = {
                 let size = child.as_widget().size();
 
                 axis.pack(size.width, size.height)
             };
 
-            if (main_compress || main_size.fill_factor() == 0)
-                && cross_size.fill_factor() != 0
-            {
+            if (main_compress || main_size.fill_factor() == 0) && cross_size.fill_factor() != 0 {
                 if let Length::Fixed(main) = main_size {
                     available -= main;
                     continue;
@@ -176,8 +165,7 @@ where
                     compression,
                 );
 
-                let layout =
-                    child.as_widget_mut().layout(tree, renderer, &child_limits);
+                let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
                 let size = layout.size();
 
                 available -= axis.main(size);
@@ -194,9 +182,7 @@ where
     // We lay out the elements that are fluid in the main axis.
     // We use the remaining space to evenly allocate space based on fill factors.
     if !main_compress {
-        for (i, (child, tree)) in
-            items.iter_mut().zip(trees.iter_mut()).enumerate()
-        {
+        for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
             let (fill_main_factor, fill_cross_factor) = {
                 let size = child.as_widget().size();
 
@@ -204,8 +190,7 @@ where
             };
 
             if fill_main_factor != 0 {
-                let max_main =
-                    remaining * fill_main_factor as f32 / fill_main_sum as f32;
+                let max_main = remaining * fill_main_factor as f32 / fill_main_sum as f32;
 
                 let max_main = if max_main.is_nan() {
                     f32::INFINITY
@@ -235,8 +220,7 @@ where
                     compression,
                 );
 
-                let layout =
-                    child.as_widget_mut().layout(tree, renderer, &child_limits);
+                let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
                 cross = cross.max(axis.cross(layout.size()));
 
                 nodes[i] = layout;
@@ -263,11 +247,9 @@ where
 
                 let (max_width, max_height) = axis.pack(main, cross);
 
-                let child_limits =
-                    Limits::new(Size::ZERO, Size::new(max_width, max_height));
+                let child_limits = Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
-                let layout =
-                    child.as_widget_mut().layout(tree, renderer, &child_limits);
+                let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
                 let size = layout.size();
 
                 cross = cross.max(axis.cross(size));
@@ -293,18 +275,10 @@ where
 
         match axis {
             Axis::Horizontal => {
-                node.align_mut(
-                    Alignment::Start,
-                    align_items,
-                    Size::new(0.0, cross),
-                );
+                node.align_mut(Alignment::Start, align_items, Size::new(0.0, cross));
             }
             Axis::Vertical => {
-                node.align_mut(
-                    align_items,
-                    Alignment::Start,
-                    Size::new(cross, 0.0),
-                );
+                node.align_mut(align_items, Alignment::Start, Size::new(cross, 0.0));
             }
         }
 
@@ -314,11 +288,7 @@ where
     }
 
     let (intrinsic_width, intrinsic_height) = axis.pack(main - pad.0, cross);
-    let size = limits.resolve(
-        width,
-        height,
-        Size::new(intrinsic_width, intrinsic_height),
-    );
+    let size = limits.resolve(width, height, Size::new(intrinsic_width, intrinsic_height));
 
     Node::with_children(size.expand(padding), nodes)
 }

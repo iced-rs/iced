@@ -4,8 +4,7 @@ mod null;
 
 use crate::image;
 use crate::{
-    Background, Border, Color, Font, Pixels, Rectangle, Shadow, Size,
-    Transformation, Vector,
+    Background, Border, Color, Font, Pixels, Rectangle, Shadow, Size, Transformation, Vector,
 };
 
 /// A component that can be used by widgets to draw themselves on a screen.
@@ -36,26 +35,15 @@ pub trait Renderer {
     fn end_transformation(&mut self);
 
     /// Applies a [`Transformation`] to the primitives recorded in the given closure.
-    fn with_transformation(
-        &mut self,
-        transformation: Transformation,
-        f: impl FnOnce(&mut Self),
-    ) {
+    fn with_transformation(&mut self, transformation: Transformation, f: impl FnOnce(&mut Self)) {
         self.start_transformation(transformation);
         f(self);
         self.end_transformation();
     }
 
     /// Applies a translation to the primitives recorded in the given closure.
-    fn with_translation(
-        &mut self,
-        translation: Vector,
-        f: impl FnOnce(&mut Self),
-    ) {
-        self.with_transformation(
-            Transformation::translate(translation.x, translation.y),
-            f,
-        );
+    fn with_translation(&mut self, translation: Vector, f: impl FnOnce(&mut Self)) {
+        self.with_transformation(Transformation::translate(translation.x, translation.y), f);
     }
 
     /// Fills a [`Quad`] with the provided [`Background`].
@@ -68,9 +56,7 @@ pub trait Renderer {
     fn allocate_image(
         &mut self,
         handle: &image::Handle,
-        callback: impl FnOnce(Result<image::Allocation, image::Error>)
-        + Send
-        + 'static,
+        callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     );
 }
 

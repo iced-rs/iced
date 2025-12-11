@@ -22,9 +22,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
-use crate::core::{
-    Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget,
-};
+use crate::core::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
 /// Creates a new horizontal [`Rule`] with the given height.
 pub fn horizontal<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
@@ -100,8 +98,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Rule<'_, Theme>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Rule<'_, Theme>
 where
     Renderer: core::Renderer,
     Theme: Catalog,
@@ -182,8 +179,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Rule<'a, Theme>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Rule<'a, Theme>> for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a + Catalog,

@@ -40,17 +40,11 @@ impl Kind {
 impl Click {
     /// Creates a new [`Click`] with the given position and previous last
     /// [`Click`].
-    pub fn new(
-        position: Point,
-        button: Button,
-        previous: Option<Click>,
-    ) -> Click {
+    pub fn new(position: Point, button: Button, previous: Option<Click>) -> Click {
         let time = Instant::now();
 
         let kind = if let Some(previous) = previous {
-            if previous.is_consecutive(position, time)
-                && button == previous.button
-            {
+            if previous.is_consecutive(position, time) && button == previous.button {
                 previous.kind.next()
             } else {
                 Kind::Single

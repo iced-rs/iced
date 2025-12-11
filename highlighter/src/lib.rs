@@ -12,8 +12,7 @@ use syntect::highlighting;
 use syntect::parsing;
 use two_face::re_exports::syntect;
 
-static SYNTAXES: LazyLock<parsing::SyntaxSet> =
-    LazyLock::new(two_face::syntax::extra_no_newlines);
+static SYNTAXES: LazyLock<parsing::SyntaxSet> = LazyLock::new(two_face::syntax::extra_no_newlines);
 
 static THEMES: LazyLock<highlighting::ThemeSet> =
     LazyLock::new(highlighting::ThemeSet::load_defaults);
@@ -33,17 +32,14 @@ impl highlighter::Highlighter for Highlighter {
     type Settings = Settings;
     type Highlight = Highlight;
 
-    type Iterator<'a> =
-        Box<dyn Iterator<Item = (Range<usize>, Self::Highlight)> + 'a>;
+    type Iterator<'a> = Box<dyn Iterator<Item = (Range<usize>, Self::Highlight)> + 'a>;
 
     fn new(settings: &Self::Settings) -> Self {
         let syntax = SYNTAXES
             .find_syntax_by_token(&settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
-        let highlighter = highlighting::Highlighter::new(
-            &THEMES.themes[settings.theme.key()],
-        );
+        let highlighter = highlighting::Highlighter::new(&THEMES.themes[settings.theme.key()]);
 
         let parser = parsing::ParseState::new(syntax);
         let stack = parsing::ScopeStack::new();
@@ -61,9 +57,7 @@ impl highlighter::Highlighter for Highlighter {
             .find_syntax_by_token(&new_settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
-        self.highlighter = highlighting::Highlighter::new(
-            &THEMES.themes[new_settings.theme.key()],
-        );
+        self.highlighter = highlighting::Highlighter::new(&THEMES.themes[new_settings.theme.key()]);
 
         // Restart the highlighter
         self.change_line(0);
@@ -80,29 +74,26 @@ impl highlighter::Highlighter for Highlighter {
             self.current_line = 0;
         }
 
-        let (parser, stack) =
-            self.caches.last().cloned().unwrap_or_else(|| {
-                (
-                    parsing::ParseState::new(self.syntax),
-                    parsing::ScopeStack::new(),
-                )
-            });
+        let (parser, stack) = self.caches.last().cloned().unwrap_or_else(|| {
+            (
+                parsing::ParseState::new(self.syntax),
+                parsing::ScopeStack::new(),
+            )
+        });
 
         self.caches.push((parser, stack));
     }
 
     fn highlight_line(&mut self, line: &str) -> Self::Iterator<'_> {
         if self.current_line / LINES_PER_SNAPSHOT >= self.caches.len() {
-            let (parser, stack) =
-                self.caches.last().expect("Caches must not be empty");
+            let (parser, stack) = self.caches.last().expect("Caches must not be empty");
 
             self.caches.push((parser.clone(), stack.clone()));
         }
 
         self.current_line += 1;
 
-        let (parser, stack) =
-            self.caches.last_mut().expect("Caches must not be empty");
+        let (parser, stack) = self.caches.last_mut().expect("Caches must not be empty");
 
         let ops = parser.parse_line(line, &SYNTAXES).unwrap_or_default();
 
@@ -159,9 +150,7 @@ impl Stream {
             .find_syntax_by_token(&settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
-        let highlighter = highlighting::Highlighter::new(
-            &THEMES.themes[settings.theme.key()],
-        );
+        let highlighter = highlighting::Highlighter::new(&THEMES.themes[settings.theme.key()]);
 
         let state = parsing::ParseState::new(syntax);
         let stack = parsing::ScopeStack::new();
@@ -223,9 +212,9 @@ impl Highlight {
     ///
     /// If `None`, the original text color should be unchanged.
     pub fn color(&self) -> Option<Color> {
-        self.0.foreground.map(|color| {
-            Color::from_rgba8(color.r, color.g, color.b, color.a as f32 / 255.0)
-        })
+        self.0
+            .foreground
+            .map(|color| Color::from_rgba8(color.r, color.g, color.b, color.a as f32 / 255.0))
     }
 
     /// Returns the font of this [`Highlight`].
@@ -294,10 +283,9 @@ impl Theme {
     /// Returns `true` if the [`Theme`] is dark, and false otherwise.
     pub fn is_dark(self) -> bool {
         match self {
-            Self::SolarizedDark
-            | Self::Base16Mocha
-            | Self::Base16Ocean
-            | Self::Base16Eighties => true,
+            Self::SolarizedDark | Self::Base16Mocha | Self::Base16Ocean | Self::Base16Eighties => {
+                true
+            }
             Self::InspiredGitHub => false,
         }
     }

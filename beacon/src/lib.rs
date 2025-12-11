@@ -27,10 +27,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub fn rewind_to<'a>(
-        &self,
-        message: usize,
-    ) -> impl Future<Output = ()> + 'a {
+    pub fn rewind_to<'a>(&self, message: usize) -> impl Future<Output = ()> + 'a {
         let commands = self.commands.clone();
 
         async move {
@@ -99,9 +96,7 @@ pub fn run() -> impl Stream<Item = Event> {
         let mut buffer = Vec::new();
 
         let server = loop {
-            match net::TcpListener::bind(client::server_address_from_env())
-                .await
-            {
+            match net::TcpListener::bind(client::server_address_from_env()).await {
                 Ok(server) => break server,
                 Err(error) => {
                     if error.kind() == io::ErrorKind::AddrInUse {
@@ -152,10 +147,9 @@ pub fn run() -> impl Stream<Item = Event> {
                         }
                     }
 
-                    let _ =
-                        send(&mut writer, command).await.inspect_err(|error| {
-                            log::error!("Error when sending command: {error}")
-                        });
+                    let _ = send(&mut writer, command)
+                        .await
+                        .inspect_err(|error| log::error!("Error when sending command: {error}"));
                 }
             }));
 
@@ -183,129 +177,88 @@ pub fn run() -> impl Stream<Item = Event> {
                                     })
                                     .await;
                             }
-                            client::Message::EventLogged { at, event } => {
-                                match event {
-                                    client::Event::ThemeChanged(palette) => {
-                                        let _ = output
-                                            .send(Event::ThemeChanged {
-                                                at,
-                                                palette,
-                                            })
-                                            .await;
-                                    }
-                                    client::Event::SubscriptionsTracked(
-                                        amount_alive,
-                                    ) => {
-                                        last_subscriptions = amount_alive;
-                                    }
-                                    client::Event::MessageLogged {
-                                        number,
-                                        message,
-                                    } => {
-                                        last_update_number = number;
-                                        last_message = message;
-                                    }
-                                    client::Event::CommandsSpawned(
-                                        commands,
-                                    ) => {
-                                        last_tasks = commands;
-                                    }
-                                    client::Event::LayersRendered(layers) => {
-                                        last_present_layers = layers;
-                                    }
-                                    client::Event::SpanStarted(
-                                        span::Stage::Update,
-                                    ) => {
-                                        last_message.clear();
-                                        last_tasks = 0;
-                                    }
-                                    client::Event::SpanStarted(_) => {}
-                                    client::Event::SpanFinished(
-                                        stage,
-                                        duration,
-                                    ) => {
-                                        let span = match stage {
-                                            span::Stage::Boot => Span::Boot,
-                                            span::Stage::Update => {
-                                                Span::Update {
-                                                    number: last_update_number,
-                                                    message: last_message
-                                                        .clone(),
-                                                    tasks: last_tasks,
-                                                    subscriptions:
-                                                        last_subscriptions,
-                                                }
-                                            }
-                                            span::Stage::View(window) => {
-                                                Span::View { window }
-                                            }
-                                            span::Stage::Layout(window) => {
-                                                Span::Layout { window }
-                                            }
-                                            span::Stage::Interact(window) => {
-                                                Span::Interact { window }
-                                            }
-                                            span::Stage::Draw(window) => {
-                                                Span::Draw { window }
-                                            }
-                                            span::Stage::Prepare(primitive)
-                                            | span::Stage::Render(primitive) => {
-                                                let stage = if matches!(
-                                                    stage,
-                                                    span::Stage::Prepare(_),
-                                                ) {
-                                                    &mut last_prepare
-                                                } else {
-                                                    &mut last_render
-                                                };
-
-                                                let primitive = match primitive {
-                                                    present::Primitive::Quad => &mut stage.quads,
-                                                    present::Primitive::Triangle => &mut stage.triangles,
-                                                    present::Primitive::Shader => &mut stage.shaders,
-                                                    present::Primitive::Text => &mut stage.text,
-                                                    present::Primitive::Image => &mut stage.images,
-                                                };
-
-                                                *primitive += duration;
-
-                                                continue;
-                                            }
-                                            span::Stage::Present(window) => {
-                                                let span = Span::Present {
-                                                    window,
-                                                    prepare: last_prepare,
-                                                    render: last_render,
-                                                    layers: last_present_layers,
-                                                };
-
-                                                last_prepare =
-                                                    present::Stage::default();
-                                                last_render =
-                                                    present::Stage::default();
-                                                last_present_layers = 0;
-
-                                                span
-                                            }
-                                            span::Stage::Custom(name) => {
-                                                Span::Custom { name }
-                                            }
-                                        };
-
-                                        let _ = output
-                                            .send(Event::SpanFinished {
-                                                at,
-                                                duration,
-                                                span,
-                                            })
-                                            .await;
-                                    }
+                            client::Message::EventLogged { at, event } => match event {
+                                client::Event::ThemeChanged(palette) => {
+                                    let _ = output.send(Event::ThemeChanged { at, palette }).await;
                                 }
-                            }
+                                client::Event::SubscriptionsTracked(amount_alive) => {
+                                    last_subscriptions = amount_alive;
+                                }
+                                client::Event::MessageLogged { number, message } => {
+                                    last_update_number = number;
+                                    last_message = message;
+                                }
+                                client::Event::CommandsSpawned(commands) => {
+                                    last_tasks = commands;
+                                }
+                                client::Event::LayersRendered(layers) => {
+                                    last_present_layers = layers;
+                                }
+                                client::Event::SpanStarted(span::Stage::Update) => {
+                                    last_message.clear();
+                                    last_tasks = 0;
+                                }
+                                client::Event::SpanStarted(_) => {}
+                                client::Event::SpanFinished(stage, duration) => {
+                                    let span = match stage {
+                                        span::Stage::Boot => Span::Boot,
+                                        span::Stage::Update => Span::Update {
+                                            number: last_update_number,
+                                            message: last_message.clone(),
+                                            tasks: last_tasks,
+                                            subscriptions: last_subscriptions,
+                                        },
+                                        span::Stage::View(window) => Span::View { window },
+                                        span::Stage::Layout(window) => Span::Layout { window },
+                                        span::Stage::Interact(window) => Span::Interact { window },
+                                        span::Stage::Draw(window) => Span::Draw { window },
+                                        span::Stage::Prepare(primitive)
+                                        | span::Stage::Render(primitive) => {
+                                            let stage = if matches!(stage, span::Stage::Prepare(_),)
+                                            {
+                                                &mut last_prepare
+                                            } else {
+                                                &mut last_render
+                                            };
+
+                                            let primitive = match primitive {
+                                                present::Primitive::Quad => &mut stage.quads,
+                                                present::Primitive::Triangle => {
+                                                    &mut stage.triangles
+                                                }
+                                                present::Primitive::Shader => &mut stage.shaders,
+                                                present::Primitive::Text => &mut stage.text,
+                                                present::Primitive::Image => &mut stage.images,
+                                            };
+
+                                            *primitive += duration;
+
+                                            continue;
+                                        }
+                                        span::Stage::Present(window) => {
+                                            let span = Span::Present {
+                                                window,
+                                                prepare: last_prepare,
+                                                render: last_render,
+                                                layers: last_present_layers,
+                                            };
+
+                                            last_prepare = present::Stage::default();
+                                            last_render = present::Stage::default();
+                                            last_present_layers = 0;
+
+                                            span
+                                        }
+                                        span::Stage::Custom(name) => Span::Custom { name },
+                                    };
+
+                                    let _ = output
+                                        .send(Event::SpanFinished { at, duration, span })
+                                        .await;
+                                }
+                            },
                             client::Message::Quit { at } => {
-                                let _ = output
-                                    .send(Event::QuitRequested { at })
-                                    .await;
+                                let _ = output.send(Event::QuitRequested { at }).await;
                             }
                         };
                     }

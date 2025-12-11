@@ -25,17 +25,16 @@ impl Tiger {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let svg =
-            svg(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/tiger.svg"))
-                .width(Fill)
-                .height(Fill)
-                .style(|_theme, _status| svg::Style {
-                    color: if self.apply_color_filter {
-                        Some(color!(0x0000ff))
-                    } else {
-                        None
-                    },
-                });
+        let svg = svg(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/tiger.svg"))
+            .width(Fill)
+            .height(Fill)
+            .style(|_theme, _status| svg::Style {
+                color: if self.apply_color_filter {
+                    Some(color!(0x0000ff))
+                } else {
+                    None
+                },
+            });
 
         let apply_color_filter = checkbox(self.apply_color_filter)
             .label("Apply a color filter")

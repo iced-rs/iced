@@ -58,10 +58,8 @@ impl Size {
         let radians = f32::from(rotation);
 
         Size {
-            width: (self.width * radians.cos()).abs()
-                + (self.height * radians.sin()).abs(),
-            height: (self.width * radians.sin()).abs()
-                + (self.height * radians.cos()).abs(),
+            width: (self.width * radians.cos()).abs() + (self.height * radians.sin()).abs(),
+            height: (self.width * radians.sin()).abs() + (self.height * radians.cos()).abs(),
         }
     }
 
@@ -79,8 +77,7 @@ impl Size<Length> {
     /// Returns true if either `width` or `height` are 0-sized.
     #[inline]
     pub fn is_void(&self) -> bool {
-        matches!(self.width, Length::Fixed(0.0))
-            || matches!(self.height, Length::Fixed(0.0))
+        matches!(self.width, Length::Fixed(0.0)) || matches!(self.height, Length::Fixed(0.0))
     }
 }
 

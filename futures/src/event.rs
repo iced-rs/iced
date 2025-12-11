@@ -67,8 +67,9 @@ where
             event,
             status,
         } => f(event, status, window),
-        subscription::Event::SystemThemeChanged(_)
-        | subscription::Event::PlatformSpecific(_) => None,
+        subscription::Event::SystemThemeChanged(_) | subscription::Event::PlatformSpecific(_) => {
+            None
+        }
     })
 }
 
@@ -83,11 +84,9 @@ pub fn listen_url() -> Subscription<String> {
     struct ListenUrl;
 
     subscription::filter_map(ListenUrl, move |event| match event {
-        subscription::Event::PlatformSpecific(
-            subscription::PlatformSpecific::MacOS(
-                subscription::MacOS::ReceivedUrl(url),
-            ),
-        ) => Some(url),
+        subscription::Event::PlatformSpecific(subscription::PlatformSpecific::MacOS(
+            subscription::MacOS::ReceivedUrl(url),
+        )) => Some(url),
         _ => None,
     })
 }

@@ -88,10 +88,7 @@ impl Theme {
     ];
 
     /// Creates a new custom [`Theme`] from the given [`Palette`].
-    pub fn custom(
-        name: impl Into<Cow<'static, str>>,
-        palette: Palette,
-    ) -> Self {
+    pub fn custom(name: impl Into<Cow<'static, str>>, palette: Palette) -> Self {
         Self::custom_with_fn(name, palette, palette::Extended::generate)
     }
 
@@ -147,9 +144,7 @@ impl Theme {
             Self::GruvboxDark => &palette::EXTENDED_GRUVBOX_DARK,
             Self::CatppuccinLatte => &palette::EXTENDED_CATPPUCCIN_LATTE,
             Self::CatppuccinFrappe => &palette::EXTENDED_CATPPUCCIN_FRAPPE,
-            Self::CatppuccinMacchiato => {
-                &palette::EXTENDED_CATPPUCCIN_MACCHIATO
-            }
+            Self::CatppuccinMacchiato => &palette::EXTENDED_CATPPUCCIN_MACCHIATO,
             Self::CatppuccinMocha => &palette::EXTENDED_CATPPUCCIN_MOCHA,
             Self::TokyoNight => &palette::EXTENDED_TOKYO_NIGHT,
             Self::TokyoNightStorm => &palette::EXTENDED_TOKYO_NIGHT_STORM,

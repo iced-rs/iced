@@ -4,21 +4,14 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{
-    self, Clipboard, Element, Event, Layout, Point, Rectangle, Shell, Size,
-    Vector,
-};
+use crate::core::{self, Clipboard, Element, Event, Layout, Point, Rectangle, Shell, Size, Vector};
 use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
 ///
 /// [`Pane`]: super::Pane
-pub struct Content<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> where
+pub struct Content<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
@@ -42,20 +35,14 @@ where
     }
 
     /// Sets the [`TitleBar`] of the [`Content`].
-    pub fn title_bar(
-        mut self,
-        title_bar: TitleBar<'a, Message, Theme, Renderer>,
-    ) -> Self {
+    pub fn title_bar(mut self, title_bar: TitleBar<'a, Message, Theme, Renderer>) -> Self {
         self.title_bar = Some(title_bar);
         self
     }
 
     /// Sets the style of the [`Content`].
     #[must_use]
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme) -> container::Style + 'a,
-    ) -> Self
+    pub fn style(mut self, style: impl Fn(&Theme) -> container::Style + 'a) -> Self
     where
         Theme::Class<'a>: From<container::StyleFn<'a, Theme>>,
     {
@@ -185,10 +172,7 @@ where
                 renderer,
                 &layout::Limits::new(
                     Size::ZERO,
-                    Size::new(
-                        max_size.width,
-                        max_size.height - title_bar_size.height,
-                    ),
+                    Size::new(max_size.width, max_size.height - title_bar_size.height),
                 ),
             );
 
@@ -200,11 +184,9 @@ where
                 ],
             )
         } else {
-            self.body.as_widget_mut().layout(
-                &mut tree.children[0],
-                renderer,
-                limits,
-            )
+            self.body
+                .as_widget_mut()
+                .layout(&mut tree.children[0], renderer, limits)
         }
     }
 
@@ -230,12 +212,9 @@ where
             layout
         };
 
-        self.body.as_widget_mut().operate(
-            &mut tree.children[0],
-            body_layout,
-            renderer,
-            operation,
-        );
+        self.body
+            .as_widget_mut()
+            .operate(&mut tree.children[0], body_layout, renderer, operation);
     }
 
     pub(crate) fn update(
@@ -296,9 +275,7 @@ where
 
         let is_over_pick_area = cursor
             .position()
-            .map(|cursor_position| {
-                title_bar.is_over_pick_area(title_bar_layout, cursor_position)
-            })
+            .map(|cursor_position| title_bar.is_over_pick_area(title_bar_layout, cursor_position))
             .unwrap_or_default();
 
         if is_over_pick_area && drag_enabled {
@@ -317,17 +294,14 @@ where
         renderer: &Renderer,
         drag_enabled: bool,
     ) -> mouse::Interaction {
-        let (body_layout, title_bar_interaction) = if let Some(title_bar) =
-            &self.title_bar
-        {
+        let (body_layout, title_bar_interaction) = if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();
             let title_bar_layout = children.next().unwrap();
 
             let is_over_pick_area = cursor
                 .position()
                 .map(|cursor_position| {
-                    title_bar
-                        .is_over_pick_area(title_bar_layout, cursor_position)
+                    title_bar.is_over_pick_area(title_bar_layout, cursor_position)
                 })
                 .unwrap_or_default();
 
@@ -350,13 +324,7 @@ where
 
         self.body
             .as_widget()
-            .mouse_interaction(
-                &tree.children[0],
-                body_layout,
-                cursor,
-                viewport,
-                renderer,
-            )
+            .mouse_interaction(&tree.children[0], body_layout, cursor, viewport, renderer)
             .max(title_bar_interaction)
     }
 
@@ -404,17 +372,12 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Draggable
-    for &Content<'_, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Draggable for &Content<'_, Message, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
-    fn can_be_dragged_at(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> bool {
+    fn can_be_dragged_at(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
         if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();
             let title_bar_layout = children.next().unwrap();
@@ -426,8 +389,7 @@ where
     }
 }
 
-impl<'a, T, Message, Theme, Renderer> From<T>
-    for Content<'a, Message, Theme, Renderer>
+impl<'a, T, Message, Theme, Renderer> From<T> for Content<'a, Message, Theme, Renderer>
 where
     T: Into<Element<'a, Message, Theme, Renderer>>,
     Theme: container::Catalog + 'a,

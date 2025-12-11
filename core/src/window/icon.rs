@@ -4,11 +4,7 @@ use crate::Size;
 use std::mem;
 
 /// Builds an  [`Icon`] from its RGBA pixels in the `sRGB` color space.
-pub fn from_rgba(
-    rgba: Vec<u8>,
-    width: u32,
-    height: u32,
-) -> Result<Icon, Error> {
+pub fn from_rgba(rgba: Vec<u8>, width: u32, height: u32) -> Result<Icon, Error> {
     const PIXEL_SIZE: usize = mem::size_of::<u8>() * 4;
 
     if !rgba.len().is_multiple_of(PIXEL_SIZE) {

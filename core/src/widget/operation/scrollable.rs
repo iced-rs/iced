@@ -11,20 +11,12 @@ pub trait Scrollable {
     fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>);
 
     /// Scroll the widget by the given [`AbsoluteOffset`] along the horizontal & vertical axis.
-    fn scroll_by(
-        &mut self,
-        offset: AbsoluteOffset,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    );
+    fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle);
 }
 
 /// Produces an [`Operation`] that snaps the widget with the given [`Id`] to
 /// the provided `percentage`.
-pub fn snap_to<T>(
-    target: Id,
-    offset: RelativeOffset<Option<f32>>,
-) -> impl Operation<T> {
+pub fn snap_to<T>(target: Id, offset: RelativeOffset<Option<f32>>) -> impl Operation<T> {
     struct SnapTo {
         target: Id,
         offset: RelativeOffset<Option<f32>>,
@@ -54,10 +46,7 @@ pub fn snap_to<T>(
 
 /// Produces an [`Operation`] that scrolls the widget with the given [`Id`] to
 /// the provided [`AbsoluteOffset`].
-pub fn scroll_to<T>(
-    target: Id,
-    offset: AbsoluteOffset<Option<f32>>,
-) -> impl Operation<T> {
+pub fn scroll_to<T>(target: Id, offset: AbsoluteOffset<Option<f32>>) -> impl Operation<T> {
     struct ScrollTo {
         target: Id,
         offset: AbsoluteOffset<Option<f32>>,

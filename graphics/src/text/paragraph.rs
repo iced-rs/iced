@@ -1,9 +1,7 @@
 //! Draw paragraphs.
 use crate::core;
 use crate::core::alignment;
-use crate::core::text::{
-    Alignment, Hit, LineHeight, Shaping, Span, Text, Wrapping,
-};
+use crate::core::text::{Alignment, Hit, LineHeight, Shaping, Span, Text, Wrapping};
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
@@ -65,8 +63,7 @@ impl core::text::Paragraph for Paragraph {
     fn with_text(text: Text<&str>) -> Self {
         log::trace!("Allocating plain paragraph: {}", text.content);
 
-        let mut font_system =
-            text::font_system().write().expect("Write font system");
+        let mut font_system = text::font_system().write().expect("Write font system");
 
         let mut buffer = cosmic_text::Buffer::new(
             font_system.raw(),
@@ -92,8 +89,7 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
-        let min_bounds =
-            text::align(&mut buffer, font_system.raw(), text.align_x);
+        let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x);
 
         Self(Arc::new(Internal {
             buffer,
@@ -111,8 +107,7 @@ impl core::text::Paragraph for Paragraph {
     fn with_spans<Link>(text: Text<&[Span<'_, Link>]>) -> Self {
         log::trace!("Allocating rich paragraph: {} spans", text.content.len());
 
-        let mut font_system =
-            text::font_system().write().expect("Write font system");
+        let mut font_system = text::font_system().write().expect("Write font system");
 
         let mut buffer = cosmic_text::Buffer::new(
             font_system.raw(),
@@ -163,8 +158,7 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
-        let min_bounds =
-            text::align(&mut buffer, font_system.raw(), text.align_x);
+        let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x);
 
         Self(Arc::new(Internal {
             buffer,
@@ -182,8 +176,7 @@ impl core::text::Paragraph for Paragraph {
     fn resize(&mut self, new_bounds: Size) {
         let paragraph = Arc::make_mut(&mut self.0);
 
-        let mut font_system =
-            text::font_system().write().expect("Write font system");
+        let mut font_system = text::font_system().write().expect("Write font system");
 
         paragraph.buffer.set_size(
             font_system.raw(),
@@ -191,11 +184,7 @@ impl core::text::Paragraph for Paragraph {
             Some(new_bounds.height),
         );
 
-        let min_bounds = text::align(
-            &mut paragraph.buffer,
-            font_system.raw(),
-            paragraph.align_x,
-        );
+        let min_bounds = text::align(&mut paragraph.buffer, font_system.raw(), paragraph.align_x);
 
         paragraph.bounds = new_bounds;
         paragraph.min_bounds = min_bounds;
@@ -323,10 +312,7 @@ impl core::text::Paragraph for Paragraph {
             let new_bounds = || {
                 Rectangle::new(
                     Point::new(glyph.x, y),
-                    Size::new(
-                        glyph.w,
-                        glyph.line_height_opt.unwrap_or(line_height),
-                    ),
+                    Size::new(glyph.w, glyph.line_height_opt.unwrap_or(line_height)),
                 )
             };
 
@@ -364,9 +350,7 @@ impl core::text::Paragraph for Paragraph {
             .iter()
             .find(|glyph| {
                 if Some(glyph.start) != last_start {
-                    last_grapheme_count = run.text[glyph.start..glyph.end]
-                        .graphemes(false)
-                        .count();
+                    last_grapheme_count = run.text[glyph.start..glyph.end].graphemes(false).count();
                     last_start = Some(glyph.start);
                     graphemes_seen += last_grapheme_count;
                 }

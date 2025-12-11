@@ -59,12 +59,12 @@ impl LoadingSpinners {
             column.push(
                 row![
                     text(label).width(250),
-                    Linear::new().easing(easing).cycle_duration(
-                        Duration::from_secs_f32(self.cycle_duration)
-                    ),
-                    Circular::new().easing(easing).cycle_duration(
-                        Duration::from_secs_f32(self.cycle_duration)
-                    )
+                    Linear::new()
+                        .easing(easing)
+                        .cycle_duration(Duration::from_secs_f32(self.cycle_duration)),
+                    Circular::new()
+                        .easing(easing)
+                        .cycle_duration(Duration::from_secs_f32(self.cycle_duration))
                 ]
                 .align_y(Center)
                 .spacing(20.0),

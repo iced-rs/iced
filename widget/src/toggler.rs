@@ -41,8 +41,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Event, Layout, Length,
-    Pixels, Rectangle, Shell, Size, Theme, Widget,
+    Background, Border, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
+    Size, Theme, Widget,
 };
 
 /// A toggler widget.
@@ -77,12 +77,8 @@ use crate::core::{
 ///     }
 /// }
 /// ```
-pub struct Toggler<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> where
+pub struct Toggler<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
@@ -147,10 +143,7 @@ where
     /// the [`Toggler`].
     ///
     /// If this method is not called, the [`Toggler`] will be disabled.
-    pub fn on_toggle(
-        mut self,
-        on_toggle: impl Fn(bool) -> Message + 'a,
-    ) -> Self {
+    pub fn on_toggle(mut self, on_toggle: impl Fn(bool) -> Message + 'a) -> Self {
         self.on_toggle = Some(Box::new(on_toggle));
         self
     }
@@ -159,10 +152,7 @@ where
     /// the [`Toggler`], if `Some`.
     ///
     /// If `None`, the [`Toggler`] will be disabled.
-    pub fn on_toggle_maybe(
-        mut self,
-        on_toggle: Option<impl Fn(bool) -> Message + 'a>,
-    ) -> Self {
+    pub fn on_toggle_maybe(mut self, on_toggle: Option<impl Fn(bool) -> Message + 'a>) -> Self {
         self.on_toggle = on_toggle.map(|on_toggle| Box::new(on_toggle) as _);
         self
     }
@@ -186,19 +176,13 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Toggler`].
-    pub fn text_line_height(
-        mut self,
-        line_height: impl Into<text::LineHeight>,
-    ) -> Self {
+    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
         self.text_line_height = line_height.into();
         self
     }
 
     /// Sets the horizontal alignment of the text of the [`Toggler`]
-    pub fn text_alignment(
-        mut self,
-        alignment: impl Into<text::Alignment>,
-    ) -> Self {
+    pub fn text_alignment(mut self, alignment: impl Into<text::Alignment>) -> Self {
         self.text_alignment = alignment.into();
         self
     }
@@ -408,8 +392,7 @@ where
 
         if self.label.is_some() {
             let label_layout = children.next().unwrap();
-            let state: &widget::text::State<Renderer::Paragraph> =
-                tree.state.downcast_ref();
+            let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
 
             crate::text::draw(
                 renderer,

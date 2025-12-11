@@ -21,104 +21,90 @@ impl Pipeline {
         format: wgpu::TextureFormat,
         antialiasing: graphics::Antialiasing,
     ) -> Pipeline {
-        let sampler =
-            device.create_sampler(&wgpu::SamplerDescriptor::default());
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
 
-        let constant_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("iced_wgpu::triangle:msaa uniforms layout"),
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(
-                            wgpu::SamplerBindingType::NonFiltering,
-                        ),
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::VERTEX,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
-                    },
-                ],
-            });
-
-        let texture_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("iced_wgpu::triangle::msaa texture layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
+        let constant_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("iced_wgpu::triangle:msaa uniforms layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float {
-                            filterable: false,
-                        },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
                     },
                     count: None,
-                }],
-            });
-
-        let layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("iced_wgpu::triangle::msaa pipeline layout"),
-                push_constant_ranges: &[],
-                bind_group_layouts: &[&constant_layout, &texture_layout],
-            });
-
-        let shader =
-            device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("iced_wgpu triangle blit_shader"),
-                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
-                    include_str!("../shader/blit.wgsl"),
-                )),
-            });
-
-        let pipeline =
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("iced_wgpu::triangle::msaa pipeline"),
-                layout: Some(&layout),
-                vertex: wgpu::VertexState {
-                    module: &shader,
-                    entry_point: Some("vs_main"),
-                    buffers: &[],
-                    compilation_options:
-                        wgpu::PipelineCompilationOptions::default(),
                 },
-                fragment: Some(wgpu::FragmentState {
-                    module: &shader,
-                    entry_point: Some("fs_main"),
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format,
-                        blend: Some(
-                            wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING,
-                        ),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
-                    compilation_options:
-                        wgpu::PipelineCompilationOptions::default(),
-                }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    front_face: wgpu::FrontFace::Cw,
-                    ..Default::default()
+            ],
+        });
+
+        let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("iced_wgpu::triangle::msaa texture layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
                 },
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState {
-                    count: 1,
-                    mask: !0,
-                    alpha_to_coverage_enabled: false,
-                },
-                multiview: None,
-                cache: None,
-            });
+                count: None,
+            }],
+        });
+
+        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("iced_wgpu::triangle::msaa pipeline layout"),
+            push_constant_ranges: &[],
+            bind_group_layouts: &[&constant_layout, &texture_layout],
+        });
+
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("iced_wgpu triangle blit_shader"),
+            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
+                "../shader/blit.wgsl"
+            ))),
+        });
+
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("iced_wgpu::triangle::msaa pipeline"),
+            layout: Some(&layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                front_face: wgpu::FrontFace::Cw,
+                ..Default::default()
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+            cache: None,
+        });
 
         Self {
             format,
@@ -131,11 +117,7 @@ impl Pipeline {
         }
     }
 
-    fn targets(
-        &self,
-        device: &wgpu::Device,
-        region_size: Size<u32>,
-    ) -> Targets {
+    fn targets(&self, device: &wgpu::Device, region_size: Size<u32>) -> Targets {
         let mut targets = self.targets.write().expect("Write MSAA targets");
 
         match targets.as_mut() {
@@ -156,10 +138,7 @@ impl Pipeline {
         targets.as_ref().unwrap().clone()
     }
 
-    pub fn render_pass<'a>(
-        &self,
-        encoder: &'a mut wgpu::CommandEncoder,
-    ) -> wgpu::RenderPass<'a> {
+    pub fn render_pass<'a>(&self, encoder: &'a mut wgpu::CommandEncoder) -> wgpu::RenderPass<'a> {
         let targets = self.targets.read().expect("Read MSAA targets");
         let targets = targets.as_ref().unwrap();
 
@@ -221,16 +200,13 @@ impl Targets {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::TEXTURE_BINDING,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
 
-        let attachment =
-            attachment.create_view(&wgpu::TextureViewDescriptor::default());
+        let attachment = attachment.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let resolve =
-            resolve.create_view(&wgpu::TextureViewDescriptor::default());
+        let resolve = resolve.create_view(&wgpu::TextureViewDescriptor::default());
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("iced_wgpu::triangle::msaa texture bind group"),
@@ -318,8 +294,7 @@ impl State {
                 encoder,
                 &self.ratio,
                 0,
-                NonZeroU64::new(std::mem::size_of::<Ratio>() as u64)
-                    .expect("non-empty ratio"),
+                NonZeroU64::new(std::mem::size_of::<Ratio>() as u64).expect("non-empty ratio"),
                 device,
             )
             .copy_from_slice(bytemuck::bytes_of(&ratio));
@@ -336,22 +311,21 @@ impl State {
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
     ) {
-        let mut render_pass =
-            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("iced_wgpu::triangle::msaa render pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: target,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("iced_wgpu::triangle::msaa render pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target,
+                depth_slice: None,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
 
         render_pass.set_pipeline(&pipeline.raw);
         render_pass.set_bind_group(0, &self.constants, &[]);

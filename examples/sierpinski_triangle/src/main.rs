@@ -1,9 +1,7 @@
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::widget::{column, row, slider, text};
-use iced::{
-    Center, Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme,
-};
+use iced::{Center, Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme};
 
 use rand::Rng;
 use std::fmt::Debug;
@@ -85,12 +83,10 @@ impl canvas::Program<Message> for SierpinskiGraph {
 
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(button)) => match button {
-                mouse::Button::Left => Some(canvas::Action::publish(
-                    Message::PointAdded(cursor_position),
-                )),
-                mouse::Button::Right => {
-                    Some(canvas::Action::publish(Message::PointRemoved))
-                }
+                mouse::Button::Left => Some(canvas::Action::publish(Message::PointAdded(
+                    cursor_position,
+                ))),
+                mouse::Button::Right => Some(canvas::Action::publish(Message::PointRemoved)),
                 _ => None,
             },
             _ => None,
@@ -143,8 +139,7 @@ impl SierpinskiGraph {
     }
 
     fn gen_rand_point(&self, last: Option<Point>) -> Point {
-        let dest_point_idx =
-            rand::thread_rng().gen_range(0..self.fix_points.len());
+        let dest_point_idx = rand::thread_rng().gen_range(0..self.fix_points.len());
 
         let dest_point = self.fix_points[dest_point_idx];
         let cur_point = last.or_else(|| Some(self.fix_points[0])).unwrap();

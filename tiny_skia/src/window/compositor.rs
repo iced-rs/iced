@@ -14,10 +14,7 @@ pub struct Compositor {
 }
 
 pub struct Surface {
-    window: softbuffer::Surface<
-        Box<dyn compositor::Display>,
-        Box<dyn compositor::Window>,
-    >,
+    window: softbuffer::Surface<Box<dyn compositor::Display>, Box<dyn compositor::Window>>,
     clip_mask: tiny_skia::Mask,
     layer_stack: VecDeque<Vec<Layer>>,
     background_color: Color,
@@ -36,9 +33,7 @@ impl crate::graphics::Compositor for Compositor {
         backend: Option<&str>,
     ) -> Result<Self, Error> {
         match backend {
-            None | Some("tiny-skia") | Some("tiny_skia") => {
-                Ok(new(settings.into(), display))
-            }
+            None | Some("tiny-skia") | Some("tiny_skia") => Ok(new(settings.into(), display)),
             Some(backend) => Err(Error::GraphicsAdapterNotFound {
                 backend: "tiny-skia",
                 reason: error::Reason::DidNotMatch {
@@ -49,10 +44,7 @@ impl crate::graphics::Compositor for Compositor {
     }
 
     fn create_renderer(&self) -> Self::Renderer {
-        Renderer::new(
-            self.settings.default_font,
-            self.settings.default_text_size,
-        )
+        Renderer::new(self.settings.default_font, self.settings.default_text_size)
     }
 
     fn create_surface<W: compositor::Window + Clone>(
@@ -61,11 +53,8 @@ impl crate::graphics::Compositor for Compositor {
         width: u32,
         height: u32,
     ) -> Self::Surface {
-        let window = softbuffer::Surface::new(
-            &self.context,
-            Box::new(window.clone()) as _,
-        )
-        .expect("Create softbuffer surface for window");
+        let window = softbuffer::Surface::new(&self.context, Box::new(window.clone()) as _)
+            .expect("Create softbuffer surface for window");
 
         let mut surface = Surface {
             window,
@@ -82,12 +71,7 @@ impl crate::graphics::Compositor for Compositor {
         surface
     }
 
-    fn configure_surface(
-        &mut self,
-        surface: &mut Self::Surface,
-        width: u32,
-        height: u32,
-    ) {
+    fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32) {
         surface
             .window
             .resize(
@@ -96,8 +80,7 @@ impl crate::graphics::Compositor for Compositor {
             )
             .expect("Resize surface");
 
-        surface.clip_mask =
-            tiny_skia::Mask::new(width, height).expect("Create clip mask");
+        surface.clip_mask = tiny_skia::Mask::new(width, height).expect("Create clip mask");
         surface.layer_stack.clear();
     }
 
@@ -135,13 +118,10 @@ impl crate::graphics::Compositor for Compositor {
     }
 }
 
-pub fn new(
-    settings: Settings,
-    display: impl compositor::Display,
-) -> Compositor {
+pub fn new(settings: Settings, display: impl compositor::Display) -> Compositor {
     #[allow(unsafe_code)]
-    let context = softbuffer::Context::new(Box::new(display) as _)
-        .expect("Create softbuffer context");
+    let context =
+        softbuffer::Context::new(Box::new(display) as _).expect("Create softbuffer context");
 
     Compositor { context, settings }
 }
@@ -194,10 +174,7 @@ pub fn present(
         surface.layer_stack.push_front(renderer.layers().to_vec());
         surface.background_color = background_color;
 
-        let damage = damage::group(
-            damage,
-            Rectangle::with_size(viewport.logical_size()),
-        );
+        let damage = damage::group(damage, Rectangle::with_size(viewport.logical_size()));
 
         let mut pixels = tiny_skia::PixmapMut::from_bytes(
             bytemuck::cast_slice_mut(&mut buffer),
@@ -226,11 +203,9 @@ pub fn screenshot(
 ) -> Vec<u8> {
     let size = viewport.physical_size();
 
-    let mut offscreen_buffer: Vec<u32> =
-        vec![0; size.width as usize * size.height as usize];
+    let mut offscreen_buffer: Vec<u32> = vec![0; size.width as usize * size.height as usize];
 
-    let mut clip_mask = tiny_skia::Mask::new(size.width, size.height)
-        .expect("Create clip mask");
+    let mut clip_mask = tiny_skia::Mask::new(size.width, size.height).expect("Create clip mask");
 
     renderer.draw(
         &mut tiny_skia::PixmapMut::from_bytes(
