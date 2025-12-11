@@ -645,6 +645,8 @@ async fn run_instance<P>(
                 });
 
                 let logical_size = window.state.logical_size();
+
+                #[cfg(feature = "hinting")]
                 window.renderer.hint(window.state.scale_factor());
 
                 let _ = user_interfaces.insert(
@@ -756,6 +758,7 @@ async fn run_instance<P>(
                         if window.surface_version != window.state.surface_version() {
                             let ui = user_interfaces.remove(&id).expect("Remove user interface");
 
+                            #[cfg(feature = "hinting")]
                             window.renderer.hint(window.state.scale_factor());
 
                             let layout_span = debug::layout(id);
