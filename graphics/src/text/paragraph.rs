@@ -15,7 +15,6 @@ pub struct Paragraph(Arc<Internal>);
 #[derive(Clone)]
 struct Internal {
     buffer: cosmic_text::Buffer,
-    scale_factor: f32,
     font: Font,
     shaping: Shaping,
     wrapping: Wrapping,
@@ -25,6 +24,7 @@ struct Internal {
     min_bounds: Size,
     version: text::Version,
     hint: bool,
+    hint_factor: f32,
 }
 
 impl Paragraph {
@@ -70,7 +70,7 @@ impl core::text::Paragraph for Paragraph {
         let mut font_system = text::font_system().write().expect("Write font system");
 
         let size = f32::from(text.size);
-        let (size, hint, scale_factor) = match text.hint_factor {
+        let (size, hint, hint_factor) = match text.hint_factor {
             Some(hint_factor) if size * hint_factor < MAX_HINTING_SIZE => {
                 (size * hint_factor, true, hint_factor)
             }
@@ -81,7 +81,7 @@ impl core::text::Paragraph for Paragraph {
             font_system.raw(),
             cosmic_text::Metrics::new(
                 size,
-                f32::from(text.line_height.to_absolute(text.size)) * scale_factor,
+                f32::from(text.line_height.to_absolute(text.size)) * hint_factor,
             ),
         );
 
@@ -91,8 +91,8 @@ impl core::text::Paragraph for Paragraph {
 
         buffer.set_size(
             font_system.raw(),
-            Some(text.bounds.width * scale_factor),
-            Some(text.bounds.height * scale_factor),
+            Some(text.bounds.width * hint_factor),
+            Some(text.bounds.height * hint_factor),
         );
 
         buffer.set_wrap(font_system.raw(), text::to_wrap(text.wrapping));
@@ -105,12 +105,12 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
-        let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x) / scale_factor;
+        let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x) / hint_factor;
 
         Self(Arc::new(Internal {
             buffer,
-            scale_factor,
             hint,
+            hint_factor,
             font: text.font,
             align_x: text.align_x,
             align_y: text.align_y,
@@ -128,7 +128,7 @@ impl core::text::Paragraph for Paragraph {
         let mut font_system = text::font_system().write().expect("Write font system");
 
         let size = f32::from(text.size);
-        let (size, hint, scale_factor) = match text.hint_factor {
+        let (size, hint, hint_factor) = match text.hint_factor {
             Some(hint_factor) if size * hint_factor < MAX_HINTING_SIZE => {
                 (size * hint_factor, true, hint_factor)
             }
@@ -139,7 +139,7 @@ impl core::text::Paragraph for Paragraph {
             font_system.raw(),
             cosmic_text::Metrics::new(
                 size,
-                f32::from(text.line_height.to_absolute(text.size)) * scale_factor,
+                f32::from(text.line_height.to_absolute(text.size)) * hint_factor,
             ),
         );
 
@@ -149,8 +149,8 @@ impl core::text::Paragraph for Paragraph {
 
         buffer.set_size(
             font_system.raw(),
-            Some(text.bounds.width * scale_factor),
-            Some(text.bounds.height * scale_factor),
+            Some(text.bounds.width * hint_factor),
+            Some(text.bounds.height * hint_factor),
         );
 
         buffer.set_wrap(font_system.raw(), text::to_wrap(text.wrapping));
@@ -166,12 +166,12 @@ impl core::text::Paragraph for Paragraph {
                         let size = span.size.unwrap_or(text.size);
 
                         attrs.metrics(cosmic_text::Metrics::new(
-                            f32::from(size) * scale_factor,
+                            f32::from(size) * hint_factor,
                             f32::from(
                                 span.line_height
                                     .unwrap_or(text.line_height)
                                     .to_absolute(size),
-                            ) * scale_factor,
+                            ) * hint_factor,
                         ))
                     }
                 };
@@ -189,12 +189,12 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
-        let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x) / scale_factor;
+        let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x) / hint_factor;
 
         Self(Arc::new(Internal {
             buffer,
-            scale_factor,
             hint,
+            hint_factor,
             font: text.font,
             align_x: text.align_x,
             align_y: text.align_y,
@@ -213,12 +213,12 @@ impl core::text::Paragraph for Paragraph {
 
         paragraph.buffer.set_size(
             font_system.raw(),
-            Some(new_bounds.width * paragraph.scale_factor),
-            Some(new_bounds.height * paragraph.scale_factor),
+            Some(new_bounds.width * paragraph.hint_factor),
+            Some(new_bounds.height * paragraph.hint_factor),
         );
 
         let min_bounds = text::align(&mut paragraph.buffer, font_system.raw(), paragraph.align_x)
-            / paragraph.scale_factor;
+            / paragraph.hint_factor;
 
         paragraph.bounds = new_bounds;
         paragraph.min_bounds = min_bounds;
@@ -237,7 +237,7 @@ impl core::text::Paragraph for Paragraph {
             || paragraph.wrapping != text.wrapping
             || paragraph.align_x != text.align_x
             || paragraph.align_y != text.align_y
-            || paragraph.hint.then_some(paragraph.scale_factor) != text.hint_factor
+            || paragraph.hint.then_some(paragraph.hint_factor) != text.hint_factor
         {
             core::text::Difference::Shape
         } else if paragraph.bounds != text.bounds {
@@ -248,11 +248,11 @@ impl core::text::Paragraph for Paragraph {
     }
 
     fn hint_factor(&self) -> Option<f32> {
-        self.0.hint.then_some(self.0.scale_factor)
+        self.0.hint.then_some(self.0.hint_factor)
     }
 
     fn size(&self) -> Pixels {
-        Pixels(self.0.buffer.metrics().font_size / self.0.scale_factor)
+        Pixels(self.0.buffer.metrics().font_size / self.0.hint_factor)
     }
 
     fn font(&self) -> Font {
@@ -261,7 +261,7 @@ impl core::text::Paragraph for Paragraph {
 
     fn line_height(&self) -> LineHeight {
         LineHeight::Absolute(Pixels(
-            self.0.buffer.metrics().line_height / self.0.scale_factor,
+            self.0.buffer.metrics().line_height / self.0.hint_factor,
         ))
     }
 
@@ -293,7 +293,7 @@ impl core::text::Paragraph for Paragraph {
         let cursor = self
             .internal()
             .buffer
-            .hit(point.x * self.0.scale_factor, point.y * self.0.scale_factor)?;
+            .hit(point.x * self.0.hint_factor, point.y * self.0.hint_factor)?;
 
         Some(Hit::CharOffset(cursor.index))
     }
@@ -303,7 +303,7 @@ impl core::text::Paragraph for Paragraph {
 
         let cursor = internal
             .buffer
-            .hit(point.x * self.0.scale_factor, point.y * self.0.scale_factor)?;
+            .hit(point.x * self.0.hint_factor, point.y * self.0.hint_factor)?;
         let line = internal.buffer.lines.get(cursor.line)?;
 
         if cursor.index >= line.text().len() {
@@ -359,7 +359,7 @@ impl core::text::Paragraph for Paragraph {
                 Rectangle::new(
                     Point::new(glyph.x, y),
                     Size::new(glyph.w, glyph.line_height_opt.unwrap_or(line_height)),
-                ) * (1.0 / self.0.scale_factor)
+                ) * (1.0 / self.0.hint_factor)
             };
 
             match current_bounds.as_mut() {
@@ -371,7 +371,7 @@ impl core::text::Paragraph for Paragraph {
                     *current_bounds = new_bounds();
                 }
                 Some(current_bounds) => {
-                    current_bounds.width += glyph.w / self.0.scale_factor;
+                    current_bounds.width += glyph.w / self.0.hint_factor;
                 }
             }
         }
@@ -415,8 +415,8 @@ impl core::text::Paragraph for Paragraph {
         };
 
         Some(Point::new(
-            (glyph.x + glyph.x_offset * glyph.font_size + advance) / self.0.scale_factor,
-            (glyph.y - glyph.y_offset * glyph.font_size) / self.0.scale_factor,
+            (glyph.x + glyph.x_offset * glyph.font_size + advance) / self.0.hint_factor,
+            (glyph.y - glyph.y_offset * glyph.font_size) / self.0.hint_factor,
         ))
     }
 }
@@ -461,7 +461,7 @@ impl Default for Internal {
                 font_size: 1.0,
                 line_height: 1.0,
             }),
-            scale_factor: 1.0,
+            hint_factor: 1.0,
             font: Font::default(),
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
