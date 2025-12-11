@@ -1073,6 +1073,9 @@ where
 
         // Draw inner content
         if scrollbars.active() {
+            let scale_factor = renderer.scale_factor().unwrap_or(1.0);
+            let translation = (translation * scale_factor).round() / scale_factor;
+
             renderer.with_layer(visible_bounds, |renderer| {
                 renderer.with_translation(
                     Vector::new(-translation.x, -translation.y),
