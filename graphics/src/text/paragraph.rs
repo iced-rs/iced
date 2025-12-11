@@ -69,12 +69,15 @@ impl core::text::Paragraph for Paragraph {
 
         let mut font_system = text::font_system().write().expect("Write font system");
 
-        let size = f32::from(text.size);
-        let (size, hint, hint_factor) = match text.hint_factor {
-            Some(hint_factor) if size * hint_factor < MAX_HINTING_SIZE => {
-                (size * hint_factor, true, hint_factor)
+        let (size, hint, hint_factor) = {
+            let size = f32::from(text.size);
+
+            match text.hint_factor {
+                Some(hint_factor) if size * hint_factor < MAX_HINTING_SIZE => {
+                    (size * hint_factor, true, hint_factor)
+                }
+                _ => (size, false, 1.0),
             }
-            _ => (size, false, 1.0),
         };
 
         let mut buffer = cosmic_text::Buffer::new(
@@ -127,12 +130,15 @@ impl core::text::Paragraph for Paragraph {
 
         let mut font_system = text::font_system().write().expect("Write font system");
 
-        let size = f32::from(text.size);
-        let (size, hint, hint_factor) = match text.hint_factor {
-            Some(hint_factor) if size * hint_factor < MAX_HINTING_SIZE => {
-                (size * hint_factor, true, hint_factor)
+        let (size, hint, hint_factor) = {
+            let size = f32::from(text.size);
+
+            match text.hint_factor {
+                Some(hint_factor) if size * hint_factor < MAX_HINTING_SIZE => {
+                    (size * hint_factor, true, hint_factor)
+                }
+                _ => (size, false, 1.0),
             }
-            _ => (size, false, 1.0),
         };
 
         let mut buffer = cosmic_text::Buffer::new(
