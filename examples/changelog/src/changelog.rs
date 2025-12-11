@@ -233,11 +233,7 @@ pub struct Entry {
 }
 
 impl Entry {
-    pub fn new(
-        title: &str,
-        category: Category,
-        pull_request: &PullRequest,
-    ) -> Option<Self> {
+    pub fn new(title: &str, category: Category, pull_request: &PullRequest) -> Option<Self> {
         let title = title.strip_suffix(".").unwrap_or(title);
 
         if title.is_empty() {
@@ -262,8 +258,7 @@ pub enum Category {
 }
 
 impl Category {
-    pub const ALL: &'static [Self] =
-        &[Self::Added, Self::Changed, Self::Fixed, Self::Removed];
+    pub const ALL: &'static [Self] = &[Self::Added, Self::Changed, Self::Fixed, Self::Removed];
 
     pub fn guess(label: &str) -> Option<Self> {
         Some(match label {
@@ -356,8 +351,7 @@ impl PullRequest {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    env::var("GITHUB_TOKEN")
-                        .map_err(|_| Error::GitHubTokenNotFound)?
+                    env::var("GITHUB_TOKEN").map_err(|_| Error::GitHubTokenNotFound)?
                 ),
             );
 

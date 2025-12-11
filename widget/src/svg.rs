@@ -22,8 +22,8 @@ use crate::core::svg;
 use crate::core::widget::Tree;
 use crate::core::window;
 use crate::core::{
-    Clipboard, Color, ContentFit, Element, Event, Layout, Length, Point,
-    Rectangle, Rotation, Shell, Size, Theme, Vector, Widget,
+    Clipboard, Color, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation,
+    Shell, Size, Theme, Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -150,8 +150,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Svg<'_, Theme>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Svg<'_, Theme>
 where
     Renderer: svg::Renderer,
     Theme: Catalog,
@@ -257,8 +256,7 @@ where
 
         let drawing_bounds = Rectangle::new(position, final_size);
 
-        let style =
-            theme.style(&self.class, self.status.unwrap_or(Status::Idle));
+        let style = theme.style(&self.class, self.status.unwrap_or(Status::Idle));
 
         renderer.draw_svg(
             svg::Svg {
@@ -273,8 +271,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Svg<'a, Theme>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Svg<'a, Theme>> for Element<'a, Message, Theme, Renderer>
 where
     Theme: Catalog + 'a,
     Renderer: svg::Renderer + 'a,

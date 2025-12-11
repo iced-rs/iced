@@ -49,9 +49,7 @@ impl Interaction {
     pub fn from_event(event: &Event) -> Option<Self> {
         Some(match event {
             Event::Mouse(mouse) => Self::Mouse(match mouse {
-                mouse::Event::CursorMoved { position } => {
-                    Mouse::Move(Target::Point(*position))
-                }
+                mouse::Event::CursorMoved { position } => Mouse::Move(Target::Point(*position)),
                 mouse::Event::ButtonPressed(button) => Mouse::Press {
                     button: *button,
                     target: None,
@@ -70,9 +68,7 @@ impl Interaction {
                     keyboard::Key::Named(keyboard::key::Named::Escape) => {
                         Keyboard::Press(Key::Escape)
                     }
-                    keyboard::Key::Named(keyboard::key::Named::Tab) => {
-                        Keyboard::Press(Key::Tab)
-                    }
+                    keyboard::Key::Named(keyboard::key::Named::Tab) => Keyboard::Press(Key::Tab),
                     keyboard::Key::Named(keyboard::key::Named::Backspace) => {
                         Keyboard::Press(Key::Backspace)
                     }
@@ -85,9 +81,7 @@ impl Interaction {
                     keyboard::Key::Named(keyboard::key::Named::Escape) => {
                         Keyboard::Release(Key::Escape)
                     }
-                    keyboard::Key::Named(keyboard::key::Named::Tab) => {
-                        Keyboard::Release(Key::Tab)
-                    }
+                    keyboard::Key::Named(keyboard::key::Named::Tab) => Keyboard::Release(Key::Tab),
                     keyboard::Key::Named(keyboard::key::Named::Backspace) => {
                         Keyboard::Release(Key::Backspace)
                     }
@@ -112,111 +106,94 @@ impl Interaction {
     /// returned as the second element of the tuple.
     pub fn merge(self, next: Self) -> (Self, Option<Self>) {
         match (self, next) {
-            (Self::Mouse(current), Self::Mouse(next)) => {
-                match (current, next) {
-                    (Mouse::Move(_), Mouse::Move(to)) => {
-                        (Self::Mouse(Mouse::Move(to)), None)
-                    }
+            (Self::Mouse(current), Self::Mouse(next)) => match (current, next) {
+                (Mouse::Move(_), Mouse::Move(to)) => (Self::Mouse(Mouse::Move(to)), None),
+                (
+                    Mouse::Move(to),
+                    Mouse::Press {
+                        button,
+                        target: None,
+                    },
+                ) => (
+                    Self::Mouse(Mouse::Press {
+                        button,
+                        target: Some(to),
+                    }),
+                    None,
+                ),
+                (
+                    Mouse::Move(to),
+                    Mouse::Release {
+                        button,
+                        target: None,
+                    },
+                ) => (
+                    Self::Mouse(Mouse::Release {
+                        button,
+                        target: Some(to),
+                    }),
+                    None,
+                ),
+                (
+                    Mouse::Press {
+                        button: press,
+                        target: press_at,
+                    },
+                    Mouse::Release {
+                        button: release,
+                        target: release_at,
+                    },
+                ) if press == release
+                    && release_at
+                        .as_ref()
+                        .is_none_or(|release_at| Some(release_at) == press_at.as_ref()) =>
+                {
                     (
-                        Mouse::Move(to),
-                        Mouse::Press {
-                            button,
-                            target: None,
-                        },
-                    ) => (
-                        Self::Mouse(Mouse::Press {
-                            button,
-                            target: Some(to),
-                        }),
-                        None,
-                    ),
-                    (
-                        Mouse::Move(to),
-                        Mouse::Release {
-                            button,
-                            target: None,
-                        },
-                    ) => (
-                        Self::Mouse(Mouse::Release {
-                            button,
-                            target: Some(to),
-                        }),
-                        None,
-                    ),
-                    (
-                        Mouse::Press {
+                        Self::Mouse(Mouse::Click {
                             button: press,
                             target: press_at,
-                        },
-                        Mouse::Release {
-                            button: release,
-                            target: release_at,
-                        },
-                    ) if press == release
-                        && release_at.as_ref().is_none_or(|release_at| {
-                            Some(release_at) == press_at.as_ref()
-                        }) =>
-                    {
-                        (
-                            Self::Mouse(Mouse::Click {
-                                button: press,
-                                target: press_at,
-                            }),
-                            None,
-                        )
-                    }
-                    (
-                        Mouse::Press {
-                            button,
-                            target: Some(press_at),
-                        },
-                        Mouse::Move(move_at),
-                    ) if press_at == move_at => (
-                        Self::Mouse(Mouse::Press {
-                            button,
-                            target: Some(press_at),
                         }),
                         None,
-                    ),
-                    (
-                        Mouse::Click {
-                            button,
-                            target: Some(click_at),
-                        },
-                        Mouse::Move(move_at),
-                    ) if click_at == move_at => (
-                        Self::Mouse(Mouse::Click {
-                            button,
-                            target: Some(click_at),
-                        }),
-                        None,
-                    ),
-                    (current, next) => {
-                        (Self::Mouse(current), Some(Self::Mouse(next)))
-                    }
+                    )
                 }
-            }
-            (Self::Keyboard(current), Self::Keyboard(next)) => {
-                match (current, next) {
-                    (
-                        Keyboard::Typewrite(current),
-                        Keyboard::Typewrite(next),
-                    ) => (
-                        Self::Keyboard(Keyboard::Typewrite(format!(
-                            "{current}{next}"
-                        ))),
-                        None,
-                    ),
-                    (Keyboard::Press(current), Keyboard::Release(next))
-                        if current == next =>
-                    {
-                        (Self::Keyboard(Keyboard::Type(current)), None)
-                    }
-                    (current, next) => {
-                        (Self::Keyboard(current), Some(Self::Keyboard(next)))
-                    }
+                (
+                    Mouse::Press {
+                        button,
+                        target: Some(press_at),
+                    },
+                    Mouse::Move(move_at),
+                ) if press_at == move_at => (
+                    Self::Mouse(Mouse::Press {
+                        button,
+                        target: Some(press_at),
+                    }),
+                    None,
+                ),
+                (
+                    Mouse::Click {
+                        button,
+                        target: Some(click_at),
+                    },
+                    Mouse::Move(move_at),
+                ) if click_at == move_at => (
+                    Self::Mouse(Mouse::Click {
+                        button,
+                        target: Some(click_at),
+                    }),
+                    None,
+                ),
+                (current, next) => (Self::Mouse(current), Some(Self::Mouse(next))),
+            },
+            (Self::Keyboard(current), Self::Keyboard(next)) => match (current, next) {
+                (Keyboard::Typewrite(current), Keyboard::Typewrite(next)) => (
+                    Self::Keyboard(Keyboard::Typewrite(format!("{current}{next}"))),
+                    None,
+                ),
+                (Keyboard::Press(current), Keyboard::Release(next)) if current == next => {
+                    (Self::Keyboard(Keyboard::Type(current)), None)
                 }
-            }
+                (current, next) => (Self::Keyboard(current), Some(Self::Keyboard(next))),
+            },
             (current, next) => (current, Some(next)),
         }
     }
@@ -225,18 +202,12 @@ impl Interaction {
     ///
     /// The `find_target` closure must convert a [`Target`] into its screen
     /// coordinates.
-    pub fn events(
-        &self,
-        find_target: impl FnOnce(&Target) -> Option<Point>,
-    ) -> Option<Vec<Event>> {
-        let mouse_move_ =
-            |to| Event::Mouse(mouse::Event::CursorMoved { position: to });
+    pub fn events(&self, find_target: impl FnOnce(&Target) -> Option<Point>) -> Option<Vec<Event>> {
+        let mouse_move_ = |to| Event::Mouse(mouse::Event::CursorMoved { position: to });
 
-        let mouse_press =
-            |button| Event::Mouse(mouse::Event::ButtonPressed(button));
+        let mouse_press = |button| Event::Mouse(mouse::Event::ButtonPressed(button));
 
-        let mouse_release =
-            |button| Event::Mouse(mouse::Event::ButtonReleased(button));
+        let mouse_release = |button| Event::Mouse(mouse::Event::ButtonReleased(button));
 
         let key_press = |key| simulator::press_key(key, None);
 
@@ -288,9 +259,7 @@ impl Interaction {
                 Keyboard::Press(key) => vec![key_press(*key)],
                 Keyboard::Release(key) => vec![key_release(*key)],
                 Keyboard::Type(key) => vec![key_press(*key), key_release(*key)],
-                Keyboard::Typewrite(text) => {
-                    simulator::typewrite(text).collect()
-                }
+                Keyboard::Typewrite(text) => simulator::typewrite(text).collect(),
             },
         })
     }
@@ -340,25 +309,13 @@ impl fmt::Display for Mouse {
                 write!(f, "move {}", target)
             }
             Mouse::Press { button, target } => {
-                write!(
-                    f,
-                    "press {}",
-                    format::button_at(*button, target.as_ref())
-                )
+                write!(f, "press {}", format::button_at(*button, target.as_ref()))
             }
             Mouse::Release { button, target } => {
-                write!(
-                    f,
-                    "release {}",
-                    format::button_at(*button, target.as_ref())
-                )
+                write!(f, "release {}", format::button_at(*button, target.as_ref()))
             }
             Mouse::Click { button, target } => {
-                write!(
-                    f,
-                    "click {}",
-                    format::button_at(*button, target.as_ref())
-                )
+                write!(f, "click {}", format::button_at(*button, target.as_ref()))
             }
         }
     }
@@ -574,9 +531,7 @@ mod parser {
         Ok((input, Mouse::Release { button, target }))
     }
 
-    fn mouse_button_at(
-        input: &str,
-    ) -> IResult<&str, (mouse::Button, Option<Target>)> {
+    fn mouse_button_at(input: &str) -> IResult<&str, (mouse::Button, Option<Target>)> {
         let (input, button) = mouse_button(input)?;
         let (input, at) = opt(target).parse(input)?;
 
@@ -691,15 +646,12 @@ mod parser {
         }
 
         fn unicode(input: &str) -> IResult<&str, char> {
-            let parse_hex =
-                take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
+            let parse_hex = take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
 
             let parse_delimited_hex =
                 preceded(char('u'), delimited(char('{'), parse_hex, char('}')));
 
-            let parse_u32 = map_res(parse_delimited_hex, move |hex| {
-                u32::from_str_radix(hex, 16)
-            });
+            let parse_u32 = map_res(parse_delimited_hex, move |hex| u32::from_str_radix(hex, 16));
 
             map_opt(parse_u32, std::char::from_u32).parse(input)
         }
@@ -726,15 +678,14 @@ mod parser {
             preceded(char('\\'), multispace1).parse(input)
         }
 
-        let build_string =
-            fold(0.., fragment, String::new, |mut string, fragment| {
-                match fragment {
-                    Fragment::Literal(s) => string.push_str(s),
-                    Fragment::EscapedChar(c) => string.push(c),
-                    Fragment::EscapedWS => {}
-                }
-                string
-            });
+        let build_string = fold(0.., fragment, String::new, |mut string, fragment| {
+            match fragment {
+                Fragment::Literal(s) => string.push_str(s),
+                Fragment::EscapedChar(c) => string.push(c),
+                Fragment::EscapedWS => {}
+            }
+            string
+        });
 
         delimited(char('"'), build_string, char('"')).parse(input)
     }

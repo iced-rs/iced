@@ -23,12 +23,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 /// A user interface that can be interacted with and inspected programmatically.
-pub struct Simulator<
-    'a,
-    Message,
-    Theme = core::Theme,
-    Renderer = renderer::Renderer,
-> {
+pub struct Simulator<'a, Message, Theme = core::Theme, Renderer = renderer::Renderer> {
     raw: UserInterface<'a, Message, Theme, Renderer>,
     renderer: Renderer,
     size: Size,
@@ -42,9 +37,7 @@ where
     Renderer: core::Renderer + core::renderer::Headless,
 {
     /// Creates a new [`Simulator`] with default [`Settings`] and a default size (1024x768).
-    pub fn new(
-        element: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn new(element: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self::with_settings(Settings::default(), element)
     }
 
@@ -117,11 +110,9 @@ where
         );
 
         match operation.finish() {
-            widget::operation::Outcome::Some(output) => {
-                output.ok_or(Error::SelectorNotFound {
-                    selector: description,
-                })
-            }
+            widget::operation::Outcome::Some(output) => output.ok_or(Error::SelectorNotFound {
+                selector: description,
+            }),
             _ => Err(Error::SelectorNotFound {
                 selector: description,
             }),
@@ -178,10 +169,7 @@ where
     }
 
     /// Simulates the given raw sequence of events in the [`Simulator`].
-    pub fn simulate(
-        &mut self,
-        events: impl IntoIterator<Item = Event>,
-    ) -> Vec<event::Status> {
+    pub fn simulate(&mut self, events: impl IntoIterator<Item = Event>) -> Vec<event::Status> {
         let events: Vec<Event> = events.into_iter().collect();
 
         let (_state, statuses) = self.raw.update(
@@ -225,26 +213,18 @@ where
             (self.size.height * scale_factor).round() as u32,
         );
 
-        let rgba = self.renderer.screenshot(
-            physical_size,
-            scale_factor,
-            base.background_color,
-        );
+        let rgba = self
+            .renderer
+            .screenshot(physical_size, scale_factor, base.background_color);
 
         Ok(Snapshot {
-            screenshot: window::Screenshot::new(
-                rgba,
-                physical_size,
-                scale_factor,
-            ),
+            screenshot: window::Screenshot::new(rgba, physical_size, scale_factor),
             renderer: self.renderer.name(),
         })
     }
 
     /// Turns the [`Simulator`] into the sequence of messages produced by any interactions.
-    pub fn into_messages(
-        self,
-    ) -> impl Iterator<Item = Message> + use<Message, Theme, Renderer> {
+    pub fn into_messages(self) -> impl Iterator<Item = Message> + use<Message, Theme, Renderer> {
         self.messages.into_iter()
     }
 }
@@ -367,10 +347,7 @@ pub fn click() -> impl Iterator<Item = Event> {
 }
 
 /// Returns the sequence of events of a key press.
-pub fn press_key(
-    key: impl Into<keyboard::Key>,
-    text: Option<SmolStr>,
-) -> Event {
+pub fn press_key(key: impl Into<keyboard::Key>, text: Option<SmolStr>) -> Event {
     let key = key.into();
 
     Event::Keyboard(keyboard::Event::KeyPressed {

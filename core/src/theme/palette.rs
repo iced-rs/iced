@@ -307,16 +307,14 @@ pub static EXTENDED_LIGHT: LazyLock<Extended> =
     LazyLock::new(|| Extended::generate(Palette::LIGHT));
 
 /// The built-in dark variant of an [`Extended`] palette.
-pub static EXTENDED_DARK: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::DARK));
+pub static EXTENDED_DARK: LazyLock<Extended> = LazyLock::new(|| Extended::generate(Palette::DARK));
 
 /// The built-in Dracula variant of an [`Extended`] palette.
 pub static EXTENDED_DRACULA: LazyLock<Extended> =
     LazyLock::new(|| Extended::generate(Palette::DRACULA));
 
 /// The built-in Nord variant of an [`Extended`] palette.
-pub static EXTENDED_NORD: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::NORD));
+pub static EXTENDED_NORD: LazyLock<Extended> = LazyLock::new(|| Extended::generate(Palette::NORD));
 
 /// The built-in Solarized Light variant of an [`Extended`] palette.
 pub static EXTENDED_SOLARIZED_LIGHT: LazyLock<Extended> =
@@ -395,27 +393,11 @@ impl Extended {
     pub fn generate(palette: Palette) -> Self {
         Self {
             background: Background::new(palette.background, palette.text),
-            primary: Primary::generate(
-                palette.primary,
-                palette.background,
-                palette.text,
-            ),
+            primary: Primary::generate(palette.primary, palette.background, palette.text),
             secondary: Secondary::generate(palette.background, palette.text),
-            success: Success::generate(
-                palette.success,
-                palette.background,
-                palette.text,
-            ),
-            warning: Warning::generate(
-                palette.warning,
-                palette.background,
-                palette.text,
-            ),
-            danger: Danger::generate(
-                palette.danger,
-                palette.background,
-                palette.text,
-            ),
+            success: Success::generate(palette.success, palette.background, palette.text),
+            warning: Warning::generate(palette.warning, palette.background, palette.text),
+            danger: Danger::generate(palette.danger, palette.background, palette.text),
             is_dark: is_dark(palette.background),
         }
     }

@@ -18,7 +18,5 @@ pub enum Action {
 /// that using a [`Handle`] will draw the corresponding image immediately
 /// in the next frame.
 pub fn allocate(handle: impl Into<Handle>) -> Task<Result<Allocation, Error>> {
-    task::oneshot(|sender| {
-        crate::Action::Image(Action::Allocate(handle.into(), sender))
-    })
+    task::oneshot(|sender| crate::Action::Image(Action::Allocate(handle.into(), sender)))
 }

@@ -34,11 +34,7 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(
-        device: &wgpu::Device,
-        format: wgpu::TextureFormat,
-        backend: wgpu::Backend,
-    ) -> Self {
+    pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat, backend: wgpu::Backend) -> Self {
         let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -59,141 +55,126 @@ impl Pipeline {
             ..Default::default()
         });
 
-        let constant_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("iced_wgpu::image constants layout"),
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::VERTEX,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: wgpu::BufferSize::new(
-                                mem::size_of::<Uniforms>() as u64,
-                            ),
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(
-                            wgpu::SamplerBindingType::Filtering,
-                        ),
-                        count: None,
-                    },
-                ],
-            });
-
-        let texture_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("iced_wgpu::image texture atlas layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
+        let constant_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("iced_wgpu::image constants layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float {
-                            filterable: true,
-                        },
-                        view_dimension: wgpu::TextureViewDimension::D2Array,
-                        multisampled: false,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(mem::size_of::<Uniforms>() as u64),
                     },
                     count: None,
-                }],
-            });
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
 
-        let layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("iced_wgpu::image pipeline layout"),
-                push_constant_ranges: &[],
-                bind_group_layouts: &[&constant_layout, &texture_layout],
-            });
+        let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("iced_wgpu::image texture atlas layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2Array,
+                    multisampled: false,
+                },
+                count: None,
+            }],
+        });
 
-        let shader =
-            device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("iced_wgpu image shader"),
-                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
-                    concat!(
-                        include_str!("../shader/vertex.wgsl"),
-                        "\n",
-                        include_str!("../shader/image.wgsl"),
+        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("iced_wgpu::image pipeline layout"),
+            push_constant_ranges: &[],
+            bind_group_layouts: &[&constant_layout, &texture_layout],
+        });
+
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("iced_wgpu image shader"),
+            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(concat!(
+                include_str!("../shader/vertex.wgsl"),
+                "\n",
+                include_str!("../shader/image.wgsl"),
+            ))),
+        });
+
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("iced_wgpu::image pipeline"),
+            layout: Some(&layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: mem::size_of::<Instance>() as u64,
+                    step_mode: wgpu::VertexStepMode::Instance,
+                    attributes: &wgpu::vertex_attr_array!(
+                        // Center
+                        0 => Float32x2,
+                        // Clip bounds
+                        1 => Float32x4,
+                        // Border radius
+                        2 => Float32x4,
+                        // Tile
+                        3 => Float32x4,
+                        // Rotation
+                        4 => Float32,
+                        // Opacity
+                        5 => Float32,
+                        // Atlas position
+                        6 => Float32x2,
+                        // Atlas scale
+                        7 => Float32x2,
+                        // Layer
+                        8 => Sint32,
+                        // Snap
+                        9 => Uint32,
                     ),
-                )),
-            });
-
-        let pipeline =
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("iced_wgpu::image pipeline"),
-                layout: Some(&layout),
-                vertex: wgpu::VertexState {
-                    module: &shader,
-                    entry_point: Some("vs_main"),
-                    buffers: &[wgpu::VertexBufferLayout {
-                        array_stride: mem::size_of::<Instance>() as u64,
-                        step_mode: wgpu::VertexStepMode::Instance,
-                        attributes: &wgpu::vertex_attr_array!(
-                            // Center
-                            0 => Float32x2,
-                            // Clip bounds
-                            1 => Float32x4,
-                            // Border radius
-                            2 => Float32x4,
-                            // Tile
-                            3 => Float32x4,
-                            // Rotation
-                            4 => Float32,
-                            // Opacity
-                            5 => Float32,
-                            // Atlas position
-                            6 => Float32x2,
-                            // Atlas scale
-                            7 => Float32x2,
-                            // Layer
-                            8 => Sint32,
-                            // Snap
-                            9 => Uint32,
-                        ),
-                    }],
-                    compilation_options:
-                        wgpu::PipelineCompilationOptions::default(),
-                },
-                fragment: Some(wgpu::FragmentState {
-                    module: &shader,
-                    entry_point: Some("fs_main"),
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format,
-                        blend: Some(wgpu::BlendState {
-                            color: wgpu::BlendComponent {
-                                src_factor: wgpu::BlendFactor::SrcAlpha,
-                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                                operation: wgpu::BlendOperation::Add,
-                            },
-                            alpha: wgpu::BlendComponent {
-                                src_factor: wgpu::BlendFactor::One,
-                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                                operation: wgpu::BlendOperation::Add,
-                            },
-                        }),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
-                    compilation_options:
-                        wgpu::PipelineCompilationOptions::default(),
-                }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    front_face: wgpu::FrontFace::Cw,
-                    ..Default::default()
-                },
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState {
-                    count: 1,
-                    mask: !0,
-                    alpha_to_coverage_enabled: false,
-                },
-                multiview: None,
-                cache: None,
-            });
+                }],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                    }),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                front_face: wgpu::FrontFace::Cw,
+                ..Default::default()
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+            cache: None,
+        });
 
         Pipeline {
             raw: pipeline,
@@ -205,12 +186,7 @@ impl Pipeline {
         }
     }
 
-    pub fn create_cache(
-        &self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        shell: &Shell,
-    ) -> Cache {
+    pub fn create_cache(&self, device: &wgpu::Device, queue: &wgpu::Queue, shell: &Shell) -> Cache {
         Cache::new(
             device,
             queue,
@@ -266,19 +242,15 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
-                    if let Some((atlas_entry, bind_group)) = cache
-                        .upload_raster(device, encoder, belt, &image.handle)
+                    if let Some((atlas_entry, bind_group)) =
+                        cache.upload_raster(device, encoder, belt, &image.handle)
                     {
                         match atlas.as_mut() {
                             None => {
                                 atlas = Some(bind_group.clone());
                             }
                             Some(atlas) if atlas != bind_group => {
-                                layer.push(
-                                    atlas,
-                                    &self.nearest_instances,
-                                    &self.linear_instances,
-                                );
+                                layer.push(atlas, &self.nearest_instances, &self.linear_instances);
 
                                 *atlas = Arc::clone(bind_group);
                             }
@@ -313,27 +285,21 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
-                    if let Some((atlas_entry, bind_group)) = cache
-                        .upload_vector(
-                            device,
-                            encoder,
-                            belt,
-                            &svg.handle,
-                            svg.color,
-                            bounds.size(),
-                            scale,
-                        )
-                    {
+                    if let Some((atlas_entry, bind_group)) = cache.upload_vector(
+                        device,
+                        encoder,
+                        belt,
+                        &svg.handle,
+                        svg.color,
+                        bounds.size(),
+                        scale,
+                    ) {
                         match atlas.as_mut() {
                             None => {
                                 atlas = Some(bind_group.clone());
                             }
                             Some(atlas) if atlas != bind_group => {
-                                layer.push(
-                                    atlas,
-                                    &self.nearest_instances,
-                                    &self.linear_instances,
-                                );
+                                layer.push(atlas, &self.nearest_instances, &self.linear_instances);
 
                                 *atlas = bind_group.clone();
                             }
@@ -386,12 +352,7 @@ impl State {
         if let Some(layer) = self.layers.get(layer) {
             render_pass.set_pipeline(&pipeline.raw);
 
-            render_pass.set_scissor_rect(
-                bounds.x,
-                bounds.y,
-                bounds.width,
-                bounds.height,
-            );
+            render_pass.set_scissor_rect(bounds.x, bounds.y, bounds.width, bounds.height);
 
             layer.render(render_pass);
         }
@@ -445,53 +406,43 @@ impl Layer {
             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         );
 
-        let nearest_layout =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::image constants bind group"),
-                layout: constant_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Buffer(
-                            wgpu::BufferBinding {
-                                buffer: &uniforms,
-                                offset: 0,
-                                size: None,
-                            },
-                        ),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(
-                            nearest_sampler,
-                        ),
-                    },
-                ],
-            });
+        let nearest_layout = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::image constants bind group"),
+            layout: constant_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: &uniforms,
+                        offset: 0,
+                        size: None,
+                    }),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(nearest_sampler),
+                },
+            ],
+        });
 
-        let linear_layout =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::image constants bind group"),
-                layout: constant_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Buffer(
-                            wgpu::BufferBinding {
-                                buffer: &uniforms,
-                                offset: 0,
-                                size: None,
-                            },
-                        ),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(
-                            linear_sampler,
-                        ),
-                    },
-                ],
-            });
+        let linear_layout = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::image constants bind group"),
+            layout: constant_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: &uniforms,
+                        offset: 0,
+                        size: None,
+                    }),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(linear_sampler),
+                },
+            ],
+        });
 
         Self {
             uniforms,
@@ -547,12 +498,7 @@ impl Layer {
         }
     }
 
-    fn push(
-        &mut self,
-        atlas: &Arc<wgpu::BindGroup>,
-        nearest: &[Instance],
-        linear: &[Instance],
-    ) {
+    fn push(&mut self, atlas: &Arc<wgpu::BindGroup>, nearest: &[Instance], linear: &[Instance]) {
         let new_nearest = nearest.len() - self.nearest_total;
 
         if new_nearest > 0 {
@@ -586,8 +532,7 @@ impl Layer {
 
             for group in &self.nearest {
                 render_pass.set_bind_group(1, group.atlas.as_ref(), &[]);
-                render_pass
-                    .draw(0..6, offset..offset + group.instance_count as u32);
+                render_pass.draw(0..6, offset..offset + group.instance_count as u32);
 
                 offset += group.instance_count as u32;
             }
@@ -598,8 +543,7 @@ impl Layer {
 
             for group in &self.linear {
                 render_pass.set_bind_group(1, group.atlas.as_ref(), &[]);
-                render_pass
-                    .draw(0..6, offset..offset + group.instance_count as u32);
+                render_pass.draw(0..6, offset..offset + group.instance_count as u32);
 
                 offset += group.instance_count as u32;
             }
@@ -742,10 +686,7 @@ fn add_instance(
         _tile: tile,
         _rotation: rotation,
         _opacity: opacity,
-        _position_in_atlas: [
-            x as f32 / atlas_size as f32,
-            y as f32 / atlas_size as f32,
-        ],
+        _position_in_atlas: [x as f32 / atlas_size as f32, y as f32 / atlas_size as f32],
         _size_in_atlas: [
             width as f32 / atlas_size as f32,
             height as f32 / atlas_size as f32,

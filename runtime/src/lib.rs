@@ -78,9 +78,7 @@ impl<T> Action<T> {
     fn output<O>(self) -> Result<T, Action<O>> {
         match self {
             Action::Output(output) => Ok(output),
-            Action::LoadFont { bytes, channel } => {
-                Err(Action::LoadFont { bytes, channel })
-            }
+            Action::LoadFont { bytes, channel } => Err(Action::LoadFont { bytes, channel }),
             Action::Widget(operation) => Err(Action::Widget(operation)),
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),

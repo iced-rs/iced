@@ -49,11 +49,7 @@ pub trait Program: Sized {
 
     fn boot(&self) -> (Self::State, Task<Self::Message>);
 
-    fn update(
-        &self,
-        state: &mut Self::State,
-        message: Self::Message,
-    ) -> Task<Self::Message>;
+    fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message>;
 
     fn view<'a>(
         &self,
@@ -90,18 +86,11 @@ pub trait Program: Sized {
         format!("{title} - Iced")
     }
 
-    fn subscription(
-        &self,
-        _state: &Self::State,
-    ) -> Subscription<Self::Message> {
+    fn subscription(&self, _state: &Self::State) -> Subscription<Self::Message> {
         Subscription::none()
     }
 
-    fn theme(
-        &self,
-        _state: &Self::State,
-        _window: window::Id,
-    ) -> Option<Self::Theme> {
+    fn theme(&self, _state: &Self::State, _window: window::Id) -> Option<Self::Theme> {
         None
     }
 
@@ -159,11 +148,7 @@ pub fn with_title<P: Program>(
             self.program.boot()
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -175,26 +160,15 @@ pub fn with_title<P: Program>(
             self.program.view(state, window)
         }
 
-        fn theme(
-            &self,
-            state: &Self::State,
-            window: window::Id,
-        ) -> Option<Self::Theme> {
+        fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
-        fn subscription(
-            &self,
-            state: &Self::State,
-        ) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
             self.program.subscription(state)
         }
 
-        fn style(
-            &self,
-            state: &Self::State,
-            theme: &Self::Theme,
-        ) -> theme::Style {
+        fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
             self.program.style(state, theme)
         }
 
@@ -226,10 +200,7 @@ pub fn with_subscription<P: Program>(
         type Renderer = P::Renderer;
         type Executor = P::Executor;
 
-        fn subscription(
-            &self,
-            state: &Self::State,
-        ) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
             (self.subscription)(state)
         }
 
@@ -249,11 +220,7 @@ pub fn with_subscription<P: Program>(
             self.program.boot()
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -269,19 +236,11 @@ pub fn with_subscription<P: Program>(
             self.program.title(state, window)
         }
 
-        fn theme(
-            &self,
-            state: &Self::State,
-            window: window::Id,
-        ) -> Option<Self::Theme> {
+        fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
-        fn style(
-            &self,
-            state: &Self::State,
-            theme: &Self::Theme,
-        ) -> theme::Style {
+        fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
             self.program.style(state, theme)
         }
 
@@ -316,11 +275,7 @@ pub fn with_theme<P: Program>(
         type Renderer = P::Renderer;
         type Executor = P::Executor;
 
-        fn theme(
-            &self,
-            state: &Self::State,
-            window: window::Id,
-        ) -> Option<Self::Theme> {
+        fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
             (self.theme)(state, window)
         }
 
@@ -344,11 +299,7 @@ pub fn with_theme<P: Program>(
             self.program.title(state, window)
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -360,18 +311,11 @@ pub fn with_theme<P: Program>(
             self.program.view(state, window)
         }
 
-        fn subscription(
-            &self,
-            state: &Self::State,
-        ) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
             self.program.subscription(state)
         }
 
-        fn style(
-            &self,
-            state: &Self::State,
-            theme: &Self::Theme,
-        ) -> theme::Style {
+        fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
             self.program.style(state, theme)
         }
 
@@ -403,11 +347,7 @@ pub fn with_style<P: Program>(
         type Renderer = P::Renderer;
         type Executor = P::Executor;
 
-        fn style(
-            &self,
-            state: &Self::State,
-            theme: &Self::Theme,
-        ) -> theme::Style {
+        fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
             (self.style)(state, theme)
         }
 
@@ -431,11 +371,7 @@ pub fn with_style<P: Program>(
             self.program.title(state, window)
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -447,18 +383,11 @@ pub fn with_style<P: Program>(
             self.program.view(state, window)
         }
 
-        fn subscription(
-            &self,
-            state: &Self::State,
-        ) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
             self.program.subscription(state)
         }
 
-        fn theme(
-            &self,
-            state: &Self::State,
-            window: window::Id,
-        ) -> Option<Self::Theme> {
+        fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
@@ -510,11 +439,7 @@ pub fn with_scale_factor<P: Program>(
             self.program.boot()
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -526,26 +451,15 @@ pub fn with_scale_factor<P: Program>(
             self.program.view(state, window)
         }
 
-        fn subscription(
-            &self,
-            state: &Self::State,
-        ) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
             self.program.subscription(state)
         }
 
-        fn theme(
-            &self,
-            state: &Self::State,
-            window: window::Id,
-        ) -> Option<Self::Theme> {
+        fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
-        fn style(
-            &self,
-            state: &Self::State,
-            theme: &Self::Theme,
-        ) -> theme::Style {
+        fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
             self.program.style(state, theme)
         }
 
@@ -601,11 +515,7 @@ pub fn with_executor<P: Program, E: Executor>(
             self.program.boot()
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -617,26 +527,15 @@ pub fn with_executor<P: Program, E: Executor>(
             self.program.view(state, window)
         }
 
-        fn subscription(
-            &self,
-            state: &Self::State,
-        ) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
             self.program.subscription(state)
         }
 
-        fn theme(
-            &self,
-            state: &Self::State,
-            window: window::Id,
-        ) -> Option<Self::Theme> {
+        fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
-        fn style(
-            &self,
-            state: &Self::State,
-            theme: &Self::Theme,
-        ) -> theme::Style {
+        fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
             self.program.style(state, theme)
         }
 
@@ -652,10 +551,7 @@ pub fn with_executor<P: Program, E: Executor>(
 }
 
 /// The renderer of some [`Program`].
-pub trait Renderer:
-    text::Renderer<Font = Font> + compositor::Default + renderer::Headless
-{
-}
+pub trait Renderer: text::Renderer<Font = Font> + compositor::Default + renderer::Headless {}
 
 impl<T> Renderer for T where
     T: text::Renderer<Font = Font> + compositor::Default + renderer::Headless
@@ -687,10 +583,7 @@ impl<P: Program> Instance<P> {
     }
 
     /// Produces the current widget tree of the [`Instance`].
-    pub fn view(
-        &self,
-        window: window::Id,
-    ) -> Element<'_, P::Message, P::Theme, P::Renderer> {
+    pub fn view(&self, window: window::Id) -> Element<'_, P::Message, P::Theme, P::Renderer> {
         self.program.view(&self.state, window)
     }
 

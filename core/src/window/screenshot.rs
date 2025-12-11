@@ -31,11 +31,7 @@ impl Debug for Screenshot {
 
 impl Screenshot {
     /// Creates a new [`Screenshot`].
-    pub fn new(
-        rgba: impl Into<Bytes>,
-        size: Size<u32>,
-        scale_factor: f32,
-    ) -> Self {
+    pub fn new(rgba: impl Into<Bytes>, size: Size<u32>, scale_factor: f32) -> Self {
         Self {
             rgba: rgba.into(),
             size,
@@ -50,8 +46,7 @@ impl Screenshot {
             return Err(CropError::Zero);
         }
 
-        if region.x + region.width > self.size.width
-            || region.y + region.height > self.size.height
+        if region.x + region.width > self.size.width || region.y + region.height > self.size.height
         {
             return Err(CropError::OutOfBounds);
         }
@@ -61,19 +56,20 @@ impl Screenshot {
 
         let bytes_per_row = self.size.width as usize * PIXEL_SIZE;
         let row_range = region.y as usize..(region.y + region.height) as usize;
-        let column_range = region.x as usize * PIXEL_SIZE
-            ..(region.x + region.width) as usize * PIXEL_SIZE;
+        let column_range =
+            region.x as usize * PIXEL_SIZE..(region.x + region.width) as usize * PIXEL_SIZE;
 
-        let chopped = self.rgba.chunks(bytes_per_row).enumerate().fold(
-            vec![],
-            |mut acc, (row, bytes)| {
-                if row_range.contains(&row) {
-                    acc.extend(&bytes[column_range.clone()]);
-                }
+        let chopped =
+            self.rgba
+                .chunks(bytes_per_row)
+                .enumerate()
+                .fold(vec![], |mut acc, (row, bytes)| {
+                    if row_range.contains(&row) {
+                        acc.extend(&bytes[column_range.clone()]);
+                    }
 
-                acc
-            },
-        );
+                    acc
+                });
 
         Ok(Self {
             rgba: Bytes::from(chopped),

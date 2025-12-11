@@ -1,14 +1,10 @@
 //! Build and draw geometry.
 use crate::core::text::LineHeight;
-use crate::core::{
-    self, Pixels, Point, Radians, Rectangle, Size, Svg, Transformation, Vector,
-};
+use crate::core::{self, Pixels, Point, Radians, Rectangle, Size, Svg, Transformation, Vector};
 use crate::graphics::cache::{self, Cached};
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
-use crate::graphics::geometry::{
-    self, LineCap, LineDash, LineJoin, Path, Stroke, Style,
-};
+use crate::graphics::geometry::{self, LineCap, LineDash, LineJoin, Path, Stroke, Style};
 use crate::graphics::gradient::{self, Gradient};
 use crate::graphics::mesh::{self, Mesh};
 use crate::graphics::{Image, Text};
@@ -44,11 +40,7 @@ impl Cached for Geometry {
         Geometry::Cached(cache.clone())
     }
 
-    fn cache(
-        self,
-        group: cache::Group,
-        previous: Option<Self::Cache>,
-    ) -> Self::Cache {
+    fn cache(self, group: cache::Group, previous: Option<Self::Cache>) -> Self::Cache {
         match self {
             Self::Live {
                 meshes,
@@ -161,33 +153,21 @@ impl geometry::frame::Backend for Frame {
             .buffers
             .get_fill(&self.transforms.current.transform_style(style));
 
-        let options = tessellation::FillOptions::default()
-            .with_fill_rule(into_fill_rule(rule));
+        let options = tessellation::FillOptions::default().with_fill_rule(into_fill_rule(rule));
 
         if self.transforms.current.is_identity() {
-            self.fill_tessellator.tessellate_path(
-                path.raw(),
-                &options,
-                buffer.as_mut(),
-            )
+            self.fill_tessellator
+                .tessellate_path(path.raw(), &options, buffer.as_mut())
         } else {
             let path = path.transform(&self.transforms.current.0);
 
-            self.fill_tessellator.tessellate_path(
-                path.raw(),
-                &options,
-                buffer.as_mut(),
-            )
+            self.fill_tessellator
+                .tessellate_path(path.raw(), &options, buffer.as_mut())
         }
         .expect("Tessellate path.");
     }
 
-    fn fill_rectangle(
-        &mut self,
-        top_left: Point,
-        size: Size,
-        fill: impl Into<Fill>,
-    ) {
+    fn fill_rectangle(&mut self, top_left: Point, size: Size, fill: impl Into<Fill>) {
         let Fill { style, rule } = fill.into();
 
         let mut buffer = self
@@ -200,13 +180,13 @@ impl geometry::frame::Backend for Frame {
             .0
             .transform_point(lyon::math::Point::new(top_left.x, top_left.y));
 
-        let size =
-            self.transforms.current.0.transform_vector(
-                lyon::math::Vector::new(size.width, size.height),
-            );
+        let size = self
+            .transforms
+            .current
+            .0
+            .transform_vector(lyon::math::Vector::new(size.width, size.height));
 
-        let options = tessellation::FillOptions::default()
-            .with_fill_rule(into_fill_rule(rule));
+        let options = tessellation::FillOptions::default().with_fill_rule(into_fill_rule(rule));
 
         self.fill_tessellator
             .tessellate_rectangle(
@@ -237,29 +217,18 @@ impl geometry::frame::Backend for Frame {
         };
 
         if self.transforms.current.is_identity() {
-            self.stroke_tessellator.tessellate_path(
-                path.raw(),
-                &options,
-                buffer.as_mut(),
-            )
+            self.stroke_tessellator
+                .tessellate_path(path.raw(), &options, buffer.as_mut())
         } else {
             let path = path.transform(&self.transforms.current.0);
 
-            self.stroke_tessellator.tessellate_path(
-                path.raw(),
-                &options,
-                buffer.as_mut(),
-            )
+            self.stroke_tessellator
+                .tessellate_path(path.raw(), &options, buffer.as_mut())
         }
         .expect("Stroke path");
     }
 
-    fn stroke_rectangle<'a>(
-        &mut self,
-        top_left: Point,
-        size: Size,
-        stroke: impl Into<Stroke<'a>>,
-    ) {
+    fn stroke_rectangle<'a>(&mut self, top_left: Point, size: Size, stroke: impl Into<Stroke<'a>>) {
         let stroke = stroke.into();
 
         let mut buffer = self
@@ -272,10 +241,11 @@ impl geometry::frame::Backend for Frame {
             .0
             .transform_point(lyon::math::Point::new(top_left.x, top_left.y));
 
-        let size =
-            self.transforms.current.0.transform_vector(
-                lyon::math::Vector::new(size.width, size.height),
-            );
+        let size = self
+            .transforms
+            .current
+            .0
+            .transform_vector(lyon::math::Vector::new(size.width, size.height));
 
         let mut options = tessellation::StrokeOptions::default();
         options.line_width = stroke.width;
@@ -292,11 +262,7 @@ impl geometry::frame::Backend for Frame {
             .expect("Stroke rectangle");
     }
 
-    fn stroke_text<'a>(
-        &mut self,
-        text: impl Into<geometry::Text>,
-        stroke: impl Into<Stroke<'a>>,
-    ) {
+    fn stroke_text<'a>(&mut self, text: impl Into<geometry::Text>, stroke: impl Into<Stroke<'a>>) {
         let text = text.into();
         let stroke = stroke.into();
 
@@ -313,40 +279,28 @@ impl geometry::frame::Backend for Frame {
             && scale_x > 0.0
             && scale_y > 0.0
         {
-            let (bounds, size, line_height) =
-                if self.transforms.current.is_identity() {
-                    (
-                        Rectangle::new(
-                            text.position,
-                            Size::new(text.max_width, f32::INFINITY),
-                        ),
-                        text.size,
-                        text.line_height,
-                    )
-                } else {
-                    let position =
-                        self.transforms.current.transform_point(text.position);
+            let (bounds, size, line_height) = if self.transforms.current.is_identity() {
+                (
+                    Rectangle::new(text.position, Size::new(text.max_width, f32::INFINITY)),
+                    text.size,
+                    text.line_height,
+                )
+            } else {
+                let position = self.transforms.current.transform_point(text.position);
 
-                    let size = Pixels(text.size.0 * scale_y);
+                let size = Pixels(text.size.0 * scale_y);
 
-                    let line_height = match text.line_height {
-                        LineHeight::Absolute(size) => {
-                            LineHeight::Absolute(Pixels(size.0 * scale_y))
-                        }
-                        LineHeight::Relative(factor) => {
-                            LineHeight::Relative(factor)
-                        }
-                    };
-
-                    (
-                        Rectangle::new(
-                            position,
-                            Size::new(text.max_width, f32::INFINITY),
-                        ),
-                        size,
-                        line_height,
-                    )
+                let line_height = match text.line_height {
+                    LineHeight::Absolute(size) => LineHeight::Absolute(Pixels(size.0 * scale_y)),
+                    LineHeight::Relative(factor) => LineHeight::Relative(factor),
                 };
+
+                (
+                    Rectangle::new(position, Size::new(text.max_width, f32::INFINITY)),
+                    size,
+                    line_height,
+                )
+            };
 
             self.text.push(Text::Cached {
                 content: text.content,
@@ -367,14 +321,11 @@ impl geometry::frame::Backend for Frame {
 
     #[inline]
     fn translate(&mut self, translation: Vector) {
-        self.transforms.current.0 =
-            self.transforms
-                .current
-                .0
-                .pre_translate(lyon::math::Vector::new(
-                    translation.x,
-                    translation.y,
-                ));
+        self.transforms.current.0 = self
+            .transforms
+            .current
+            .0
+            .pre_translate(lyon::math::Vector::new(translation.x, translation.y));
     }
 
     #[inline]
@@ -397,8 +348,7 @@ impl geometry::frame::Backend for Frame {
     fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
         let scale = scale.into();
 
-        self.transforms.current.0 =
-            self.transforms.current.0.pre_scale(scale.x, scale.y);
+        self.transforms.current.0 = self.transforms.current.0.pre_scale(scale.x, scale.y);
     }
 
     fn push_transform(&mut self) {
@@ -436,12 +386,10 @@ impl geometry::frame::Backend for Frame {
     fn draw_image(&mut self, bounds: Rectangle, image: impl Into<core::Image>) {
         let mut image = image.into();
 
-        let (bounds, external_rotation) =
-            self.transforms.current.transform_rectangle(bounds);
+        let (bounds, external_rotation) = self.transforms.current.transform_rectangle(bounds);
 
         image.rotation += external_rotation;
-        image.border_radius =
-            image.border_radius * self.transforms.current.scale().0;
+        image.border_radius = image.border_radius * self.transforms.current.scale().0;
 
         self.images.push(Image::Raster {
             image,
@@ -453,8 +401,7 @@ impl geometry::frame::Backend for Frame {
     fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>) {
         let mut svg = svg.into();
 
-        let (bounds, external_rotation) =
-            self.transforms.current.transform_rectangle(bounds);
+        let (bounds, external_rotation) = self.transforms.current.transform_rectangle(bounds);
 
         svg.rotation += external_rotation;
 
@@ -485,17 +432,15 @@ impl BufferStack {
             Style::Solid(_) => match self.stack.last() {
                 Some(Buffer::Solid(_)) => {}
                 _ => {
-                    self.stack.push(Buffer::Solid(
-                        tessellation::VertexBuffers::new(),
-                    ));
+                    self.stack
+                        .push(Buffer::Solid(tessellation::VertexBuffers::new()));
                 }
             },
             Style::Gradient(_) => match self.stack.last() {
                 Some(Buffer::Gradient(_)) => {}
                 _ => {
-                    self.stack.push(Buffer::Gradient(
-                        tessellation::VertexBuffers::new(),
-                    ));
+                    self.stack
+                        .push(Buffer::Gradient(tessellation::VertexBuffers::new()));
                 }
             },
         }
@@ -553,26 +498,22 @@ impl BufferStack {
         self.stack
             .into_iter()
             .filter_map(move |buffer| match buffer {
-                Buffer::Solid(buffer) if !buffer.indices.is_empty() => {
-                    Some(Mesh::Solid {
-                        buffers: mesh::Indexed {
-                            vertices: buffer.vertices,
-                            indices: buffer.indices,
-                        },
-                        clip_bounds,
-                        transformation: Transformation::IDENTITY,
-                    })
-                }
-                Buffer::Gradient(buffer) if !buffer.indices.is_empty() => {
-                    Some(Mesh::Gradient {
-                        buffers: mesh::Indexed {
-                            vertices: buffer.vertices,
-                            indices: buffer.indices,
-                        },
-                        clip_bounds,
-                        transformation: Transformation::IDENTITY,
-                    })
-                }
+                Buffer::Solid(buffer) if !buffer.indices.is_empty() => Some(Mesh::Solid {
+                    buffers: mesh::Indexed {
+                        vertices: buffer.vertices,
+                        indices: buffer.indices,
+                    },
+                    clip_bounds,
+                    transformation: Transformation::IDENTITY,
+                }),
+                Buffer::Gradient(buffer) if !buffer.indices.is_empty() => Some(Mesh::Gradient {
+                    buffers: mesh::Indexed {
+                        vertices: buffer.vertices,
+                        indices: buffer.indices,
+                    },
+                    clip_bounds,
+                    transformation: Transformation::IDENTITY,
+                }),
                 _ => None,
             })
     }
@@ -593,8 +534,7 @@ impl Transform {
     }
 
     fn is_scale_translation(&self) -> bool {
-        self.0.m12.abs() < 2.0 * f32::EPSILON
-            && self.0.m21.abs() < 2.0 * f32::EPSILON
+        self.0.m12.abs() < 2.0 * f32::EPSILON && self.0.m21.abs() < 2.0 * f32::EPSILON
     }
 
     fn scale(&self) -> (f32, f32) {
@@ -615,9 +555,7 @@ impl Transform {
     fn transform_style(&self, style: Style) -> Style {
         match style {
             Style::Solid(color) => Style::Solid(color),
-            Style::Gradient(gradient) => {
-                Style::Gradient(self.transform_gradient(gradient))
-            }
+            Style::Gradient(gradient) => Style::Gradient(self.transform_gradient(gradient)),
         }
     }
 
@@ -632,17 +570,12 @@ impl Transform {
         gradient
     }
 
-    fn transform_rectangle(
-        &self,
-        rectangle: Rectangle,
-    ) -> (Rectangle, Radians) {
+    fn transform_rectangle(&self, rectangle: Rectangle) -> (Rectangle, Radians) {
         let top_left = self.transform_point(rectangle.position());
-        let top_right = self.transform_point(
-            rectangle.position() + Vector::new(rectangle.width, 0.0),
-        );
-        let bottom_left = self.transform_point(
-            rectangle.position() + Vector::new(0.0, rectangle.height),
-        );
+        let top_right =
+            self.transform_point(rectangle.position() + Vector::new(rectangle.width, 0.0));
+        let bottom_left =
+            self.transform_point(rectangle.position() + Vector::new(0.0, rectangle.height));
 
         Rectangle::with_vertices(top_left, top_right, bottom_left)
     }
@@ -651,13 +584,8 @@ struct GradientVertex2DBuilder {
     gradient: gradient::Packed,
 }
 
-impl tessellation::FillVertexConstructor<mesh::GradientVertex2D>
-    for GradientVertex2DBuilder
-{
-    fn new_vertex(
-        &mut self,
-        vertex: tessellation::FillVertex<'_>,
-    ) -> mesh::GradientVertex2D {
+impl tessellation::FillVertexConstructor<mesh::GradientVertex2D> for GradientVertex2DBuilder {
+    fn new_vertex(&mut self, vertex: tessellation::FillVertex<'_>) -> mesh::GradientVertex2D {
         let position = vertex.position();
 
         mesh::GradientVertex2D {
@@ -667,13 +595,8 @@ impl tessellation::FillVertexConstructor<mesh::GradientVertex2D>
     }
 }
 
-impl tessellation::StrokeVertexConstructor<mesh::GradientVertex2D>
-    for GradientVertex2DBuilder
-{
-    fn new_vertex(
-        &mut self,
-        vertex: tessellation::StrokeVertex<'_, '_>,
-    ) -> mesh::GradientVertex2D {
+impl tessellation::StrokeVertexConstructor<mesh::GradientVertex2D> for GradientVertex2DBuilder {
+    fn new_vertex(&mut self, vertex: tessellation::StrokeVertex<'_, '_>) -> mesh::GradientVertex2D {
         let position = vertex.position();
 
         mesh::GradientVertex2D {
@@ -685,13 +608,8 @@ impl tessellation::StrokeVertexConstructor<mesh::GradientVertex2D>
 
 struct TriangleVertex2DBuilder(color::Packed);
 
-impl tessellation::FillVertexConstructor<mesh::SolidVertex2D>
-    for TriangleVertex2DBuilder
-{
-    fn new_vertex(
-        &mut self,
-        vertex: tessellation::FillVertex<'_>,
-    ) -> mesh::SolidVertex2D {
+impl tessellation::FillVertexConstructor<mesh::SolidVertex2D> for TriangleVertex2DBuilder {
+    fn new_vertex(&mut self, vertex: tessellation::FillVertex<'_>) -> mesh::SolidVertex2D {
         let position = vertex.position();
 
         mesh::SolidVertex2D {
@@ -701,13 +619,8 @@ impl tessellation::FillVertexConstructor<mesh::SolidVertex2D>
     }
 }
 
-impl tessellation::StrokeVertexConstructor<mesh::SolidVertex2D>
-    for TriangleVertex2DBuilder
-{
-    fn new_vertex(
-        &mut self,
-        vertex: tessellation::StrokeVertex<'_, '_>,
-    ) -> mesh::SolidVertex2D {
+impl tessellation::StrokeVertexConstructor<mesh::SolidVertex2D> for TriangleVertex2DBuilder {
+    fn new_vertex(&mut self, vertex: tessellation::StrokeVertex<'_, '_>) -> mesh::SolidVertex2D {
         let position = vertex.position();
 
         mesh::SolidVertex2D {
@@ -741,9 +654,7 @@ fn into_fill_rule(rule: fill::Rule) -> lyon::tessellation::FillRule {
 }
 
 pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
-    use lyon::algorithms::walk::{
-        RepeatedPattern, WalkerEvent, walk_along_path,
-    };
+    use lyon::algorithms::walk::{RepeatedPattern, WalkerEvent, walk_along_path};
     use lyon::path::iterator::PathIterator;
 
     Path::new(|builder| {
@@ -753,9 +664,9 @@ pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
         let mut draw_line = false;
 
         walk_along_path(
-            path.raw().iter().flattened(
-                lyon::tessellation::StrokeOptions::DEFAULT_TOLERANCE,
-            ),
+            path.raw()
+                .iter()
+                .flattened(lyon::tessellation::StrokeOptions::DEFAULT_TOLERANCE),
             0.0,
             lyon::tessellation::StrokeOptions::DEFAULT_TOLERANCE,
             &mut RepeatedPattern {
@@ -776,9 +687,7 @@ pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
                     true
                 },
                 index: line_dash.offset,
-                intervals: segments_odd
-                    .as_deref()
-                    .unwrap_or(line_dash.segments),
+                intervals: segments_odd.as_deref().unwrap_or(line_dash.segments),
             },
         );
     })

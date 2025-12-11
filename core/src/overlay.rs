@@ -121,13 +121,9 @@ where
         .zip(&mut tree.children)
         .zip(layout.children())
         .filter_map(|((child, state), layout)| {
-            child.as_widget_mut().overlay(
-                state,
-                layout,
-                renderer,
-                viewport,
-                translation,
-            )
+            child
+                .as_widget_mut()
+                .overlay(state, layout, renderer, viewport, translation)
         })
         .collect::<Vec<_>>();
 

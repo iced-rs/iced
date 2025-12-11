@@ -68,10 +68,7 @@ impl<'a, Message> Shell<'a, Message> {
     }
 
     /// Requests a new frame to be drawn at the given [`window::RedrawRequest`].
-    pub fn request_redraw_at(
-        &mut self,
-        redraw_request: impl Into<window::RedrawRequest>,
-    ) {
+    pub fn request_redraw_at(&mut self, redraw_request: impl Into<window::RedrawRequest>) {
         self.redraw_request = self.redraw_request.min(redraw_request.into());
     }
 
@@ -86,10 +83,7 @@ impl<'a, Message> Shell<'a, Message> {
     /// This is useful if you want to overwrite the redraw request to a previous value.
     /// Since it's a fairly advanced use case and should rarely be used, it is a static
     /// method.
-    pub fn replace_redraw_request(
-        shell: &mut Self,
-        redraw_request: window::RedrawRequest,
-    ) {
+    pub fn replace_redraw_request(shell: &mut Self, redraw_request: window::RedrawRequest) {
         shell.redraw_request = redraw_request;
     }
 
@@ -97,10 +91,7 @@ impl<'a, Message> Shell<'a, Message> {
     ///
     /// __Important__: This request will only be honored by the
     /// [`Shell`] only during a [`window::Event::RedrawRequested`].
-    pub fn request_input_method<T: AsRef<str>>(
-        &mut self,
-        ime: &InputMethod<T>,
-    ) {
+    pub fn request_input_method<T: AsRef<str>>(&mut self, ime: &InputMethod<T>) {
         self.input_method.merge(ime);
     }
 
@@ -160,11 +151,9 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn merge<B>(&mut self, other: Shell<'_, B>, f: impl Fn(B) -> Message) {
         self.messages.extend(other.messages.drain(..).map(f));
 
-        self.is_layout_invalid =
-            self.is_layout_invalid || other.is_layout_invalid;
+        self.is_layout_invalid = self.is_layout_invalid || other.is_layout_invalid;
 
-        self.are_widgets_invalid =
-            self.are_widgets_invalid || other.are_widgets_invalid;
+        self.are_widgets_invalid = self.are_widgets_invalid || other.are_widgets_invalid;
 
         self.redraw_request = self.redraw_request.min(other.redraw_request);
         self.event_status = self.event_status.merge(other.event_status);

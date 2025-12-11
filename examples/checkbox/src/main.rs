@@ -68,8 +68,7 @@ impl Example {
                 shaping: text::Shaping::Basic,
             });
 
-        let content =
-            column![default_checkbox, checkboxes, custom_checkbox].spacing(20);
+        let content = column![default_checkbox, checkboxes, custom_checkbox].spacing(20);
 
         center(content).into()
     }

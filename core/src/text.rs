@@ -8,9 +8,7 @@ pub use highlighter::Highlighter;
 pub use paragraph::Paragraph;
 
 use crate::alignment;
-use crate::{
-    Background, Border, Color, Padding, Pixels, Point, Rectangle, Size,
-};
+use crate::{Background, Border, Color, Padding, Pixels, Point, Rectangle, Size};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
@@ -473,10 +471,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
     }
 
     /// Sets the [`Background`] of the [`Span`], if any.
-    pub fn background_maybe(
-        mut self,
-        background: Option<impl Into<Background>>,
-    ) -> Self {
+    pub fn background_maybe(mut self, background: Option<impl Into<Background>>) -> Self {
         let Some(background) = background else {
             return self;
         };

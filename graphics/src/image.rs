@@ -29,9 +29,7 @@ impl Image {
     /// Returns the bounds of the [`Image`].
     pub fn bounds(&self) -> Rectangle {
         match self {
-            Image::Raster { image, bounds, .. } => {
-                bounds.rotate(image.rotation)
-            }
+            Image::Raster { image, bounds, .. } => bounds.rotate(image.rotation),
             Image::Vector { svg, bounds, .. } => bounds.rotate(svg.rotation),
         }
     }
@@ -85,10 +83,7 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
                 .unwrap_or_else(Self::empty))
         }
 
-        fn perform(
-            self,
-            mut image: ::image::DynamicImage,
-        ) -> ::image::DynamicImage {
+        fn perform(self, mut image: ::image::DynamicImage) -> ::image::DynamicImage {
             use ::image::imageops;
 
             if self.contains(Operation::ROTATE_90) {
@@ -132,10 +127,9 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
         image::Handle::Bytes(_, bytes) => {
             let image = ::image::load_from_memory(bytes).map_err(to_error)?;
 
-            let operation =
-                Operation::from_exif(&mut std::io::Cursor::new(bytes))
-                    .ok()
-                    .unwrap_or_else(Operation::empty);
+            let operation = Operation::from_exif(&mut std::io::Cursor::new(bytes))
+                .ok()
+                .unwrap_or_else(Operation::empty);
 
             let rgba = operation.perform(image).into_rgba8();
 
@@ -153,9 +147,7 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
         Ok(image)
     } else {
         Err(to_error(::image::error::ImageError::Limits(
-            ::image::error::LimitError::from_kind(
-                ::image::error::LimitErrorKind::DimensionError,
-            ),
+            ::image::error::LimitError::from_kind(::image::error::LimitErrorKind::DimensionError),
         )))
     }
 }
@@ -165,9 +157,7 @@ fn to_error(error: ::image::ImageError) -> image::Error {
     use std::sync::Arc;
 
     match error {
-        ::image::ImageError::IoError(error) => {
-            image::Error::Inaccessible(Arc::new(error))
-        }
+        ::image::ImageError::IoError(error) => image::Error::Inaccessible(Arc::new(error)),
         error => image::Error::Invalid(Arc::new(error)),
     }
 }

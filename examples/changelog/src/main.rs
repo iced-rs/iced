@@ -4,8 +4,8 @@ use crate::changelog::Changelog;
 
 use iced::font;
 use iced::widget::{
-    button, center, column, container, markdown, pick_list, progress_bar,
-    rich_text, row, scrollable, span, stack, text, text_input,
+    button, center, column, container, markdown, pick_list, progress_bar, rich_text, row,
+    scrollable, span, stack, text, text_input,
 };
 use iced::{Center, Element, Fill, FillPortion, Font, Task, Theme};
 
@@ -41,9 +41,7 @@ enum State {
 
 #[derive(Debug, Clone)]
 enum Message {
-    ChangelogListed(
-        Result<(Changelog, Vec<changelog::Contribution>), changelog::Error>,
-    ),
+    ChangelogListed(Result<(Changelog, Vec<changelog::Contribution>), changelog::Error>),
     PullRequestFetched(Result<changelog::PullRequest, changelog::Error>),
     LinkClicked(markdown::Uri),
     TitleChanged(String),
@@ -66,8 +64,7 @@ impl Generator {
         match message {
             Message::ChangelogListed(Ok((changelog, mut pending))) => {
                 if let Some(contribution) = pending.pop() {
-                    let preview =
-                        markdown::parse(&changelog.to_string()).collect();
+                    let preview = markdown::parse(&changelog.to_string()).collect();
 
                     *self = Self::Reviewing {
                         changelog,
@@ -168,18 +165,12 @@ impl Generator {
                     return Task::none();
                 };
 
-                if let Some(entry) =
-                    changelog::Entry::new(title, *category, pull_request)
-                {
+                if let Some(entry) = changelog::Entry::new(title, *category, pull_request) {
                     changelog.push(entry);
 
-                    let save = Task::perform(
-                        changelog.clone().save(),
-                        Message::ChangelogSaved,
-                    );
+                    let save = Task::perform(changelog.clone().save(), Message::ChangelogSaved);
 
-                    *preview =
-                        markdown::parse(&changelog.to_string()).collect();
+                    *preview = markdown::parse(&changelog.to_string()).collect();
 
                     if let Some(contribution) = pending.pop() {
                         *state = State::Loading(contribution.clone());
@@ -200,9 +191,7 @@ impl Generator {
                 }
             }
             Message::OpenPullRequest(id) => {
-                let _ = webbrowser::open(&format!(
-                    "https://github.com/iced-rs/iced/pull/{id}"
-                ));
+                let _ = webbrowser::open(&format!("https://github.com/iced-rs/iced/pull/{id}"));
 
                 Task::none()
             }
@@ -224,8 +213,7 @@ impl Generator {
             Self::Loading => center("Loading...").into(),
             Self::Done => center(
                 column![
-                    text("Changelog is up-to-date! 🎉")
-                        .shaping(text::Shaping::Advanced),
+                    text("Changelog is up-to-date! 🎉").shaping(text::Shaping::Advanced),
                     button("Quit").on_press(Message::Quit),
                 ]
                 .spacing(10)
@@ -243,8 +231,7 @@ impl Generator {
                     let total = pending.len() + changelog.len();
                     let percent = 100.0 * changelog.len() as f32 / total as f32;
 
-                    let bar = progress_bar(0.0..=100.0, percent)
-                        .style(progress_bar::secondary);
+                    let bar = progress_bar(0.0..=100.0, percent).style(progress_bar::secondary);
 
                     let label = text!(
                         "{amount_reviewed} / {total} ({percent:.0}%)",
@@ -257,9 +244,7 @@ impl Generator {
                 };
 
                 let form: Element<_> = match state {
-                    State::Loading(contribution) => {
-                        text!("Loading #{}...", contribution.id).into()
-                    }
+                    State::Loading(contribution) => text!("Loading #{}...", contribution.id).into(),
                     State::Loaded {
                         pull_request,
                         description,
@@ -268,36 +253,27 @@ impl Generator {
                     } => {
                         let details = {
                             let title = rich_text![
-                                span(&pull_request.title)
-                                    .size(24)
-                                    .link(pull_request.id),
+                                span(&pull_request.title).size(24).link(pull_request.id),
                                 "\n",
-                                span(format!(" by {}", pull_request.author))
-                                    .font(Font {
-                                        style: font::Style::Italic,
-                                        ..Font::default()
-                                    }),
+                                span(format!(" by {}", pull_request.author)).font(Font {
+                                    style: font::Style::Italic,
+                                    ..Font::default()
+                                }),
                             ]
                             .on_link_click(Message::OpenPullRequest)
                             .font(Font::MONOSPACE);
 
                             let description =
-                                markdown(description, self.theme())
-                                    .map(Message::LinkClicked);
+                                markdown(description, self.theme()).map(Message::LinkClicked);
 
-                            let labels =
-                                row(pull_request.labels.iter().map(|label| {
-                                    container(
-                                        text(label)
-                                            .size(10)
-                                            .font(Font::MONOSPACE),
-                                    )
+                            let labels = row(pull_request.labels.iter().map(|label| {
+                                container(text(label).size(10).font(Font::MONOSPACE))
                                     .padding(5)
                                     .style(container::rounded_box)
                                     .into()
-                                }))
-                                .spacing(10)
-                                .wrap();
+                            }))
+                            .spacing(10)
+                            .wrap();
 
                             let created_at = text(
                                 timezone
@@ -309,23 +285,15 @@ impl Generator {
 
                             column![
                                 title,
-                                row![labels, created_at]
-                                    .align_y(Center)
-                                    .spacing(10),
-                                scrollable(description)
-                                    .spacing(10)
-                                    .width(Fill)
-                                    .height(Fill)
+                                row![labels, created_at].align_y(Center).spacing(10),
+                                scrollable(description).spacing(10).width(Fill).height(Fill)
                             ]
                             .spacing(10)
                         };
 
-                        let title = text_input(
-                            "Type a changelog entry title...",
-                            title,
-                        )
-                        .on_input(Message::TitleChanged)
-                        .on_submit(Message::Next);
+                        let title = text_input("Type a changelog entry title...", title)
+                            .on_input(Message::TitleChanged)
+                            .on_submit(Message::Next);
 
                         let category = pick_list(
                             changelog::Category::ALL,
@@ -337,32 +305,24 @@ impl Generator {
                             .on_press(Message::Next)
                             .style(button::success);
 
-                        column![
-                            details,
-                            row![title, category, next].spacing(10)
-                        ]
-                        .spacing(10)
-                        .into()
+                        column![details, row![title, category, next].spacing(10)]
+                            .spacing(10)
+                            .into()
                     }
                 };
 
                 let preview = if preview.is_empty() {
                     center(
-                        container(
-                            text("The changelog is empty... so far!").size(12),
-                        )
-                        .padding(10)
-                        .style(container::rounded_box),
+                        container(text("The changelog is empty... so far!").size(12))
+                            .padding(10)
+                            .style(container::rounded_box),
                     )
                 } else {
                     container(
                         scrollable(
                             markdown(
                                 preview,
-                                markdown::Settings::with_text_size(
-                                    12,
-                                    self.theme(),
-                                ),
+                                markdown::Settings::with_text_size(12, self.theme()),
                             )
                             .map(Message::LinkClicked),
                         )

@@ -3,9 +3,7 @@ use crate::image::{self, Image};
 use crate::renderer::{self, Renderer};
 use crate::svg;
 use crate::text::{self, Text};
-use crate::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
-};
+use crate::{Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation};
 
 impl Renderer for () {
     fn start_layer(&mut self, _bounds: Rectangle) {}
@@ -18,19 +16,12 @@ impl Renderer for () {
 
     fn reset(&mut self, _new_bounds: Rectangle) {}
 
-    fn fill_quad(
-        &mut self,
-        _quad: renderer::Quad,
-        _background: impl Into<Background>,
-    ) {
-    }
+    fn fill_quad(&mut self, _quad: renderer::Quad, _background: impl Into<Background>) {}
 
     fn allocate_image(
         &mut self,
         handle: &image::Handle,
-        callback: impl FnOnce(Result<image::Allocation, image::Error>)
-        + Send
-        + 'static,
+        callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     ) {
         #[allow(unsafe_code)]
         callback(Ok(unsafe { image::allocate(handle, Size::new(100, 100)) }));
@@ -92,10 +83,7 @@ impl text::Paragraph for () {
 
     fn with_text(_text: Text<&str>) -> Self {}
 
-    fn with_spans<Link>(
-        _text: Text<&[text::Span<'_, Link, Self::Font>], Self::Font>,
-    ) -> Self {
-    }
+    fn with_spans<Link>(_text: Text<&[text::Span<'_, Link, Self::Font>], Self::Font>) -> Self {}
 
     fn resize(&mut self, _new_bounds: Size) {}
 
@@ -215,9 +203,7 @@ impl text::Editor for () {
         &mut self,
         _font: Self::Font,
         _highlighter: &mut H,
-        _format_highlight: impl Fn(
-            &H::Highlight,
-        ) -> text::highlighter::Format<Self::Font>,
+        _format_highlight: impl Fn(&H::Highlight) -> text::highlighter::Format<Self::Font>,
     ) {
     }
 }
@@ -225,10 +211,7 @@ impl text::Editor for () {
 impl image::Renderer for () {
     type Handle = image::Handle;
 
-    fn load_image(
-        &self,
-        handle: &Self::Handle,
-    ) -> Result<image::Allocation, image::Error> {
+    fn load_image(&self, handle: &Self::Handle) -> Result<image::Allocation, image::Error> {
         #[allow(unsafe_code)]
         Ok(unsafe { image::allocate(handle, Size::new(100, 100)) })
     }
@@ -237,13 +220,7 @@ impl image::Renderer for () {
         Some(Size::new(100, 100))
     }
 
-    fn draw_image(
-        &mut self,
-        _image: Image,
-        _bounds: Rectangle,
-        _clip_bounds: Rectangle,
-    ) {
-    }
+    fn draw_image(&mut self, _image: Image, _bounds: Rectangle, _clip_bounds: Rectangle) {}
 }
 
 impl svg::Renderer for () {
@@ -251,13 +228,7 @@ impl svg::Renderer for () {
         Size::default()
     }
 
-    fn draw_svg(
-        &mut self,
-        _svg: svg::Svg,
-        _bounds: Rectangle,
-        _clip_bounds: Rectangle,
-    ) {
-    }
+    fn draw_svg(&mut self, _svg: svg::Svg, _bounds: Rectangle, _clip_bounds: Rectangle) {}
 }
 
 impl renderer::Headless for () {

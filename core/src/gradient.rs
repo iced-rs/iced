@@ -15,9 +15,7 @@ impl Gradient {
     /// Scales the alpha channel of the [`Gradient`] by the given factor.
     pub fn scale_alpha(self, factor: f32) -> Self {
         match self {
-            Gradient::Linear(linear) => {
-                Gradient::Linear(linear.scale_alpha(factor))
-            }
+            Gradient::Linear(linear) => Gradient::Linear(linear.scale_alpha(factor)),
         }
     }
 }
@@ -67,11 +65,10 @@ impl Linear {
     /// Any stop added after the 8th will be silently ignored.
     pub fn add_stop(mut self, offset: f32, color: Color) -> Self {
         if offset.is_finite() && (0.0..=1.0).contains(&offset) {
-            let (Ok(index) | Err(index)) =
-                self.stops.binary_search_by(|stop| match stop {
-                    None => Ordering::Greater,
-                    Some(stop) => stop.offset.partial_cmp(&offset).unwrap(),
-                });
+            let (Ok(index) | Err(index)) = self.stops.binary_search_by(|stop| match stop {
+                None => Ordering::Greater,
+                Some(stop) => stop.offset.partial_cmp(&offset).unwrap(),
+            });
 
             if index < 8 {
                 self.stops[index] = Some(ColorStop { offset, color });
@@ -86,10 +83,7 @@ impl Linear {
     /// Adds multiple [`ColorStop`]s to the gradient.
     ///
     /// Any stop added after the 8th will be silently ignored.
-    pub fn add_stops(
-        mut self,
-        stops: impl IntoIterator<Item = ColorStop>,
-    ) -> Self {
+    pub fn add_stops(mut self, stops: impl IntoIterator<Item = ColorStop>) -> Self {
         for stop in stops {
             self = self.add_stop(stop.offset, stop.color);
         }

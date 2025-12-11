@@ -126,9 +126,7 @@ impl Pipeline {
         let height = entry.min_bounds.height;
 
         let x = match align_x {
-            Alignment::Default | Alignment::Left | Alignment::Justified => {
-                bounds.x
-            }
+            Alignment::Default | Alignment::Left | Alignment::Justified => bounds.x,
             Alignment::Center => bounds.x - width / 2.0,
             Alignment::Right => bounds.x - width,
         };
@@ -196,10 +194,8 @@ fn draw(
 
     for run in buffer.layout_runs() {
         for glyph in run.glyphs {
-            let physical_glyph = glyph.physical(
-                (position.x, position.y),
-                transformation.scale_factor(),
-            );
+            let physical_glyph =
+                glyph.physical((position.x, position.y), transformation.scale_factor());
 
             if let Some((buffer, placement)) = glyph_cache.allocate(
                 physical_glyph.cache_key,
@@ -207,24 +203,17 @@ fn draw(
                 font_system,
                 &mut swash,
             ) {
-                let pixmap = tiny_skia::PixmapRef::from_bytes(
-                    buffer,
-                    placement.width,
-                    placement.height,
-                )
-                .expect("Create glyph pixel map");
+                let pixmap =
+                    tiny_skia::PixmapRef::from_bytes(buffer, placement.width, placement.height)
+                        .expect("Create glyph pixel map");
 
-                let opacity = color.a
-                    * glyph
-                        .color_opt
-                        .map(|c| c.a() as f32 / 255.0)
-                        .unwrap_or(1.0);
+                let opacity =
+                    color.a * glyph.color_opt.map(|c| c.a() as f32 / 255.0).unwrap_or(1.0);
 
                 pixels.draw_pixmap(
                     physical_glyph.x + placement.left,
                     physical_glyph.y - placement.top
-                        + (run.line_y * transformation.scale_factor()).round()
-                            as i32,
+                        + (run.line_y * transformation.scale_factor()).round() as i32,
                     pixmap,
                     &tiny_skia::PixmapPaint {
                         opacity,
@@ -246,10 +235,7 @@ fn from_color(color: cosmic_text::Color) -> Color {
 
 #[derive(Debug, Clone, Default)]
 struct GlyphCache {
-    entries: FxHashMap<
-        (cosmic_text::CacheKey, [u8; 3]),
-        (Vec<u32>, cosmic_text::Placement),
-    >,
+    entries: FxHashMap<(cosmic_text::CacheKey, [u8; 3]), (Vec<u32>, cosmic_text::Placement)>,
     recently_used: FxHashSet<(cosmic_text::CacheKey, [u8; 3])>,
     trim_count: usize,
 }
@@ -276,8 +262,7 @@ impl GlyphCache {
             // TODO: Outline support
             let image = swash.get_image_uncached(font_system, cache_key)?;
 
-            let glyph_size = image.placement.width as usize
-                * image.placement.height as usize;
+            let glyph_size = image.placement.width as usize * image.placement.height as usize;
 
             if glyph_size == 0 {
                 return None;
@@ -294,13 +279,7 @@ impl GlyphCache {
                     for _y in 0..image.placement.height {
                         for _x in 0..image.placement.width {
                             buffer[i] = bytemuck::cast(
-                                tiny_skia::ColorU8::from_rgba(
-                                    b,
-                                    g,
-                                    r,
-                                    image.data[i],
-                                )
-                                .premultiply(),
+                                tiny_skia::ColorU8::from_rgba(b, g, r, image.data[i]).premultiply(),
                             );
 
                             i += 1;
@@ -337,14 +316,13 @@ impl GlyphCache {
 
         let _ = self.recently_used.insert(key);
 
-        self.entries.get(&key).map(|(buffer, placement)| {
-            (bytemuck::cast_slice(buffer.as_slice()), *placement)
-        })
+        self.entries
+            .get(&key)
+            .map(|(buffer, placement)| (bytemuck::cast_slice(buffer.as_slice()), *placement))
     }
 
     pub fn trim(&mut self) {
-        if self.trim_count > Self::TRIM_INTERVAL
-            || self.recently_used.len() >= Self::CAPACITY_LIMIT
+        if self.trim_count > Self::TRIM_INTERVAL || self.recently_used.len() >= Self::CAPACITY_LIMIT
         {
             self.entries
                 .retain(|key, _| self.recently_used.contains(key));

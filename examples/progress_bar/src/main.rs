@@ -1,7 +1,6 @@
 use iced::Element;
 use iced::widget::{
-    center, center_x, checkbox, column, progress_bar, row, slider,
-    vertical_slider,
+    center, center_x, checkbox, column, progress_bar, row, slider, vertical_slider,
 };
 
 pub fn main() -> iced::Result {
@@ -24,9 +23,7 @@ impl Progress {
     fn update(&mut self, message: Message) {
         match message {
             Message::SliderChanged(x) => self.value = x,
-            Message::ToggleVertical(is_vertical) => {
-                self.is_vertical = is_vertical
-            }
+            Message::ToggleVertical(is_vertical) => self.is_vertical = is_vertical,
         }
     }
 
@@ -38,12 +35,7 @@ impl Progress {
                 center(
                     row![
                         bar.vertical(),
-                        vertical_slider(
-                            0.0..=100.0,
-                            self.value,
-                            Message::SliderChanged
-                        )
-                        .step(0.01)
+                        vertical_slider(0.0..=100.0, self.value, Message::SliderChanged).step(0.01)
                     ]
                     .spacing(20),
                 )
@@ -51,8 +43,7 @@ impl Progress {
                 center(
                     column![
                         bar,
-                        slider(0.0..=100.0, self.value, Message::SliderChanged)
-                            .step(0.01)
+                        slider(0.0..=100.0, self.value, Message::SliderChanged).step(0.01)
                     ]
                     .spacing(20),
                 )

@@ -42,8 +42,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Event, Layout, Length,
-    Pixels, Rectangle, Shell, Size, Theme, Widget,
+    Background, Border, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
+    Size, Theme, Widget,
 };
 
 /// A box that can be checked.
@@ -79,12 +79,8 @@ use crate::core::{
 /// }
 /// ```
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
-pub struct Checkbox<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> where
+pub struct Checkbox<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
     Renderer: text::Renderer,
     Theme: Catalog,
 {
@@ -197,10 +193,7 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Checkbox`].
-    pub fn text_line_height(
-        mut self,
-        line_height: impl Into<text::LineHeight>,
-    ) -> Self {
+    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
         self.text_line_height = line_height.into();
         self
     }
@@ -288,8 +281,8 @@ where
             |limits| {
                 if let Some(label) = self.label.as_deref() {
                     let state = tree
-                    .state
-                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+                        .state
+                        .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
 
                     widget::text::layout(
                         state,
@@ -445,8 +438,7 @@ where
 
         {
             let label_layout = children.next().unwrap();
-            let state: &widget::text::State<Renderer::Paragraph> =
-                tree.state.downcast_ref();
+            let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
 
             crate::text::draw(
                 renderer,

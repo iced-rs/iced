@@ -1,18 +1,12 @@
-use iced::widget::{
-    center, column, pick_list, qr_code, row, slider, text, text_input, toggler,
-};
+use iced::widget::{center, column, pick_list, qr_code, row, slider, text, text_input, toggler};
 use iced::{Center, Element, Theme};
 
 use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
-    iced::application(
-        QRGenerator::default,
-        QRGenerator::update,
-        QRGenerator::view,
-    )
-    .theme(QRGenerator::theme)
-    .run()
+    iced::application(QRGenerator::default, QRGenerator::update, QRGenerator::view)
+        .theme(QRGenerator::theme)
+        .run()
 }
 
 #[derive(Default)]
@@ -50,8 +44,7 @@ impl QRGenerator {
             Message::ToggleTotalSize(enabled) => {
                 self.total_size = enabled.then_some(
                     Self::SIZE_RANGE.start()
-                        + (Self::SIZE_RANGE.end() - Self::SIZE_RANGE.start())
-                            / 2.0,
+                        + (Self::SIZE_RANGE.end() - Self::SIZE_RANGE.start()) / 2.0,
                 );
             }
             Message::TotalSizeChanged(total_size) => {
@@ -66,11 +59,10 @@ impl QRGenerator {
     fn view(&self) -> Element<'_, Message> {
         let title = text("QR Code Generator").size(70);
 
-        let input =
-            text_input("Type the data of your QR code here...", &self.data)
-                .on_input(Message::DataChanged)
-                .size(30)
-                .padding(15);
+        let input = text_input("Type the data of your QR code here...", &self.data)
+            .on_input(Message::DataChanged)
+            .size(30)
+            .padding(15);
 
         let toggle_total_size = toggler(self.total_size.is_some())
             .on_toggle(Message::ToggleTotalSize)
@@ -78,8 +70,7 @@ impl QRGenerator {
 
         let choose_theme = row![
             text("Theme:"),
-            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeChanged)
-                .placeholder("Theme")
+            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeChanged).placeholder("Theme")
         ]
         .spacing(10)
         .align_y(Center);

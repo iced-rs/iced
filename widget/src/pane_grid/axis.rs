@@ -27,8 +27,7 @@ impl Axis {
                     .max(min_size_a)
                     .min(rectangle.height - min_size_b - spacing);
 
-                let height_bottom =
-                    (rectangle.height - height_top - spacing).max(min_size_b);
+                let height_bottom = (rectangle.height - height_top - spacing).max(min_size_b);
 
                 let ratio = (height_top + spacing / 2.0) / rectangle.height;
 
@@ -51,8 +50,7 @@ impl Axis {
                     .max(min_size_a)
                     .min(rectangle.width - min_size_b - spacing);
 
-                let width_right =
-                    (rectangle.width - width_left - spacing).max(min_size_b);
+                let width_right = (rectangle.width - width_left - spacing).max(min_size_b);
 
                 let ratio = (width_left + spacing / 2.0) / rectangle.width;
 
@@ -73,23 +71,16 @@ impl Axis {
     }
 
     /// Calculates the bounds of the split line in a [`Rectangle`] region.
-    pub fn split_line_bounds(
-        &self,
-        rectangle: Rectangle,
-        ratio: f32,
-        spacing: f32,
-    ) -> Rectangle {
+    pub fn split_line_bounds(&self, rectangle: Rectangle, ratio: f32, spacing: f32) -> Rectangle {
         match self {
             Axis::Horizontal => Rectangle {
                 x: rectangle.x,
-                y: (rectangle.y + rectangle.height * ratio - spacing / 2.0)
-                    .round(),
+                y: (rectangle.y + rectangle.height * ratio - spacing / 2.0).round(),
                 width: rectangle.width,
                 height: spacing,
             },
             Axis::Vertical => Rectangle {
-                x: (rectangle.x + rectangle.width * ratio - spacing / 2.0)
-                    .round(),
+                x: (rectangle.x + rectangle.width * ratio - spacing / 2.0).round(),
                 y: rectangle.y,
                 width: spacing,
                 height: rectangle.height,
@@ -203,8 +194,7 @@ mod tests {
                         width: 10.0,
                         height: overall_height,
                     };
-                    let (top, bottom, _ratio) =
-                        a.split(&r, 0.5, spacing, 0.0, 0.0);
+                    let (top, bottom, _ratio) = a.split(&r, 0.5, spacing, 0.0, 0.0);
                     assert_eq!(
                         top,
                         Rectangle {
@@ -235,8 +225,7 @@ mod tests {
                         width: overall_width,
                         height: 10.0,
                     };
-                    let (left, right, _ratio) =
-                        a.split(&r, 0.5, spacing, 0.0, 0.0);
+                    let (left, right, _ratio) = a.split(&r, 0.5, spacing, 0.0, 0.0);
                     assert_eq!(
                         left,
                         Rectangle {

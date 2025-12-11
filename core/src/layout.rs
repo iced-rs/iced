@@ -54,14 +54,9 @@ impl<'a> Layout<'a> {
     }
 
     /// Returns an iterator over the children of this [`Layout`].
-    pub fn children(
-        self,
-    ) -> impl DoubleEndedIterator<Item = Layout<'a>> + ExactSizeIterator {
+    pub fn children(self) -> impl DoubleEndedIterator<Item = Layout<'a>> + ExactSizeIterator {
         self.node.children().iter().map(move |node| {
-            Layout::with_offset(
-                Vector::new(self.position.x, self.position.y),
-                node,
-            )
+            Layout::with_offset(Vector::new(self.position.x, self.position.y), node)
         })
     }
 
@@ -114,11 +109,7 @@ pub fn next_to_each_other(
 
 /// Computes the resulting [`Node`] that fits the [`Limits`] given
 /// some width and height requirements and no intrinsic size.
-pub fn atomic(
-    limits: &Limits,
-    width: impl Into<Length>,
-    height: impl Into<Length>,
-) -> Node {
+pub fn atomic(limits: &Limits, width: impl Into<Length>, height: impl Into<Length>) -> Node {
     let width = width.into();
     let height = height.into();
 
@@ -158,10 +149,7 @@ pub fn contained(
     let limits = limits.width(width).height(height);
     let content = f(&limits);
 
-    Node::with_children(
-        limits.resolve(width, height, content.size()),
-        vec![content],
-    )
+    Node::with_children(limits.resolve(width, height, content.size()), vec![content])
 }
 
 /// Computes the [`Node`] that fits the [`Limits`] given some width, height, and

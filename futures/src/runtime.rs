@@ -22,11 +22,7 @@ pub struct Runtime<Executor, Sender, Message> {
 impl<Executor, Sender, Message> Runtime<Executor, Sender, Message>
 where
     Executor: self::Executor,
-    Sender: Sink<Message, Error = mpsc::SendError>
-        + Unpin
-        + MaybeSend
-        + Clone
-        + 'static,
+    Sender: Sink<Message, Error = mpsc::SendError> + Unpin + MaybeSend + Clone + 'static,
     Message: MaybeSend + 'static,
 {
     /// Creates a new empty [`Runtime`].
@@ -66,15 +62,12 @@ where
         use futures::{FutureExt, StreamExt};
 
         let sender = self.sender.clone();
-        let future =
-            stream.map(Ok).forward(sender).map(|result| match result {
-                Ok(()) => (),
-                Err(error) => {
-                    log::warn!(
-                        "Stream could not run until completion: {error}"
-                    );
-                }
-            });
+        let future = stream.map(Ok).forward(sender).map(|result| match result {
+            Ok(()) => (),
+            Err(error) => {
+                log::warn!("Stream could not run until completion: {error}");
+            }
+        });
 
         self.executor.spawn(future);
     }
@@ -97,9 +90,7 @@ where
     /// [`Subscription`]: crate::Subscription
     pub fn track(
         &mut self,
-        recipes: impl IntoIterator<
-            Item = Box<dyn subscription::Recipe<Output = Message>>,
-        >,
+        recipes: impl IntoIterator<Item = Box<dyn subscription::Recipe<Output = Message>>>,
     ) {
         let Runtime {
             executor,
@@ -108,9 +99,7 @@ where
             ..
         } = self;
 
-        let futures = executor.enter(|| {
-            subscriptions.update(recipes.into_iter(), sender.clone())
-        });
+        let futures = executor.enter(|| subscriptions.update(recipes.into_iter(), sender.clone()));
 
         for future in futures {
             executor.spawn(future);

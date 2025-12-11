@@ -2,8 +2,8 @@ use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{
-    button, center, column, container, mouse_area, opaque, operation,
-    pick_list, row, space, stack, text, text_input,
+    button, center, column, container, mouse_area, opaque, operation, pick_list, row, space, stack,
+    text, text_input,
 };
 use iced::{Bottom, Color, Element, Fill, Subscription, Task};
 
@@ -95,8 +95,7 @@ impl App {
     fn view(&self) -> Element<'_, Message> {
         let content = container(
             column![
-                row![text("Top Left"), space::horizontal(), text("Top Right")]
-                    .height(Fill),
+                row![text("Top Left"), space::horizontal(), text("Top Right")].height(Fill),
                 center(button(text("Show Modal")).on_press(Message::ShowModal)),
                 row![
                     text("Bottom Left"),
@@ -134,12 +133,7 @@ impl App {
                         .spacing(5),
                         column![
                             text("Plan").size(12),
-                            pick_list(
-                                Plan::ALL,
-                                Some(self.plan),
-                                Message::Plan
-                            )
-                            .padding(5),
+                            pick_list(Plan::ALL, Some(self.plan), Message::Plan).padding(5),
                         ]
                         .spacing(5),
                         button(text("Submit")).on_press(Message::HideModal),
@@ -176,8 +170,7 @@ enum Plan {
 }
 
 impl Plan {
-    pub const ALL: &'static [Self] =
-        &[Self::Basic, Self::Pro, Self::Enterprise];
+    pub const ALL: &'static [Self] = &[Self::Basic, Self::Pro, Self::Enterprise];
 }
 
 impl fmt::Display for Plan {

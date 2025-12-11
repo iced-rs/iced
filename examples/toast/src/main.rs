@@ -1,9 +1,7 @@
 use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
-use iced::widget::{
-    button, center, column, operation, pick_list, row, slider, text, text_input,
-};
+use iced::widget::{button, center, column, operation, pick_list, row, slider, text, text_input};
 use iced::{Center, Element, Fill, Subscription, Task};
 
 use toast::{Status, Toast};
@@ -52,9 +50,7 @@ impl App {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Add => {
-                if !self.editing.title.is_empty()
-                    && !self.editing.body.is_empty()
-                {
+                if !self.editing.title.is_empty() && !self.editing.body.is_empty() {
                     self.toasts.push(std::mem::take(&mut self.editing));
                 }
                 Task::none()
@@ -132,12 +128,7 @@ impl App {
                     "Timeout",
                     row![
                         text!("{:0>2} sec", self.timeout_secs),
-                        slider(
-                            1.0..=30.0,
-                            self.timeout_secs as f64,
-                            Message::Timeout
-                        )
-                        .step(1.0)
+                        slider(1.0..=30.0, self.timeout_secs as f64, Message::Timeout).step(1.0)
                     ]
                     .spacing(5)
                     .into()
@@ -173,8 +164,8 @@ mod toast {
     use iced::widget::{button, column, container, row, rule, space, text};
     use iced::window;
     use iced::{
-        Alignment, Center, Element, Event, Fill, Length, Point, Rectangle,
-        Renderer, Size, Theme, Vector,
+        Alignment, Center, Element, Event, Fill, Length, Point, Rectangle, Renderer, Size, Theme,
+        Vector,
     };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
@@ -244,9 +235,7 @@ mod toast {
                             row![
                                 text(toast.title.as_str()),
                                 space::horizontal(),
-                                button("X")
-                                    .on_press((on_close)(index))
-                                    .padding(3),
+                                button("X").on_press((on_close)(index)).padding(3),
                             ]
                             .align_y(Center)
                         )
@@ -297,11 +286,9 @@ mod toast {
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.content.as_widget_mut().layout(
-                &mut tree.children[0],
-                renderer,
-                limits,
-            )
+            self.content
+                .as_widget_mut()
+                .layout(&mut tree.children[0], renderer, limits)
         }
 
         fn tag(&self) -> widget::tree::Tag {
@@ -332,10 +319,7 @@ mod toast {
                     instants.truncate(new);
                 }
                 (old, new) if old < new => {
-                    instants.extend(std::iter::repeat_n(
-                        Some(Instant::now()),
-                        new - old,
-                    ));
+                    instants.extend(std::iter::repeat_n(Some(Instant::now()), new - old));
                 }
                 _ => {}
             }
@@ -457,11 +441,9 @@ mod toast {
                     timeout_secs: self.timeout_secs,
                 }))
             });
-            let overlays =
-                content.into_iter().chain(toasts).collect::<Vec<_>>();
+            let overlays = content.into_iter().chain(toasts).collect::<Vec<_>>();
 
-            (!overlays.is_empty())
-                .then(|| overlay::Group::with_children(overlays).overlay())
+            (!overlays.is_empty()).then(|| overlay::Group::with_children(overlays).overlay())
         }
     }
 
@@ -475,14 +457,8 @@ mod toast {
         timeout_secs: u64,
     }
 
-    impl<Message> overlay::Overlay<Message, Theme, Renderer>
-        for Overlay<'_, '_, Message>
-    {
-        fn layout(
-            &mut self,
-            renderer: &Renderer,
-            bounds: Size,
-        ) -> layout::Node {
+    impl<Message> overlay::Overlay<Message, Theme, Renderer> for Overlay<'_, '_, Message> {
+        fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
             let limits = layout::Limits::new(Size::ZERO, bounds);
 
             layout::flex::resolve(
@@ -510,11 +486,13 @@ mod toast {
             shell: &mut Shell<'_, Message>,
         ) {
             if let Event::Window(window::Event::RedrawRequested(now)) = &event {
-                self.instants.iter_mut().enumerate().for_each(
-                    |(index, maybe_instant)| {
+                self.instants
+                    .iter_mut()
+                    .enumerate()
+                    .for_each(|(index, maybe_instant)| {
                         if let Some(instant) = maybe_instant.as_mut() {
-                            let remaining = time::seconds(self.timeout_secs)
-                                .saturating_sub(instant.elapsed());
+                            let remaining =
+                                time::seconds(self.timeout_secs).saturating_sub(instant.elapsed());
 
                             if remaining == Duration::ZERO {
                                 maybe_instant.take();
@@ -523,8 +501,7 @@ mod toast {
                                 shell.request_redraw_at(*now + remaining);
                             }
                         }
-                    },
-                );
+                    });
             }
 
             let viewport = layout.bounds();
@@ -574,9 +551,9 @@ mod toast {
                 .zip(self.trees.iter())
                 .zip(layout.children())
             {
-                child.as_widget().draw(
-                    tree, renderer, theme, style, layout, cursor, &viewport,
-                );
+                child
+                    .as_widget()
+                    .draw(tree, renderer, theme, style, layout, cursor, &viewport);
             }
         }
 
@@ -613,13 +590,7 @@ mod toast {
                 .map(|((child, state), layout)| {
                     child
                         .as_widget()
-                        .mouse_interaction(
-                            state,
-                            layout,
-                            cursor,
-                            &self.viewport,
-                            renderer,
-                        )
+                        .mouse_interaction(state, layout, cursor, &self.viewport, renderer)
                         .max(if cursor.is_over(layout.bounds()) {
                             mouse::Interaction::Idle
                         } else {

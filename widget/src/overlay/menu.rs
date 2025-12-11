@@ -10,21 +10,15 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Clipboard, Color, Event, Length, Padding, Pixels, Point,
-    Rectangle, Shadow, Size, Theme, Vector,
+    Background, Clipboard, Color, Event, Length, Padding, Pixels, Point, Rectangle, Shadow, Size,
+    Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
 
 /// A list of selectable options.
-pub struct Menu<
-    'a,
-    'b,
-    T,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> where
+pub struct Menu<'a, 'b, T, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
     Theme: Catalog,
     Renderer: text::Renderer,
     'b: 'a,
@@ -43,8 +37,7 @@ pub struct Menu<
     class: &'a <Theme as Catalog>::Class<'b>,
 }
 
-impl<'a, 'b, T, Message, Theme, Renderer>
-    Menu<'a, 'b, T, Message, Theme, Renderer>
+impl<'a, 'b, T, Message, Theme, Renderer> Menu<'a, 'b, T, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
@@ -97,10 +90,7 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Menu`].
-    pub fn text_line_height(
-        mut self,
-        line_height: impl Into<text::LineHeight>,
-    ) -> Self {
+    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
         self.text_line_height = line_height.into();
         self
     }
@@ -242,8 +232,7 @@ where
     Renderer: text::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        let space_below =
-            bounds.height - (self.position.y + self.target_height);
+        let space_below = bounds.height - (self.position.y + self.target_height);
         let space_above = self.position.y;
 
         let limits = layout::Limits::new(
@@ -281,8 +270,7 @@ where
         let bounds = layout.bounds();
 
         self.list.update(
-            self.tree, event, layout, cursor, renderer, clipboard, shell,
-            &bounds,
+            self.tree, event, layout, cursor, renderer, clipboard, shell, &bounds,
         );
     }
 
@@ -292,13 +280,8 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.list.mouse_interaction(
-            self.tree,
-            layout,
-            cursor,
-            &self.viewport,
-            renderer,
-        )
+        self.list
+            .mouse_interaction(self.tree, layout, cursor, &self.viewport, renderer)
     }
 
     fn draw(
@@ -380,16 +363,14 @@ where
     ) -> layout::Node {
         use std::f32;
 
-        let text_size =
-            self.text_size.unwrap_or_else(|| renderer.default_size());
+        let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 
         let text_line_height = self.text_line_height.to_absolute(text_size);
 
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                (f32::from(text_line_height) + self.padding.y())
-                    * self.options.len() as f32,
+                (f32::from(text_line_height) + self.padding.y()) * self.options.len() as f32,
             );
 
             limits.resolve(Length::Fill, Length::Shrink, intrinsic)
@@ -420,26 +401,18 @@ where
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                if let Some(cursor_position) =
-                    cursor.position_in(layout.bounds())
-                {
-                    let text_size = self
-                        .text_size
-                        .unwrap_or_else(|| renderer.default_size());
+                if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
+                    let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 
                     let option_height =
-                        f32::from(self.text_line_height.to_absolute(text_size))
-                            + self.padding.y();
+                        f32::from(self.text_line_height.to_absolute(text_size)) + self.padding.y();
 
-                    let new_hovered_option =
-                        (cursor_position.y / option_height) as usize;
+                    let new_hovered_option = (cursor_position.y / option_height) as usize;
 
                     if *self.hovered_option != Some(new_hovered_option)
-                        && let Some(option) =
-                            self.options.get(new_hovered_option)
+                        && let Some(option) = self.options.get(new_hovered_option)
                     {
-                        if let Some(on_option_hovered) = self.on_option_hovered
-                        {
+                        if let Some(on_option_hovered) = self.on_option_hovered {
                             shell.publish(on_option_hovered(option.clone()));
                         }
 
@@ -450,19 +423,13 @@ where
                 }
             }
             Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if let Some(cursor_position) =
-                    cursor.position_in(layout.bounds())
-                {
-                    let text_size = self
-                        .text_size
-                        .unwrap_or_else(|| renderer.default_size());
+                if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
+                    let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 
                     let option_height =
-                        f32::from(self.text_line_height.to_absolute(text_size))
-                            + self.padding.y();
+                        f32::from(self.text_line_height.to_absolute(text_size)) + self.padding.y();
 
-                    *self.hovered_option =
-                        Some((cursor_position.y / option_height) as usize);
+                    *self.hovered_option = Some((cursor_position.y / option_height) as usize);
 
                     if let Some(index) = *self.hovered_option
                         && let Some(option) = self.options.get(index)
@@ -479,9 +446,10 @@ where
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
             state.is_hovered = Some(cursor.is_over(layout.bounds()));
-        } else if state.is_hovered.is_some_and(|is_hovered| {
-            is_hovered != cursor.is_over(layout.bounds())
-        }) {
+        } else if state
+            .is_hovered
+            .is_some_and(|is_hovered| is_hovered != cursor.is_over(layout.bounds()))
+        {
             shell.request_redraw();
         }
     }
@@ -516,11 +484,9 @@ where
         let style = Catalog::style(theme, self.class);
         let bounds = layout.bounds();
 
-        let text_size =
-            self.text_size.unwrap_or_else(|| renderer.default_size());
+        let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
         let option_height =
-            f32::from(self.text_line_height.to_absolute(text_size))
-                + self.padding.y();
+            f32::from(self.text_line_height.to_absolute(text_size)) + self.padding.y();
 
         let offset = viewport.y - bounds.y;
         let start = (offset / option_height) as usize;
@@ -578,8 +544,7 @@ where
     }
 }
 
-impl<'a, 'b, T, Message, Theme, Renderer>
-    From<List<'a, 'b, T, Message, Theme, Renderer>>
+impl<'a, 'b, T, Message, Theme, Renderer> From<List<'a, 'b, T, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     T: ToString + Clone,

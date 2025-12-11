@@ -1,11 +1,9 @@
 use iced::time::Instant;
-use iced::widget::{
-    center, checkbox, column, container, image, pick_list, row, slider, text,
-};
+use iced::widget::{center, checkbox, column, container, image, pick_list, row, slider, text};
 use iced::window;
 use iced::{
-    Bottom, Center, Color, ContentFit, Degrees, Element, Fill, Radians,
-    Rotation, Subscription, Theme,
+    Bottom, Center, Color, ContentFit, Degrees, Element, Fill, Radians, Rotation, Subscription,
+    Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -46,19 +44,13 @@ impl Image {
             }
             Message::RotationStrategyChanged(strategy) => {
                 self.rotation = match strategy {
-                    RotationStrategy::Floating => {
-                        Rotation::Floating(self.rotation.radians())
-                    }
-                    RotationStrategy::Solid => {
-                        Rotation::Solid(self.rotation.radians())
-                    }
+                    RotationStrategy::Floating => Rotation::Floating(self.rotation.radians()),
+                    RotationStrategy::Solid => Rotation::Solid(self.rotation.radians()),
                 };
             }
             Message::RotationChanged(rotation) => {
                 self.rotation = match self.rotation {
-                    Rotation::Floating(_) => {
-                        Rotation::Floating(rotation.into())
-                    }
+                    Rotation::Floating(_) => Rotation::Floating(rotation.into()),
                     Rotation::Solid(_) => Rotation::Solid(rotation.into()),
                 };
             }
@@ -74,9 +66,8 @@ impl Image {
 
                 let delta = (now - self.last_tick).as_millis() as f32 / 1_000.0;
 
-                *self.rotation.radians_mut() = (self.rotation.radians()
-                    + ROTATION_SPEED * delta)
-                    % (2.0 * Radians::PI);
+                *self.rotation.radians_mut() =
+                    (self.rotation.radians() + ROTATION_SPEED * delta) % (2.0 * Radians::PI);
 
                 self.last_tick = now;
             }
@@ -142,8 +133,7 @@ impl Image {
                 format!("Width: {}px", self.width)
             ),
             with_value(
-                slider(0.0..=1.0, self.opacity, Message::OpacityChanged)
-                    .step(0.01),
+                slider(0.0..=1.0, self.opacity, Message::OpacityChanged).step(0.01),
                 format!("Opacity: {:.2}", self.opacity)
             ),
             with_value(
@@ -201,10 +191,7 @@ impl std::fmt::Display for RotationStrategy {
     }
 }
 
-fn with_value<'a>(
-    control: impl Into<Element<'a, Message>>,
-    value: String,
-) -> Element<'a, Message> {
+fn with_value<'a>(control: impl Into<Element<'a, Message>>, value: String) -> Element<'a, Message> {
     column![control.into(), text(value).size(12).line_height(1.0)]
         .spacing(2)
         .align_x(Center)

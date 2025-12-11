@@ -99,20 +99,16 @@ impl Example {
             text!("Radius: {top_left:.2}/{top_right:.2}/{bottom_right:.2}/{bottom_left:.2}"),
             slider(1.0..=200.0, top_left, Message::RadiusTopLeftChanged).step(0.01),
             slider(1.0..=200.0, top_right, Message::RadiusTopRightChanged).step(0.01),
-            slider(1.0..=200.0, bottom_right, Message::RadiusBottomRightChanged)
-                .step(0.01),
-            slider(1.0..=200.0, bottom_left, Message::RadiusBottomLeftChanged)
-                .step(0.01),
-            slider(0.0..=10.0, self.border_width, Message::BorderWidthChanged)
-                .step(0.01),
+            slider(1.0..=200.0, bottom_right, Message::RadiusBottomRightChanged).step(0.01),
+            slider(1.0..=200.0, bottom_left, Message::RadiusBottomLeftChanged).step(0.01),
+            slider(0.0..=10.0, self.border_width, Message::BorderWidthChanged).step(0.01),
             text!("Shadow: {sx:.2}x{sy:.2}, {sr:.2}"),
-            slider(-100.0..=100.0, sx, Message::ShadowXOffsetChanged)
-                .step(0.01),
-            slider(-100.0..=100.0, sy, Message::ShadowYOffsetChanged)
-                .step(0.01),
-            slider(0.0..=100.0, sr, Message::ShadowBlurRadiusChanged)
-                .step(0.01),
-            toggler(self.snap).label("Snap to pixel grid").on_toggle(Message::SnapToggled),
+            slider(-100.0..=100.0, sx, Message::ShadowXOffsetChanged).step(0.01),
+            slider(-100.0..=100.0, sy, Message::ShadowYOffsetChanged).step(0.01),
+            slider(0.0..=100.0, sr, Message::ShadowBlurRadiusChanged).step(0.01),
+            toggler(self.snap)
+                .label("Snap to pixel grid")
+                .on_toggle(Message::SnapToggled),
         ]
         .padding(20)
         .spacing(20)

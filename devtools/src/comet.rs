@@ -2,8 +2,7 @@ use crate::runtime::task::{self, Task};
 
 use std::process;
 
-pub const COMPATIBLE_REVISION: &str =
-    "3f75f3240edc1719df584810337bc7df010327d8";
+pub const COMPATIBLE_REVISION: &str = "3f75f3240edc1719df584810337bc7df010327d8";
 
 pub fn launch() -> Task<launch::Result> {
     task::try_blocking(|mut sender| {
@@ -65,9 +64,7 @@ pub fn install() -> Task<install::Result> {
             .stderr(Stdio::piped())
             .spawn()?;
 
-        let mut stderr = BufReader::new(
-            install.stderr.take().expect("stderr must be piped"),
-        );
+        let mut stderr = BufReader::new(install.stderr.take().expect("stderr must be piped"));
 
         let mut log = String::new();
 
@@ -82,8 +79,7 @@ pub fn install() -> Task<install::Result> {
                 }
             }
 
-            let _ = sender
-                .try_send(install::Event::Logged(log.trim_end().to_owned()));
+            let _ = sender.try_send(install::Event::Logged(log.trim_end().to_owned()));
 
             log.clear();
         }

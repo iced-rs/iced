@@ -64,11 +64,10 @@ impl Linear {
     /// Any stop added after the 8th will be silently ignored.
     pub fn add_stop(mut self, offset: f32, color: Color) -> Self {
         if offset.is_finite() && (0.0..=1.0).contains(&offset) {
-            let (Ok(index) | Err(index)) =
-                self.stops.binary_search_by(|stop| match stop {
-                    None => Ordering::Greater,
-                    Some(stop) => stop.offset.partial_cmp(&offset).unwrap(),
-                });
+            let (Ok(index) | Err(index)) = self.stops.binary_search_by(|stop| match stop {
+                None => Ordering::Greater,
+                Some(stop) => stop.offset.partial_cmp(&offset).unwrap(),
+            });
 
             if index < 8 {
                 self.stops[index] = Some(ColorStop { offset, color });
@@ -83,10 +82,7 @@ impl Linear {
     /// Adds multiple [`ColorStop`]s to the gradient.
     ///
     /// Any stop added after the 8th will be silently ignored.
-    pub fn add_stops(
-        mut self,
-        stops: impl IntoIterator<Item = ColorStop>,
-    ) -> Self {
+    pub fn add_stops(mut self, stops: impl IntoIterator<Item = ColorStop>) -> Self {
         for stop in stops {
             self = self.add_stop(stop.offset, stop.color);
         }
@@ -100,17 +96,14 @@ impl Linear {
         let mut offsets = [f16::from(0u8); 8];
 
         for (index, stop) in self.stops.iter().enumerate() {
-            let [r, g, b, a] =
-                color::pack(stop.map_or(Color::default(), |s| s.color))
-                    .components();
+            let [r, g, b, a] = color::pack(stop.map_or(Color::default(), |s| s.color)).components();
 
             colors[index] = [
                 pack_f16s([f16::from_f32(r), f16::from_f32(g)]),
                 pack_f16s([f16::from_f32(b), f16::from_f32(a)]),
             ];
 
-            offsets[index] =
-                stop.map_or(f16::from_f32(2.0), |s| f16::from_f32(s.offset));
+            offsets[index] = stop.map_or(f16::from_f32(2.0), |s| f16::from_f32(s.offset));
         }
 
         let offsets = [
@@ -150,16 +143,14 @@ pub fn pack(gradient: &core::Gradient, bounds: Rectangle) -> Packed {
 
             for (index, stop) in linear.stops.iter().enumerate() {
                 let [r, g, b, a] =
-                    color::pack(stop.map_or(Color::default(), |s| s.color))
-                        .components();
+                    color::pack(stop.map_or(Color::default(), |s| s.color)).components();
 
                 colors[index] = [
                     pack_f16s([f16::from_f32(r), f16::from_f32(g)]),
                     pack_f16s([f16::from_f32(b), f16::from_f32(a)]),
                 ];
 
-                offsets[index] = stop
-                    .map_or(f16::from_f32(2.0), |s| f16::from_f32(s.offset));
+                offsets[index] = stop.map_or(f16::from_f32(2.0), |s| f16::from_f32(s.offset));
             }
 
             let offsets = [

@@ -17,8 +17,7 @@ pub fn connect() -> impl Sipper<Never, Event> {
             const ECHO_SERVER: &str = "ws://127.0.0.1:3030";
 
             let (mut websocket, mut input) =
-                match async_tungstenite::tokio::connect_async(ECHO_SERVER).await
-                {
+                match async_tungstenite::tokio::connect_async(ECHO_SERVER).await {
                     Ok((websocket, _)) => {
                         let (sender, receiver) = mpsc::channel(100);
 
@@ -27,8 +26,7 @@ pub fn connect() -> impl Sipper<Never, Event> {
                         (websocket.fuse(), receiver)
                     }
                     Err(_) => {
-                        tokio::time::sleep(tokio::time::Duration::from_secs(1))
-                            .await;
+                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
                         continue;
                     }

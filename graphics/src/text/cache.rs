@@ -40,10 +40,8 @@ impl Cache {
         }
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
-            let metrics = cosmic_text::Metrics::new(
-                key.size,
-                key.line_height.max(f32::MIN_POSITIVE),
-            );
+            let metrics =
+                cosmic_text::Metrics::new(key.size, key.line_height.max(f32::MIN_POSITIVE));
             let mut buffer = cosmic_text::Buffer::new(font_system, metrics);
 
             buffer.set_size(
@@ -74,10 +72,9 @@ impl Cache {
                 },
             ] {
                 if key.bounds != bounds {
-                    let _ = self.aliases.insert(
-                        Key { bounds, ..key }.hash(FxHasher::default()),
-                        hash,
-                    );
+                    let _ = self
+                        .aliases
+                        .insert(Key { bounds, ..key }.hash(FxHasher::default()), hash);
                 }
             }
         }

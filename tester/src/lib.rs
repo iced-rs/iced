@@ -27,8 +27,8 @@ use crate::test::ice;
 use crate::test::instruction;
 use crate::test::{Emulator, Ice, Instruction};
 use crate::widget::{
-    button, center, column, combo_box, container, pick_list, row, rule,
-    scrollable, slider, space, stack, text, text_editor, themer,
+    button, center, column, combo_box, container, pick_list, row, rule, scrollable, slider, space,
+    stack, text, text_editor, themer,
 };
 
 use std::ops::RangeInclusive;
@@ -81,11 +81,7 @@ where
         (Tester::new(&self.program), Task::none())
     }
 
-    fn update(
-        &self,
-        state: &mut Self::State,
-        message: Self::Message,
-    ) -> Task<Self::Message> {
+    fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
         state.tick(&self.program, message.0).map(Message)
     }
 
@@ -255,11 +251,9 @@ impl<P: Program + 'static> Tester<P> {
                     return Task::none();
                 };
 
-                while let Some(Instruction::Interact(
-                    instruction::Interaction::Mouse(instruction::Mouse::Move(
-                        _,
-                    )),
-                )) = self.instructions.last()
+                while let Some(Instruction::Interact(instruction::Interaction::Mouse(
+                    instruction::Mouse::Move(_),
+                ))) = self.instructions.last()
                 {
                     let _ = self.instructions.pop();
                 }
@@ -306,8 +300,7 @@ impl<P: Program + 'static> Tester<P> {
                     .and_then(|file| {
                         task::blocking(move |mut sender| {
                             let _ = sender.try_send(Ice::parse(
-                                &fs::read_to_string(file.path())
-                                    .unwrap_or_default(),
+                                &fs::read_to_string(file.path()).unwrap_or_default(),
                             ));
                         })
                     })
@@ -336,9 +329,7 @@ impl<P: Program + 'static> Tester<P> {
                         return;
                     };
 
-                    let _ = thread::spawn(move || {
-                        fs::write(file.path(), ice.to_string())
-                    });
+                    let _ = thread::spawn(move || fs::write(file.path(), ice.to_string()));
                 })
                 .discard()
             }
@@ -415,16 +406,11 @@ impl<P: Program + 'static> Tester<P> {
             State::Recording { emulator } | State::Playing { emulator, .. } => {
                 emulator.theme(program)
             }
-            State::Asserting { state, window, .. } => {
-                program.theme(state, *window)
-            }
+            State::Asserting { state, window, .. } => program.theme(state, *window),
         }
     }
 
-    fn preset<'a>(
-        &self,
-        program: &'a P,
-    ) -> Option<&'a program::Preset<P::State, P::Message>> {
+    fn preset<'a>(&self, program: &'a P) -> Option<&'a program::Preset<P::State, P::Message>> {
         self.preset.as_ref().and_then(|preset| {
             program
                 .presets()
@@ -466,8 +452,7 @@ impl<P: Program + 'static> Tester<P> {
                         emulator::Event::Ready => {
                             *current += 1;
 
-                            if let Some(instruction) =
-                                self.instructions.get(*current - 1).cloned()
+                            if let Some(instruction) = self.instructions.get(*current - 1).cloned()
                             {
                                 emulator.run(program, instruction);
                             }
@@ -477,9 +462,7 @@ impl<P: Program + 'static> Tester<P> {
                             }
                         }
                     },
-                    State::Empty
-                    | State::Idle { .. }
-                    | State::Asserting { .. } => {}
+                    State::Empty | State::Idle { .. } | State::Asserting { .. } => {}
                 }
 
                 Task::none()
@@ -488,16 +471,13 @@ impl<P: Program + 'static> Tester<P> {
                 let mut interaction = Some(interaction);
 
                 while let Some(new_interaction) = interaction.take() {
-                    if let Some(Instruction::Interact(last_interaction)) =
-                        self.instructions.pop()
-                    {
+                    if let Some(Instruction::Interact(last_interaction)) = self.instructions.pop() {
                         let (merged_interaction, new_interaction) =
                             last_interaction.merge(new_interaction);
 
                         if let Some(new_interaction) = new_interaction {
-                            self.instructions.push(Instruction::Interact(
-                                merged_interaction,
-                            ));
+                            self.instructions
+                                .push(Instruction::Interact(merged_interaction));
 
                             self.instructions
                                 .push(Instruction::Interact(new_interaction));
@@ -520,33 +500,29 @@ impl<P: Program + 'static> Tester<P> {
                     return Task::none();
                 };
 
-                *last_interaction =
-                    if let Some(last_interaction) = last_interaction.take() {
-                        let (merged, new) = last_interaction.merge(interaction);
+                *last_interaction = if let Some(last_interaction) = last_interaction.take() {
+                    let (merged, new) = last_interaction.merge(interaction);
 
-                        Some(new.unwrap_or(merged))
-                    } else {
-                        Some(interaction)
-                    };
+                    Some(new.unwrap_or(merged))
+                } else {
+                    Some(interaction)
+                };
 
                 let Some(interaction) = last_interaction.take() else {
                     return Task::none();
                 };
 
-                let instruction::Interaction::Mouse(
-                    instruction::Mouse::Click {
-                        button: mouse::Button::Left,
-                        target: Some(instruction::Target::Text(text)),
-                    },
-                ) = interaction
+                let instruction::Interaction::Mouse(instruction::Mouse::Click {
+                    button: mouse::Button::Left,
+                    target: Some(instruction::Target::Text(text)),
+                }) = interaction
                 else {
                     *last_interaction = Some(interaction);
                     return Task::none();
                 };
 
-                self.instructions.push(Instruction::Expect(
-                    instruction::Expectation::Text(text),
-                ));
+                self.instructions
+                    .push(Instruction::Expect(instruction::Expectation::Text(text)));
 
                 Task::none()
             }
@@ -570,56 +546,39 @@ impl<P: Program + 'static> Tester<P> {
                 },
             };
 
-            container(row![icon.size(14), label].align_y(Center).spacing(8))
-                .style(|theme: &Theme| {
+            container(row![icon.size(14), label].align_y(Center).spacing(8)).style(
+                |theme: &Theme| {
                     let palette = theme.extended_palette();
 
                     container::Style {
                         text_color: Some(match &self.state {
-                            State::Empty | State::Idle { .. } => {
-                                palette.background.strongest.color
-                            }
-                            State::Recording { .. } => {
-                                palette.danger.base.color
-                            }
-                            State::Asserting { .. } => {
-                                palette.warning.base.color
-                            }
+                            State::Empty | State::Idle { .. } => palette.background.strongest.color,
+                            State::Recording { .. } => palette.danger.base.color,
+                            State::Asserting { .. } => palette.warning.base.color,
                             State::Playing { outcome, .. } => match outcome {
                                 Outcome::Running => theme.palette().primary,
                                 Outcome::Failed => theme.palette().danger,
-                                Outcome::Success => {
-                                    theme
-                                        .extended_palette()
-                                        .success
-                                        .strong
-                                        .color
-                                }
+                                Outcome::Success => theme.extended_palette().success.strong.color,
                             },
                         }),
                         ..container::Style::default()
                     }
-                })
+                },
+            )
         };
 
         let view = match &self.state {
             State::Empty => Element::from(space()),
-            State::Idle { state } => {
-                program.view(state, window).map(Tick::Program)
-            }
-            State::Recording { emulator } => {
-                recorder(emulator.view(program).map(Tick::Program))
-                    .on_record(Tick::Record)
-                    .into()
-            }
+            State::Idle { state } => program.view(state, window).map(Tick::Program),
+            State::Recording { emulator } => recorder(emulator.view(program).map(Tick::Program))
+                .on_record(Tick::Record)
+                .into(),
             State::Asserting { state, window, .. } => {
                 recorder(program.view(state, *window).map(Tick::Program))
                     .on_record(Tick::Assert)
                     .into()
             }
-            State::Playing { emulator, .. } => {
-                emulator.view(program).map(Tick::Program)
-            }
+            State::Playing { emulator, .. } => emulator.view(program).map(Tick::Program),
         };
 
         let viewport = container(
@@ -638,9 +597,7 @@ impl<P: Program + 'static> Tester<P> {
 
             container::Style {
                 border: border::width(2.0).color(match &self.state {
-                    State::Empty | State::Idle { .. } => {
-                        palette.background.strongest.color
-                    }
+                    State::Empty | State::Idle { .. } => palette.background.strongest.color,
                     State::Recording { .. } => palette.danger.base.color,
                     State::Asserting { .. } => palette.warning.weak.color,
                     State::Playing { outcome, .. } => match outcome {
@@ -655,15 +612,13 @@ impl<P: Program + 'static> Tester<P> {
         .padding(10);
 
         row![
-            center(column![status, viewport].spacing(10).align_x(Right))
-                .padding(10),
+            center(column![status, viewport].spacing(10).align_x(Right)).padding(10),
             rule::vertical(1).style(rule::weak),
             container(self.controls().map(Tick::Tester))
                 .width(250)
                 .padding(10)
-                .style(|theme| container::Style::default().background(
-                    theme.extended_palette().background.weakest.color
-                )),
+                .style(|theme| container::Style::default()
+                    .background(theme.extended_palette().background.weakest.color)),
         ]
         .into()
     }
@@ -702,13 +657,9 @@ impl<P: Program + 'static> Tester<P> {
         .size(14)
         .width(Fill);
 
-        let mode = pick_list(
-            emulator::Mode::ALL,
-            Some(self.mode),
-            Event::ModeSelected,
-        )
-        .text_size(14)
-        .width(Fill);
+        let mode = pick_list(emulator::Mode::ALL, Some(self.mode), Event::ModeSelected)
+            .text_size(14)
+            .width(Fill);
 
         let player = {
             let instructions = if let Some(edit) = &self.edit {
@@ -728,57 +679,56 @@ impl<P: Program + 'static> Tester<P> {
                 ))
             } else {
                 scrollable(
-                    column(self.instructions.iter().enumerate().map(
-                        |(i, instruction)| {
-                            text(instruction.to_string())
-                                .wrapping(text::Wrapping::None) // TODO: Ellipsize?
-                                .size(10)
-                                .font(Font::MONOSPACE)
-                                .style(move |theme: &Theme| text::Style {
-                                    color: match &self.state {
-                                        State::Playing {
-                                            current,
-                                            outcome,
-                                            ..
-                                        } => {
-                                            if *current == i + 1 {
-                                                Some(match outcome {
-                                                    Outcome::Running => {
-                                                        theme.palette().primary
-                                                    }
-                                                    Outcome::Failed => {
-                                                        theme
-                                                            .extended_palette()
-                                                            .danger
-                                                            .strong
-                                                            .color
-                                                    }
-                                                    Outcome::Success => {
+                    column(
+                        self.instructions
+                            .iter()
+                            .enumerate()
+                            .map(|(i, instruction)| {
+                                text(instruction.to_string())
+                                    .wrapping(text::Wrapping::None) // TODO: Ellipsize?
+                                    .size(10)
+                                    .font(Font::MONOSPACE)
+                                    .style(move |theme: &Theme| text::Style {
+                                        color: match &self.state {
+                                            State::Playing {
+                                                current, outcome, ..
+                                            } => {
+                                                if *current == i + 1 {
+                                                    Some(match outcome {
+                                                        Outcome::Running => theme.palette().primary,
+                                                        Outcome::Failed => {
+                                                            theme
+                                                                .extended_palette()
+                                                                .danger
+                                                                .strong
+                                                                .color
+                                                        }
+                                                        Outcome::Success => {
+                                                            theme
+                                                                .extended_palette()
+                                                                .success
+                                                                .strong
+                                                                .color
+                                                        }
+                                                    })
+                                                } else if *current > i + 1 {
+                                                    Some(
                                                         theme
                                                             .extended_palette()
                                                             .success
                                                             .strong
-                                                            .color
-                                                    }
-                                                })
-                                            } else if *current > i + 1 {
-                                                Some(
-                                                    theme
-                                                        .extended_palette()
-                                                        .success
-                                                        .strong
-                                                        .color,
-                                                )
-                                            } else {
-                                                None
+                                                            .color,
+                                                    )
+                                                } else {
+                                                    None
+                                                }
                                             }
-                                        }
-                                        _ => None,
-                                    },
-                                })
-                                .into()
-                        },
-                    ))
+                                            _ => None,
+                                        },
+                                    })
+                                    .into()
+                            }),
+                    )
                     .spacing(5),
                 )
                 .width(Fill)
@@ -792,9 +742,8 @@ impl<P: Program + 'static> Tester<P> {
             };
 
             let play = control(icon::play()).on_press_maybe(
-                (!matches!(self.state, State::Recording { .. })
-                    && !self.instructions.is_empty())
-                .then_some(Event::Play),
+                (!matches!(self.state, State::Recording { .. }) && !self.instructions.is_empty())
+                    .then_some(Event::Play),
             );
 
             let record = if let State::Recording { .. } = &self.state {
@@ -819,8 +768,7 @@ impl<P: Program + 'static> Tester<P> {
                 )
                 .style(button::success);
 
-            let controls =
-                row![import, export, play, record].height(30).spacing(10);
+            let controls = row![import, export, play, record].height(30).spacing(10);
 
             column![instructions, controls].spacing(10).align_x(Center)
         };
@@ -915,13 +863,10 @@ where
                         rail: slider::Rail {
                             backgrounds: (
                                 match status {
-                                    slider::Status::Active
-                                    | slider::Status::Dragged => {
+                                    slider::Status::Active | slider::Status::Dragged => {
                                         palette.background.strongest.color
                                     }
-                                    slider::Status::Hovered => {
-                                        palette.background.stronger.color
-                                    }
+                                    slider::Status::Hovered => palette.background.stronger.color,
                                 }
                                 .into(),
                                 Color::TRANSPARENT.into(),

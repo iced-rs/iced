@@ -94,12 +94,7 @@ impl State {
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
         if let Some(layer) = self.layers.get(layer) {
-            render_pass.set_scissor_rect(
-                bounds.x,
-                bounds.y,
-                bounds.width,
-                bounds.height,
-            );
+            render_pass.set_scissor_rect(bounds.x, bounds.y, bounds.width, bounds.height);
 
             let mut solid_offset = 0;
             let mut gradient_offset = 0;
@@ -138,22 +133,21 @@ impl State {
 
 impl Pipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Pipeline {
-        let constant_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("iced_wgpu::quad uniforms layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: wgpu::BufferSize::new(
-                            mem::size_of::<Uniforms>() as wgpu::BufferAddress,
-                        ),
-                    },
-                    count: None,
-                }],
-            });
+        let constant_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("iced_wgpu::quad uniforms layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(
+                        mem::size_of::<Uniforms>() as wgpu::BufferAddress
+                    ),
+                },
+                count: None,
+            }],
+        });
 
         Self {
             solid: solid::Pipeline::new(device, format, &constant_layout),
@@ -172,10 +166,7 @@ pub struct Layer {
 }
 
 impl Layer {
-    pub fn new(
-        device: &wgpu::Device,
-        constant_layout: &wgpu::BindGroupLayout,
-    ) -> Self {
+    pub fn new(device: &wgpu::Device, constant_layout: &wgpu::BindGroupLayout) -> Self {
         let constants_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("iced_wgpu::quad uniforms buffer"),
             size: mem::size_of::<Uniforms>() as wgpu::BufferAddress,
@@ -321,9 +312,7 @@ enum Kind {
     Gradient,
 }
 
-fn color_target_state(
-    format: wgpu::TextureFormat,
-) -> [Option<wgpu::ColorTargetState>; 1] {
+fn color_target_state(format: wgpu::TextureFormat) -> [Option<wgpu::ColorTargetState>; 1] {
     [Some(wgpu::ColorTargetState {
         format,
         blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),

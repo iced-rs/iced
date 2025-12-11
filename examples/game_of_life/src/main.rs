@@ -6,9 +6,7 @@ use grid::Grid;
 use preset::Preset;
 
 use iced::time::{self, milliseconds};
-use iced::widget::{
-    button, checkbox, column, container, pick_list, row, slider, text,
-};
+use iced::widget::{button, checkbox, column, container, pick_list, row, slider, text};
 use iced::{Center, Element, Fill, Function, Subscription, Task, Theme};
 
 pub fn main() -> iced::Result {
@@ -104,8 +102,7 @@ impl GameOfLife {
 
     fn subscription(&self) -> Subscription<Message> {
         if self.is_playing {
-            time::every(milliseconds(1000 / self.speed as u64))
-                .map(|_| Message::Tick)
+            time::every(milliseconds(1000 / self.speed as u64)).map(|_| Message::Tick)
         } else {
             Subscription::none()
         }
@@ -121,11 +118,8 @@ impl GameOfLife {
             self.grid.preset(),
         );
 
-        let content = column![
-            self.grid.view().map(Message::Grid.with(version)),
-            controls,
-        ]
-        .height(Fill);
+        let content =
+            column![self.grid.view().map(Message::Grid.with(version)), controls,].height(Fill);
 
         container(content).width(Fill).height(Fill).into()
     }
@@ -144,8 +138,7 @@ fn view_controls<'a>(
     preset: Preset,
 ) -> Element<'a, Message> {
     let playback_controls = row![
-        button(if is_playing { "Pause" } else { "Play" })
-            .on_press(Message::TogglePlayback),
+        button(if is_playing { "Pause" } else { "Play" }).on_press(Message::TogglePlayback),
         button("Next")
             .on_press(Message::Next)
             .style(button::secondary),
@@ -186,13 +179,9 @@ mod grid {
     use iced::time::{Duration, Instant};
     use iced::touch;
     use iced::widget::canvas;
-    use iced::widget::canvas::{
-        Cache, Canvas, Event, Frame, Geometry, Path, Text,
-    };
+    use iced::widget::canvas::{Cache, Canvas, Event, Frame, Geometry, Path, Text};
     use iced::widget::text;
-    use iced::{
-        Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector,
-    };
+    use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector};
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::ops::RangeInclusive;
 
@@ -255,10 +244,7 @@ mod grid {
             }
         }
 
-        pub fn tick(
-            &mut self,
-            amount: usize,
-        ) -> Option<impl Future<Output = Message> + use<>> {
+        pub fn tick(&mut self, amount: usize) -> Option<impl Future<Output = Message> + use<>> {
             let tick = self.state.tick(amount)?;
 
             self.last_queued_ticks = amount;
@@ -447,9 +433,7 @@ mod grid {
                             Interaction::Erasing => unpopulate,
                             Interaction::Panning { translation, start } => {
                                 Some(Message::Translated(
-                                    translation
-                                        + (cursor_position - start)
-                                            * (1.0 / self.scaling),
+                                    translation + (cursor_position - start) * (1.0 / self.scaling),
                                 ))
                             }
                             Interaction::None => None,
@@ -473,38 +457,29 @@ mod grid {
                                 let old_scaling = self.scaling;
 
                                 let scaling = (self.scaling * (1.0 + y / 30.0))
-                                    .clamp(
-                                        Self::MIN_SCALING,
-                                        Self::MAX_SCALING,
-                                    );
+                                    .clamp(Self::MIN_SCALING, Self::MAX_SCALING);
 
-                                let translation =
-                                    if let Some(cursor_to_center) =
-                                        cursor.position_from(bounds.center())
-                                    {
-                                        let factor = scaling - old_scaling;
+                                let translation = if let Some(cursor_to_center) =
+                                    cursor.position_from(bounds.center())
+                                {
+                                    let factor = scaling - old_scaling;
 
-                                        Some(
-                                            self.translation
-                                                - Vector::new(
-                                                    cursor_to_center.x * factor
-                                                        / (old_scaling
-                                                            * old_scaling),
-                                                    cursor_to_center.y * factor
-                                                        / (old_scaling
-                                                            * old_scaling),
-                                                ),
-                                        )
-                                    } else {
-                                        None
-                                    };
+                                    Some(
+                                        self.translation
+                                            - Vector::new(
+                                                cursor_to_center.x * factor
+                                                    / (old_scaling * old_scaling),
+                                                cursor_to_center.y * factor
+                                                    / (old_scaling * old_scaling),
+                                            ),
+                                    )
+                                } else {
+                                    None
+                                };
 
                                 Some(
-                                    canvas::Action::publish(Message::Scaled(
-                                        scaling,
-                                        translation,
-                                    ))
-                                    .and_capture(),
+                                    canvas::Action::publish(Message::Scaled(scaling, translation))
+                                        .and_capture(),
                                 )
                             } else {
                                 Some(canvas::Action::capture())
@@ -552,9 +527,9 @@ mod grid {
             let overlay = {
                 let mut frame = Frame::new(renderer, bounds.size());
 
-                let hovered_cell = cursor.position_in(bounds).map(|position| {
-                    Cell::at(self.project(position, frame.size()))
-                });
+                let hovered_cell = cursor
+                    .position_in(bounds)
+                    .map(|position| Cell::at(self.project(position, frame.size())));
 
                 if let Some(cell) = hovered_cell {
                     frame.with_save(|frame| {
@@ -607,40 +582,38 @@ mod grid {
             };
 
             if self.scaling >= 0.2 && self.show_lines {
-                let grid =
-                    self.grid_cache.draw(renderer, bounds.size(), |frame| {
-                        frame.translate(center);
-                        frame.scale(self.scaling);
-                        frame.translate(self.translation);
-                        frame.scale(Cell::SIZE);
+                let grid = self.grid_cache.draw(renderer, bounds.size(), |frame| {
+                    frame.translate(center);
+                    frame.scale(self.scaling);
+                    frame.translate(self.translation);
+                    frame.scale(Cell::SIZE);
 
-                        let region = self.visible_region(frame.size());
-                        let rows = region.rows();
-                        let columns = region.columns();
-                        let (total_rows, total_columns) =
-                            (rows.clone().count(), columns.clone().count());
-                        let width = 2.0 / Cell::SIZE as f32;
-                        let color = Color::from_rgb8(70, 74, 83);
+                    let region = self.visible_region(frame.size());
+                    let rows = region.rows();
+                    let columns = region.columns();
+                    let (total_rows, total_columns) =
+                        (rows.clone().count(), columns.clone().count());
+                    let width = 2.0 / Cell::SIZE as f32;
+                    let color = Color::from_rgb8(70, 74, 83);
 
-                        frame
-                            .translate(Vector::new(-width / 2.0, -width / 2.0));
+                    frame.translate(Vector::new(-width / 2.0, -width / 2.0));
 
-                        for row in region.rows() {
-                            frame.fill_rectangle(
-                                Point::new(*columns.start() as f32, row as f32),
-                                Size::new(total_columns as f32, width),
-                                color,
-                            );
-                        }
+                    for row in region.rows() {
+                        frame.fill_rectangle(
+                            Point::new(*columns.start() as f32, row as f32),
+                            Size::new(total_columns as f32, width),
+                            color,
+                        );
+                    }
 
-                        for column in region.columns() {
-                            frame.fill_rectangle(
-                                Point::new(column as f32, *rows.start() as f32),
-                                Size::new(width, total_rows as f32),
-                                color,
-                            );
-                        }
-                    });
+                    for column in region.columns() {
+                        frame.fill_rectangle(
+                            Point::new(column as f32, *rows.start() as f32),
+                            Size::new(width, total_rows as f32),
+                            color,
+                        );
+                    }
+                });
 
                 vec![life, grid, overlay]
             } else {
@@ -658,9 +631,7 @@ mod grid {
                 Interaction::Drawing => mouse::Interaction::Crosshair,
                 Interaction::Erasing => mouse::Interaction::Crosshair,
                 Interaction::Panning { .. } => mouse::Interaction::Grabbing,
-                Interaction::None if cursor.is_over(bounds) => {
-                    mouse::Interaction::Crosshair
-                }
+                Interaction::None if cursor.is_over(bounds) => mouse::Interaction::Crosshair,
                 Interaction::None => mouse::Interaction::default(),
             }
         }
@@ -719,8 +690,7 @@ mod grid {
         fn tick(
             &mut self,
             amount: usize,
-        ) -> Option<impl Future<Output = Result<Life, TickError>> + use<>>
-        {
+        ) -> Option<impl Future<Output = Result<Life, TickError>> + use<>> {
             if self.is_ticking {
                 return None;
             }
@@ -856,8 +826,7 @@ mod grid {
         fn rows(&self) -> RangeInclusive<isize> {
             let first_row = (self.y / Cell::SIZE as f32).floor() as isize;
 
-            let visible_rows =
-                (self.height / Cell::SIZE as f32).ceil() as isize;
+            let visible_rows = (self.height / Cell::SIZE as f32).ceil() as isize;
 
             first_row..=first_row + visible_rows
         }
@@ -865,8 +834,7 @@ mod grid {
         fn columns(&self) -> RangeInclusive<isize> {
             let first_column = (self.x / Cell::SIZE as f32).floor() as isize;
 
-            let visible_columns =
-                (self.width / Cell::SIZE as f32).ceil() as isize;
+            let visible_columns = (self.width / Cell::SIZE as f32).ceil() as isize;
 
             first_column..=first_column + visible_columns
         }
@@ -878,9 +846,7 @@ mod grid {
             let rows = self.rows();
             let columns = self.columns();
 
-            cells.filter(move |cell| {
-                rows.contains(&cell.i) && columns.contains(&cell.j)
-            })
+            cells.filter(move |cell| rows.contains(&cell.i) && columns.contains(&cell.j))
         }
     }
 

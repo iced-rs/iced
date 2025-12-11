@@ -230,9 +230,7 @@ impl<T> Subscription<T> {
 
     /// Batches all the provided subscriptions and returns the resulting
     /// [`Subscription`].
-    pub fn batch(
-        subscriptions: impl IntoIterator<Item = Subscription<T>>,
-    ) -> Self {
+    pub fn batch(subscriptions: impl IntoIterator<Item = Subscription<T>>) -> Self {
         Self {
             recipes: subscriptions
                 .into_iter()
@@ -267,10 +265,7 @@ impl<T> Subscription<T> {
                 self.recipe.hash(state);
             }
 
-            fn stream(
-                self: Box<Self>,
-                input: EventStream,
-            ) -> BoxStream<Self::Output> {
+            fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
                 use futures::StreamExt;
 
                 let value = self.value;
@@ -331,10 +326,7 @@ impl<T> Subscription<T> {
                 self.recipe.hash(state);
             }
 
-            fn stream(
-                self: Box<Self>,
-                input: EventStream,
-            ) -> BoxStream<Self::Output> {
+            fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
                 use futures::StreamExt;
 
                 Box::pin(self.recipe.stream(input).map(self.mapper))
@@ -390,10 +382,7 @@ impl<T> Subscription<T> {
                 self.recipe.hash(state);
             }
 
-            fn stream(
-                self: Box<Self>,
-                input: EventStream,
-            ) -> BoxStream<Self::Output> {
+            fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
                 use futures::StreamExt;
                 use futures::future;
 
@@ -428,18 +417,14 @@ impl<T> Subscription<T> {
 }
 
 /// Creates a [`Subscription`] from a [`Recipe`] describing it.
-pub fn from_recipe<T>(
-    recipe: impl Recipe<Output = T> + 'static,
-) -> Subscription<T> {
+pub fn from_recipe<T>(recipe: impl Recipe<Output = T> + 'static) -> Subscription<T> {
     Subscription {
         recipes: vec![Box::new(recipe)],
     }
 }
 
 /// Returns the different recipes of the [`Subscription`].
-pub fn into_recipes<T>(
-    subscription: Subscription<T>,
-) -> Vec<Box<dyn Recipe<Output = T>>> {
+pub fn into_recipes<T>(subscription: Subscription<T>) -> Vec<Box<dyn Recipe<Output = T>>> {
     subscription.recipes
 }
 

@@ -181,13 +181,7 @@ pub fn run(
     for (file, ice, preset) in tests {
         let (sender, mut receiver) = mpsc::channel(1);
 
-        let mut emulator = Emulator::with_preset(
-            sender,
-            &program,
-            ice.mode,
-            ice.viewport,
-            preset,
-        );
+        let mut emulator = Emulator::with_preset(sender, &program, ice.mode, ice.viewport, preset);
 
         let mut instructions = ice.instructions.into_iter();
 
@@ -232,12 +226,7 @@ pub fn screenshot<P: program::Program + 'static>(
 
     let (sender, mut receiver) = mpsc::channel(100);
 
-    let mut emulator = Emulator::new(
-        sender,
-        program,
-        emulator::Mode::Immediate,
-        viewport.into(),
-    );
+    let mut emulator = Emulator::new(sender, program, emulator::Mode::Immediate, viewport.into());
 
     let start = Instant::now();
 
@@ -248,9 +237,7 @@ pub fn screenshot<P: program::Program + 'static>(
                     emulator.perform(program, action);
                 }
                 emulator::Event::Failed(_) => {
-                    unreachable!(
-                        "no instructions should be executed during a screenshot"
-                    );
+                    unreachable!("no instructions should be executed during a screenshot");
                 }
                 emulator::Event::Ready => {}
             }

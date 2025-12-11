@@ -57,12 +57,7 @@ where
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
     /// its `Size` on the [`Frame`] by filling it with the provided style.
-    pub fn fill_rectangle(
-        &mut self,
-        top_left: Point,
-        size: Size,
-        fill: impl Into<Fill>,
-    ) {
+    pub fn fill_rectangle(&mut self, top_left: Point, size: Size, fill: impl Into<Fill>) {
         self.raw.fill_rectangle(top_left, size, fill);
     }
 
@@ -138,11 +133,7 @@ where
     /// This method is useful to perform drawing operations that need to be
     /// clipped.
     #[inline]
-    pub fn with_clip<R>(
-        &mut self,
-        region: Rectangle,
-        f: impl FnOnce(&mut Self) -> R,
-    ) -> R {
+    pub fn with_clip<R>(&mut self, region: Rectangle, f: impl FnOnce(&mut Self) -> R) -> R {
         let mut frame = self.draft(region);
 
         let result = f(&mut frame);
@@ -218,26 +209,12 @@ pub trait Backend: Sized {
     fn paste(&mut self, frame: Self);
 
     fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>);
-    fn stroke_rectangle<'a>(
-        &mut self,
-        top_left: Point,
-        size: Size,
-        stroke: impl Into<Stroke<'a>>,
-    );
-    fn stroke_text<'a>(
-        &mut self,
-        text: impl Into<Text>,
-        stroke: impl Into<Stroke<'a>>,
-    );
+    fn stroke_rectangle<'a>(&mut self, top_left: Point, size: Size, stroke: impl Into<Stroke<'a>>);
+    fn stroke_text<'a>(&mut self, text: impl Into<Text>, stroke: impl Into<Stroke<'a>>);
 
     fn fill(&mut self, path: &Path, fill: impl Into<Fill>);
     fn fill_text(&mut self, text: impl Into<Text>);
-    fn fill_rectangle(
-        &mut self,
-        top_left: Point,
-        size: Size,
-        fill: impl Into<Fill>,
-    );
+    fn fill_rectangle(&mut self, top_left: Point, size: Size, fill: impl Into<Fill>);
 
     fn draw_image(&mut self, bounds: Rectangle, image: impl Into<Image>);
     fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>);
@@ -284,22 +261,11 @@ impl Backend for () {
         _stroke: impl Into<Stroke<'a>>,
     ) {
     }
-    fn stroke_text<'a>(
-        &mut self,
-        _text: impl Into<Text>,
-        _stroke: impl Into<Stroke<'a>>,
-    ) {
-    }
+    fn stroke_text<'a>(&mut self, _text: impl Into<Text>, _stroke: impl Into<Stroke<'a>>) {}
 
     fn fill(&mut self, _path: &Path, _fill: impl Into<Fill>) {}
     fn fill_text(&mut self, _text: impl Into<Text>) {}
-    fn fill_rectangle(
-        &mut self,
-        _top_left: Point,
-        _size: Size,
-        _fill: impl Into<Fill>,
-    ) {
-    }
+    fn fill_rectangle(&mut self, _top_left: Point, _size: Size, _fill: impl Into<Fill>) {}
 
     fn draw_image(&mut self, _bounds: Rectangle, _image: impl Into<Image>) {}
     fn draw_svg(&mut self, _bounds: Rectangle, _svg: impl Into<Svg>) {}
