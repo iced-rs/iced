@@ -16,8 +16,7 @@ struct Text {
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    ScaleFactorChanged(f32),
-    WindowResized,
+    WindowRescaled(f32),
     FontChanged(Font),
 }
 
@@ -37,20 +36,17 @@ impl Text {
             },
             window::latest()
                 .and_then(window::scale_factor)
-                .map(Message::ScaleFactorChanged),
+                .map(Message::WindowRescaled),
         )
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::ScaleFactorChanged(scale_factor) => {
+            Message::WindowRescaled(scale_factor) => {
                 self.scale_factor = scale_factor;
 
                 Task::none()
             }
-            Message::WindowResized => window::latest()
-                .and_then(window::scale_factor)
-                .map(Message::ScaleFactorChanged),
             Message::FontChanged(font) => {
                 self.font = font;
 
@@ -61,11 +57,11 @@ impl Text {
 
     fn subscription(&self) -> Subscription<Message> {
         event::listen_with(|event, _, _| {
-            let Event::Window(window::Event::Resized(_)) = event else {
+            let Event::Window(window::Event::Rescaled(scale_factor)) = event else {
                 return None;
             };
 
-            Some(Message::WindowResized)
+            Some(Message::WindowRescaled(scale_factor))
         })
     }
 
