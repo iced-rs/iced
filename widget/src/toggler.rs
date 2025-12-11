@@ -426,8 +426,12 @@ where
 
         let toggler_foreground_bounds = {
             // Try to align toggle to the pixel grid
-            let scale_factor = renderer.scale_factor().unwrap_or(1.0);
-            let bounds = bounds * scale_factor;
+            let (bounds, scale_factor) = if let Some(scale_factor) = renderer.scale_factor() {
+                ((bounds * scale_factor).round(), scale_factor)
+            } else {
+                (bounds, 1.0)
+            };
+
             let padding = (style.padding_ratio * bounds.height).round();
 
             Rectangle {
