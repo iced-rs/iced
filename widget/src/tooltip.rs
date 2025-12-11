@@ -1,7 +1,7 @@
 //! Tooltips display a hint of information over some element when hovered.
 //!
-//! By default, the tooltip is only displayed when hovered for 2 seconds.
-//! This delay can be adjusted with [`Tooltip::delay`].
+//! By default, the tooltip is displayed immediately, however, this can be adjusted
+//! with [`Tooltip::delay`].
 //!
 //! # Example
 //! ```no_run
