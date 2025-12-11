@@ -758,9 +758,6 @@ async fn run_instance<P>(
                         if window.surface_version != window.state.surface_version() {
                             let ui = user_interfaces.remove(&id).expect("Remove user interface");
 
-                            #[cfg(feature = "hinting")]
-                            window.renderer.hint(window.state.scale_factor());
-
                             let layout_span = debug::layout(id);
                             let _ = user_interfaces
                                 .insert(id, ui.relayout(logical_size, &mut window.renderer));
@@ -1692,6 +1689,9 @@ where
 {
     for (id, window) in window_manager.iter_mut() {
         window.state.synchronize(program, id, &window.raw);
+
+        #[cfg(feature = "hinting")]
+        window.renderer.hint(window.state.scale_factor());
     }
 
     debug::theme_changed(|| {
