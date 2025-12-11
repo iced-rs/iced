@@ -45,7 +45,6 @@ pub struct Renderer {
     default_text_size: Pixels,
     layers: layer::Stack,
     engine: Engine, // TODO: Shared engine
-    scale_factor: Option<f32>,
 }
 
 impl Renderer {
@@ -55,7 +54,6 @@ impl Renderer {
             default_text_size,
             layers: layer::Stack::new(),
             engine: Engine::new(),
-            scale_factor: None,
         }
     }
 
@@ -233,12 +231,13 @@ impl core::Renderer for Renderer {
         callback(Err(core::image::Error::Unsupported));
     }
 
-    fn hint(&mut self, scale_factor: f32) {
-        self.scale_factor = Some(scale_factor);
+    fn hint(&mut self, _scale_factor: f32) {
+        // TODO: No hinting supported
+        // We'll replace `tiny-skia` with `vello_cpu` soon
     }
 
     fn scale_factor(&self) -> Option<f32> {
-        self.scale_factor
+        None
     }
 }
 

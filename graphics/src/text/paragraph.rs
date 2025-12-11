@@ -467,7 +467,6 @@ impl Default for Internal {
                 font_size: 1.0,
                 line_height: 1.0,
             }),
-            hint_factor: 1.0,
             font: Font::default(),
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
@@ -477,6 +476,7 @@ impl Default for Internal {
             min_bounds: Size::ZERO,
             version: text::Version::default(),
             hint: false,
+            hint_factor: 1.0,
         }
     }
 }
