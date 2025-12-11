@@ -93,7 +93,7 @@ pub fn window_attributes(
     {
         use window::settings::platform;
         use winit::platform::windows::{
-            CornerPreference, WindowAttributesExtWindows,
+            BackdropType, CornerPreference, WindowAttributesExtWindows,
         };
 
         attributes = attributes
@@ -120,6 +120,11 @@ pub fn window_attributes(
                 }
             },
         );
+
+        if settings.blur {
+            attributes =
+                attributes.with_system_backdrop(BackdropType::TransientWindow);
+        }
     }
 
     #[cfg(target_os = "macos")]
