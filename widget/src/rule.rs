@@ -142,7 +142,7 @@ where
         let style = theme.style(&self.class);
 
         let bounds = if self.is_vertical {
-            let line_x = bounds.x.round();
+            let line_x = bounds.x;
 
             let (offset, line_height) = style.fill_mode.fill(bounds.height);
             let line_y = bounds.y + offset;
@@ -154,7 +154,7 @@ where
                 height: line_height,
             }
         } else {
-            let line_y = bounds.y.round();
+            let line_y = bounds.y;
 
             let (offset, line_width) = style.fill_mode.fill(bounds.width);
             let line_x = bounds.x + offset;
@@ -165,6 +165,18 @@ where
                 width: line_width,
                 height: bounds.height,
             }
+        };
+
+        let bounds = if style.snap {
+            let scale_factor = renderer.scale_factor().unwrap_or(1.0);
+            let mut physical_bounds = (bounds * scale_factor).round();
+
+            physical_bounds.width = physical_bounds.width.max(1.0);
+            physical_bounds.height = physical_bounds.height.max(1.0);
+
+            physical_bounds * (1.0 / scale_factor)
+        } else {
+            bounds
         };
 
         renderer.fill_quad(
