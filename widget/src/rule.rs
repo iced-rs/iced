@@ -141,7 +141,7 @@ where
         let bounds = layout.bounds();
         let style = theme.style(&self.class);
 
-        let bounds = if self.is_vertical {
+        let mut bounds = if self.is_vertical {
             let line_x = bounds.x;
 
             let (offset, line_height) = style.fill_mode.fill(bounds.height);
@@ -167,17 +167,12 @@ where
             }
         };
 
-        let bounds = if style.snap {
-            let scale_factor = renderer.scale_factor().unwrap_or(1.0);
-            let mut physical_bounds = (bounds * scale_factor).round();
+        if style.snap {
+            let unit = 1.0 / renderer.scale_factor().unwrap_or(1.0);
 
-            physical_bounds.width = physical_bounds.width.max(1.0);
-            physical_bounds.height = physical_bounds.height.max(1.0);
-
-            physical_bounds * (1.0 / scale_factor)
-        } else {
-            bounds
-        };
+            bounds.width = bounds.width.max(unit);
+            bounds.height = bounds.height.max(unit);
+        }
 
         renderer.fill_quad(
             renderer::Quad {
