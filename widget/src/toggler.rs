@@ -426,7 +426,9 @@ where
 
         let toggler_foreground_bounds = {
             // Try to align toggle to the pixel grid
-            let (bounds, scale_factor) = if let Some(scale_factor) = renderer.scale_factor() {
+            let (bounds, scale_factor) = if renderer::CRISP
+                && let Some(scale_factor) = renderer.scale_factor()
+            {
                 ((bounds * scale_factor).round(), scale_factor)
             } else {
                 (bounds, 1.0)

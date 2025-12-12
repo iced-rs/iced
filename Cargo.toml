@@ -62,7 +62,7 @@ sysinfo = ["iced_winit/sysinfo"]
 # Enables broken "sRGB linear" blending to reproduce color management of the Web
 web-colors = ["iced_renderer/web-colors"]
 # Enables pixel snapping for crisp edges by default (can cause jitter!)
-crisp = ["iced_core/crisp", "iced_widget/crisp"]
+crisp = ["iced_core/crisp"]
 # Enables the WebGL backend
 webgl = ["iced_renderer/webgl"]
 # Enables syntax highlighting

@@ -7,6 +7,10 @@ use crate::{
     Background, Border, Color, Font, Pixels, Rectangle, Shadow, Size, Transformation, Vector,
 };
 
+/// Whether anti-aliasing should be avoided by snapping primitive coordinates to the
+/// pixel grid.
+pub const CRISP: bool = cfg!(feature = "crisp");
+
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer {
     /// Starts recording a new layer.
@@ -95,7 +99,7 @@ impl Default for Quad {
             bounds: Rectangle::with_size(Size::ZERO),
             border: Border::default(),
             shadow: Shadow::default(),
-            snap: cfg!(feature = "crisp"),
+            snap: CRISP,
         }
     }
 }
