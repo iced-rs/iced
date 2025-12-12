@@ -756,6 +756,9 @@ async fn run_instance<P>(
 
                         // Window was resized between redraws
                         if window.surface_version != window.state.surface_version() {
+                            #[cfg(feature = "hinting")]
+                            window.renderer.hint(window.state.scale_factor());
+
                             let ui = user_interfaces.remove(&id).expect("Remove user interface");
 
                             let layout_span = debug::layout(id);
