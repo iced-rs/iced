@@ -480,9 +480,13 @@ where
                         Some((
                             renderer::Quad {
                                 bounds: Rectangle {
-                                    x: (text_bounds.x + text_value_width).floor(),
+                                    x: text_bounds.x + text_value_width,
                                     y: text_bounds.y,
-                                    width: 1.0,
+                                    width: if renderer::CRISP {
+                                        (1.0 / renderer.scale_factor().unwrap_or(1.0)).max(1.0)
+                                    } else {
+                                        1.0
+                                    },
                                     height: text_bounds.height,
                                 },
                                 ..renderer::Quad::default()

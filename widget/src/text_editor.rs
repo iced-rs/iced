@@ -950,7 +950,11 @@ where
                     let cursor = Rectangle::new(
                         position + translation,
                         Size::new(
-                            1.0,
+                            if renderer::CRISP {
+                                (1.0 / renderer.scale_factor().unwrap_or(1.0)).max(1.0)
+                            } else {
+                                1.0
+                            },
                             self.line_height
                                 .to_absolute(
                                     self.text_size.unwrap_or_else(|| renderer.default_size()),
