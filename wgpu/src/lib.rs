@@ -676,7 +676,7 @@ impl core::Renderer for Renderer {
     }
 
     fn scale_factor(&self) -> Option<f32> {
-        self.scale_factor
+        Some(self.scale_factor? * self.layers.transformation().scale_factor())
     }
 }
 
