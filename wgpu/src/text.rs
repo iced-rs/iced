@@ -501,11 +501,11 @@ fn prepare(
                     transformation,
                     ..
                 } => {
+                    use crate::core::text::Paragraph as _;
+
                     let Some(Allocation::Paragraph(paragraph)) = allocation else {
                         return None;
                     };
-
-                    use crate::core::text::Paragraph as _;
 
                     (
                         paragraph.buffer(),
@@ -523,13 +523,15 @@ fn prepare(
                     transformation,
                     ..
                 } => {
+                    use crate::core::text::Editor as _;
+
                     let Some(Allocation::Editor(editor)) = allocation else {
                         return None;
                     };
 
                     (
                         editor.buffer(),
-                        None,
+                        editor.hint_factor(),
                         *position,
                         *color,
                         *clip_bounds,

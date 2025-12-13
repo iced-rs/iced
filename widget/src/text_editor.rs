@@ -619,6 +619,7 @@ where
             self.text_size.unwrap_or_else(|| renderer.default_size()),
             self.line_height,
             self.wrapping,
+            renderer.scale_factor(),
             state.highlighter.borrow_mut().deref_mut(),
         );
 

@@ -194,6 +194,10 @@ impl text::Editor for () {
         Size::ZERO
     }
 
+    fn hint_factor(&self) -> Option<f32> {
+        None
+    }
+
     fn min_bounds(&self) -> Size {
         Size::ZERO
     }
@@ -205,6 +209,7 @@ impl text::Editor for () {
         _new_size: Pixels,
         _new_line_height: text::LineHeight,
         _new_wrapping: text::Wrapping,
+        _new_hint_factor: Option<f32>,
         _new_highlighter: &mut impl text::Highlighter,
     ) {
     }

@@ -45,6 +45,9 @@ pub trait Editor: Sized + Default {
     /// the [`Editor`].
     fn min_bounds(&self) -> Size;
 
+    /// Returns the hint factor of the [`Editor`].
+    fn hint_factor(&self) -> Option<f32>;
+
     /// Updates the [`Editor`] with some new attributes.
     fn update(
         &mut self,
@@ -53,6 +56,7 @@ pub trait Editor: Sized + Default {
         new_size: Pixels,
         new_line_height: LineHeight,
         new_wrapping: Wrapping,
+        new_hint_factor: Option<f32>,
         new_highlighter: &mut impl Highlighter,
     );
 
