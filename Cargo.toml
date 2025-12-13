@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool", "linux-theme-detection", "x11", "wayland"]
+default = ["wgpu", "tiny-skia", "crisp", "hinting", "web-colors", "thread-pool", "linux-theme-detection", "x11", "wayland"]
 # Enables the `wgpu` GPU-accelerated renderer with all its default features (Vulkan, Metal, DX12, OpenGL, and WebGPU)
 wgpu = ["wgpu-bare", "iced_renderer/wgpu"]
 # Enables the `wgpu` GPU-accelerated renderer with the minimum required features (no backends!)
@@ -62,7 +62,7 @@ sysinfo = ["iced_winit/sysinfo"]
 # Enables broken "sRGB linear" blending to reproduce color management of the Web
 web-colors = ["iced_renderer/web-colors"]
 # Enables pixel snapping for crisp edges by default (can cause jitter!)
-crisp = ["iced_core/crisp", "iced_widget/crisp"]
+crisp = ["iced_core/crisp"]
 # Enables the WebGL backend
 webgl = ["iced_renderer/webgl"]
 # Enables syntax highlighting
@@ -77,6 +77,8 @@ fira-sans = ["iced_renderer/fira-sans"]
 basic-shaping = ["iced_core/basic-shaping"]
 # Enables advanced text shaping by default
 advanced-shaping = ["iced_core/advanced-shaping"]
+# Enables rendering hints (e.g. metrics hinting)
+hinting = ["iced_winit/hinting"]
 # Enables strict assertions for debugging purposes at the expense of performance
 strict-assertions = ["iced_renderer/strict-assertions"]
 # Redraws on every runtime event, and not only when a widget requests it
@@ -190,8 +192,8 @@ bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cargo-hot = { version = "0.1", package = "cargo-hot-protocol" }
-cosmic-text = "0.15"
-cryoglyph = "0.1"
+cosmic-text = { git = "https://github.com/pop-os/cosmic-text.git", rev = "a07a6190548c8e40a55f6b7761387047ff1bf6ff" }
+cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "89883bcf38b5bed0d7bade788ef738d9facc857c" }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 glam = "0.25"
 guillotiere = "0.6"

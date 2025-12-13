@@ -238,23 +238,32 @@ impl Rectangle<f32> {
         }
     }
 
+    /// Rounds the [`Rectangle`] coordinates.
+    pub fn round(self) -> Self {
+        let top_left = self.position().round();
+        let bottom_right = (self.position() + Vector::from(self.size())).round();
+
+        Self {
+            x: top_left.x,
+            y: top_left.y,
+            width: bottom_right.x - top_left.x,
+            height: bottom_right.y - top_left.y,
+        }
+    }
+
     /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
     pub fn snap(self) -> Option<Rectangle<u32>> {
-        let top_left = self.position().snap();
-        let bottom_right = (self.position() + Vector::from(self.size())).snap();
+        let rounded = self.round();
 
-        let width = bottom_right.x.checked_sub(top_left.x)?;
-        let height = bottom_right.y.checked_sub(top_left.y)?;
-
-        if width < 1 || height < 1 {
+        if rounded.width < 1.0 || rounded.height < 1.0 {
             return None;
         }
 
         Some(Rectangle {
-            x: top_left.x,
-            y: top_left.y,
-            width,
-            height,
+            x: rounded.x as u32,
+            y: rounded.y as u32,
+            width: rounded.width as u32,
+            height: rounded.height as u32,
         })
     }
 

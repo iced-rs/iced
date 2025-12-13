@@ -18,6 +18,14 @@ impl<T> Vector<T> {
 impl Vector {
     /// The zero [`Vector`].
     pub const ZERO: Self = Self::new(0.0, 0.0);
+
+    /// Rounds the [`Vector`].
+    pub fn round(self) -> Self {
+        Self {
+            x: self.x.round(),
+            y: self.y.round(),
+        }
+    }
 }
 
 impl<T> std::ops::Neg for Vector<T>

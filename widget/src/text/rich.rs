@@ -462,6 +462,7 @@ where
             align_y,
             shaping: Shaping::Advanced,
             wrapping,
+            hint_factor: renderer.scale_factor(),
         };
 
         if state.spans != spans {
@@ -478,6 +479,7 @@ where
                 align_y,
                 shaping: Shaping::Advanced,
                 wrapping,
+                hint_factor: renderer.scale_factor(),
             }) {
                 core::text::Difference::None => {}
                 core::text::Difference::Bounds => {

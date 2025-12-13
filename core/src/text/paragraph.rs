@@ -24,6 +24,9 @@ pub trait Paragraph: Sized + Default {
     /// Returns the text size of the [`Paragraph`] in [`Pixels`].
     fn size(&self) -> Pixels;
 
+    /// Returns the hint factor of the [`Paragraph`].
+    fn hint_factor(&self) -> Option<f32>;
+
     /// Returns the font of the [`Paragraph`].
     fn font(&self) -> Self::Font;
 
@@ -165,6 +168,7 @@ impl<P: Paragraph> Plain<P> {
             align_y: self.raw.align_y(),
             shaping: self.raw.shaping(),
             wrapping: self.raw.wrapping(),
+            hint_factor: self.raw.hint_factor(),
         }
     }
 }

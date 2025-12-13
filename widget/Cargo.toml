@@ -27,7 +27,6 @@ wgpu = ["iced_renderer/wgpu-bare"]
 markdown = ["dep:pulldown-cmark"]
 highlighter = ["dep:iced_highlighter"]
 advanced = []
-crisp = []
 
 [dependencies]
 iced_renderer.workspace = true

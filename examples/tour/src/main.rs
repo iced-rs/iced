@@ -296,7 +296,7 @@ impl Tour {
         let size_section = column![
             "You can change its size:",
             text!("This text is {size} pixels").size(size),
-            slider(10..=70, size, Message::TextSizeChanged),
+            slider(3..=70, size, Message::TextSizeChanged),
         ]
         .padding(20)
         .spacing(20);

@@ -357,6 +357,7 @@ where
             align_y: alignment::Vertical::Center,
             shaping: self.text_shaping,
             wrapping: text::Wrapping::default(),
+            hint_factor: renderer.scale_factor(),
         };
 
         for (option, paragraph) in options.iter().zip(state.options.iter_mut()) {
@@ -620,6 +621,7 @@ where
                     align_y: alignment::Vertical::Center,
                     shaping,
                     wrapping: text::Wrapping::default(),
+                    hint_factor: None,
                 },
                 Point::new(
                     bounds.x + bounds.width - self.padding.right,
@@ -649,6 +651,7 @@ where
                     align_y: alignment::Vertical::Center,
                     shaping: self.text_shaping,
                     wrapping: text::Wrapping::default(),
+                    hint_factor: renderer.scale_factor(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if selected.is_some() {

@@ -424,17 +424,29 @@ where
             style.background,
         );
 
-        let padding = (style.padding_ratio * bounds.height).round();
-        let toggler_foreground_bounds = Rectangle {
-            x: bounds.x
-                + if self.is_toggled {
-                    bounds.width - bounds.height + padding
-                } else {
-                    padding
-                },
-            y: bounds.y + padding,
-            width: bounds.height - (2.0 * padding),
-            height: bounds.height - (2.0 * padding),
+        let toggler_foreground_bounds = {
+            // Try to align toggle to the pixel grid
+            let (bounds, scale_factor) = if renderer::CRISP
+                && let Some(scale_factor) = renderer.scale_factor()
+            {
+                ((bounds * scale_factor).round(), scale_factor)
+            } else {
+                (bounds, 1.0)
+            };
+
+            let padding = (style.padding_ratio * bounds.height).round();
+
+            Rectangle {
+                x: bounds.x
+                    + if self.is_toggled {
+                        bounds.width - bounds.height + padding
+                    } else {
+                        padding
+                    },
+                y: bounds.y + padding,
+                width: bounds.height - (2.0 * padding),
+                height: bounds.height - (2.0 * padding),
+            } * (1.0 / scale_factor)
         };
 
         renderer.fill_quad(
