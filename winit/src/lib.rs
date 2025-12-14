@@ -1069,7 +1069,7 @@ async fn run_instance<P>(
                                 }
                             });
 
-                            if window_events.is_empty() && messages.is_empty() {
+                            if window_events.is_empty() {
                                 continue;
                             }
 
