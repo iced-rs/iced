@@ -268,7 +268,17 @@ where
             } else {
                 0.0
             },
-            |_| layout::Node::new(Size::new(2.0 * self.size, self.size)),
+            |_| {
+                let size = if renderer::CRISP {
+                    let scale_factor = renderer.scale_factor().unwrap_or(1.0);
+
+                    (self.size * scale_factor).round() / scale_factor
+                } else {
+                    self.size
+                };
+
+                layout::Node::new(Size::new(2.0 * size, size))
+            },
             |limits| {
                 if let Some(label) = self.label.as_deref() {
                     let state = tree
@@ -406,7 +416,9 @@ where
             );
         }
 
+        let scale_factor = renderer.scale_factor().unwrap_or(1.0);
         let bounds = toggler_layout.bounds();
+
         let border_radius = style
             .border_radius
             .unwrap_or_else(|| border::Radius::new(bounds.height / 2.0));
@@ -424,14 +436,12 @@ where
             style.background,
         );
 
-        let toggler_foreground_bounds = {
+        let toggle_bounds = {
             // Try to align toggle to the pixel grid
-            let (bounds, scale_factor) = if renderer::CRISP
-                && let Some(scale_factor) = renderer.scale_factor()
-            {
-                ((bounds * scale_factor).round(), scale_factor)
+            let bounds = if renderer::CRISP {
+                (bounds * scale_factor).round()
             } else {
-                (bounds, 1.0)
+                bounds
             };
 
             let padding = (style.padding_ratio * bounds.height).round();
@@ -451,7 +461,7 @@ where
 
         renderer.fill_quad(
             renderer::Quad {
-                bounds: toggler_foreground_bounds,
+                bounds: toggle_bounds,
                 border: Border {
                     radius: border_radius,
                     width: style.foreground_border_width,
