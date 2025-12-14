@@ -130,10 +130,9 @@ impl Styling {
 
         let toggle = toggler(self.toggler_value)
             .label("Toggle me!")
-            .on_toggle(Message::TogglerToggled)
-            .spacing(10);
+            .on_toggle(Message::TogglerToggled);
 
-        let disabled_toggle = toggler(self.toggler_value).label("Disabled").spacing(10);
+        let disabled_toggle = toggler(self.toggler_value).label("Disabled");
 
         let card = {
             container(column![text("Card Example").size(24), slider(), progress_bar(),].spacing(20))
@@ -152,7 +151,7 @@ impl Styling {
             row![
                 scroll_me,
                 rule::vertical(1),
-                column![check, check_disabled, toggle, disabled_toggle].spacing(10)
+                column![check, check_disabled, toggle, disabled_toggle].spacing(10),
             ]
             .spacing(10)
             .height(Shrink)

@@ -7,6 +7,10 @@ use crate::{
     Background, Border, Color, Font, Pixels, Rectangle, Shadow, Size, Transformation, Vector,
 };
 
+/// Whether anti-aliasing should be avoided by snapping primitive coordinates to the
+/// pixel grid.
+pub const CRISP: bool = cfg!(feature = "crisp");
+
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer {
     /// Starts recording a new layer.
@@ -58,6 +62,19 @@ pub trait Renderer {
         handle: &image::Handle,
         callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     );
+
+    /// Provides hints to the [`Renderer`] about the rendering target.
+    ///
+    /// This may be used internally by the [`Renderer`] to perform optimizations
+    /// and/or improve rendering quality.
+    ///
+    /// For instance, providing a `scale_factor` may be used by some renderers to
+    /// perform metrics hinting internally in physical coordinates while keeping
+    /// layout coordinates logical and, therefore, maintain linearity.
+    fn hint(&mut self, scale_factor: f32);
+
+    /// Returns the last scale factor provided as a [`hint`](Self::hint).
+    fn scale_factor(&self) -> Option<f32>;
 }
 
 /// A polygon with four sides.
@@ -82,7 +99,7 @@ impl Default for Quad {
             bounds: Rectangle::with_size(Size::ZERO),
             border: Border::default(),
             shadow: Shadow::default(),
-            snap: cfg!(feature = "crisp"),
+            snap: CRISP,
         }
     }
 }

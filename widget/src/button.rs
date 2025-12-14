@@ -497,7 +497,7 @@ impl Default for Style {
             text_color: Color::BLACK,
             border: Border::default(),
             shadow: Shadow::default(),
-            snap: cfg!(feature = "crisp"),
+            snap: renderer::CRISP,
         }
     }
 }
