@@ -609,9 +609,9 @@ fn prepare(
                     + if font_size.is_multiple_of(2) {
                         0.25
                     } else if font_size.is_multiple_of(5) {
-                        0.55 // Deliberately avoid 0.5 to circumvent erratic rounding due to floating precision errors
+                        -0.45 // Deliberately avoid 0.5 to circumvent erratic rounding due to floating precision errors
                     } else {
-                        0.75
+                        -0.25
                     };
 
                 scale /= hint_factor;
