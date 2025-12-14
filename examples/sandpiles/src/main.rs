@@ -70,12 +70,14 @@ impl Sandpiles {
 #[derive(Debug)]
 struct Grid {
     sand: HashMap<Cell, u32>,
+    saturated: HashSet<Cell>,
 }
 
 impl Grid {
     pub fn new() -> Self {
         Self {
             sand: HashMap::new(),
+            saturated: HashSet::new(),
         }
     }
 
@@ -83,21 +85,27 @@ impl Grid {
         let grains = self.sand.entry(cell).or_default();
 
         *grains += amount;
+
+        if *grains >= 4 {
+            self.saturated.insert(cell);
+        }
     }
 
     pub fn topple(&mut self) {
         loop {
-            let Some((cell, grains)) = self.sand.iter_mut().find(|(_, grains)| **grains >= 4)
-            else {
+            let Some(cell) = self.saturated.iter().next().copied() else {
                 return;
             };
 
+            let grains = self.sand.entry(cell).or_default();
             let amount = *grains / 4;
             *grains %= 4;
 
             for neighbor in cell.neighbors() {
-                *self.sand.entry(neighbor).or_default() += amount;
+                self.add(neighbor, amount);
             }
+
+            let _ = self.saturated.remove(&cell);
         }
     }
 }
