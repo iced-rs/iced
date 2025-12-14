@@ -177,8 +177,8 @@ impl canvas::Program<Message> for Viewer<'_> {
             let cells_x = (frame.width() / Self::CELL_SIZE).ceil() as isize;
             let cells_y = (frame.height() / Self::CELL_SIZE).ceil() as isize;
 
-            let rows = -cells_x / 2..cells_x / 2;
-            let columns = -cells_y / 2..cells_y / 2;
+            let rows = -cells_x / 2..=cells_x / 2;
+            let columns = -cells_y / 2..=cells_y / 2;
 
             frame.translate(
                 frame.center()
