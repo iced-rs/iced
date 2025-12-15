@@ -27,7 +27,16 @@ impl Sandpiles {
     fn new() -> Self {
         Self {
             grid: Grid::new(),
-            sandfalls: HashSet::from_iter([Cell::ORIGIN]),
+            sandfalls: HashSet::from_iter(
+                std::iter::once(Cell::ORIGIN).chain(
+                    [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+                        .iter()
+                        .map(|(i, j)| Cell {
+                            row: 10 * i,
+                            column: 10 * j,
+                        }),
+                ),
+            ),
             cache: canvas::Cache::new(),
         }
     }
