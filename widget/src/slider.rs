@@ -259,28 +259,34 @@ where
             let locate = |cursor_position: Point| -> Option<T> {
                 let bounds = layout.bounds();
 
-                if cursor_position.x <= bounds.x {
-                    Some(*self.range.start())
-                } else if cursor_position.x >= bounds.x + bounds.width {
-                    Some(*self.range.end())
-                } else {
-                    let step = if state.keyboard_modifiers.shift() {
-                        self.shift_step.unwrap_or(self.step)
-                    } else {
-                        self.step
-                    }
-                    .into();
+                // FIX ME: Get real handle border radius from somewhere.
+                let handle_radius = 7.0;
 
-                    let start = (*self.range.start()).into();
-                    let end = (*self.range.end()).into();
+                let track_start = bounds.x + handle_radius;
+                let track_end = bounds.x + bounds.width - handle_radius;
+                let track_width = track_end - track_start;
 
-                    let percent = f64::from(cursor_position.x - bounds.x) / f64::from(bounds.width);
-
-                    let steps = (percent * (end - start) / step).round();
-                    let value = steps * step + start;
-
-                    T::from_f64(value.min(end))
+                if track_width <= 0.0 {
+                    return Some(*self.range.start());
                 }
+
+                let x = cursor_position.x.clamp(track_start, track_end);
+                let percent = (x - track_start) / track_width;
+
+                let step = if state.keyboard_modifiers.shift() {
+                    self.shift_step.unwrap_or(self.step)
+                } else {
+                    self.step
+                }
+                .into();
+
+                let start: f64 = (*self.range.start()).into();
+                let end: f64 = (*self.range.end()).into();
+
+                let steps = ((percent as f64 * (end - start)) / step).round();
+                let value = steps * step + start;
+
+                T::from_f64(value.clamp(start, end))
             };
 
             let increment = |value: T| -> Option<T> {
