@@ -222,8 +222,9 @@ impl core::text::Paragraph for Paragraph {
         let metrics = paragraph.buffer.metrics();
 
         if paragraph.version != font_system.version
-            || metrics.font_size != text.size.0
-            || metrics.line_height != text.line_height.to_absolute(text.size).0
+            || metrics.font_size != text.size.0 * paragraph.hint_factor
+            || metrics.line_height
+                != text.line_height.to_absolute(text.size).0 * paragraph.hint_factor
             || paragraph.font != text.font
             || paragraph.shaping != text.shaping
             || paragraph.wrapping != text.wrapping
