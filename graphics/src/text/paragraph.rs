@@ -59,8 +59,6 @@ impl Paragraph {
     }
 }
 
-const MAX_HINTING_SIZE: f32 = 18.0;
-
 impl core::text::Paragraph for Paragraph {
     type Font = Font;
 
@@ -69,21 +67,15 @@ impl core::text::Paragraph for Paragraph {
 
         let mut font_system = text::font_system().write().expect("Write font system");
 
-        let (size, hint, hint_factor) = {
-            let size = f32::from(text.size);
-
-            match text.hint_factor {
-                Some(hint_factor) if size * hint_factor < MAX_HINTING_SIZE => {
-                    (size * hint_factor, true, hint_factor)
-                }
-                _ => (size, false, 1.0),
-            }
+        let (hint, hint_factor) = match text::hint_factor(text.size, text.hint_factor) {
+            Some(hint_factor) => (true, hint_factor),
+            _ => (false, 1.0),
         };
 
         let mut buffer = cosmic_text::Buffer::new(
             font_system.raw(),
             cosmic_text::Metrics::new(
-                size,
+                f32::from(text.size) * hint_factor,
                 f32::from(text.line_height.to_absolute(text.size)) * hint_factor,
             ),
         );
@@ -130,21 +122,15 @@ impl core::text::Paragraph for Paragraph {
 
         let mut font_system = text::font_system().write().expect("Write font system");
 
-        let (size, hint, hint_factor) = {
-            let size = f32::from(text.size);
-
-            match text.hint_factor {
-                Some(hint_factor) if size * hint_factor < MAX_HINTING_SIZE => {
-                    (size * hint_factor, true, hint_factor)
-                }
-                _ => (size, false, 1.0),
-            }
+        let (hint, hint_factor) = match text::hint_factor(text.size, text.hint_factor) {
+            Some(hint_factor) => (true, hint_factor),
+            _ => (false, 1.0),
         };
 
         let mut buffer = cosmic_text::Buffer::new(
             font_system.raw(),
             cosmic_text::Metrics::new(
-                size,
+                f32::from(text.size) * hint_factor,
                 f32::from(text.line_height.to_absolute(text.size)) * hint_factor,
             ),
         );
@@ -243,7 +229,8 @@ impl core::text::Paragraph for Paragraph {
             || paragraph.wrapping != text.wrapping
             || paragraph.align_x != text.align_x
             || paragraph.align_y != text.align_y
-            || paragraph.hint.then_some(paragraph.hint_factor) != text.hint_factor
+            || paragraph.hint.then_some(paragraph.hint_factor)
+                != text::hint_factor(text.size, text.hint_factor)
         {
             core::text::Difference::Shape
         } else if paragraph.bounds != text.bounds {

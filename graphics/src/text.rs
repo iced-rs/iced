@@ -352,6 +352,19 @@ pub fn to_color(color: Color) -> cosmic_text::Color {
     cosmic_text::Color::rgba(r, g, b, a)
 }
 
+/// Returns the ideal hint factor given the size and scale factor of some text.
+pub fn hint_factor(size: Pixels, scale_factor: Option<f32>) -> Option<f32> {
+    const MAX_HINTING_SIZE: f32 = 18.0;
+
+    let hint_factor = scale_factor?;
+
+    if size.0 * hint_factor < MAX_HINTING_SIZE {
+        Some(hint_factor)
+    } else {
+        None
+    }
+}
+
 /// A text renderer coupled to `iced_graphics`.
 pub trait Renderer {
     /// Draws the given [`Raw`] text.

@@ -541,15 +541,7 @@ impl editor::Editor for Editor {
             let new_line_height = new_line_height.to_absolute(new_size);
             let mut hinting_changed = false;
 
-            const MAX_HINTING_SIZE: f32 = 18.0;
-
-            let new_hint_factor = if new_hint_factor
-                .is_some_and(|hint_factor| hint_factor * new_size.0 < MAX_HINTING_SIZE)
-            {
-                new_hint_factor
-            } else {
-                None
-            };
+            let new_hint_factor = text::hint_factor(new_size, new_hint_factor);
 
             if new_hint_factor != internal.hint.then_some(internal.hint_factor) {
                 internal.hint = new_hint_factor.is_some();
