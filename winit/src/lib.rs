@@ -755,7 +755,7 @@ async fn run_instance<P>(
                         }
 
                         // Window was resized between redraws
-                        if window.surface_version != window.state.surface_version() {
+                        if window.surface_version != window.state.surface_version() || window.needs_layout {
                             #[cfg(feature = "hinting")]
                             window.renderer.hint(window.state.scale_factor());
 
@@ -773,6 +773,7 @@ async fn run_instance<P>(
                             );
 
                             window.surface_version = window.state.surface_version();
+                            window.needs_layout = false;
                         }
 
                         let redraw_event =
@@ -1349,6 +1350,8 @@ fn run_action<'a, P, C>(
                         }
                         .to_physical::<f32>(f64::from(window.state.scale_factor())),
                     );
+                    window.needs_layout = true;
+                    window.state.update(program, &window.raw, &winit::event::WindowEvent::Resized(window.raw.inner_size()));
                 }
             }
             window::Action::SetMinSize(id, size) => {

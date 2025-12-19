@@ -4852,6 +4852,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "resizing"
+version = "0.1.0"
+dependencies = [
+ "iced",
+ "tokio",
+]
+
+[[package]]
 name = "resvg"
 version = "0.45.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
