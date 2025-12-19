@@ -848,7 +848,7 @@ where
                 .step(10.0)
                 .width(Fill)
                 .height(24)
-                .handle_size((0, 0))
+                .handle(Size::ZERO)
                 .style(|theme: &core::Theme, status| {
                     let palette = theme.palette();
 

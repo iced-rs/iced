@@ -97,7 +97,7 @@ where
     on_release: Option<Message>,
     width: Length,
     height: f32,
-    handle_size: Size,
+    handle: Size,
     class: Theme::Class<'a>,
     status: Option<Status>,
 }
@@ -145,7 +145,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            handle_size: Size::new(14.0, 14.0),
+            handle: Size::new(14.0, 14.0),
             class: Theme::default(),
             status: None,
         }
@@ -197,8 +197,8 @@ where
     }
 
     /// Sets the size of the [`Slider`]'s handle.
-    pub fn handle_size(mut self, handle_size: impl Into<Size>) -> Self {
-        self.handle_size = handle_size.into();
+    pub fn handle(mut self, handle: impl Into<Size>) -> Self {
+        self.handle = handle.into();
         self
     }
 
@@ -284,9 +284,8 @@ where
                     let start = (*self.range.start()).as_();
                     let end = (*self.range.end()).as_();
 
-                    let percent =
-                        f64::from(cursor_position.x - bounds.x - self.handle_size.width / 2.0)
-                            / f64::from(bounds.width - self.handle_size.width);
+                    let percent = f64::from(cursor_position.x - bounds.x - self.handle.width / 2.0)
+                        / f64::from(bounds.width - self.handle.width);
 
                     let percent = percent.clamp(0.0, 1.0);
 
@@ -451,8 +450,7 @@ where
         let offset = if range_start >= range_end {
             0.0
         } else {
-            (bounds.width - self.handle_size.width) * (value - range_start)
-                / (range_end - range_start)
+            (bounds.width - self.handle.width) * (value - range_start) / (range_end - range_start)
         };
 
         let rail_y = bounds.y + bounds.height / 2.0;
@@ -462,7 +460,7 @@ where
                 bounds: Rectangle {
                     x: bounds.x,
                     y: rail_y - style.rail.width / 2.0,
-                    width: offset + self.handle_size.width / 2.0,
+                    width: offset + self.handle.width / 2.0,
                     height: style.rail.width,
                 },
                 border: style.rail.border,
@@ -474,9 +472,9 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle {
-                    x: bounds.x + offset + self.handle_size.width / 2.0,
+                    x: bounds.x + offset + self.handle.width / 2.0,
                     y: rail_y - style.rail.width / 2.0,
-                    width: bounds.width - offset - self.handle_size.width / 2.0,
+                    width: bounds.width - offset - self.handle.width / 2.0,
                     height: style.rail.width,
                 },
                 border: style.rail.border,
@@ -489,9 +487,9 @@ where
             renderer::Quad {
                 bounds: Rectangle {
                     x: bounds.x + offset,
-                    y: rail_y - self.handle_size.height / 2.0,
-                    width: self.handle_size.width,
-                    height: self.handle_size.height,
+                    y: rail_y - self.handle.height / 2.0,
+                    width: self.handle.width,
+                    height: self.handle.height,
                 },
                 border: style.handle.border,
                 ..renderer::Quad::default()
