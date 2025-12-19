@@ -93,7 +93,7 @@ where
     on_release: Option<Message>,
     width: f32,
     height: Length,
-    handle_size: Size,
+    handle: Size,
     class: Theme::Class<'a>,
     status: Option<Status>,
 }
@@ -141,7 +141,7 @@ where
             on_release: None,
             width: Self::DEFAULT_WIDTH,
             height: Length::Fill,
-            handle_size: Size::new(14.0, 14.0),
+            handle: Size::new(14.0, 14.0),
             class: Theme::default(),
             status: None,
         }
@@ -193,8 +193,8 @@ where
     }
 
     /// Sets the size of the [`VerticalSlider`]'s handle.
-    pub fn handle_size(mut self, handle_size: impl Into<Size>) -> Self {
-        self.handle_size = handle_size.into();
+    pub fn handle(mut self, handle: impl Into<Size>) -> Self {
+        self.handle = handle.into();
         self
     }
 
@@ -283,8 +283,8 @@ where
                 let end = (*self.range.end()).into();
 
                 let percent = 1.0
-                    - f64::from(cursor_position.y - bounds.y - self.handle_size.height / 2.0)
-                        / f64::from(bounds.height - self.handle_size.height);
+                    - f64::from(cursor_position.y - bounds.y - self.handle.height / 2.0)
+                        / f64::from(bounds.height - self.handle.height);
 
                 let percent = percent.clamp(0.0, 1.0);
 
@@ -450,8 +450,7 @@ where
         let offset = if range_start >= range_end {
             0.0
         } else {
-            (bounds.height - self.handle_size.height) * (value - range_end)
-                / (range_start - range_end)
+            (bounds.height - self.handle.height) * (value - range_end) / (range_start - range_end)
         };
 
         let rail_x = bounds.x + bounds.width / 2.0;
@@ -462,7 +461,7 @@ where
                     x: rail_x - style.rail.width / 2.0,
                     y: bounds.y,
                     width: style.rail.width,
-                    height: offset + self.handle_size.height / 2.0,
+                    height: offset + self.handle.height / 2.0,
                 },
                 border: style.rail.border,
                 ..renderer::Quad::default()
@@ -474,9 +473,9 @@ where
             renderer::Quad {
                 bounds: Rectangle {
                     x: rail_x - style.rail.width / 2.0,
-                    y: bounds.y + offset + self.handle_size.height / 2.0,
+                    y: bounds.y + offset + self.handle.height / 2.0,
                     width: style.rail.width,
-                    height: bounds.height - offset - self.handle_size.height / 2.0,
+                    height: bounds.height - offset - self.handle.height / 2.0,
                 },
                 border: style.rail.border,
                 ..renderer::Quad::default()
@@ -487,10 +486,10 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle {
-                    x: rail_x - self.handle_size.width / 2.0,
+                    x: rail_x - self.handle.width / 2.0,
                     y: bounds.y + offset,
-                    width: self.handle_size.width,
-                    height: self.handle_size.height,
+                    width: self.handle.width,
+                    height: self.handle.height,
                 },
                 border: style.handle.border,
                 ..renderer::Quad::default()
