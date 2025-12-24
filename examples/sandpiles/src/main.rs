@@ -1,7 +1,10 @@
 use iced::mouse;
-use iced::time;
-use iced::widget::canvas;
-use iced::{Element, Event, Fill, Point, Rectangle, Renderer, Size, Subscription, Theme, Vector};
+use iced::widget::{canvas, column, container, row, slider, text};
+use iced::window;
+use iced::{
+    Center, Element, Event, Fill, Font, Point, Rectangle, Renderer, Size, Subscription, Theme,
+    Vector,
+};
 
 use std::collections::{HashMap, HashSet};
 
@@ -15,12 +18,14 @@ struct Sandpiles {
     grid: Grid,
     sandfalls: HashSet<Cell>,
     cache: canvas::Cache,
+    speed: u32,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    Add(Cell),
     Tick,
+    Add(Cell),
+    SpeedChanged(u32),
 }
 
 impl Sandpiles {
@@ -32,39 +37,65 @@ impl Sandpiles {
                     [(-1, -1), (-1, 1), (1, -1), (1, 1)]
                         .iter()
                         .map(|(i, j)| Cell {
-                            row: 10 * i,
-                            column: 10 * j,
+                            row: 3 * i,
+                            column: 3 * j,
                         }),
                 ),
             ),
             cache: canvas::Cache::new(),
+            speed: 1,
         }
     }
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::Add(sandfall) => {
-                self.sandfalls.insert(sandfall);
-            }
             Message::Tick => {
-                for sandfall in &self.sandfalls {
-                    self.grid.add(*sandfall, 1);
+                let topples = (0..self.speed).find(|_| !self.grid.topple());
+
+                if topples == Some(0) {
+                    for sandfall in &self.sandfalls {
+                        self.grid.add(*sandfall, 1);
+                    }
                 }
 
-                self.grid.topple();
                 self.cache.clear();
+            }
+            Message::Add(sandfall) => {
+                self.sandfalls.insert(sandfall);
+                self.grid.add(sandfall, 1);
+            }
+            Message::SpeedChanged(speed) => {
+                self.speed = speed;
             }
         }
     }
 
     fn view(&self) -> Element<'_, Message> {
-        canvas(Viewer {
+        let viewer = canvas(Viewer {
             grid: &self.grid,
             cache: &self.cache,
         })
         .width(Fill)
-        .height(Fill)
-        .into()
+        .height(Fill);
+
+        let speed = container(
+            row![
+                text("Speed").font(Font::MONOSPACE),
+                slider(1..=1000, self.speed, Message::SpeedChanged),
+                text!("x{:>04}", self.speed)
+                    .font(Font::MONOSPACE)
+                    .align_x(Center)
+            ]
+            .spacing(10)
+            .padding(10)
+            .align_y(Center)
+            .width(500),
+        )
+        .width(Fill)
+        .align_x(Center)
+        .style(container::dark);
+
+        column![viewer, speed].into()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -72,7 +103,7 @@ impl Sandpiles {
             return Subscription::none();
         }
 
-        time::every(time::milliseconds(50)).map(|_| Message::Tick)
+        window::frames().map(|_| Message::Tick)
     }
 }
 
@@ -100,22 +131,22 @@ impl Grid {
         }
     }
 
-    pub fn topple(&mut self) {
-        loop {
-            let Some(cell) = self.saturated.iter().next().copied() else {
-                return;
-            };
+    pub fn topple(&mut self) -> bool {
+        let Some(cell) = self.saturated.iter().next().copied() else {
+            return false;
+        };
 
-            let grains = self.sand.entry(cell).or_default();
-            let amount = *grains / 4;
-            *grains %= 4;
+        let grains = self.sand.entry(cell).or_default();
+        let amount = *grains / 4;
+        *grains %= 4;
 
-            for neighbor in cell.neighbors() {
-                self.add(neighbor, amount);
-            }
-
-            let _ = self.saturated.remove(&cell);
+        for neighbor in cell.neighbors() {
+            self.add(neighbor, amount);
         }
+
+        let _ = self.saturated.remove(&cell);
+
+        true
     }
 }
 
@@ -215,7 +246,8 @@ impl canvas::Program<Message> for Viewer<'_> {
                         ),
                         Size::new(Self::CELL_SIZE, Self::CELL_SIZE),
                         match grains {
-                            3.. => palette.background.strongest.color,
+                            4.. => palette.secondary.base.color,
+                            3 => palette.background.strongest.color,
                             2 => palette.background.strong.color,
                             _ => palette.background.weak.color,
                         },
