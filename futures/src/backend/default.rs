@@ -15,17 +15,10 @@ mod platform {
     #[cfg(all(feature = "smol", not(feature = "tokio"),))]
     pub use crate::backend::native::smol::*;
 
-    #[cfg(all(
-        feature = "thread-pool",
-        not(any(feature = "tokio", feature = "smol"))
-    ))]
+    #[cfg(all(feature = "thread-pool", not(any(feature = "tokio", feature = "smol"))))]
     pub use crate::backend::native::thread_pool::*;
 
-    #[cfg(not(any(
-        feature = "tokio",
-        feature = "smol",
-        feature = "thread-pool"
-    )))]
+    #[cfg(not(any(feature = "tokio", feature = "smol", feature = "thread-pool")))]
     pub use crate::backend::null::*;
 }
 

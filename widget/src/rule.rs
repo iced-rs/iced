@@ -22,9 +22,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
-use crate::core::{
-    Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget,
-};
+use crate::core::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
 /// Creates a new horizontal [`Rule`] with the given height.
 pub fn horizontal<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
@@ -100,8 +98,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Rule<'_, Theme>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Rule<'_, Theme>
 where
     Renderer: core::Renderer,
     Theme: Catalog,
@@ -133,7 +130,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
@@ -144,8 +141,8 @@ where
         let bounds = layout.bounds();
         let style = theme.style(&self.class);
 
-        let bounds = if self.is_vertical {
-            let line_x = bounds.x.round();
+        let mut bounds = if self.is_vertical {
+            let line_x = bounds.x;
 
             let (offset, line_height) = style.fill_mode.fill(bounds.height);
             let line_y = bounds.y + offset;
@@ -157,7 +154,7 @@ where
                 height: line_height,
             }
         } else {
-            let line_y = bounds.y.round();
+            let line_y = bounds.y;
 
             let (offset, line_width) = style.fill_mode.fill(bounds.width);
             let line_x = bounds.x + offset;
@@ -169,6 +166,13 @@ where
                 height: bounds.height,
             }
         };
+
+        if style.snap {
+            let unit = 1.0 / renderer.scale_factor().unwrap_or(1.0);
+
+            bounds.width = bounds.width.max(unit);
+            bounds.height = bounds.height.max(unit);
+        }
 
         renderer.fill_quad(
             renderer::Quad {
@@ -182,8 +186,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Rule<'a, Theme>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Rule<'a, Theme>> for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a + Catalog,

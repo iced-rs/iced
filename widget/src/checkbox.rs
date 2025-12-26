@@ -16,7 +16,8 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     checkbox("Toggle me!", state.is_checked)
+//!     checkbox(state.is_checked)
+//!         .label("Toggle me!")
 //!         .on_toggle(Message::CheckboxToggled)
 //!         .into()
 //! }
@@ -41,8 +42,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Event, Layout, Length,
-    Pixels, Rectangle, Shell, Size, Theme, Widget,
+    Background, Border, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
+    Size, Theme, Widget,
 };
 
 /// A box that can be checked.
@@ -63,7 +64,8 @@ use crate::core::{
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     checkbox("Toggle me!", state.is_checked)
+///     checkbox(state.is_checked)
+///         .label("Toggle me!")
 ///         .on_toggle(Message::CheckboxToggled)
 ///         .into()
 /// }
@@ -77,18 +79,14 @@ use crate::core::{
 /// }
 /// ```
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
-pub struct Checkbox<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> where
+pub struct Checkbox<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
     Renderer: text::Renderer,
     Theme: Catalog,
 {
     is_checked: bool,
     on_toggle: Option<Box<dyn Fn(bool) -> Message + 'a>>,
-    label: String,
+    label: Option<text::Fragment<'a>>,
     width: Length,
     size: f32,
     spacing: f32,
@@ -110,22 +108,18 @@ where
     /// The default size of a [`Checkbox`].
     const DEFAULT_SIZE: f32 = 16.0;
 
-    /// The default spacing of a [`Checkbox`].
-    const DEFAULT_SPACING: f32 = 8.0;
-
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
-    ///   * the label of the [`Checkbox`]
     ///   * a boolean describing whether the [`Checkbox`] is checked or not
-    pub fn new(label: impl Into<String>, is_checked: bool) -> Self {
+    pub fn new(is_checked: bool) -> Self {
         Checkbox {
             is_checked,
             on_toggle: None,
-            label: label.into(),
+            label: None,
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
-            spacing: Self::DEFAULT_SPACING,
+            spacing: Self::DEFAULT_SIZE / 2.0,
             text_size: None,
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::default(),
@@ -141,6 +135,12 @@ where
             class: Theme::default(),
             last_status: None,
         }
+    }
+
+    /// Sets the label of the [`Checkbox`].
+    pub fn label(mut self, label: impl text::IntoFragment<'a>) -> Self {
+        self.label = Some(label.into_fragment());
+        self
     }
 
     /// Sets the function that will be called when the [`Checkbox`] is toggled.
@@ -193,10 +193,7 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Checkbox`].
-    pub fn text_line_height(
-        mut self,
-        line_height: impl Into<text::LineHeight>,
-    ) -> Self {
+    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
         self.text_line_height = line_height.into();
         self
     }
@@ -275,30 +272,38 @@ where
     ) -> layout::Node {
         layout::next_to_each_other(
             &limits.width(self.width),
-            self.spacing,
+            if self.label.is_some() {
+                self.spacing
+            } else {
+                0.0
+            },
             |_| layout::Node::new(Size::new(self.size, self.size)),
             |limits| {
-                let state = tree
-                    .state
-                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+                if let Some(label) = self.label.as_deref() {
+                    let state = tree
+                        .state
+                        .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
 
-                widget::text::layout(
-                    state,
-                    renderer,
-                    limits,
-                    &self.label,
-                    widget::text::Format {
-                        width: self.width,
-                        height: Length::Shrink,
-                        line_height: self.text_line_height,
-                        size: self.text_size,
-                        font: self.font,
-                        align_x: text::Alignment::Default,
-                        align_y: alignment::Vertical::Top,
-                        shaping: self.text_shaping,
-                        wrapping: self.text_wrapping,
-                    },
-                )
+                    widget::text::layout(
+                        state,
+                        renderer,
+                        limits,
+                        label,
+                        widget::text::Format {
+                            width: self.width,
+                            height: Length::Shrink,
+                            line_height: self.text_line_height,
+                            size: self.text_size,
+                            font: self.font,
+                            align_x: text::Alignment::Default,
+                            align_y: alignment::Vertical::Top,
+                            shaping: self.text_shaping,
+                            wrapping: self.text_wrapping,
+                        },
+                    )
+                } else {
+                    layout::Node::new(Size::ZERO)
+                }
             },
         )
     }
@@ -419,6 +424,7 @@ where
                         align_y: alignment::Vertical::Center,
                         shaping: *shaping,
                         wrapping: text::Wrapping::default(),
+                        hint_factor: None,
                     },
                     bounds.center(),
                     style.icon_color,
@@ -427,10 +433,13 @@ where
             }
         }
 
+        if self.label.is_none() {
+            return;
+        }
+
         {
             let label_layout = children.next().unwrap();
-            let state: &widget::text::State<Renderer::Paragraph> =
-                tree.state.downcast_ref();
+            let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
 
             crate::text::draw(
                 renderer,
@@ -447,12 +456,14 @@ where
 
     fn operate(
         &mut self,
-        _state: &mut Tree,
+        _tree: &mut Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        operation.text(None, layout.bounds(), &self.label);
+        if let Some(label) = self.label.as_deref() {
+            operation.text(None, layout.bounds(), label);
+        }
     }
 }
 

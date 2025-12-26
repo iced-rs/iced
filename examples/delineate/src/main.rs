@@ -1,13 +1,8 @@
 use iced::event::{self, Event};
 use iced::mouse;
-use iced::widget::{
-    self, column, container, row, scrollable, selector, space, text,
-};
+use iced::widget::{self, column, container, row, scrollable, selector, space, text};
 use iced::window;
-use iced::{
-    Center, Color, Element, Fill, Font, Point, Rectangle, Subscription, Task,
-    Theme,
-};
+use iced::{Center, Color, Element, Fill, Font, Point, Rectangle, Subscription, Task, Theme};
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
@@ -28,8 +23,8 @@ enum Message {
     MouseMoved(Point),
     WindowResized,
     Scrolled,
-    OuterFound(Option<Rectangle>),
-    InnerFound(Option<Rectangle>),
+    OuterFound(Option<selector::Target>),
+    InnerFound(Option<selector::Target>),
 }
 
 impl Example {
@@ -41,16 +36,16 @@ impl Example {
                 Task::none()
             }
             Message::Scrolled | Message::WindowResized => Task::batch(vec![
-                selector::delineate(OUTER_CONTAINER).map(Message::OuterFound),
-                selector::delineate(INNER_CONTAINER).map(Message::InnerFound),
+                selector::find(OUTER_CONTAINER).map(Message::OuterFound),
+                selector::find(INNER_CONTAINER).map(Message::InnerFound),
             ]),
             Message::OuterFound(outer) => {
-                self.outer_bounds = outer;
+                self.outer_bounds = outer.as_ref().and_then(selector::Target::visible_bounds);
 
                 Task::none()
             }
             Message::InnerFound(inner) => {
-                self.inner_bounds = inner;
+                self.inner_bounds = inner.as_ref().and_then(selector::Target::visible_bounds);
 
                 Task::none()
             }
@@ -80,9 +75,7 @@ impl Example {
                 },
                 if bounds
                     .zip(self.mouse_position)
-                    .map(|(bounds, mouse_position)| {
-                        bounds.contains(mouse_position)
-                    })
+                    .map(|(bounds, mouse_position)| bounds.contains(mouse_position))
                     .unwrap_or_default()
                 {
                     Some(Color {
@@ -147,9 +140,7 @@ impl Example {
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 Some(Message::MouseMoved(position))
             }
-            Event::Window(window::Event::Resized { .. }) => {
-                Some(Message::WindowResized)
-            }
+            Event::Window(window::Event::Resized { .. }) => Some(Message::WindowResized),
             _ => None,
         })
     }

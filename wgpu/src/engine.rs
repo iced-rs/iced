@@ -35,11 +35,7 @@ impl Engine {
 
             quad_pipeline: quad::Pipeline::new(&device, format),
             text_pipeline: text::Pipeline::new(&device, &queue, format),
-            triangle_pipeline: triangle::Pipeline::new(
-                &device,
-                format,
-                antialiasing,
-            ),
+            triangle_pipeline: triangle::Pipeline::new(&device, format, antialiasing),
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline: {
@@ -48,9 +44,7 @@ impl Engine {
                 crate::image::Pipeline::new(&device, format, backend)
             },
 
-            primitive_storage: Arc::new(RwLock::new(
-                primitive::Storage::default(),
-            )),
+            primitive_storage: Arc::new(RwLock::new(primitive::Storage::default())),
 
             device,
             queue,
@@ -60,10 +54,16 @@ impl Engine {
 
     #[cfg(any(feature = "image", feature = "svg"))]
     pub fn create_image_cache(&self) -> crate::image::Cache {
-        self.image_pipeline.create_cache(
-            &self.device,
-            &self.queue,
-            &self._shell,
-        )
+        self.image_pipeline
+            .create_cache(&self.device, &self.queue, &self._shell)
+    }
+
+    pub fn trim(&mut self) {
+        self.text_pipeline.trim();
+
+        self.primitive_storage
+            .write()
+            .expect("primitive storage should be writable")
+            .trim();
     }
 }

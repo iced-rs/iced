@@ -16,6 +16,11 @@ pub struct Settings {
     ///
     /// By default, it is `None`.
     pub antialiasing: Option<Antialiasing>,
+
+    /// Whether or not to synchronize frames.
+    ///
+    /// By default, it is `true`.
+    pub vsync: bool,
 }
 
 impl Default for Settings {
@@ -24,6 +29,7 @@ impl Default for Settings {
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: None,
+            vsync: true,
         }
     }
 }
@@ -31,10 +37,8 @@ impl Default for Settings {
 impl From<core::Settings> for Settings {
     fn from(settings: core::Settings) -> Self {
         Self {
-            default_font: if cfg!(all(
-                target_arch = "wasm32",
-                feature = "fira-sans"
-            )) && settings.default_font == Font::default()
+            default_font: if cfg!(all(target_arch = "wasm32", feature = "fira-sans"))
+                && settings.default_font == Font::default()
             {
                 Font::with_name("Fira Sans")
             } else {
@@ -42,6 +46,7 @@ impl From<core::Settings> for Settings {
             },
             default_text_size: settings.default_text_size,
             antialiasing: settings.antialiasing.then_some(Antialiasing::MSAAx4),
+            vsync: settings.vsync,
         }
     }
 }

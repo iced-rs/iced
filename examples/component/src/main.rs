@@ -89,11 +89,7 @@ mod numeric_input {
                     if value.is_empty() {
                         Some((self.on_change)(None))
                     } else {
-                        value
-                            .parse()
-                            .ok()
-                            .map(Some)
-                            .map(self.on_change.as_ref())
+                        value.parse().ok().map(Some).map(self.on_change.as_ref())
                     }
                 }
             }

@@ -18,23 +18,25 @@ pub trait Compositor: Sized {
     type Surface;
 
     /// Creates a new [`Compositor`].
-    fn new<W: Window + Clone>(
+    fn new(
         settings: Settings,
-        compatible_window: W,
+        display: impl Display + Clone,
+        compatible_window: impl Window + Clone,
         shell: Shell,
     ) -> impl Future<Output = Result<Self, Error>> {
-        Self::with_backend(settings, compatible_window, shell, None)
+        Self::with_backend(settings, display, compatible_window, shell, None)
     }
 
     /// Creates a new [`Compositor`] with a backend preference.
     ///
     /// If the backend does not match the preference, it will return
     /// [`Error::GraphicsAdapterNotFound`].
-    fn with_backend<W: Window + Clone>(
-        _settings: Settings,
-        _compatible_window: W,
-        _shell: Shell,
-        _backend: Option<&str>,
+    fn with_backend(
+        settings: Settings,
+        display: impl Display + Clone,
+        compatible_window: impl Window + Clone,
+        shell: Shell,
+        backend: Option<&str>,
     ) -> impl Future<Output = Result<Self, Error>>;
 
     /// Creates a [`Self::Renderer`] for the [`Compositor`].
@@ -53,12 +55,7 @@ pub trait Compositor: Sized {
     /// Configures a new [`Surface`] with the given dimensions.
     ///
     /// [`Surface`]: Self::Surface
-    fn configure_surface(
-        &mut self,
-        surface: &mut Self::Surface,
-        width: u32,
-        height: u32,
-    );
+    fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32);
 
     /// Returns [`Information`] used by this [`Compositor`].
     fn information(&self) -> Information;
@@ -100,15 +97,17 @@ pub trait Compositor: Sized {
 ///
 /// This is just a convenient super trait of the `raw-window-handle`
 /// traits.
-pub trait Window:
-    HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static
-{
-}
+pub trait Window: HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
 
-impl<T> Window for T where
-    T: HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static
-{
-}
+impl<T> Window for T where T: HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+
+/// An owned display handle that can be used in a [`Compositor`].
+///
+/// This is just a convenient super trait of the `raw-window-handle`
+/// trait.
+pub trait Display: HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+
+impl<T> Display for T where T: HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
 
 /// Defines the default compositor of a renderer.
 pub trait Default {
@@ -123,9 +122,7 @@ pub enum SurfaceError {
     #[error("A timeout was encountered while trying to acquire the next frame")]
     Timeout,
     /// The underlying surface has changed, and therefore the surface must be updated.
-    #[error(
-        "The underlying surface has changed, and therefore the surface must be updated."
-    )]
+    #[error("The underlying surface has changed, and therefore the surface must be updated.")]
     Outdated,
     /// The swap chain has been lost and needs to be recreated.
     #[error("The surface has been lost and needs to be recreated")]
@@ -152,9 +149,10 @@ impl Compositor for () {
     type Renderer = ();
     type Surface = ();
 
-    async fn with_backend<W: Window + Clone>(
+    async fn with_backend(
         _settings: Settings,
-        _compatible_window: W,
+        _display: impl Display,
+        _compatible_window: impl Window + Clone,
         _shell: Shell,
         _preferred_backend: Option<&str>,
     ) -> Result<Self, Error> {
@@ -171,13 +169,7 @@ impl Compositor for () {
     ) -> Self::Surface {
     }
 
-    fn configure_surface(
-        &mut self,
-        _surface: &mut Self::Surface,
-        _width: u32,
-        _height: u32,
-    ) {
-    }
+    fn configure_surface(&mut self, _surface: &mut Self::Surface, _width: u32, _height: u32) {}
 
     fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 

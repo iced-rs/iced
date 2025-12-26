@@ -72,8 +72,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Event, Layout, Length,
-    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Background, Border, Clipboard, Color, Element, Event, Layout, Length, Padding, Pixels, Point,
+    Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::overlay::menu::{self, Menu};
 
@@ -142,15 +142,8 @@ use std::f32;
 ///     }
 /// }
 /// ```
-pub struct PickList<
-    'a,
-    T,
-    L,
-    V,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> where
+pub struct PickList<'a, T, L, V, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
     T: ToString + PartialEq + Clone,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
@@ -173,10 +166,10 @@ pub struct PickList<
     class: <Theme as Catalog>::Class<'a>,
     menu_class: <Theme as menu::Catalog>::Class<'a>,
     last_status: Option<Status>,
+    menu_height: Length,
 }
 
-impl<'a, T, L, V, Message, Theme, Renderer>
-    PickList<'a, T, L, V, Message, Theme, Renderer>
+impl<'a, T, L, V, Message, Theme, Renderer> PickList<'a, T, L, V, Message, Theme, Renderer>
 where
     T: ToString + PartialEq + Clone,
     L: Borrow<[T]> + 'a,
@@ -187,11 +180,7 @@ where
 {
     /// Creates a new [`PickList`] with the given list of options, the current
     /// selected value, and the message to produce when an option is selected.
-    pub fn new(
-        options: L,
-        selected: Option<V>,
-        on_select: impl Fn(T) -> Message + 'a,
-    ) -> Self {
+    pub fn new(options: L, selected: Option<V>, on_select: impl Fn(T) -> Message + 'a) -> Self {
         Self {
             on_select: Box::new(on_select),
             on_open: None,
@@ -209,6 +198,7 @@ where
             class: <Theme as Catalog>::default(),
             menu_class: <Theme as Catalog>::default_menu(),
             last_status: None,
+            menu_height: Length::Shrink,
         }
     }
 
@@ -221,6 +211,12 @@ where
     /// Sets the width of the [`PickList`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
+        self
+    }
+
+    /// Sets the height of the [`Menu`].
+    pub fn menu_height(mut self, menu_height: impl Into<Length>) -> Self {
+        self.menu_height = menu_height.into();
         self
     }
 
@@ -237,10 +233,7 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`PickList`].
-    pub fn text_line_height(
-        mut self,
-        line_height: impl Into<text::LineHeight>,
-    ) -> Self {
+    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
         self.text_line_height = line_height.into();
         self
     }
@@ -287,10 +280,7 @@ where
 
     /// Sets the style of the [`Menu`].
     #[must_use]
-    pub fn menu_style(
-        mut self,
-        style: impl Fn(&Theme) -> menu::Style + 'a,
-    ) -> Self
+    pub fn menu_style(mut self, style: impl Fn(&Theme) -> menu::Style + 'a) -> Self
     where
         <Theme as menu::Catalog>::Class<'a>: From<menu::StyleFn<'a, Theme>>,
     {
@@ -301,10 +291,7 @@ where
     /// Sets the style class of the [`PickList`].
     #[cfg(feature = "advanced")]
     #[must_use]
-    pub fn class(
-        mut self,
-        class: impl Into<<Theme as Catalog>::Class<'a>>,
-    ) -> Self {
+    pub fn class(mut self, class: impl Into<<Theme as Catalog>::Class<'a>>) -> Self {
         self.class = class.into();
         self
     }
@@ -312,10 +299,7 @@ where
     /// Sets the style class of the [`Menu`].
     #[cfg(feature = "advanced")]
     #[must_use]
-    pub fn menu_class(
-        mut self,
-        class: impl Into<<Theme as menu::Catalog>::Class<'a>>,
-    ) -> Self {
+    pub fn menu_class(mut self, class: impl Into<<Theme as menu::Catalog>::Class<'a>>) -> Self {
         self.menu_class = class.into();
         self
     }
@@ -355,8 +339,7 @@ where
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         let font = self.font.unwrap_or_else(|| renderer.default_font());
-        let text_size =
-            self.text_size.unwrap_or_else(|| renderer.default_size());
+        let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
         let options = self.options.borrow();
 
         state.options.resize_with(options.len(), Default::default);
@@ -374,10 +357,10 @@ where
             align_y: alignment::Vertical::Center,
             shaping: self.text_shaping,
             wrapping: text::Wrapping::default(),
+            hint_factor: renderer.scale_factor(),
         };
 
-        for (option, paragraph) in options.iter().zip(state.options.iter_mut())
-        {
+        for (option, paragraph) in options.iter().zip(state.options.iter_mut()) {
             let label = option.to_string();
 
             let _ = paragraph.update(Text {
@@ -395,10 +378,9 @@ where
 
         let max_width = match self.width {
             Length::Shrink => {
-                let labels_width =
-                    state.options.iter().fold(0.0, |width, paragraph| {
-                        f32::max(width, paragraph.min_width())
-                    });
+                let labels_width = state.options.iter().fold(0.0, |width, paragraph| {
+                    f32::max(width, paragraph.min_width())
+                });
 
                 labels_width.max(
                     self.placeholder
@@ -634,14 +616,12 @@ where
                     size,
                     line_height,
                     font,
-                    bounds: Size::new(
-                        bounds.width,
-                        f32::from(line_height.to_absolute(size)),
-                    ),
+                    bounds: Size::new(bounds.width, f32::from(line_height.to_absolute(size))),
                     align_x: text::Alignment::Right,
                     align_y: alignment::Vertical::Center,
                     shaping,
                     wrapping: text::Wrapping::default(),
+                    hint_factor: None,
                 },
                 Point::new(
                     bounds.x + bounds.width - self.padding.right,
@@ -655,8 +635,7 @@ where
         let label = selected.map(ToString::to_string);
 
         if let Some(label) = label.or_else(|| self.placeholder.clone()) {
-            let text_size =
-                self.text_size.unwrap_or_else(|| renderer.default_size());
+            let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 
             renderer.fill_text(
                 Text {
@@ -665,13 +644,14 @@ where
                     line_height: self.text_line_height,
                     font,
                     bounds: Size::new(
-                        bounds.width - self.padding.horizontal(),
+                        bounds.width - self.padding.x(),
                         f32::from(self.text_line_height.to_absolute(text_size)),
                     ),
                     align_x: text::Alignment::Default,
                     align_y: alignment::Vertical::Center,
                     shaping: self.text_shaping,
                     wrapping: text::Wrapping::default(),
+                    hint_factor: renderer.scale_factor(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if selected.is_some() {
@@ -725,6 +705,7 @@ where
                 layout.position() + translation,
                 *viewport,
                 bounds.height,
+                self.menu_height,
             ))
         } else {
             None
@@ -732,8 +713,7 @@ where
     }
 }
 
-impl<'a, T, L, V, Message, Theme, Renderer>
-    From<PickList<'a, T, L, V, Message, Theme, Renderer>>
+impl<'a, T, L, V, Message, Theme, Renderer> From<PickList<'a, T, L, V, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     T: Clone + ToString + PartialEq + 'a,
@@ -743,9 +723,7 @@ where
     Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
-    fn from(
-        pick_list: PickList<'a, T, L, V, Message, Theme, Renderer>,
-    ) -> Self {
+    fn from(pick_list: PickList<'a, T, L, V, Message, Theme, Renderer>) -> Self {
         Self::new(pick_list)
     }
 }
@@ -867,11 +845,7 @@ pub trait Catalog: menu::Catalog {
     }
 
     /// The [`Style`] of a class with the given status.
-    fn style(
-        &self,
-        class: &<Self as Catalog>::Class<'_>,
-        status: Status,
-    ) -> Style;
+    fn style(&self, class: &<Self as Catalog>::Class<'_>, status: Status) -> Style;
 }
 
 /// A styling function for a [`PickList`].

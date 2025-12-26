@@ -31,8 +31,7 @@ impl Clipboard {
         // the `Arc<Window>` together with `State`, and enum variant fields
         // get dropped in declaration order.
         #[allow(unsafe_code)]
-        let clipboard =
-            unsafe { window_clipboard::Clipboard::connect(&window) };
+        let clipboard = unsafe { window_clipboard::Clipboard::connect(&window) };
 
         let state = match clipboard {
             Ok(clipboard) => State::Connected { clipboard, window },
@@ -67,9 +66,7 @@ impl Clipboard {
             State::Connected { clipboard, .. } => {
                 let result = match kind {
                     Kind::Standard => clipboard.write(contents),
-                    Kind::Primary => {
-                        clipboard.write_primary(contents).unwrap_or(Ok(()))
-                    }
+                    Kind::Primary => clipboard.write_primary(contents).unwrap_or(Ok(())),
                 };
 
                 match result {

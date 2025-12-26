@@ -1,7 +1,6 @@
 //! Take screenshots of a window.
-use crate::{Rectangle, Size};
+use crate::{Bytes, Rectangle, Size};
 
-use bytes::Bytes;
 use std::fmt::{Debug, Formatter};
 
 /// Data of a screenshot, captured with `window::screenshot()`.
@@ -9,8 +8,8 @@ use std::fmt::{Debug, Formatter};
 /// The `bytes` of this screenshot will always be ordered as `RGBA` in the `sRGB` color space.
 #[derive(Clone)]
 pub struct Screenshot {
-    /// The bytes of the [`Screenshot`].
-    pub bytes: Bytes,
+    /// The RGBA bytes of the [`Screenshot`].
+    pub rgba: Bytes,
     /// The size of the [`Screenshot`] in physical pixels.
     pub size: Size<u32>,
     /// The scale factor of the [`Screenshot`]. This can be useful when converting between widget
@@ -23,7 +22,7 @@ impl Debug for Screenshot {
         write!(
             f,
             "Screenshot: {{ \n bytes: {}\n scale: {}\n size: {:?} }}",
-            self.bytes.len(),
+            self.rgba.len(),
             self.scale_factor,
             self.size
         )
@@ -32,13 +31,9 @@ impl Debug for Screenshot {
 
 impl Screenshot {
     /// Creates a new [`Screenshot`].
-    pub fn new(
-        bytes: impl Into<Bytes>,
-        size: Size<u32>,
-        scale_factor: f32,
-    ) -> Self {
+    pub fn new(rgba: impl Into<Bytes>, size: Size<u32>, scale_factor: f32) -> Self {
         Self {
-            bytes: bytes.into(),
+            rgba: rgba.into(),
             size,
             scale_factor,
         }
@@ -51,8 +46,7 @@ impl Screenshot {
             return Err(CropError::Zero);
         }
 
-        if region.x + region.width > self.size.width
-            || region.y + region.height > self.size.height
+        if region.x + region.width > self.size.width || region.y + region.height > self.size.height
         {
             return Err(CropError::OutOfBounds);
         }
@@ -62,22 +56,23 @@ impl Screenshot {
 
         let bytes_per_row = self.size.width as usize * PIXEL_SIZE;
         let row_range = region.y as usize..(region.y + region.height) as usize;
-        let column_range = region.x as usize * PIXEL_SIZE
-            ..(region.x + region.width) as usize * PIXEL_SIZE;
+        let column_range =
+            region.x as usize * PIXEL_SIZE..(region.x + region.width) as usize * PIXEL_SIZE;
 
-        let chopped = self.bytes.chunks(bytes_per_row).enumerate().fold(
-            vec![],
-            |mut acc, (row, bytes)| {
-                if row_range.contains(&row) {
-                    acc.extend(&bytes[column_range.clone()]);
-                }
+        let chopped =
+            self.rgba
+                .chunks(bytes_per_row)
+                .enumerate()
+                .fold(vec![], |mut acc, (row, bytes)| {
+                    if row_range.contains(&row) {
+                        acc.extend(&bytes[column_range.clone()]);
+                    }
 
-                acc
-            },
-        );
+                    acc
+                });
 
         Ok(Self {
-            bytes: Bytes::from(chopped),
+            rgba: Bytes::from(chopped),
             size: Size::new(region.width, region.height),
             scale_factor: self.scale_factor,
         })
@@ -86,13 +81,13 @@ impl Screenshot {
 
 impl AsRef<[u8]> for Screenshot {
     fn as_ref(&self) -> &[u8] {
-        &self.bytes
+        &self.rgba
     }
 }
 
 impl From<Screenshot> for Bytes {
     fn from(screenshot: Screenshot) -> Self {
-        screenshot.bytes
+        screenshot.rgba
     }
 }
 

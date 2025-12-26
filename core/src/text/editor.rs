@@ -20,13 +20,11 @@ pub trait Editor: Sized + Default {
     /// Returns the current [`Cursor`] of the [`Editor`].
     fn cursor(&self) -> Cursor;
 
-    /// Returns the current cursor position of the [`Editor`].
-    ///
-    /// Line and column, respectively.
-    fn cursor_position(&self) -> (usize, usize);
+    /// Returns the current [`Selection`] of the [`Editor`].
+    fn selection(&self) -> Selection;
 
     /// Returns the current selected text of the [`Editor`].
-    fn selection(&self) -> Option<String>;
+    fn copy(&self) -> Option<String>;
 
     /// Returns the text of the given line in the [`Editor`], if it exists.
     fn line(&self, index: usize) -> Option<Line<'_>>;
@@ -37,12 +35,18 @@ pub trait Editor: Sized + Default {
     /// Performs an [`Action`] on the [`Editor`].
     fn perform(&mut self, action: Action);
 
+    /// Moves the cursor to the given position.
+    fn move_to(&mut self, cursor: Cursor);
+
     /// Returns the current boundaries of the [`Editor`].
     fn bounds(&self) -> Size;
 
     /// Returns the minimum boundaries to fit the current contents of
     /// the [`Editor`].
     fn min_bounds(&self) -> Size;
+
+    /// Returns the hint factor of the [`Editor`].
+    fn hint_factor(&self) -> Option<f32>;
 
     /// Updates the [`Editor`] with some new attributes.
     fn update(
@@ -52,6 +56,7 @@ pub trait Editor: Sized + Default {
         new_size: Pixels,
         new_line_height: LineHeight,
         new_wrapping: Wrapping,
+        new_hint_factor: Option<f32>,
         new_highlighter: &mut impl Highlighter,
     );
 
@@ -187,12 +192,31 @@ pub enum Direction {
 
 /// The cursor of an [`Editor`].
 #[derive(Debug, Clone)]
-pub enum Cursor {
+pub enum Selection {
     /// Cursor without a selection
     Caret(Point),
 
     /// Cursor selecting a range of text
-    Selection(Vec<Rectangle>),
+    Range(Vec<Rectangle>),
+}
+
+/// The range of an [`Editor`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Cursor {
+    /// The cursor position.
+    pub position: Position,
+
+    /// The selection position, if any.
+    pub selection: Option<Position>,
+}
+
+/// A cursor position in an [`Editor`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Position {
+    /// The line of text.
+    pub line: usize,
+    /// The column in the line.
+    pub column: usize,
 }
 
 /// A line of an [`Editor`].

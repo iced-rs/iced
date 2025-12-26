@@ -95,7 +95,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     }
 
     out.position = globals.transform * out.position;
-    out.border_radius = globals.scale_factor * input.border_radius;
+    out.border_radius = globals.scale_factor * min(input.border_radius, vec4(min(input.clip_bounds.z, input.clip_bounds.w) / 2.0));
     out.atlas = vec4(input.atlas_pos, input.atlas_pos + input.atlas_scale);
     out.layer = input.layer;
     out.opacity = input.opacity;

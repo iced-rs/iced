@@ -1,5 +1,6 @@
 [package]
 name = "iced_tester"
+description = "A test recorder, editor, and runner for your iced applications"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

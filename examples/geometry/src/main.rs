@@ -5,11 +5,9 @@ mod rainbow {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
+    use iced::advanced::{Clipboard, Shell};
     use iced::mouse;
-    use iced::{
-        Element, Length, Rectangle, Renderer, Size, Theme, Transformation,
-        Vector,
-    };
+    use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation, Vector};
 
     #[derive(Debug, Clone, Copy, Default)]
     pub struct Rainbow;
@@ -37,6 +35,22 @@ mod rainbow {
             layout::Node::new(Size::new(width, width))
         }
 
+        fn update(
+            &mut self,
+            _state: &mut widget::Tree,
+            _event: &Event,
+            layout: Layout<'_>,
+            cursor: mouse::Cursor,
+            _renderer: &Renderer,
+            _clipboard: &mut dyn Clipboard,
+            shell: &mut Shell<'_, Message>,
+            _viewport: &Rectangle,
+        ) {
+            if cursor.is_over(layout.bounds()) {
+                shell.request_redraw();
+            }
+        }
+
         fn draw(
             &self,
             _tree: &widget::Tree,
@@ -48,9 +62,7 @@ mod rainbow {
             _viewport: &Rectangle,
         ) {
             use iced::advanced::Renderer as _;
-            use iced::advanced::graphics::mesh::{
-                self, Mesh, Renderer as _, SolidVertex2D,
-            };
+            use iced::advanced::graphics::mesh::{self, Mesh, Renderer as _, SolidVertex2D};
 
             let bounds = layout.bounds();
 
@@ -136,12 +148,9 @@ mod rainbow {
                 clip_bounds: Rectangle::INFINITE,
             };
 
-            renderer.with_translation(
-                Vector::new(bounds.x, bounds.y),
-                |renderer| {
-                    renderer.draw_mesh(mesh);
-                },
-            );
+            renderer.with_translation(Vector::new(bounds.x, bounds.y), |renderer| {
+                renderer.draw_mesh(mesh);
+            });
         }
     }
 
@@ -152,15 +161,15 @@ mod rainbow {
     }
 }
 
-use iced::Element;
 use iced::widget::{center_x, center_y, column, scrollable};
+use iced::{Element, Never};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
     iced::run((), view)
 }
 
-fn view(_state: &()) -> Element<'_, ()> {
+fn view(_state: &()) -> Element<'_, Never> {
     let content = column![
         rainbow(),
         "In this example we draw a custom widget Rainbow, using \

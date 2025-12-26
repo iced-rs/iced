@@ -1,7 +1,7 @@
 use iced::widget::{Button, Column, Container, Slider};
 use iced::widget::{
-    button, center_x, center_y, checkbox, column, image, radio, rich_text, row,
-    scrollable, slider, space, span, text, text_input, toggler,
+    button, center_x, center_y, checkbox, column, image, radio, rich_text, row, scrollable, slider,
+    space, span, text, text_input, toggler,
 };
 use iced::{Center, Color, Element, Fill, Font, Pixels, color};
 
@@ -147,9 +147,8 @@ impl Tour {
                     .style(button::secondary)
             }),
             space::horizontal(),
-            self.can_continue().then(|| {
-                padded_button("Next").on_press(Message::NextPressed)
-            })
+            self.can_continue()
+                .then(|| { padded_button("Next").on_press(Message::NextPressed) })
         ];
 
         let screen = match self.screen {
@@ -166,15 +165,15 @@ impl Tour {
             Screen::End => self.end(),
         };
 
-        let content: Element<_> =
-            column![screen, controls].max_width(540).spacing(20).into();
+        let content: Element<_> = column![screen, controls].max_width(540).spacing(20).into();
 
         let scrollable = scrollable(center_x(if self.debug {
             content.explain(Color::BLACK)
         } else {
             content
         }))
-        .spacing(10);
+        .spacing(10)
+        .auto_scroll(true);
 
         center_y(scrollable).padding(10).into()
     }
@@ -263,9 +262,7 @@ impl Tour {
         );
 
         let layout_section: Element<_> = match self.layout {
-            Layout::Row => {
-                row![row_radio, column_radio].spacing(self.spacing).into()
-            }
+            Layout::Row => row![row_radio, column_radio].spacing(self.spacing).into(),
             Layout::Column => column![row_radio, column_radio]
                 .spacing(self.spacing)
                 .into(),
@@ -299,7 +296,7 @@ impl Tour {
         let size_section = column![
             "You can change its size:",
             text!("This text is {size} pixels").size(size),
-            slider(10..=70, size, Message::TextSizeChanged),
+            slider(3..=70, size, Message::TextSizeChanged),
         ]
         .padding(20)
         .spacing(20);
@@ -336,12 +333,7 @@ impl Tour {
                     .iter()
                     .copied()
                     .map(|language| {
-                        radio(
-                            language,
-                            language,
-                            self.language,
-                            Message::LanguageSelected,
-                        )
+                        radio(language, language, self.language, Message::LanguageSelected)
                     })
                     .map(Element::from)
             )
@@ -386,11 +378,9 @@ impl Tour {
             .push(slider(100..=500, width, Message::ImageWidthChanged))
             .push(text!("Width: {width} px").width(Fill).align_x(Center))
             .push(
-                checkbox(
-                    "Use nearest interpolation",
-                    filter_method == image::FilterMethod::Nearest,
-                )
-                .on_toggle(Message::ImageUseNearestToggled),
+                checkbox(filter_method == image::FilterMethod::Nearest)
+                    .label("Use nearest interpolation")
+                    .on_toggle(Message::ImageUseNearestToggled),
             )
             .align_x(Center)
     }
@@ -401,10 +391,7 @@ impl Tour {
                 "Iced supports scrollable content. Try it out! Find the \
                  button further below.",
             )
-            .push(
-                text("Tip: You can use the scrollbar to scroll down faster!")
-                    .size(16),
-            )
+            .push(text("Tip: You can use the scrollbar to scroll down faster!").size(16))
             .push(space().height(4096))
             .push(
                 text("You are halfway there!")
@@ -441,11 +428,13 @@ impl Tour {
             .push("Use a text input to ask for different kinds of information.")
             .push(text_input.secure(is_secure))
             .push(
-                checkbox("Enable password mode", is_secure)
+                checkbox(is_secure)
+                    .label("Enable password mode")
                     .on_toggle(Message::ToggleSecureInput),
             )
             .push(
-                checkbox("Show icon", is_showing_icon)
+                checkbox(is_showing_icon)
+                    .label("Show icon")
                     .on_toggle(Message::ToggleTextInputIcon),
             )
             .push(
@@ -474,7 +463,8 @@ impl Tour {
                  see element boundaries.",
             )
             .push(
-                checkbox("Explain layout", self.debug)
+                checkbox(self.debug)
+                    .label("Explain layout")
                     .on_toggle(Message::DebugToggled),
             )
             .push("Feel free to go back and take a look.")
@@ -549,17 +539,14 @@ impl Screen {
     }
 }
 
-fn ferris<'a>(
-    width: u32,
-    filter_method: image::FilterMethod,
-) -> Container<'a, Message> {
+fn ferris<'a>(width: u32, filter_method: image::FilterMethod) -> Container<'a, Message> {
     center_x(
         // This should go away once we unify resource loading on native
         // platforms
         if cfg!(target_arch = "wasm32") {
             image("tour/images/ferris.png")
         } else {
-            image(format!("{}/images/ferris.png", env!("CARGO_MANIFEST_DIR")))
+            image(concat!(env!("CARGO_MANIFEST_DIR"), "/images/ferris.png"))
         }
         .filter_method(filter_method)
         .width(width),

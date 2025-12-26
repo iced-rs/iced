@@ -6,6 +6,7 @@ use resvg::tiny_skia;
 use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
+use std::panic;
 use std::sync::Arc;
 
 /// Entry in cache corresponding to an svg handle
@@ -70,17 +71,13 @@ impl Cache {
         let svg = match handle.data() {
             svg::Data::Path(path) => fs::read_to_string(path)
                 .ok()
-                .and_then(|contents| {
-                    usvg::Tree::from_str(&contents, &options).ok()
-                })
+                .and_then(|contents| usvg::Tree::from_str(&contents, &options).ok())
                 .map(Svg::Loaded)
                 .unwrap_or(Svg::NotFound),
-            svg::Data::Bytes(bytes) => {
-                match usvg::Tree::from_data(bytes, &options) {
-                    Ok(tree) => Svg::Loaded(tree),
-                    Err(_) => Svg::NotFound,
-                }
-            }
+            svg::Data::Bytes(bytes) => match usvg::Tree::from_data(bytes, &options) {
+                Ok(tree) => Svg::Loaded(tree),
+                Err(_) => Svg::NotFound,
+            },
         };
 
         self.should_trim = true;
@@ -154,7 +151,15 @@ impl Cache {
                     tiny_skia::Transform::default()
                 };
 
-                resvg::render(tree, transform, &mut img.as_mut());
+                // SVG rendering can panic on malformed or complex vectors.
+                // We catch panics to prevent crashes and continue gracefully.
+                let render = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                    resvg::render(tree, transform, &mut img.as_mut());
+                }));
+
+                if let Err(error) = render {
+                    log::warn!("SVG rendering for {handle:?} panicked: {error:?}");
+                }
 
                 let mut rgba = img.take();
 
@@ -168,8 +173,7 @@ impl Cache {
                     });
                 }
 
-                let allocation = atlas
-                    .upload(device, encoder, belt, width, height, &rgba)?;
+                let allocation = atlas.upload(device, encoder, belt, width, height, &rgba)?;
 
                 log::debug!("allocating {id} {width}x{height}");
 

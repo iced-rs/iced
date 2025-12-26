@@ -50,8 +50,7 @@ impl Example {
                 task.map(Message::DownloadUpdated.with(index))
             }
             Message::DownloadUpdated(id, update) => {
-                if let Some(download) =
-                    self.downloads.iter_mut().find(|download| download.id == id)
+                if let Some(download) = self.downloads.iter_mut().find(|download| download.id == id)
                 {
                     download.update(update);
                 }
@@ -62,15 +61,14 @@ impl Example {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let downloads =
-            Column::with_children(self.downloads.iter().map(Download::view))
-                .push(
-                    button("Add another download")
-                        .on_press(Message::Add)
-                        .padding(10),
-                )
-                .spacing(20)
-                .align_x(Right);
+        let downloads = Column::with_children(self.downloads.iter().map(Download::view))
+            .push(
+                button("Add another download")
+                    .on_press(Message::Add)
+                    .padding(10),
+            )
+            .spacing(20)
+            .align_x(Right);
 
         center(downloads).padding(20).into()
     }
@@ -166,15 +164,11 @@ impl Download {
             State::Idle => button("Start the download!")
                 .on_press(Message::Download(self.id))
                 .into(),
-            State::Finished => {
-                column!["Download finished!", button("Start again")]
-                    .spacing(10)
-                    .align_x(Center)
-                    .into()
-            }
-            State::Downloading { .. } => {
-                text!("Downloading... {current_progress:.2}%").into()
-            }
+            State::Finished => column!["Download finished!", button("Start again")]
+                .spacing(10)
+                .align_x(Center)
+                .into(),
+            State::Downloading { .. } => text!("Downloading... {current_progress:.2}%").into(),
             State::Errored => column![
                 "Something went wrong :(",
                 button("Try again").on_press(Message::Download(self.id)),

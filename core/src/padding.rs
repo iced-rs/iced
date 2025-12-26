@@ -69,6 +69,16 @@ pub fn right(padding: impl Into<Pixels>) -> Padding {
     Padding::default().right(padding)
 }
 
+/// Create some [`Padding`] with equal left and right sides.
+pub fn horizontal(padding: impl Into<Pixels>) -> Padding {
+    Padding::default().horizontal(padding)
+}
+
+/// Create some [`Padding`] with equal top and bottom sides.
+pub fn vertical(padding: impl Into<Pixels>) -> Padding {
+    Padding::default().vertical(padding)
+}
+
 impl Padding {
     /// Padding of zero
     pub const ZERO: Padding = Padding {
@@ -128,14 +138,42 @@ impl Padding {
         }
     }
 
-    /// Returns the total amount of vertical [`Padding`].
-    pub fn vertical(self) -> f32 {
-        self.top + self.bottom
+    /// Sets the [`left`] and [`right`] of the [`Padding`].
+    ///
+    /// [`left`]: Self::left
+    /// [`right`]: Self::right
+    pub fn horizontal(self, horizontal: impl Into<Pixels>) -> Self {
+        let horizontal = horizontal.into();
+
+        Self {
+            left: horizontal.0,
+            right: horizontal.0,
+            ..self
+        }
+    }
+
+    /// Sets the [`top`] and [`bottom`] of the [`Padding`].
+    ///
+    /// [`top`]: Self::top
+    /// [`bottom`]: Self::bottom
+    pub fn vertical(self, vertical: impl Into<Pixels>) -> Self {
+        let vertical = vertical.into();
+
+        Self {
+            top: vertical.0,
+            bottom: vertical.0,
+            ..self
+        }
     }
 
     /// Returns the total amount of horizontal [`Padding`].
-    pub fn horizontal(self) -> f32 {
+    pub fn x(self) -> f32 {
         self.left + self.right
+    }
+
+    /// Returns the total amount of vertical [`Padding`].
+    pub fn y(self) -> f32 {
+        self.top + self.bottom
     }
 
     /// Fits the [`Padding`] between the provided `inner` and `outer` [`Size`].
@@ -199,7 +237,7 @@ impl From<[f32; 2]> for Padding {
 
 impl From<Padding> for Size {
     fn from(padding: Padding) -> Self {
-        Self::new(padding.horizontal(), padding.vertical())
+        Self::new(padding.x(), padding.y())
     }
 }
 

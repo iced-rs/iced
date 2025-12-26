@@ -2,12 +2,12 @@ use iced::border;
 use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
-    button, canvas, center, center_y, checkbox, column, container, pick_list,
-    pin, row, rule, scrollable, space, stack, text,
+    button, canvas, center, center_y, checkbox, column, container, pick_list, pin, responsive, row,
+    rule, scrollable, space, stack, text,
 };
 use iced::{
-    Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink,
-    Subscription, Theme, color,
+    Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink, Subscription, Theme,
+    color,
 };
 
 pub fn main() -> iced::Result {
@@ -58,12 +58,21 @@ impl Layout {
     fn subscription(&self) -> Subscription<Message> {
         use keyboard::key;
 
-        keyboard::on_key_release(|key, _modifiers| match key {
-            keyboard::Key::Named(key::Named::ArrowLeft) => {
-                Some(Message::Previous)
+        keyboard::listen().filter_map(|event| {
+            let keyboard::Event::KeyPressed {
+                modified_key,
+                repeat: false,
+                ..
+            } = event
+            else {
+                return None;
+            };
+
+            match modified_key {
+                keyboard::Key::Named(key::Named::ArrowLeft) => Some(Message::Previous),
+                keyboard::Key::Named(key::Named::ArrowRight) => Some(Message::Next),
+                _ => None,
             }
-            keyboard::Key::Named(key::Named::ArrowRight) => Some(Message::Next),
-            _ => None,
         })
     }
 
@@ -71,10 +80,10 @@ impl Layout {
         let header = row![
             text(self.example.title).size(20).font(Font::MONOSPACE),
             space::horizontal(),
-            checkbox("Explain", self.explain)
+            checkbox(self.explain)
+                .label("Explain")
                 .on_toggle(Message::ExplainToggled),
-            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeSelected)
-                .placeholder("Theme"),
+            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeSelected).placeholder("Theme"),
         ]
         .spacing(20)
         .align_y(Center);
@@ -153,6 +162,10 @@ impl Example {
             title: "Pinning",
             view: pinning,
         },
+        Self {
+            title: "Responsive",
+            view: responsive_,
+        },
     ];
 
     fn is_first(self) -> bool {
@@ -164,9 +177,7 @@ impl Example {
     }
 
     fn previous(self) -> Self {
-        let Some(index) =
-            Self::LIST.iter().position(|&example| example == self)
-        else {
+        let Some(index) = Self::LIST.iter().position(|&example| example == self) else {
             return self;
         };
 
@@ -177,9 +188,7 @@ impl Example {
     }
 
     fn next(self) -> Self {
-        let Some(index) =
-            Self::LIST.iter().position(|&example| example == self)
-        else {
+        let Some(index) = Self::LIST.iter().position(|&example| example == self) else {
             return self;
         };
 
@@ -252,8 +261,7 @@ fn application<'a>() -> Element<'a, Message> {
     .style(|theme| {
         let palette = theme.extended_palette();
 
-        container::Style::default()
-            .border(border::color(palette.background.strong.color).width(1))
+        container::Style::default().border(border::color(palette.background.strong.color).width(1))
     });
 
     let sidebar = center_y(
@@ -287,9 +295,7 @@ fn application<'a>() -> Element<'a, Message> {
 }
 
 fn quotes<'a>() -> Element<'a, Message> {
-    fn quote<'a>(
-        content: impl Into<Element<'a, Message>>,
-    ) -> Element<'a, Message> {
+    fn quote<'a>(content: impl Into<Element<'a, Message>>) -> Element<'a, Message> {
         row![rule::vertical(1), content.into()]
             .spacing(10)
             .height(Shrink)
@@ -330,6 +336,41 @@ fn pinning<'a>() -> Element<'a, Message> {
     ]
     .align_x(Center)
     .spacing(10)
+    .into()
+}
+
+fn responsive_<'a>() -> Element<'a, Message> {
+    column![
+        responsive(|size| {
+            container(center(
+                text!("{}x{}px", size.width, size.width).font(Font::MONOSPACE),
+            ))
+            .clip(true)
+            .width(size.width / 4.0)
+            .height(size.width / 4.0)
+            .style(container::bordered_box)
+            .into()
+        })
+        .width(Shrink)
+        .height(Shrink),
+        responsive(|size| {
+            let size = size.ratio(16.0 / 9.0);
+
+            container(center(
+                text!("{:.0}x{:.0}px (16:9)", size.width, size.height).font(Font::MONOSPACE),
+            ))
+            .clip(true)
+            .width(size.width)
+            .height(size.height)
+            .style(container::bordered_box)
+            .into()
+        })
+        .width(Shrink)
+        .height(Shrink)
+    ]
+    .align_x(Center)
+    .spacing(10)
+    .padding(10)
     .into()
 }
 

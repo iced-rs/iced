@@ -25,8 +25,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
-    self, Clipboard, Element, Event, Layout, Length, Pixels, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    self, Clipboard, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A widget that positions its contents at some fixed coordinates inside of its boundaries.
@@ -67,9 +67,7 @@ where
     Renderer: core::Renderer,
 {
     /// Creates a [`Pin`] widget with the given content.
-    pub fn new(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             content: content.into(),
             width: Length::Fill,
@@ -145,8 +143,7 @@ where
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
-        let available =
-            limits.max() - Size::new(self.position.x, self.position.y);
+        let available = limits.max() - Size::new(self.position.x, self.position.y);
 
         let node = self
             .content
@@ -263,9 +260,7 @@ where
     Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
-    fn from(
-        pin: Pin<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn from(pin: Pin<'a, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(pin)
     }
 }

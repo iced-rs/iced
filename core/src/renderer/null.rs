@@ -3,9 +3,7 @@ use crate::image::{self, Image};
 use crate::renderer::{self, Renderer};
 use crate::svg;
 use crate::text::{self, Text};
-use crate::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
-};
+use crate::{Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation};
 
 impl Renderer for () {
     fn start_layer(&mut self, _bounds: Rectangle) {}
@@ -16,25 +14,24 @@ impl Renderer for () {
 
     fn end_transformation(&mut self) {}
 
-    fn reset(&mut self, _new_bounds: Rectangle) {}
-
-    fn fill_quad(
-        &mut self,
-        _quad: renderer::Quad,
-        _background: impl Into<Background>,
-    ) {
-    }
+    fn fill_quad(&mut self, _quad: renderer::Quad, _background: impl Into<Background>) {}
 
     fn allocate_image(
         &self,
         handle: &image::Handle,
-        callback: impl FnOnce(Result<image::Allocation, image::Error>)
-        + Send
-        + 'static,
+        callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     ) {
         #[allow(unsafe_code)]
         callback(Ok(unsafe { image::allocate(handle, Size::new(100, 100)) }));
     }
+
+    fn hint(&mut self, _scale_factor: f32) {}
+
+    fn scale_factor(&self) -> Option<f32> {
+        None
+    }
+
+    fn reset(&mut self, _new_bounds: Rectangle) {}
 }
 
 impl text::Renderer for () {
@@ -45,6 +42,11 @@ impl text::Renderer for () {
     const ICON_FONT: Font = Font::DEFAULT;
     const CHECKMARK_ICON: char = '0';
     const ARROW_DOWN_ICON: char = '0';
+    const SCROLL_UP_ICON: char = '0';
+    const SCROLL_DOWN_ICON: char = '0';
+    const SCROLL_LEFT_ICON: char = '0';
+    const SCROLL_RIGHT_ICON: char = '0';
+    const ICED_LOGO: char = '0';
 
     fn default_font(&self) -> Self::Font {
         Font::default()
@@ -87,15 +89,16 @@ impl text::Paragraph for () {
 
     fn with_text(_text: Text<&str>) -> Self {}
 
-    fn with_spans<Link>(
-        _text: Text<&[text::Span<'_, Link, Self::Font>], Self::Font>,
-    ) -> Self {
-    }
+    fn with_spans<Link>(_text: Text<&[text::Span<'_, Link, Self::Font>], Self::Font>) -> Self {}
 
     fn resize(&mut self, _new_bounds: Size) {}
 
     fn compare(&self, _text: Text<()>) -> text::Difference {
         text::Difference::None
+    }
+
+    fn hint_factor(&self) -> Option<f32> {
+        None
     }
 
     fn size(&self) -> Pixels {
@@ -161,14 +164,17 @@ impl text::Editor for () {
     }
 
     fn cursor(&self) -> text::editor::Cursor {
-        text::editor::Cursor::Caret(Point::ORIGIN)
+        text::editor::Cursor {
+            position: text::editor::Position { line: 0, column: 0 },
+            selection: None,
+        }
     }
 
-    fn cursor_position(&self) -> (usize, usize) {
-        (0, 0)
+    fn selection(&self) -> text::editor::Selection {
+        text::editor::Selection::Caret(Point::ORIGIN)
     }
 
-    fn selection(&self) -> Option<String> {
+    fn copy(&self) -> Option<String> {
         None
     }
 
@@ -182,8 +188,14 @@ impl text::Editor for () {
 
     fn perform(&mut self, _action: text::editor::Action) {}
 
+    fn move_to(&mut self, _cursor: text::editor::Cursor) {}
+
     fn bounds(&self) -> Size {
         Size::ZERO
+    }
+
+    fn hint_factor(&self) -> Option<f32> {
+        None
     }
 
     fn min_bounds(&self) -> Size {
@@ -197,6 +209,7 @@ impl text::Editor for () {
         _new_size: Pixels,
         _new_line_height: text::LineHeight,
         _new_wrapping: text::Wrapping,
+        _new_hint_factor: Option<f32>,
         _new_highlighter: &mut impl text::Highlighter,
     ) {
     }
@@ -205,9 +218,7 @@ impl text::Editor for () {
         &mut self,
         _font: Self::Font,
         _highlighter: &mut H,
-        _format_highlight: impl Fn(
-            &H::Highlight,
-        ) -> text::highlighter::Format<Self::Font>,
+        _format_highlight: impl Fn(&H::Highlight) -> text::highlighter::Format<Self::Font>,
     ) {
     }
 }
@@ -215,10 +226,7 @@ impl text::Editor for () {
 impl image::Renderer for () {
     type Handle = image::Handle;
 
-    fn load_image(
-        &self,
-        handle: &Self::Handle,
-    ) -> Result<image::Allocation, image::Error> {
+    fn load_image(&self, handle: &Self::Handle) -> Result<image::Allocation, image::Error> {
         #[allow(unsafe_code)]
         Ok(unsafe { image::allocate(handle, Size::new(100, 100)) })
     }
@@ -227,13 +235,7 @@ impl image::Renderer for () {
         Some(Size::new(100, 100))
     }
 
-    fn draw_image(
-        &mut self,
-        _image: Image,
-        _bounds: Rectangle,
-        _clip_bounds: Rectangle,
-    ) {
-    }
+    fn draw_image(&mut self, _image: Image, _bounds: Rectangle, _clip_bounds: Rectangle) {}
 }
 
 impl svg::Renderer for () {
@@ -241,11 +243,31 @@ impl svg::Renderer for () {
         Size::default()
     }
 
-    fn draw_svg(
+    fn draw_svg(&mut self, _svg: svg::Svg, _bounds: Rectangle, _clip_bounds: Rectangle) {}
+}
+
+impl renderer::Headless for () {
+    async fn new(
+        _default_font: Font,
+        _default_text_size: Pixels,
+        _backend: Option<&str>,
+    ) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        Some(())
+    }
+
+    fn name(&self) -> String {
+        "null renderer".to_owned()
+    }
+
+    fn screenshot(
         &mut self,
-        _svg: svg::Svg,
-        _bounds: Rectangle,
-        _clip_bounds: Rectangle,
-    ) {
+        _size: Size<u32>,
+        _scale_factor: f32,
+        _background_color: Color,
+    ) -> Vec<u8> {
+        Vec::new()
     }
 }

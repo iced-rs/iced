@@ -16,9 +16,7 @@ where
     Renderer: crate::Renderer,
 {
     /// Creates a new [`Element`] containing the given [`Overlay`].
-    pub fn new(
-        overlay: Box<dyn Overlay<Message, Theme, Renderer> + 'a>,
-    ) -> Self {
+    pub fn new(overlay: Box<dyn Overlay<Message, Theme, Renderer> + 'a>) -> Self {
         Self { overlay }
     }
 
@@ -28,17 +26,12 @@ where
     }
 
     /// Returns a mutable reference to the [`Overlay`] of the [`Element`],
-    pub fn as_overlay_mut(
-        &mut self,
-    ) -> &mut dyn Overlay<Message, Theme, Renderer> {
+    pub fn as_overlay_mut(&mut self) -> &mut dyn Overlay<Message, Theme, Renderer> {
         self.overlay.as_mut()
     }
 
     /// Applies a transformation to the produced message of the [`Element`].
-    pub fn map<B>(
-        self,
-        f: &'a dyn Fn(Message) -> B,
-    ) -> Element<'a, B, Theme, Renderer>
+    pub fn map<B>(self, f: &'a dyn Fn(Message) -> B) -> Element<'a, B, Theme, Renderer>
     where
         Message: 'a,
         Theme: 'a,
@@ -65,8 +58,7 @@ impl<'a, A, B, Theme, Renderer> Map<'a, A, B, Theme, Renderer> {
     }
 }
 
-impl<A, B, Theme, Renderer> Overlay<B, Theme, Renderer>
-    for Map<'_, A, B, Theme, Renderer>
+impl<A, B, Theme, Renderer> Overlay<B, Theme, Renderer> for Map<'_, A, B, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -95,14 +87,8 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        self.content.update(
-            event,
-            layout,
-            cursor,
-            renderer,
-            clipboard,
-            &mut local_shell,
-        );
+        self.content
+            .update(event, layout, cursor, renderer, clipboard, &mut local_shell);
 
         shell.merge(local_shell, self.mapper);
     }

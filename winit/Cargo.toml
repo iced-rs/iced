@@ -14,15 +14,14 @@ keywords.workspace = true
 workspace = true
 
 [features]
-default = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
+default = ["x11", "wayland"]
 debug = ["iced_debug/enable"]
 sysinfo = ["dep:sysinfo"]
-x11 = ["winit/x11"]
-wayland = ["winit/wayland"]
-wayland-dlopen = ["winit/wayland-dlopen"]
-wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
+hinting = []
 unconditional-rendering = []
 linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme"]
+x11 = ["winit/x11", "window_clipboard/x11"]
+wayland = ["winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita", "window_clipboard/wayland"]
 
 [dependencies]
 iced_debug.workspace = true

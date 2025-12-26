@@ -46,9 +46,7 @@ pub enum Error {
         instruction: Instruction,
     },
     /// The [`Preset`](crate::program::Preset) of a program could not be found.
-    #[error(
-        "the preset \"{name}\" does not exist (available presets: {available:?})"
-    )]
+    #[error("the preset \"{name}\" does not exist (available presets: {available:?})")]
     PresetNotFound {
         /// The name of the [`Preset`](crate::program::Preset).
         name: String,

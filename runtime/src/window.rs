@@ -1,8 +1,7 @@
 //! Build window-based GUI applications.
 use crate::core::time::Instant;
 use crate::core::window::{
-    Direction, Event, Icon, Id, Level, Mode, Screenshot, Settings,
-    UserAttention,
+    Direction, Event, Icon, Id, Level, Mode, Screenshot, Settings, UserAttention,
 };
 use crate::core::{Point, Size};
 use crate::futures::Subscription;
@@ -12,11 +11,11 @@ use crate::task::{self, Task};
 
 pub use raw_window_handle;
 
-use raw_window_handle::WindowHandle;
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 /// An operation to be performed on some window.
 pub enum Action {
-    /// Opens a new window with some [`Settings`].
+    /// Open a new window with some [`Settings`].
     Open(Id, Settings, oneshot::Sender<Id>),
 
     /// Close the window and exits the application.
@@ -145,13 +144,13 @@ pub enum Action {
     ///   said, it's usually in the same ballpark as on Windows.
     SetIcon(Id, Icon),
 
-    /// Runs the closure with the native window handle of the window with the given [`Id`].
-    RunWithHandle(Id, Box<dyn FnOnce(WindowHandle<'_>) + Send>),
+    /// Runs the closure with a reference to the [`Window`] with the given [`Id`].
+    Run(Id, Box<dyn FnOnce(&dyn Window) + Send>),
 
     /// Screenshot the viewport of the window.
     Screenshot(Id, oneshot::Sender<Screenshot>),
 
-    /// Enables mouse passthrough for the given window.
+    /// Enable mouse passthrough for the given window.
     ///
     /// This disables mouse events for the window and passes mouse events
     /// through to whatever window is underneath.
@@ -175,12 +174,27 @@ pub enum Action {
     /// Set the window size increment.
     SetResizeIncrements(Id, Option<Size>),
 
-    /// Redraws all the windows.
+    /// Get the logical dimensions of the monitor containing the window with the given [`Id`].
+    GetMonitorSize(Id, oneshot::Sender<Option<Size>>),
+
+    /// Set whether the system can automatically organize windows into tabs.
+    ///
+    /// See <https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing>
+    SetAllowAutomaticTabbing(bool),
+
+    /// Redraw all the windows.
     RedrawAll,
 
-    /// Recomputes the layouts of all the windows.
+    /// Recompute the layouts of all the windows.
     RelayoutAll,
 }
+
+/// A window managed by iced.
+///
+/// It implements both [`HasWindowHandle`] and [`HasDisplayHandle`].
+pub trait Window: HasWindowHandle + HasDisplayHandle {}
+
+impl<T> Window for T where T: HasWindowHandle + HasDisplayHandle {}
 
 /// Subscribes to the frames of the window of the running application.
 ///
@@ -259,9 +273,7 @@ pub fn open(settings: Settings) -> (Id, Task<Id>) {
 
     (
         id,
-        task::oneshot(|channel| {
-            crate::Action::Window(Action::Open(id, settings, channel))
-        }),
+        task::oneshot(|channel| crate::Action::Window(Action::Open(id, settings, channel))),
     )
 }
 
@@ -319,18 +331,14 @@ pub fn set_resize_increments<T>(id: Id, increments: Option<Size>) -> Task<T> {
     )))
 }
 
-/// Get the window's size in logical dimensions.
+/// Gets the window size in logical dimensions.
 pub fn size(id: Id) -> Task<Size> {
-    task::oneshot(move |channel| {
-        crate::Action::Window(Action::GetSize(id, channel))
-    })
+    task::oneshot(move |channel| crate::Action::Window(Action::GetSize(id, channel)))
 }
 
 /// Gets the maximized state of the window with the given [`Id`].
 pub fn is_maximized(id: Id) -> Task<bool> {
-    task::oneshot(move |channel| {
-        crate::Action::Window(Action::GetMaximized(id, channel))
-    })
+    task::oneshot(move |channel| crate::Action::Window(Action::GetMaximized(id, channel)))
 }
 
 /// Maximizes the window.
@@ -340,9 +348,7 @@ pub fn maximize<T>(id: Id, maximized: bool) -> Task<T> {
 
 /// Gets the minimized state of the window with the given [`Id`].
 pub fn is_minimized(id: Id) -> Task<Option<bool>> {
-    task::oneshot(move |channel| {
-        crate::Action::Window(Action::GetMinimized(id, channel))
-    })
+    task::oneshot(move |channel| crate::Action::Window(Action::GetMinimized(id, channel)))
 }
 
 /// Minimizes the window.
@@ -352,16 +358,12 @@ pub fn minimize<T>(id: Id, minimized: bool) -> Task<T> {
 
 /// Gets the position in logical coordinates of the window with the given [`Id`].
 pub fn position(id: Id) -> Task<Option<Point>> {
-    task::oneshot(move |channel| {
-        crate::Action::Window(Action::GetPosition(id, channel))
-    })
+    task::oneshot(move |channel| crate::Action::Window(Action::GetPosition(id, channel)))
 }
 
 /// Gets the scale factor of the window with the given [`Id`].
 pub fn scale_factor(id: Id) -> Task<f32> {
-    task::oneshot(move |channel| {
-        crate::Action::Window(Action::GetScaleFactor(id, channel))
-    })
+    task::oneshot(move |channel| crate::Action::Window(Action::GetScaleFactor(id, channel)))
 }
 
 /// Moves the window to the given logical coordinates.
@@ -371,9 +373,7 @@ pub fn move_to<T>(id: Id, position: Point) -> Task<T> {
 
 /// Gets the current [`Mode`] of the window.
 pub fn mode(id: Id) -> Task<Mode> {
-    task::oneshot(move |channel| {
-        crate::Action::Window(Action::GetMode(id, channel))
-    })
+    task::oneshot(move |channel| crate::Action::Window(Action::GetMode(id, channel)))
 }
 
 /// Changes the [`Mode`] of the window.
@@ -391,16 +391,13 @@ pub fn toggle_decorations<T>(id: Id) -> Task<T> {
     task::effect(crate::Action::Window(Action::ToggleDecorations(id)))
 }
 
-/// Request user attention to the window. This has no effect if the application
+/// Requests user attention to the window. This has no effect if the application
 /// is already focused. How requesting for user attention manifests is platform dependent,
 /// see [`UserAttention`] for details.
 ///
 /// Providing `None` will unset the request for user attention. Unsetting the request for
 /// user attention might not be done automatically by the WM when the window receives input.
-pub fn request_user_attention<T>(
-    id: Id,
-    user_attention: Option<UserAttention>,
-) -> Task<T> {
+pub fn request_user_attention<T>(id: Id, user_attention: Option<UserAttention>) -> Task<T> {
     task::effect(crate::Action::Window(Action::RequestUserAttention(
         id,
         user_attention,
@@ -422,7 +419,7 @@ pub fn set_level<T>(id: Id, level: Level) -> Task<T> {
     task::effect(crate::Action::Window(Action::SetLevel(id, level)))
 }
 
-/// Show the [system menu] at cursor position.
+/// Shows the [system menu] at cursor position.
 ///
 /// [system menu]: https://en.wikipedia.org/wiki/Common_menus_in_Microsoft_Windows#System_menu
 pub fn show_system_menu<T>(id: Id) -> Task<T> {
@@ -432,9 +429,7 @@ pub fn show_system_menu<T>(id: Id) -> Task<T> {
 /// Gets an identifier unique to the window, provided by the underlying windowing system. This is
 /// not to be confused with [`Id`].
 pub fn raw_id<Message>(id: Id) -> Task<u64> {
-    task::oneshot(|channel| {
-        crate::Action::Window(Action::GetRawId(id, channel))
-    })
+    task::oneshot(|channel| crate::Action::Window(Action::GetRawId(id, channel)))
 }
 
 /// Changes the [`Icon`] of the window.
@@ -442,18 +437,15 @@ pub fn set_icon<T>(id: Id, icon: Icon) -> Task<T> {
     task::effect(crate::Action::Window(Action::SetIcon(id, icon)))
 }
 
-/// Runs the given callback with the native window handle for the window with the given id.
+/// Runs the given callback with a reference to the [`Window`] with the given [`Id`].
 ///
 /// Note that if the window closes before this call is processed the callback will not be run.
-pub fn run_with_handle<T>(
-    id: Id,
-    f: impl FnOnce(WindowHandle<'_>) -> T + Send + 'static,
-) -> Task<T>
+pub fn run<T>(id: Id, f: impl FnOnce(&dyn Window) -> T + Send + 'static) -> Task<T>
 where
     T: Send + 'static,
 {
     task::oneshot(move |channel| {
-        crate::Action::Window(Action::RunWithHandle(
+        crate::Action::Window(Action::Run(
             id,
             Box::new(move |handle| {
                 let _ = channel.send(f(handle));
@@ -464,9 +456,7 @@ where
 
 /// Captures a [`Screenshot`] from the window.
 pub fn screenshot(id: Id) -> Task<Screenshot> {
-    task::oneshot(move |channel| {
-        crate::Action::Window(Action::Screenshot(id, channel))
-    })
+    task::oneshot(move |channel| crate::Action::Window(Action::Screenshot(id, channel)))
 }
 
 /// Enables mouse passthrough for the given window.
@@ -477,10 +467,24 @@ pub fn enable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
     task::effect(crate::Action::Window(Action::EnableMousePassthrough(id)))
 }
 
-/// Disable mouse passthrough for the given window.
+/// Disables mouse passthrough for the given window.
 ///
 /// This enables mouse events for the window and stops mouse events
 /// from being passed to whatever is underneath.
 pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
     task::effect(crate::Action::Window(Action::DisableMousePassthrough(id)))
+}
+
+/// Gets the logical dimensions of the monitor containing the window with the given [`Id`].
+pub fn monitor_size(id: Id) -> Task<Option<Size>> {
+    task::oneshot(move |channel| crate::Action::Window(Action::GetMonitorSize(id, channel)))
+}
+
+/// Sets whether the system can automatically organize windows into tabs.
+///
+/// See <https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing>
+pub fn allow_automatic_tabbing<T>(enabled: bool) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetAllowAutomaticTabbing(
+        enabled,
+    )))
 }

@@ -59,11 +59,7 @@ impl Tracker {
     ) -> Vec<BoxFuture<()>>
     where
         Message: 'static + MaybeSend,
-        Receiver: 'static
-            + Sink<Message, Error = mpsc::SendError>
-            + Unpin
-            + MaybeSend
-            + Clone,
+        Receiver: 'static + Sink<Message, Error = mpsc::SendError> + Unpin + MaybeSend + Clone,
     {
         use futures::stream::StreamExt;
 
@@ -87,16 +83,14 @@ impl Tracker {
             let (cancel, mut canceled) = futures::channel::oneshot::channel();
 
             // TODO: Use bus if/when it supports async
-            let (event_sender, event_receiver) =
-                futures::channel::mpsc::channel(100);
+            let (event_sender, event_receiver) = futures::channel::mpsc::channel(100);
 
             let mut receiver = receiver.clone();
             let mut stream = recipe.stream(event_receiver.boxed());
 
             let future = async move {
                 loop {
-                    let select =
-                        futures::future::select(&mut canceled, stream.next());
+                    let select = futures::future::select(&mut canceled, stream.next());
 
                     match select.await {
                         futures::future::Either::Left(_)
@@ -144,9 +138,7 @@ impl Tracker {
             .filter_map(|connection| connection.listener.as_mut())
             .for_each(|listener| {
                 if let Err(error) = listener.try_send(event.clone()) {
-                    log::warn!(
-                        "Error sending event to subscription: {error:?}"
-                    );
+                    log::warn!("Error sending event to subscription: {error:?}");
                 }
             });
     }

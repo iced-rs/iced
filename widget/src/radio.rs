@@ -67,8 +67,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Clipboard, Color, Element, Event, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Theme, Widget,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size,
+    Theme, Widget,
 };
 
 /// A circular button representing a choice.
@@ -169,12 +169,7 @@ where
     ///   * the current selected value
     ///   * a function that will be called when the [`Radio`] is selected. It
     ///     receives the value of the radio and must produce a `Message`.
-    pub fn new<F, V>(
-        label: impl Into<String>,
-        value: V,
-        selected: Option<V>,
-        f: F,
-    ) -> Self
+    pub fn new<F, V>(label: impl Into<String>, value: V, selected: Option<V>, f: F) -> Self
     where
         V: Eq + Copy,
         F: FnOnce(V) -> Message,
@@ -221,10 +216,7 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Radio`] button.
-    pub fn text_line_height(
-        mut self,
-        line_height: impl Into<text::LineHeight>,
-    ) -> Self {
+    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
         self.text_line_height = line_height.into();
         self
     }
@@ -326,7 +318,7 @@ where
 
     fn update(
         &mut self,
-        _state: &mut Tree,
+        _tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -369,7 +361,7 @@ where
 
     fn mouse_interaction(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
@@ -440,8 +432,7 @@ where
 
         {
             let label_layout = children.next().unwrap();
-            let state: &widget::text::State<Renderer::Paragraph> =
-                tree.state.downcast_ref();
+            let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
 
             crate::text::draw(
                 renderer,
@@ -464,9 +455,7 @@ where
     Theme: 'a + Catalog,
     Renderer: 'a + text::Renderer,
 {
-    fn from(
-        radio: Radio<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn from(radio: Radio<'a, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(radio)
     }
 }

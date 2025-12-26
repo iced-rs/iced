@@ -5,26 +5,21 @@ use crate::{Rectangle, Vector};
 /// The internal state of a widget that can be scrolled.
 pub trait Scrollable {
     /// Snaps the scroll of the widget to the given `percentage` along the horizontal & vertical axis.
-    fn snap_to(&mut self, offset: RelativeOffset);
+    fn snap_to(&mut self, offset: RelativeOffset<Option<f32>>);
 
     /// Scroll the widget to the given [`AbsoluteOffset`] along the horizontal & vertical axis.
-    fn scroll_to(&mut self, offset: AbsoluteOffset);
+    fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>);
 
     /// Scroll the widget by the given [`AbsoluteOffset`] along the horizontal & vertical axis.
-    fn scroll_by(
-        &mut self,
-        offset: AbsoluteOffset,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    );
+    fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle);
 }
 
 /// Produces an [`Operation`] that snaps the widget with the given [`Id`] to
 /// the provided `percentage`.
-pub fn snap_to<T>(target: Id, offset: RelativeOffset) -> impl Operation<T> {
+pub fn snap_to<T>(target: Id, offset: RelativeOffset<Option<f32>>) -> impl Operation<T> {
     struct SnapTo {
         target: Id,
-        offset: RelativeOffset,
+        offset: RelativeOffset<Option<f32>>,
     }
 
     impl<T> Operation<T> for SnapTo {
@@ -51,10 +46,10 @@ pub fn snap_to<T>(target: Id, offset: RelativeOffset) -> impl Operation<T> {
 
 /// Produces an [`Operation`] that scrolls the widget with the given [`Id`] to
 /// the provided [`AbsoluteOffset`].
-pub fn scroll_to<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
+pub fn scroll_to<T>(target: Id, offset: AbsoluteOffset<Option<f32>>) -> impl Operation<T> {
     struct ScrollTo {
         target: Id,
-        offset: AbsoluteOffset,
+        offset: AbsoluteOffset<Option<f32>>,
     }
 
     impl<T> Operation<T> for ScrollTo {
@@ -111,22 +106,31 @@ pub fn scroll_by<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
 
 /// The amount of absolute offset in each direction of a [`Scrollable`].
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct AbsoluteOffset {
+pub struct AbsoluteOffset<T = f32> {
     /// The amount of horizontal offset
-    pub x: f32,
+    pub x: T,
     /// The amount of vertical offset
-    pub y: f32,
+    pub y: T,
+}
+
+impl From<AbsoluteOffset> for AbsoluteOffset<Option<f32>> {
+    fn from(offset: AbsoluteOffset) -> Self {
+        Self {
+            x: Some(offset.x),
+            y: Some(offset.y),
+        }
+    }
 }
 
 /// The amount of relative offset in each direction of a [`Scrollable`].
 ///
 /// A value of `0.0` means start, while `1.0` means end.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct RelativeOffset {
+pub struct RelativeOffset<T = f32> {
     /// The amount of horizontal offset
-    pub x: f32,
+    pub x: T,
     /// The amount of vertical offset
-    pub y: f32,
+    pub y: T,
 }
 
 impl RelativeOffset {
@@ -135,4 +139,13 @@ impl RelativeOffset {
 
     /// A relative offset that points to the bottom-right of a [`Scrollable`].
     pub const END: Self = Self { x: 1.0, y: 1.0 };
+}
+
+impl From<RelativeOffset> for RelativeOffset<Option<f32>> {
+    fn from(offset: RelativeOffset) -> Self {
+        Self {
+            x: Some(offset.x),
+            y: Some(offset.y),
+        }
+    }
 }

@@ -6,10 +6,7 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new(
-        device: &wgpu::Device,
-        texture_format: wgpu::TextureFormat,
-    ) -> Scene {
+    pub fn new(device: &wgpu::Device, texture_format: wgpu::TextureFormat) -> Scene {
         let pipeline = build_pipeline(device, texture_format);
 
         Scene { pipeline }
@@ -61,12 +58,11 @@ fn build_pipeline(
         device.create_shader_module(wgpu::include_wgsl!("shader/frag.wgsl")),
     );
 
-    let pipeline_layout =
-        device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: None,
-            push_constant_ranges: &[],
-            bind_group_layouts: &[],
-        });
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: None,
+        push_constant_ranges: &[],
+        bind_group_layouts: &[],
+    });
 
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: None,

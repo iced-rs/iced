@@ -9,8 +9,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Clipboard, Element, Event, Length, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    self, Clipboard, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A reusable, custom widget that uses The Elm Architecture.
@@ -39,13 +38,7 @@ use crate::core::{
 ///
 /// On the other hand, if a piece of state is only needed by the component itself,
 /// you can store it as part of its internal [`State`][Component::State].
-pub trait Component<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
->
-{
+pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     /// The internal state of this [`Component`].
     type State: Default + 'static;
 
@@ -64,10 +57,7 @@ pub trait Component<
 
     /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
     /// on user interaction.
-    fn view(
-        &self,
-        state: &Self::State,
-    ) -> Element<'a, Self::Event, Theme, Renderer>;
+    fn view(&self, state: &Self::State) -> Element<'a, Self::Event, Theme, Renderer>;
 
     /// Listens to a runtime [`Event`] and performs an [`Action`] as a result.
     ///
@@ -190,8 +180,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        let internal =
-            tree.state.downcast_mut::<Internal<C::State, C::Event>>();
+        let internal = tree.state.downcast_mut::<Internal<C::State, C::Event>>();
 
         self.component.diff(&mut internal.state);
     }
@@ -206,8 +195,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let internal =
-            tree.state.downcast_ref::<Internal<C::State, C::Event>>();
+        let internal = tree.state.downcast_ref::<Internal<C::State, C::Event>>();
 
         if self.is_outdated {
             self.view = self.component.view(&internal.state);
@@ -218,11 +206,10 @@ where
 
         if &self.limits != limits {
             self.limits = *limits;
-            self.layout = self.view.as_widget_mut().layout(
-                &mut tree.children[0],
-                renderer,
-                limits,
-            );
+            self.layout = self
+                .view
+                .as_widget_mut()
+                .layout(&mut tree.children[0], renderer, limits);
         }
 
         layout::Node::new(self.layout.size())
@@ -239,15 +226,11 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let internal =
-            tree.state.downcast_mut::<Internal<C::State, C::Event>>();
+        let internal = tree.state.downcast_mut::<Internal<C::State, C::Event>>();
 
-        let action = self.component.listen(
-            &internal.state,
-            event,
-            layout.bounds(),
-            cursor,
-        );
+        let action = self
+            .component
+            .listen(&internal.state, event, layout.bounds(), cursor);
 
         let (publish, redraw_request, event_status) = action.into_inner();
 
@@ -265,10 +248,7 @@ where
             self.view.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
-                Layout::with_offset(
-                    layout.position() - Point::ORIGIN,
-                    &self.layout,
-                ),
+                Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
                 cursor,
                 renderer,
                 clipboard,
@@ -297,9 +277,7 @@ where
         }
 
         for event in internal.events.drain(..) {
-            if let Some(message) =
-                self.component.update(&mut internal.state, event, renderer)
-            {
+            if let Some(message) = self.component.update(&mut internal.state, event, renderer) {
                 shell.publish(message);
             }
         }
@@ -308,11 +286,10 @@ where
         tree.diff_children(&[&self.view]);
 
         let previous_size = self.layout.size();
-        self.layout = self.view.as_widget_mut().layout(
-            &mut tree.children[0],
-            renderer,
-            &self.limits,
-        );
+        self.layout =
+            self.view
+                .as_widget_mut()
+                .layout(&mut tree.children[0], renderer, &self.limits);
 
         let new_size_hint = self.component.size_hint();
 
@@ -342,10 +319,7 @@ where
                 .as_widget_mut()
                 .overlay(
                     &mut tree.children[0],
-                    Layout::with_offset(
-                        layout.position() - Point::ORIGIN,
-                        &self.layout,
-                    ),
+                    Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
                     renderer,
                     viewport,
                     Vector::ZERO,
@@ -361,18 +335,14 @@ where
         self.is_outdated = false;
 
         if let Event::Window(window::Event::RedrawRequested(_)) = event {
-            let internal =
-                tree.state.downcast_mut::<Internal<C::State, C::Event>>();
+            let internal = tree.state.downcast_mut::<Internal<C::State, C::Event>>();
 
             let mut local_shell = Shell::new(&mut internal.events);
 
             self.view.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
-                Layout::with_offset(
-                    layout.position() - Point::ORIGIN,
-                    &self.layout,
-                ),
+                Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
                 cursor,
                 renderer,
                 clipboard,
@@ -403,10 +373,7 @@ where
             renderer,
             theme,
             style,
-            Layout::with_offset(
-                layout.position() - Point::ORIGIN,
-                &self.layout,
-            ),
+            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
             cursor,
             viewport,
         );
@@ -420,8 +387,7 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let internal =
-            tree.state.downcast_ref::<Internal<C::State, C::Event>>();
+        let internal = tree.state.downcast_ref::<Internal<C::State, C::Event>>();
 
         let interaction = self.component.mouse_interaction(&internal.state);
 
@@ -431,10 +397,7 @@ where
 
         self.view.as_widget().mouse_interaction(
             &tree.children[0],
-            Layout::with_offset(
-                layout.position() - Point::ORIGIN,
-                &self.layout,
-            ),
+            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
             cursor,
             viewport,
             renderer,
@@ -448,18 +411,14 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let internal =
-            tree.state.downcast_ref::<Internal<C::State, C::Event>>();
+        let internal = tree.state.downcast_ref::<Internal<C::State, C::Event>>();
 
         self.component
             .operate(&internal.state, layout.bounds(), operation);
 
         self.view.as_widget_mut().operate(
             &mut tree.children[0],
-            Layout::with_offset(
-                layout.position() - Point::ORIGIN,
-                &self.layout,
-            ),
+            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
             renderer,
             operation,
         );
@@ -475,10 +434,7 @@ where
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let overlay = self.view.as_widget_mut().overlay(
             &mut tree.children[0],
-            Layout::with_offset(
-                layout.position() - Point::ORIGIN,
-                &self.layout,
-            ),
+            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
             renderer,
             viewport,
             translation,
@@ -505,8 +461,7 @@ where
     raw: overlay::Element<'b, C::Event, Theme, Renderer>,
 }
 
-impl<'a, 'b, C, Message, Theme, Renderer>
-    overlay::Overlay<Message, Theme, Renderer>
+impl<'a, 'b, C, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
     for Overlay<'a, 'b, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer>,
@@ -556,9 +511,9 @@ where
         }
 
         for event in self.internal.events.drain(..) {
-            if let Some(message) =
-                self.component
-                    .update(&mut self.internal.state, event, renderer)
+            if let Some(message) = self
+                .component
+                .update(&mut self.internal.state, event, renderer)
             {
                 shell.publish(message);
             }

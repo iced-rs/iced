@@ -4,7 +4,7 @@
 //!
 //! `iced_runtime` takes [`iced_core`] and builds a native runtime on top of it.
 //!
-//! [`iced_core`]: https://github.com/iced-rs/iced/tree/0.13/core
+//! [`iced_core`]: https://github.com/iced-rs/iced/tree/master/core
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
@@ -20,11 +20,11 @@ pub mod widget;
 pub mod window;
 
 pub use iced_core as core;
-pub use iced_debug as debug;
 pub use iced_futures as futures;
 
 pub use task::Task;
 pub use user_interface::UserInterface;
+pub use window::Window;
 
 use crate::futures::futures::channel::oneshot;
 
@@ -56,8 +56,11 @@ pub enum Action<T> {
     /// Run a system action.
     System(system::Action),
 
-    /// An image action.
+    /// Run an image action.
     Image(image::Action),
+
+    /// Poll any resources that may have pending computations.
+    Tick,
 
     /// Recreate all user interfaces and redraw all windows.
     Reload,
@@ -78,14 +81,13 @@ impl<T> Action<T> {
     fn output<O>(self) -> Result<T, Action<O>> {
         match self {
             Action::Output(output) => Ok(output),
-            Action::LoadFont { bytes, channel } => {
-                Err(Action::LoadFont { bytes, channel })
-            }
+            Action::LoadFont { bytes, channel } => Err(Action::LoadFont { bytes, channel }),
             Action::Widget(operation) => Err(Action::Widget(operation)),
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
             Action::Image(action) => Err(Action::Image(action)),
+            Action::Tick => Err(Action::Tick),
             Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
         }
@@ -111,6 +113,7 @@ where
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
             Action::Image(_) => write!(f, "Action::Image"),
+            Action::Tick => write!(f, "Action::Tick"),
             Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),
         }

@@ -52,17 +52,15 @@ impl Compositor {
         compatible_window: Option<W>,
         shell: Shell,
     ) -> Result<Self, Error> {
-        let instance = wgpu::util::new_instance_with_webgpu_detection(
-            &wgpu::InstanceDescriptor {
-                backends: settings.backends,
-                flags: if cfg!(feature = "strict-assertions") {
-                    wgpu::InstanceFlags::debugging()
-                } else {
-                    wgpu::InstanceFlags::empty()
-                },
-                ..Default::default()
+        let instance = wgpu::util::new_instance_with_webgpu_detection(&wgpu::InstanceDescriptor {
+            backends: settings.backends,
+            flags: if cfg!(feature = "strict-assertions") {
+                wgpu::InstanceFlags::debugging()
+            } else {
+                wgpu::InstanceFlags::empty()
             },
-        )
+            ..Default::default()
+        })
         .await;
 
         log::info!("{settings:#?}");
@@ -78,25 +76,20 @@ impl Compositor {
         }
 
         #[allow(unsafe_code)]
-        let compatible_surface = compatible_window
-            .and_then(|window| instance.create_surface(window).ok());
+        let compatible_surface =
+            compatible_window.and_then(|window| instance.create_surface(window).ok());
 
         let adapter_options = wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::from_env().unwrap_or(
-                if settings.antialiasing.is_none() {
-                    wgpu::PowerPreference::LowPower
-                } else {
-                    wgpu::PowerPreference::HighPerformance
-                },
-            ),
+            power_preference: wgpu::PowerPreference::from_env()
+                .unwrap_or(wgpu::PowerPreference::HighPerformance),
             compatible_surface: compatible_surface.as_ref(),
             force_fallback_adapter: false,
         };
 
-        let adapter =
-            instance.request_adapter(&adapter_options).await.map_err(
-                |_error| Error::NoAdapterFound(format!("{adapter_options:?}")),
-            )?;
+        let adapter = instance
+            .request_adapter(&adapter_options)
+            .await
+            .map_err(|_error| Error::NoAdapterFound(format!("{adapter_options:?}")))?;
 
         log::info!("Selected: {:#?}", adapter.get_info());
 
@@ -105,9 +98,12 @@ impl Compositor {
             .and_then(|surface| {
                 let capabilities = surface.get_capabilities(&adapter);
 
-                let mut formats = capabilities.formats.iter().copied();
+                let formats = capabilities.formats.iter().copied();
 
                 log::info!("Available formats: {formats:#?}");
+
+                let mut formats =
+                    formats.filter(|format| format.required_features() == wgpu::Features::empty());
 
                 let format = if color::GAMMA_CORRECTION {
                     formats.find(wgpu::TextureFormat::is_srgb)
@@ -125,33 +121,26 @@ impl Compositor {
 
                 log::info!("Available alpha modes: {alpha_modes:#?}");
 
-                let preferred_alpha = if alpha_modes
-                    .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
-                {
-                    wgpu::CompositeAlphaMode::PostMultiplied
-                } else if alpha_modes
-                    .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
-                {
-                    wgpu::CompositeAlphaMode::PreMultiplied
-                } else {
-                    wgpu::CompositeAlphaMode::Auto
-                };
+                let preferred_alpha =
+                    if alpha_modes.contains(&wgpu::CompositeAlphaMode::PostMultiplied) {
+                        wgpu::CompositeAlphaMode::PostMultiplied
+                    } else if alpha_modes.contains(&wgpu::CompositeAlphaMode::PreMultiplied) {
+                        wgpu::CompositeAlphaMode::PreMultiplied
+                    } else {
+                        wgpu::CompositeAlphaMode::Auto
+                    };
 
                 format.zip(Some(preferred_alpha))
             })
             .ok_or(Error::IncompatibleSurface)?;
 
-        log::info!(
-            "Selected format: {format:?} with alpha mode: {alpha_mode:?}"
-        );
+        log::info!("Selected format: {format:?} with alpha mode: {alpha_mode:?}");
 
         #[cfg(target_arch = "wasm32")]
-        let limits = [wgpu::Limits::downlevel_webgl2_defaults()
-            .using_resolution(adapter.limits())];
+        let limits = [wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())];
 
         #[cfg(not(target_arch = "wasm32"))]
-        let limits =
-            [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
+        let limits = [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
 
         let limits = limits.into_iter().map(|limits| wgpu::Limits {
             max_bind_groups: 2,
@@ -164,15 +153,12 @@ impl Compositor {
         for required_limits in limits {
             let result = adapter
                 .request_device(&wgpu::DeviceDescriptor {
-                    label: Some(
-                        "iced_wgpu::window::compositor device descriptor",
-                    ),
+                    label: Some("iced_wgpu::window::compositor device descriptor"),
                     required_features: wgpu::Features::empty(),
                     required_limits: required_limits.clone(),
                     memory_hints: wgpu::MemoryHints::MemoryUsage,
                     trace: wgpu::Trace::Off,
-                    experimental_features: wgpu::ExperimentalFeatures::disabled(
-                    ),
+                    experimental_features: wgpu::ExperimentalFeatures::disabled(),
                 })
                 .await;
 
@@ -243,16 +229,10 @@ pub fn present(
             Ok(())
         }
         Err(error) => match error {
-            wgpu::SurfaceError::Timeout => {
-                Err(compositor::SurfaceError::Timeout)
-            }
-            wgpu::SurfaceError::Outdated => {
-                Err(compositor::SurfaceError::Outdated)
-            }
+            wgpu::SurfaceError::Timeout => Err(compositor::SurfaceError::Timeout),
+            wgpu::SurfaceError::Outdated => Err(compositor::SurfaceError::Outdated),
             wgpu::SurfaceError::Lost => Err(compositor::SurfaceError::Lost),
-            wgpu::SurfaceError::OutOfMemory => {
-                Err(compositor::SurfaceError::OutOfMemory)
-            }
+            wgpu::SurfaceError::OutOfMemory => Err(compositor::SurfaceError::OutOfMemory),
             wgpu::SurfaceError::Other => Err(compositor::SurfaceError::Other),
         },
     }
@@ -262,9 +242,10 @@ impl graphics::Compositor for Compositor {
     type Renderer = Renderer;
     type Surface = wgpu::Surface<'static>;
 
-    async fn with_backend<W: compositor::Window>(
+    async fn with_backend(
         settings: graphics::Settings,
-        compatible_window: W,
+        _display: impl compositor::Display,
+        compatible_window: impl compositor::Window,
         shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
@@ -317,12 +298,7 @@ impl graphics::Compositor for Compositor {
         surface
     }
 
-    fn configure_surface(
-        &mut self,
-        surface: &mut Self::Surface,
-        width: u32,
-        height: u32,
-    ) {
+    fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32) {
         surface.configure(
             &self.engine.device,
             &wgpu::SurfaceConfiguration {

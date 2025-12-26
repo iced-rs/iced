@@ -32,7 +32,7 @@ Inspired by [Elm].
 * Responsive layout
 * Built-in widgets (including [text inputs], [scrollables], and more!)
 * Custom widget support (create your own!)
-* [Debug overlay with performance metrics]
+* [Debug tooling with performance metrics and time traveling]
 * First-class support for async actions (use futures!)
 * Modular ecosystem split into reusable parts:
   * A [renderer-agnostic native runtime] enabling integration with existing systems
@@ -47,7 +47,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap] and
 [Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg
 [text inputs]: https://iced.rs/examples/text_input.mp4
 [scrollables]: https://iced.rs/examples/scrollable.mp4
-[Debug overlay with performance metrics]: https://iced.rs/examples/debug.mp4
+[Debug tooling with performance metrics and time traveling]: https://github.com/user-attachments/assets/2e49695c-0261-4b43-ac2e-8d7da5454c4b
 [renderer-agnostic native runtime]: runtime/
 [`wgpu`]: https://github.com/gfx-rs/wgpu
 [`tiny-skia`]: https://github.com/RazrFalcon/tiny-skia
@@ -142,7 +142,7 @@ And that's everything! We just wrote a whole user interface. Let's run it:
 
 ```rust
 fn main() -> iced::Result {
-    iced::run("A cool counter", Counter::update, Counter::view)
+    iced::run(Counter::update, Counter::view)
 }
 ```
 

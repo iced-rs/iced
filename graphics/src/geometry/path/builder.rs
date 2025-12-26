@@ -65,9 +65,8 @@ impl Builder {
             return;
         }
 
-        let double_area = start.x * (mid.y - end.y)
-            + mid.x * (end.y - start.y)
-            + end.x * (start.y - mid.y);
+        let double_area =
+            start.x * (mid.y - end.y) + mid.x * (end.y - start.y) + end.x * (start.y - mid.y);
 
         if double_area == 0.0 {
             let _ = self.raw.line_to(mid);
@@ -108,14 +107,13 @@ impl Builder {
             radii: math::Vector::new(arc.radii.x, arc.radii.y),
             x_rotation: math::Angle::radians(arc.rotation.0),
             start_angle: math::Angle::radians(arc.start_angle.0),
-            sweep_angle: math::Angle::radians(
-                (arc.end_angle - arc.start_angle).0,
-            ),
+            sweep_angle: math::Angle::radians((arc.end_angle - arc.start_angle).0),
         };
 
         let _ = self.raw.move_to(arc.sample(0.0));
 
-        arc.for_each_quadratic_bezier(&mut |curve| {
+        arc.cast::<f64>().for_each_quadratic_bezier(&mut |curve| {
+            let curve = curve.cast::<f32>();
             let _ = self.raw.quadratic_bezier_to(curve.ctrl, curve.to);
         });
     }
@@ -123,12 +121,7 @@ impl Builder {
     /// Adds a cubic Bézier curve to the [`Path`] given its two control points
     /// and its end point.
     #[inline]
-    pub fn bezier_curve_to(
-        &mut self,
-        control_a: Point,
-        control_b: Point,
-        to: Point,
-    ) {
+    pub fn bezier_curve_to(&mut self, control_a: Point, control_b: Point, to: Point) {
         let _ = self.raw.cubic_bezier_to(
             math::Point::new(control_a.x, control_a.y),
             math::Point::new(control_b.x, control_b.y),
@@ -163,12 +156,7 @@ impl Builder {
     /// Adds a rounded rectangle to the [`Path`] given its top-left
     /// corner coordinate its [`Size`] and [`border::Radius`].
     #[inline]
-    pub fn rounded_rectangle(
-        &mut self,
-        top_left: Point,
-        size: Size,
-        radius: border::Radius,
-    ) {
+    pub fn rounded_rectangle(&mut self, top_left: Point, size: Size, radius: border::Radius) {
         let min_size = (size.height / 2.0).min(size.width / 2.0);
         let [
             top_left_corner,

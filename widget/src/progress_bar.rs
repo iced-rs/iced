@@ -25,8 +25,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme,
-    Widget,
+    self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -142,8 +141,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for ProgressBar<'_, Theme>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for ProgressBar<'_, Theme>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
@@ -166,7 +164,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
@@ -236,9 +234,7 @@ where
     Theme: 'a + Catalog,
     Renderer: 'a + core::Renderer,
 {
-    fn from(
-        progress_bar: ProgressBar<'a, Theme>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn from(progress_bar: ProgressBar<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(progress_bar)
     }
 }
@@ -321,10 +317,7 @@ pub fn danger(theme: &Theme) -> Style {
     styled(palette.background.strong.color, palette.danger.base.color)
 }
 
-fn styled(
-    background: impl Into<Background>,
-    bar: impl Into<Background>,
-) -> Style {
+fn styled(background: impl Into<Background>, bar: impl Into<Background>) -> Style {
     Style {
         background: background.into(),
         bar: bar.into(),

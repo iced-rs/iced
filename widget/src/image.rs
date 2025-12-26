@@ -26,8 +26,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size,
-    Vector, Widget,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size, Vector, Widget,
 };
 
 pub use image::{FilterMethod, Handle};
@@ -172,10 +171,7 @@ impl<Handle> Image<Handle> {
     ///
     /// Currently, it will only be applied around the rectangular bounding box
     /// of the [`Image`].
-    pub fn border_radius(
-        mut self,
-        border_radius: impl Into<border::Radius>,
-    ) -> Self {
+    pub fn border_radius(mut self, border_radius: impl Into<border::Radius>) -> Self {
         self.border_radius = border_radius.into();
         self
     }
@@ -197,8 +193,7 @@ where
     Renderer: image::Renderer<Handle = Handle>,
 {
     // The raw w/h of the underlying image
-    let image_size =
-        crop(renderer.measure_image(handle).unwrap_or_default(), region);
+    let image_size = crop(renderer.measure_image(handle).unwrap_or_default(), region);
 
     // The rotated size of the image
     let rotated_size = rotation.apply(image_size);
@@ -325,15 +320,8 @@ pub fn draw<Renderer, Handle>(
     Handle: Clone,
 {
     let bounds = layout.bounds();
-    let drawing_bounds = drawing_bounds(
-        renderer,
-        bounds,
-        handle,
-        crop,
-        content_fit,
-        rotation,
-        scale,
-    );
+    let drawing_bounds =
+        drawing_bounds(renderer, bounds, handle, crop, content_fit, rotation, scale);
 
     renderer.draw_image(
         image::Image {
@@ -349,8 +337,7 @@ pub fn draw<Renderer, Handle>(
     );
 }
 
-impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
-    for Image<Handle>
+impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -383,7 +370,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,

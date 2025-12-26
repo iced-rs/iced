@@ -8,20 +8,13 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
-    Size, Vector, Widget,
+    self, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that can generate messages when its content pops in and out of view.
 ///
 /// It can even notify you with anticipation at a given distance!
-pub struct Sensor<
-    'a,
-    Key,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> {
+pub struct Sensor<'a, Key, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
     key: Key,
     on_show: Option<Box<dyn Fn(Size) -> Message + 'a>>,
@@ -36,9 +29,7 @@ where
     Renderer: core::Renderer,
 {
     /// Creates a new [`Sensor`] widget with the given content.
-    pub fn new(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             content: content.into(),
             key: (),
@@ -51,8 +42,7 @@ where
     }
 }
 
-impl<'a, Key, Message, Theme, Renderer>
-    Sensor<'a, Key, Message, Theme, Renderer>
+impl<'a, Key, Message, Theme, Renderer> Sensor<'a, Key, Message, Theme, Renderer>
 where
     Key: self::Key,
     Renderer: core::Renderer,
@@ -68,10 +58,7 @@ where
     /// Sets the message to be produced when the content changes [`Size`] once its in view.
     ///
     /// The closure will receive the new [`Size`] of the content.
-    pub fn on_resize(
-        mut self,
-        on_resize: impl Fn(Size) -> Message + 'a,
-    ) -> Self {
+    pub fn on_resize(mut self, on_resize: impl Fn(Size) -> Message + 'a) -> Self {
         self.on_resize = Some(Box::new(on_resize));
         self
     }
@@ -85,10 +72,7 @@ where
     /// Sets the key of the [`Sensor`] widget, for continuity.
     ///
     /// If the key changes, the [`Sensor`] widget will trigger again.
-    pub fn key<K>(
-        self,
-        key: K,
-    ) -> Sensor<'a, impl self::Key, Message, Theme, Renderer>
+    pub fn key<K>(self, key: K) -> Sensor<'a, impl self::Key, Message, Theme, Renderer>
     where
         K: Clone + PartialEq + 'static,
     {
@@ -106,10 +90,7 @@ where
     /// Sets the key of the [`Sensor`], for continuity; using a reference.
     ///
     /// If the key changes, the [`Sensor`] will trigger again.
-    pub fn key_ref<K>(
-        self,
-        key: &'a K,
-    ) -> Sensor<'a, &'a K, Message, Theme, Renderer>
+    pub fn key_ref<K>(self, key: &'a K) -> Sensor<'a, &'a K, Message, Theme, Renderer>
     where
         K: ToOwned + PartialEq<K::Owned> + ?Sized,
         K::Owned: 'static,
@@ -207,8 +188,8 @@ where
             let bounds = layout.bounds();
             let top_left_distance = viewport.distance(bounds.position());
 
-            let bottom_right_distance = viewport
-                .distance(bounds.position() + Vector::from(bounds.size()));
+            let bottom_right_distance =
+                viewport.distance(bounds.position() + Vector::from(bounds.size()));
 
             let distance = top_left_distance.min(bottom_right_distance);
 
@@ -288,11 +269,9 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content.as_widget_mut().layout(
-            &mut tree.children[0],
-            renderer,
-            limits,
-        )
+        self.content
+            .as_widget_mut()
+            .layout(&mut tree.children[0], renderer, limits)
     }
 
     fn draw(
@@ -323,12 +302,9 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            renderer,
-            operation,
-        );
+        self.content
+            .as_widget_mut()
+            .operate(&mut tree.children[0], layout, renderer, operation);
     }
 
     fn mouse_interaction(
@@ -366,8 +342,7 @@ where
     }
 }
 
-impl<'a, Key, Message, Theme, Renderer>
-    From<Sensor<'a, Key, Message, Theme, Renderer>>
+impl<'a, Key, Message, Theme, Renderer> From<Sensor<'a, Key, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,

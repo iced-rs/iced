@@ -1,5 +1,6 @@
 [package]
 name = "iced_program"
+description = "The definition of an iced program"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

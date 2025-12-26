@@ -30,9 +30,8 @@ use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Event, Layout, Length,
-    Padding, Pixels, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
-    color,
+    self, Background, Clipboard, Color, Element, Event, Layout, Length, Padding, Pixels, Rectangle,
+    Shadow, Shell, Size, Theme, Vector, Widget, color,
 };
 
 /// A widget that aligns its contents inside of its boundaries.
@@ -56,12 +55,8 @@ use crate::core::{
 ///         .into()
 /// }
 /// ```
-pub struct Container<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> where
+pub struct Container<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
     Theme: Catalog,
     Renderer: core::Renderer,
 {
@@ -84,9 +79,7 @@ where
     Renderer: core::Renderer,
 {
     /// Creates a [`Container`] with the given content.
-    pub fn new(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let content = content.into();
         let size = content.as_widget().size_hint();
 
@@ -151,8 +144,8 @@ where
         self.height(height).align_y(alignment::Vertical::Center)
     }
 
-    /// Centers the contents in both the horizontal and vertical axes of the
-    /// [`Container`].
+    /// Sets the width and height of the [`Container`] and centers its contents in
+    /// both the horizontal and vertical axes.
     ///
     /// This is equivalent to chaining [`center_x`] and [`center_y`].
     ///
@@ -164,40 +157,34 @@ where
         self.center_x(length).center_y(length)
     }
 
-    /// Aligns the contents of the [`Container`] to the left.
+    /// Sets the width of the [`Container`] and aligns its contents to the left.
     pub fn align_left(self, width: impl Into<Length>) -> Self {
         self.width(width).align_x(alignment::Horizontal::Left)
     }
 
-    /// Aligns the contents of the [`Container`] to the right.
+    /// Sets the width of the [`Container`] and aligns its contents to the right.
     pub fn align_right(self, width: impl Into<Length>) -> Self {
         self.width(width).align_x(alignment::Horizontal::Right)
     }
 
-    /// Aligns the contents of the [`Container`] to the top.
+    /// Sets the height of the [`Container`] and aligns its contents to the top.
     pub fn align_top(self, height: impl Into<Length>) -> Self {
         self.height(height).align_y(alignment::Vertical::Top)
     }
 
-    /// Aligns the contents of the [`Container`] to the bottom.
+    /// Sets the height of the [`Container`] and aligns its contents to the bottom.
     pub fn align_bottom(self, height: impl Into<Length>) -> Self {
         self.height(height).align_y(alignment::Vertical::Bottom)
     }
 
     /// Sets the content alignment for the horizontal axis of the [`Container`].
-    pub fn align_x(
-        mut self,
-        alignment: impl Into<alignment::Horizontal>,
-    ) -> Self {
+    pub fn align_x(mut self, alignment: impl Into<alignment::Horizontal>) -> Self {
         self.horizontal_alignment = alignment.into();
         self
     }
 
     /// Sets the content alignment for the vertical axis of the [`Container`].
-    pub fn align_y(
-        mut self,
-        alignment: impl Into<alignment::Vertical>,
-    ) -> Self {
+    pub fn align_y(mut self, alignment: impl Into<alignment::Vertical>) -> Self {
         self.vertical_alignment = alignment.into();
         self
     }
@@ -271,9 +258,7 @@ where
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |limits| {
-                self.content.as_widget_mut().layout(tree, renderer, limits)
-            },
+            |limits| self.content.as_widget_mut().layout(tree, renderer, limits),
         )
     }
 
@@ -356,9 +341,7 @@ where
                 renderer,
                 theme,
                 &renderer::Style {
-                    text_color: style
-                        .text_color
-                        .unwrap_or(renderer_style.text_color),
+                    text_color: style.text_color.unwrap_or(renderer_style.text_color),
                 },
                 layout.children().next().unwrap(),
                 cursor,
@@ -432,17 +415,11 @@ pub fn layout(
 }
 
 /// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
-pub fn draw_background<Renderer>(
-    renderer: &mut Renderer,
-    style: &Style,
-    bounds: Rectangle,
-) where
+pub fn draw_background<Renderer>(renderer: &mut Renderer, style: &Style, bounds: Rectangle)
+where
     Renderer: core::Renderer,
 {
-    if style.background.is_some()
-        || style.border.width > 0.0
-        || style.shadow.color.a > 0.0
-    {
+    if style.background.is_some() || style.border.width > 0.0 || style.shadow.color.a > 0.0 {
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
@@ -458,7 +435,7 @@ pub fn draw_background<Renderer>(
 }
 
 /// The appearance of a container.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The text [`Color`] of the container.
     pub text_color: Option<Color>,
@@ -470,6 +447,18 @@ pub struct Style {
     pub shadow: Shadow,
     /// Whether the container should be snapped to the pixel grid.
     pub snap: bool,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            text_color: None,
+            background: None,
+            border: Border::default(),
+            shadow: Shadow::default(),
+            snap: renderer::CRISP,
+        }
+    }
 }
 
 impl Style {
@@ -622,6 +611,13 @@ pub fn success(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
     style(palette.success.base)
+}
+
+/// A [`Container`] with a warning background color.
+pub fn warning(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+
+    style(palette.warning.base)
 }
 
 /// A [`Container`] with a danger background color.

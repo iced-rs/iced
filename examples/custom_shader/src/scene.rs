@@ -128,16 +128,7 @@ impl Primitive {
 }
 
 impl shader::Primitive for Primitive {
-    type Renderer = Pipeline;
-
-    fn initialize(
-        &self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        format: wgpu::TextureFormat,
-    ) -> Pipeline {
-        Pipeline::new(device, queue, format)
-    }
+    type Pipeline = Pipeline;
 
     fn prepare(
         &self,
@@ -182,4 +173,10 @@ fn rnd_origin() -> Vec3 {
         rand::thread_rng().gen_range(-4.0..4.0),
         rand::thread_rng().gen_range(-4.0..2.0),
     )
+}
+
+impl shader::Pipeline for Pipeline {
+    fn new(device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) -> Pipeline {
+        Self::new(device, queue, format)
+    }
 }

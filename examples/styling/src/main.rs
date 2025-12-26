@@ -1,8 +1,7 @@
 use iced::keyboard;
 use iced::widget::{
-    button, center_x, center_y, checkbox, column, container, pick_list,
-    progress_bar, row, rule, scrollable, slider, space, text, text_input,
-    toggler,
+    button, center_x, center_y, checkbox, column, container, pick_list, progress_bar, row, rule,
+    scrollable, slider, space, text, text_input, toggler,
 };
 use iced::{Center, Element, Fill, Shrink, Subscription, Theme};
 
@@ -47,14 +46,13 @@ impl Styling {
             Message::CheckboxToggled(value) => self.checkbox_value = value,
             Message::TogglerToggled(value) => self.toggler_value = value,
             Message::PreviousTheme | Message::NextTheme => {
-                let current = Theme::ALL.iter().position(|candidate| {
-                    self.theme.as_ref() == Some(candidate)
-                });
+                let current = Theme::ALL
+                    .iter()
+                    .position(|candidate| self.theme.as_ref() == Some(candidate));
 
                 self.theme = Some(if matches!(message, Message::NextTheme) {
-                    Theme::ALL[current.map(|current| current + 1).unwrap_or(0)
-                        % Theme::ALL.len()]
-                    .clone()
+                    Theme::ALL[current.map(|current| current + 1).unwrap_or(0) % Theme::ALL.len()]
+                        .clone()
                 } else {
                     let current = current.unwrap_or(0);
 
@@ -97,67 +95,50 @@ impl Styling {
                 ("Danger", button::danger),
             ];
 
-            let styled_button =
-                |label| button(text(label).width(Fill).center()).padding(10);
+            let styled_button = |label| button(text(label).width(Fill).center()).padding(10);
 
             column![
-                row(styles.into_iter().map(|(name, style)| styled_button(
-                    name
-                )
-                .on_press(Message::ButtonPressed)
-                .style(style)
-                .into()))
+                row(styles.into_iter().map(|(name, style)| styled_button(name)
+                    .on_press(Message::ButtonPressed)
+                    .style(style)
+                    .into()))
                 .spacing(10)
                 .align_y(Center),
-                row(styles.into_iter().map(|(name, style)| styled_button(
-                    name
-                )
-                .style(style)
-                .into()))
+                row(styles
+                    .into_iter()
+                    .map(|(name, style)| styled_button(name).style(style).into()))
                 .spacing(10)
                 .align_y(Center),
             ]
             .spacing(10)
         };
 
-        let slider =
-            || slider(0.0..=100.0, self.slider_value, Message::SliderChanged);
+        let slider = || slider(0.0..=100.0, self.slider_value, Message::SliderChanged);
 
         let progress_bar = || progress_bar(0.0..=100.0, self.slider_value);
 
-        let scroll_me = scrollable(column![
-            "Scroll me!",
-            space().height(800),
-            "You did it!"
-        ])
-        .width(Fill)
-        .height(Fill);
+        let scroll_me = scrollable(column!["Scroll me!", space().height(800), "You did it!"])
+            .width(Fill)
+            .height(Fill)
+            .auto_scroll(true);
 
-        let check = checkbox("Check me!", self.checkbox_value)
+        let check = checkbox(self.checkbox_value)
+            .label("Check me!")
             .on_toggle(Message::CheckboxToggled);
 
-        let check_disabled = checkbox("Disabled", self.checkbox_value);
+        let check_disabled = checkbox(self.checkbox_value).label("Disabled");
 
         let toggle = toggler(self.toggler_value)
             .label("Toggle me!")
-            .on_toggle(Message::TogglerToggled)
-            .spacing(10);
+            .on_toggle(Message::TogglerToggled);
 
-        let disabled_toggle =
-            toggler(self.toggler_value).label("Disabled").spacing(10);
+        let disabled_toggle = toggler(self.toggler_value).label("Disabled");
 
         let card = {
-            container(
-                column![
-                    text("Card Example").size(24),
-                    slider(),
-                    progress_bar(),
-                ]
-                .spacing(20),
-            )
-            .width(Fill)
-            .padding(20)
-            .style(container::bordered_box)
+            container(column![text("Card Example").size(24), slider(), progress_bar(),].spacing(20))
+                .width(Fill)
+                .padding(20)
+                .style(container::bordered_box)
         };
 
         let content = column![
@@ -170,8 +151,7 @@ impl Styling {
             row![
                 scroll_me,
                 rule::vertical(1),
-                column![check, check_disabled, toggle, disabled_toggle]
-                    .spacing(10)
+                column![check, check_disabled, toggle, disabled_toggle].spacing(10),
             ]
             .spacing(10)
             .height(Shrink)
@@ -188,18 +168,26 @@ impl Styling {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key, _modifiers| match key {
-            keyboard::Key::Named(
-                keyboard::key::Named::ArrowUp | keyboard::key::Named::ArrowLeft,
-            ) => Some(Message::PreviousTheme),
-            keyboard::Key::Named(
-                keyboard::key::Named::ArrowDown
-                | keyboard::key::Named::ArrowRight,
-            ) => Some(Message::NextTheme),
-            keyboard::Key::Named(keyboard::key::Named::Space) => {
-                Some(Message::ClearTheme)
+        keyboard::listen().filter_map(|event| {
+            let keyboard::Event::KeyPressed {
+                modified_key: keyboard::Key::Named(modified_key),
+                repeat: false,
+                ..
+            } = event
+            else {
+                return None;
+            };
+
+            match modified_key {
+                keyboard::key::Named::ArrowUp | keyboard::key::Named::ArrowLeft => {
+                    Some(Message::PreviousTheme)
+                }
+                keyboard::key::Named::ArrowDown | keyboard::key::Named::ArrowRight => {
+                    Some(Message::NextTheme)
+                }
+                keyboard::key::Named::Space => Some(Message::ClearTheme),
+                _ => None,
             }
-            _ => None,
         })
     }
 
@@ -231,10 +219,7 @@ mod tests {
                 assert!(
                     snapshot.matches_hash(format!(
                         "snapshots/{theme}",
-                        theme = theme
-                            .to_string()
-                            .to_ascii_lowercase()
-                            .replace(" ", "_")
+                        theme = theme.to_string().to_ascii_lowercase().replace(" ", "_")
                     ))?,
                     "snapshots for {theme} should match!"
                 );

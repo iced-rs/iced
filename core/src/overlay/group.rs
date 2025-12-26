@@ -44,8 +44,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Default
-    for Group<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> Default for Group<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a,
@@ -127,11 +126,12 @@ where
         operation: &mut dyn widget::Operation,
     ) {
         operation.traverse(&mut |operation| {
-            self.children.iter_mut().zip(layout.children()).for_each(
-                |(child, layout)| {
+            self.children
+                .iter_mut()
+                .zip(layout.children())
+                .for_each(|(child, layout)| {
                     child.as_overlay_mut().operate(layout, renderer, operation);
-                },
-            );
+                });
         });
     }
 
@@ -144,9 +144,7 @@ where
             .children
             .iter_mut()
             .zip(layout.children())
-            .filter_map(|(child, layout)| {
-                child.as_overlay_mut().overlay(layout, renderer)
-            })
+            .filter_map(|(child, layout)| child.as_overlay_mut().overlay(layout, renderer))
             .collect::<Vec<_>>();
 
         (!children.is_empty()).then(|| Group::with_children(children).overlay())

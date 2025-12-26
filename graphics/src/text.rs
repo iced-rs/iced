@@ -109,8 +109,7 @@ impl Text {
 ///
 /// [Fira Sans]: https://mozilla.github.io/Fira/
 #[cfg(feature = "fira-sans")]
-pub const FIRA_SANS_REGULAR: &[u8] =
-    include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice();
+pub const FIRA_SANS_REGULAR: &[u8] = include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice();
 
 /// Returns the global [`FontSystem`].
 pub fn font_system() -> &'static RwLock<FontSystem> {
@@ -156,9 +155,12 @@ impl FontSystem {
             }
         }
 
-        let _ = self.raw.db_mut().load_font_source(
-            cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
-        );
+        let _ = self
+            .raw
+            .db_mut()
+            .load_font_source(cosmic_text::fontdb::Source::Binary(Arc::new(
+                bytes.into_owned(),
+            )));
 
         self.version = Version(self.version.0 + 1);
     }
@@ -200,16 +202,16 @@ impl PartialEq for Raw {
 
 /// Measures the dimensions of the given [`cosmic_text::Buffer`].
 pub fn measure(buffer: &cosmic_text::Buffer) -> (Size, bool) {
-    let (width, height, has_rtl) = buffer.layout_runs().fold(
-        (0.0, 0.0, false),
-        |(width, height, has_rtl), run| {
-            (
-                run.line_w.max(width),
-                height + run.line_height,
-                has_rtl || run.rtl,
-            )
-        },
-    );
+    let (width, height, has_rtl) =
+        buffer
+            .layout_runs()
+            .fold((0.0, 0.0, false), |(width, height, has_rtl), run| {
+                (
+                    run.line_w.max(width),
+                    height + run.line_height,
+                    has_rtl || run.rtl,
+                )
+            });
 
     (Size::new(width, height), has_rtl)
 }
@@ -226,9 +228,10 @@ pub fn align(
 
     if let Some(align) = to_align(alignment) {
         let has_multiple_lines = buffer.lines.len() > 1
-            || buffer.lines.first().is_some_and(|line| {
-                line.layout_opt().is_some_and(|layout| layout.len() > 1)
-            });
+            || buffer
+                .lines
+                .first()
+                .is_some_and(|line| line.layout_opt().is_some_and(|layout| layout.len() > 1));
 
         if has_multiple_lines {
             for line in &mut buffer.lines {
@@ -245,11 +248,7 @@ pub fn align(
     if needs_relayout {
         log::trace!("Relayouting paragraph...");
 
-        buffer.set_size(
-            font_system,
-            Some(min_bounds.width),
-            Some(min_bounds.height),
-        );
+        buffer.set_size(font_system, Some(min_bounds.width), Some(min_bounds.height));
     }
 
     min_bounds
@@ -351,4 +350,23 @@ pub fn to_color(color: Color) -> cosmic_text::Color {
     let [r, g, b, a] = color.into_rgba8();
 
     cosmic_text::Color::rgba(r, g, b, a)
+}
+
+/// Returns the ideal hint factor given the size and scale factor of some text.
+pub fn hint_factor(size: Pixels, scale_factor: Option<f32>) -> Option<f32> {
+    const MAX_HINTING_SIZE: f32 = 18.0;
+
+    let hint_factor = scale_factor?;
+
+    if size.0 * hint_factor < MAX_HINTING_SIZE {
+        Some(hint_factor)
+    } else {
+        None
+    }
+}
+
+/// A text renderer coupled to `iced_graphics`.
+pub trait Renderer {
+    /// Draws the given [`Raw`] text.
+    fn fill_raw(&mut self, raw: Raw);
 }

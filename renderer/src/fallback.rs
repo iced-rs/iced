@@ -3,11 +3,11 @@ use crate::core::image;
 use crate::core::renderer;
 use crate::core::svg;
 use crate::core::{
-    self, Background, Color, Font, Image, Pixels, Point, Rectangle, Size, Svg,
-    Transformation,
+    self, Background, Color, Font, Image, Pixels, Point, Rectangle, Size, Svg, Transformation,
 };
 use crate::graphics::compositor;
 use crate::graphics::mesh;
+use crate::graphics::text;
 use crate::graphics::{self, Shell};
 
 use std::borrow::Cow;
@@ -38,16 +38,8 @@ where
     A: core::Renderer,
     B: core::Renderer,
 {
-    fn fill_quad(
-        &mut self,
-        quad: renderer::Quad,
-        background: impl Into<Background>,
-    ) {
+    fn fill_quad(&mut self, quad: renderer::Quad, background: impl Into<Background>) {
         delegate!(self, renderer, renderer.fill_quad(quad, background.into()));
-    }
-
-    fn reset(&mut self, new_bounds: Rectangle) {
-        delegate!(self, renderer, renderer.reset(new_bounds));
     }
 
     fn start_layer(&mut self, bounds: Rectangle) {
@@ -73,22 +65,32 @@ where
     fn allocate_image(
         &self,
         handle: &image::Handle,
-        callback: impl FnOnce(Result<image::Allocation, image::Error>)
-        + Send
-        + 'static,
+        callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     ) {
         delegate!(self, renderer, renderer.allocate_image(handle, callback));
+    }
+
+    fn hint(&mut self, scale_factor: f32) {
+        delegate!(self, renderer, renderer.hint(scale_factor));
+    }
+
+    fn scale_factor(&self) -> Option<f32> {
+        delegate!(self, renderer, renderer.scale_factor())
+    }
+
+    fn tick(&mut self) {
+        delegate!(self, renderer, renderer.tick());
+    }
+
+    fn reset(&mut self, new_bounds: Rectangle) {
+        delegate!(self, renderer, renderer.reset(new_bounds));
     }
 }
 
 impl<A, B> core::text::Renderer for Renderer<A, B>
 where
     A: core::text::Renderer,
-    B: core::text::Renderer<
-            Font = A::Font,
-            Paragraph = A::Paragraph,
-            Editor = A::Editor,
-        >,
+    B: core::text::Renderer<Font = A::Font, Paragraph = A::Paragraph, Editor = A::Editor>,
 {
     type Font = A::Font;
     type Paragraph = A::Paragraph;
@@ -97,6 +99,11 @@ where
     const ICON_FONT: Self::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
+    const SCROLL_UP_ICON: char = A::SCROLL_UP_ICON;
+    const SCROLL_DOWN_ICON: char = A::SCROLL_DOWN_ICON;
+    const SCROLL_LEFT_ICON: char = A::SCROLL_LEFT_ICON;
+    const SCROLL_RIGHT_ICON: char = A::SCROLL_RIGHT_ICON;
+    const ICED_LOGO: char = A::ICED_LOGO;
 
     fn default_font(&self) -> Self::Font {
         delegate!(self, renderer, renderer.default_font())
@@ -149,6 +156,16 @@ where
     }
 }
 
+impl<A, B> text::Renderer for Renderer<A, B>
+where
+    A: text::Renderer,
+    B: text::Renderer,
+{
+    fn fill_raw(&mut self, raw: text::Raw) {
+        delegate!(self, renderer, renderer.fill_raw(raw));
+    }
+}
+
 impl<A, B> image::Renderer for Renderer<A, B>
 where
     A: image::Renderer,
@@ -156,10 +173,7 @@ where
 {
     type Handle = A::Handle;
 
-    fn load_image(
-        &self,
-        handle: &Self::Handle,
-    ) -> Result<image::Allocation, image::Error> {
+    fn load_image(&self, handle: &Self::Handle) -> Result<image::Allocation, image::Error> {
         delegate!(self, renderer, renderer.load_image(handle))
     }
 
@@ -167,12 +181,7 @@ where
         delegate!(self, renderer, renderer.measure_image(handle))
     }
 
-    fn draw_image(
-        &mut self,
-        image: Image<A::Handle>,
-        bounds: Rectangle,
-        clip_bounds: Rectangle,
-    ) {
+    fn draw_image(&mut self, image: Image<A::Handle>, bounds: Rectangle, clip_bounds: Rectangle) {
         delegate!(
             self,
             renderer,
@@ -190,12 +199,7 @@ where
         delegate!(self, renderer, renderer.measure_svg(handle))
     }
 
-    fn draw_svg(
-        &mut self,
-        svg: Svg,
-        bounds: Rectangle,
-        clip_bounds: Rectangle,
-    ) {
+    fn draw_svg(&mut self, svg: Svg, bounds: Rectangle, clip_bounds: Rectangle) {
         delegate!(self, renderer, renderer.draw_svg(svg, bounds, clip_bounds));
     }
 }
@@ -207,6 +211,10 @@ where
 {
     fn draw_mesh(&mut self, mesh: graphics::Mesh) {
         delegate!(self, renderer, renderer.draw_mesh(mesh));
+    }
+
+    fn draw_mesh_cache(&mut self, cache: mesh::Cache) {
+        delegate!(self, renderer, renderer.draw_mesh_cache(cache));
     }
 }
 
@@ -244,9 +252,10 @@ where
     type Renderer = Renderer<A::Renderer, B::Renderer>;
     type Surface = Surface<A::Surface, B::Surface>;
 
-    async fn with_backend<W: compositor::Window + Clone>(
+    async fn with_backend(
         settings: graphics::Settings,
-        compatible_window: W,
+        display: impl compositor::Display + Clone,
+        compatible_window: impl compositor::Window + Clone,
         shell: Shell,
         backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
@@ -276,6 +285,7 @@ where
         for backend in candidates.iter().map(Option::as_deref) {
             match A::with_backend(
                 settings,
+                display.clone(),
                 compatible_window.clone(),
                 shell.clone(),
                 backend,
@@ -290,6 +300,7 @@ where
 
             match B::with_backend(
                 settings,
+                display.clone(),
                 compatible_window.clone(),
                 shell.clone(),
                 backend,
@@ -308,12 +319,8 @@ where
 
     fn create_renderer(&self) -> Self::Renderer {
         match self {
-            Self::Primary(compositor) => {
-                Renderer::Primary(compositor.create_renderer())
-            }
-            Self::Secondary(compositor) => {
-                Renderer::Secondary(compositor.create_renderer())
-            }
+            Self::Primary(compositor) => Renderer::Primary(compositor.create_renderer()),
+            Self::Secondary(compositor) => Renderer::Secondary(compositor.create_renderer()),
         }
     }
 
@@ -324,21 +331,16 @@ where
         height: u32,
     ) -> Self::Surface {
         match self {
-            Self::Primary(compositor) => Surface::Primary(
-                compositor.create_surface(window, width, height),
-            ),
-            Self::Secondary(compositor) => Surface::Secondary(
-                compositor.create_surface(window, width, height),
-            ),
+            Self::Primary(compositor) => {
+                Surface::Primary(compositor.create_surface(window, width, height))
+            }
+            Self::Secondary(compositor) => {
+                Surface::Secondary(compositor.create_surface(window, width, height))
+            }
         }
     }
 
-    fn configure_surface(
-        &mut self,
-        surface: &mut Self::Surface,
-        width: u32,
-        height: u32,
-    ) {
+    fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32) {
         match (self, surface) {
             (Self::Primary(compositor), Surface::Primary(surface)) => {
                 compositor.configure_surface(surface, width, height);
@@ -367,17 +369,15 @@ where
         on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
         match (self, renderer, surface) {
-            (
-                Self::Primary(compositor),
-                Renderer::Primary(renderer),
-                Surface::Primary(surface),
-            ) => compositor.present(
-                renderer,
-                surface,
-                viewport,
-                background_color,
-                on_pre_present,
-            ),
+            (Self::Primary(compositor), Renderer::Primary(renderer), Surface::Primary(surface)) => {
+                compositor.present(
+                    renderer,
+                    surface,
+                    viewport,
+                    background_color,
+                    on_pre_present,
+                )
+            }
             (
                 Self::Secondary(compositor),
                 Renderer::Secondary(renderer),
@@ -411,25 +411,19 @@ where
     }
 }
 
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "wgpu-bare")]
 impl<A, B> iced_wgpu::primitive::Renderer for Renderer<A, B>
 where
     A: iced_wgpu::primitive::Renderer,
     B: core::Renderer,
 {
-    fn draw_primitive(
-        &mut self,
-        bounds: Rectangle,
-        primitive: impl iced_wgpu::Primitive,
-    ) {
+    fn draw_primitive(&mut self, bounds: Rectangle, primitive: impl iced_wgpu::Primitive) {
         match self {
             Self::Primary(renderer) => {
                 renderer.draw_primitive(bounds, primitive);
             }
             Self::Secondary(_) => {
-                log::warn!(
-                    "Custom shader primitive is not supported with this renderer."
-                );
+                log::warn!("Custom shader primitive is not supported with this renderer.");
             }
         }
     }
@@ -452,12 +446,8 @@ mod geometry {
 
         fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
             match self {
-                Self::Primary(renderer) => {
-                    Frame::Primary(renderer.new_frame(bounds))
-                }
-                Self::Secondary(renderer) => {
-                    Frame::Secondary(renderer.new_frame(bounds))
-                }
+                Self::Primary(renderer) => Frame::Primary(renderer.new_frame(bounds)),
+                Self::Secondary(renderer) => Frame::Secondary(renderer.new_frame(bounds)),
             }
         }
 
@@ -494,23 +484,15 @@ mod geometry {
             }
         }
 
-        fn cache(
-            self,
-            group: cache::Group,
-            previous: Option<Self::Cache>,
-        ) -> Self::Cache {
+        fn cache(self, group: cache::Group, previous: Option<Self::Cache>) -> Self::Cache {
             match (self, previous) {
-                (
-                    Self::Primary(geometry),
-                    Some(Geometry::Primary(previous)),
-                ) => Geometry::Primary(geometry.cache(group, Some(previous))),
-                (Self::Primary(geometry), None) => {
-                    Geometry::Primary(geometry.cache(group, None))
+                (Self::Primary(geometry), Some(Geometry::Primary(previous))) => {
+                    Geometry::Primary(geometry.cache(group, Some(previous)))
                 }
-                (
-                    Self::Secondary(geometry),
-                    Some(Geometry::Secondary(previous)),
-                ) => Geometry::Secondary(geometry.cache(group, Some(previous))),
+                (Self::Primary(geometry), None) => Geometry::Primary(geometry.cache(group, None)),
+                (Self::Secondary(geometry), Some(Geometry::Secondary(previous))) => {
+                    Geometry::Secondary(geometry.cache(group, Some(previous)))
+                }
                 (Self::Secondary(geometry), None) => {
                     Geometry::Secondary(geometry.cache(group, None))
                 }
@@ -552,12 +534,7 @@ mod geometry {
             delegate!(self, frame, frame.fill(path, fill));
         }
 
-        fn fill_rectangle(
-            &mut self,
-            top_left: Point,
-            size: Size,
-            fill: impl Into<Fill>,
-        ) {
+        fn fill_rectangle(&mut self, top_left: Point, size: Size, fill: impl Into<Fill>) {
             delegate!(self, frame, frame.fill_rectangle(top_left, size, fill));
         }
 
@@ -571,18 +548,10 @@ mod geometry {
             size: Size,
             stroke: impl Into<Stroke<'a>>,
         ) {
-            delegate!(
-                self,
-                frame,
-                frame.stroke_rectangle(top_left, size, stroke)
-            );
+            delegate!(self, frame, frame.stroke_rectangle(top_left, size, stroke));
         }
 
-        fn stroke_text<'a>(
-            &mut self,
-            text: impl Into<Text>,
-            stroke: impl Into<Stroke<'a>>,
-        ) {
+        fn stroke_text<'a>(&mut self, text: impl Into<Text>, stroke: impl Into<Stroke<'a>>) {
             delegate!(self, frame, frame.stroke_text(text, stroke));
         }
 
@@ -643,12 +612,8 @@ mod geometry {
 
         fn into_geometry(self) -> Self::Geometry {
             match self {
-                Frame::Primary(frame) => {
-                    Geometry::Primary(frame.into_geometry())
-                }
-                Frame::Secondary(frame) => {
-                    Geometry::Secondary(frame.into_geometry())
-                }
+                Frame::Primary(frame) => Geometry::Primary(frame.into_geometry()),
+                Frame::Secondary(frame) => Geometry::Secondary(frame.into_geometry()),
             }
         }
     }
@@ -664,9 +629,7 @@ where
         default_text_size: Pixels,
         backend: Option<&str>,
     ) -> Option<Self> {
-        if let Some(renderer) =
-            A::new(default_font, default_text_size, backend).await
-        {
+        if let Some(renderer) = A::new(default_font, default_text_size, backend).await {
             return Some(Self::Primary(renderer));
         }
 

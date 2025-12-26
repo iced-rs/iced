@@ -81,7 +81,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        _tree: &Tree,
         _renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,
@@ -92,8 +92,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Space>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Space> for Element<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
     Message: 'a,

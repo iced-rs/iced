@@ -72,8 +72,7 @@ impl Controls {
                 text("Background color").color(Color::WHITE),
                 text!("{background_color:?}").size(14).color(Color::WHITE),
                 sliders,
-                text_input("Type something...", &self.input)
-                    .on_input(Message::InputChanged),
+                text_input("Type something...", &self.input).on_input(Message::InputChanged),
             ]
             .spacing(10),
         )

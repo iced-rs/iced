@@ -70,15 +70,15 @@ impl Gradient {
 
         let angle_picker = row![
             text("Angle").width(64),
-            slider(Radians::RANGE, self.angle, Message::AngleChanged)
-                .step(0.01)
+            slider(Radians::RANGE, self.angle, Message::AngleChanged).step(0.01)
         ]
         .spacing(8)
         .padding(8)
         .align_y(Center);
 
         let transparency_toggle = iced::widget::Container::new(
-            checkbox("Transparent window", transparent)
+            checkbox(transparent)
+                .label("Transparent window")
                 .on_toggle(Message::TransparentToggled),
         )
         .padding(8);
@@ -114,14 +114,10 @@ impl Default for Gradient {
 fn color_picker(label: &str, color: Color) -> Element<'_, Color> {
     row![
         text(label).width(64),
-        slider(0.0..=1.0, color.r, move |r| { Color { r, ..color } })
-            .step(0.01),
-        slider(0.0..=1.0, color.g, move |g| { Color { g, ..color } })
-            .step(0.01),
-        slider(0.0..=1.0, color.b, move |b| { Color { b, ..color } })
-            .step(0.01),
-        slider(0.0..=1.0, color.a, move |a| { Color { a, ..color } })
-            .step(0.01),
+        slider(0.0..=1.0, color.r, move |r| { Color { r, ..color } }).step(0.01),
+        slider(0.0..=1.0, color.g, move |g| { Color { g, ..color } }).step(0.01),
+        slider(0.0..=1.0, color.b, move |b| { Color { b, ..color } }).step(0.01),
+        slider(0.0..=1.0, color.a, move |a| { Color { a, ..color } }).step(0.01),
     ]
     .spacing(8)
     .padding(8)

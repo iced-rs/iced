@@ -12,11 +12,10 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::theme;
 use crate::core::time::Instant;
-use crate::core::{
-    Color, InputMethod, Padding, Point, Rectangle, Size, Text, Vector,
-};
+use crate::core::{Color, InputMethod, Padding, Point, Rectangle, Size, Text, Vector};
 use crate::graphics::Compositor;
 use crate::program::{self, Program};
+use crate::runtime::window::raw_window_handle;
 
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::monitor::MonitorHandle;
@@ -59,11 +58,8 @@ where
         let state = State::new(program, id, &window, system_theme);
         let surface_size = state.physical_size();
         let surface_version = state.surface_version();
-        let surface = compositor.create_surface(
-            window.clone(),
-            surface_size.width,
-            surface_size.height,
-        );
+        let surface =
+            compositor.create_surface(window.clone(), surface_size.width, surface_size.height);
         let renderer = compositor.create_renderer();
 
         let _ = self.aliases.insert(window.id(), id);
@@ -110,9 +106,7 @@ where
         self.entries.first_key_value().map(|(_id, window)| window)
     }
 
-    pub fn iter_mut(
-        &mut self,
-    ) -> impl Iterator<Item = (Id, &mut Window<P, C>)> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (Id, &mut Window<P, C>)> {
         self.entries.iter_mut().map(|(k, v)| (*k, v))
     }
 
@@ -171,7 +165,7 @@ where
     pub renderer: P::Renderer,
     pub redraw_at: Option<Instant>,
     preedit: Option<Preedit<P::Renderer>>,
-    ime_state: Option<(Point, input_method::Purpose)>,
+    ime_state: Option<(Rectangle, input_method::Purpose)>,
 }
 
 impl<P, C> Window<P, C>
@@ -214,21 +208,20 @@ where
                 self.disable_ime();
             }
             InputMethod::Enabled {
-                position,
+                cursor,
                 purpose,
                 preedit,
             } => {
-                self.enable_ime(position, purpose);
+                self.enable_ime(cursor, purpose);
 
                 if let Some(preedit) = preedit {
                     if preedit.content.is_empty() {
                         self.preedit = None;
                     } else {
-                        let mut overlay =
-                            self.preedit.take().unwrap_or_else(Preedit::new);
+                        let mut overlay = self.preedit.take().unwrap_or_else(Preedit::new);
 
                         overlay.update(
-                            position,
+                            cursor,
                             &preedit,
                             self.state.background_color(),
                             &self.renderer,
@@ -245,8 +238,15 @@ where
 
     pub fn update_mouse(&mut self, interaction: mouse::Interaction) {
         if interaction != self.mouse_interaction {
-            self.raw
-                .set_cursor(conversion::mouse_interaction(interaction));
+            if let Some(icon) = conversion::mouse_interaction(interaction) {
+                self.raw.set_cursor(icon);
+
+                if self.mouse_interaction == mouse::Interaction::Hidden {
+                    self.raw.set_cursor_visible(true);
+                }
+            } else {
+                self.raw.set_cursor_visible(false);
+            }
 
             self.mouse_interaction = interaction;
         }
@@ -258,27 +258,24 @@ where
                 &mut self.renderer,
                 self.state.text_color(),
                 self.state.background_color(),
-                &Rectangle::new(
-                    Point::ORIGIN,
-                    self.state.viewport().logical_size(),
-                ),
+                &Rectangle::new(Point::ORIGIN, self.state.viewport().logical_size()),
             );
         }
     }
 
-    fn enable_ime(&mut self, position: Point, purpose: input_method::Purpose) {
+    fn enable_ime(&mut self, cursor: Rectangle, purpose: input_method::Purpose) {
         if self.ime_state.is_none() {
             self.raw.set_ime_allowed(true);
         }
 
-        if self.ime_state != Some((position, purpose)) {
+        if self.ime_state != Some((cursor, purpose)) {
             self.raw.set_ime_cursor_area(
-                LogicalPosition::new(position.x, position.y),
-                LogicalSize::new(10, 10), // TODO?
+                LogicalPosition::new(cursor.x, cursor.y),
+                LogicalSize::new(cursor.width, cursor.height),
             );
             self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
 
-            self.ime_state = Some((position, purpose));
+            self.ime_state = Some((cursor, purpose));
         }
     }
 
@@ -289,6 +286,30 @@ where
         }
 
         self.preedit = None;
+    }
+}
+
+impl<P, C> raw_window_handle::HasWindowHandle for Window<P, C>
+where
+    P: Program,
+    C: Compositor<Renderer = P::Renderer>,
+{
+    fn window_handle(
+        &self,
+    ) -> Result<raw_window_handle::WindowHandle<'_>, raw_window_handle::HandleError> {
+        self.raw.window_handle()
+    }
+}
+
+impl<P, C> raw_window_handle::HasDisplayHandle for Window<P, C>
+where
+    P: Program,
+    C: Compositor<Renderer = P::Renderer>,
+{
+    fn display_handle(
+        &self,
+    ) -> Result<raw_window_handle::DisplayHandle<'_>, raw_window_handle::HandleError> {
+        self.raw.display_handle()
     }
 }
 
@@ -315,12 +336,17 @@ where
 
     fn update(
         &mut self,
-        position: Point,
+        cursor: Rectangle,
         preedit: &input_method::Preedit,
         background: Color,
         renderer: &Renderer,
     ) {
-        self.position = position;
+        self.position = cursor.position() + Vector::new(0.0, cursor.height);
+
+        let background = Color {
+            a: 1.0,
+            ..background
+        };
 
         let spans = match &preedit.selection {
             Some(selection) => {
@@ -344,15 +370,14 @@ where
             self.content = Renderer::Paragraph::with_spans(Text {
                 content: &spans,
                 bounds: Size::INFINITE,
-                size: preedit
-                    .text_size
-                    .unwrap_or_else(|| renderer.default_size()),
+                size: preedit.text_size.unwrap_or_else(|| renderer.default_size()),
                 line_height: text::LineHeight::default(),
                 font: renderer.default_font(),
                 align_x: text::Alignment::Default,
                 align_y: alignment::Vertical::Top,
                 shaping: text::Shaping::Advanced,
                 wrapping: text::Wrapping::None,
+                hint_factor: renderer.scale_factor(),
             });
 
             self.spans.clear();
@@ -361,13 +386,7 @@ where
         }
     }
 
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        color: Color,
-        background: Color,
-        viewport: &Rectangle,
-    ) {
+    fn draw(&self, renderer: &mut Renderer, color: Color, background: Color, viewport: &Rectangle) {
         use text::Paragraph as _;
 
         if self.content.min_width() < 1.0 {
@@ -390,6 +409,11 @@ where
             .min(viewport.y + viewport.height - bounds.height);
 
         renderer.with_layer(bounds, |renderer| {
+            let background = Color {
+                a: 1.0,
+                ..background
+            };
+
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
@@ -398,12 +422,7 @@ where
                 background,
             );
 
-            renderer.fill_paragraph(
-                &self.content,
-                bounds.position(),
-                color,
-                bounds,
-            );
+            renderer.fill_paragraph(&self.content, bounds.position(), color, bounds);
 
             const UNDERLINE: f32 = 2.0;
 
@@ -421,8 +440,7 @@ where
             for span_bounds in self.content.span_bounds(1) {
                 renderer.fill_quad(
                     renderer::Quad {
-                        bounds: span_bounds
-                            + (bounds.position() - Point::ORIGIN),
+                        bounds: span_bounds + (bounds.position() - Point::ORIGIN),
                         ..Default::default()
                     },
                     color,

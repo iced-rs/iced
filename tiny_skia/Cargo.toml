@@ -14,9 +14,12 @@ keywords.workspace = true
 workspace = true
 
 [features]
+default = ["x11", "wayland"]
 image = ["iced_graphics/image"]
 svg = ["iced_graphics/svg", "resvg"]
 geometry = ["iced_graphics/geometry"]
+x11 = ["softbuffer/x11", "softbuffer/x11-dlopen"]
+wayland = ["softbuffer/wayland", "softbuffer/wayland-dlopen"]
 
 [dependencies]
 iced_debug.workspace = true
