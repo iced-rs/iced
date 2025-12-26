@@ -19,6 +19,7 @@ all-features = true
 
 [features]
 thread-pool = ["futures/thread-pool"]
+device-events = ["iced_core/device-events"]
 
 [dependencies]
 iced_core.workspace = true
