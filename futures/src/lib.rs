@@ -12,6 +12,8 @@ mod maybe;
 mod runtime;
 
 pub mod backend;
+#[cfg(feature = "device-events")]
+pub mod device;
 pub mod event;
 pub mod executor;
 pub mod keyboard;
