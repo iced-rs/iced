@@ -65,7 +65,7 @@ pub enum Action<T> {
     /// A device action.
     #[cfg(feature = "device-events")]
     Device(device::DeviceAction),
-  
+
     /// Poll any resources that may have pending computations.
     Tick,
 

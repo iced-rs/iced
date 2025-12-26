@@ -2,9 +2,9 @@
 //!
 //! Device events are raw hardware events that are not associated
 //! with any particular window.
+use crate::Action;
 use crate::core::device::Filter;
 use crate::task::{self, Task};
-use crate::Action;
 
 /// A device event action.
 #[derive(Debug)]
