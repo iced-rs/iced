@@ -1147,3 +1147,43 @@ pub fn ime_purpose(purpose: input_method::Purpose) -> winit::window::ImePurpose 
 fn is_private_use(c: char) -> bool {
     ('\u{E000}'..='\u{F8FF}').contains(&c)
 }
+
+/// Converts a `winit::event::DeviceEvent` from [`winit`] to an [`iced`] device event.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced`]: https://github.com/iced-rs/iced
+#[cfg(feature = "device-events")]
+#[inline]
+pub fn device_event(event: &winit::event::DeviceEvent) -> crate::core::device::Event {
+    use crate::core::device::{Event, MouseScrollDelta};
+
+    match event {
+        winit::event::DeviceEvent::Added => Event::Added,
+        winit::event::DeviceEvent::Removed => Event::Removed,
+        winit::event::DeviceEvent::MouseMotion { delta } => Event::MouseMotion { delta: *delta },
+        winit::event::DeviceEvent::MouseWheel { delta } => {
+            let delta = match delta {
+                winit::event::MouseScrollDelta::LineDelta(x, y) => {
+                    MouseScrollDelta::Lines { x: *x, y: *y }
+                }
+                winit::event::MouseScrollDelta::PixelDelta(pos) => MouseScrollDelta::Pixels {
+                    x: pos.x as f32,
+                    y: pos.y as f32,
+                },
+            };
+            Event::MouseWheel { delta }
+        }
+        winit::event::DeviceEvent::Motion { axis, value } => Event::Motion {
+            axis: *axis,
+            value: *value,
+        },
+        winit::event::DeviceEvent::Button { button, state } => Event::Button {
+            button: *button,
+            pressed: *state == winit::event::ElementState::Pressed,
+        },
+        winit::event::DeviceEvent::Key(raw) => Event::Key {
+            physical_key: physical_key(raw.physical_key),
+            pressed: raw.state == winit::event::ElementState::Pressed,
+        },
+    }
+}

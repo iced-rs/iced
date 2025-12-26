@@ -253,6 +253,19 @@ where
                 Event::EventLoopAwakened(winit::event::Event::AboutToWait),
             );
         }
+
+        #[cfg(feature = "device-events")]
+        fn device_event(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            device_id: winit::event::DeviceId,
+            event: winit::event::DeviceEvent,
+        ) {
+            self.process_event(
+                event_loop,
+                Event::EventLoopAwakened(winit::event::Event::DeviceEvent { device_id, event }),
+            );
+        }
     }
 
     impl<Message, F> Runner<Message, F>
@@ -1169,6 +1182,23 @@ async fn run_instance<P>(
                             let _ =
                                 control_sender.start_send(Control::ChangeFlow(ControlFlow::Wait));
                         }
+                    }
+                    #[cfg(feature = "device-events")]
+                    event::Event::DeviceEvent {
+                        device_id,
+                        event: device_event,
+                    } => {
+                        // Hot path - minimal work, device events fire at high frequency
+                        let event = conversion::device_event(&device_event);
+                        use std::hash::{Hash, Hasher};
+                        let mut hasher = rustc_hash::FxHasher::default();
+                        device_id.hash(&mut hasher);
+                        let id = hasher.finish();
+
+                        runtime.broadcast(subscription::Event::Device {
+                            device_id: id,
+                            event,
+                        });
                     }
                     _ => {}
                 }
