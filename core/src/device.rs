@@ -73,6 +73,22 @@ pub enum Event {
     },
 }
 
+/// Controls when device events are delivered to the application.
+///
+/// This corresponds to winit's `DeviceEvents` setting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Filter {
+    /// Device events are always delivered, regardless of window focus.
+    Always,
+    /// Device events are never delivered.
+    Never,
+    /// Device events are only delivered when a window has focus.
+    ///
+    /// This is the default behavior.
+    #[default]
+    WhenFocused,
+}
+
 /// Raw mouse scroll delta from a device event.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MouseScrollDelta {

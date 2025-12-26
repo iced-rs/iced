@@ -418,6 +418,18 @@ where
                                     event_loop.set_allows_automatic_window_tabbing(_enabled);
                                 }
                             }
+                            #[cfg(feature = "device-events")]
+                            Control::SetDeviceEventFilter(filter) => {
+                                use winit::event_loop::DeviceEvents;
+
+                                let device_events = match filter {
+                                    core::device::Filter::Always => DeviceEvents::Always,
+                                    core::device::Filter::Never => DeviceEvents::Never,
+                                    core::device::Filter::WhenFocused => DeviceEvents::WhenFocused,
+                                };
+
+                                event_loop.listen_device_events(device_events);
+                            }
                         },
                         _ => {
                             break;
@@ -476,6 +488,8 @@ enum Control {
         scale_factor: f32,
     },
     SetAutomaticWindowTabbing(bool),
+    #[cfg(feature = "device-events")]
+    SetDeviceEventFilter(core::device::Filter),
 }
 
 async fn run_instance<P>(
@@ -1675,6 +1689,14 @@ fn run_action<'a, P, C>(
                         let _ = sender.send(allocation);
                     });
                 }
+            }
+        },
+        #[cfg(feature = "device-events")]
+        Action::Device(action) => match action {
+            crate::runtime::device::DeviceAction::SetFilter(filter) => {
+                control_sender
+                    .start_send(Control::SetDeviceEventFilter(filter))
+                    .expect("Send control action");
             }
         },
         Action::LoadFont { bytes, channel } => {

@@ -602,7 +602,8 @@ pub mod device {
     //! Device events fire at **very high frequency** (1000+ events/sec for mouse).
     //! Always filter events in your callback and return `None` for events you don't
     //! care about. **Do NOT** produce a message for every event!
-    pub use crate::core::device::{Event, MouseScrollDelta};
+    pub use crate::core::device::{Event, Filter, MouseScrollDelta};
+    pub use crate::runtime::device::set_filter;
     pub use iced_futures::device::listen;
 }
 
