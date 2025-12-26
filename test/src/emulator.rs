@@ -260,6 +260,9 @@ impl<P: Program + 'static> Emulator<P> {
                     // TODO
                     dbg!(action);
                 }
+                iced_runtime::Action::Tick => {
+                    // TODO
+                }
                 runtime::Action::Exit => {
                     // TODO
                 }

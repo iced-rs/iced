@@ -213,10 +213,6 @@ impl core::Renderer for Renderer {
         layer.draw_quad(quad, background.into(), transformation);
     }
 
-    fn reset(&mut self, new_bounds: Rectangle) {
-        self.layers.reset(new_bounds);
-    }
-
     fn allocate_image(
         &mut self,
         _handle: &core::image::Handle,
@@ -238,6 +234,10 @@ impl core::Renderer for Renderer {
 
     fn scale_factor(&self) -> Option<f32> {
         None
+    }
+
+    fn reset(&mut self, new_bounds: Rectangle) {
+        self.layers.reset(new_bounds);
     }
 }
 
