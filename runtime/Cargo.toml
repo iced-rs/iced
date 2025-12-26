@@ -12,6 +12,7 @@ keywords.workspace = true
 
 [features]
 selector = ["dep:iced_selector"]
+device-events = ["iced_futures/device-events"]
 
 [lints]
 workspace = true
