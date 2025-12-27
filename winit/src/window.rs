@@ -77,7 +77,6 @@ where
                 redraw_at: None,
                 preedit: None,
                 ime_state: None,
-                needs_layout: true,
             },
         );
 
@@ -165,7 +164,6 @@ where
     pub surface_version: u64,
     pub renderer: P::Renderer,
     pub redraw_at: Option<Instant>,
-    pub(crate) needs_layout: bool,
     preedit: Option<Preedit<P::Renderer>>,
     ime_state: Option<(Rectangle, input_method::Purpose)>,
 }
