@@ -51,18 +51,15 @@ impl App {
                     .height(Length::Fill)
                     .center_x(Length::Fill)
                     .center_y(Length::Fill),
-
                 // Badge overlay (positioned top-right)
-                container(
-                    container(text(self.value).size(12))
-                        .padding(4)
-                        .style(|theme: &iced::Theme| container::Style {
-                            background: Some(theme.palette().danger.into()),
-                            text_color: Some(theme.palette().background),
-                            border: Border::default().rounded(10),
-                            ..Default::default()
-                        })
-                )
+                container(container(text(self.value).size(12)).padding(4).style(
+                    |theme: &iced::Theme| container::Style {
+                        background: Some(theme.palette().danger.into()),
+                        text_color: Some(theme.palette().background),
+                        border: Border::default().rounded(10),
+                        ..Default::default()
+                    }
+                ))
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .padding([2, 2])
@@ -77,7 +74,7 @@ impl App {
             container(
                 container(text("Increment").size(16))
                     .center_x(Length::Fill)
-                    .center_y(Length::Fill)
+                    .center_y(Length::Fill),
             )
             .width(Length::Fixed(BUTTON_WIDTH))
             .height(Length::Fixed(BUTTON_HEIGHT))
