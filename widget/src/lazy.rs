@@ -9,6 +9,7 @@ pub use component::Component;
 mod cache;
 
 use crate::core::Element;
+use crate::core::keyboard;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -182,6 +183,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -193,6 +195,7 @@ where
                 event,
                 layout,
                 cursor,
+                modifiers,
                 renderer,
                 clipboard,
                 shell,
@@ -369,12 +372,13 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         let _ = self.with_overlay_mut_maybe(|overlay| {
-            overlay.update(event, layout, cursor, renderer, clipboard, shell);
+            overlay.update(event, layout, cursor, modifiers, renderer, clipboard, shell);
         });
     }
 }

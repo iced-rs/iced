@@ -414,6 +414,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -454,10 +455,7 @@ where
             Event::Mouse(mouse::Event::WheelScrolled {
                 delta: mouse::ScrollDelta::Lines { y, .. },
             }) => {
-                if state.keyboard_modifiers.command()
-                    && cursor.is_over(layout.bounds())
-                    && !state.is_open
-                {
+                if modifiers.command() && cursor.is_over(layout.bounds()) && !state.is_open {
                     fn find_next<'a, T: PartialEq>(
                         selected: &'a T,
                         mut options: impl Iterator<Item = &'a T>,
@@ -492,9 +490,6 @@ where
 
                     shell.capture_event();
                 }
-            }
-            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                state.keyboard_modifiers = *modifiers;
             }
             _ => {}
         };
@@ -731,7 +726,6 @@ where
 #[derive(Debug)]
 struct State<P: text::Paragraph> {
     menu: menu::State,
-    keyboard_modifiers: keyboard::Modifiers,
     is_open: bool,
     hovered_option: Option<usize>,
     options: Vec<paragraph::Plain<P>>,
@@ -743,7 +737,6 @@ impl<P: text::Paragraph> State<P> {
     fn new() -> Self {
         Self {
             menu: menu::State::default(),
-            keyboard_modifiers: keyboard::Modifiers::default(),
             is_open: bool::default(),
             hovered_option: Option::default(),
             options: Vec::new(),

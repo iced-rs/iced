@@ -7,6 +7,7 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
+use crate::keyboard;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -136,6 +137,7 @@ where
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
     /// use iced_runtime::core::clipboard;
+    /// use iced_runtime::core::keyboard;
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::Size;
     /// use iced_runtime::user_interface::{self, UserInterface};
@@ -146,6 +148,7 @@ where
     /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
+    /// let mut modifiers = keyboard::Modifiers::empty();
     /// let mut clipboard = clipboard::Null;
     ///
     /// // Initialize our event storage
@@ -166,6 +169,7 @@ where
     ///     let (state, event_statuses) = user_interface.update(
     ///         &events,
     ///         cursor,
+    ///         modifiers,
     ///         &mut renderer,
     ///         &mut clipboard,
     ///         &mut messages
@@ -183,6 +187,7 @@ where
         &mut self,
         events: &[Event],
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &mut Renderer,
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
@@ -219,6 +224,7 @@ where
                     event,
                     Layout::new(&layout),
                     cursor,
+                    modifiers,
                     renderer,
                     clipboard,
                     &mut shell,
@@ -318,6 +324,7 @@ where
                     event,
                     Layout::new(&self.base),
                     base_cursor,
+                    modifiers,
                     renderer,
                     clipboard,
                     &mut shell,
@@ -423,6 +430,7 @@ where
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
     /// use iced_runtime::core::clipboard;
+    /// use iced_runtime::core::keyboard;
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::renderer;
     /// use iced_runtime::core::{Element, Size};
@@ -434,6 +442,7 @@ where
     /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
+    /// let mut modifiers = keyboard::Modifiers::empty();
     /// let mut clipboard = clipboard::Null;
     /// let mut events = Vec::new();
     /// let mut messages = Vec::new();
@@ -453,6 +462,7 @@ where
     ///     let event_statuses = user_interface.update(
     ///         &events,
     ///         cursor,
+    ///         modifiers,
     ///         &mut renderer,
     ///         &mut clipboard,
     ///         &mut messages

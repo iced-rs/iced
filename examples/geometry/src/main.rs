@@ -6,6 +6,7 @@ mod rainbow {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::advanced::{Clipboard, Shell};
+    use iced::keyboard;
     use iced::mouse;
     use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation, Vector};
 
@@ -41,6 +42,7 @@ mod rainbow {
             _event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
+            _modifiers: keyboard::Modifiers,
             _renderer: &Renderer,
             _clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,

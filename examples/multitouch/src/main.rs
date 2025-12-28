@@ -1,6 +1,7 @@
 //! This example shows how to use touch events in `Canvas` to draw
 //! a circle around each fingertip. This only works on touch-enabled
 //! computers like Microsoft Surface.
+use iced::keyboard;
 use iced::mouse;
 use iced::touch;
 use iced::widget::canvas::stroke::{self, Stroke};
@@ -57,6 +58,7 @@ impl canvas::Program<Message> for Multitouch {
         event: &Event,
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
+        _modifiers: keyboard::Modifiers,
     ) -> Option<canvas::Action<Message>> {
         let message = match event.clone() {
             Event::Touch(

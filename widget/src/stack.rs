@@ -1,4 +1,5 @@
 //! Display content on top of other content.
+use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -218,6 +219,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         mut cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -239,7 +241,7 @@ where
             .enumerate()
         {
             child.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
+                tree, event, layout, cursor, modifiers, renderer, clipboard, shell, viewport,
             );
 
             if shell.is_event_captured() {

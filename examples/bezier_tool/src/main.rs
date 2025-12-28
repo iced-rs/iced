@@ -54,6 +54,7 @@ impl Example {
 }
 
 mod bezier {
+    use iced::keyboard;
     use iced::mouse;
     use iced::widget::canvas::{self, Canvas, Event, Frame, Geometry, Path, Stroke};
     use iced::{Element, Fill, Point, Rectangle, Renderer, Theme};
@@ -93,6 +94,7 @@ mod bezier {
             event: &Event,
             bounds: Rectangle,
             cursor: mouse::Cursor,
+            _modifiers: keyboard::Modifiers,
         ) -> Option<canvas::Action<Curve>> {
             let cursor_position = cursor.position_in(bounds)?;
 

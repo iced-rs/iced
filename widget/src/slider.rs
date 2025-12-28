@@ -246,6 +246,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -264,7 +265,7 @@ where
                 } else if cursor_position.x >= bounds.x + bounds.width {
                     Some(*self.range.end())
                 } else {
-                    let step = if state.keyboard_modifiers.shift() {
+                    let step = if modifiers.shift() {
                         self.shift_step.unwrap_or(self.step)
                     } else {
                         self.step
@@ -284,7 +285,7 @@ where
             };
 
             let increment = |value: T| -> Option<T> {
-                let step = if state.keyboard_modifiers.shift() {
+                let step = if modifiers.shift() {
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step
@@ -302,7 +303,7 @@ where
             };
 
             let decrement = |value: T| -> Option<T> {
-                let step = if state.keyboard_modifiers.shift() {
+                let step = if modifiers.shift() {
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step
@@ -331,7 +332,7 @@ where
                 Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                 | Event::Touch(touch::Event::FingerPressed { .. }) => {
                     if let Some(cursor_position) = cursor.position_over(layout.bounds()) {
-                        if state.keyboard_modifiers.command() {
+                        if modifiers.command() {
                             let _ = self.default.map(change);
                             state.is_dragging = false;
                         } else {
@@ -360,9 +361,7 @@ where
                         shell.capture_event();
                     }
                 }
-                Event::Mouse(mouse::Event::WheelScrolled { delta })
-                    if state.keyboard_modifiers.control() =>
-                {
+                Event::Mouse(mouse::Event::WheelScrolled { delta }) if modifiers.control() => {
                     if cursor.is_over(layout.bounds()) {
                         let delta = match delta {
                             mouse::ScrollDelta::Lines { x: _, y } => y,
@@ -392,9 +391,6 @@ where
                             _ => (),
                         }
                     }
-                }
-                Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                    state.keyboard_modifiers = *modifiers;
                 }
                 _ => {}
             }
@@ -547,7 +543,6 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct State {
     is_dragging: bool,
-    keyboard_modifiers: keyboard::Modifiers,
 }
 
 /// The possible status of a [`Slider`].

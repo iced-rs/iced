@@ -1,3 +1,4 @@
+use iced::keyboard;
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::widget::{column, row, slider, text};
@@ -78,6 +79,7 @@ impl canvas::Program<Message> for SierpinskiGraph {
         event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
+        _modifiers: keyboard::Modifiers,
     ) -> Option<canvas::Action<Message>> {
         let cursor_position = cursor.position_in(bounds)?;
 

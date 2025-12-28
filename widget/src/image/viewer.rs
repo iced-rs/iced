@@ -1,6 +1,7 @@
 //! Zoom and pan on an image.
 use crate::core::border;
 use crate::core::image::{self, FilterMethod};
+use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -153,6 +154,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        _modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,

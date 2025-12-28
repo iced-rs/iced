@@ -553,6 +553,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -754,6 +755,7 @@ where
                     event,
                     content,
                     cursor,
+                    modifiers,
                     renderer,
                     clipboard,
                     shell,
@@ -794,7 +796,7 @@ where
 
                     let delta = match *delta {
                         mouse::ScrollDelta::Lines { x, y } => {
-                            let is_shift_pressed = state.keyboard_modifiers.shift();
+                            let is_shift_pressed = modifiers.shift();
 
                             // macOS automatically inverts the axes when Shift is pressed
                             let (x, y) = if cfg!(target_os = "macos") && is_shift_pressed {
@@ -909,9 +911,6 @@ where
                             shell.request_redraw();
                         }
                     }
-                }
-                Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                    state.keyboard_modifiers = *modifiers;
                 }
                 Event::Window(window::Event::RedrawRequested(now)) => {
                     if let Interaction::AutoScrolling {
@@ -1504,7 +1503,6 @@ struct State {
     offset_y: Offset,
     offset_x: Offset,
     interaction: Interaction,
-    keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
     last_scrolled: Option<Instant>,
     is_scrollbar_visible: bool,
@@ -1529,7 +1527,6 @@ impl Default for State {
             offset_y: Offset::Absolute(0.0),
             offset_x: Offset::Absolute(0.0),
             interaction: Interaction::None,
-            keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,
             last_scrolled: None,
             is_scrollbar_visible: true,

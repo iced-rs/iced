@@ -149,7 +149,7 @@ pub fn window_attributes(
 pub fn window_event(
     event: winit::event::WindowEvent,
     scale_factor: f32,
-    modifiers: winit::keyboard::ModifiersState,
+    modifiers: keyboard::Modifiers,
 ) -> Option<Event> {
     use winit::event::Ime;
     use winit::event::WindowEvent;
@@ -245,7 +245,6 @@ pub fn window_event(
             let key = self::key(key);
             let modified_key = self::key(logical_key);
             let physical_key = self::physical_key(physical_key);
-            let modifiers = self::modifiers(modifiers);
 
             let location = match location {
                 winit::keyboard::KeyLocation::Standard => keyboard::Location::Standard,

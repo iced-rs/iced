@@ -1,4 +1,5 @@
 use crate::core::Rectangle;
+use crate::core::keyboard;
 use crate::core::mouse;
 use crate::renderer::wgpu::Primitive;
 use crate::shader::{self, Action};
@@ -29,6 +30,7 @@ pub trait Program<Message> {
         _event: &shader::Event,
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
+        _modifiers: keyboard::Modifiers,
     ) -> Option<Action<Message>> {
         None
     }

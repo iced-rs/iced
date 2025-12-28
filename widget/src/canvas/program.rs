@@ -1,7 +1,8 @@
 use crate::Action;
-use crate::canvas::mouse;
 use crate::canvas::{Event, Geometry};
 use crate::core::Rectangle;
+use crate::core::keyboard;
+use crate::core::mouse;
 use crate::graphics::geometry;
 
 /// The state and logic of a [`Canvas`].
@@ -35,6 +36,7 @@ where
         _event: &Event,
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
+        _modifiers: keyboard::Modifiers,
     ) -> Option<Action<Message>> {
         None
     }
@@ -85,8 +87,9 @@ where
         event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
     ) -> Option<Action<Message>> {
-        T::update(self, state, event, bounds, cursor)
+        T::update(self, state, event, bounds, cursor, modifiers)
     }
 
     fn draw(

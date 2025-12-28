@@ -779,6 +779,7 @@ async fn run_instance<P>(
                             core::Event::Window(window::Event::RedrawRequested(Instant::now()));
 
                         let cursor = window.state.cursor();
+                        let modifiers = window.state.modifiers();
 
                         let mut interface =
                             user_interfaces.get_mut(&id).expect("Get user interface");
@@ -791,6 +792,7 @@ async fn run_instance<P>(
                             let (state, _) = interface.update(
                                 slice::from_ref(&redraw_event),
                                 cursor,
+                                modifiers,
                                 &mut window.renderer,
                                 &mut clipboard,
                                 &mut messages,
@@ -1079,6 +1081,7 @@ async fn run_instance<P>(
                                 .update(
                                     &window_events,
                                     window.state.cursor(),
+                                    window.state.modifiers(),
                                     &mut window.renderer,
                                     &mut clipboard,
                                     &mut messages,

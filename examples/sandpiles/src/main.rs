@@ -1,3 +1,4 @@
+use iced::keyboard;
 use iced::mouse;
 use iced::widget::{canvas, column, container, row, slider, text};
 use iced::window;
@@ -187,6 +188,7 @@ impl canvas::Program<Message> for Viewer<'_> {
         event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
+        _modifiers: keyboard::Modifiers,
     ) -> Option<canvas::Action<Message>> {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {

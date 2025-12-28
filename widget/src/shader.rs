@@ -4,6 +4,7 @@ mod program;
 pub use program::Program;
 
 use crate::core::event;
+use crate::core::keyboard;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
@@ -89,6 +90,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -98,7 +100,7 @@ where
 
         let state = tree.state.downcast_mut::<P::State>();
 
-        if let Some(action) = self.program.update(state, event, bounds, cursor) {
+        if let Some(action) = self.program.update(state, event, bounds, cursor, modifiers) {
             let (message, redraw_request, event_status) = action.into_inner();
 
             shell.request_redraw_at(redraw_request);
@@ -169,8 +171,9 @@ where
         event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
     ) -> Option<Action<Message>> {
-        T::update(self, state, event, bounds, cursor)
+        T::update(self, state, event, bounds, cursor, modifiers)
     }
 
     fn draw(

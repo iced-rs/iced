@@ -8,6 +8,7 @@ use iced_wgpu::graphics::{Shell, Viewport};
 use iced_wgpu::{Engine, Renderer, wgpu};
 use iced_winit::Clipboard;
 use iced_winit::conversion;
+use iced_winit::core::keyboard;
 use iced_winit::core::mouse;
 use iced_winit::core::renderer;
 use iced_winit::core::time::Instant;
@@ -20,7 +21,6 @@ use iced_winit::winit;
 use winit::{
     event::WindowEvent,
     event_loop::{ControlFlow, EventLoop},
-    keyboard::ModifiersState,
 };
 
 use std::sync::Arc;
@@ -45,10 +45,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             controls: Controls,
             events: Vec<Event>,
             cursor: mouse::Cursor,
+            modifiers: keyboard::Modifiers,
             cache: user_interface::Cache,
             clipboard: Clipboard,
             viewport: Viewport,
-            modifiers: ModifiersState,
             resized: bool,
         },
     }
@@ -165,7 +165,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     controls,
                     events: Vec::new(),
                     cursor: mouse::Cursor::Unavailable,
-                    modifiers: ModifiersState::default(),
+                    modifiers: keyboard::Modifiers::default(),
                     cache: user_interface::Cache::new(),
                     clipboard,
                     viewport,
@@ -264,6 +264,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                     window::Event::RedrawRequested(Instant::now()),
                                 )],
                                 *cursor,
+                                *modifiers,
                                 renderer,
                                 clipboard,
                                 &mut Vec::new(),
@@ -320,7 +321,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     ));
                 }
                 WindowEvent::ModifiersChanged(new_modifiers) => {
-                    *modifiers = new_modifiers.state();
+                    *modifiers = conversion::modifiers(new_modifiers.state());
                 }
                 WindowEvent::Resized(_) => {
                     *resized = true;
@@ -350,7 +351,14 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                 let mut messages = Vec::new();
 
-                let _ = interface.update(events, *cursor, renderer, clipboard, &mut messages);
+                let _ = interface.update(
+                    events,
+                    *cursor,
+                    *modifiers,
+                    renderer,
+                    clipboard,
+                    &mut messages,
+                );
 
                 events.clear();
                 *cache = interface.into_cache();

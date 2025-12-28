@@ -4,6 +4,7 @@ use crate::checkbox::{self, Checkbox};
 use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
+use crate::core::keyboard;
 use crate::core::theme;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
@@ -661,6 +662,7 @@ where
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
+            modifiers: keyboard::Modifiers,
             renderer: &Renderer,
             clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -670,7 +672,7 @@ where
                 matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
 
             self.content.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
+                tree, event, layout, cursor, modifiers, renderer, clipboard, shell, viewport,
             );
 
             if is_mouse_press && cursor.is_over(layout.bounds()) {
@@ -856,6 +858,7 @@ where
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
+            modifiers: keyboard::Modifiers,
             renderer: &Renderer,
             clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -897,7 +900,8 @@ where
                 let redraw_request = shell.redraw_request();
 
                 self.top.as_widget_mut().update(
-                    top_tree, event, top_layout, cursor, renderer, clipboard, shell, viewport,
+                    top_tree, event, top_layout, cursor, modifiers, renderer, clipboard, shell,
+                    viewport,
                 );
 
                 // Ignore redraw requests of invisible content
@@ -915,6 +919,7 @@ where
                 event,
                 base_layout,
                 cursor,
+                modifiers,
                 renderer,
                 clipboard,
                 shell,

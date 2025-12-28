@@ -1,6 +1,7 @@
 //! Display tables.
 use crate::core;
 use crate::core::alignment;
+use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -451,6 +452,7 @@ where
         event: &core::Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn core::Clipboard,
         shell: &mut core::Shell<'_, Message>,
@@ -463,7 +465,7 @@ where
             .zip(layout.children())
         {
             cell.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
+                tree, event, layout, cursor, modifiers, renderer, clipboard, shell, viewport,
             );
         }
     }

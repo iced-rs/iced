@@ -1,3 +1,4 @@
+use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -85,6 +86,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -122,6 +124,7 @@ where
             event,
             layout,
             cursor,
+            modifiers,
             renderer,
             clipboard,
             shell,
@@ -312,6 +315,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -338,7 +342,7 @@ where
 
         self.raw
             .as_overlay_mut()
-            .update(event, layout, cursor, renderer, clipboard, shell);
+            .update(event, layout, cursor, modifiers, renderer, clipboard, shell);
     }
 
     fn mouse_interaction(

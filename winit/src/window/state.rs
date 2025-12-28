@@ -1,6 +1,6 @@
 use crate::conversion;
 use crate::core::{Color, Size};
-use crate::core::{mouse, theme, window};
+use crate::core::{keyboard, mouse, theme, window};
 use crate::graphics::Viewport;
 use crate::program::{self, Program};
 
@@ -111,8 +111,8 @@ where
             .unwrap_or(mouse::Cursor::Unavailable)
     }
 
-    pub fn modifiers(&self) -> winit::keyboard::ModifiersState {
-        self.modifiers
+    pub fn modifiers(&self) -> keyboard::Modifiers {
+        conversion::modifiers(self.modifiers)
     }
 
     pub fn theme(&self) -> &P::Theme {

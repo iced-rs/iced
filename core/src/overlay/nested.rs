@@ -1,4 +1,5 @@
 use crate::event;
+use crate::keyboard;
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
@@ -153,6 +154,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -162,6 +164,7 @@ where
             layout: Layout<'_>,
             event: &Event,
             cursor: mouse::Cursor,
+            modifiers: keyboard::Modifiers,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -182,6 +185,7 @@ where
                         nested_layout,
                         event,
                         cursor,
+                        modifiers,
                         renderer,
                         clipboard,
                         shell,
@@ -211,6 +215,7 @@ where
                         } else {
                             cursor
                         },
+                        modifiers,
                         renderer,
                         clipboard,
                         shell,
@@ -230,6 +235,7 @@ where
             layout,
             event,
             cursor,
+            modifiers,
             renderer,
             clipboard,
             shell,

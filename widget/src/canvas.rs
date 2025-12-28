@@ -61,6 +61,7 @@ pub use crate::graphics::geometry::{
 };
 
 use crate::core::event;
+use crate::core::keyboard;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
@@ -218,6 +219,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -229,7 +231,7 @@ where
         let is_redraw_request =
             matches!(event, Event::Window(window::Event::RedrawRequested(_now)),);
 
-        if let Some(action) = self.program.update(state, event, bounds, cursor) {
+        if let Some(action) = self.program.update(state, event, bounds, cursor, modifiers) {
             let (message, redraw_request, event_status) = action.into_inner();
 
             shell.request_redraw_at(redraw_request);

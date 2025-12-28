@@ -175,6 +175,7 @@ where
         let (_state, statuses) = self.raw.update(
             &events,
             self.cursor,
+            keyboard::Modifiers::empty(),
             &mut self.renderer,
             &mut clipboard::Null,
             &mut self.messages,
@@ -192,6 +193,7 @@ where
                 time::Instant::now(),
             ))],
             self.cursor,
+            keyboard::Modifiers::empty(),
             &mut self.renderer,
             &mut clipboard::Null,
             &mut self.messages,

@@ -159,6 +159,7 @@ mod toast {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Operation, Tree};
     use iced::advanced::{Clipboard, Shell, Widget};
+    use iced::keyboard;
     use iced::mouse;
     use iced::time::{self, Duration, Instant};
     use iced::widget::{button, column, container, row, rule, space, text};
@@ -355,6 +356,7 @@ mod toast {
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
+            modifiers: keyboard::Modifiers,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -365,6 +367,7 @@ mod toast {
                 event,
                 layout,
                 cursor,
+                modifiers,
                 renderer,
                 clipboard,
                 shell,
@@ -481,6 +484,7 @@ mod toast {
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
+            modifiers: keyboard::Modifiers,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -521,6 +525,7 @@ mod toast {
                     event,
                     layout,
                     cursor,
+                    modifiers,
                     renderer,
                     clipboard,
                     &mut local_shell,

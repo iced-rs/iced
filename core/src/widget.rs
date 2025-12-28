@@ -10,6 +10,7 @@ pub use operation::Operation;
 pub use text::Text;
 pub use tree::Tree;
 
+use crate::keyboard;
 use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
@@ -115,6 +116,7 @@ where
         _event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
+        _modifiers: keyboard::Modifiers,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,

@@ -1,5 +1,6 @@
 //! Build and reuse custom widgets using The Elm Architecture.
 #![allow(deprecated)]
+use crate::core::keyboard;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -303,6 +304,7 @@ where
         event: &core::Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -318,6 +320,7 @@ where
                 event,
                 layout,
                 cursor,
+                modifiers,
                 renderer,
                 clipboard,
                 &mut local_shell,
@@ -581,6 +584,7 @@ where
         event: &core::Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -589,7 +593,15 @@ where
         let mut local_shell = Shell::new(&mut local_messages);
 
         let _ = self.with_overlay_mut_maybe(|overlay| {
-            overlay.update(event, layout, cursor, renderer, clipboard, &mut local_shell);
+            overlay.update(
+                event,
+                layout,
+                cursor,
+                modifiers,
+                renderer,
+                clipboard,
+                &mut local_shell,
+            );
         });
 
         if local_shell.is_event_captured() {

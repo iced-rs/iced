@@ -1,3 +1,4 @@
+use crate::keyboard;
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
@@ -302,6 +303,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
@@ -315,6 +317,7 @@ where
             event,
             layout,
             cursor,
+            modifiers,
             renderer,
             clipboard,
             &mut local_shell,
@@ -436,13 +439,14 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
         self.element.widget.update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
+            tree, event, layout, cursor, modifiers, renderer, clipboard, shell, viewport,
         );
     }
 

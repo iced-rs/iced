@@ -1,6 +1,7 @@
 //! Build and show dropdown menus.
 use crate::core::alignment;
 use crate::core::border::{self, Border};
+use crate::core::keyboard;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -263,6 +264,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -270,7 +272,7 @@ where
         let bounds = layout.bounds();
 
         self.list.update(
-            self.tree, event, layout, cursor, renderer, clipboard, shell, &bounds,
+            self.tree, event, layout, cursor, modifiers, renderer, clipboard, shell, &bounds,
         );
     }
 
@@ -385,6 +387,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        _modifiers: keyboard::Modifiers,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,

@@ -1,5 +1,6 @@
 //! Run your application in a headless runtime.
 use crate::core;
+use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::time::Instant;
@@ -325,6 +326,7 @@ impl<P: Program + 'static> Emulator<P> {
                 let (_state, _status) = user_interface.update(
                     &events,
                     self.cursor,
+                    keyboard::Modifiers::empty(),
                     &mut self.renderer,
                     &mut self.clipboard,
                     &mut messages,
@@ -455,6 +457,7 @@ impl<P: Program + 'static> Emulator<P> {
                 Instant::now(),
             ))],
             mouse::Cursor::Unavailable,
+            keyboard::Modifiers::empty(),
             &mut self.renderer,
             &mut self.clipboard,
             &mut Vec::new(),
