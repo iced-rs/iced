@@ -253,6 +253,19 @@ where
                 Event::EventLoopAwakened(winit::event::Event::AboutToWait),
             );
         }
+
+        #[cfg(feature = "device-events")]
+        fn device_event(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            device_id: winit::event::DeviceId,
+            event: winit::event::DeviceEvent,
+        ) {
+            self.process_event(
+                event_loop,
+                Event::EventLoopAwakened(winit::event::Event::DeviceEvent { device_id, event }),
+            );
+        }
     }
 
     impl<Message, F> Runner<Message, F>
@@ -405,6 +418,18 @@ where
                                     event_loop.set_allows_automatic_window_tabbing(_enabled);
                                 }
                             }
+                            #[cfg(feature = "device-events")]
+                            Control::SetDeviceEventFilter(filter) => {
+                                use winit::event_loop::DeviceEvents;
+
+                                let device_events = match filter {
+                                    core::device::Filter::Always => DeviceEvents::Always,
+                                    core::device::Filter::Never => DeviceEvents::Never,
+                                    core::device::Filter::WhenFocused => DeviceEvents::WhenFocused,
+                                };
+
+                                event_loop.listen_device_events(device_events);
+                            }
                         },
                         _ => {
                             break;
@@ -463,6 +488,8 @@ enum Control {
         scale_factor: f32,
     },
     SetAutomaticWindowTabbing(bool),
+    #[cfg(feature = "device-events")]
+    SetDeviceEventFilter(core::device::Filter),
 }
 
 async fn run_instance<P>(
@@ -1170,6 +1197,23 @@ async fn run_instance<P>(
                                 control_sender.start_send(Control::ChangeFlow(ControlFlow::Wait));
                         }
                     }
+                    #[cfg(feature = "device-events")]
+                    event::Event::DeviceEvent {
+                        device_id,
+                        event: device_event,
+                    } => {
+                        // Hot path - minimal work, device events fire at high frequency
+                        let event = conversion::device_event(&device_event);
+                        use std::hash::{Hash, Hasher};
+                        let mut hasher = rustc_hash::FxHasher::default();
+                        device_id.hash(&mut hasher);
+                        let id = hasher.finish();
+
+                        runtime.broadcast(subscription::Event::Device {
+                            device_id: id,
+                            event,
+                        });
+                    }
                     _ => {}
                 }
             }
@@ -1644,6 +1688,14 @@ fn run_action<'a, P, C>(
                         let _ = sender.send(allocation);
                     });
                 }
+            }
+        },
+        #[cfg(feature = "device-events")]
+        Action::Device(action) => match action {
+            crate::runtime::device::DeviceAction::SetFilter(filter) => {
+                control_sender
+                    .start_send(Control::SetDeviceEventFilter(filter))
+                    .expect("Send control action");
             }
         },
         Action::LoadFont { bytes, channel } => {
