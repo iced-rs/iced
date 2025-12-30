@@ -16,8 +16,10 @@ where
     Renderer: crate::Renderer,
 {
     /// Creates a new [`Element`] containing the given [`Overlay`].
-    pub fn new(overlay: Box<dyn Overlay<Message, Theme, Renderer> + 'a>) -> Self {
-        Self { overlay }
+    pub fn new(overlay: impl Overlay<Message, Theme, Renderer> + 'a) -> Self {
+        Self {
+            overlay: Box::new(overlay),
+        }
     }
 
     /// Returns a reference to the [`Overlay`] of the [`Element`],
