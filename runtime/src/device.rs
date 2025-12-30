@@ -3,8 +3,9 @@
 //! Device events are raw hardware events that are not associated
 //! with any particular window.
 use crate::Action;
-use crate::core::device::Filter;
 use crate::task::{self, Task};
+
+pub use crate::core::device::Filter;
 
 /// A device event action.
 #[derive(Debug)]
@@ -24,8 +25,8 @@ pub enum DeviceAction {
 /// # Example
 ///
 /// ```no_run
-/// use iced::device::{self, Filter};
-/// use iced::Task;
+/// use iced_runtime::device::{self, Filter};
+/// use iced_runtime::Task;
 ///
 /// enum Message {
 ///     // ...
