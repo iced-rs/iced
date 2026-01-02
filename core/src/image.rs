@@ -91,7 +91,7 @@ pub enum Handle {
     /// Use [`from_path`] to create this variant.
     ///
     /// [`from_path`]: Self::from_path
-    Path(Id, PathBuf),
+    Path(Id, PathBuf, bool),
 
     /// A handle pointing to some encoded image bytes in-memory.
     ///
@@ -124,7 +124,16 @@ impl Handle {
     pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
         let path = path.into();
 
-        Self::Path(Id::path(&path), path)
+        Self::Path(Id::path(&path), path, false)
+    }
+
+    /// Creates an image [`Handle`] pointing to the image of the given path.
+    ///
+    /// This handle will use io to read the head in file to guess the file.
+    pub fn from_path_with_guessed_format<T: Into<PathBuf>>(path: T) -> Handle {
+        let path = path.into();
+
+        Self::Path(Id::path(&path), path, true)
     }
 
     /// Creates an image [`Handle`] containing the encoded image data directly.
@@ -156,7 +165,7 @@ impl Handle {
     /// Returns the unique identifier of the [`Handle`].
     pub fn id(&self) -> Id {
         match self {
-            Handle::Path(id, _) | Handle::Bytes(id, _) | Handle::Rgba { id, .. } => *id,
+            Handle::Path(id, _, _) | Handle::Bytes(id, _) | Handle::Rgba { id, .. } => *id,
         }
     }
 }
@@ -179,7 +188,7 @@ impl From<&Handle> for Handle {
 impl std::fmt::Debug for Handle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Path(id, path) => write!(f, "Path({id:?}, {path:?})"),
+            Self::Path(id, path, guess) => write!(f, "Path({id:?}, {path:?}, {guess})"),
             Self::Bytes(id, _) => write!(f, "Bytes({id:?}, ...)"),
             Self::Rgba {
                 id, width, height, ..
