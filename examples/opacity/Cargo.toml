@@ -1,7 +1,7 @@
 [package]
 name = "opacity"
 version = "0.1.0"
-authors = ["Iced contributors"]
+authors = ["Ericky Dos Santos <ericky_k_y@hotmail.com>"]
 edition = "2024"
 publish = false
 
