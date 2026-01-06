@@ -4,8 +4,8 @@
 //! to apply transparency to widgets, including animated fade effects.
 
 use iced::time::{self, milliseconds};
-use iced::widget::{button, center, column, container, image, opacity, row, slider, text};
-use iced::{Border, Center, Color, Element, Subscription, Theme};
+use iced::widget::{button, center, column, container, image, opacity, row, slider, stack, text};
+use iced::{Border, Center, Color, Element, Length, Subscription, Theme};
 
 use std::time::Instant;
 
@@ -260,10 +260,72 @@ impl App {
             .align_x(Center)
         };
 
+        // Overlapping items section - demonstrates how items composite within an opacity layer
+        let overlapping_section = {
+            // Blue rectangle (larger, behind)
+            let blue_rect = container(text(""))
+                .width(120)
+                .height(80)
+                .style(|_| container::Style {
+                    background: Some(Color::from_rgb(0.2, 0.4, 0.9).into()),
+                    border: Border {
+                        color: Color::WHITE,
+                        width: 2.0,
+                        radius: 8.0.into(),
+                    },
+                    ..Default::default()
+                });
+
+            // Red rectangle (smaller, in front, offset via alignment)
+            let red_rect = container(text(""))
+                .width(120)
+                .height(80)
+                .style(|_| container::Style {
+                    background: Some(Color::from_rgb(0.9, 0.2, 0.2).into()),
+                    border: Border {
+                        color: Color::WHITE,
+                        width: 2.0,
+                        radius: 8.0.into(),
+                    },
+                    ..Default::default()
+                });
+
+            // Stack both - blue aligned top-left, red aligned bottom-right
+            // This creates overlap in the center
+            let overlapping = container(
+                stack![
+                    container(blue_rect)
+                        .width(Length::Fill)
+                        .height(Length::Fill)
+                        .align_x(iced::alignment::Horizontal::Left)
+                        .align_y(iced::alignment::Vertical::Top),
+                    container(red_rect)
+                        .width(Length::Fill)
+                        .height(Length::Fill)
+                        .align_x(iced::alignment::Horizontal::Right)
+                        .align_y(iced::alignment::Vertical::Bottom),
+                ]
+                .width(Length::Fill)
+                .height(Length::Fill),
+            )
+            .width(180)
+            .height(120);
+
+            let with_opacity = opacity(self.static_opacity, overlapping);
+
+            column![
+                text("Overlapping Items").size(24),
+                text("Items composite first, then opacity applies to the whole group.").size(14),
+                with_opacity,
+            ]
+            .spacing(15)
+            .align_x(Center)
+        };
+
         let content = column![
             title,
             row![static_section, animation_section,].spacing(60),
-            row![nested_section, image_section].spacing(60),
+            row![nested_section, image_section, overlapping_section].spacing(60),
         ]
         .padding(30)
         .spacing(30);
