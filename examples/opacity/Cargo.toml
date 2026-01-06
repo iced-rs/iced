@@ -1,0 +1,10 @@
+[package]
+name = "opacity"
+version = "0.1.0"
+authors = ["Iced contributors"]
+edition = "2024"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["svg", "advanced", "tokio", "image"]

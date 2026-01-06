@@ -62,6 +62,14 @@ where
         delegate!(self, renderer, renderer.end_transformation());
     }
 
+    fn start_opacity(&mut self, bounds: Rectangle, opacity: f32) {
+        delegate!(self, renderer, renderer.start_opacity(bounds, opacity));
+    }
+
+    fn end_opacity(&mut self) {
+        delegate!(self, renderer, renderer.end_opacity());
+    }
+
     fn allocate_image(
         &mut self,
         handle: &image::Handle,
