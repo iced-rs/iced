@@ -634,8 +634,8 @@ where
     ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
-        operation.text_input(self.id.as_ref(), layout.bounds(), state);
         operation.focusable(self.id.as_ref(), layout.bounds(), state);
+        operation.text_input(self.id.as_ref(), layout.bounds(), state);
     }
 
     fn update(
