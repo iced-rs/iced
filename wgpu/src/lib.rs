@@ -662,10 +662,8 @@ fn apply_opacity(
         Background::Gradient(mut gradient) => {
             match &mut gradient {
                 core::Gradient::Linear(linear) => {
-                    for stop in &mut linear.stops {
-                        if let Some(color_stop) = stop {
-                            color_stop.color.a *= opacity;
-                        }
+                    for color_stop in linear.stops.iter_mut().flatten() {
+                        color_stop.color.a *= opacity;
                     }
                 }
             }
