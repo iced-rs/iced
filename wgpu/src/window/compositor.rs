@@ -148,13 +148,20 @@ impl Compositor {
             ..limits
         });
 
+        // Request SHADER_F16 only if the adapter supports it (e.g., not available in WebGL2)
+        let required_features = if adapter.features().contains(wgpu::Features::SHADER_F16) {
+            wgpu::Features::SHADER_F16
+        } else {
+            wgpu::Features::empty()
+        };
+
         let mut errors = Vec::new();
 
         for required_limits in limits {
             let result = adapter
                 .request_device(&wgpu::DeviceDescriptor {
                     label: Some("iced_wgpu::window::compositor device descriptor"),
-                    required_features: wgpu::Features::SHADER_F16,
+                    required_features,
                     required_limits: required_limits.clone(),
                     memory_hints: wgpu::MemoryHints::MemoryUsage,
                     trace: wgpu::Trace::Off,
