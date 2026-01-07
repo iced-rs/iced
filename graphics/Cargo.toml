@@ -19,7 +19,8 @@ all-features = true
 
 [features]
 geometry = ["lyon_path"]
-image = ["dep:image", "kamadak-exif"]
+image = ["image-without-codecs", "image/default"]
+image-without-codecs = ["dep:image", "kamadak-exif"]
 svg = []
 web-colors = []
 fira-sans = []
