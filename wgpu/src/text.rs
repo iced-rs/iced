@@ -554,16 +554,18 @@ fn prepare(
 
                     let mut position = bounds.position();
 
-                    position.x = match align_x {
-                        Alignment::Default | Alignment::Left | Alignment::Justified => position.x,
-                        Alignment::Center => position.x - entry.min_bounds.width / 2.0,
-                        Alignment::Right => position.x - entry.min_bounds.width,
+                    position.x += match align_x {
+                        Alignment::Left | Alignment::Default | Alignment::Justified => 0.0,
+                        Alignment::Center => (bounds.width - entry.min_bounds.width) / 2.0,
+                        Alignment::Right => bounds.width - entry.min_bounds.width,
                     };
 
-                    position.y = match align_y {
-                        alignment::Vertical::Top => position.y,
-                        alignment::Vertical::Center => position.y - entry.min_bounds.height / 2.0,
-                        alignment::Vertical::Bottom => position.y - entry.min_bounds.height,
+                    position.y += match align_y {
+                        alignment::Vertical::Top => 0.0,
+                        alignment::Vertical::Center => {
+                            (bounds.height - entry.min_bounds.height) / 2.0
+                        }
+                        alignment::Vertical::Bottom => bounds.height - entry.min_bounds.height,
                     };
 
                     (
