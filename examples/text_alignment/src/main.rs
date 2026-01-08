@@ -28,9 +28,50 @@ impl State {
     fn view(&self) -> Element<'_, Message> {
         container(
             column![
-                case("Left Aligned:", text::Alignment::Left),
-                case("Right Aligned:", text::Alignment::Right),
-                case("Center Aligned:", text::Alignment::Center),
+                widget_text("Horizontal Alignment"),
+                case(
+                    "Left Aligned:",
+                    text::Alignment::Left,
+                    iced::alignment::Vertical::Top,
+                    100,
+                    50,
+                ),
+                case(
+                    "Right Aligned:",
+                    text::Alignment::Right,
+                    iced::alignment::Vertical::Top,
+                    100,
+                    50,
+                ),
+                case(
+                    "Center Aligned:",
+                    text::Alignment::Center,
+                    iced::alignment::Vertical::Top,
+                    100,
+                    50,
+                ),
+                widget_text("Vertical Alignment"),
+                case(
+                    "Top Aligned:",
+                    text::Alignment::Center,
+                    iced::alignment::Vertical::Top,
+                    50,
+                    100,
+                ),
+                case(
+                    "Bottom Aligned:",
+                    text::Alignment::Center,
+                    iced::alignment::Vertical::Bottom,
+                    50,
+                    100,
+                ),
+                case(
+                    "Center Aligned:",
+                    text::Alignment::Center,
+                    iced::alignment::Vertical::Center,
+                    50,
+                    100,
+                ),
             ]
             .spacing(10)
             .padding(20),
@@ -41,15 +82,22 @@ impl State {
     }
 }
 
-fn case<'a>(label: &'static str, alignment: text::Alignment) -> Element<'a, Message> {
+fn case<'a>(
+    label: &'static str,
+    align_x: text::Alignment,
+    align_y: iced::alignment::Vertical,
+    width: impl Into<Length>,
+    height: impl Into<Length>,
+) -> Element<'a, Message> {
     column![
         widget_text(label),
         container(CustomText {
             content: "10".to_string(),
-            alignment,
+            align_x,
+            align_y,
         })
-        .width(50)
-        .height(30)
+        .width(width)
+        .height(height)
         .style(|_| container::Style {
             border: iced::Border {
                 color: Color::BLACK,
@@ -64,7 +112,8 @@ fn case<'a>(label: &'static str, alignment: text::Alignment) -> Element<'a, Mess
 
 struct CustomText {
     content: String,
-    alignment: text::Alignment,
+    align_x: text::Alignment,
+    align_y: iced::alignment::Vertical,
 }
 
 impl<Message, Renderer> Widget<Message, Theme, Renderer> for CustomText
@@ -116,8 +165,8 @@ where
                 size: Pixels(20.0),
                 line_height: text::LineHeight::default(),
                 font: Font::MONOSPACE,
-                align_x: self.alignment,
-                align_y: iced::alignment::Vertical::Top,
+                align_x: self.align_x,
+                align_y: self.align_y,
                 shaping: text::Shaping::Basic,
                 wrapping: text::Wrapping::Glyph,
                 hint_factor: None,
