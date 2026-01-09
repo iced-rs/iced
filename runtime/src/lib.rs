@@ -56,8 +56,11 @@ pub enum Action<T> {
     /// Run a system action.
     System(system::Action),
 
-    /// An image action.
+    /// Run an image action.
     Image(image::Action),
+
+    /// Poll any resources that may have pending computations.
+    Tick,
 
     /// Recreate all user interfaces and redraw all windows.
     Reload,
@@ -84,6 +87,7 @@ impl<T> Action<T> {
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
             Action::Image(action) => Err(Action::Image(action)),
+            Action::Tick => Err(Action::Tick),
             Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
         }
@@ -109,6 +113,7 @@ where
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
             Action::Image(_) => write!(f, "Action::Image"),
+            Action::Tick => write!(f, "Action::Tick"),
             Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),
         }
