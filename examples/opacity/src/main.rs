@@ -5,7 +5,7 @@
 
 use iced::time::{self, milliseconds};
 use iced::widget::{button, center, column, container, image, opacity, row, slider, stack, text};
-use iced::{Border, Center, Color, Element, Length, Subscription, Theme};
+use iced::{Border, Center, Color, Element, Length, Shadow, Subscription, Theme, Vector};
 
 use std::time::Instant;
 
@@ -260,6 +260,44 @@ impl App {
             .align_x(Center)
         };
 
+        // Shadow opacity section - demonstrates shadow fading with opacity
+        let shadow_section = {
+            let shadow_card = container(
+                column![
+                    text("Shadow Test").size(18),
+                    text("Card with shadow").size(12),
+                ]
+                .spacing(8)
+                .align_x(Center),
+            )
+            .width(200)
+            .padding(20)
+            .style(move |_| container::Style {
+                background: Some(Color::from_rgb(0.3, 0.3, 0.35).into()),
+                border: Border {
+                    color: Color::from_rgb(0.5, 0.5, 0.6),
+                    width: 1.0,
+                    radius: 12.0.into(),
+                },
+                shadow: Shadow {
+                    color: Color::BLACK,
+                    offset: Vector::new(0.0, 8.0),
+                    blur_radius: 24.0,
+                },
+                ..Default::default()
+            });
+
+            let with_opacity = opacity(self.static_opacity, shadow_card);
+
+            column![
+                text("Shadow Opacity").size(24),
+                text("Shadow should fade with the card").size(14),
+                container(with_opacity).padding(30), // Extra padding for shadow visibility
+            ]
+            .spacing(15)
+            .align_x(Center)
+        };
+
         // Overlapping items section - demonstrates how items composite within an opacity layer
         let overlapping_section = {
             // Blue rectangle (larger, behind)
@@ -325,7 +363,7 @@ impl App {
         let content = column![
             title,
             row![static_section, animation_section,].spacing(60),
-            row![nested_section, image_section, overlapping_section].spacing(60),
+            row![nested_section, image_section, shadow_section, overlapping_section].spacing(60),
         ]
         .padding(30)
         .spacing(30);

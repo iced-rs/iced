@@ -643,7 +643,7 @@ impl Renderer {
     }
 }
 
-/// Applies opacity to a background and quad border, returning the modified values.
+/// Applies opacity to a background, quad border, and shadow, returning the modified values.
 #[inline]
 fn apply_opacity(
     opacity: f32,
@@ -673,7 +673,15 @@ fn apply_opacity(
 
     let mut border = quad.border;
     border.color.a *= opacity;
-    let quad = core::renderer::Quad { border, ..quad };
+
+    let mut shadow = quad.shadow;
+    shadow.color.a *= opacity;
+
+    let quad = core::renderer::Quad {
+        border,
+        shadow,
+        ..quad
+    };
 
     (background, quad)
 }
