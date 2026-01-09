@@ -50,6 +50,30 @@ pub trait Renderer {
         self.with_transformation(Transformation::translate(translation.x, translation.y), f);
     }
 
+    /// Starts recording a new opacity group.
+    ///
+    /// All primitives drawn until [`end_opacity`](Self::end_opacity) is called
+    /// will be rendered to an offscreen texture and then composited with the
+    /// given opacity value.
+    ///
+    /// Opacity values should be in the range `0.0` (fully transparent) to `1.0` (fully opaque).
+    fn start_opacity(&mut self, _bounds: Rectangle, _opacity: f32) {}
+
+    /// Ends recording the current opacity group.
+    ///
+    /// The contents will be composited with the opacity specified in [`start_opacity`](Self::start_opacity).
+    fn end_opacity(&mut self) {}
+
+    /// Draws the primitives recorded in the given closure with the specified opacity.
+    ///
+    /// The primitives will be rendered to an offscreen texture and then composited
+    /// with the given opacity value.
+    fn with_opacity(&mut self, bounds: Rectangle, opacity: f32, f: impl FnOnce(&mut Self)) {
+        self.start_opacity(bounds, opacity);
+        f(self);
+        self.end_opacity();
+    }
+
     /// Fills a [`Quad`] with the provided [`Background`].
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
 

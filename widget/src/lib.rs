@@ -12,6 +12,7 @@ pub use core::widget::Id;
 mod action;
 mod column;
 mod mouse_area;
+mod opacity;
 mod pin;
 mod responsive;
 mod stack;
@@ -69,6 +70,8 @@ pub use float::Float;
 pub use grid::Grid;
 #[doc(no_inline)]
 pub use mouse_area::MouseArea;
+#[doc(no_inline)]
+pub use opacity::{Opacity, opacity};
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]
