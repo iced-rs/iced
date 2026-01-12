@@ -383,10 +383,17 @@ where
 
     /// Pushes a new option to the [`State`].
     pub fn push(&mut self, new_option: T) {
+        self.insert(self.options.len(), new_option);
+    }
+
+    /// Inserts a new option to the [`State`].
+    pub fn insert(&mut self, index: usize, new_option: T) {
         let mut inner = self.inner.borrow_mut();
 
-        inner.option_matchers.push(build_matcher(&new_option));
-        self.options.push(new_option);
+        inner
+            .option_matchers
+            .insert(index, build_matcher(&new_option));
+        self.options.insert(index, new_option);
 
         inner.filtered_options = Filtered::new(
             search(&self.options, &inner.option_matchers, &inner.value)
