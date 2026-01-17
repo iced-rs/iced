@@ -47,8 +47,9 @@ type ColorFilter = Option<[u8; 4]>;
 impl Cache {
     /// Load svg
     pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
-        if self.svgs.contains_key(&handle.id()) {
-            return self.svgs.get(&handle.id()).unwrap();
+        let id = handle.id();
+        if self.svgs.contains_key(&id) {
+            return self.svgs.get(&id).unwrap();
         }
 
         // TODO: Reuse `cosmic-text` font database
@@ -82,8 +83,8 @@ impl Cache {
 
         self.should_trim = true;
 
-        let _ = self.svgs.insert(handle.id(), svg);
-        self.svgs.get(&handle.id()).unwrap()
+        let svg = self.svgs.entry(id).or_insert(svg);
+        svg
     }
 
     /// Load svg and upload raster data
