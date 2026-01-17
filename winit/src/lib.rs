@@ -42,7 +42,7 @@ use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -576,10 +576,14 @@ async fn run_instance<P>(
                                 }
                             }
 
-                            compositor_sender
-                                .send(compositor)
-                                .ok()
-                                .expect("Send compositor");
+                            if compositor_sender.send(compositor).is_err() {
+                                // The receiver was dropped (e.g. shutdown/teardown). Avoid panicking
+                                // in this background task.
+                                log::debug!(
+                                    "iced_winit: compositor receiver dropped; aborting compositor creation"
+                                );
+                                return;
+                            }
 
                             // HACK! Send a proxy event on completion to trigger
                             // a runtime re-poll
