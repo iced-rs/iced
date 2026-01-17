@@ -42,7 +42,7 @@ use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -347,35 +347,51 @@ where
                                 {
                                     use winit::platform::web::WindowExtWebSys;
 
-                                    let canvas = window.canvas().expect("Get window canvas");
+                                    if let Some(canvas) = window.canvas() {
+                                        let _ = canvas.set_attribute(
+                                            "style",
+                                            "display: block; width: 100%; height: 100%",
+                                        );
 
-                                    let _ = canvas.set_attribute(
-                                        "style",
-                                        "display: block; width: 100%; height: 100%",
-                                    );
+                                        if let Some(web_window) = web_sys::window()
+                                            && let Some(document) = web_window.document()
+                                            && let Some(body) = document.body()
+                                        {
+                                            let target = target.and_then(|target| {
+                                                body.query_selector(&format!("#{target}"))
+                                                    .ok()
+                                                    .flatten()
+                                            });
 
-                                    let window = web_sys::window().unwrap();
-                                    let document = window.document().unwrap();
-                                    let body = document.body().unwrap();
-
-                                    let target = target.and_then(|target| {
-                                        body.query_selector(&format!("#{target}"))
-                                            .ok()
-                                            .unwrap_or(None)
-                                    });
-
-                                    match target {
-                                        Some(node) => {
-                                            let _ = node.replace_with_with_node_1(&canvas).expect(
-                                                &format!("Could not replace #{}", node.id()),
+                                            match target {
+                                                Some(node) => {
+                                                    if let Err(error) =
+                                                        node.replace_with_with_node_1(&canvas)
+                                                    {
+                                                        log::warn!(
+                                                            "iced_winit: could not replace #{} with canvas: {error:?}",
+                                                            node.id()
+                                                        );
+                                                    }
+                                                }
+                                                None => {
+                                                    if let Err(error) = body.append_child(&canvas) {
+                                                        log::warn!(
+                                                            "iced_winit: could not append canvas to body: {error:?}"
+                                                        );
+                                                    }
+                                                }
+                                            };
+                                        } else {
+                                            log::warn!(
+                                                "iced_winit: missing window/document/body while wiring canvas"
                                             );
                                         }
-                                        None => {
-                                            let _ = body
-                                                .append_child(&canvas)
-                                                .expect("Append canvas to HTML body");
-                                        }
-                                    };
+                                    } else {
+                                        log::warn!(
+                                            "iced_winit: missing canvas for newly created window"
+                                        );
+                                    }
                                 }
 
                                 self.process_event(
