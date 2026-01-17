@@ -6,7 +6,7 @@ use bytemuck::{Pod, Zeroable};
 use std::ops::Range;
 
 /// A quad filled with interpolated colors.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
 #[repr(C)]
 pub struct Gradient {
     /// The background gradient data of the quad.
@@ -16,11 +16,18 @@ pub struct Gradient {
     pub quad: Quad,
 }
 
-#[allow(unsafe_code)]
-unsafe impl Pod for Gradient {}
+#[cfg(test)]
+mod tests {
+    use super::Gradient;
+    use bytemuck::{Pod, Zeroable};
 
-#[allow(unsafe_code)]
-unsafe impl Zeroable for Gradient {}
+    fn assert_pod_zeroable<T: Pod + Zeroable>() {}
+
+    #[test]
+    fn gradient_is_pod_and_zeroable() {
+        assert_pod_zeroable::<Gradient>();
+    }
+}
 
 #[derive(Debug)]
 pub struct Layer {
