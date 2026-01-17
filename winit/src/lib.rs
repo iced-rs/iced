@@ -42,7 +42,7 @@ use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -986,9 +986,12 @@ async fn run_instance<P>(
                             && !is_window_opening
                             && window_manager.is_empty()
                         {
-                            control_sender
-                                .start_send(Control::Exit)
-                                .expect("Send control action");
+                            if control_sender.start_send(Control::Exit).is_err() {
+                                log::debug!(
+                                    "iced_winit: control channel closed; skipping exit request"
+                                );
+                                return;
+                            }
 
                             continue;
                         }
@@ -1286,7 +1289,7 @@ fn run_action<'a, P, C>(
             window::Action::Open(id, settings, channel) => {
                 let monitor = window_manager.last_monitor();
 
-                control_sender
+                if control_sender
                     .start_send(Control::CreateWindow {
                         id,
                         settings,
@@ -1295,9 +1298,14 @@ fn run_action<'a, P, C>(
                         monitor,
                         on_open: channel,
                     })
-                    .expect("Send control action");
-
-                *is_window_opening = true;
+                    .is_ok()
+                {
+                    *is_window_opening = true;
+                } else {
+                    log::debug!(
+                        "iced_winit: control channel closed; skipping window creation request"
+                    );
+                }
             }
             window::Action::Close(id) => {
                 let _ = ui_caches.remove(&id);
@@ -1557,9 +1565,14 @@ fn run_action<'a, P, C>(
                 }
             }
             window::Action::SetAllowAutomaticTabbing(enabled) => {
-                control_sender
+                if control_sender
                     .start_send(Control::SetAutomaticWindowTabbing(enabled))
-                    .expect("Send control action");
+                    .is_err()
+                {
+                    log::debug!(
+                        "iced_winit: control channel closed; skipping automatic tabbing update"
+                    );
+                }
             }
             window::Action::RedrawAll => {
                 for (_id, window) in window_manager.iter_mut() {
@@ -1677,9 +1690,9 @@ fn run_action<'a, P, C>(
             }
         }
         Action::Exit => {
-            control_sender
-                .start_send(Control::Exit)
-                .expect("Send control action");
+            if control_sender.start_send(Control::Exit).is_err() {
+                log::debug!("iced_winit: control channel closed; skipping exit request");
+            }
         }
     }
 }
