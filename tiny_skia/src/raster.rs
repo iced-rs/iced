@@ -5,6 +5,8 @@ use crate::graphics;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::RefCell;
 use std::collections::hash_map;
+use std::fmt;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -80,8 +82,14 @@ impl Pipeline {
 
 #[derive(Debug, Default)]
 struct Cache {
-    entries: FxHashMap<raster::Id, Option<Entry>>,
+    entries: FxHashMap<raster::Id, EntryState>,
     hits: FxHashSet<raster::Id>,
+}
+
+#[derive(Debug)]
+enum EntryState {
+    Ready(Entry),
+    Error(raster::Error),
 }
 
 impl Cache {
@@ -95,14 +103,20 @@ impl Cache {
             let image = match graphics::image::load(handle) {
                 Ok(image) => image,
                 Err(error) => {
-                    let _ = entry.insert(None);
-
+                    let _ = entry.insert(EntryState::Error(error.clone()));
                     return Err(error);
                 }
             };
 
-            if image.width() == 0 || image.height() == 0 {
-                return Err(raster::Error::Empty);
+            let error = if image.width() == 0 || image.height() == 0 {
+                Some(raster::Error::Empty)
+            } else {
+                None
+            };
+
+            if let Some(error) = error {
+                let _ = entry.insert(EntryState::Error(error.clone()));
+                return Err(error);
             }
 
             let mut buffer = vec![0u32; image.width() as usize * image.height() as usize];
@@ -110,10 +124,12 @@ impl Cache {
             for (i, pixel) in image.pixels().enumerate() {
                 let [r, g, b, a] = pixel.0;
 
-                buffer[i] = bytemuck::cast(tiny_skia::ColorU8::from_rgba(b, g, r, a).premultiply());
+                buffer[i] = bytemuck::cast(
+                    tiny_skia::ColorU8::from_rgba(b, g, r, a).premultiply(),
+                );
             }
 
-            let _ = entry.insert(Some(Entry {
+            let _ = entry.insert(EntryState::Ready(Entry {
                 width: image.width(),
                 height: image.height(),
                 pixels: buffer,
@@ -122,20 +138,24 @@ impl Cache {
 
         let _ = self.hits.insert(id);
 
-        Ok(self
-            .entries
-            .get(&id)
-            .unwrap()
-            .as_ref()
-            .map(|entry| {
+        match self.entries.get(&id) {
+            Some(EntryState::Ready(entry)) => {
                 tiny_skia::PixmapRef::from_bytes(
                     bytemuck::cast_slice(&entry.pixels),
                     entry.width,
                     entry.height,
                 )
-                .expect("Build pixmap from image bytes")
-            })
-            .expect("Image should be allocated"))
+                .ok_or_else(|| {
+                    raster::Error::Invalid(Arc::new(PixmapBuildError {
+                        width: entry.width,
+                        height: entry.height,
+                        pixels_len: entry.pixels.len(),
+                    }))
+                })
+            }
+            Some(EntryState::Error(error)) => Err(error.clone()),
+            None => Err(raster::Error::Invalid(Arc::new(MissingCacheEntryError(id)))),
+        }
     }
 
     fn trim(&mut self) {
@@ -149,4 +169,74 @@ struct Entry {
     width: u32,
     height: u32,
     pixels: Vec<u32>,
+}
+
+#[derive(Debug)]
+struct PixmapBuildError {
+    width: u32,
+    height: u32,
+    pixels_len: usize,
+}
+
+impl fmt::Display for PixmapBuildError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "failed to build tiny-skia pixmap (width={}, height={}, pixels_len_u32={})",
+            self.width, self.height, self.pixels_len
+        )
+    }
+}
+
+impl std::error::Error for PixmapBuildError {}
+
+#[derive(Debug)]
+struct MissingCacheEntryError(raster::Id);
+
+impl fmt::Display for MissingCacheEntryError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "tiny-skia raster cache missing entry for image id {:?}", self.0)
+    }
+}
+
+impl std::error::Error for MissingCacheEntryError {}
+
+#[cfg(test)]
+mod tests {
+    use super::{Cache, Entry, EntryState};
+    use crate::core::image as raster;
+
+    #[test]
+    fn allocate_returns_error_instead_of_panicking_on_invalid_pixmap_bytes() {
+        let mut cache = Cache::default();
+
+        let handle = raster::Handle::from_rgba(1, 1, vec![0u8; 4]);
+        let id = handle.id();
+
+        let _ = cache.entries.insert(
+            id,
+            EntryState::Ready(Entry {
+                width: 1,
+                height: 1,
+                // Invalid: should be width * height pixels
+                pixels: vec![],
+            }),
+        );
+
+        let result = cache.allocate(&handle);
+        assert!(matches!(result, Err(raster::Error::Invalid(_))));
+    }
+
+    #[test]
+    fn allocate_reuses_cached_error_instead_of_panicking() {
+        let mut cache = Cache::default();
+
+        let handle = raster::Handle::from_rgba(1, 1, vec![0u8; 4]);
+        let id = handle.id();
+
+        let _ = cache.entries.insert(id, EntryState::Error(raster::Error::Empty));
+
+        let result = cache.allocate(&handle);
+        assert!(matches!(result, Err(raster::Error::Empty)));
+    }
 }
