@@ -105,6 +105,10 @@ impl Cache {
             (scale * size.height).ceil() as u32,
         );
 
+        if width == 0 || height == 0 {
+            return None;
+        }
+
         let color = color.map(Color::into_rgba8);
         let key = (id, width, height, color);
 
@@ -121,10 +125,6 @@ impl Cache {
 
         match self.load(handle) {
             Svg::Loaded(tree) => {
-                if width == 0 || height == 0 {
-                    return None;
-                }
-
                 // TODO: Optimize!
                 // We currently rerasterize the SVG when its size changes. This is slow
                 // as heck. A GPU rasterizer like `pathfinder` may perform better.
