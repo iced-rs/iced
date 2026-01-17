@@ -334,9 +334,15 @@ where
                                 #[cfg(target_os = "macos")]
                                 let position = window_attributes.position.take();
 
-                                let window = event_loop
-                                    .create_window(window_attributes)
-                                    .expect("Create window");
+                                let window = match event_loop.create_window(window_attributes) {
+                                    Ok(window) => window,
+                                    Err(error) => {
+                                        // Avoid panicking on window creation failure.
+                                        self.error = Some(Error::WindowCreationFailed(error));
+                                        event_loop.exit();
+                                        return;
+                                    }
+                                };
 
                                 #[cfg(target_os = "macos")]
                                 if let Some(position) = position {
