@@ -42,7 +42,7 @@ use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -268,7 +268,13 @@ where
                 return;
             }
 
-            self.sender.start_send(event).expect("Send event");
+            if self.sender.start_send(event).is_err() {
+                // The runtime task driving the receiver has been dropped (e.g. during shutdown).
+                // Avoid panicking on teardown; exit gracefully instead.
+                log::debug!("iced_winit: event channel closed; exiting event loop");
+                event_loop.exit();
+                return;
+            }
 
             loop {
                 let poll = self.instance.as_mut().poll(&mut self.context);
