@@ -47,8 +47,9 @@ type ColorFilter = Option<[u8; 4]>;
 impl Cache {
     /// Load svg
     pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
-        if self.svgs.contains_key(&handle.id()) {
-            return self.svgs.get(&handle.id()).unwrap();
+        let id = handle.id();
+        if self.svgs.contains_key(&id) {
+            return self.svgs.get(&id).unwrap();
         }
 
         // TODO: Reuse `cosmic-text` font database
@@ -82,8 +83,10 @@ impl Cache {
 
         self.should_trim = true;
 
-        let _ = self.svgs.insert(handle.id(), svg);
-        self.svgs.get(&handle.id()).unwrap()
+        self.should_trim = true;
+
+        let svg = self.svgs.entry(id).or_insert(svg);
+        svg
     }
 
     /// Load svg and upload raster data
@@ -112,6 +115,9 @@ impl Cache {
         // We currently rerasterize the SVG when its size changes. This is slow
         // as heck. A GPU rasterizer like `pathfinder` may perform better.
         // It would be cool to be able to smooth resize the `svg` example.
+        // NOTE: We mutate the hit sets on a hit, so we cannot hold an immutable borrow
+        // of `self.rasterized` (from `get`) while doing so. The `contains_key` + `get`
+        // double lookup keeps the borrow checker happy and avoids interior mutability.
         if self.rasterized.contains_key(&key) {
             let _ = self.svg_hits.insert(id);
             let _ = self.rasterized_hits.insert(key);
