@@ -36,6 +36,7 @@ pub struct Tour {
     input_is_secure: bool,
     input_is_showing_icon: bool,
     debug: bool,
+    ferris: image::Handle,
 }
 
 #[derive(Debug, Clone)]
@@ -374,7 +375,7 @@ impl Tour {
 
         Self::container("Image")
             .push("An image that tries to keep its aspect ratio.")
-            .push(ferris(width, filter_method))
+            .push(ferris(&self.ferris, width, filter_method))
             .push(slider(100..=500, width, Message::ImageWidthChanged))
             .push(text!("Width: {width} px").width(Fill).align_x(Center))
             .push(
@@ -400,7 +401,7 @@ impl Tour {
                     .align_x(Center),
             )
             .push(space().height(4096))
-            .push(ferris(300, image::FilterMethod::Linear))
+            .push(ferris(&self.ferris, 300, image::FilterMethod::Linear))
             .push(text("You made it!").width(Fill).size(50).align_x(Center))
     }
 
@@ -539,18 +540,12 @@ impl Screen {
     }
 }
 
-fn ferris<'a>(width: u32, filter_method: image::FilterMethod) -> Container<'a, Message> {
-    center_x(
-        // This should go away once we unify resource loading on native
-        // platforms
-        if cfg!(target_arch = "wasm32") {
-            image("tour/images/ferris.png")
-        } else {
-            image(concat!(env!("CARGO_MANIFEST_DIR"), "/images/ferris.png"))
-        }
-        .filter_method(filter_method)
-        .width(width),
-    )
+fn ferris<'a>(
+    handle: &'a image::Handle,
+    width: u32,
+    filter_method: image::FilterMethod,
+) -> Container<'a, Message> {
+    center_x(image(handle).filter_method(filter_method).width(width))
 }
 
 fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {
@@ -626,6 +621,13 @@ impl Default for Tour {
             input_is_secure: false,
             input_is_showing_icon: false,
             debug: false,
+            // This should go away once we unify resource loading on native
+            // platforms
+            ferris: if cfg!(target_arch = "wasm32") {
+                "tour/images/ferris.png".into()
+            } else {
+                concat!(env!("CARGO_MANIFEST_DIR"), "/images/ferris.png").into()
+            },
         }
     }
 }
