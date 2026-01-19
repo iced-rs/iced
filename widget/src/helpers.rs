@@ -1775,8 +1775,8 @@ where
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[cfg(feature = "image")]
-pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
-    crate::Image::new(handle.into())
+pub fn image<'a, Handle>(handle: &'a Handle) -> crate::Image<'a, Handle> {
+    crate::Image::new(handle)
 }
 
 /// Creates a new [`Svg`] widget from the given [`Handle`].
