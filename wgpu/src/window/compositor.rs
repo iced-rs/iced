@@ -69,6 +69,7 @@ impl Compositor {
         if log::max_level() >= log::LevelFilter::Info {
             let available_adapters: Vec<_> = instance
                 .enumerate_adapters(settings.backends)
+                .await
                 .iter()
                 .map(wgpu::Adapter::get_info)
                 .collect();

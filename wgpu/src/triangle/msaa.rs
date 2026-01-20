@@ -61,8 +61,8 @@ impl Pipeline {
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("iced_wgpu::triangle::msaa pipeline layout"),
-            push_constant_ranges: &[],
             bind_group_layouts: &[&constant_layout, &texture_layout],
+            immediate_size: 0,
         });
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -102,7 +102,7 @@ impl Pipeline {
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
 
@@ -156,6 +156,7 @@ impl Pipeline {
             depth_stencil_attachment: None,
             timestamp_writes: None,
             occlusion_query_set: None,
+            multiview_mask: None,
         })
     }
 }
@@ -295,7 +296,6 @@ impl State {
                 &self.ratio,
                 0,
                 NonZeroU64::new(std::mem::size_of::<Ratio>() as u64).expect("non-empty ratio"),
-                device,
             )
             .copy_from_slice(bytemuck::bytes_of(&ratio));
 
@@ -325,6 +325,7 @@ impl State {
             depth_stencil_attachment: None,
             timestamp_writes: None,
             occlusion_query_set: None,
+            multiview_mask: None,
         });
 
         render_pass.set_pipeline(&pipeline.raw);
