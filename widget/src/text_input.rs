@@ -577,10 +577,14 @@ where
             );
         };
 
+        let Some(intersection) = text_bounds.intersection(viewport) else {
+            return;
+        };
+
         if is_selecting {
-            renderer.with_layer(text_bounds, |renderer| draw(renderer, *viewport));
+            renderer.with_layer(intersection, |renderer| draw(renderer, *viewport));
         } else {
-            draw(renderer, text_bounds);
+            draw(renderer, intersection);
         }
     }
 }
