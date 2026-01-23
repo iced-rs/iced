@@ -358,7 +358,7 @@ where
         layout(
             renderer,
             limits,
-            &self.handle,
+            self.handle,
             self.width,
             self.height,
             self.crop,
@@ -381,7 +381,7 @@ where
         draw(
             renderer,
             layout,
-            &self.handle,
+            self.handle,
             self.crop,
             self.border_radius,
             self.content_fit,
