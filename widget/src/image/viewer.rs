@@ -11,23 +11,23 @@ use crate::core::{
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
-pub struct Viewer<Handle> {
+pub struct Viewer<'a, Handle> {
     padding: f32,
     width: Length,
     height: Length,
     min_scale: f32,
     max_scale: f32,
     scale_step: f32,
-    handle: Handle,
+    handle: &'a Handle,
     filter_method: FilterMethod,
     content_fit: ContentFit,
 }
 
-impl<Handle> Viewer<Handle> {
+impl<'a, Handle> Viewer<'a, Handle> {
     /// Creates a new [`Viewer`] with the given [`State`].
-    pub fn new<T: Into<Handle>>(handle: T) -> Self {
+    pub fn new(handle: &'a Handle) -> Self {
         Viewer {
-            handle: handle.into(),
+            handle,
             padding: 0.0,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -95,7 +95,7 @@ impl<Handle> Viewer<Handle> {
     }
 }
 
-impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Viewer<Handle>
+impl<'a, Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Viewer<'a, Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -392,14 +392,14 @@ impl State {
     }
 }
 
-impl<'a, Message, Theme, Renderer, Handle> From<Viewer<Handle>>
+impl<'a, Message, Theme, Renderer, Handle> From<Viewer<'a, Handle>>
     for Element<'a, Message, Theme, Renderer>
 where
     Renderer: 'a + image::Renderer<Handle = Handle>,
     Message: 'a,
     Handle: Clone + 'a,
 {
-    fn from(viewer: Viewer<Handle>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(viewer: Viewer<'a, Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(viewer)
     }
 }

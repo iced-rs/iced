@@ -32,7 +32,7 @@ use crate::core::{
 pub use image::{FilterMethod, Handle};
 
 /// Creates a new [`Viewer`] with the given image `Handle`.
-pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
+pub fn viewer<'a>(handle: &'a Handle) -> Viewer<'a, Handle> {
     Viewer::new(handle)
 }
 
