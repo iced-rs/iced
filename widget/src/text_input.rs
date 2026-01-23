@@ -771,7 +771,7 @@ where
                 let state = state::<Renderer>(tree);
 
                 if let Some(is_dragging) = &state.is_dragging
-                    && let Some(position) = cursor.position_over(layout.bounds())
+                    && let Some(position) = cursor.land().position()
                 {
                     let text_layout = layout.children().next().unwrap();
 
