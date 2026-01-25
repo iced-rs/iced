@@ -122,7 +122,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         // The raw w/h of the underlying image
-        let image_size = renderer.measure_image(&self.handle).unwrap_or_default();
+        let image_size = renderer.measure_image(self.handle).unwrap_or_default();
 
         let image_size = Size::new(image_size.width as f32, image_size.height as f32);
 
@@ -183,7 +183,7 @@ where
 
                             let scaled_size = scaled_image_size(
                                 renderer,
-                                &self.handle,
+                                self.handle,
                                 state,
                                 bounds.size(),
                                 self.content_fit,
@@ -238,7 +238,7 @@ where
                 if let Some(origin) = state.cursor_grabbed_at {
                     let scaled_size = scaled_image_size(
                         renderer,
-                        &self.handle,
+                        self.handle,
                         state,
                         bounds.size(),
                         self.content_fit,
@@ -306,7 +306,7 @@ where
 
         let final_size = scaled_image_size(
             renderer,
-            &self.handle,
+            self.handle,
             state,
             bounds.size(),
             self.content_fit,
