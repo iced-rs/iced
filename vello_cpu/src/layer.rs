@@ -1,7 +1,5 @@
-use crate::Primitive;
 use crate::core::renderer::Quad;
 use crate::core::{self, Background, Color, Point, Rectangle, Svg, Transformation};
-use crate::graphics::damage;
 use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph, Text};
 use crate::graphics::{self, Image};
@@ -9,6 +7,7 @@ use crate::graphics::{self, Image};
 use std::sync::Arc;
 
 pub type Stack = layer::Stack<Layer>;
+pub type Primitive = ();
 
 #[derive(Debug, Clone)]
 pub struct Layer {
@@ -199,93 +198,6 @@ impl Layer {
             clip_bounds * transformation,
             transformation,
         ));
-    }
-
-    pub fn damage(previous: &Self, current: &Self) -> Vec<Rectangle> {
-        if previous.bounds != current.bounds {
-            return vec![previous.bounds, current.bounds];
-        }
-
-        let mut damage = damage::list(
-            &previous.quads,
-            &current.quads,
-            |(quad, _)| {
-                quad.bounds
-                    .expand(1.0)
-                    .intersection(&current.bounds)
-                    .into_iter()
-                    .collect()
-            },
-            |(quad_a, background_a), (quad_b, background_b)| {
-                quad_a == quad_b && background_a == background_b
-            },
-        );
-
-        let text = damage::diff(
-            &previous.text,
-            &current.text,
-            |item| {
-                item.as_slice()
-                    .iter()
-                    .filter_map(Text::visible_bounds)
-                    .map(|bounds| bounds * item.transformation())
-                    .collect()
-            },
-            |text_a, text_b| {
-                damage::list(
-                    text_a.as_slice(),
-                    text_b.as_slice(),
-                    |text| {
-                        text.visible_bounds()
-                            .into_iter()
-                            .map(|bounds| bounds * text_a.transformation())
-                            .collect()
-                    },
-                    |text_a, text_b| text_a == text_b,
-                )
-            },
-        );
-
-        let primitives = damage::list(
-            &previous.primitives,
-            &current.primitives,
-            |item| match item {
-                Item::Live(primitive) => vec![primitive.visible_bounds()],
-                Item::Group(primitives, group_bounds, transformation) => primitives
-                    .as_slice()
-                    .iter()
-                    .map(Primitive::visible_bounds)
-                    .map(|bounds| bounds * *transformation)
-                    .filter_map(|bounds| bounds.intersection(group_bounds))
-                    .collect(),
-                Item::Cached(_, bounds, transformation) => {
-                    vec![*bounds * *transformation]
-                }
-            },
-            |primitive_a, primitive_b| match (primitive_a, primitive_b) {
-                (
-                    Item::Cached(cache_a, bounds_a, transformation_a),
-                    Item::Cached(cache_b, bounds_b, transformation_b),
-                ) => {
-                    Arc::ptr_eq(cache_a, cache_b)
-                        && bounds_a == bounds_b
-                        && transformation_a == transformation_b
-                }
-                _ => false,
-            },
-        );
-
-        let images = damage::list(
-            &previous.images,
-            &current.images,
-            |image| vec![image.bounds().expand(1.0)],
-            Image::eq,
-        );
-
-        damage.extend(text);
-        damage.extend(primitives);
-        damage.extend(images);
-        damage
     }
 }
 

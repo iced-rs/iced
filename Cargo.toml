@@ -22,13 +22,13 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "crisp", "hinting", "web-colors", "thread-pool", "linux-theme-detection", "x11", "wayland"]
+default = ["wgpu", "vello-cpu", "crisp", "hinting", "web-colors", "thread-pool", "linux-theme-detection", "x11", "wayland"]
 # Enables the `wgpu` GPU-accelerated renderer with all its default features (Vulkan, Metal, DX12, OpenGL, and WebGPU)
 wgpu = ["wgpu-bare", "iced_renderer/wgpu"]
 # Enables the `wgpu` GPU-accelerated renderer with the minimum required features (no backends!)
 wgpu-bare = ["iced_renderer/wgpu-bare", "iced_widget/wgpu"]
-# Enables the `tiny-skia` software renderer
-tiny-skia = ["iced_renderer/tiny-skia"]
+# Enables the `vello-cpu` software renderer
+vello-cpu = ["iced_renderer/vello-cpu"]
 # Enables the `image` widget
 image = ["image-without-codecs", "image/default"]
 # Enables the `image` widget, without any built-in codecs of the `image` crate
@@ -149,7 +149,7 @@ members = [
     "selector",
     "test",
     "tester",
-    "tiny_skia",
+    "vello_cpu",
     "wgpu",
     "widget",
     "winit",
@@ -182,7 +182,7 @@ iced_runtime = { version = "0.15.0-dev", path = "runtime" }
 iced_selector = { version = "0.15.0-dev", path = "selector" }
 iced_test = { version = "0.15.0-dev", path = "test" }
 iced_tester = { version = "0.15.0-dev", path = "tester" }
-iced_tiny_skia = { version = "0.15.0-dev", path = "tiny_skia", default-features = false }
+iced_vello_cpu = { version = "0.15.0-dev", path = "vello_cpu", default-features = false }
 iced_wgpu = { version = "0.15.0-dev", path = "wgpu", default-features = false }
 iced_widget = { version = "0.15.0-dev", path = "widget" }
 iced_winit = { version = "0.15.0-dev", path = "winit", default-features = false }
@@ -225,12 +225,12 @@ smol_str = "0.2"
 softbuffer = { version = "0.4", default-features = false }
 sysinfo = "0.33"
 thiserror = "2"
-tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
 tokio = "1.0"
 tracing = "0.1"
 two-face = { version = "0.4", default-features = false, features = ["syntect-default-fancy"] }
 unicode-segmentation = "1.0"
 url = "2.5"
+vello_cpu = { version = "0.0.6", default-features = false, features = ["std", "u8_pipeline"] }
 wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.2"
 web-sys = "0.3.69"

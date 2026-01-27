@@ -22,35 +22,33 @@ pub type Renderer = renderer::Renderer;
 /// [`iced`]: https://github.com/iced-rs/iced
 pub type Compositor = renderer::Compositor;
 
-#[cfg(all(feature = "wgpu-bare", feature = "tiny-skia"))]
+#[cfg(all(feature = "wgpu-bare", feature = "vello-cpu"))]
 mod renderer {
-    pub type Renderer = crate::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>;
+    pub type Renderer = crate::fallback::Renderer<iced_wgpu::Renderer, iced_vello_cpu::Renderer>;
 
-    pub type Compositor = crate::fallback::Compositor<
-        iced_wgpu::window::Compositor,
-        iced_tiny_skia::window::Compositor,
-    >;
+    pub type Compositor =
+        crate::fallback::Compositor<iced_wgpu::window::Compositor, iced_vello_cpu::Compositor>;
 }
 
-#[cfg(all(feature = "wgpu-bare", not(feature = "tiny-skia")))]
+#[cfg(all(feature = "wgpu-bare", not(feature = "vello-cpu")))]
 mod renderer {
     pub type Renderer = iced_wgpu::Renderer;
     pub type Compositor = iced_wgpu::window::Compositor;
 }
 
-#[cfg(all(not(feature = "wgpu-bare"), feature = "tiny-skia"))]
+#[cfg(all(not(feature = "wgpu-bare"), feature = "vello-cpu"))]
 mod renderer {
     pub type Renderer = iced_tiny_skia::Renderer;
     pub type Compositor = iced_tiny_skia::window::Compositor;
 }
 
-#[cfg(not(any(feature = "wgpu-bare", feature = "tiny-skia")))]
+#[cfg(not(any(feature = "wgpu-bare", feature = "vello-cpu")))]
 mod renderer {
     #[cfg(not(debug_assertions))]
     compile_error!(
         "Cannot compile `iced_renderer` in release mode \
         without a renderer feature enabled. \
-        Enable either the `wgpu` or `tiny-skia` feature, or both."
+        Enable either the `wgpu` or `vello-cpu` feature, or both."
     );
 
     pub type Renderer = ();

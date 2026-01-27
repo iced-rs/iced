@@ -16,22 +16,22 @@ workspace = true
 [features]
 wgpu = ["iced_wgpu/default"]
 wgpu-bare = ["iced_wgpu"]
-tiny-skia = ["iced_tiny_skia"]
-image = ["iced_tiny_skia?/image", "iced_wgpu?/image"]
-svg = ["iced_tiny_skia?/svg", "iced_wgpu?/svg"]
-geometry = ["iced_graphics/geometry", "iced_tiny_skia?/geometry", "iced_wgpu?/geometry"]
+vello-cpu = ["iced_vello_cpu"]
+image = ["iced_vello_cpu?/image", "iced_wgpu?/image"]
+svg = ["iced_vello_cpu?/svg", "iced_wgpu?/svg"]
+geometry = ["iced_graphics/geometry", "iced_vello_cpu?/geometry", "iced_wgpu?/geometry"]
 web-colors = ["iced_wgpu?/web-colors"]
 webgl = ["iced_wgpu?/webgl"]
 fira-sans = ["iced_graphics/fira-sans"]
 strict-assertions = ["iced_wgpu?/strict-assertions"]
-x11 = ["iced_tiny_skia?/x11"]
-wayland = ["iced_tiny_skia?/wayland"]
+x11 = ["iced_vello_cpu?/x11"]
+wayland = ["iced_vello_cpu?/wayland"]
 
 [dependencies]
 iced_graphics.workspace = true
 
-iced_tiny_skia.workspace = true
-iced_tiny_skia.optional = true
+iced_vello_cpu.workspace = true
+iced_vello_cpu.optional = true
 
 iced_wgpu.workspace = true
 iced_wgpu.optional = true
