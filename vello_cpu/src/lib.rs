@@ -5,23 +5,25 @@ use iced_graphics as graphics;
 use iced_graphics::core;
 
 mod layer;
+mod text;
 
 use crate::core::border;
 use crate::core::image;
 use crate::core::renderer;
-use crate::core::text;
-use crate::core::{Background, Color, Font, Image, Pixels, Rectangle, Transformation};
+use crate::core::{Background, Color, Font, Pixels, Rectangle, Transformation};
 use crate::graphics::compositor;
 use crate::graphics::error;
 use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
-use crate::graphics::{Error, Shell, Viewport};
+use crate::graphics::{Error, Shell, Text, Viewport};
 
 use std::num::NonZeroU32;
 
 pub struct Renderer {
     settings: Settings,
     layers: layer::Stack,
+    text: text::Pipeline,
+    scale_factor: Option<f32>,
 }
 
 impl Renderer {
@@ -29,6 +31,8 @@ impl Renderer {
         Self {
             settings,
             layers: layer::Stack::new(),
+            text: text::Pipeline::new(),
+            scale_factor: None,
         }
     }
 
@@ -38,6 +42,8 @@ impl Renderer {
         viewport: &Viewport,
         background_color: Color,
     ) {
+        use vello_cpu::kurbo::Shape;
+
         const ACCURACY: f64 = 0.1;
 
         let scale = vello_cpu::kurbo::Affine::scale(f64::from(viewport.scale_factor()));
@@ -49,6 +55,9 @@ impl Renderer {
         self.layers.merge();
 
         for layer in self.layers.iter() {
+            renderer.set_transform(scale);
+            renderer.push_clip_path(&into_rect(layer.bounds).to_path(ACCURACY));
+
             for (quad, background) in &layer.quads {
                 renderer.set_paint(into_background(background));
 
@@ -65,8 +74,6 @@ impl Renderer {
                             .stroke_rect(&into_rect(quad.bounds.shrink(quad.border.width / 2.0)));
                     }
                 } else {
-                    use vello_cpu::kurbo::Shape;
-
                     let rounded_rect = into_rect(quad.bounds)
                         .to_rounded_rect((
                             f64::from(quad.border.radius.top_left),
@@ -99,7 +106,53 @@ impl Renderer {
 
                 // TODO: Shadows
             }
+
+            renderer.reset_transform();
+
+            for item in &layer.text {
+                for text in item.as_slice() {
+                    match text {
+                        Text::Paragraph {
+                            paragraph,
+                            position,
+                            color,
+                            clip_bounds,
+                            transformation,
+                        } => {
+                            let transformation =
+                                Transformation::scale(viewport.scale_factor()) * *transformation;
+
+                            renderer.push_clip_path(
+                                &into_rect(*clip_bounds * transformation).to_path(ACCURACY),
+                            );
+
+                            self.text.draw_paragraph(
+                                paragraph,
+                                *position,
+                                *color,
+                                renderer,
+                                transformation,
+                            );
+
+                            renderer.pop_clip_path();
+                        }
+                        Text::Editor { .. } => {
+                            // TODO
+                        }
+                        Text::Cached { .. } => {
+                            // TODO
+                        }
+                        Text::Raw { .. } => {
+                            // TODO
+                        }
+                    }
+                }
+            }
+
+            renderer.pop_clip_path();
         }
+
+        self.text.trim_cache();
     }
 }
 
@@ -153,12 +206,12 @@ impl core::Renderer for Renderer {
         // TODO
     }
 
-    fn hint(&mut self, _scale_factor: f32) {
-        // TODO
+    fn hint(&mut self, scale_factor: f32) {
+        self.scale_factor = Some(scale_factor);
     }
 
     fn scale_factor(&self) -> Option<f32> {
-        None
+        self.scale_factor
     }
 
     fn reset(&mut self, new_bounds: Rectangle) {
@@ -166,7 +219,7 @@ impl core::Renderer for Renderer {
     }
 }
 
-impl text::Renderer for Renderer {
+impl core::text::Renderer for Renderer {
     type Font = Font;
     type Paragraph = Paragraph;
     type Editor = Editor;
@@ -190,29 +243,35 @@ impl text::Renderer for Renderer {
 
     fn fill_paragraph(
         &mut self,
-        _text: &Self::Paragraph,
-        _position: core::Point,
-        _color: core::Color,
-        _clip_bounds: Rectangle,
+        paragraph: &Self::Paragraph,
+        position: core::Point,
+        color: core::Color,
+        clip_bounds: Rectangle,
     ) {
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_paragraph(paragraph, position, color, clip_bounds, transformation);
     }
 
     fn fill_editor(
         &mut self,
-        _editor: &Self::Editor,
-        _position: core::Point,
-        _color: core::Color,
-        _clip_bounds: Rectangle,
+        editor: &Self::Editor,
+        position: core::Point,
+        color: core::Color,
+        clip_bounds: Rectangle,
     ) {
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_editor(editor, position, color, clip_bounds, transformation);
     }
 
     fn fill_text(
         &mut self,
-        _text: core::Text<String, Self::Font>,
-        _position: core::Point,
-        _color: core::Color,
-        _clip_bounds: Rectangle,
+        text: core::Text<String, Self::Font>,
+        position: core::Point,
+        color: core::Color,
+        clip_bounds: Rectangle,
     ) {
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_text(text, position, color, clip_bounds, transformation);
     }
 }
 
@@ -242,7 +301,7 @@ impl image::Renderer for Renderer {
         todo!()
     }
 
-    fn draw_image(&mut self, _image: Image, _bounds: Rectangle, _clip_bounds: Rectangle) {
+    fn draw_image(&mut self, _image: core::Image, _bounds: Rectangle, _clip_bounds: Rectangle) {
         todo!()
     }
 }
