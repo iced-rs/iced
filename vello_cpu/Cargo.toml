@@ -1,14 +1,15 @@
 [package]
-name = "iced_tiny_skia"
-description = "A software renderer for iced on top of tiny-skia"
+name = "iced_vello_cpu"
+description = "A software renderer for iced on top of vello_cpu"
 version.workspace = true
-edition.workspace = true
 authors.workspace = true
+edition.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -16,7 +17,7 @@ workspace = true
 [features]
 default = ["x11", "wayland"]
 image = ["iced_graphics/image"]
-svg = ["iced_graphics/svg", "resvg"]
+svg = ["iced_graphics/svg"]
 geometry = ["iced_graphics/geometry"]
 x11 = ["softbuffer/x11", "softbuffer/x11-dlopen"]
 wayland = ["softbuffer/wayland", "softbuffer/wayland-dlopen"]
@@ -26,12 +27,6 @@ iced_debug.workspace = true
 iced_graphics.workspace = true
 
 bytemuck.workspace = true
-cosmic-text.workspace = true
-kurbo.workspace = true
 log.workspace = true
-rustc-hash.workspace = true
 softbuffer.workspace = true
-tiny-skia.workspace = true
-
-resvg.workspace = true
-resvg.optional = true
+vello_cpu.workspace = true
