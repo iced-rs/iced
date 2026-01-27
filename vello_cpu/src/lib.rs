@@ -431,8 +431,6 @@ impl renderer::Headless for Renderer {
 }
 
 /// The settings of a [`Compositor`].
-///
-/// [`Compositor`]: crate::window::Compositor
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
     /// The default [`Font`] to use.
