@@ -406,7 +406,7 @@ impl renderer::Headless for Renderer {
     where
         Self: Sized,
     {
-        if backend.is_some_and(|backend| !["tiny-skia", "tiny_skia"].contains(&backend)) {
+        if backend.is_some_and(|backend| !["vello-cpu", "vello_cpu"].contains(&backend)) {
             return None;
         }
 

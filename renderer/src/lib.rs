@@ -38,8 +38,8 @@ mod renderer {
 
 #[cfg(all(not(feature = "wgpu-bare"), feature = "vello-cpu"))]
 mod renderer {
-    pub type Renderer = iced_tiny_skia::Renderer;
-    pub type Compositor = iced_tiny_skia::window::Compositor;
+    pub type Renderer = iced_vello_cpu::Renderer;
+    pub type Compositor = iced_vello_cpu::Compositor;
 }
 
 #[cfg(not(any(feature = "wgpu-bare", feature = "vello-cpu")))]
