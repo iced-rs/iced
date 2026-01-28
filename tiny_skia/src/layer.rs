@@ -268,8 +268,8 @@ impl Layer {
                         .filter_map(|bounds| bounds.intersection(group_bounds))
                         .collect()
                 }
-                Item::Cached(_, bounds, transformation) => {
-                    vec![*bounds * *transformation]
+                Item::Cached(_primitives, bounds, _transformation) => {
+                    vec![*bounds]
                 }
             },
             |primitive_a, primitive_b| match (primitive_a, primitive_b) {
