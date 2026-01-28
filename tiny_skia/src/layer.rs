@@ -206,13 +206,15 @@ impl Layer {
             return vec![previous.bounds, current.bounds];
         }
 
+        let layer_bounds = current.bounds.expand(1.0);
+
         let mut damage = damage::list(
             &previous.quads,
             &current.quads,
             |(quad, _)| {
                 quad.bounds
                     .expand(1.0)
-                    .intersection(&current.bounds)
+                    .intersection(&layer_bounds)
                     .into_iter()
                     .collect()
             },
