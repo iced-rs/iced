@@ -21,6 +21,7 @@ all-features = true
 default = ["wgpu/default"]
 geometry = ["iced_graphics/geometry", "lyon"]
 image = ["iced_graphics/image"]
+image-without-codecs = ["iced_graphics/image-without-codecs"]
 svg = ["iced_graphics/svg", "resvg/text"]
 web-colors = ["iced_graphics/web-colors"]
 webgl = ["wgpu/webgl"]
