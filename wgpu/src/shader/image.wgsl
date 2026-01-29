@@ -118,12 +118,13 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let antialias: f32 = clamp(1.0 - d, 0.0, 1.0);
     let inside = all(input.uv >= input.atlas.xy) && all(input.uv <= input.atlas.zw);
 
-    return textureSample(u_texture, u_sampler, input.uv, input.layer) * vec4<f32>(1.0, 1.0, 1.0, antialias * input.opacity * f32(inside));
+    let sample = textureSample(u_texture, u_sampler, input.uv, input.layer) * vec4<f32>(1.0, 1.0, 1.0, antialias * input.opacity * f32(inside));
+    return premultiply(sample);
 }
 
 fn rounded_box_sdf(p: vec2<f32>, size: vec2<f32>, corners: vec4<f32>) -> f32 {
-    var box_half = select(corners.yz, corners.xw, p.x > 0.0);
-    var corner = select(box_half.y, box_half.x, p.y > 0.0);
-    var q = abs(p) - size + corner;
+    let box_half = select(corners.yz, corners.xw, p.x > 0.0);
+    let corner = select(box_half.y, box_half.x, p.y > 0.0);
+    let q = abs(p) - size + corner;
     return min(max(q.x, q.y), 0.0) + length(max(q, vec2(0.0))) - corner;
 }
