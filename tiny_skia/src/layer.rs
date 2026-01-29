@@ -218,7 +218,8 @@ impl Layer {
 
                 vec![if quad.shadow.color.a > 0.0 {
                     bounds.expand(
-                        quad.shadow.offset.x.max(quad.shadow.offset.y) + quad.shadow.blur_radius,
+                        quad.shadow.offset.x.abs().max(quad.shadow.offset.y.abs())
+                            + quad.shadow.blur_radius,
                     )
                 } else {
                     bounds
