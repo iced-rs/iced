@@ -104,8 +104,14 @@ impl Compositor {
 
                 log::info!("Available formats: {formats:#?}");
 
+                const BLACKLIST: &[wgpu::TextureFormat] = &[
+                    wgpu::TextureFormat::Rgb10a2Unorm,
+                    wgpu::TextureFormat::Rgb10a2Uint,
+                ];
+
                 let mut formats = formats.filter(|format| {
                     format.required_features() == wgpu::Features::empty()
+                        && !BLACKLIST.contains(format)
                 });
 
                 let format = if color::GAMMA_CORRECTION {
