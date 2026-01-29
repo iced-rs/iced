@@ -91,6 +91,8 @@ linux-theme-detection = ["iced_winit/linux-theme-detection"]
 x11 = ["iced_renderer/x11", "iced_winit/x11"]
 # Enables the Unix Wayland backend
 wayland = ["iced_renderer/wayland", "iced_winit/wayland"]
+# Enables raw device event subscriptions (mouse motion, raw keys, etc.)
+device-events = ["iced_winit/device-events", "iced_futures/device-events"]
 
 [dependencies]
 iced_debug.workspace = true

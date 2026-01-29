@@ -11,6 +11,9 @@ categories.workspace = true
 keywords.workspace = true
 rust-version.workspace = true
 
+[features]
+device-events = ["iced_runtime/device-events"]
+
 [lints]
 workspace = true
 
