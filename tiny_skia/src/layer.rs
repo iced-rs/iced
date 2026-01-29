@@ -212,11 +212,17 @@ impl Layer {
             &previous.quads,
             &current.quads,
             |(quad, _)| {
-                quad.bounds
-                    .expand(1.0)
-                    .intersection(&layer_bounds)
-                    .into_iter()
-                    .collect()
+                let Some(bounds) = quad.bounds.expand(1.0).intersection(&layer_bounds) else {
+                    return vec![];
+                };
+
+                vec![if quad.shadow.color.a > 0.0 {
+                    bounds.expand(
+                        quad.shadow.offset.x.max(quad.shadow.offset.y) + quad.shadow.blur_radius,
+                    )
+                } else {
+                    bounds
+                }]
             },
             |(quad_a, background_a), (quad_b, background_b)| {
                 quad_a == quad_b && background_a == background_b
