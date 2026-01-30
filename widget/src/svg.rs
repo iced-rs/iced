@@ -258,10 +258,15 @@ where
 
         let svg_style = theme.style(&self.class, self.status.unwrap_or(Status::Idle));
 
-        // If the SVG style has no color set, inherit from the parent's text_color.
-        // This allows SVGs inside buttons to automatically use the button's text color,
-        // which changes based on button state (hovered, pressed, disabled).
-        let color = svg_style.color.or(Some(style.text_color));
+        // Determine the color filter to apply:
+        // - If explicitly set in style, use that color
+        // - If Color::TRANSPARENT (alpha = 0), preserve native SVG colors (no filter)
+        // - If None, inherit from parent's text_color (for button icons)
+        let color = match svg_style.color {
+            Some(c) if c.a == 0.0 => None, // TRANSPARENT = preserve native colors
+            Some(c) => Some(c),
+            None => Some(style.text_color),
+        };
 
         renderer.draw_svg(
             svg::Svg {
