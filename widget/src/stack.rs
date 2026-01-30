@@ -228,33 +228,63 @@ where
                 layout::Node::with_children(size, nodes)
             }
             SizingMode::LargestChild => {
-                // Layout all children first to find the largest dimensions
+                // Two-pass layout to handle Fill/Spacer children:
+                // 1. Layout all children with compression enabled - this causes Fill/Spacer
+                //    to use intrinsic size instead of expanding to fill available space
+                // 2. Re-layout all children with the computed max size so Spacers can expand
+
+                let max_available = limits.max();
+
+                // FIRST PASS: Use compression to get intrinsic sizes
+                // With compression=true, Fill and Spacer elements use intrinsic size
+                let compress_limits = layout::Limits::with_compression(
+                    Size::ZERO,
+                    max_available,
+                    Size::new(true, true), // Compress both width and height
+                );
+
+                // Layout all children to find their intrinsic sizes
                 let mut nodes: Vec<layout::Node> = self
                     .children
                     .iter_mut()
                     .zip(tree.children.iter_mut())
-                    .map(|(child, tree)| child.as_widget_mut().layout(tree, renderer, &limits))
+                    .map(|(child, child_tree)| {
+                        child
+                            .as_widget_mut()
+                            .layout(child_tree, renderer, &compress_limits)
+                    })
                     .collect();
 
-                // Find the maximum width and height across all children
+                // Find the maximum intrinsic size from all children
                 let max_size = nodes.iter().fold(Size::ZERO, |acc, node| Size {
                     width: acc.width.max(node.size().width),
                     height: acc.height.max(node.size().height),
                 });
 
-                let size = limits.resolve(self.width, self.height, max_size);
+                // For LargestChild mode, use the computed intrinsic size directly
+                // Don't let parent's min constraints force us to expand
+                let size = Size::new(
+                    match self.width {
+                        Length::Fixed(w) => w.min(max_available.width),
+                        _ => max_size.width.min(max_available.width),
+                    },
+                    match self.height {
+                        Length::Fixed(h) => h.min(max_available.height),
+                        _ => max_size.height.min(max_available.height),
+                    },
+                );
 
-                // Re-layout children with the final size as the limit
-                // This ensures all children have consistent bounds
-                let final_limits = layout::Limits::new(Size::ZERO, size);
+                // SECOND PASS: Re-layout all children with the computed size (no compression)
+                // This allows Spacer elements to expand to fill the computed size
+                let final_limits = layout::Limits::new(size, size);
 
-                for (i, (child, child_tree)) in self
+                for ((child, child_tree), node) in self
                     .children
                     .iter_mut()
                     .zip(tree.children.iter_mut())
-                    .enumerate()
+                    .zip(nodes.iter_mut())
                 {
-                    nodes[i] = child
+                    *node = child
                         .as_widget_mut()
                         .layout(child_tree, renderer, &final_limits);
                 }

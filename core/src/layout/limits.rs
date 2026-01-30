@@ -60,7 +60,7 @@ impl Limits {
                 self.max.width = new_width;
                 self.compression.width = false;
             }
-            Length::Fill | Length::FillPortion(_) => {}
+            Length::Fill | Length::FillPortion(_) | Length::Spacer => {}
         }
 
         self
@@ -79,7 +79,7 @@ impl Limits {
                 self.max.height = new_height;
                 self.compression.height = false;
             }
-            Length::Fill | Length::FillPortion(_) => {}
+            Length::Fill | Length::FillPortion(_) | Length::Spacer => {}
         }
 
         self
@@ -155,12 +155,14 @@ impl Limits {
         let width = match width.into() {
             Length::Fill | Length::FillPortion(_) if !self.compression.width => self.max.width,
             Length::Fixed(amount) => amount.min(self.max.width).max(self.min.width),
+            // Spacer, Shrink, and compressed Fill all use intrinsic size
             _ => intrinsic_size.width.min(self.max.width).max(self.min.width),
         };
 
         let height = match height.into() {
             Length::Fill | Length::FillPortion(_) if !self.compression.height => self.max.height,
             Length::Fixed(amount) => amount.min(self.max.height).max(self.min.height),
+            // Spacer, Shrink, and compressed Fill all use intrinsic size
             _ => intrinsic_size
                 .height
                 .min(self.max.height)

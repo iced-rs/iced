@@ -20,6 +20,18 @@ pub enum Length {
 
     /// Fill a fixed amount of space
     Fixed(f32),
+
+    /// Fill remaining space without demanding parent expansion.
+    ///
+    /// Unlike [`Fill`], this variant will expand to fill available space
+    /// but won't cause the parent container to expand to accommodate it.
+    /// This is useful for spacers that should push content apart only
+    /// when there's already space available.
+    ///
+    /// For example, in a Stack with `SizingMode::LargestChild`, a `Spacer`
+    /// inside a child will expand to match the computed size from other
+    /// children, but won't cause the Stack to expand to the window size.
+    Spacer,
 }
 
 impl Length {
@@ -32,6 +44,7 @@ impl Length {
         match self {
             Length::Fill => 1,
             Length::FillPortion(factor) => *factor,
+            Length::Spacer => 1,
             Length::Shrink => 0,
             Length::Fixed(_) => 0,
         }
@@ -50,7 +63,7 @@ impl Length {
     /// - [`Length::Fill`] otherwise.
     pub fn fluid(&self) -> Self {
         match self {
-            Length::Fill | Length::FillPortion(_) => Length::Fill,
+            Length::Fill | Length::FillPortion(_) | Length::Spacer => Length::Fill,
             Length::Shrink | Length::Fixed(_) => Length::Shrink,
         }
     }
@@ -60,7 +73,7 @@ impl Length {
     #[inline]
     pub fn enclose(self, other: Length) -> Self {
         match (self, other) {
-            (Length::Shrink, Length::Fill | Length::FillPortion(_)) => other,
+            (Length::Shrink, Length::Fill | Length::FillPortion(_) | Length::Spacer) => other,
             _ => self,
         }
     }

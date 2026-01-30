@@ -3,9 +3,12 @@
 //! This example shows the difference between:
 //! - SizingMode::BaseLayer (default): Stack sizes to the first element
 //! - SizingMode::LargestChild: Stack sizes to accommodate all children
+//!
+//! It also demonstrates that children using Length::Spacer will expand to
+//! fill available space without causing the parent to expand to the window.
 
-use iced::widget::{button, column, container, row, text, Opacity, Stack, SizingMode};
-use iced::{Center, Color, Element, Fill, Length};
+use iced::widget::{Opacity, SizingMode, Space, Stack, button, column, container, row, text};
+use iced::{Center, Color, Element, Fill, Length, Spacer};
 
 pub fn main() -> iced::Result {
     iced::run(App::update, App::view)
@@ -47,8 +50,14 @@ impl App {
         // Three options with different text lengths
         let options = [
             ("Short", "Brief description"),
-            ("Medium Option", "This is a medium length description that takes up more space"),
-            ("Very Long Option Title", "This is a much longer description that demonstrates how the stack sizing mode affects the layout. When using LargestChild mode, the stack will size to fit this content even when showing shorter options."),
+            (
+                "Medium Option",
+                "This is a medium length description that takes up more space",
+            ),
+            (
+                "Very Long Option Title",
+                "This is a much longer description that demonstrates how the stack sizing mode affects the layout. When using LargestChild mode, the stack will size to fit this content even when showing shorter options.",
+            ),
         ];
 
         // Build the stack with opacity-based visibility
@@ -65,10 +74,17 @@ impl App {
         for (i, (title, desc)) in options.iter().enumerate() {
             let opacity = if i == self.current_option { 1.0 } else { 0.0 };
 
+            // For SizingMode::LargestChild with buttons at bottom:
+            // Use a Column with a Fill spacer between content and buttons.
+            // IMPORTANT: Don't set height(Fill) on the outer Column/Container!
+            // The Stack measures intrinsic content size first (excluding Spacer),
+            // then re-layouts all children with the computed max height.
+            // The Spacer then expands to push buttons to the bottom.
             let content: Element<'_, Message> = container(
                 column![
                     text(*title).size(24),
                     text(*desc).size(14),
+                    Space::new().height(Spacer), // Push buttons to bottom - uses Spacer, not Fill!
                     row![
                         button("Action 1").on_press(Message::NextOption),
                         button("Action 2").on_press(Message::PrevOption),
@@ -115,9 +131,9 @@ impl App {
         .size(16);
 
         let explanation = text(if self.use_largest_child {
-            "LargestChild: Stack height stays constant (sized to largest option)"
+            "LargestChild: Buttons stay at bottom, height constant (sized to largest)"
         } else {
-            "BaseLayer: Stack height changes based on first element (option 1)"
+            "BaseLayer: Height changes based on first element, buttons follow content"
         })
         .size(12);
 

@@ -641,7 +641,7 @@ where
         );
 
         match self.height {
-            Length::Fill | Length::FillPortion(_) | Length::Fixed(_) => {
+            Length::Fill | Length::FillPortion(_) | Length::Fixed(_) | Length::Spacer => {
                 layout::Node::new(limits.max())
             }
             Length::Shrink => {
