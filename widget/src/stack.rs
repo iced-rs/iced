@@ -8,6 +8,18 @@ use crate::core::{
     Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
 };
 
+/// Controls how a [`Stack`] determines its intrinsic size.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum SizingMode {
+    /// Use the base layer (first element by default) to determine size.
+    /// This is the default behavior.
+    #[default]
+    BaseLayer,
+    /// Use the largest dimensions from all children to determine size.
+    /// Width and height are computed independently, taking the maximum from each child.
+    LargestChild,
+}
+
 /// A container that displays children on top of each other.
 ///
 /// The first [`Element`] dictates the intrinsic [`Size`] of a [`Stack`] and
@@ -17,6 +29,11 @@ use crate::core::{
 /// You can use [`push_under`](Self::push_under) to push an [`Element`] under
 /// the current [`Stack`] without affecting its intrinsic [`Size`].
 ///
+/// You can use [`sizing_mode`](Self::sizing_mode) to change how the [`Stack`]
+/// determines its size. By default, the base layer determines the size, but
+/// you can set it to [`SizingMode::LargestChild`] to use the largest dimensions
+/// from all children.
+///
 /// Keep in mind that too much layering will normally produce bad UX as well as
 /// introduce certain rendering overhead. Use this widget sparingly!
 pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
@@ -25,6 +42,7 @@ pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> 
     children: Vec<Element<'a, Message, Theme, Renderer>>,
     clip: bool,
     base_layer: usize,
+    sizing_mode: SizingMode,
 }
 
 impl<'a, Message, Theme, Renderer> Stack<'a, Message, Theme, Renderer>
@@ -64,6 +82,7 @@ where
             children,
             clip: false,
             base_layer: 0,
+            sizing_mode: SizingMode::default(),
         }
     }
 
@@ -120,6 +139,19 @@ where
         self.clip = clip;
         self
     }
+
+    /// Sets the sizing mode for the [`Stack`].
+    ///
+    /// By default, the [`Stack`] uses [`SizingMode::BaseLayer`], which means
+    /// the first element determines the intrinsic size.
+    ///
+    /// Set to [`SizingMode::LargestChild`] to use the largest dimensions
+    /// from all children, which is useful when stacking elements of varying
+    /// sizes and you want the stack to accommodate the largest one.
+    pub fn sizing_mode(mut self, mode: SizingMode) -> Self {
+        self.sizing_mode = mode;
+        self
+    }
 }
 
 impl<Message, Renderer> Default for Stack<'_, Message, Renderer>
@@ -159,36 +191,79 @@ where
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
-        if self.children.len() <= self.base_layer {
+        if self.children.is_empty() {
             return layout::Node::new(limits.resolve(self.width, self.height, Size::ZERO));
         }
 
-        let base = self.children[self.base_layer].as_widget_mut().layout(
-            &mut tree.children[self.base_layer],
-            renderer,
-            &limits,
-        );
+        match self.sizing_mode {
+            SizingMode::BaseLayer => {
+                // Original behavior: use base layer to determine size
+                if self.children.len() <= self.base_layer {
+                    return layout::Node::new(limits.resolve(self.width, self.height, Size::ZERO));
+                }
 
-        let size = limits.resolve(self.width, self.height, base.size());
-        let limits = layout::Limits::new(Size::ZERO, size);
+                let base = self.children[self.base_layer].as_widget_mut().layout(
+                    &mut tree.children[self.base_layer],
+                    renderer,
+                    &limits,
+                );
 
-        let (under, above) = self.children.split_at_mut(self.base_layer);
-        let (tree_under, tree_above) = tree.children.split_at_mut(self.base_layer);
+                let size = limits.resolve(self.width, self.height, base.size());
+                let limits = layout::Limits::new(Size::ZERO, size);
 
-        let nodes = under
-            .iter_mut()
-            .zip(tree_under)
-            .map(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits))
-            .chain(std::iter::once(base))
-            .chain(
-                above[1..]
+                let (under, above) = self.children.split_at_mut(self.base_layer);
+                let (tree_under, tree_above) = tree.children.split_at_mut(self.base_layer);
+
+                let nodes = under
                     .iter_mut()
-                    .zip(&mut tree_above[1..])
-                    .map(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits)),
-            )
-            .collect();
+                    .zip(tree_under)
+                    .map(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits))
+                    .chain(std::iter::once(base))
+                    .chain(
+                        above[1..]
+                            .iter_mut()
+                            .zip(&mut tree_above[1..])
+                            .map(|(layer, tree)| {
+                                layer.as_widget_mut().layout(tree, renderer, &limits)
+                            }),
+                    )
+                    .collect();
 
-        layout::Node::with_children(size, nodes)
+                layout::Node::with_children(size, nodes)
+            }
+            SizingMode::LargestChild => {
+                // Layout all children first to find the largest dimensions
+                let mut nodes: Vec<layout::Node> = self
+                    .children
+                    .iter_mut()
+                    .zip(tree.children.iter_mut())
+                    .map(|(child, tree)| child.as_widget_mut().layout(tree, renderer, &limits))
+                    .collect();
+
+                // Find the maximum width and height across all children
+                let max_size = nodes.iter().fold(Size::ZERO, |acc, node| Size {
+                    width: acc.width.max(node.size().width),
+                    height: acc.height.max(node.size().height),
+                });
+
+                let size = limits.resolve(self.width, self.height, max_size);
+
+                // Re-layout children with the final size as the limit
+                // This ensures all children have consistent bounds
+                let final_limits = layout::Limits::new(Size::ZERO, size);
+
+                for (i, (child, child_tree)) in self
+                    .children
+                    .iter_mut()
+                    .zip(tree.children.iter_mut())
+                    .enumerate()
+                {
+                    nodes[i] = child.as_widget_mut().layout(child_tree, renderer, &final_limits);
+                }
+
+                layout::Node::with_children(size, nodes)
+            }
+        }
     }
 
     fn operate(

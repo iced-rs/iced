@@ -1,0 +1,9 @@
+[package]
+name = "stack_sizing"
+version = "0.1.0"
+authors = ["Playtron Team"]
+edition = "2024"
+publish = false
+
+[dependencies]
+iced.workspace = true

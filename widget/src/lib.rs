@@ -103,7 +103,7 @@ pub use slider::Slider;
 #[doc(no_inline)]
 pub use space::Space;
 #[doc(no_inline)]
-pub use stack::Stack;
+pub use stack::{SizingMode, Stack};
 #[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]
