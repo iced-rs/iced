@@ -229,18 +229,24 @@ where
             }
             SizingMode::LargestChild => {
                 // Two-pass layout to handle Fill/Spacer children:
-                // 1. Layout all children with compression enabled - this causes Fill/Spacer
-                //    to use intrinsic size instead of expanding to fill available space
+                // 1. Layout all children with compression to get intrinsic sizes
                 // 2. Re-layout all children with the computed max size so Spacers can expand
+                //
+                // Only compress dimensions where we want intrinsic sizing.
+                // If Stack has Fill/Spacer width, don't compress width (use available).
+                // If Stack has Fill/Spacer height, compress height to get intrinsic.
 
                 let max_available = limits.max();
 
+                // Determine which dimensions to compress based on Stack's own sizing
+                let compress_width = !matches!(self.width, Length::Fill | Length::FillPortion(_) | Length::Spacer);
+                let compress_height = !matches!(self.height, Length::Fill | Length::FillPortion(_) | Length::Spacer);
+
                 // FIRST PASS: Use compression to get intrinsic sizes
-                // With compression=true, Fill and Spacer elements use intrinsic size
                 let compress_limits = layout::Limits::with_compression(
                     Size::ZERO,
                     max_available,
-                    Size::new(true, true), // Compress both width and height
+                    Size::new(compress_width, compress_height),
                 );
 
                 // Layout all children to find their intrinsic sizes
