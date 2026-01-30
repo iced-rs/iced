@@ -214,20 +214,16 @@ where
                 let (under, above) = self.children.split_at_mut(self.base_layer);
                 let (tree_under, tree_above) = tree.children.split_at_mut(self.base_layer);
 
-                let nodes = under
-                    .iter_mut()
-                    .zip(tree_under)
-                    .map(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits))
-                    .chain(std::iter::once(base))
-                    .chain(
-                        above[1..]
-                            .iter_mut()
-                            .zip(&mut tree_above[1..])
-                            .map(|(layer, tree)| {
-                                layer.as_widget_mut().layout(tree, renderer, &limits)
-                            }),
-                    )
-                    .collect();
+                let nodes =
+                    under
+                        .iter_mut()
+                        .zip(tree_under)
+                        .map(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits))
+                        .chain(std::iter::once(base))
+                        .chain(above[1..].iter_mut().zip(&mut tree_above[1..]).map(
+                            |(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits),
+                        ))
+                        .collect();
 
                 layout::Node::with_children(size, nodes)
             }
@@ -258,7 +254,9 @@ where
                     .zip(tree.children.iter_mut())
                     .enumerate()
                 {
-                    nodes[i] = child.as_widget_mut().layout(child_tree, renderer, &final_limits);
+                    nodes[i] = child
+                        .as_widget_mut()
+                        .layout(child_tree, renderer, &final_limits);
                 }
 
                 layout::Node::with_children(size, nodes)
