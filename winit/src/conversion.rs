@@ -1173,5 +1173,6 @@ fn voice_mode_event(event: winit::event::VoiceModeWindowEvent) -> voice_mode::Ev
         }
         VoiceModeWindowEvent::OrbDetached => voice_mode::Event::OrbDetached,
         VoiceModeWindowEvent::WillStop { serial } => voice_mode::Event::WillStop { serial },
+        VoiceModeWindowEvent::FocusInput => voice_mode::Event::FocusInput,
     }
 }
