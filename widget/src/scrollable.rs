@@ -1258,12 +1258,12 @@ where
         let icon = if let Interaction::AutoScrolling { origin, .. } = state.interaction {
             let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
 
-            Some(overlay::Element::new(Box::new(AutoScrollIcon {
+            Some(overlay::Element::new(AutoScrollIcon {
                 origin,
                 vertical: scrollbars.y.is_some(),
                 horizontal: scrollbars.x.is_some(),
                 class: &self.class,
-            })))
+            }))
         } else {
             None
         };
@@ -1272,9 +1272,9 @@ where
             (None, None) => None,
             (None, Some(icon)) => Some(icon),
             (Some(overlay), None) => Some(overlay),
-            (Some(overlay), Some(icon)) => Some(overlay::Element::new(Box::new(
-                overlay::Group::with_children(vec![overlay, icon]),
-            ))),
+            (Some(overlay), Some(icon)) => {
+                Some(overlay::Group::with_children(vec![overlay, icon]).overlay())
+            }
         }
     }
 }

@@ -258,7 +258,7 @@ where
                         theme: self.theme,
                         content,
                     })
-                    .map(|overlay| overlay::Element::new(Box::new(overlay)))
+                    .map(|overlay| overlay::Element::new(overlay))
             }
         }
 
@@ -269,7 +269,7 @@ where
                 theme: &self.theme,
                 content,
             })
-            .map(|overlay| overlay::Element::new(Box::new(overlay)))
+            .map(|overlay| overlay::Element::new(overlay))
     }
 }
 
