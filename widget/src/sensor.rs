@@ -212,9 +212,11 @@ where
                             shell.publish(on_resize(size));
                         }
                     }
-                } else if self.on_hide.is_some() {
+                } else {
                     state.has_popped_in = false;
-                    state.should_notify_at = Some((false, *now + self.delay));
+                    if self.on_hide.is_some() {
+                        state.should_notify_at = Some((false, *now + self.delay));
+                    }
                 }
             } else if distance <= self.anticipate.0 {
                 let size = bounds.size();
