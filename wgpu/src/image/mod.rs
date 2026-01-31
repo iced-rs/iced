@@ -276,14 +276,19 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
+                    let physical_bounds = (*bounds * scale).round();
+
+                    if physical_bounds.width < 1.0 || physical_bounds.height < 1.0 {
+                        return;
+                    }
+
                     if let Some((atlas_entry, bind_group)) = cache.upload_vector(
                         device,
                         encoder,
                         belt,
                         &svg.handle,
                         svg.color,
-                        bounds.size(),
-                        scale,
+                        Size::new(physical_bounds.width as u32, physical_bounds.height as u32),
                     ) {
                         match atlas.as_mut() {
                             None => {
@@ -298,7 +303,7 @@ impl State {
                         }
 
                         add_instances(
-                            *bounds,
+                            physical_bounds * (1.0 / scale),
                             *clip_bounds,
                             border::radius(0),
                             f32::from(svg.rotation),

@@ -257,21 +257,11 @@ impl Cache {
         belt: &mut wgpu::util::StagingBelt,
         handle: &core::svg::Handle,
         color: Option<core::Color>,
-        size: Size,
-        scale: f32,
+        size: Size<u32>,
     ) -> Option<(&atlas::Entry, &Arc<wgpu::BindGroup>)> {
         // TODO: Concurrency
         self.vector
-            .upload(
-                device,
-                encoder,
-                belt,
-                handle,
-                color,
-                size,
-                scale,
-                &mut self.atlas,
-            )
+            .upload(device, encoder, belt, handle, color, size, &mut self.atlas)
             .map(|entry| (entry, self.atlas.bind_group()))
     }
 
