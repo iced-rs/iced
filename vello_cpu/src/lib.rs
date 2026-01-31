@@ -338,7 +338,6 @@ pub struct Compositor {
 
 pub struct Surface {
     window: softbuffer::Surface<Box<dyn compositor::Display>, Box<dyn compositor::Window>>,
-    pixmap: vello_cpu::Pixmap,
     renderer: vello_cpu::RenderContext,
 }
 
@@ -388,7 +387,6 @@ impl graphics::Compositor for Compositor {
 
         let mut surface = Surface {
             window,
-            pixmap: vello_cpu::Pixmap::new(1, 1),
             renderer: vello_cpu::RenderContext::new(1, 1),
         };
 
@@ -407,8 +405,6 @@ impl graphics::Compositor for Compositor {
                 NonZeroU32::new(height).expect("Non-zero height"),
             )
             .expect("Resize surface");
-
-        surface.pixmap.resize(width as u16, height as u16);
 
         surface.renderer = vello_cpu::RenderContext::new(width as u16, height as u16);
     }
@@ -435,12 +431,13 @@ impl graphics::Compositor for Compositor {
 
         surface.renderer.reset();
         renderer.draw(&mut surface.renderer, viewport, background_color);
-        surface.renderer.render_to_pixmap(&mut surface.pixmap);
 
-        {
-            let buffer = bytemuck::cast_slice_mut(&mut buffer);
-            buffer.copy_from_slice(surface.pixmap.data_as_u8_slice());
-        }
+        surface.renderer.render_to_buffer(
+            bytemuck::cast_slice_mut(&mut buffer),
+            surface.renderer.width(),
+            surface.renderer.height(),
+            vello_cpu::RenderMode::OptimizeSpeed,
+        );
 
         on_pre_present();
         buffer.present().map_err(|_| compositor::SurfaceError::Lost)
