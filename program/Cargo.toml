@@ -17,6 +17,7 @@ workspace = true
 [features]
 debug = []
 time-travel = []
+device-events = ["iced_runtime/device-events"]
 
 [dependencies]
 iced_graphics.workspace = true

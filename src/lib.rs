@@ -589,6 +589,24 @@ pub mod keyboard {
     pub use iced_futures::keyboard::listen;
 }
 
+#[cfg(feature = "device-events")]
+pub mod device {
+    //! Listen to raw device events.
+    //!
+    //! Device events are raw hardware events that are not associated
+    //! with any particular window. They include raw mouse motion,
+    //! button presses, and key events that bypass OS input processing.
+    //!
+    //! # Performance Warning
+    //!
+    //! Device events fire at **very high frequency** (1000+ events/sec for mouse).
+    //! Always filter events in your callback and return `None` for events you don't
+    //! care about. **Do NOT** produce a message for every event!
+    pub use crate::core::device::{Event, Filter, MouseScrollDelta};
+    pub use crate::runtime::device::set_filter;
+    pub use iced_futures::device::listen;
+}
+
 pub mod mouse {
     //! Listen and react to mouse events.
     pub use crate::core::mouse::{Button, Cursor, Event, Interaction, ScrollDelta};

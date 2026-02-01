@@ -269,6 +269,10 @@ impl<P: Program + 'static> Emulator<P> {
                 runtime::Action::Reload => {
                     // TODO
                 }
+                #[cfg(feature = "device-events")]
+                runtime::Action::Device(_) => {
+                    // TODO
+                }
             },
         }
     }

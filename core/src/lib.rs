@@ -13,6 +13,8 @@ pub mod alignment;
 pub mod animation;
 pub mod border;
 pub mod clipboard;
+#[cfg(feature = "device-events")]
+pub mod device;
 pub mod event;
 pub mod font;
 pub mod gradient;

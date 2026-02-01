@@ -3,6 +3,8 @@ mod tracker;
 
 pub use tracker::Tracker;
 
+#[cfg(feature = "device-events")]
+use crate::core::device;
 use crate::core::event;
 use crate::core::theme;
 use crate::core::window;
@@ -33,6 +35,18 @@ pub enum Event {
 
     /// A platform specific event.
     PlatformSpecific(PlatformSpecific),
+
+    /// A raw device event (not associated with any window).
+    ///
+    /// **Warning:** Device events fire at very high frequency!
+    /// Always filter in your subscription callback.
+    #[cfg(feature = "device-events")]
+    Device {
+        /// The device that produced this event.
+        device_id: u64,
+        /// The device event.
+        event: device::Event,
+    },
 }
 
 /// A platform specific event

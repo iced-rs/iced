@@ -10,6 +10,9 @@
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub mod clipboard;
+#[cfg(feature = "device-events")]
+#[cfg_attr(docsrs, doc(cfg(feature = "device-events")))]
+pub mod device;
 pub mod font;
 pub mod image;
 pub mod keyboard;
@@ -59,6 +62,10 @@ pub enum Action<T> {
     /// Run an image action.
     Image(image::Action),
 
+    /// A device action.
+    #[cfg(feature = "device-events")]
+    Device(device::DeviceAction),
+
     /// Poll any resources that may have pending computations.
     Tick,
 
@@ -87,6 +94,8 @@ impl<T> Action<T> {
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
             Action::Image(action) => Err(Action::Image(action)),
+            #[cfg(feature = "device-events")]
+            Action::Device(action) => Err(Action::Device(action)),
             Action::Tick => Err(Action::Tick),
             Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
@@ -113,6 +122,8 @@ where
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
             Action::Image(_) => write!(f, "Action::Image"),
+            #[cfg(feature = "device-events")]
+            Action::Device(action) => write!(f, "Action::Device({action:?})"),
             Action::Tick => write!(f, "Action::Tick"),
             Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),
