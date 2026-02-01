@@ -34,16 +34,14 @@ where
 
     subscription::filter_map((EventsWith, f), move |event| match event {
         subscription::Event::Interaction {
-            event: Event::Window(window::Event::RedrawRequested(_)),
-            ..
-        }
-        | subscription::Event::SystemThemeChanged(_)
-        | subscription::Event::PlatformSpecific(_) => None,
-        subscription::Event::Interaction {
             window,
             event,
             status,
-        } => f(event, status, window),
+        } => match event {
+            Event::Window(window::Event::RedrawRequested(_)) => None,
+            _ => f(event, status, window),
+        },
+        _ => None,
     })
 }
 
@@ -67,9 +65,7 @@ where
             event,
             status,
         } => f(event, status, window),
-        subscription::Event::SystemThemeChanged(_) | subscription::Event::PlatformSpecific(_) => {
-            None
-        }
+        _ => None,
     })
 }
 
