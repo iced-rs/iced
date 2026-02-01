@@ -1,6 +1,5 @@
 struct Globals {
     transform: mat4x4<f32>,
-    scale_factor: f32,
 }
 
 @group(0) @binding(0) var<uniform> globals: Globals;
@@ -18,7 +17,6 @@ struct VertexInput {
     @location(6) atlas_pos: vec2<f32>,
     @location(7) atlas_scale: vec2<f32>,
     @location(8) layer: i32,
-    @location(9) snap: u32,
 }
 
 struct VertexOutput {
@@ -75,8 +73,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
     // Calculate the vertex position
     let v_pos = clipped_tile.xy + corner * clipped_tile.zw;
-    out.position = vec4(vec2(globals.scale_factor), 1.0, 1.0) * vec4<f32>(v_pos, 0.0, 1.0);
-    out.clip_bounds = globals.scale_factor * input.clip_bounds;
+    out.position = vec4<f32>(v_pos, 0.0, 1.0);
+    out.clip_bounds = input.clip_bounds;
 
     // Calculate rotated UV
     let uv = input.atlas_pos + (v_pos - tile.xy) / tile.zw * input.atlas_scale;
@@ -85,17 +83,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     let d = uv - uv_center;
     out.uv = vec2<f32>(d.x * cos_r - d.y * sin_r, d.x * sin_r + d.y * cos_r) + uv_center;
 
-    // Snap position to the pixel grid
-    if bool(input.snap) {
-        out.position = round(out.position);
-        out.clip_bounds = vec4(
-            round(out.clip_bounds.xy),
-            round(out.clip_bounds.xy + out.clip_bounds.zw) - out.clip_bounds.xy,
-        );
-    }
-
     out.position = globals.transform * out.position;
-    out.border_radius = globals.scale_factor * min(input.border_radius, vec4(min(input.clip_bounds.z, input.clip_bounds.w) / 2.0));
+    out.border_radius = min(input.border_radius, vec4(min(input.clip_bounds.z, input.clip_bounds.w) / 2.0));
     out.atlas = vec4(input.atlas_pos, input.atlas_pos + input.atlas_scale);
     out.layer = input.layer;
     out.opacity = input.opacity;

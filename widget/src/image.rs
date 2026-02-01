@@ -330,7 +330,6 @@ pub fn draw<Renderer, Handle>(
             filter_method,
             rotation: rotation.radians(),
             opacity,
-            snap: true,
         },
         drawing_bounds,
         bounds,
