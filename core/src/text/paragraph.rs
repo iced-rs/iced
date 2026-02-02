@@ -65,6 +65,10 @@ pub trait Paragraph: Sized + Default {
     /// A [`Span`] can have multiple bounds for each line it's on.
     fn span_bounds(&self, index: usize) -> Vec<Rectangle>;
 
+    /// Returns the visual bounds for a character range selection.
+    /// Returns multiple rectangles if the selection spans multiple lines.
+    fn selection_bounds(&self, start: usize, end: usize) -> Vec<Rectangle>;
+
     /// Returns the distance to the given grapheme index in the [`Paragraph`].
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;
 

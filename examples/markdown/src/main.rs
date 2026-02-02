@@ -34,6 +34,7 @@ struct Markdown {
     mode: Mode,
     theme: Theme,
     now: Instant,
+    selection: markdown::Selection,
 }
 
 enum Mode {
@@ -59,6 +60,9 @@ enum Message {
     ImageShown(markdown::Uri),
     ImageDownloaded(markdown::Uri, Result<image::Handle, Error>),
     ToggleStream(bool),
+    SelectionStart(usize, usize),
+    SelectionDrag(usize, usize),
+    SelectionEnd,
     NextToken,
     Tick,
 }
@@ -66,15 +70,19 @@ enum Message {
 impl Markdown {
     fn new() -> (Self, Task<Message>) {
         const INITIAL_CONTENT: &str = include_str!("../overview.md");
+        
+        let content = markdown::Content::parse(INITIAL_CONTENT);
+        let element_count = markdown::count_selectable_elements(content.items());
 
         (
             Self {
-                content: markdown::Content::parse(INITIAL_CONTENT),
+                content,
                 raw: text_editor::Content::with_text(INITIAL_CONTENT),
                 images: HashMap::new(),
                 mode: Mode::Preview,
                 theme: Theme::TokyoNight,
                 now: Instant::now(),
+                selection: markdown::Selection::new(element_count),
             },
             operation::focus_next(),
         )
@@ -92,6 +100,8 @@ impl Markdown {
                 if is_edit {
                     self.content = markdown::Content::parse(&self.raw.text());
                     self.mode = Mode::Preview;
+                    let element_count = markdown::count_selectable_elements(self.content.items());
+                    self.selection.reset(element_count);
                 }
 
                 Task::none()
@@ -114,18 +124,17 @@ impl Markdown {
                 )
             }
             Message::ImageDownloaded(url, result) => {
-                let _ = self.images.insert(
-                    url,
-                    result
-                        .map(|handle| Image::Ready {
-                            handle,
-                            fade_in: Animation::new(false)
-                                .quick()
-                                .easing(animation::Easing::EaseInOut)
-                                .go(true, self.now),
-                        })
-                        .unwrap_or_else(Image::Errored),
-                );
+                let image = match result {
+                    Ok(handle) => Image::Ready {
+                        handle,
+                        fade_in: Animation::new(false)
+                            .quick()
+                            .easing(animation::Easing::EaseInOut)
+                            .go(true, self.now),
+                    },
+                    Err(e) => Image::Errored(e),
+                };
+                let _ = self.images.insert(url, image);
 
                 Task::none()
             }
@@ -143,6 +152,18 @@ impl Markdown {
 
                     Task::none()
                 }
+            }
+            Message::SelectionStart(elem_idx, offset) => {
+                self.selection.start(elem_idx, offset);
+                Task::none()
+            }
+            Message::SelectionDrag(elem_idx, offset) => {
+                self.selection.update(elem_idx, offset);
+                Task::none()
+            }
+            Message::SelectionEnd => {
+                self.selection.end();
+                Task::none()
             }
             Message::NextToken => {
                 match &mut self.mode {
@@ -177,13 +198,19 @@ impl Markdown {
             .font(Font::MONOSPACE)
             .highlight("markdown", highlighter::Theme::Base16Ocean);
 
-        let preview = markdown::view_with(
+        let selection = &self.selection;
+        let preview = markdown::view_selectable_with(
             self.content.items(),
             &self.theme,
             &CustomViewer {
                 images: &self.images,
                 now: self.now,
             },
+            selection.is_selecting(),
+            move |idx| selection.get(idx),
+            Message::SelectionStart,
+            Message::SelectionDrag,
+            || Message::SelectionEnd,
         );
 
         row![
