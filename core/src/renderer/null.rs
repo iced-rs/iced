@@ -152,6 +152,10 @@ impl text::Paragraph for () {
     fn span_bounds(&self, _index: usize) -> Vec<Rectangle> {
         vec![]
     }
+
+    fn selection_bounds(&self, _start: usize, _end: usize) -> Vec<Rectangle> {
+        vec![]
+    }
 }
 
 impl text::Editor for () {
