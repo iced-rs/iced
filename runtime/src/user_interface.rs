@@ -571,6 +571,14 @@ where
         Self::build(self.root, bounds, Cache { state: self.state }, renderer)
     }
 
+    /// Returns the size of the root content after layout.
+    ///
+    /// This is the actual size that the content wants to be, which may be
+    /// smaller than the bounds passed to `build` or `relayout`.
+    pub fn content_size(&self) -> Size {
+        self.base.size()
+    }
+
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
     /// process.
     pub fn into_cache(self) -> Cache {
