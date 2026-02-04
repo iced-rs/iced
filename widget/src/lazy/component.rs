@@ -6,7 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::{self, Clipboard, Element, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{self, Element, Length, Rectangle, Shell, Size, Vector, Widget};
 
 use ouroboros::self_referencing;
 use std::cell::RefCell;
@@ -304,7 +304,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -319,7 +318,6 @@ where
                 layout,
                 cursor,
                 renderer,
-                clipboard,
                 &mut local_shell,
                 viewport,
             );
@@ -582,14 +580,13 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
         let _ = self.with_overlay_mut_maybe(|overlay| {
-            overlay.update(event, layout, cursor, renderer, clipboard, &mut local_shell);
+            overlay.update(event, layout, cursor, renderer, &mut local_shell);
         });
 
         if local_shell.is_event_captured() {

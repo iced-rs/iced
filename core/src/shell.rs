@@ -1,4 +1,5 @@
 use crate::InputMethod;
+use crate::clipboard;
 use crate::event;
 use crate::window;
 
@@ -86,6 +87,16 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn replace_redraw_request(shell: &mut Self, redraw_request: window::RedrawRequest) {
         shell.redraw_request = redraw_request;
     }
+
+    /// Requests the runtime to read the clipboard contents expecting the given [`clipboard::Kind`].
+    ///
+    /// The runtime will produce a [`clipboard::Event::Read`] when the contents have been read.
+    pub fn read_clipboard(&mut self, _kind: clipboard::Kind) {}
+
+    /// Requests the runtime to write the given [`clipboard::Content`] to the clipboard.
+    ///
+    /// The runtime will produce a [`clipboard::Event::Written`] when the contents have been written.
+    pub fn write_clipboard(&mut self, _content: clipboard::Content) {}
 
     /// Requests the current [`InputMethod`] strategy.
     ///

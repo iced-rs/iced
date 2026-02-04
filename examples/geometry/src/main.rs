@@ -1,11 +1,11 @@
 //! This example showcases a simple native custom widget that renders using
 //! arbitrary low-level geometry.
 mod rainbow {
+    use iced::advanced::Shell;
     use iced::advanced::graphics::color;
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::advanced::{Clipboard, Shell};
     use iced::mouse;
     use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation, Vector};
 
@@ -42,7 +42,6 @@ mod rainbow {
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             _renderer: &Renderer,
-            _clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
             _viewport: &Rectangle,
         ) {

@@ -1,34 +1,79 @@
 //! Access the clipboard.
+use crate::Size;
 
-/// A buffer for short-term storage and transfer within and between
-/// applications.
-pub trait Clipboard {
-    /// Reads the current content of the [`Clipboard`] as text.
-    fn read(&self, kind: Kind) -> Option<String>;
+use bytes::Bytes;
 
-    /// Writes the given text contents to the [`Clipboard`].
-    fn write(&mut self, kind: Kind, contents: String);
+use std::path::PathBuf;
+use std::sync::Arc;
+
+/// A clipboard event.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Event {
+    /// The clipboard was read.
+    Read(Result<Arc<Content>, Error>),
+
+    /// The clipboard was written.
+    Written(Result<(), Error>),
 }
 
-/// The kind of [`Clipboard`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Kind {
-    /// The standard clipboard.
-    Standard,
-    /// The primary clipboard.
-    ///
-    /// Normally only present in X11 and Wayland.
-    Primary,
+/// Some clipboard content.
+#[derive(Debug, Clone, PartialEq)]
+#[allow(missing_docs)]
+pub enum Content {
+    Text(String),
+    Html(String),
+    Image(Image),
+    FileList(Vec<PathBuf>),
 }
 
-/// A null implementation of the [`Clipboard`] trait.
-#[derive(Debug, Clone, Copy)]
-pub struct Null;
-
-impl Clipboard for Null {
-    fn read(&self, _kind: Kind) -> Option<String> {
-        None
+impl From<String> for Content {
+    fn from(text: String) -> Self {
+        Self::Text(text)
     }
+}
 
-    fn write(&mut self, _kind: Kind, _contents: String) {}
+/// The kind of some clipboard [`Content`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
+pub enum Kind {
+    Text,
+    Html,
+    Image,
+    FileList,
+}
+
+/// A clipboard image.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Image {
+    /// The pixels of the image in RGBA format.
+    pub rgba: Bytes,
+
+    /// The physical [`Size`] of the image.
+    pub size: Size<u32>,
+}
+
+/// A clipboard error.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Error {
+    /// The clipboard in the current environment is either not present or could not be accessed.
+    ClipboardUnavailable,
+
+    /// The native clipboard is not accessible due to being held by another party.
+    ClipboardOccupied,
+
+    /// The clipboard contents were not available in the requested format.
+    /// This could either be due to the clipboard being empty or the clipboard contents having
+    /// an incompatible format to the requested one
+    ContentNotAvailable,
+
+    /// The image or the text that was about the be transferred to/from the clipboard could not be
+    /// converted to the appropriate format.
+    ConversionFailure,
+
+    /// Any error that doesn't fit the other error types.
+    Unknown {
+        /// A description only meant to help the developer that should not be relied on as a
+        /// means to identify an error case during runtime.
+        description: Arc<String>,
+    },
 }

@@ -6,7 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
+use crate::core::{Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -135,7 +135,6 @@ where
     /// #     pub fn view(&self) -> iced_core::Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_runtime::core::clipboard;
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::Size;
     /// use iced_runtime::user_interface::{self, UserInterface};
@@ -146,7 +145,6 @@ where
     /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
-    /// let mut clipboard = clipboard::Null;
     ///
     /// // Initialize our event storage
     /// let mut events = Vec::new();
@@ -167,7 +165,6 @@ where
     ///         &events,
     ///         cursor,
     ///         &mut renderer,
-    ///         &mut clipboard,
     ///         &mut messages
     ///     );
     ///
@@ -184,7 +181,6 @@ where
         events: &[Event],
         cursor: mouse::Cursor,
         renderer: &mut Renderer,
-        clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
     ) -> (State, Vec<event::Status>) {
         let mut outdated = false;
@@ -215,14 +211,7 @@ where
             for event in events {
                 let mut shell = Shell::new(messages);
 
-                overlay.update(
-                    event,
-                    Layout::new(&layout),
-                    cursor,
-                    renderer,
-                    clipboard,
-                    &mut shell,
-                );
+                overlay.update(event, Layout::new(&layout), cursor, renderer, &mut shell);
 
                 event_statuses.push(shell.event_status());
                 redraw_request = redraw_request.min(shell.redraw_request());
@@ -319,7 +308,6 @@ where
                     Layout::new(&self.base),
                     base_cursor,
                     renderer,
-                    clipboard,
                     &mut shell,
                     &viewport,
                 );
@@ -422,7 +410,6 @@ where
     /// #     pub fn view(&self) -> Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_runtime::core::clipboard;
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::renderer;
     /// use iced_runtime::core::{Element, Size};
@@ -434,7 +421,6 @@ where
     /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
-    /// let mut clipboard = clipboard::Null;
     /// let mut events = Vec::new();
     /// let mut messages = Vec::new();
     /// let mut theme = Theme::default();
@@ -454,7 +440,6 @@ where
     ///         &events,
     ///         cursor,
     ///         &mut renderer,
-    ///         &mut clipboard,
     ///         &mut messages
     ///     );
     ///

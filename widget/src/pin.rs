@@ -25,8 +25,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
-    self, Clipboard, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    self, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that positions its contents at some fixed coordinates inside of its boundaries.
@@ -177,7 +176,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -187,7 +185,6 @@ where
             layout.children().next().unwrap(),
             cursor,
             renderer,
-            clipboard,
             shell,
             viewport,
         );

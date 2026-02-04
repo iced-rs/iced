@@ -493,7 +493,7 @@ async fn run_instance<P>(
 
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
-    let mut clipboard = Clipboard::unconnected();
+    let mut clipboard = Clipboard::new();
 
     #[cfg(all(feature = "linux-theme-detection", target_os = "linux"))]
     let mut system_theme = {
@@ -673,10 +673,6 @@ async fn run_instance<P>(
                     }),
                 ));
 
-                if clipboard.window_id().is_none() {
-                    clipboard = Clipboard::connect(window.raw.clone());
-                }
-
                 let _ = on_open.send(id);
                 is_window_opening = false;
             }
@@ -792,7 +788,6 @@ async fn run_instance<P>(
                                 slice::from_ref(&redraw_event),
                                 cursor,
                                 &mut window.renderer,
-                                &mut clipboard,
                                 &mut messages,
                             );
 
@@ -964,10 +959,7 @@ async fn run_instance<P>(
                                 _ => {
                                     present_span.finish();
 
-                                    log::error!(
-                                        "Error {error:?} when \
-                                        presenting surface."
-                                    );
+                                    log::error!("Error {error:?} when presenting surface.");
 
                                     // Try rendering all windows again next frame.
                                     for (_id, window) in window_manager.iter_mut() {
@@ -1080,7 +1072,6 @@ async fn run_instance<P>(
                                     &window_events,
                                     window.state.cursor(),
                                     &mut window.renderer,
-                                    &mut clipboard,
                                     &mut messages,
                                 );
 
@@ -1275,11 +1266,15 @@ fn run_action<'a, P, C>(
             messages.push(message);
         }
         Action::Clipboard(action) => match action {
-            clipboard::Action::Read { target, channel } => {
-                let _ = channel.send(clipboard.read(target));
+            clipboard::Action::Read { kind, channel } => {
+                clipboard.read(kind, move |result| {
+                    let _ = channel.send(result);
+                });
             }
-            clipboard::Action::Write { target, contents } => {
-                clipboard.write(target, contents);
+            clipboard::Action::Write { content, channel } => {
+                clipboard.write(content, move |result| {
+                    let _ = channel.send(result);
+                });
             }
         },
         Action::Window(action) => match action {
@@ -1303,15 +1298,7 @@ fn run_action<'a, P, C>(
                 let _ = ui_caches.remove(&id);
                 let _ = interfaces.remove(&id);
 
-                if let Some(window) = window_manager.remove(id) {
-                    if clipboard.window_id() == Some(window.raw.id()) {
-                        *clipboard = window_manager
-                            .first()
-                            .map(|window| window.raw.clone())
-                            .map(Clipboard::connect)
-                            .unwrap_or_else(Clipboard::unconnected);
-                    }
-
+                if window_manager.remove(id).is_some() {
                     events.push((id, core::Event::Window(core::window::Event::Closed)));
                 }
 
