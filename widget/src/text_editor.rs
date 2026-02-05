@@ -467,10 +467,15 @@ where
     ///
     /// This is used internally by the widget to check if `Action::Focus` was called.
     pub(crate) fn take_pending_focus(&self) -> bool {
-        let mut internal = self.0.borrow_mut();
-        let was_pending = internal.pending_focus;
-        internal.pending_focus = false;
-        was_pending
+        // Use try_borrow_mut to avoid panic if RefCell is already borrowed
+        // (can happen during nested widget update cycles)
+        if let Ok(mut internal) = self.0.try_borrow_mut() {
+            let was_pending = internal.pending_focus;
+            internal.pending_focus = false;
+            was_pending
+        } else {
+            false
+        }
     }
 }
 
