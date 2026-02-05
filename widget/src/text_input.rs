@@ -1145,12 +1145,35 @@ where
                 state.keyboard_modifiers = *modifiers;
             }
             Event::Clipboard(clipboard::Event::Read(Ok(content))) => {
+                let Some(on_input) = &self.on_input else {
+                    return;
+                };
+
                 let state = state::<Renderer>(tree);
+
+                let Some(focus) = &mut state.is_focused else {
+                    return;
+                };
 
                 if let clipboard::Content::Text(text) = content.as_ref()
                     && let Some(Paste::Reading) = state.is_pasting
                 {
                     state.is_pasting = Some(Paste::Pasting(Value::new(text)));
+
+                    let mut editor = Editor::new(&mut self.value, &mut state.cursor);
+                    editor.paste(Value::new(text));
+
+                    let message = if let Some(paste) = &self.on_paste {
+                        (paste)(editor.contents())
+                    } else {
+                        (on_input)(editor.contents())
+                    };
+                    shell.publish(message);
+                    shell.capture_event();
+
+                    focus.updated_at = Instant::now();
+                    update_cache(state, &self.value);
+                    return;
                 }
             }
             Event::InputMethod(event) => match event {

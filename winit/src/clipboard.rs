@@ -12,8 +12,6 @@ impl Default for Clipboard {
 #[cfg(not(target_arch = "wasm32"))]
 mod platform {
     use super::*;
-    use crate::core::clipboard::Image;
-    use crate::core::{Bytes, Size};
 
     use std::sync::{Arc, Mutex};
     use std::thread;
@@ -70,14 +68,15 @@ mod platform {
                 let result = match kind {
                     Kind::Text => get.text().map(Content::Text),
                     Kind::Html => get.html().map(Content::Html),
+                    #[cfg(feature = "image")]
                     Kind::Image => get.image().map(|image| {
-                        let rgba = Bytes::from_owner(image.bytes);
-                        let size = Size {
+                        let rgba = crate::core::Bytes::from_owner(image.bytes);
+                        let size = crate::core::Size {
                             width: image.width as u32,
                             height: image.height as u32,
                         };
 
-                        Content::Image(Image { rgba, size })
+                        Content::Image(crate::core::clipboard::Image { rgba, size })
                     }),
                     Kind::FileList => get.file_list().map(Content::FileList),
                 }
@@ -111,6 +110,7 @@ mod platform {
                 let result = match content {
                     Content::Text(text) => set.text(text),
                     Content::Html(html) => set.html(html, None),
+                    #[cfg(feature = "image")]
                     Content::Image(image) => set.image(arboard::ImageData {
                         bytes: image.rgba.as_ref().into(),
                         width: image.size.width as usize,

@@ -1,8 +1,4 @@
 //! Access the clipboard.
-use crate::Size;
-
-use bytes::Bytes;
-
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -54,6 +50,7 @@ pub enum Event {
 pub enum Content {
     Text(String),
     Html(String),
+    #[cfg(feature = "clipboard-image")]
     Image(Image),
     FileList(Vec<PathBuf>),
 }
@@ -70,18 +67,20 @@ impl From<String> for Content {
 pub enum Kind {
     Text,
     Html,
+    #[cfg(feature = "clipboard-image")]
     Image,
     FileList,
 }
 
 /// A clipboard image.
+#[cfg(feature = "clipboard-image")]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Image {
     /// The pixels of the image in RGBA format.
-    pub rgba: Bytes,
+    pub rgba: crate::Bytes,
 
     /// The physical [`Size`] of the image.
-    pub size: Size<u32>,
+    pub size: crate::Size<u32>,
 }
 
 /// A clipboard error.

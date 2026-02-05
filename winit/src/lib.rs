@@ -18,9 +18,9 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+pub use iced_core as core;
 pub use iced_debug as debug;
 pub use iced_program as program;
-pub use program::core;
 pub use program::graphics;
 pub use program::runtime;
 pub use runtime::futures;
@@ -901,12 +901,15 @@ async fn run_instance<P>(
                             redraw_request,
                             input_method,
                             mouse_interaction,
+                            clipboard: clipboard_requests,
                             ..
                         } = state
                         {
                             window.request_redraw(redraw_request);
                             window.request_input_method(input_method);
                             window.update_mouse(mouse_interaction);
+
+                            run_clipboard(&mut proxy, &mut clipboard, clipboard_requests, id);
                         }
 
                         runtime.broadcast(subscription::Event::Interaction {
@@ -1082,12 +1085,20 @@ async fn run_instance<P>(
                                 user_interface::State::Updated {
                                     redraw_request: _redraw_request,
                                     mouse_interaction,
+                                    clipboard: clipboard_requests,
                                     ..
                                 } => {
                                     window.update_mouse(mouse_interaction);
 
                                     #[cfg(not(feature = "unconditional-rendering"))]
                                     window.request_redraw(_redraw_request);
+
+                                    run_clipboard(
+                                        &mut proxy,
+                                        &mut clipboard,
+                                        clipboard_requests,
+                                        id,
+                                    );
                                 }
                                 user_interface::State::Outdated => {
                                     uis_stale = true;
@@ -1633,6 +1644,9 @@ fn run_action<'a, P, C>(
                 }
             }
         },
+        Action::Event { window, event } => {
+            events.push((window, event));
+        }
         Action::LoadFont { bytes, channel } => {
             if let Some(compositor) = compositor {
                 // TODO: Error handling (?)
@@ -1763,5 +1777,34 @@ fn system_information(graphics: compositor::Information) -> system::Information 
         memory_used,
         graphics_adapter: graphics.adapter,
         graphics_backend: graphics.backend,
+    }
+}
+
+fn run_clipboard<Message: Send>(
+    proxy: &mut Proxy<Message>,
+    clipboard: &mut Clipboard,
+    requests: core::Clipboard,
+    window: window::Id,
+) {
+    for kind in requests.reads {
+        let proxy = proxy.clone();
+
+        clipboard.read(kind, move |result| {
+            proxy.send_action(Action::Event {
+                window,
+                event: core::Event::Clipboard(core::clipboard::Event::Read(result.map(Arc::new))),
+            });
+        });
+    }
+
+    if let Some(content) = requests.write {
+        let proxy = proxy.clone();
+
+        clipboard.write(content, move |result| {
+            proxy.send_action(Action::Event {
+                window,
+                event: core::Event::Clipboard(core::clipboard::Event::Written(result)),
+            });
+        });
     }
 }
