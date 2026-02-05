@@ -47,6 +47,7 @@ pub enum Event {
 /// Some clipboard content.
 #[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
+#[non_exhaustive]
 pub enum Content {
     Text(String),
     Html(String),
@@ -64,6 +65,7 @@ impl From<String> for Content {
 /// The kind of some clipboard [`Content`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
+#[non_exhaustive]
 pub enum Kind {
     Text,
     Html,
