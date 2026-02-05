@@ -573,6 +573,7 @@ where
 
         shell.request_redraw_at(local_shell.redraw_request());
         shell.request_input_method(local_shell.input_method());
+        shell.clipboard_mut().merge(local_shell.clipboard_mut());
 
         // Then finally react to them here
         for message in local_messages {

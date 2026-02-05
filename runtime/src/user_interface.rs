@@ -6,7 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
+use crate::core::{Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -186,6 +186,7 @@ where
         let mut outdated = false;
         let mut redraw_request = window::RedrawRequest::Wait;
         let mut input_method = InputMethod::Disabled;
+        let mut clipboard = Clipboard::new();
         let mut has_layout_changed = false;
         let viewport = Rectangle::with_size(self.bounds);
 
@@ -216,6 +217,7 @@ where
                 event_statuses.push(shell.event_status());
                 redraw_request = redraw_request.min(shell.redraw_request());
                 input_method.merge(shell.input_method());
+                clipboard.merge(shell.clipboard_mut());
 
                 if shell.is_layout_invalid() {
                     drop(maybe_overlay);
@@ -318,6 +320,7 @@ where
 
                 redraw_request = redraw_request.min(shell.redraw_request());
                 input_method.merge(shell.input_method());
+                clipboard.merge(shell.clipboard_mut());
 
                 shell.revalidate_layout(|| {
                     has_layout_changed = true;
@@ -379,6 +382,7 @@ where
                     mouse_interaction,
                     redraw_request,
                     input_method,
+                    clipboard,
                     has_layout_changed,
                 }
             },
@@ -588,7 +592,7 @@ impl Default for Cache {
 }
 
 /// The resulting state after updating a [`UserInterface`].
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum State {
     /// The [`UserInterface`] is outdated and needs to be rebuilt.
     Outdated,
@@ -602,6 +606,8 @@ pub enum State {
         redraw_request: window::RedrawRequest,
         /// The current [`InputMethod`] strategy of the user interface.
         input_method: InputMethod,
+        /// The set of [`Clipboard`] requests that the user interface has produced.
+        clipboard: Clipboard,
         /// Whether the layout of the [`UserInterface`] has changed.
         has_layout_changed: bool,
     },

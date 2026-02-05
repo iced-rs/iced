@@ -6,6 +6,38 @@ use bytes::Bytes;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+/// A set of clipboard requests.
+#[derive(Debug, Clone)]
+pub struct Clipboard {
+    /// The read requests the runtime must fulfill.
+    pub reads: Vec<Kind>,
+    /// The content that must be written to the clipboard by the runtime,
+    /// if any.
+    pub write: Option<Content>,
+}
+
+impl Clipboard {
+    /// Creates a new empty set of [`Clipboard`] requests.
+    pub fn new() -> Self {
+        Self {
+            reads: Vec::new(),
+            write: None,
+        }
+    }
+
+    /// Merges the current [`Clipboard`] requests with others.
+    pub fn merge(&mut self, other: &mut Self) {
+        self.reads.append(&mut other.reads);
+        self.write = other.write.take().or(self.write.take());
+    }
+}
+
+impl Default for Clipboard {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A clipboard event.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
