@@ -686,6 +686,14 @@ where
                     );
                 }
             }
+            Event::Clipboard(clipboard::Event::Read(Ok(content))) => {
+                if let clipboard::Content::Text(text) = content.as_ref()
+                    && let Some(focus) = &mut state.focus
+                    && focus.is_window_focused
+                {
+                    shell.publish(on_edit(Action::Edit(Edit::Paste(Arc::new(text.clone())))));
+                }
+            }
             _ => {}
         }
 
