@@ -81,7 +81,7 @@ pub struct Image {
     /// The pixels of the image in RGBA format.
     pub rgba: crate::Bytes,
 
-    /// The physical [`Size`] of the image.
+    /// The physical [`Size`](crate::Size) of the image.
     pub size: crate::Size<u32>,
 }
 

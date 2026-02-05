@@ -62,7 +62,7 @@ pub enum Action<T> {
 
     /// Produce an event.
     Event {
-        /// The [`window::Id`] of the event.
+        /// The [`window::Id`](core::window::Id) of the event.
         window: core::window::Id,
         /// The [`Event`] to be produced.
         event: Event,
