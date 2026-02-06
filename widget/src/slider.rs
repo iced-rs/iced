@@ -38,8 +38,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle,
-    Shell, Size, Theme, Widget,
+    self, Background, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
+    Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -247,7 +247,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {

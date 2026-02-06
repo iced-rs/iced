@@ -12,6 +12,7 @@ keywords.workspace = true
 
 [features]
 selector = ["dep:iced_selector"]
+image = ["iced_core/image"]
 
 [lints]
 workspace = true

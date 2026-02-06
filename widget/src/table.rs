@@ -452,7 +452,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn core::Clipboard,
         shell: &mut core::Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -462,9 +461,8 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
         {
-            cell.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-            );
+            cell.as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 

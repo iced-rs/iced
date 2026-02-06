@@ -63,9 +63,7 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
-use crate::core::{
-    Clipboard, Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector,
-};
+use crate::core::{Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector};
 use crate::overlay::menu;
 use crate::text::LineHeight;
 use crate::text_input::{self, TextInput};
@@ -538,7 +536,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -566,7 +563,6 @@ where
             layout,
             cursor,
             renderer,
-            clipboard,
             &mut local_shell,
             viewport,
         );
@@ -577,6 +573,7 @@ where
 
         shell.request_redraw_at(local_shell.redraw_request());
         shell.request_input_method(local_shell.input_method());
+        shell.clipboard_mut().merge(local_shell.clipboard_mut());
 
         // Then finally react to them here
         for message in local_messages {
@@ -720,7 +717,6 @@ where
                     layout,
                     mouse::Cursor::Unavailable,
                     renderer,
-                    clipboard,
                     &mut local_shell,
                     viewport,
                 );

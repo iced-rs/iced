@@ -135,7 +135,6 @@ where
     /// #     pub fn view(&self) -> iced_core::Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_runtime::core::clipboard;
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::Size;
     /// use iced_runtime::user_interface::{self, UserInterface};
@@ -146,7 +145,6 @@ where
     /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
-    /// let mut clipboard = clipboard::Null;
     ///
     /// // Initialize our event storage
     /// let mut events = Vec::new();
@@ -167,7 +165,6 @@ where
     ///         &events,
     ///         cursor,
     ///         &mut renderer,
-    ///         &mut clipboard,
     ///         &mut messages
     ///     );
     ///
@@ -184,12 +181,12 @@ where
         events: &[Event],
         cursor: mouse::Cursor,
         renderer: &mut Renderer,
-        clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
     ) -> (State, Vec<event::Status>) {
         let mut outdated = false;
         let mut redraw_request = window::RedrawRequest::Wait;
         let mut input_method = InputMethod::Disabled;
+        let mut clipboard = Clipboard::new();
         let mut has_layout_changed = false;
         let viewport = Rectangle::with_size(self.bounds);
 
@@ -215,18 +212,12 @@ where
             for event in events {
                 let mut shell = Shell::new(messages);
 
-                overlay.update(
-                    event,
-                    Layout::new(&layout),
-                    cursor,
-                    renderer,
-                    clipboard,
-                    &mut shell,
-                );
+                overlay.update(event, Layout::new(&layout), cursor, renderer, &mut shell);
 
                 event_statuses.push(shell.event_status());
                 redraw_request = redraw_request.min(shell.redraw_request());
                 input_method.merge(shell.input_method());
+                clipboard.merge(shell.clipboard_mut());
 
                 if shell.is_layout_invalid() {
                     drop(maybe_overlay);
@@ -319,7 +310,6 @@ where
                     Layout::new(&self.base),
                     base_cursor,
                     renderer,
-                    clipboard,
                     &mut shell,
                     &viewport,
                 );
@@ -330,6 +320,7 @@ where
 
                 redraw_request = redraw_request.min(shell.redraw_request());
                 input_method.merge(shell.input_method());
+                clipboard.merge(shell.clipboard_mut());
 
                 shell.revalidate_layout(|| {
                     has_layout_changed = true;
@@ -391,6 +382,7 @@ where
                     mouse_interaction,
                     redraw_request,
                     input_method,
+                    clipboard,
                     has_layout_changed,
                 }
             },
@@ -422,7 +414,6 @@ where
     /// #     pub fn view(&self) -> Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_runtime::core::clipboard;
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::renderer;
     /// use iced_runtime::core::{Element, Size};
@@ -434,7 +425,6 @@ where
     /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
-    /// let mut clipboard = clipboard::Null;
     /// let mut events = Vec::new();
     /// let mut messages = Vec::new();
     /// let mut theme = Theme::default();
@@ -454,7 +444,6 @@ where
     ///         &events,
     ///         cursor,
     ///         &mut renderer,
-    ///         &mut clipboard,
     ///         &mut messages
     ///     );
     ///
@@ -603,7 +592,7 @@ impl Default for Cache {
 }
 
 /// The resulting state after updating a [`UserInterface`].
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum State {
     /// The [`UserInterface`] is outdated and needs to be rebuilt.
     Outdated,
@@ -617,6 +606,8 @@ pub enum State {
         redraw_request: window::RedrawRequest,
         /// The current [`InputMethod`] strategy of the user interface.
         input_method: InputMethod,
+        /// The set of [`Clipboard`] requests that the user interface has produced.
+        clipboard: Clipboard,
         /// Whether the layout of the [`UserInterface`] has changed.
         has_layout_changed: bool,
     },

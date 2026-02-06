@@ -8,8 +8,7 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree;
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation,
-    Vector, Widget,
+    Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
 };
 
 /// A widget that can make its contents float over other widgets.
@@ -126,7 +125,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -134,9 +132,9 @@ where
             return;
         }
 
-        self.content.as_widget_mut().update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-        );
+        self.content
+            .as_widget_mut()
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn draw(
@@ -287,7 +285,6 @@ where
         _layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         let inverse = self.transformation.inverse();
@@ -298,7 +295,6 @@ where
             self.layout,
             cursor * inverse,
             renderer,
-            clipboard,
             shell,
             &(self.viewport * inverse),
         );
