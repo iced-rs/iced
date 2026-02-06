@@ -62,6 +62,19 @@ impl From<String> for Content {
     }
 }
 
+#[cfg(feature = "image")]
+impl From<Image> for Content {
+    fn from(image: Image) -> Self {
+        Self::Image(image)
+    }
+}
+
+impl From<Vec<PathBuf>> for Content {
+    fn from(files: Vec<PathBuf>) -> Self {
+        Self::Files(files)
+    }
+}
+
 /// The kind of some clipboard [`Content`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
