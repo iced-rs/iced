@@ -69,6 +69,7 @@ impl Compositor {
         if log::max_level() >= log::LevelFilter::Info {
             let available_adapters: Vec<_> = instance
                 .enumerate_adapters(settings.backends)
+                .await
                 .iter()
                 .map(wgpu::Adapter::get_info)
                 .collect();
@@ -102,8 +103,15 @@ impl Compositor {
 
                 log::info!("Available formats: {formats:#?}");
 
-                let mut formats =
-                    formats.filter(|format| format.required_features() == wgpu::Features::empty());
+                const BLACKLIST: &[wgpu::TextureFormat] = &[
+                    wgpu::TextureFormat::Rgb10a2Unorm,
+                    wgpu::TextureFormat::Rgb10a2Uint,
+                ];
+
+                let mut formats = formats.filter(|format| {
+                    format.required_features() == wgpu::Features::empty()
+                        && !BLACKLIST.contains(format)
+                });
 
                 let format = if color::GAMMA_CORRECTION {
                     formats.find(wgpu::TextureFormat::is_srgb)
@@ -122,9 +130,7 @@ impl Compositor {
                 log::info!("Available alpha modes: {alpha_modes:#?}");
 
                 let preferred_alpha =
-                    if alpha_modes.contains(&wgpu::CompositeAlphaMode::PostMultiplied) {
-                        wgpu::CompositeAlphaMode::PostMultiplied
-                    } else if alpha_modes.contains(&wgpu::CompositeAlphaMode::PreMultiplied) {
+                    if alpha_modes.contains(&wgpu::CompositeAlphaMode::PreMultiplied) {
                         wgpu::CompositeAlphaMode::PreMultiplied
                     } else {
                         wgpu::CompositeAlphaMode::Auto
@@ -148,13 +154,20 @@ impl Compositor {
             ..limits
         });
 
+        // Request SHADER_F16 only if the adapter supports it (e.g., not available in WebGL2)
+        let required_features = if adapter.features().contains(wgpu::Features::SHADER_F16) {
+            wgpu::Features::SHADER_F16
+        } else {
+            wgpu::Features::empty()
+        };
+
         let mut errors = Vec::new();
 
         for required_limits in limits {
             let result = adapter
                 .request_device(&wgpu::DeviceDescriptor {
                     label: Some("iced_wgpu::window::compositor device descriptor"),
-                    required_features: wgpu::Features::empty(),
+                    required_features,
                     required_limits: required_limits.clone(),
                     memory_hints: wgpu::MemoryHints::MemoryUsage,
                     trace: wgpu::Trace::Off,

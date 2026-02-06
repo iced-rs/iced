@@ -20,9 +20,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use iced_debug as debug;
 pub use iced_program as program;
+pub use iced_runtime as runtime;
 pub use program::core;
 pub use program::graphics;
-pub use program::runtime;
 pub use runtime::futures;
 pub use winit;
 
@@ -493,7 +493,7 @@ async fn run_instance<P>(
 
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
-    let mut clipboard = Clipboard::unconnected();
+    let mut clipboard = Clipboard::new();
 
     #[cfg(all(feature = "linux-theme-detection", target_os = "linux"))]
     let mut system_theme = {
@@ -673,10 +673,6 @@ async fn run_instance<P>(
                     }),
                 ));
 
-                if clipboard.window_id().is_none() {
-                    clipboard = Clipboard::connect(window.raw.clone());
-                }
-
                 let _ = on_open.send(id);
                 is_window_opening = false;
             }
@@ -792,7 +788,6 @@ async fn run_instance<P>(
                                 slice::from_ref(&redraw_event),
                                 cursor,
                                 &mut window.renderer,
-                                &mut clipboard,
                                 &mut messages,
                             );
 
@@ -906,12 +901,15 @@ async fn run_instance<P>(
                             redraw_request,
                             input_method,
                             mouse_interaction,
+                            clipboard: clipboard_requests,
                             ..
                         } = state
                         {
                             window.request_redraw(redraw_request);
                             window.request_input_method(input_method);
                             window.update_mouse(mouse_interaction);
+
+                            run_clipboard(&mut proxy, &mut clipboard, clipboard_requests, id);
                         }
 
                         runtime.broadcast(subscription::Event::Interaction {
@@ -964,10 +962,7 @@ async fn run_instance<P>(
                                 _ => {
                                     present_span.finish();
 
-                                    log::error!(
-                                        "Error {error:?} when \
-                                        presenting surface."
-                                    );
+                                    log::error!("Error {error:?} when presenting surface.");
 
                                     // Try rendering all windows again next frame.
                                     for (_id, window) in window_manager.iter_mut() {
@@ -1080,7 +1075,6 @@ async fn run_instance<P>(
                                     &window_events,
                                     window.state.cursor(),
                                     &mut window.renderer,
-                                    &mut clipboard,
                                     &mut messages,
                                 );
 
@@ -1091,12 +1085,20 @@ async fn run_instance<P>(
                                 user_interface::State::Updated {
                                     redraw_request: _redraw_request,
                                     mouse_interaction,
+                                    clipboard: clipboard_requests,
                                     ..
                                 } => {
                                     window.update_mouse(mouse_interaction);
 
                                     #[cfg(not(feature = "unconditional-rendering"))]
                                     window.request_redraw(_redraw_request);
+
+                                    run_clipboard(
+                                        &mut proxy,
+                                        &mut clipboard,
+                                        clipboard_requests,
+                                        id,
+                                    );
                                 }
                                 user_interface::State::Outdated => {
                                     uis_stale = true;
@@ -1275,11 +1277,15 @@ fn run_action<'a, P, C>(
             messages.push(message);
         }
         Action::Clipboard(action) => match action {
-            clipboard::Action::Read { target, channel } => {
-                let _ = channel.send(clipboard.read(target));
+            clipboard::Action::Read { kind, channel } => {
+                clipboard.read(kind, move |result| {
+                    let _ = channel.send(result);
+                });
             }
-            clipboard::Action::Write { target, contents } => {
-                clipboard.write(target, contents);
+            clipboard::Action::Write { content, channel } => {
+                clipboard.write(content, move |result| {
+                    let _ = channel.send(result);
+                });
             }
         },
         Action::Window(action) => match action {
@@ -1303,15 +1309,7 @@ fn run_action<'a, P, C>(
                 let _ = ui_caches.remove(&id);
                 let _ = interfaces.remove(&id);
 
-                if let Some(window) = window_manager.remove(id) {
-                    if clipboard.window_id() == Some(window.raw.id()) {
-                        *clipboard = window_manager
-                            .first()
-                            .map(|window| window.raw.clone())
-                            .map(Clipboard::connect)
-                            .unwrap_or_else(Clipboard::unconnected);
-                    }
-
+                if window_manager.remove(id).is_some() {
                     events.push((id, core::Event::Window(core::window::Event::Closed)));
                 }
 
@@ -1646,6 +1644,9 @@ fn run_action<'a, P, C>(
                 }
             }
         },
+        Action::Event { window, event } => {
+            events.push((window, event));
+        }
         Action::LoadFont { bytes, channel } => {
             if let Some(compositor) = compositor {
                 // TODO: Error handling (?)
@@ -1776,5 +1777,34 @@ fn system_information(graphics: compositor::Information) -> system::Information 
         memory_used,
         graphics_adapter: graphics.adapter,
         graphics_backend: graphics.backend,
+    }
+}
+
+fn run_clipboard<Message: Send>(
+    proxy: &mut Proxy<Message>,
+    clipboard: &mut Clipboard,
+    requests: core::Clipboard,
+    window: window::Id,
+) {
+    for kind in requests.reads {
+        let proxy = proxy.clone();
+
+        clipboard.read(kind, move |result| {
+            proxy.send_action(Action::Event {
+                window,
+                event: core::Event::Clipboard(core::clipboard::Event::Read(result.map(Arc::new))),
+            });
+        });
+    }
+
+    if let Some(content) = requests.write {
+        let proxy = proxy.clone();
+
+        clipboard.write(content, move |result| {
+            proxy.send_action(Action::Event {
+                window,
+                event: core::Event::Clipboard(core::clipboard::Event::Written(result)),
+            });
+        });
     }
 }

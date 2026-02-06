@@ -9,7 +9,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{self, Clipboard, Event, Length, Rectangle, Shell, Size, Vector};
+use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector};
 
 use ouroboros::self_referencing;
 use rustc_hash::FxHasher;
@@ -191,7 +191,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -202,7 +201,6 @@ where
                 layout,
                 cursor,
                 renderer,
-                clipboard,
                 shell,
                 viewport,
             );
@@ -378,11 +376,10 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         let _ = self.with_overlay_mut_maybe(|overlay| {
-            overlay.update(event, layout, cursor, renderer, clipboard, shell);
+            overlay.update(event, layout, cursor, renderer, shell);
         });
     }
 }

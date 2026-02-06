@@ -200,7 +200,7 @@ impl Layer {
         transformation: Transformation,
         scale: f32,
     ) {
-        self.update(device, encoder, belt, transformation, scale);
+        self.update(encoder, belt, transformation, scale);
 
         if !quads.solids.is_empty() {
             self.solid.prepare(device, encoder, belt, &quads.solids);
@@ -214,7 +214,6 @@ impl Layer {
 
     pub fn update(
         &mut self,
-        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
         transformation: Transformation,
@@ -228,7 +227,6 @@ impl Layer {
             &self.constants_buffer,
             0,
             (bytes.len() as u64).try_into().expect("Sized uniforms"),
-            device,
         )
         .copy_from_slice(bytes);
     }

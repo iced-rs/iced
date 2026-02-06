@@ -41,7 +41,7 @@ impl Pipeline {
             address_mode_w: wgpu::AddressMode::ClampToEdge,
             min_filter: wgpu::FilterMode::Nearest,
             mag_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
             ..Default::default()
         });
 
@@ -51,7 +51,7 @@ impl Pipeline {
             address_mode_w: wgpu::AddressMode::ClampToEdge,
             min_filter: wgpu::FilterMode::Linear,
             mag_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::MipmapFilterMode::Linear,
             ..Default::default()
         });
 
@@ -93,14 +93,16 @@ impl Pipeline {
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("iced_wgpu::image pipeline layout"),
-            push_constant_ranges: &[],
             bind_group_layouts: &[&constant_layout, &texture_layout],
+            immediate_size: 0,
         });
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("iced_wgpu image shader"),
             source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(concat!(
                 include_str!("../shader/vertex.wgsl"),
+                "\n",
+                include_str!("../shader/color.wgsl"),
                 "\n",
                 include_str!("../shader/image.wgsl"),
             ))),
@@ -134,8 +136,6 @@ impl Pipeline {
                         7 => Float32x2,
                         // Layer
                         8 => Sint32,
-                        // Snap
-                        9 => Uint32,
                     ),
                 }],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
@@ -145,18 +145,7 @@ impl Pipeline {
                 entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format,
-                    blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent {
-                            src_factor: wgpu::BlendFactor::SrcAlpha,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
-                        alpha: wgpu::BlendComponent {
-                            src_factor: wgpu::BlendFactor::One,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
-                    }),
+                    blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
@@ -172,7 +161,7 @@ impl Pipeline {
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
 
@@ -242,6 +231,13 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
+                    let bounds = (*bounds * scale).round();
+                    let clip_bounds = (*clip_bounds * scale).round();
+
+                    if bounds.width < 1.0 || bounds.height < 1.0 {
+                        return;
+                    }
+
                     if let Some((atlas_entry, bind_group)) =
                         cache.upload_raster(device, encoder, belt, &image.handle)
                     {
@@ -258,12 +254,11 @@ impl State {
                         }
 
                         add_instances(
-                            *bounds,
-                            *clip_bounds,
-                            image.border_radius,
+                            bounds,
+                            clip_bounds,
+                            image.border_radius * scale,
                             f32::from(image.rotation),
                             image.opacity,
-                            image.snap,
                             atlas_entry,
                             match image.filter_method {
                                 crate::core::image::FilterMethod::Nearest => {
@@ -285,14 +280,20 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
+                    let bounds = (*bounds * scale).round();
+                    let clip_bounds = (*clip_bounds * scale).round();
+
+                    if bounds.width < 1.0 || bounds.height < 1.0 {
+                        return;
+                    }
+
                     if let Some((atlas_entry, bind_group)) = cache.upload_vector(
                         device,
                         encoder,
                         belt,
                         &svg.handle,
                         svg.color,
-                        bounds.size(),
-                        scale,
+                        Size::new(bounds.width as u32, bounds.height as u32),
                     ) {
                         match atlas.as_mut() {
                             None => {
@@ -307,12 +308,11 @@ impl State {
                         }
 
                         add_instances(
-                            *bounds,
-                            *clip_bounds,
+                            bounds,
+                            clip_bounds,
                             border::radius(0),
                             f32::from(svg.rotation),
                             svg.opacity,
-                            true,
                             atlas_entry,
                             &mut self.nearest_instances,
                         );
@@ -332,7 +332,6 @@ impl State {
             encoder,
             belt,
             transformation,
-            scale,
             &self.nearest_instances,
             &self.linear_instances,
         );
@@ -462,14 +461,11 @@ impl Layer {
         encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
         transformation: Transformation,
-        scale_factor: f32,
         nearest: &[Instance],
         linear: &[Instance],
     ) {
         let uniforms = Uniforms {
             transform: transformation.into(),
-            scale_factor,
-            _padding: [0.0; 3],
         };
 
         let bytes = bytemuck::bytes_of(&uniforms);
@@ -479,7 +475,6 @@ impl Layer {
             &self.uniforms,
             0,
             (bytes.len() as u64).try_into().expect("Sized uniforms"),
-            device,
         )
         .copy_from_slice(bytes);
 
@@ -490,11 +485,11 @@ impl Layer {
         let mut offset = 0;
 
         if !nearest.is_empty() {
-            offset += self.instances.write(device, encoder, belt, 0, nearest);
+            offset += self.instances.write(encoder, belt, 0, nearest);
         }
 
         if !linear.is_empty() {
-            let _ = self.instances.write(device, encoder, belt, offset, linear);
+            let _ = self.instances.write(encoder, belt, offset, linear);
         }
     }
 
@@ -571,7 +566,6 @@ struct Instance {
     _position_in_atlas: [f32; 2],
     _size_in_atlas: [f32; 2],
     _layer: u32,
-    _snap: u32,
 }
 
 impl Instance {
@@ -582,10 +576,6 @@ impl Instance {
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 struct Uniforms {
     transform: [f32; 16],
-    scale_factor: f32,
-    // Uniforms must be aligned to their largest member,
-    // this uses a mat4x4<f32> which aligns to 16, so align to that
-    _padding: [f32; 3],
 }
 
 fn add_instances(
@@ -594,7 +584,6 @@ fn add_instances(
     border_radius: border::Radius,
     rotation: f32,
     opacity: f32,
-    snap: bool,
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
@@ -621,7 +610,6 @@ fn add_instances(
                 [bounds.x, bounds.y, bounds.width, bounds.height],
                 rotation,
                 opacity,
-                snap,
                 allocation,
                 instances,
             );
@@ -653,7 +641,6 @@ fn add_instances(
                     tile,
                     rotation,
                     opacity,
-                    snap,
                     allocation,
                     instances,
                 );
@@ -670,7 +657,6 @@ fn add_instance(
     tile: [f32; 4],
     rotation: f32,
     opacity: f32,
-    snap: bool,
     allocation: &atlas::Allocation,
     instances: &mut Vec<Instance>,
 ) {
@@ -692,7 +678,6 @@ fn add_instance(
             height as f32 / atlas_size as f32,
         ],
         _layer: layer as u32,
-        _snap: snap as u32,
     };
 
     instances.push(instance);

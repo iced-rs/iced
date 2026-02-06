@@ -32,7 +32,7 @@
 //! }
 //! ```
 use crate::core::alignment;
-use crate::core::clipboard::{self, Clipboard};
+use crate::core::clipboard;
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
@@ -647,7 +647,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
@@ -685,6 +684,14 @@ where
                     shell.request_redraw_at(
                         focus.now + Duration::from_millis(millis_until_redraw as u64),
                     );
+                }
+            }
+            Event::Clipboard(clipboard::Event::Read(Ok(content))) => {
+                if let clipboard::Content::Text(text) = content.as_ref()
+                    && let Some(focus) = &mut state.focus
+                    && focus.is_window_focused
+                {
+                    shell.publish(on_edit(Action::Edit(Edit::Paste(Arc::new(text.clone())))));
                 }
             }
             _ => {}
@@ -759,7 +766,6 @@ where
                         content: &Content<R>,
                         state: &mut State<H>,
                         on_edit: &dyn Fn(Action) -> Message,
-                        clipboard: &mut dyn Clipboard,
                         shell: &mut Shell<'_, Message>,
                     ) {
                         let mut publish = |action| shell.publish(on_edit(action));
@@ -771,20 +777,18 @@ where
                             }
                             Binding::Copy => {
                                 if let Some(selection) = content.selection() {
-                                    clipboard.write(clipboard::Kind::Standard, selection);
+                                    shell.write_clipboard(clipboard::Content::Text(selection));
                                 }
                             }
                             Binding::Cut => {
                                 if let Some(selection) = content.selection() {
-                                    clipboard.write(clipboard::Kind::Standard, selection);
-
-                                    publish(Action::Edit(Edit::Delete));
+                                    shell.write_clipboard(clipboard::Content::Text(selection));
+                                    shell.publish(on_edit(Action::Edit(Edit::Delete)));
                                 }
                             }
                             Binding::Paste => {
-                                if let Some(contents) = clipboard.read(clipboard::Kind::Standard) {
-                                    publish(Action::Edit(Edit::Paste(Arc::new(contents))));
-                                }
+                                // TODO: Debounce (?)
+                                shell.read_clipboard(clipboard::Kind::Text);
                             }
                             Binding::Move(motion) => {
                                 publish(Action::Move(motion));
@@ -815,9 +819,7 @@ where
                             }
                             Binding::Sequence(sequence) => {
                                 for binding in sequence {
-                                    apply_binding(
-                                        binding, content, state, on_edit, clipboard, shell,
-                                    );
+                                    apply_binding(binding, content, state, on_edit, shell);
                                 }
                             }
                             Binding::Custom(message) => {
@@ -830,7 +832,7 @@ where
                         shell.capture_event();
                     }
 
-                    apply_binding(binding, self.content, state, on_edit, clipboard, shell);
+                    apply_binding(binding, self.content, state, on_edit, shell);
 
                     if let Some(focus) = &mut state.focus {
                         focus.updated_at = Instant::now();
@@ -988,7 +990,10 @@ where
                         );
                     }
                 }
-                Selection::Caret(_) => {}
+                Selection::Caret(_) => {
+                    // Drawing an empty quad helps some renderers to track the damage of the blinking cursor
+                    renderer.fill_quad(renderer::Quad::default(), Color::TRANSPARENT);
+                }
             }
         }
     }

@@ -29,8 +29,8 @@ wgpu = ["wgpu-bare", "iced_renderer/wgpu"]
 wgpu-bare = ["iced_renderer/wgpu-bare", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer
 tiny-skia = ["iced_renderer/tiny-skia"]
-# Enables the `image` widget
-image = ["image-without-codecs", "image/default"]
+# Enables the `image` widget and image clipboard support
+image = ["image-without-codecs", "image/default", "iced_winit/image"]
 # Enables the `image` widget, without any built-in codecs of the `image` crate
 image-without-codecs = ["iced_widget/image", "dep:image"]
 # Enables the `svg` widget
@@ -165,7 +165,7 @@ repository = "https://github.com/iced-rs/iced"
 homepage = "https://iced.rs"
 categories = ["gui"]
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-rust-version = "1.88"
+rust-version = "1.92"
 
 [workspace.dependencies]
 iced = { version = "0.15.0-dev", path = "." }
@@ -187,13 +187,14 @@ iced_wgpu = { version = "0.15.0-dev", path = "wgpu", default-features = false }
 iced_widget = { version = "0.15.0-dev", path = "widget" }
 iced_winit = { version = "0.15.0-dev", path = "winit", default-features = false }
 
+arboard = { version = "3.6", default-features = false }
 bincode = "1.3"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cargo-hot = { version = "0.1", package = "cargo-hot-protocol" }
-cosmic-text = { git = "https://github.com/pop-os/cosmic-text.git", rev = "a07a6190548c8e40a55f6b7761387047ff1bf6ff" }
-cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "89883bcf38b5bed0d7bade788ef738d9facc857c" }
+cosmic-text = "0.16"
+cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "3836ca7a17f410d30871c2254dcc0f2400876636" }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 glam = "0.25"
 guillotiere = "0.6"
@@ -235,8 +236,7 @@ wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.2"
 web-sys = "0.3.69"
 web-time = "1.1"
-wgpu = { version = "27.0", default-features = false, features = ["std", "wgsl"] }
-window_clipboard = { version = "0.5", default-features = false }
+wgpu = { version = "28.0", default-features = false, features = ["std", "wgsl"] }
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed", default-features = false, features = ["rwh_06"] }
 
 [workspace.lints.rust]

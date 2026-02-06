@@ -561,7 +561,14 @@ pub mod task {
 
 pub mod clipboard {
     //! Access the clipboard.
-    pub use crate::runtime::clipboard::{read, read_primary, write, write_primary};
+    pub use crate::core::clipboard::{Content, Kind};
+    pub use crate::runtime::clipboard::{read, read_files, read_html, read_text, write};
+
+    #[cfg(feature = "image")]
+    pub use crate::core::clipboard::Image;
+
+    #[cfg(feature = "image")]
+    pub use crate::runtime::clipboard::read_image;
 }
 
 pub mod executor {
@@ -610,7 +617,7 @@ pub mod overlay {
     /// This is an alias of an [`overlay::Element`] with a default `Renderer`.
     ///
     /// [`overlay::Element`]: crate::core::overlay::Element
-    pub type Element<'a, Message, Theme = crate::Renderer, Renderer = crate::Renderer> =
+    pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> =
         crate::core::overlay::Element<'a, Message, Theme, Renderer>;
 
     pub use iced_widget::overlay::*;

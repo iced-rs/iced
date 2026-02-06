@@ -8,9 +8,7 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{
-    self, Clipboard, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 
 /// A reusable, custom widget that uses The Elm Architecture.
 ///
@@ -222,7 +220,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -251,7 +248,6 @@ where
                 Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
                 cursor,
                 renderer,
-                clipboard,
                 &mut local_shell,
                 viewport,
             );
@@ -270,6 +266,7 @@ where
 
             shell.request_redraw_at(local_shell.redraw_request());
             shell.request_input_method(local_shell.input_method());
+            shell.clipboard_mut().merge(local_shell.clipboard_mut());
         }
 
         if internal.events.is_empty() {
@@ -345,7 +342,6 @@ where
                 Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
                 cursor,
                 renderer,
-                clipboard,
                 &mut local_shell,
                 viewport,
             );
@@ -477,19 +473,13 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         let mut local_shell = Shell::new(&mut self.internal.events);
 
-        self.raw.as_overlay_mut().update(
-            event,
-            layout,
-            cursor,
-            renderer,
-            clipboard,
-            &mut local_shell,
-        );
+        self.raw
+            .as_overlay_mut()
+            .update(event, layout, cursor, renderer, &mut local_shell);
 
         if local_shell.is_event_captured() {
             shell.capture_event();
@@ -505,6 +495,7 @@ where
 
         shell.request_redraw_at(local_shell.redraw_request());
         shell.request_input_method(local_shell.input_method());
+        shell.clipboard_mut().merge(local_shell.clipboard_mut());
 
         if self.internal.events.is_empty() {
             return;

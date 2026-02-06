@@ -96,7 +96,7 @@ impl Markdown {
 
                 Task::none()
             }
-            Message::Copy(content) => clipboard::write(content),
+            Message::Copy(content) => clipboard::write(content).discard(),
             Message::LinkClicked(link) => {
                 let _ = webbrowser::open(&link);
                 Task::none()

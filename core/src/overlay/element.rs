@@ -4,7 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Event, Layout, Shell, Size};
+use crate::{Event, Layout, Shell, Size};
 
 /// A generic [`Overlay`].
 pub struct Element<'a, Message, Theme, Renderer> {
@@ -81,14 +81,13 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
     ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
         self.content
-            .update(event, layout, cursor, renderer, clipboard, &mut local_shell);
+            .update(event, layout, cursor, renderer, &mut local_shell);
 
         shell.merge(local_shell, self.mapper);
     }

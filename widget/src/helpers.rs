@@ -663,16 +663,15 @@ where
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
-            clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
             let is_mouse_press =
                 matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
 
-            self.content.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-            );
+            self.content
+                .as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
 
             if is_mouse_press && cursor.is_over(layout.bounds()) {
                 shell.capture_event();
@@ -858,7 +857,6 @@ where
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
-            clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
@@ -898,7 +896,7 @@ where
                 let redraw_request = shell.redraw_request();
 
                 self.top.as_widget_mut().update(
-                    top_tree, event, top_layout, cursor, renderer, clipboard, shell, viewport,
+                    top_tree, event, top_layout, cursor, renderer, shell, viewport,
                 );
 
                 // Ignore redraw requests of invisible content
@@ -917,7 +915,6 @@ where
                 base_layout,
                 cursor,
                 renderer,
-                clipboard,
                 shell,
                 viewport,
             );

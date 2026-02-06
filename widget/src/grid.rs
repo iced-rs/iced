@@ -4,9 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
-use crate::core::{
-    Clipboard, Element, Event, Length, Pixels, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{Element, Event, Length, Pixels, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that distributes its contents on a responsive grid.
 pub struct Grid<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
@@ -266,7 +264,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -276,9 +273,9 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
         {
-            child.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-            );
+            child
+                .as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 

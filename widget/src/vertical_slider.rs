@@ -41,9 +41,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{
-    self, Clipboard, Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Widget,
-};
+use crate::core::{self, Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Widget};
 
 /// An vertical bar and a handle that selects a single value from a range of
 /// values.
@@ -249,7 +247,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {

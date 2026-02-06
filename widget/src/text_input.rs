@@ -41,7 +41,7 @@ pub use value::Value;
 use editor::Editor;
 
 use crate::core::alignment;
-use crate::core::clipboard::{self, Clipboard};
+use crate::core::clipboard;
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
@@ -561,7 +561,8 @@ where
                     },
                 );
             } else {
-                renderer.with_translation(Vector::ZERO, |_| {});
+                // Drawing an empty quad helps some renderers to track the damage of the blinking cursor
+                renderer.fill_quad(renderer::Quad::default(), Color::TRANSPARENT);
             }
 
             renderer.fill_paragraph(
@@ -645,7 +646,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
@@ -844,10 +844,9 @@ where
                     match key.to_latin(*physical_key) {
                         Some('c') if state.keyboard_modifiers.command() && !self.is_secure => {
                             if let Some((start, end)) = state.cursor.selection(&self.value) {
-                                clipboard.write(
-                                    clipboard::Kind::Standard,
+                                shell.write_clipboard(clipboard::Content::Text(
                                     self.value.select(start, end).to_string(),
-                                );
+                                ));
                             }
 
                             shell.capture_event();
@@ -859,10 +858,9 @@ where
                             };
 
                             if let Some((start, end)) = state.cursor.selection(&self.value) {
-                                clipboard.write(
-                                    clipboard::Kind::Standard,
+                                shell.write_clipboard(clipboard::Content::Text(
                                     self.value.select(start, end).to_string(),
-                                );
+                                ));
                             }
 
                             let mut editor = Editor::new(&mut self.value, &mut state.cursor);
@@ -884,17 +882,13 @@ where
                                 return;
                             };
 
-                            let content = match state.is_pasting.take() {
-                                Some(content) => content,
+                            let content = match &state.is_pasting {
+                                Some(Paste::Pasting(content)) => content,
+                                Some(Paste::Reading) => return,
                                 None => {
-                                    let content: String = clipboard
-                                        .read(clipboard::Kind::Standard)
-                                        .unwrap_or_default()
-                                        .chars()
-                                        .filter(|c| !c.is_control())
-                                        .collect();
-
-                                    Value::new(&content)
+                                    shell.read_clipboard(clipboard::Kind::Text);
+                                    state.is_pasting = Some(Paste::Reading);
+                                    return;
                                 }
                             };
 
@@ -909,7 +903,6 @@ where
                             shell.publish(message);
                             shell.capture_event();
 
-                            state.is_pasting = Some(content);
                             focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
                             return;
@@ -1141,7 +1134,6 @@ where
                     && let keyboard::Key::Character("v") = key.as_ref()
                 {
                     state.is_pasting = None;
-
                     shell.capture_event();
                 }
 
@@ -1151,6 +1143,38 @@ where
                 let state = state::<Renderer>(tree);
 
                 state.keyboard_modifiers = *modifiers;
+            }
+            Event::Clipboard(clipboard::Event::Read(Ok(content))) => {
+                let Some(on_input) = &self.on_input else {
+                    return;
+                };
+
+                let state = state::<Renderer>(tree);
+
+                let Some(focus) = &mut state.is_focused else {
+                    return;
+                };
+
+                if let clipboard::Content::Text(text) = content.as_ref()
+                    && let Some(Paste::Reading) = state.is_pasting
+                {
+                    state.is_pasting = Some(Paste::Pasting(Value::new(text)));
+
+                    let mut editor = Editor::new(&mut self.value, &mut state.cursor);
+                    editor.paste(Value::new(text));
+
+                    let message = if let Some(paste) = &self.on_paste {
+                        (paste)(editor.contents())
+                    } else {
+                        (on_input)(editor.contents())
+                    };
+                    shell.publish(message);
+                    shell.capture_event();
+
+                    focus.updated_at = Instant::now();
+                    update_cache(state, &self.value);
+                    return;
+                }
             }
             Event::InputMethod(event) => match event {
                 input_method::Event::Opened | input_method::Event::Closed => {
@@ -1340,7 +1364,7 @@ pub struct State<P: text::Paragraph> {
     icon: paragraph::Plain<P>,
     is_focused: Option<Focus>,
     is_dragging: Option<Drag>,
-    is_pasting: Option<Value>,
+    is_pasting: Option<Paste>,
     preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
@@ -1363,6 +1387,12 @@ struct Focus {
 enum Drag {
     Select,
     SelectWords { anchor: usize },
+}
+
+#[derive(Debug, Clone)]
+enum Paste {
+    Reading,
+    Pasting(Value),
 }
 
 impl<P: text::Paragraph> State<P> {

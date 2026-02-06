@@ -8,8 +8,8 @@ use crate::core::widget::text::{
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    self, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A bunch of [`Rich`] text.
@@ -345,7 +345,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
