@@ -20,7 +20,7 @@ sysinfo = ["dep:sysinfo"]
 hinting = []
 unconditional-rendering = []
 linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme"]
-image = ["iced_core/clipboard-image", "arboard/image-data"]
+image = ["iced_core/image", "arboard/image-data"]
 x11 = ["winit/x11"]
 wayland = ["winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita", "arboard/wayland-data-control"]
 

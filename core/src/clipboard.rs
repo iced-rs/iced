@@ -51,7 +51,7 @@ pub enum Event {
 pub enum Content {
     Text(String),
     Html(String),
-    #[cfg(feature = "clipboard-image")]
+    #[cfg(feature = "image")]
     Image(Image),
     FileList(Vec<PathBuf>),
 }
@@ -69,13 +69,13 @@ impl From<String> for Content {
 pub enum Kind {
     Text,
     Html,
-    #[cfg(feature = "clipboard-image")]
+    #[cfg(feature = "image")]
     Image,
     FileList,
 }
 
 /// A clipboard image.
-#[cfg(feature = "clipboard-image")]
+#[cfg(feature = "image")]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Image {
     /// The pixels of the image in RGBA format.
