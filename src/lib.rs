@@ -562,10 +562,13 @@ pub mod task {
 pub mod clipboard {
     //! Access the clipboard.
     pub use crate::core::clipboard::{Content, Kind};
-    pub use crate::runtime::clipboard::{read, write};
+    pub use crate::runtime::clipboard::{read, read_files, read_html, read_text, write};
 
     #[cfg(feature = "image")]
     pub use crate::core::clipboard::Image;
+
+    #[cfg(feature = "image")]
+    pub use crate::runtime::clipboard::read_image;
 }
 
 pub mod executor {

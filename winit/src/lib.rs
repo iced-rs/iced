@@ -18,11 +18,11 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-pub use iced_core as core;
 pub use iced_debug as debug;
 pub use iced_program as program;
+pub use iced_runtime as runtime;
+pub use program::core;
 pub use program::graphics;
-pub use program::runtime;
 pub use runtime::futures;
 pub use winit;
 

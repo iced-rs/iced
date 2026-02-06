@@ -78,7 +78,7 @@ mod platform {
 
                         Content::Image(crate::core::clipboard::Image { rgba, size })
                     }),
-                    Kind::FileList => get.file_list().map(Content::FileList),
+                    Kind::Files => get.file_list().map(Content::Files),
                     kind => {
                         log::warn!("unsupported clipboard kind: {kind:?}");
 
@@ -121,7 +121,7 @@ mod platform {
                         width: image.size.width as usize,
                         height: image.size.height as usize,
                     }),
-                    Content::FileList(files) => set.file_list(&files),
+                    Content::Files(files) => set.file_list(&files),
                     content => {
                         log::warn!("unsupported clipboard content: {content:?}");
 

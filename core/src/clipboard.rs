@@ -53,7 +53,7 @@ pub enum Content {
     Html(String),
     #[cfg(feature = "image")]
     Image(Image),
-    FileList(Vec<PathBuf>),
+    Files(Vec<PathBuf>),
 }
 
 impl From<String> for Content {
@@ -71,7 +71,7 @@ pub enum Kind {
     Html,
     #[cfg(feature = "image")]
     Image,
-    FileList,
+    Files,
 }
 
 /// A clipboard image.
