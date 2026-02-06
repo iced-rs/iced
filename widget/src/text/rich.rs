@@ -13,6 +13,7 @@ use crate::core::{
     Shell, Size, Vector, Widget,
 };
 
+
 /// A bunch of [`Rich`] text.
 pub struct Rich<'a, Link, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
@@ -817,6 +818,13 @@ where
         let size = size.unwrap_or_else(|| renderer.default_size());
         let font = font.unwrap_or_else(|| renderer.default_font());
 
+        // Use Basic shaping for pure ASCII content, Advanced for complex text
+        let shaping = if spans.iter().all(|span| span.text.is_ascii()) {
+            Shaping::Basic
+        } else {
+            Shaping::Advanced
+        };
+
         let text_with_spans = || core::Text {
             content: spans,
             bounds,
@@ -825,7 +833,7 @@ where
             font,
             align_x,
             align_y,
-            shaping: Shaping::Advanced,
+            shaping,
             wrapping,
             hint_factor: renderer.scale_factor(),
         };
@@ -842,7 +850,7 @@ where
                 font,
                 align_x,
                 align_y,
-                shaping: Shaping::Advanced,
+                shaping,
                 wrapping,
                 hint_factor: renderer.scale_factor(),
             }) {

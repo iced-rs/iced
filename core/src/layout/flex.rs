@@ -96,8 +96,53 @@ where
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
     nodes.resize(items.len(), Node::default());
 
+    // PRELIMINARY PASS: Calculate total fixed space BEFORE laying out shrink items
+    // This ensures Fixed items get their requested size regardless of order
+    let mut total_fixed = 0.0f32;
+    for child in items.iter() {
+        let child_size = child.as_widget().size();
+        let main_length = axis.pack(child_size.width, child_size.height).0;
+        if let Length::Fixed(amount) = main_length {
+            total_fixed += amount;
+        }
+    }
+    
+    // Reserve space for fixed items
+    available -= total_fixed;
+
+    // PASS 0: Lay out Fixed items FIRST (they have predetermined sizes)
+    for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
+        let child_size = child.as_widget().size();
+        let (main_length, cross_length) = axis.pack(child_size.width, child_size.height);
+        
+        if let Length::Fixed(amount) = main_length {
+            let fill_cross_factor = cross_length.fill_factor();
+            
+            let (max_width, max_height) = axis.pack(
+                amount, // Use the fixed amount
+                if fill_cross_factor == 0 {
+                    max_cross
+                } else {
+                    cross
+                },
+            );
+
+            let child_limits = Limits::with_compression(
+                Size::ZERO,
+                Size::new(max_width, max_height),
+                compression,
+            );
+
+            let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
+            let size = layout.size();
+
+            cross = cross.max(axis.cross(size));
+            nodes[i] = layout;
+        }
+    }
+
     // FIRST PASS
-    // We lay out non-fluid elements in the main axis.
+    // We lay out non-fluid elements in the main axis (Shrink only, Fixed already done).
     // If we need to compress the cross axis, then we skip any of these elements
     // that are also fluid in the cross axis.
     for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
@@ -106,6 +151,14 @@ where
 
             axis.pack(size.width.fill_factor(), size.height.fill_factor())
         };
+
+        let child_size = child.as_widget().size();
+        let main_length = axis.pack(child_size.width, child_size.height).0;
+        
+        // Skip Fixed items (already laid out in pass 0)
+        if matches!(main_length, Length::Fixed(_)) {
+            continue;
+        }
 
         if (main_compress || fill_main_factor == 0) && (!cross_compress || fill_cross_factor == 0) {
             let (max_width, max_height) = axis.pack(

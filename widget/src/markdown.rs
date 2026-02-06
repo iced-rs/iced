@@ -44,7 +44,6 @@
 //! }
 //! ```
 
-
 use crate::core::alignment;
 use crate::core::border;
 use crate::core::font::{self, Font};
@@ -927,7 +926,7 @@ fn parse_with<'a>(
                         emphasis,
                         strikethrough,
                         link: link.clone(),
-                        code: true,  // Use monospace font for code blocks
+                        code: true, // Use monospace font for code blocks
                     }]));
                 }
 
@@ -1198,7 +1197,7 @@ where
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     let settings = settings.into();
-    
+
     let blocks = items
         .into_iter()
         .enumerate()
@@ -1277,17 +1276,20 @@ impl Selection {
             *range = None;
         }
 
-        let Some((anchor_elem, anchor_off)) = self.anchor else { return };
-        let Some((focus_elem, focus_off)) = self.focus else { return };
+        let Some((anchor_elem, anchor_off)) = self.anchor else {
+            return;
+        };
+        let Some((focus_elem, focus_off)) = self.focus else {
+            return;
+        };
 
         // Normalize to start/end
-        let (start_elem, start_off, end_elem, end_off) = if anchor_elem < focus_elem
-            || (anchor_elem == focus_elem && anchor_off <= focus_off)
-        {
-            (anchor_elem, anchor_off, focus_elem, focus_off)
-        } else {
-            (focus_elem, focus_off, anchor_elem, anchor_off)
-        };
+        let (start_elem, start_off, end_elem, end_off) =
+            if anchor_elem < focus_elem || (anchor_elem == focus_elem && anchor_off <= focus_off) {
+                (anchor_elem, anchor_off, focus_elem, focus_off)
+            } else {
+                (focus_elem, focus_off, anchor_elem, anchor_off)
+            };
 
         // Apply selection to each element in range
         for elem_idx in start_elem..=end_elem {
@@ -1310,36 +1312,41 @@ impl Selection {
 }
 
 /// Count the total number of selectable elements in markdown items.
-/// 
+///
 /// Useful for pre-allocating selection state with [`Selection::new`].
 pub fn count_selectable_elements(items: &[Item]) -> usize {
-    items.iter().map(|item| {
-        match item {
-            Item::Paragraph(_) | Item::Heading(_, _) => 1,
-            Item::CodeBlock { lines, .. } => lines.len(),
-            Item::List { bullets, .. } => count_selectable_in_bullets(bullets),
-            Item::Quote(nested) => count_selectable_elements(nested),
-            Item::Table { columns, rows } => count_selectable_in_table(columns, rows),
-            _ => 0, // Rule, Image
-        }
-    }).sum()
+    items
+        .iter()
+        .map(|item| {
+            match item {
+                Item::Paragraph(_) | Item::Heading(_, _) => 1,
+                Item::CodeBlock { lines, .. } => lines.len(),
+                Item::List { bullets, .. } => count_selectable_in_bullets(bullets),
+                Item::Quote(nested) => count_selectable_elements(nested),
+                Item::Table { columns, rows } => count_selectable_in_table(columns, rows),
+                _ => 0, // Rule, Image
+            }
+        })
+        .sum()
 }
 
 /// Count selectable elements in a table (headers + all cells).
 fn count_selectable_in_table(columns: &[Column], rows: &[Row]) -> usize {
     // Count header cells (one per column header item)
-    let header_count: usize = columns.iter()
+    let header_count: usize = columns
+        .iter()
         .flat_map(|col| &col.header)
         .map(count_selectable_in_item)
         .sum();
-    
+
     // Count row cells
-    let row_count: usize = rows.iter()
+    let row_count: usize = rows
+        .iter()
         .flat_map(|row| row.cells())
         .flat_map(|cell| cell.iter())
         .map(count_selectable_in_item)
         .sum();
-    
+
     header_count + row_count
 }
 
@@ -1357,17 +1364,22 @@ fn count_selectable_in_item(item: &Item) -> usize {
 
 /// Count selectable elements in list bullets (recursively).
 fn count_selectable_in_bullets(bullets: &[Bullet]) -> usize {
-    bullets.iter().map(|bullet| {
-        bullet.items().iter().map(|item| {
-            match item {
-                Item::Paragraph(_) | Item::Heading(_, _) => 1,
-                Item::CodeBlock { lines, .. } => lines.len(),
-                Item::List { bullets, .. } => count_selectable_in_bullets(bullets),
-                Item::Quote(nested) => count_selectable_elements(nested),
-                _ => 0,
-            }
-        }).sum::<usize>()
-    }).sum()
+    bullets
+        .iter()
+        .map(|bullet| {
+            bullet
+                .items()
+                .iter()
+                .map(|item| match item {
+                    Item::Paragraph(_) | Item::Heading(_, _) => 1,
+                    Item::CodeBlock { lines, .. } => lines.len(),
+                    Item::List { bullets, .. } => count_selectable_in_bullets(bullets),
+                    Item::Quote(nested) => count_selectable_elements(nested),
+                    _ => 0,
+                })
+                .sum::<usize>()
+        })
+        .sum()
 }
 
 /// View markdown with text selection support.
@@ -1396,13 +1408,15 @@ pub fn view_selectable<'a, Message, Theme, Renderer>(
 where
     Message: Clone + 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + core::image::Renderer<Handle = crate::image::Handle> + 'a,
+    Renderer: core::text::Renderer<Font = Font>
+        + core::image::Renderer<Handle = crate::image::Handle>
+        + 'a,
 {
     let settings = settings.into();
-    
+
     // Count total selectable elements (paragraphs, headings, code block lines, list items)
     let total_elements = count_selectable_elements(items);
-    
+
     let mut element_idx = 0usize;
 
     let blocks = items.iter().map(|item_| {
@@ -1410,12 +1424,12 @@ where
             Item::Paragraph(text) => {
                 let idx = element_idx;
                 element_idx += 1;
-                
+
                 let selection = get_selection.clone()(idx);
                 let on_s = on_start.clone();
                 let on_d = on_drag.clone();
                 let on_e = on_end.clone();
-                
+
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(settings.text_size)
@@ -1432,12 +1446,12 @@ where
             Item::Heading(level, text) => {
                 let idx = element_idx;
                 element_idx += 1;
-                
+
                 let selection = get_selection.clone()(idx);
                 let on_s = on_start.clone();
                 let on_d = on_drag.clone();
                 let on_e = on_end.clone();
-                
+
                 let size = match level {
                     HeadingLevel::H1 => settings.h1_size,
                     HeadingLevel::H2 => settings.h2_size,
@@ -1461,7 +1475,7 @@ where
             Item::CodeBlock { lines, .. } => {
                 let start_idx = element_idx;
                 element_idx += lines.len();
-                
+
                 code_block_selectable(
                     settings,
                     lines,
@@ -1477,7 +1491,7 @@ where
             Item::List { start, bullets } => {
                 let start_idx = element_idx;
                 element_idx += count_selectable_in_bullets(bullets);
-                
+
                 list_selectable(
                     settings,
                     *start,
@@ -1491,20 +1505,16 @@ where
                     on_end.clone(),
                 )
             }
-            Item::Rule => {
-                rule::horizontal(settings.spacing).into()
-            }
+            Item::Rule => rule::horizontal(settings.spacing).into(),
             Item::Image { url, alt, .. } => {
                 // Try to show cached image, fallback to alt text
                 if let Some(handle) = images.and_then(|imgs| imgs.get(url)) {
-                    crate::image(handle.clone())
-                        .width(Length::Shrink)
-                        .into()
+                    crate::image(handle.clone()).width(Length::Shrink).into()
                 } else {
                     container(
                         rich_text(alt.spans(settings.style))
                             .font(settings.style.font)
-                            .size(settings.text_size)
+                            .size(settings.text_size),
                     )
                     .padding(settings.spacing)
                     .class(Theme::code_block())
@@ -1514,7 +1524,7 @@ where
             Item::Quote(nested) => {
                 let start_idx = element_idx;
                 element_idx += count_selectable_elements(nested);
-                
+
                 quote_selectable(
                     settings,
                     nested,
@@ -1530,7 +1540,7 @@ where
             Item::Table { columns, rows } => {
                 let start_idx = element_idx;
                 element_idx += count_selectable_in_table(columns, rows);
-                
+
                 table_selectable(
                     settings,
                     columns,
@@ -1567,7 +1577,9 @@ pub fn view_selectable_with<'a, Message, Theme, Renderer, V>(
 where
     Message: Clone + 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + core::image::Renderer<Handle = crate::image::Handle> + 'a,
+    Renderer: core::text::Renderer<Font = Font>
+        + core::image::Renderer<Handle = crate::image::Handle>
+        + 'a,
     V: Viewer<'a, Message, Theme, Renderer>,
 {
     let settings = settings.into();
@@ -1579,12 +1591,12 @@ where
             Item::Paragraph(text) => {
                 let idx = element_idx;
                 element_idx += 1;
-                
+
                 let selection = get_selection.clone()(idx);
                 let on_s = on_start.clone();
                 let on_d = on_drag.clone();
                 let on_e = on_end.clone();
-                
+
                 rich_text(text.spans(settings.style))
                     .on_link_click(V::on_link_click)
                     .font(settings.style.font)
@@ -1602,12 +1614,12 @@ where
             Item::Heading(level, text) => {
                 let idx = element_idx;
                 element_idx += 1;
-                
+
                 let selection = get_selection.clone()(idx);
                 let on_s = on_start.clone();
                 let on_d = on_drag.clone();
                 let on_e = on_end.clone();
-                
+
                 let size = match level {
                     HeadingLevel::H1 => settings.h1_size,
                     HeadingLevel::H2 => settings.h2_size,
@@ -1632,7 +1644,7 @@ where
             Item::CodeBlock { lines, .. } => {
                 let start_idx = element_idx;
                 element_idx += lines.len();
-                
+
                 code_block_selectable(
                     settings,
                     lines,
@@ -1648,7 +1660,7 @@ where
             Item::List { start, bullets } => {
                 let start_idx = element_idx;
                 element_idx += count_selectable_in_bullets(bullets);
-                
+
                 list_selectable(
                     settings,
                     *start,
@@ -1665,7 +1677,7 @@ where
             Item::Quote(nested) => {
                 let start_idx = element_idx;
                 element_idx += count_selectable_elements(nested);
-                
+
                 quote_selectable(
                     settings,
                     nested,
@@ -1678,9 +1690,7 @@ where
                     on_end.clone(),
                 )
             }
-            Item::Rule => {
-                rule::horizontal(settings.spacing).into()
-            }
+            Item::Rule => rule::horizontal(settings.spacing).into(),
             Item::Image { url, title, alt } => {
                 // Delegate to viewer for custom image handling (lazy loading, etc.)
                 viewer.image(settings, url, title, alt)
@@ -1688,7 +1698,7 @@ where
             Item::Table { columns, rows } => {
                 let start_idx = element_idx;
                 element_idx += count_selectable_in_table(columns, rows);
-                
+
                 table_selectable(
                     settings,
                     columns,
@@ -1734,7 +1744,7 @@ where
             let on_s = on_start.clone();
             let on_d = on_drag.clone();
             let on_e = on_end.clone();
-            
+
             rich_text(line.spans(settings.style))
                 .font(Font::MONOSPACE)
                 .size(settings.code_size)
@@ -1750,13 +1760,11 @@ where
         })
         .collect();
 
-    container(
-        column(line_elements).width(Length::Fill)
-    )
-    .width(Length::Fill)
-    .padding(settings.code_size)
-    .class(Theme::code_block())
-    .into()
+    container(column(line_elements).width(Length::Fill))
+        .width(Length::Fill)
+        .padding(settings.code_size)
+        .class(Theme::code_block())
+        .into()
 }
 
 /// Render a list with per-item selection support  
@@ -1788,15 +1796,9 @@ where
         .enumerate()
         .map(|(i, bullet)| {
             let marker: Element<'_, Message, Theme, Renderer> = match (start, bullet) {
-                (None, Bullet::Point { .. }) => {
-                    crate::text("•")
-                        .size(settings.text_size)
-                        .into()
-                }
+                (None, Bullet::Point { .. }) => crate::text("•").size(settings.text_size).into(),
                 (None, Bullet::Task { done, .. }) => {
-                    checkbox(*done)
-                        .size(settings.text_size)
-                        .into()
+                    checkbox(*done).size(settings.text_size).into()
                 }
                 (Some(start), _) => {
                     let number = start + i as u64;
@@ -1819,7 +1821,7 @@ where
                             let on_s = on_start.clone();
                             let on_d = on_drag.clone();
                             let on_e = on_end.clone();
-                            
+
                             rich_text(text.spans(settings.style))
                                 .font(settings.style.font)
                                 .size(settings.text_size)
@@ -1832,7 +1834,10 @@ where
                                 .on_selection_end(on_e)
                                 .into()
                         }
-                        Item::List { start: nested_start, bullets: nested_bullets } => {
+                        Item::List {
+                            start: nested_start,
+                            bullets: nested_bullets,
+                        } => {
                             let nested_count = count_selectable_in_bullets(nested_bullets);
                             let nested_start_idx = current_idx;
                             current_idx += nested_count;
@@ -1849,9 +1854,7 @@ where
                                 on_end.clone(),
                             )
                         }
-                        _ => {
-                            crate::text("").into()
-                        }
+                        _ => crate::text("").into(),
                     };
                     elem
                 })
@@ -1866,9 +1869,7 @@ where
         })
         .collect();
 
-    column(bullet_elements)
-        .spacing(settings.spacing / 2)
-        .into()
+    column(bullet_elements).spacing(settings.spacing / 2).into()
 }
 
 /// Render a quote with selection support for nested items.
@@ -1889,91 +1890,89 @@ where
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     let mut current_idx = start_idx;
-    
+
     let content_elements: Vec<Element<'a, Message, Theme, Renderer>> = items
         .iter()
-        .map(|item_| {
-            match item_ {
-                Item::Paragraph(text) => {
-                    let idx = current_idx;
-                    current_idx += 1;
-                    let selection = get_selection.clone()(idx);
-                    let on_s = on_start.clone();
-                    let on_d = on_drag.clone();
-                    let on_e = on_end.clone();
-                    
-                    rich_text(text.spans(settings.style))
-                        .font(settings.style.font)
-                        .size(settings.text_size)
-                        .selection(selection)
-                        .selection_color(settings.style.selection_color)
-                        .global_selecting(is_selecting)
-                        .paragraph_info(idx, total_elements)
-                        .on_selection_start(move |offset| on_s(idx, offset))
-                        .on_selection_drag(move |offset| on_d(idx, offset))
-                        .on_selection_end(on_e)
-                        .into()
-                }
-                Item::Heading(level, text) => {
-                    let idx = current_idx;
-                    current_idx += 1;
-                    let selection = get_selection.clone()(idx);
-                    let on_s = on_start.clone();
-                    let on_d = on_drag.clone();
-                    let on_e = on_end.clone();
-                    
-                    let size = match level {
-                        HeadingLevel::H1 => settings.h1_size,
-                        HeadingLevel::H2 => settings.h2_size,
-                        HeadingLevel::H3 => settings.h3_size,
-                        HeadingLevel::H4 | HeadingLevel::H5 | HeadingLevel::H6 => settings.text_size,
-                    };
-                    
-                    rich_text(text.spans(settings.style))
-                        .font(settings.style.font)
-                        .size(size)
-                        .selection(selection)
-                        .selection_color(settings.style.selection_color)
-                        .global_selecting(is_selecting)
-                        .paragraph_info(idx, total_elements)
-                        .on_selection_start(move |offset| on_s(idx, offset))
-                        .on_selection_drag(move |offset| on_d(idx, offset))
-                        .on_selection_end(on_e)
-                        .into()
-                }
-                Item::CodeBlock { lines, .. } => {
-                    let block_start = current_idx;
-                    current_idx += lines.len();
-                    code_block_selectable(
-                        settings,
-                        lines,
-                        block_start,
-                        total_elements,
-                        is_selecting,
-                        get_selection.clone(),
-                        on_start.clone(),
-                        on_drag.clone(),
-                        on_end.clone(),
-                    )
-                }
-                Item::List { start, bullets } => {
-                    let list_start = current_idx;
-                    current_idx += count_selectable_in_bullets(bullets);
-                    list_selectable(
-                        settings,
-                        *start,
-                        bullets,
-                        list_start,
-                        total_elements,
-                        is_selecting,
-                        get_selection.clone(),
-                        on_start.clone(),
-                        on_drag.clone(),
-                        on_end.clone(),
-                    )
-                }
-                _ => crate::text("").into(),
+        .map(|item_| match item_ {
+            Item::Paragraph(text) => {
+                let idx = current_idx;
+                current_idx += 1;
+                let selection = get_selection.clone()(idx);
+                let on_s = on_start.clone();
+                let on_d = on_drag.clone();
+                let on_e = on_end.clone();
+
+                rich_text(text.spans(settings.style))
+                    .font(settings.style.font)
+                    .size(settings.text_size)
+                    .selection(selection)
+                    .selection_color(settings.style.selection_color)
+                    .global_selecting(is_selecting)
+                    .paragraph_info(idx, total_elements)
+                    .on_selection_start(move |offset| on_s(idx, offset))
+                    .on_selection_drag(move |offset| on_d(idx, offset))
+                    .on_selection_end(on_e)
+                    .into()
             }
+            Item::Heading(level, text) => {
+                let idx = current_idx;
+                current_idx += 1;
+                let selection = get_selection.clone()(idx);
+                let on_s = on_start.clone();
+                let on_d = on_drag.clone();
+                let on_e = on_end.clone();
+
+                let size = match level {
+                    HeadingLevel::H1 => settings.h1_size,
+                    HeadingLevel::H2 => settings.h2_size,
+                    HeadingLevel::H3 => settings.h3_size,
+                    HeadingLevel::H4 | HeadingLevel::H5 | HeadingLevel::H6 => settings.text_size,
+                };
+
+                rich_text(text.spans(settings.style))
+                    .font(settings.style.font)
+                    .size(size)
+                    .selection(selection)
+                    .selection_color(settings.style.selection_color)
+                    .global_selecting(is_selecting)
+                    .paragraph_info(idx, total_elements)
+                    .on_selection_start(move |offset| on_s(idx, offset))
+                    .on_selection_drag(move |offset| on_d(idx, offset))
+                    .on_selection_end(on_e)
+                    .into()
+            }
+            Item::CodeBlock { lines, .. } => {
+                let block_start = current_idx;
+                current_idx += lines.len();
+                code_block_selectable(
+                    settings,
+                    lines,
+                    block_start,
+                    total_elements,
+                    is_selecting,
+                    get_selection.clone(),
+                    on_start.clone(),
+                    on_drag.clone(),
+                    on_end.clone(),
+                )
+            }
+            Item::List { start, bullets } => {
+                let list_start = current_idx;
+                current_idx += count_selectable_in_bullets(bullets);
+                list_selectable(
+                    settings,
+                    *start,
+                    bullets,
+                    list_start,
+                    total_elements,
+                    is_selecting,
+                    get_selection.clone(),
+                    on_start.clone(),
+                    on_drag.clone(),
+                    on_end.clone(),
+                )
+            }
+            _ => crate::text("").into(),
         })
         .collect();
 
@@ -2005,12 +2004,13 @@ where
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     use crate::table;
-    
+
     // Pre-compute header element count per column
-    let header_counts: Vec<usize> = columns.iter()
+    let header_counts: Vec<usize> = columns
+        .iter()
         .map(|col| col.header.iter().map(|i| count_selectable_in_item(i)).sum())
         .collect();
-    
+
     // Pre-compute cumulative header indices (starting index for each column's header)
     let mut header_start_indices = Vec::with_capacity(columns.len());
     let mut cumulative = start_idx;
@@ -2019,16 +2019,18 @@ where
         cumulative += count;
     }
     let header_end_idx = cumulative;
-    
+
     // Pre-compute row cell counts: for each row, for each column, how many selectable items
-    let row_cell_counts: Vec<Vec<usize>> = rows.iter()
+    let row_cell_counts: Vec<Vec<usize>> = rows
+        .iter()
         .map(|row| {
-            row.cells().iter()
+            row.cells()
+                .iter()
                 .map(|cell| cell.iter().map(|i| count_selectable_in_item(i)).sum())
                 .collect()
         })
         .collect();
-    
+
     // Pre-compute starting indices for each (row, column) cell
     let mut cell_start_indices: Vec<Vec<usize>> = Vec::with_capacity(rows.len());
     let mut current_idx = header_end_idx;
@@ -2040,11 +2042,11 @@ where
         }
         cell_start_indices.push(row_starts);
     }
-    
+
     // Clone what we need for closures
     let cell_start_indices = std::sync::Arc::new(cell_start_indices);
     let rows_arc = std::sync::Arc::new(rows.iter().collect::<Vec<_>>());
-    
+
     let table_widget = table(
         columns.iter().enumerate().map(|(col_idx, col)| {
             let header_start = header_start_indices[col_idx];
@@ -2052,21 +2054,30 @@ where
             let on_s = on_start.clone();
             let on_d = on_drag.clone();
             let on_e = on_end.clone();
-            
+
             // Build header with selection
-            let header_elements: Vec<Element<'a, Message, Theme, Renderer>> = col.header.iter()
+            let header_elements: Vec<Element<'a, Message, Theme, Renderer>> = col
+                .header
+                .iter()
                 .enumerate()
                 .map(|(item_idx, item)| {
                     let idx = header_start + item_idx;
                     render_item_with_index(
-                        settings, item, idx, total_elements, is_selecting,
-                        get_sel.clone(), on_s.clone(), on_d.clone(), on_e.clone(),
+                        settings,
+                        item,
+                        idx,
+                        total_elements,
+                        is_selecting,
+                        get_sel.clone(),
+                        on_s.clone(),
+                        on_d.clone(),
+                        on_e.clone(),
                     )
                 })
                 .collect();
-            
+
             let header = column(header_elements).spacing(settings.spacing.0 / 2.0);
-            
+
             // Clone for the cell closure
             let cell_indices = cell_start_indices.clone();
             let rows_ref = rows_arc.clone();
@@ -2074,35 +2085,49 @@ where
             let on_s2 = on_start.clone();
             let on_d2 = on_drag.clone();
             let on_e2 = on_end.clone();
-            
+
             table::column(
                 header,
                 move |row: &Row| -> Element<'a, Message, Theme, Renderer> {
                     // Find which row index this is
-                    let row_idx = rows_ref.iter().position(|r| std::ptr::eq(*r, row)).unwrap_or(0);
-                    
+                    let row_idx = rows_ref
+                        .iter()
+                        .position(|r| std::ptr::eq(*r, row))
+                        .unwrap_or(0);
+
                     if let Some(cells) = row.cells.get(col_idx) {
-                        let cell_start = cell_indices.get(row_idx)
+                        let cell_start = cell_indices
+                            .get(row_idx)
                             .and_then(|r| r.get(col_idx))
                             .copied()
                             .unwrap_or(0);
-                        
-                        let cell_elements: Vec<Element<'a, Message, Theme, Renderer>> = cells.iter()
+
+                        let cell_elements: Vec<Element<'a, Message, Theme, Renderer>> = cells
+                            .iter()
                             .enumerate()
                             .map(|(item_idx, item)| {
                                 let idx = cell_start + item_idx;
                                 render_item_with_index(
-                                    settings, item, idx, total_elements, is_selecting,
-                                    get_sel2.clone(), on_s2.clone(), on_d2.clone(), on_e2.clone(),
+                                    settings,
+                                    item,
+                                    idx,
+                                    total_elements,
+                                    is_selecting,
+                                    get_sel2.clone(),
+                                    on_s2.clone(),
+                                    on_d2.clone(),
+                                    on_e2.clone(),
                                 )
                             })
                             .collect();
-                        
-                        column(cell_elements).spacing(settings.spacing.0 / 2.0).into()
+
+                        column(cell_elements)
+                            .spacing(settings.spacing.0 / 2.0)
+                            .into()
                     } else {
                         crate::text("").into()
                     }
-                }
+                },
             )
             .align_x(match col.alignment {
                 pulldown_cmark::Alignment::None | pulldown_cmark::Alignment::Left => {

@@ -177,7 +177,7 @@ impl core::text::Paragraph for Paragraph {
                 (span.text.as_ref(), attrs.metadata(i))
             }),
             &text::to_attributes(text.font),
-            cosmic_text::Shaping::Advanced,
+            text::to_shaping_for_spans(text.shaping, text.content),
             None,
         );
 

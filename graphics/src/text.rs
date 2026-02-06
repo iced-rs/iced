@@ -11,7 +11,7 @@ pub use cosmic_text;
 
 use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::{Alignment, Shaping, Wrapping};
+use crate::core::text::{Alignment, Shaping, Span, Wrapping};
 use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
 use std::borrow::Cow;
@@ -325,6 +325,26 @@ pub fn to_shaping(shaping: Shaping, text: &str) -> cosmic_text::Shaping {
     match shaping {
         Shaping::Auto => {
             if text.is_ascii() {
+                cosmic_text::Shaping::Basic
+            } else {
+                cosmic_text::Shaping::Advanced
+            }
+        }
+        Shaping::Basic => cosmic_text::Shaping::Basic,
+        Shaping::Advanced => cosmic_text::Shaping::Advanced,
+    }
+}
+
+/// Converts some [`Shaping`] strategy to a [`cosmic_text::Shaping`] strategy for rich text.
+/// Checks if all spans are ASCII to decide whether Basic shaping can be used.
+pub fn to_shaping_for_spans<'a, Link>(
+    shaping: Shaping,
+    spans: &[Span<'a, Link>],
+) -> cosmic_text::Shaping {
+    match shaping {
+        Shaping::Auto => {
+            let all_ascii = spans.iter().all(|span| span.text.is_ascii());
+            if all_ascii {
                 cosmic_text::Shaping::Basic
             } else {
                 cosmic_text::Shaping::Advanced
