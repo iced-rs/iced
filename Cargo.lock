@@ -1198,6 +1198,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 
 [[package]]
+name = "dawn-rs"
+version = "0.1.0-dev"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "241642d1486063eee111953db621b67b6204416fe74138f60e844e455599a1f1"
+dependencies = [
+ "bitflags 2.10.0",
+]
+
+[[package]]
+name = "dawn-wgpu"
+version = "0.1.0-dev"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3cea50b7c165fa61cdf55638a63ed03b355ca6bfa2aff987361a9cb69976718"
+dependencies = [
+ "dawn-rs",
+ "objc2 0.5.2",
+ "objc2-quartz-core 0.2.2",
+ "raw-window-metal",
+ "wgpu",
+ "wgpu-types",
+]
+
+[[package]]
 name = "delineate"
 version = "0.1.0"
 dependencies = [
@@ -2494,6 +2517,7 @@ dependencies = [
  "bitflags 2.10.0",
  "bytemuck",
  "cryoglyph",
+ "dawn-wgpu",
  "futures",
  "glam",
  "guillotiere",
@@ -3716,7 +3740,7 @@ dependencies = [
  "block2 0.5.1",
  "objc2 0.5.2",
  "objc2-foundation 0.2.2",
- "objc2-metal",
+ "objc2-metal 0.2.2",
 ]
 
 [[package]]
@@ -3834,6 +3858,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "objc2-metal"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0125f776a10d00af4152d74616409f0d4a2053a6f57fa5b7d6aa2854ac04794"
+dependencies = [
+ "bitflags 2.10.0",
+ "objc2 0.6.3",
+ "objc2-foundation 0.3.2",
+]
+
+[[package]]
 name = "objc2-quartz-core"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3843,7 +3878,7 @@ dependencies = [
  "block2 0.5.1",
  "objc2 0.5.2",
  "objc2-foundation 0.2.2",
- "objc2-metal",
+ "objc2-metal 0.2.2",
 ]
 
 [[package]]
@@ -3856,6 +3891,7 @@ dependencies = [
  "objc2 0.6.3",
  "objc2-core-foundation",
  "objc2-foundation 0.3.2",
+ "objc2-metal 0.3.2",
 ]
 
 [[package]]
@@ -4664,6 +4700,18 @@ name = "raw-window-handle"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
+
+[[package]]
+name = "raw-window-metal"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "40d213455a5f1dc59214213c7330e074ddf8114c9a42411eb890c767357ce135"
+dependencies = [
+ "objc2 0.6.3",
+ "objc2-core-foundation",
+ "objc2-foundation 0.3.2",
+ "objc2-quartz-core 0.3.2",
+]
 
 [[package]]
 name = "rayon"

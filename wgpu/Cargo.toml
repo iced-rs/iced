@@ -40,6 +40,7 @@ log.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
 wgpu.workspace = true
+dawn-wgpu = "0.1.0-dev"
 
 lyon.workspace = true
 lyon.optional = true
