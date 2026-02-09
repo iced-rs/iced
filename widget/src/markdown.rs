@@ -1022,6 +1022,11 @@ pub struct Settings {
     pub spacing: Pixels,
     /// The styling of the Markdown.
     pub style: Style,
+    /// The width of text elements (paragraphs, headings, code blocks).
+    ///
+    /// Defaults to [`Length::Fill`]. Set to [`Length::Shrink`] for
+    /// content that should wrap to the natural text width
+    pub width: Length,
 }
 
 impl Settings {
@@ -1049,6 +1054,7 @@ impl Settings {
             code_size: text_size,
             spacing: text_size * 0.875,
             style: style.into(),
+            width: Length::Fill,
         }
     }
 }
@@ -1433,7 +1439,7 @@ where
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(settings.text_size)
-                    .width(Length::Fill)
+                    .width(settings.width)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
                     .global_selecting(is_selecting)
@@ -1462,7 +1468,7 @@ where
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(size)
-                    .width(Length::Fill)
+                    .width(settings.width)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
                     .global_selecting(is_selecting)
@@ -1601,7 +1607,7 @@ where
                     .on_link_click(V::on_link_click)
                     .font(settings.style.font)
                     .size(settings.text_size)
-                    .width(Length::Fill)
+                    .width(settings.width)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
                     .global_selecting(is_selecting)
@@ -1631,7 +1637,7 @@ where
                     .on_link_click(V::on_link_click)
                     .font(settings.style.font)
                     .size(size)
-                    .width(Length::Fill)
+                    .width(settings.width)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
                     .global_selecting(is_selecting)
@@ -1748,7 +1754,7 @@ where
             rich_text(line.spans(settings.style))
                 .font(Font::MONOSPACE)
                 .size(settings.code_size)
-                .width(Length::Fill)
+                .width(settings.width)
                 .selection(selection)
                 .selection_color(settings.style.selection_color)
                 .global_selecting(is_selecting)
@@ -1760,8 +1766,8 @@ where
         })
         .collect();
 
-    container(column(line_elements).width(Length::Fill))
-        .width(Length::Fill)
+    container(column(line_elements).width(settings.width))
+        .width(settings.width)
         .padding(settings.code_size)
         .class(Theme::code_block())
         .into()
@@ -2412,7 +2418,7 @@ where
                 .scroller_width(settings.code_size / 2),
         )),
     )
-    .width(Length::Fill)
+    .width(settings.width)
     .padding(settings.code_size / 4)
     .class(Theme::code_block())
     .into()
