@@ -2517,6 +2517,7 @@ dependencies = [
  "bitflags 2.10.0",
  "bytemuck",
  "cryoglyph",
+ "dawn-rs",
  "dawn-wgpu",
  "futures",
  "glam",

@@ -33,6 +33,7 @@ pub mod geometry;
 mod buffer;
 mod color;
 mod engine;
+mod instance;
 mod quad;
 mod text;
 mod triangle;
@@ -878,11 +879,11 @@ impl renderer::Headless for Renderer {
             return None;
         }
 
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::from_env().unwrap_or(wgpu::Backends::PRIMARY),
-            flags: wgpu::InstanceFlags::empty(),
-            ..wgpu::InstanceDescriptor::default()
-        });
+        let instance = instance::create_instance(
+            wgpu::Backends::from_env().unwrap_or(wgpu::Backends::PRIMARY),
+            wgpu::InstanceFlags::empty(),
+        )
+        .await;
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {

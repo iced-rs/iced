@@ -4,6 +4,7 @@ use crate::graphics::color;
 use crate::graphics::compositor;
 use crate::graphics::error;
 use crate::graphics::{self, Shell, Viewport};
+use crate::instance;
 use crate::settings::{self, Settings};
 use crate::{Engine, Renderer};
 
@@ -52,15 +53,14 @@ impl Compositor {
         compatible_window: Option<W>,
         shell: Shell,
     ) -> Result<Self, Error> {
-        let instance = wgpu::util::new_instance_with_webgpu_detection(&wgpu::InstanceDescriptor {
-            backends: settings.backends,
-            flags: if cfg!(feature = "strict-assertions") {
+        let instance = instance::create_instance(
+            settings.backends,
+            if cfg!(feature = "strict-assertions") {
                 wgpu::InstanceFlags::debugging()
             } else {
                 wgpu::InstanceFlags::empty()
             },
-            ..Default::default()
-        })
+        )
         .await;
 
         log::info!("{settings:#?}");
