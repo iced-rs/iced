@@ -1199,18 +1199,18 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 
 [[package]]
 name = "dawn-rs"
-version = "0.1.0-dev"
+version = "0.1.1-dev"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "241642d1486063eee111953db621b67b6204416fe74138f60e844e455599a1f1"
+checksum = "2bbe2f792bb6a402401b3123e59b96e1306673237be3f514daa214513cc991c3"
 dependencies = [
  "bitflags 2.10.0",
 ]
 
 [[package]]
 name = "dawn-wgpu"
-version = "0.1.0-dev"
+version = "0.1.1-dev"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3cea50b7c165fa61cdf55638a63ed03b355ca6bfa2aff987361a9cb69976718"
+checksum = "809fd58751b9f8c496fec57b200bb04ce1fab9cb7a6df50cbb8e9e09932ca895"
 dependencies = [
  "dawn-rs",
  "objc2 0.5.2",
