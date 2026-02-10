@@ -5,6 +5,7 @@ use crate::graphics::compositor;
 use crate::graphics::error;
 use crate::graphics::{self, Shell, Viewport};
 use crate::instance;
+use crate::limits;
 use crate::settings::{self, Settings};
 use crate::{Engine, Renderer};
 
@@ -142,20 +143,7 @@ impl Compositor {
 
         log::info!("Selected format: {format:?} with alpha mode: {alpha_mode:?}");
 
-        #[cfg(target_arch = "wasm32")]
-        let limits = [wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())];
-
-        #[cfg(not(target_arch = "wasm32"))]
-        let limits = [
-            wgpu::Limits::default().using_resolution(adapter.limits()),
-            wgpu::Limits::downlevel_defaults().using_resolution(adapter.limits()),
-        ];
-
-        let limits = limits.into_iter().map(|limits| wgpu::Limits {
-            max_bind_groups: 2,
-            max_non_sampler_bindings: 2048,
-            ..limits
-        });
+        let limits = limits::required_limits(adapter.limits());
 
         // Request SHADER_F16 only if the adapter supports it (e.g., not available in WebGL2)
         let required_features = if adapter.features().contains(wgpu::Features::SHADER_F16) {
@@ -164,47 +152,39 @@ impl Compositor {
             wgpu::Features::empty()
         };
 
-        let mut errors = Vec::new();
+        let result = adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("iced_wgpu::window::compositor device descriptor"),
+                required_features,
+                required_limits: limits.clone(),
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                trace: wgpu::Trace::Off,
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
+            })
+            .await;
 
-        for required_limits in limits {
-            let result = adapter
-                .request_device(&wgpu::DeviceDescriptor {
-                    label: Some("iced_wgpu::window::compositor device descriptor"),
-                    required_features,
-                    required_limits: required_limits.clone(),
-                    memory_hints: wgpu::MemoryHints::MemoryUsage,
-                    trace: wgpu::Trace::Off,
-                    experimental_features: wgpu::ExperimentalFeatures::disabled(),
+        match result {
+            Ok((device, queue)) => {
+                let engine = Engine::new(
+                    &adapter,
+                    device,
+                    queue,
+                    format,
+                    settings.antialiasing,
+                    shell,
+                );
+
+                Ok(Compositor {
+                    instance,
+                    adapter,
+                    format,
+                    alpha_mode,
+                    engine,
+                    settings,
                 })
-                .await;
-
-            match result {
-                Ok((device, queue)) => {
-                    let engine = Engine::new(
-                        &adapter,
-                        device,
-                        queue,
-                        format,
-                        settings.antialiasing,
-                        shell,
-                    );
-
-                    return Ok(Compositor {
-                        instance,
-                        adapter,
-                        format,
-                        alpha_mode,
-                        engine,
-                        settings,
-                    });
-                }
-                Err(error) => {
-                    errors.push((required_limits, error));
-                }
             }
+            Err(error) => Err(Error::RequestDeviceFailed(vec![(limits, error)])),
         }
-
-        Err(Error::RequestDeviceFailed(errors))
     }
 }
 

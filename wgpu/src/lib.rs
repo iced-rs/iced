@@ -34,6 +34,7 @@ mod buffer;
 mod color;
 mod engine;
 mod instance;
+mod limits;
 mod quad;
 mod text;
 mod triangle;
@@ -894,10 +895,7 @@ impl renderer::Headless for Renderer {
             .await
             .ok()?;
 
-        let required_limits = wgpu::Limits {
-            max_bind_groups: 2,
-            ..wgpu::Limits::default().using_resolution(adapter.limits())
-        };
+        let required_limits = limits::required_limits(adapter.limits());
 
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
