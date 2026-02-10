@@ -146,7 +146,10 @@ impl Compositor {
         let limits = [wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())];
 
         #[cfg(not(target_arch = "wasm32"))]
-        let limits = [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
+        let limits = [
+            wgpu::Limits::default().using_resolution(adapter.limits()),
+            wgpu::Limits::downlevel_defaults().using_resolution(adapter.limits()),
+        ];
 
         let limits = limits.into_iter().map(|limits| wgpu::Limits {
             max_bind_groups: 2,

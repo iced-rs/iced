@@ -894,14 +894,16 @@ impl renderer::Headless for Renderer {
             .await
             .ok()?;
 
+        let required_limits = wgpu::Limits {
+            max_bind_groups: 2,
+            ..wgpu::Limits::default().using_resolution(adapter.limits())
+        };
+
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: Some("iced_wgpu [headless]"),
                 required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits {
-                    max_bind_groups: 2,
-                    ..wgpu::Limits::default()
-                },
+                required_limits,
                 memory_hints: wgpu::MemoryHints::MemoryUsage,
                 trace: wgpu::Trace::Off,
                 experimental_features: wgpu::ExperimentalFeatures::disabled(),
