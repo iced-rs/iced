@@ -1215,33 +1215,38 @@ where
     use futures::futures;
 
     let mut actions = Vec::new();
+    let mut outputs = Vec::new();
 
-    while let Some(message) = messages.pop() {
-        let task = runtime.enter(|| program.update(message));
+    while !messages.is_empty() {
+        for message in messages.drain(..) {
+            let task = runtime.enter(|| program.update(message));
 
-        if let Some(mut stream) = runtime::task::into_stream(task) {
-            let waker = futures::task::noop_waker_ref();
-            let mut context = futures::task::Context::from_waker(waker);
+            if let Some(mut stream) = runtime::task::into_stream(task) {
+                let waker = futures::task::noop_waker_ref();
+                let mut context = futures::task::Context::from_waker(waker);
 
-            // Run immediately available actions synchronously (e.g. widget operations)
-            loop {
-                match runtime.enter(|| stream.poll_next_unpin(&mut context)) {
-                    futures::task::Poll::Ready(Some(Action::Output(output))) => {
-                        messages.push(output);
-                    }
-                    futures::task::Poll::Ready(Some(action)) => {
-                        actions.push(action);
-                    }
-                    futures::task::Poll::Ready(None) => {
-                        break;
-                    }
-                    futures::task::Poll::Pending => {
-                        runtime.run(stream);
-                        break;
+                // Run immediately available actions synchronously (e.g. widget operations)
+                loop {
+                    match runtime.enter(|| stream.poll_next_unpin(&mut context)) {
+                        futures::task::Poll::Ready(Some(Action::Output(output))) => {
+                            outputs.push(output);
+                        }
+                        futures::task::Poll::Ready(Some(action)) => {
+                            actions.push(action);
+                        }
+                        futures::task::Poll::Ready(None) => {
+                            break;
+                        }
+                        futures::task::Poll::Pending => {
+                            runtime.run(stream);
+                            break;
+                        }
                     }
                 }
             }
         }
+
+        messages.append(&mut outputs);
     }
 
     let subscription = runtime.enter(|| program.subscription());
