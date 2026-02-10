@@ -1216,7 +1216,7 @@ where
 
     let mut actions = Vec::new();
 
-    for message in messages.drain(..) {
+    while let Some(message) = messages.pop() {
         let task = runtime.enter(|| program.update(message));
 
         if let Some(mut stream) = runtime::task::into_stream(task) {
@@ -1226,6 +1226,9 @@ where
             // Run immediately available actions synchronously (e.g. widget operations)
             loop {
                 match runtime.enter(|| stream.poll_next_unpin(&mut context)) {
+                    futures::task::Poll::Ready(Some(Action::Output(output))) => {
+                        messages.push(output);
+                    }
                     futures::task::Poll::Ready(Some(action)) => {
                         actions.push(action);
                     }
