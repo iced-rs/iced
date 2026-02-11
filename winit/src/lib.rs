@@ -69,14 +69,12 @@ use std::slice;
 use std::sync::Arc;
 
 #[cfg(target_os = "android")]
-extern crate android_activity;
-#[cfg(target_os = "android")]
-use android_activity::AndroidApp;
-#[cfg(target_os = "android")]
-use std::sync::OnceLock;
+pub use android_activity;
 
 #[cfg(target_os = "android")]
-pub static ANDROID_APP: OnceLock<AndroidApp> = OnceLock::new();
+/// Android Application
+pub static ANDROID_APP: std::sync::OnceLock<android_activity::AndroidApp> =
+    std::sync::OnceLock::new();
 
 /// Runs a [`Program`] with the provided settings.
 pub fn run<P>(program: P) -> Result<(), Error>
@@ -90,16 +88,19 @@ where
     let settings = program.settings();
     let window_settings = program.window();
 
+    #[cfg(not(target_os = "android"))]
     let mut builder = EventLoop::with_user_event();
 
     #[cfg(target_os = "android")]
-    {
+    let mut builder = {
         use winit::platform::android::EventLoopBuilderExtAndroid;
 
         if let Some(app) = ANDROID_APP.get() {
-            builder.with_android_app(app.clone());
+            EventLoop::with_user_event().with_android_app(app.clone())
+        } else {
+            EventLoop::with_user_event()
         }
-    }
+    };
 
     let event_loop = builder.build().expect("Create event loop");
 
