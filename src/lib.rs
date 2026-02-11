@@ -439,14 +439,14 @@
 //!                     }
 //!                  }
 //!             } else {
-//!                 Task::none()    
+//!                 Task::none()
 //!             }
 //!         }
 //!         Message::Conversation(message) => {
 //!             if let Screen::Conversation(conversation) = &mut state.screen {
 //!                 conversation.update(message).map(Message::Conversation)
 //!             } else {
-//!                 Task::none()    
+//!                 Task::none()
 //!             }
 //!         }
 //!     }
@@ -501,6 +501,8 @@ compile_error!(
     not(target_os = "macos"),
     not(feature = "wayland"),
     not(feature = "x11"),
+    not(target_os = "android"),
+    not(target_os = "ios")
 ))]
 compile_error!(
     "No Unix display server backend has been enabled. You must enable a \
