@@ -203,13 +203,17 @@ pub fn window_event(
         WindowEvent::KeyboardInput { is_synthetic, .. } if is_synthetic => None,
         WindowEvent::KeyboardInput { event, .. } => Some(Event::Keyboard({
             let key = {
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(all(
+                    not(target_arch = "wasm32"),
+                    not(target_os = "ios"),
+                    not(target_os = "android")
+                ))]
                 {
                     use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
                     event.key_without_modifiers()
                 }
 
-                #[cfg(target_arch = "wasm32")]
+                #[cfg(any(target_arch = "wasm32", target_os = "ios", target_os = "android"))]
                 {
                     // TODO: Fix inconsistent API on Wasm
                     event.logical_key.clone()
@@ -217,7 +221,11 @@ pub fn window_event(
             };
 
             let text = {
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(all(
+                    not(target_arch = "wasm32"),
+                    not(target_os = "ios"),
+                    not(target_os = "android")
+                ))]
                 {
                     use crate::core::SmolStr;
                     use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
@@ -225,7 +233,7 @@ pub fn window_event(
                     event.text_with_all_modifiers().map(SmolStr::new)
                 }
 
-                #[cfg(target_arch = "wasm32")]
+                #[cfg(any(target_arch = "wasm32", target_os = "ios", target_os = "android"))]
                 {
                     // TODO: Fix inconsistent API on Wasm
                     event.text

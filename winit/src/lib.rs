@@ -42,7 +42,7 @@ use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -395,12 +395,13 @@ where
                     #[cfg(target_os = "ios")]
                     let window_attributes = {
                         use winit::platform::ios::WindowAttributesExtIOS;
-                        window_attributes = window_attributes
+                        let mut window_attributes_mod = window_attributes
                             .with_prefers_home_indicator_hidden(true)
                             .with_prefers_status_bar_hidden(true);
-                        window_attributes.inner_size = None;
-                        window_attributes.max_inner_size = None;
-                        window_attributes.min_inner_size = None;
+                        window_attributes_mod.inner_size = None;
+                        window_attributes_mod.max_inner_size = None;
+                        window_attributes_mod.min_inner_size = None;
+                        window_attributes_mod
                     };
 
                     #[cfg(target_arch = "wasm32")]
