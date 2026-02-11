@@ -92,7 +92,7 @@ x11 = ["iced_renderer/x11", "iced_winit/x11"]
 # Enables the Unix Wayland backend
 wayland = ["iced_renderer/wayland", "iced_winit/wayland"]
 # Enables the arboard clipboard support
-clipboard = ["iced_winit/clipboard", "iced_program/clipboard"]
+clipboard = ["iced_winit/clipboard", "iced_core/clipboard"]
 
 [dependencies]
 iced_debug.workspace = true
