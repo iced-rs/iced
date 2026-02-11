@@ -32,6 +32,7 @@
 //! }
 //! ```
 use crate::core::alignment;
+#[cfg(feature = "clipboard")]
 use crate::core::clipboard;
 use crate::core::input_method;
 use crate::core::keyboard;
@@ -686,6 +687,7 @@ where
                     );
                 }
             }
+            #[cfg(feature = "clipboard")]
             Event::Clipboard(clipboard::Event::Read(Ok(content))) => {
                 if let clipboard::Content::Text(text) = content.as_ref()
                     && let Some(focus) = &mut state.focus
@@ -775,12 +777,16 @@ where
                                 state.focus = None;
                                 state.drag_click = None;
                             }
-                            Binding::Copy => {
+                            Binding::Copy =>
+                            {
+                                #[cfg(feature = "clipboard")]
                                 if let Some(selection) = content.selection() {
                                     shell.write_clipboard(clipboard::Content::Text(selection));
                                 }
                             }
-                            Binding::Cut => {
+                            Binding::Cut =>
+                            {
+                                #[cfg(feature = "clipboard")]
                                 if let Some(selection) = content.selection() {
                                     shell.write_clipboard(clipboard::Content::Text(selection));
                                     shell.publish(on_edit(Action::Edit(Edit::Delete)));
@@ -788,6 +794,7 @@ where
                             }
                             Binding::Paste => {
                                 // TODO: Debounce (?)
+                                #[cfg(feature = "clipboard")]
                                 shell.read_clipboard(clipboard::Kind::Text);
                             }
                             Binding::Move(motion) => {

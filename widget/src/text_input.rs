@@ -41,6 +41,7 @@ pub use value::Value;
 use editor::Editor;
 
 use crate::core::alignment;
+#[cfg(feature = "clipboard")]
 use crate::core::clipboard;
 use crate::core::input_method;
 use crate::core::keyboard;
@@ -842,6 +843,7 @@ where
                     let modifiers = state.keyboard_modifiers;
 
                     match key.to_latin(*physical_key) {
+                        #[cfg(feature = "clipboard")]
                         Some('c') if state.keyboard_modifiers.command() && !self.is_secure => {
                             if let Some((start, end)) = state.cursor.selection(&self.value) {
                                 shell.write_clipboard(clipboard::Content::Text(
@@ -852,6 +854,7 @@ where
                             shell.capture_event();
                             return;
                         }
+                        #[cfg(feature = "clipboard")]
                         Some('x') if state.keyboard_modifiers.command() && !self.is_secure => {
                             let Some(on_input) = &self.on_input else {
                                 return;
@@ -874,6 +877,7 @@ where
                             update_cache(state, &self.value);
                             return;
                         }
+                        #[cfg(feature = "clipboard")]
                         Some('v')
                             if state.keyboard_modifiers.command()
                                 && !state.keyboard_modifiers.alt() =>
@@ -1144,6 +1148,7 @@ where
 
                 state.keyboard_modifiers = *modifiers;
             }
+            #[cfg(feature = "clipboard")]
             Event::Clipboard(clipboard::Event::Read(Ok(content))) => {
                 let Some(on_input) = &self.on_input else {
                     return;
