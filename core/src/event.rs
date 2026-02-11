@@ -1,4 +1,5 @@
 //! Handle events of a user interface.
+#[cfg(feature = "clipboard")]
 use crate::clipboard;
 use crate::input_method;
 use crate::keyboard;
@@ -30,6 +31,7 @@ pub enum Event {
     InputMethod(input_method::Event),
 
     /// A clipboard event
+    #[cfg(feature = "clipboard")]
     Clipboard(clipboard::Event),
 }
 

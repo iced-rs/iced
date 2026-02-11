@@ -26,6 +26,7 @@ pub use program::graphics;
 pub use runtime::futures;
 pub use winit;
 
+#[cfg(feature = "clipboard")]
 pub mod clipboard;
 pub mod conversion;
 
@@ -33,16 +34,19 @@ mod error;
 mod proxy;
 mod window;
 
+#[cfg(feature = "clipboard")]
 pub use clipboard::Clipboard;
 pub use error::Error;
 pub use proxy::Proxy;
 
+#[cfg(feature = "hinting")]
+use crate::core::Renderer;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -574,6 +578,7 @@ async fn run_instance<P>(
 
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
+    #[cfg(feature = "clipboard")]
     let mut clipboard = Clipboard::new();
 
     #[cfg(all(feature = "linux-theme-detection", target_os = "linux"))]
@@ -801,6 +806,7 @@ async fn run_instance<P>(
                             &mut compositor,
                             &mut events,
                             &mut messages,
+                            #[cfg(feature = "clipboard")]
                             &mut clipboard,
                             &mut control_sender,
                             &mut user_interfaces,
@@ -917,6 +923,7 @@ async fn run_instance<P>(
                                         &mut compositor,
                                         &mut events,
                                         &mut messages,
+                                        #[cfg(feature = "clipboard")]
                                         &mut clipboard,
                                         &mut control_sender,
                                         &mut user_interfaces,
@@ -982,7 +989,8 @@ async fn run_instance<P>(
                             redraw_request,
                             input_method,
                             mouse_interaction,
-                            clipboard: clipboard_requests,
+                            #[cfg(feature = "clipboard")]
+                                clipboard: clipboard_requests,
                             ..
                         } = state
                         {
@@ -990,6 +998,7 @@ async fn run_instance<P>(
                             window.request_input_method(input_method);
                             window.update_mouse(mouse_interaction);
 
+                            #[cfg(feature = "clipboard")]
                             run_clipboard(&mut proxy, &mut clipboard, clipboard_requests, id);
                         }
 
@@ -1100,6 +1109,7 @@ async fn run_instance<P>(
                                 &mut compositor,
                                 &mut events,
                                 &mut messages,
+                                #[cfg(feature = "clipboard")]
                                 &mut clipboard,
                                 &mut control_sender,
                                 &mut user_interfaces,
@@ -1166,7 +1176,8 @@ async fn run_instance<P>(
                                 user_interface::State::Updated {
                                     redraw_request: _redraw_request,
                                     mouse_interaction,
-                                    clipboard: clipboard_requests,
+                                    #[cfg(feature = "clipboard")]
+                                        clipboard: clipboard_requests,
                                     ..
                                 } => {
                                     window.update_mouse(mouse_interaction);
@@ -1174,6 +1185,7 @@ async fn run_instance<P>(
                                     #[cfg(not(feature = "unconditional-rendering"))]
                                     window.request_redraw(_redraw_request);
 
+                                    #[cfg(feature = "clipboard")]
                                     run_clipboard(
                                         &mut proxy,
                                         &mut clipboard,
@@ -1230,6 +1242,7 @@ async fn run_instance<P>(
                                     &mut compositor,
                                     &mut events,
                                     &mut messages,
+                                    #[cfg(feature = "clipboard")]
                                     &mut clipboard,
                                     &mut control_sender,
                                     &mut user_interfaces,
@@ -1345,7 +1358,7 @@ fn run_action<'a, P, C>(
     compositor: &mut Option<C>,
     events: &mut Vec<(window::Id, core::Event)>,
     messages: &mut Vec<P::Message>,
-    clipboard: &mut Clipboard,
+    #[cfg(feature = "clipboard")] clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
     interfaces: &mut FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>,
     window_manager: &mut WindowManager<P, C>,
@@ -1358,6 +1371,7 @@ fn run_action<'a, P, C>(
     P::Theme: theme::Base,
 {
     use crate::core::Renderer as _;
+    #[cfg(feature = "clipboard")]
     use crate::runtime::clipboard;
     use crate::runtime::window;
 
@@ -1365,6 +1379,7 @@ fn run_action<'a, P, C>(
         Action::Output(message) => {
             messages.push(message);
         }
+        #[cfg(feature = "clipboard")]
         Action::Clipboard(action) => match action {
             clipboard::Action::Read { kind, channel } => {
                 clipboard.read(kind, move |result| {
@@ -1869,6 +1884,7 @@ fn system_information(graphics: compositor::Information) -> system::Information 
     }
 }
 
+#[cfg(feature = "clipboard")]
 fn run_clipboard<Message: Send>(
     proxy: &mut Proxy<Message>,
     clipboard: &mut Clipboard,

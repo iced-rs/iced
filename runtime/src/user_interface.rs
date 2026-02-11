@@ -1,4 +1,6 @@
 //! Implement your own event loop to drive a user interface.
+#[cfg(feature = "clipboard")]
+use crate::core::Clipboard;
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -6,7 +8,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
+use crate::core::{Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -186,6 +188,7 @@ where
         let mut outdated = false;
         let mut redraw_request = window::RedrawRequest::Wait;
         let mut input_method = InputMethod::Disabled;
+        #[cfg(feature = "clipboard")]
         let mut clipboard = Clipboard::new();
         let mut has_layout_changed = false;
         let viewport = Rectangle::with_size(self.bounds);
@@ -217,6 +220,7 @@ where
                 event_statuses.push(shell.event_status());
                 redraw_request = redraw_request.min(shell.redraw_request());
                 input_method.merge(shell.input_method());
+                #[cfg(feature = "clipboard")]
                 clipboard.merge(shell.clipboard_mut());
 
                 if shell.is_layout_invalid() {
@@ -320,6 +324,7 @@ where
 
                 redraw_request = redraw_request.min(shell.redraw_request());
                 input_method.merge(shell.input_method());
+                #[cfg(feature = "clipboard")]
                 clipboard.merge(shell.clipboard_mut());
 
                 shell.revalidate_layout(|| {
@@ -382,6 +387,7 @@ where
                     mouse_interaction,
                     redraw_request,
                     input_method,
+                    #[cfg(feature = "clipboard")]
                     clipboard,
                     has_layout_changed,
                 }
@@ -607,6 +613,7 @@ pub enum State {
         /// The current [`InputMethod`] strategy of the user interface.
         input_method: InputMethod,
         /// The set of [`Clipboard`] requests that the user interface has produced.
+        #[cfg(feature = "clipboard")]
         clipboard: Clipboard,
         /// Whether the layout of the [`UserInterface`] has changed.
         has_layout_changed: bool,

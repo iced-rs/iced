@@ -1,7 +1,10 @@
+#[cfg(feature = "clipboard")]
+use crate::Clipboard;
+use crate::InputMethod;
+#[cfg(feature = "clipboard")]
 use crate::clipboard;
 use crate::event;
 use crate::window;
-use crate::{Clipboard, InputMethod};
 
 /// A connection to the state of a shell.
 ///
@@ -17,6 +20,7 @@ pub struct Shell<'a, Message> {
     input_method: InputMethod,
     is_layout_invalid: bool,
     are_widgets_invalid: bool,
+    #[cfg(feature = "clipboard")]
     clipboard: Clipboard,
 }
 
@@ -30,6 +34,7 @@ impl<'a, Message> Shell<'a, Message> {
             is_layout_invalid: false,
             are_widgets_invalid: false,
             input_method: InputMethod::Disabled,
+            #[cfg(feature = "clipboard")]
             clipboard: Clipboard {
                 reads: Vec::new(),
                 write: None,
@@ -96,6 +101,8 @@ impl<'a, Message> Shell<'a, Message> {
     /// Requests the runtime to read the clipboard contents expecting the given [`clipboard::Kind`].
     ///
     /// The runtime will produce a [`clipboard::Event::Read`] when the contents have been read.
+
+    #[cfg(feature = "clipboard")]
     pub fn read_clipboard(&mut self, kind: clipboard::Kind) {
         self.clipboard.reads.push(kind);
     }
@@ -103,11 +110,13 @@ impl<'a, Message> Shell<'a, Message> {
     /// Requests the runtime to write the given [`clipboard::Content`] to the clipboard.
     ///
     /// The runtime will produce a [`clipboard::Event::Written`] when the contents have been written.
+    #[cfg(feature = "clipboard")]
     pub fn write_clipboard(&mut self, content: clipboard::Content) {
         self.clipboard.write = Some(content);
     }
 
     /// Returns the [`Clipboard`] requests of the [`Shell`], mutably.
+    #[cfg(feature = "clipboard")]
     pub fn clipboard_mut(&mut self) -> &mut Clipboard {
         &mut self.clipboard
     }
@@ -173,6 +182,7 @@ impl<'a, Message> Shell<'a, Message> {
     /// function to the messages of the latter.
     ///
     /// This method is useful for composition.
+    #[cfg_attr(not(feature = "clipboard"), allow(unused_mut))]
     pub fn merge<B>(&mut self, mut other: Shell<'_, B>, f: impl Fn(B) -> Message) {
         self.messages.extend(other.messages.drain(..).map(f));
 
@@ -182,6 +192,7 @@ impl<'a, Message> Shell<'a, Message> {
         self.event_status = self.event_status.merge(other.event_status);
 
         self.input_method.merge(&other.input_method);
+        #[cfg(feature = "clipboard")]
         self.clipboard.merge(&mut other.clipboard);
     }
 }

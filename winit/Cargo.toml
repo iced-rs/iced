@@ -14,7 +14,7 @@ keywords.workspace = true
 workspace = true
 
 [features]
-default = ["x11", "wayland"]
+default = ["x11", "wayland", "clipboard"]
 debug = ["iced_debug/enable"]
 sysinfo = ["dep:sysinfo"]
 hinting = []
@@ -23,12 +23,14 @@ linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme"]
 image = ["iced_runtime/image", "arboard/image-data"]
 x11 = ["winit/x11"]
 wayland = ["winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita", "arboard/wayland-data-control"]
+clipboard = ["dep:arboard", "iced_runtime/clipboard"]
 
 [dependencies]
 iced_debug.workspace = true
 iced_program.workspace = true
 iced_runtime.workspace = true
-
+arboard.workspace = true
+arboard.optional = true
 log.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
@@ -37,9 +39,6 @@ winit.workspace = true
 
 sysinfo.workspace = true
 sysinfo.optional = true
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-arboard.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys.workspace = true

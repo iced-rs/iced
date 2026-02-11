@@ -19,6 +19,7 @@ crisp = []
 image = []
 basic-shaping = []
 advanced-shaping = []
+clipboard = []
 
 [dependencies]
 bitflags.workspace = true

@@ -17,6 +17,7 @@ workspace = true
 [features]
 debug = []
 time-travel = []
+clipboard = ["iced_runtime/clipboard"]
 
 [dependencies]
 iced_graphics.workspace = true

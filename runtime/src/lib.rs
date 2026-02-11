@@ -9,6 +9,7 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#[cfg(feature = "clipboard")]
 pub mod clipboard;
 pub mod font;
 pub mod image;
@@ -49,6 +50,7 @@ pub enum Action<T> {
     Widget(Box<dyn core::widget::Operation>),
 
     /// Run a clipboard action.
+    #[cfg(feature = "clipboard")]
     Clipboard(clipboard::Action),
 
     /// Run a window action.
@@ -92,6 +94,7 @@ impl<T> Action<T> {
             Action::Output(output) => Ok(output),
             Action::LoadFont { bytes, channel } => Err(Action::LoadFont { bytes, channel }),
             Action::Widget(operation) => Err(Action::Widget(operation)),
+            #[cfg(feature = "clipboard")]
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
@@ -117,6 +120,7 @@ where
             Action::Widget { .. } => {
                 write!(f, "Action::Widget")
             }
+            #[cfg(feature = "clipboard")]
             Action::Clipboard(action) => {
                 write!(f, "Action::Clipboard({action:?})")
             }

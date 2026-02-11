@@ -12,6 +12,7 @@
 pub mod alignment;
 pub mod animation;
 pub mod border;
+#[cfg(feature = "clipboard")]
 pub mod clipboard;
 pub mod event;
 pub mod font;
@@ -54,6 +55,7 @@ pub use angle::{Degrees, Radians};
 pub use animation::Animation;
 pub use background::Background;
 pub use border::Border;
+#[cfg(feature = "clipboard")]
 pub use clipboard::Clipboard;
 pub use color::Color;
 pub use content_fit::ContentFit;
