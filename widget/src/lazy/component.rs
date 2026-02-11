@@ -330,6 +330,7 @@ where
         local_shell.revalidate_layout(|| shell.invalidate_layout());
         shell.request_redraw_at(local_shell.redraw_request());
         shell.request_input_method(local_shell.input_method());
+        #[cfg(feature = "clipboard")]
         shell.clipboard_mut().merge(local_shell.clipboard_mut());
 
         if !local_messages.is_empty() {
@@ -597,6 +598,7 @@ where
         local_shell.revalidate_layout(|| shell.invalidate_layout());
         shell.request_redraw_at(local_shell.redraw_request());
         shell.request_input_method(local_shell.input_method());
+        #[cfg(feature = "clipboard")]
         shell.clipboard_mut().merge(local_shell.clipboard_mut());
 
         if !local_messages.is_empty() {
