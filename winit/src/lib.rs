@@ -1162,9 +1162,6 @@ async fn run_instance<P>(
                             #[cfg(feature = "unconditional-rendering")]
                             window.request_redraw(window::RedrawRequest::NextFrame);
 
-                            #[cfg(target_os = "ios")]
-                            let had_events = !window_events.is_empty();
-
                             match ui_state {
                                 user_interface::State::Updated {
                                     redraw_request: _redraw_request,
@@ -1186,14 +1183,6 @@ async fn run_instance<P>(
                                 }
                                 user_interface::State::Outdated => {
                                     uis_stale = true;
-
-                                    #[cfg(target_os = "ios")]
-                                    if had_events {
-                                        tracing::debug!(
-                                            "iOS redraw fallback: forcing redraw for outdated UI"
-                                        );
-                                        window.raw.request_redraw();
-                                    }
                                 }
                             }
 
