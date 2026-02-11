@@ -40,8 +40,6 @@ impl Engine {
             return;
         }
 
-        let clip_mask = (!physical_bounds.is_within(&clip_bounds)).then_some(clip_mask as &_);
-
         let transform = into_transform(transformation);
 
         // Make sure the border radius is not larger than the bounds
@@ -125,10 +123,12 @@ impl Engine {
                     pixmap.as_ref(),
                     &tiny_skia::PixmapPaint::default(),
                     tiny_skia::Transform::default(),
-                    None,
+                    Some(clip_mask),
                 );
             }
         }
+
+        let clip_mask = (!physical_bounds.is_within(&clip_bounds)).then_some(clip_mask as &_);
 
         pixels.fill_path(
             &path,
