@@ -88,19 +88,15 @@ where
     let settings = program.settings();
     let window_settings = program.window();
 
-    #[cfg(not(target_os = "android"))]
     let mut builder = EventLoop::with_user_event();
 
     #[cfg(target_os = "android")]
-    let mut builder = {
+    {
         use winit::platform::android::EventLoopBuilderExtAndroid;
-
         if let Some(app) = ANDROID_APP.get() {
-            EventLoop::with_user_event().with_android_app(app.clone())
-        } else {
-            EventLoop::with_user_event()
+            _ = builder.with_android_app(app.clone());
         }
-    };
+    }
 
     let event_loop = builder.build().expect("Create event loop");
 
