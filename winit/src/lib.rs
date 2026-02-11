@@ -187,9 +187,6 @@ where
         error: None,
         system_theme: Some(system_theme_sender),
 
-        error: None,
-        system_theme: Some(system_theme_sender),
-
         #[cfg(target_os = "android")]
         resumed: false,
         #[cfg(target_os = "android")]
