@@ -561,6 +561,7 @@ pub mod task {
     pub use crate::runtime::task::{Never, Sipper, Straw, sipper, stream};
 }
 
+#[cfg(feature = "clipboard")]
 pub mod clipboard {
     //! Access the clipboard.
     pub use crate::core::clipboard::{Content, Kind};
