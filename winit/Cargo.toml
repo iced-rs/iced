@@ -14,7 +14,7 @@ keywords.workspace = true
 workspace = true
 
 [features]
-default = ["x11", "wayland", "clipboard"]
+default = ["x11", "wayland"]
 debug = ["iced_debug/enable"]
 sysinfo = ["dep:sysinfo"]
 hinting = []
