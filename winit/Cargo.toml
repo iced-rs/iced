@@ -49,3 +49,6 @@ wasm-bindgen-futures.workspace = true
 [target.'cfg(target_os = "linux")'.dependencies]
 mundy.workspace = true
 mundy.optional = true
+
+[target.'cfg(target_os = "android")'.dependencies]
+android-activity = { version = "0.6", features = ["native-activity"] }

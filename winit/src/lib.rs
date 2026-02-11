@@ -64,6 +64,16 @@ use std::mem::ManuallyDrop;
 use std::slice;
 use std::sync::Arc;
 
+#[cfg(target_os = "android")]
+extern crate android_activity;
+#[cfg(target_os = "android")]
+use android_activity::AndroidApp;
+#[cfg(target_os = "android")]
+use std::sync::OnceLock;
+
+#[cfg(target_os = "android")]
+pub static ANDROID_APP: OnceLock<AndroidApp> = OnceLock::new();
+
 /// Runs a [`Program`] with the provided settings.
 pub fn run<P>(program: P) -> Result<(), Error>
 where
@@ -76,9 +86,18 @@ where
     let settings = program.settings();
     let window_settings = program.window();
 
-    let event_loop = EventLoop::with_user_event()
-        .build()
-        .expect("Create event loop");
+    let mut builder = EventLoop::with_user_event();
+
+    #[cfg(target_os = "android")]
+    {
+        use winit::platform::android::EventLoopBuilderExtAndroid;
+
+        if let Some(app) = ANDROID_APP.get() {
+            builder.with_android_app(app.clone());
+        }
+    }
+
+    let event_loop = builder.build().expect("Create event loop");
 
     let graphics_settings = settings.clone().into();
     let display_handle = event_loop.owned_display_handle();
@@ -150,6 +169,11 @@ where
         error: Option<Error>,
         system_theme: Option<oneshot::Sender<theme::Mode>>,
 
+        #[cfg(target_os = "android")]
+        resumed: bool,
+        #[cfg(target_os = "android")]
+        pending_controls: Vec<Control>,
+
         #[cfg(target_arch = "wasm32")]
         canvas: Option<web_sys::HtmlCanvasElement>,
     }
@@ -163,6 +187,14 @@ where
         error: None,
         system_theme: Some(system_theme_sender),
 
+        error: None,
+        system_theme: Some(system_theme_sender),
+
+        #[cfg(target_os = "android")]
+        resumed: false,
+        #[cfg(target_os = "android")]
+        pending_controls: Vec::new(),
+
         #[cfg(target_arch = "wasm32")]
         canvas: None,
     };
@@ -174,6 +206,16 @@ where
         F: Future<Output = ()>,
     {
         fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+            #[cfg(target_os = "android")]
+            {
+                self.resumed = true;
+                let pending = std::mem::take(&mut self.pending_controls);
+
+                for control in pending {
+                    self.handle_control(event_loop, control);
+                }
+            }
+
             if let Some(sender) = self.system_theme.take() {
                 let _ = sender.send(
                     event_loop
@@ -189,6 +231,11 @@ where
             event_loop: &winit::event_loop::ActiveEventLoop,
             cause: winit::event::StartCause,
         ) {
+            #[cfg(target_os = "android")]
+            if cause == winit::event::StartCause::Init {
+                return;
+            }
+
             self.process_event(
                 event_loop,
                 Event::EventLoopAwakened(winit::event::Event::NewEvents(cause)),
@@ -253,6 +300,16 @@ where
                 Event::EventLoopAwakened(winit::event::Event::AboutToWait),
             );
         }
+        fn suspended(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+            #[cfg(target_os = "android")]
+            {
+                self.resumed = false;
+            }
+            self.process_event(
+                event_loop,
+                Event::EventLoopAwakened(winit::event::Event::Suspended),
+            );
+        }
     }
 
     impl<Message, F> Runner<Message, F>
@@ -275,137 +332,15 @@ where
 
                 match poll {
                     task::Poll::Pending => match self.receiver.try_next() {
-                        Ok(Some(control)) => match control {
-                            Control::ChangeFlow(flow) => {
-                                use winit::event_loop::ControlFlow;
-
-                                match (event_loop.control_flow(), flow) {
-                                    (
-                                        ControlFlow::WaitUntil(current),
-                                        ControlFlow::WaitUntil(new),
-                                    ) if current < new => {}
-                                    (ControlFlow::WaitUntil(target), ControlFlow::Wait)
-                                        if target > Instant::now() => {}
-                                    _ => {
-                                        event_loop.set_control_flow(flow);
-                                    }
-                                }
+                        Ok(Some(control)) => {
+                            #[cfg(target_os = "android")]
+                            if matches!(control, Control::CreateWindow { .. }) && !self.resumed {
+                                self.pending_controls.push(control);
+                                continue;
                             }
-                            Control::CreateWindow {
-                                id,
-                                settings,
-                                title,
-                                scale_factor,
-                                monitor,
-                                on_open,
-                            } => {
-                                let exit_on_close_request = settings.exit_on_close_request;
 
-                                let visible = settings.visible;
-
-                                #[cfg(target_arch = "wasm32")]
-                                let target = settings.platform_specific.target.clone();
-
-                                let window_attributes = conversion::window_attributes(
-                                    settings,
-                                    &title,
-                                    scale_factor,
-                                    monitor.or(event_loop.primary_monitor()),
-                                    self.id.clone(),
-                                )
-                                .with_visible(false);
-
-                                #[cfg(target_arch = "wasm32")]
-                                let window_attributes = {
-                                    use winit::platform::web::WindowAttributesExtWebSys;
-                                    window_attributes.with_canvas(self.canvas.take())
-                                };
-
-                                log::info!(
-                                    "Window attributes for id `{id:#?}`: {window_attributes:#?}"
-                                );
-
-                                // On macOS, the `position` in `WindowAttributes` represents the "inner"
-                                // position of the window; while on other platforms it's the "outer" position.
-                                // We fix the inconsistency on macOS by positioning the window after creation.
-                                #[cfg(target_os = "macos")]
-                                let mut window_attributes = window_attributes;
-
-                                #[cfg(target_os = "macos")]
-                                let position = window_attributes.position.take();
-
-                                let window = event_loop
-                                    .create_window(window_attributes)
-                                    .expect("Create window");
-
-                                #[cfg(target_os = "macos")]
-                                if let Some(position) = position {
-                                    window.set_outer_position(position);
-                                }
-
-                                #[cfg(target_arch = "wasm32")]
-                                {
-                                    use winit::platform::web::WindowExtWebSys;
-
-                                    let canvas = window.canvas().expect("Get window canvas");
-
-                                    let _ = canvas.set_attribute(
-                                        "style",
-                                        "display: block; width: 100%; height: 100%",
-                                    );
-
-                                    let window = web_sys::window().unwrap();
-                                    let document = window.document().unwrap();
-                                    let body = document.body().unwrap();
-
-                                    let target = target.and_then(|target| {
-                                        body.query_selector(&format!("#{target}"))
-                                            .ok()
-                                            .unwrap_or(None)
-                                    });
-
-                                    match target {
-                                        Some(node) => {
-                                            let _ = node.replace_with_with_node_1(&canvas).expect(
-                                                &format!("Could not replace #{}", node.id()),
-                                            );
-                                        }
-                                        None => {
-                                            let _ = body
-                                                .append_child(&canvas)
-                                                .expect("Append canvas to HTML body");
-                                        }
-                                    };
-                                }
-
-                                self.process_event(
-                                    event_loop,
-                                    Event::WindowCreated {
-                                        id,
-                                        window: Arc::new(window),
-                                        exit_on_close_request,
-                                        make_visible: visible,
-                                        on_open,
-                                    },
-                                );
-                            }
-                            Control::Exit => {
-                                self.process_event(event_loop, Event::Exit);
-                                event_loop.exit();
-                                break;
-                            }
-                            Control::Crash(error) => {
-                                self.error = Some(error);
-                                event_loop.exit();
-                            }
-                            Control::SetAutomaticWindowTabbing(_enabled) => {
-                                #[cfg(target_os = "macos")]
-                                {
-                                    use winit::platform::macos::ActiveEventLoopExtMacOS;
-                                    event_loop.set_allows_automatic_window_tabbing(_enabled);
-                                }
-                            }
-                        },
+                            self.handle_control(event_loop, control);
+                        }
                         _ => {
                             break;
                         }
@@ -415,6 +350,154 @@ where
                         break;
                     }
                 };
+            }
+        }
+        fn handle_control(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            control: Control,
+        ) {
+            match control {
+                Control::ChangeFlow(flow) => {
+                    use winit::event_loop::ControlFlow;
+
+                    match (event_loop.control_flow(), flow) {
+                        (ControlFlow::WaitUntil(current), ControlFlow::WaitUntil(new))
+                            if current < new => {}
+                        (ControlFlow::WaitUntil(target), ControlFlow::Wait)
+                            if target > Instant::now() => {}
+                        _ => {
+                            event_loop.set_control_flow(flow);
+                        }
+                    }
+                }
+                Control::CreateWindow {
+                    id,
+                    settings,
+                    title,
+                    scale_factor,
+                    monitor,
+                    on_open,
+                } => {
+                    let exit_on_close_request = settings.exit_on_close_request;
+
+                    let visible = settings.visible;
+
+                    #[cfg(target_arch = "wasm32")]
+                    let target = settings.platform_specific.target.clone();
+
+                    let window_attributes = conversion::window_attributes(
+                        settings,
+                        &title,
+                        scale_factor,
+                        monitor.or(event_loop.primary_monitor()),
+                        self.id.clone(),
+                    )
+                    .with_visible(false);
+
+                    #[cfg(target_os = "ios")]
+                    let window_attributes = {
+                        use winit::platform::ios::WindowAttributesExtIOS;
+                        window_attributes = window_attributes
+                            .with_prefers_home_indicator_hidden(true)
+                            .with_prefers_status_bar_hidden(true);
+                        window_attributes.inner_size = None;
+                        window_attributes.max_inner_size = None;
+                        window_attributes.min_inner_size = None;
+                    };
+
+                    #[cfg(target_arch = "wasm32")]
+                    let window_attributes = {
+                        use winit::platform::web::WindowAttributesExtWebSys;
+                        window_attributes.with_canvas(self.canvas.take())
+                    };
+
+                    log::info!("Window attributes for id `{id:#?}`: {window_attributes:#?}");
+
+                    // On macOS, the `position` in `WindowAttributes` represents the "inner"
+                    // position of the window; while on other platforms it's the "outer" position.
+                    // We fix the inconsistency on macOS by positioning the window after creation.
+                    #[cfg(target_os = "macos")]
+                    let mut window_attributes = window_attributes;
+
+                    #[cfg(target_os = "macos")]
+                    let position = window_attributes.position.take();
+
+                    let window = event_loop
+                        .create_window(window_attributes)
+                        .expect("Create window");
+
+                    #[cfg(target_os = "ios")]
+                    {
+                        use winit::platform::ios::{ValidOrientations, WindowExtIOS};
+                        window.set_scale_factor(window.scale_factor());
+                        window.set_valid_orientations(ValidOrientations::LandscapeAndPortrait);
+                    }
+
+                    #[cfg(target_os = "macos")]
+                    if let Some(position) = position {
+                        window.set_outer_position(position);
+                    }
+
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        use winit::platform::web::WindowExtWebSys;
+
+                        let canvas = window.canvas().expect("Get window canvas");
+
+                        let _ = canvas
+                            .set_attribute("style", "display: block; width: 100%; height: 100%");
+
+                        let window = web_sys::window().unwrap();
+                        let document = window.document().unwrap();
+                        let body = document.body().unwrap();
+
+                        let target = target.and_then(|target| {
+                            body.query_selector(&format!("#{target}"))
+                                .ok()
+                                .unwrap_or(None)
+                        });
+
+                        match target {
+                            Some(node) => {
+                                let _ = node
+                                    .replace_with_with_node_1(&canvas)
+                                    .expect(&format!("Could not replace #{}", node.id()));
+                            }
+                            None => {
+                                let _ = body
+                                    .append_child(&canvas)
+                                    .expect("Append canvas to HTML body");
+                            }
+                        };
+                    }
+
+                    self.process_event(
+                        event_loop,
+                        Event::WindowCreated {
+                            id,
+                            window: Arc::new(window),
+                            exit_on_close_request,
+                            make_visible: visible,
+                            on_open,
+                        },
+                    );
+                }
+                Control::Exit => {
+                    self.process_event(event_loop, Event::Exit);
+                    event_loop.exit();
+                }
+                Control::Crash(error) => {
+                    self.error = Some(error);
+                    event_loop.exit();
+                }
+                Control::SetAutomaticWindowTabbing(_enabled) => {
+                    #[cfg(target_os = "macos")]
+                    {
+                        use winit::platform::macos::ActiveEventLoopExtMacOS;
+                        event_loop.set_allows_automatic_window_tabbing(_enabled);
+                    }
+                }
             }
         }
     }
@@ -1081,6 +1164,9 @@ async fn run_instance<P>(
                             #[cfg(feature = "unconditional-rendering")]
                             window.request_redraw(window::RedrawRequest::NextFrame);
 
+                            #[cfg(target_os = "ios")]
+                            let had_events = !window_events.is_empty();
+
                             match ui_state {
                                 user_interface::State::Updated {
                                     redraw_request: _redraw_request,
@@ -1102,6 +1188,14 @@ async fn run_instance<P>(
                                 }
                                 user_interface::State::Outdated => {
                                     uis_stale = true;
+
+                                    #[cfg(target_os = "ios")]
+                                    if had_events {
+                                        tracing::debug!(
+                                            "iOS redraw fallback: forcing redraw for outdated UI"
+                                        );
+                                        window.raw.request_redraw();
+                                    }
                                 }
                             }
 
