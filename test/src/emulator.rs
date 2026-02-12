@@ -294,7 +294,23 @@ impl<P: Program + 'static> Emulator<P> {
         match &instruction {
             Instruction::Interact(interaction) => {
                 let Some(events) = interaction.events(|target| match target {
-                    instruction::Target::Point(position) => Some(*position),
+                    instruction::Target::Id(id) => {
+                        use widget::Operation;
+
+                        let mut operation = Selector::find(widget::Id::from(id.to_owned()));
+
+                        user_interface.operate(
+                            &self.renderer,
+                            &mut widget::operation::black_box(&mut operation),
+                        );
+
+                        match operation.finish() {
+                            widget::operation::Outcome::Some(widget) => {
+                                Some(widget?.visible_bounds()?.center())
+                            }
+                            _ => None,
+                        }
+                    }
                     instruction::Target::Text(text) => {
                         use widget::Operation;
 
@@ -312,6 +328,7 @@ impl<P: Program + 'static> Emulator<P> {
                             _ => None,
                         }
                     }
+                    instruction::Target::Point(position) => Some(*position),
                 }) else {
                     self.runtime.send(Event::Failed(instruction));
                     self.cache = Some(user_interface.into_cache());
