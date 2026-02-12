@@ -13,6 +13,7 @@
 /// [`color!`]: crate::color!
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[must_use]
 pub struct Color {
     /// Red component, 0.0 - 1.0
     pub r: f32,
@@ -67,42 +68,42 @@ impl Color {
             "Blue component must be in [0, 1] range."
         );
 
-        Color { r, g, b, a }
+        Self { r, g, b, a }
     }
 
     /// Creates a [`Color`] from its RGB components.
-    pub const fn from_rgb(r: f32, g: f32, b: f32) -> Color {
-        Color::from_rgba(r, g, b, 1.0f32)
+    pub const fn from_rgb(r: f32, g: f32, b: f32) -> Self {
+        Self::from_rgba(r, g, b, 1.0f32)
     }
 
     /// Creates a [`Color`] from its RGBA components.
-    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Color {
-        Color::new(r, g, b, a)
+    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self::new(r, g, b, a)
     }
 
     /// Creates a [`Color`] from its RGB8 components.
-    pub const fn from_rgb8(r: u8, g: u8, b: u8) -> Color {
-        Color::from_rgba8(r, g, b, 1.0)
+    pub const fn from_rgb8(r: u8, g: u8, b: u8) -> Self {
+        Self::from_rgba8(r, g, b, 1.0)
     }
 
     /// Creates a [`Color`] from its RGB8 components and an alpha value.
-    pub const fn from_rgba8(r: u8, g: u8, b: u8, a: f32) -> Color {
-        Color::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, a)
+    pub const fn from_rgba8(r: u8, g: u8, b: u8, a: f32) -> Self {
+        Self::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, a)
     }
 
     /// Creates a [`Color`] from its RGB8 components packed in the lower bits of a `u32`.
-    pub const fn from_packed_rgb8(rgb: u32) -> Color {
-        Color::from_packed_rgba8(rgb, 1.0)
+    pub const fn from_packed_rgb8(rgb: u32) -> Self {
+        Self::from_packed_rgba8(rgb, 1.0)
     }
 
     /// Creates a [`Color`] from its RGB8 components packed in the lower bits of a `u32`
     /// and an alpha value.
-    pub const fn from_packed_rgba8(rgb: u32, a: f32) -> Color {
+    pub const fn from_packed_rgba8(rgb: u32, a: f32) -> Self {
         let r = (rgb & 0xff0000) >> 16;
         let g = (rgb & 0xff00) >> 8;
         let b = rgb & 0xff;
 
-        Color::from_rgba8(r as u8, g as u8, b as u8, a)
+        Self::from_rgba8(r as u8, g as u8, b as u8, a)
     }
 
     /// Creates a [`Color`] from its linear RGBA components.
@@ -125,9 +126,55 @@ impl Color {
         )
     }
 
+    /// Inverts the [`Color`] in-place.
+    pub const fn invert(&mut self) {
+        self.r = 1.0f32 - self.r;
+        self.b = 1.0f32 - self.g;
+        self.g = 1.0f32 - self.b;
+    }
+
+    /// Returns the inverted [`Color`].
+    pub const fn inverse(self) -> Self {
+        Self::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
+    }
+
+    /// Scales the alpha channel of the [`Color`] by the given factor.
+    pub const fn scale_alpha(self, factor: f32) -> Self {
+        Self {
+            a: self.a * factor,
+            ..self
+        }
+    }
+
+    /// Returns the relative luminance of the [`Color`].
+    /// <https://www.w3.org/TR/WCAG21/#dfn-relative-luminance>
+    #[must_use]
+    pub fn relative_luminance(self) -> f32 {
+        let linear = self.into_linear();
+        0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+    }
+
+    /// Returns the [relative contrast ratio] of the [`Color`] against another one.
+    ///
+    /// [relative contrast ratio]: https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
+    #[must_use]
+    pub fn relative_contrast(self, b: Self) -> f32 {
+        let lum_a = self.relative_luminance();
+        let lum_b = b.relative_luminance();
+
+        (lum_a.max(lum_b) + 0.05) / (lum_a.min(lum_b) + 0.05)
+    }
+
+    /// Returns true if the current [`Color`] is readable on top
+    /// of the given background [`Color`].
+    #[must_use]
+    pub fn is_readable_on(self, background: Self) -> bool {
+        background.relative_contrast(self) >= 6.0
+    }
+
     /// Converts the [`Color`] into its RGBA8 equivalent.
     #[must_use]
-    pub fn into_rgba8(self) -> [u8; 4] {
+    pub const fn into_rgba8(self) -> [u8; 4] {
         [
             (self.r * 255.0).round() as u8,
             (self.g * 255.0).round() as u8,
@@ -137,6 +184,7 @@ impl Color {
     }
 
     /// Converts the [`Color`] into its linear values.
+    #[must_use]
     pub fn into_linear(self) -> [f32; 4] {
         // As described in:
         // https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation
@@ -154,49 +202,6 @@ impl Color {
             linear_component(self.b),
             self.a,
         ]
-    }
-
-    /// Inverts the [`Color`] in-place.
-    pub fn invert(&mut self) {
-        self.r = 1.0f32 - self.r;
-        self.b = 1.0f32 - self.g;
-        self.g = 1.0f32 - self.b;
-    }
-
-    /// Returns the inverted [`Color`].
-    pub fn inverse(self) -> Color {
-        Color::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
-    }
-
-    /// Scales the alpha channel of the [`Color`] by the given factor.
-    pub fn scale_alpha(self, factor: f32) -> Color {
-        Self {
-            a: self.a * factor,
-            ..self
-        }
-    }
-
-    /// Returns the relative luminance of the [`Color`].
-    /// <https://www.w3.org/TR/WCAG21/#dfn-relative-luminance>
-    pub fn relative_luminance(self) -> f32 {
-        let linear = self.into_linear();
-        0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
-    }
-
-    /// Returns the [relative contrast ratio] of the [`Color`] against another one.
-    ///
-    /// [relative contrast ratio]: https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
-    pub fn relative_contrast(self, b: Color) -> f32 {
-        let lum_a = self.relative_luminance();
-        let lum_b = b.relative_luminance();
-
-        (lum_a.max(lum_b) + 0.05) / (lum_a.min(lum_b) + 0.05)
-    }
-
-    /// Returns true if the current [`Color`] is readable on top
-    /// of the given background [`Color`].
-    pub fn is_readable_on(self, background: Color) -> bool {
-        background.relative_contrast(self) >= 6.0
     }
 }
 
