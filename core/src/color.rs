@@ -91,7 +91,13 @@ impl Color {
     }
 
     /// Creates a [`Color`] from its RGB8 components packed in the lower bits of a `u32`.
-    pub const fn from_u32(rgb: u32, a: f32) -> Color {
+    pub const fn from_packed_rgb8(rgb: u32) -> Color {
+        Color::from_packed_rgba8(rgb, 1.0)
+    }
+
+    /// Creates a [`Color`] from its RGB8 components packed in the lower bits of a `u32`
+    /// and an alpha value.
+    pub const fn from_packed_rgba8(rgb: u32, a: f32) -> Color {
         let r = (rgb & 0xff0000) >> 16;
         let g = (rgb & 0xff00) >> 8;
         let b = rgb & 0xff;
@@ -307,7 +313,7 @@ macro_rules! color {
 
         debug_assert!(hex <= 0xffffff, "color! value must not exceed 0xffffff");
 
-        $crate::Color::from_u32(hex, $a)
+        $crate::Color::from_packed_rgba8(hex, $a)
     }};
 }
 
