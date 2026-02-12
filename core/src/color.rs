@@ -90,6 +90,15 @@ impl Color {
         Color::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, a)
     }
 
+    /// Creates a [`Color`] from its RGB8 components packed in the lower bits of a `u32`.
+    pub const fn from_u32(rgb: u32, a: f32) -> Color {
+        let r = (rgb & 0xff0000) >> 16;
+        let g = (rgb & 0xff00) >> 8;
+        let b = rgb & 0xff;
+
+        Color::from_rgba8(r as u8, g as u8, b as u8, a)
+    }
+
     /// Creates a [`Color`] from its linear RGBA components.
     pub fn from_linear_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
         // As described in:
@@ -298,11 +307,7 @@ macro_rules! color {
 
         debug_assert!(hex <= 0xffffff, "color! value must not exceed 0xffffff");
 
-        let r = (hex & 0xff0000) >> 16;
-        let g = (hex & 0xff00) >> 8;
-        let b = (hex & 0xff);
-
-        $crate::color!(r as u8, g as u8, b as u8, $a)
+        $crate::Color::from_u32(hex, $a)
     }};
 }
 
