@@ -83,6 +83,7 @@
 //! [`typewrite`](Simulator::typewrite)—and even perform [_snapshot testing_](Simulator::snapshot)!
 //!
 //! [the classical counter interface]: https://book.iced.rs/architecture.html#dissecting-an-interface
+pub use iced_futures as futures;
 pub use iced_program as program;
 pub use iced_renderer as renderer;
 pub use iced_runtime as runtime;
@@ -122,9 +123,9 @@ pub fn run(
     program: impl program::Program + 'static,
     tests_dir: impl AsRef<Path>,
 ) -> Result<(), Error> {
-    use crate::runtime::futures::futures::StreamExt;
-    use crate::runtime::futures::futures::channel::mpsc;
-    use crate::runtime::futures::futures::executor;
+    use crate::futures::futures::StreamExt;
+    use crate::futures::futures::channel::mpsc;
+    use crate::futures::futures::executor;
 
     use std::ffi::OsStr;
     use std::fs;
@@ -180,13 +181,7 @@ pub fn run(
     for (file, ice, preset) in tests {
         let (sender, mut receiver) = mpsc::channel(1);
 
-        let mut emulator = Emulator::with_preset(
-            sender,
-            &program,
-            ice.mode,
-            ice.viewport,
-            preset,
-        );
+        let mut emulator = Emulator::with_preset(sender, &program, ice.mode, ice.viewport, preset);
 
         let mut instructions = ice.instructions.into_iter();
 
@@ -231,12 +226,7 @@ pub fn screenshot<P: program::Program + 'static>(
 
     let (sender, mut receiver) = mpsc::channel(100);
 
-    let mut emulator = Emulator::new(
-        sender,
-        program,
-        emulator::Mode::Immediate,
-        viewport.into(),
-    );
+    let mut emulator = Emulator::new(sender, program, emulator::Mode::Immediate, viewport.into());
 
     let start = Instant::now();
 
@@ -247,9 +237,7 @@ pub fn screenshot<P: program::Program + 'static>(
                     emulator.perform(program, action);
                 }
                 emulator::Event::Failed(_) => {
-                    unreachable!(
-                        "no instructions should be executed during a screenshot"
-                    );
+                    unreachable!("no instructions should be executed during a screenshot");
                 }
                 emulator::Event::Ready => {}
             }

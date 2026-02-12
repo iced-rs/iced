@@ -15,8 +15,6 @@ use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool};
 use std::thread;
 
-pub const SERVER_ADDRESS: &str = "127.0.0.1:9167";
-
 #[derive(Debug, Clone)]
 pub struct Client {
     sender: mpsc::Sender<Action>,
@@ -121,8 +119,7 @@ async fn run(
     is_connected: Arc<AtomicBool>,
     mut receiver: mpsc::Receiver<Action>,
 ) {
-    let version = semver::Version::parse(env!("CARGO_PKG_VERSION"))
-        .expect("Parse package version");
+    let version = semver::Version::parse(env!("CARGO_PKG_VERSION")).expect("Parse package version");
 
     let command_sender = {
         // Discard by default
@@ -160,8 +157,7 @@ async fn run(
                             match receive(&mut reader, &mut buffer).await {
                                 Ok(command) => {
                                     match command {
-                                        Command::RewindTo { .. }
-                                        | Command::GoLive
+                                        Command::RewindTo { .. } | Command::GoLive
                                             if !metadata.can_time_travel =>
                                         {
                                             continue;
@@ -193,17 +189,11 @@ async fn run(
                             match send(&mut writer, message).await {
                                 Ok(()) => {}
                                 Err(error) => {
-                                    if error.kind() != io::ErrorKind::BrokenPipe
-                                    {
-                                        log::warn!(
-                                            "Error sending message to server: {error}"
-                                        );
+                                    if error.kind() != io::ErrorKind::BrokenPipe {
+                                        log::warn!("Error sending message to server: {error}");
                                     }
 
-                                    is_connected.store(
-                                        false,
-                                        atomic::Ordering::Relaxed,
-                                    );
+                                    is_connected.store(false, atomic::Ordering::Relaxed);
                                     break;
                                 }
                             }
@@ -222,9 +212,21 @@ async fn run(
     }
 }
 
+/// Returns the address of the beacon server in this environment.
+///
+/// The value of the `ICED_BEACON_SERVER_ADDRESS` env variable will
+/// be returned, if defined.
+///
+/// Otherwise, a default local server address will be returned.
+pub fn server_address_from_env() -> String {
+    const DEFAULT_ADDRESS: &str = "127.0.0.1:9167";
+
+    std::env::var("ICED_BEACON_SERVER_ADDRESS").unwrap_or_else(|_| String::from(DEFAULT_ADDRESS))
+}
+
 async fn _connect() -> Result<net::TcpStream, io::Error> {
     log::debug!("Attempting to connect to server...");
-    let stream = net::TcpStream::connect(SERVER_ADDRESS).await?;
+    let stream = net::TcpStream::connect(server_address_from_env()).await?;
 
     stream.set_nodelay(true)?;
     stream.writable().await?;
@@ -232,10 +234,7 @@ async fn _connect() -> Result<net::TcpStream, io::Error> {
     Ok(stream)
 }
 
-async fn send(
-    stream: &mut net::tcp::OwnedWriteHalf,
-    message: Message,
-) -> Result<(), io::Error> {
+async fn send(stream: &mut net::tcp::OwnedWriteHalf, message: Message) -> Result<(), io::Error> {
     let bytes = bincode::serialize(&message).expect("Encode input message");
     let size = bytes.len() as u64;
 

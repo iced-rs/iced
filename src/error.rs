@@ -21,15 +21,11 @@ pub enum Error {
 impl From<shell::Error> for Error {
     fn from(error: shell::Error) -> Error {
         match error {
-            shell::Error::ExecutorCreationFailed(error) => {
-                Error::ExecutorCreationFailed(error)
-            }
+            shell::Error::ExecutorCreationFailed(error) => Error::ExecutorCreationFailed(error),
             shell::Error::WindowCreationFailed(error) => {
                 Error::WindowCreationFailed(Box::new(error))
             }
-            shell::Error::GraphicsCreationFailed(error) => {
-                Error::GraphicsCreationFailed(error)
-            }
+            shell::Error::GraphicsCreationFailed(error) => Error::GraphicsCreationFailed(error),
         }
     }
 }

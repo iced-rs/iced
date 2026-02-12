@@ -50,23 +50,13 @@ impl Node {
     }
 
     /// Aligns the [`Node`] in the given space.
-    pub fn align(
-        mut self,
-        align_x: Alignment,
-        align_y: Alignment,
-        space: Size,
-    ) -> Self {
+    pub fn align(mut self, align_x: Alignment, align_y: Alignment, space: Size) -> Self {
         self.align_mut(align_x, align_y, space);
         self
     }
 
     /// Mutable reference version of [`Self::align`].
-    pub fn align_mut(
-        &mut self,
-        align_x: Alignment,
-        align_y: Alignment,
-        space: Size,
-    ) {
+    pub fn align_mut(&mut self, align_x: Alignment, align_y: Alignment, space: Size) {
         match align_x {
             Alignment::Start => {}
             Alignment::Center => {

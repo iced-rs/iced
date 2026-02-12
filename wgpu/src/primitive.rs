@@ -44,11 +44,7 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
     /// [`render`](Self::render) by returning `false` here.
     ///
     /// By default, it does nothing and returns `false`.
-    fn draw(
-        &self,
-        _pipeline: &Self::Pipeline,
-        _render_pass: &mut wgpu::RenderPass<'_>,
-    ) -> bool {
+    fn draw(&self, _pipeline: &Self::Pipeline, _render_pass: &mut wgpu::RenderPass<'_>) -> bool {
         false
     }
 
@@ -73,11 +69,7 @@ pub trait Pipeline: Any + MaybeSend + MaybeSync {
     ///
     /// This will only be called once, when the first [`Primitive`] with this kind
     /// of [`Pipeline`] is encountered.
-    fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        format: wgpu::TextureFormat,
-    ) -> Self
+    fn new(device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) -> Self
     where
         Self: Sized;
 
@@ -87,9 +79,7 @@ pub trait Pipeline: Any + MaybeSend + MaybeSync {
     fn trim(&mut self) {}
 }
 
-pub(crate) trait Stored:
-    Debug + MaybeSend + MaybeSync + 'static
-{
+pub(crate) trait Stored: Debug + MaybeSend + MaybeSync + 'static {
     fn prepare(
         &self,
         storage: &mut Storage,
@@ -100,11 +90,7 @@ pub(crate) trait Stored:
         viewport: &Viewport,
     );
 
-    fn draw(
-        &self,
-        storage: &Storage,
-        render_pass: &mut wgpu::RenderPass<'_>,
-    ) -> bool;
+    fn draw(&self, storage: &Storage, render_pass: &mut wgpu::RenderPass<'_>) -> bool;
 
     fn render(
         &self,
@@ -144,11 +130,7 @@ impl<P: Primitive> Stored for BlackBox<P> {
             .prepare(renderer, device, queue, bounds, viewport);
     }
 
-    fn draw(
-        &self,
-        storage: &Storage,
-        render_pass: &mut wgpu::RenderPass<'_>,
-    ) -> bool {
+    fn draw(&self, storage: &Storage, render_pass: &mut wgpu::RenderPass<'_>) -> bool {
         let renderer = storage
             .get::<P>()
             .expect("renderer should be initialized")

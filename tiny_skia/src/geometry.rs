@@ -96,9 +96,7 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        let Some(path) =
-            convert_path(path).and_then(|path| path.transform(self.transform))
-        else {
+        let Some(path) = convert_path(path).and_then(|path| path.transform(self.transform)) else {
             return;
         };
 
@@ -114,12 +112,7 @@ impl geometry::frame::Backend for Frame {
         });
     }
 
-    fn fill_rectangle(
-        &mut self,
-        top_left: Point,
-        size: Size,
-        fill: impl Into<Fill>,
-    ) {
+    fn fill_rectangle(&mut self, top_left: Point, size: Size, fill: impl Into<Fill>) {
         let Some(path) = convert_path(&Path::rectangle(top_left, size))
             .and_then(|path| path.transform(self.transform))
         else {
@@ -142,9 +135,7 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
-        let Some(path) =
-            convert_path(path).and_then(|path| path.transform(self.transform))
-        else {
+        let Some(path) = convert_path(path).and_then(|path| path.transform(self.transform)) else {
             return;
         };
 
@@ -161,12 +152,7 @@ impl geometry::frame::Backend for Frame {
         });
     }
 
-    fn stroke_rectangle<'a>(
-        &mut self,
-        top_left: Point,
-        size: Size,
-        stroke: impl Into<Stroke<'a>>,
-    ) {
+    fn stroke_rectangle<'a>(&mut self, top_left: Point, size: Size, stroke: impl Into<Stroke<'a>>) {
         self.stroke(&Path::rectangle(top_left, size), stroke);
     }
 
@@ -175,17 +161,10 @@ impl geometry::frame::Backend for Frame {
 
         let (scale_x, scale_y) = self.transform.get_scale();
 
-        if !self.transform.has_skew()
-            && scale_x == scale_y
-            && scale_x > 0.0
-            && scale_y > 0.0
-        {
+        if !self.transform.has_skew() && scale_x == scale_y && scale_x > 0.0 && scale_y > 0.0 {
             let (bounds, size, line_height) = if self.transform.is_identity() {
                 (
-                    Rectangle::new(
-                        text.position,
-                        Size::new(text.max_width, f32::INFINITY),
-                    ),
+                    Rectangle::new(text.position, Size::new(text.max_width, f32::INFINITY)),
                     text.size,
                     text.line_height,
                 )
@@ -200,12 +179,8 @@ impl geometry::frame::Backend for Frame {
                 let size = text.size.0 * scale_y;
 
                 let line_height = match text.line_height {
-                    LineHeight::Absolute(size) => {
-                        LineHeight::Absolute(Pixels(size.0 * scale_y))
-                    }
-                    LineHeight::Relative(factor) => {
-                        LineHeight::Relative(factor)
-                    }
+                    LineHeight::Absolute(size) => LineHeight::Absolute(Pixels(size.0 * scale_y)),
+                    LineHeight::Relative(factor) => LineHeight::Relative(factor),
                 };
 
                 (
@@ -238,11 +213,7 @@ impl geometry::frame::Backend for Frame {
         }
     }
 
-    fn stroke_text<'a>(
-        &mut self,
-        text: impl Into<geometry::Text>,
-        stroke: impl Into<Stroke<'a>>,
-    ) {
+    fn stroke_text<'a>(&mut self, text: impl Into<geometry::Text>, stroke: impl Into<Stroke<'a>>) {
         let text = text.into();
         let stroke = stroke.into();
 
@@ -268,14 +239,13 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn translate(&mut self, translation: Vector) {
-        self.transform =
-            self.transform.pre_translate(translation.x, translation.y);
+        self.transform = self.transform.pre_translate(translation.x, translation.y);
     }
 
     fn rotate(&mut self, angle: impl Into<Radians>) {
-        self.transform = self.transform.pre_concat(
-            tiny_skia::Transform::from_rotate(angle.into().0.to_degrees()),
-        );
+        self.transform = self.transform.pre_concat(tiny_skia::Transform::from_rotate(
+            angle.into().0.to_degrees(),
+        ));
     }
 
     fn scale(&mut self, scale: impl Into<f32>) {
@@ -302,8 +272,7 @@ impl geometry::frame::Backend for Frame {
     fn draw_image(&mut self, bounds: Rectangle, image: impl Into<core::Image>) {
         let mut image = image.into();
 
-        let (bounds, external_rotation) =
-            transform_rectangle(bounds, self.transform);
+        let (bounds, external_rotation) = transform_rectangle(bounds, self.transform);
 
         image.rotation += external_rotation;
 
@@ -317,8 +286,7 @@ impl geometry::frame::Backend for Frame {
     fn draw_svg(&mut self, bounds: Rectangle, svg: impl Into<Svg>) {
         let mut svg = svg.into();
 
-        let (bounds, external_rotation) =
-            transform_rectangle(bounds, self.transform);
+        let (bounds, external_rotation) = transform_rectangle(bounds, self.transform);
 
         svg.rotation += external_rotation;
 
@@ -401,8 +369,7 @@ fn convert_path(path: &Path) -> Option<tiny_skia::Path> {
                     builder.move_to(from.x, from.y);
                 }
 
-                builder
-                    .cubic_to(ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y, to.x, to.y);
+                builder.cubic_to(ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y, to.x, to.y);
 
                 last_point = to;
             }
@@ -461,10 +428,7 @@ pub fn into_paint(style: Style) -> tiny_skia::Paint<'static> {
                             y: linear.end.y,
                         },
                         if stops.is_empty() {
-                            vec![tiny_skia::GradientStop::new(
-                                0.0,
-                                tiny_skia::Color::BLACK,
-                            )]
+                            vec![tiny_skia::GradientStop::new(0.0, tiny_skia::Color::BLACK)]
                         } else {
                             stops
                         },

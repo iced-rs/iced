@@ -7,8 +7,7 @@ use crate::core::widget;
 use crate::core::widget::operation;
 use crate::core::widget::tree;
 use crate::core::{
-    self, Clipboard, Color, Element, Event, Layout, Length, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    self, Color, Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 use crate::test::Selector;
 use crate::test::instruction::{Interaction, Mouse, Target};
@@ -27,9 +26,7 @@ pub struct Recorder<'a, Message, Theme, Renderer> {
 }
 
 impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
-    pub fn new(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             content: content.into(),
             on_record: None,
@@ -37,10 +34,7 @@ impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
         }
     }
 
-    pub fn on_record(
-        mut self,
-        on_record: impl Fn(Interaction) -> Message + 'a,
-    ) -> Self {
+    pub fn on_record(mut self, on_record: impl Fn(Interaction) -> Message + 'a) -> Self {
         self.on_record = Some(Box::new(on_record));
         self
     }
@@ -91,7 +85,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -128,7 +121,6 @@ where
             layout,
             cursor,
             renderer,
-            clipboard,
             shell,
             viewport,
         );
@@ -140,11 +132,9 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content.as_widget_mut().layout(
-            &mut tree.children[0],
-            renderer,
-            limits,
-        )
+        self.content
+            .as_widget_mut()
+            .layout(&mut tree.children[0], renderer, limits)
     }
 
     fn draw(
@@ -208,12 +198,9 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            renderer,
-            operation,
-        );
+        self.content
+            .as_widget_mut()
+            .operate(&mut tree.children[0], layout, renderer, operation);
     }
 
     fn overlay<'a>(
@@ -323,7 +310,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         if shell.is_event_captured() {
@@ -348,7 +334,7 @@ where
 
         self.raw
             .as_overlay_mut()
-            .update(event, layout, cursor, renderer, clipboard, shell);
+            .update(event, layout, cursor, renderer, shell);
     }
 
     fn mouse_interaction(
@@ -400,14 +386,13 @@ fn record<Message>(
         return;
     }
 
-    let interaction =
-        if let Event::Mouse(mouse::Event::CursorMoved { position }) = event {
-            Interaction::from_event(&Event::Mouse(mouse::Event::CursorMoved {
-                position: *position - (bounds.position() - Point::ORIGIN),
-            }))
-        } else {
-            Interaction::from_event(event)
-        };
+    let interaction = if let Event::Mouse(mouse::Event::CursorMoved { position }) = event {
+        Interaction::from_event(&Event::Mouse(mouse::Event::CursorMoved {
+            position: *position - (bounds.position() - Point::ORIGIN),
+        }))
+    } else {
+        Interaction::from_event(event)
+    };
 
     let Some(mut interaction) = interaction else {
         return;
@@ -463,24 +448,23 @@ fn find_text(
         return None;
     };
 
-    let (content, visible_bounds) =
-        targets.into_iter().rev().find_map(|target| {
-            if let selector::Target::Text {
-                content,
-                visible_bounds,
-                ..
-            }
-            | selector::Target::TextInput {
-                content,
-                visible_bounds,
-                ..
-            } = target
-            {
-                Some((content, visible_bounds))
-            } else {
-                None
-            }
-        })?;
+    let (content, visible_bounds) = targets.into_iter().rev().find_map(|target| {
+        if let selector::Target::Text {
+            content,
+            visible_bounds,
+            ..
+        }
+        | selector::Target::TextInput {
+            content,
+            visible_bounds,
+            ..
+        } = target
+        {
+            Some((content, visible_bounds))
+        } else {
+            None
+        }
+    })?;
 
     let mut by_text = content.clone().find_all();
     operate(&mut operation::black_box(&mut by_text));

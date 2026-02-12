@@ -65,9 +65,7 @@ impl Pokedex {
 
     fn view(&self) -> Element<'_, Message> {
         let content: Element<_> = match self {
-            Pokedex::Loading => {
-                text("Searching for Pokémon...").size(40).into()
-            }
+            Pokedex::Loading => text("Searching for Pokémon...").size(40).into(),
             Pokedex::Loaded { pokemon } => column![
                 pokemon.view(),
                 button("Keep searching!").on_press(Message::Search)
@@ -153,8 +151,7 @@ impl Pokemon {
         };
 
         let (entry, image): (Entry, _) =
-            futures::future::try_join(fetch_entry, Self::fetch_image(id))
-                .await?;
+            futures::future::try_join(fetch_entry, Self::fetch_image(id)).await?;
 
         let description = entry
             .flavor_text_entries

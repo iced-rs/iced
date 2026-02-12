@@ -64,8 +64,7 @@ impl canvas::Program<Message> for Multitouch {
                 | touch::Event::FingerMoved { id, position },
             ) => Some(Message::FingerPressed { id, position }),
             Event::Touch(
-                touch::Event::FingerLifted { id, .. }
-                | touch::Event::FingerLost { id, .. },
+                touch::Event::FingerLifted { id, .. } | touch::Event::FingerLost { id, .. },
             ) => Some(Message::FingerLifted { id }),
             _ => None,
         };
@@ -101,14 +100,9 @@ impl canvas::Program<Message> for Multitouch {
                 .map(|(_, p)| (f64::from(p.x), f64::from(p.y)))
                 .collect();
 
-            let diagram: voronator::VoronoiDiagram<
-                voronator::delaunator::Point,
-            > = voronator::VoronoiDiagram::from_tuple(
-                &(0.0, 0.0),
-                &(700.0, 700.0),
-                &vpoints,
-            )
-            .expect("Generate Voronoi diagram");
+            let diagram: voronator::VoronoiDiagram<voronator::delaunator::Point> =
+                voronator::VoronoiDiagram::from_tuple(&(0.0, 0.0), &(700.0, 700.0), &vpoints)
+                    .expect("Generate Voronoi diagram");
 
             for (cell, zone) in diagram.cells().iter().zip(zones) {
                 let mut builder = canvas::path::Builder::new();

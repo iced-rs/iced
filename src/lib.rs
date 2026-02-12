@@ -368,8 +368,8 @@
 //! visible widgets of your user interface, at every moment.
 //!
 //! As with tasks, some modules expose convenient functions that build a [`Subscription`] for you—like
-//! [`time::every`] which can be used to listen to time, or [`keyboard::on_key_press`] which will notify you
-//! of any key presses. But you can also create your own with [`Subscription::run`] and [`run_with`].
+//! [`time::every`] which can be used to listen to time, or [`keyboard::listen`] which will notify you
+//! of any keyboard events. But you can also create your own with [`Subscription::run`] and [`run_with`].
 //!
 //! [`run_with`]: Subscription::run_with
 //!
@@ -532,9 +532,9 @@ pub use crate::core::gradient;
 pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
-    Alignment, Animation, Background, Border, Color, ContentFit, Degrees,
-    Function, Gradient, Length, Padding, Pixels, Point, Radians, Rectangle,
-    Rotation, Settings, Shadow, Size, Theme, Transformation, Vector, never,
+    Alignment, Animation, Background, Border, Color, ContentFit, Degrees, Function, Gradient,
+    Length, Never, Padding, Pixels, Point, Radians, Rectangle, Rotation, Settings, Shadow, Size,
+    Theme, Transformation, Vector, never,
 };
 pub use crate::program::Preset;
 pub use crate::program::message;
@@ -561,9 +561,14 @@ pub mod task {
 
 pub mod clipboard {
     //! Access the clipboard.
-    pub use crate::runtime::clipboard::{
-        read, read_primary, write, write_primary,
-    };
+    pub use crate::core::clipboard::{Content, Kind};
+    pub use crate::runtime::clipboard::{read, read_files, read_html, read_text, write};
+
+    #[cfg(feature = "image")]
+    pub use crate::core::clipboard::Image;
+
+    #[cfg(feature = "image")]
+    pub use crate::runtime::clipboard::read_image;
 }
 
 pub mod executor {
@@ -581,23 +586,19 @@ pub mod font {
 pub mod event {
     //! Handle events of a user interface.
     pub use crate::core::event::{Event, Status};
-    pub use iced_futures::event::{
-        listen, listen_raw, listen_url, listen_with,
-    };
+    pub use iced_futures::event::{listen, listen_raw, listen_url, listen_with};
 }
 
 pub mod keyboard {
     //! Listen and react to keyboard events.
     pub use crate::core::keyboard::key;
     pub use crate::core::keyboard::{Event, Key, Location, Modifiers};
-    pub use iced_futures::keyboard::{on_key_press, on_key_release};
+    pub use iced_futures::keyboard::listen;
 }
 
 pub mod mouse {
     //! Listen and react to mouse events.
-    pub use crate::core::mouse::{
-        Button, Cursor, Event, Interaction, ScrollDelta,
-    };
+    pub use crate::core::mouse::{Button, Cursor, Event, Interaction, ScrollDelta};
 }
 
 pub mod system {
@@ -616,12 +617,8 @@ pub mod overlay {
     /// This is an alias of an [`overlay::Element`] with a default `Renderer`.
     ///
     /// [`overlay::Element`]: crate::core::overlay::Element
-    pub type Element<
-        'a,
-        Message,
-        Theme = crate::Renderer,
-        Renderer = crate::Renderer,
-    > = crate::core::overlay::Element<'a, Message, Theme, Renderer>;
+    pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> =
+        crate::core::overlay::Element<'a, Message, Theme, Renderer>;
 
     pub use iced_widget::overlay::*;
 }
@@ -669,12 +666,8 @@ pub use daemon::daemon;
 /// A generic widget.
 ///
 /// This is an alias of an `iced_native` element with a default `Renderer`.
-pub type Element<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> = crate::core::Element<'a, Message, Theme, Renderer>;
+pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> =
+    crate::core::Element<'a, Message, Theme, Renderer>;
 
 /// The result of running an iced program.
 pub type Result = std::result::Result<(), Error>;
@@ -712,8 +705,7 @@ pub type Result = std::result::Result<(), Error>;
 /// ```
 pub fn run<State, Message, Theme, Renderer>(
     update: impl application::UpdateFn<State, Message> + 'static,
-    view: impl for<'a> application::ViewFn<'a, State, Message, Theme, Renderer>
-    + 'static,
+    view: impl for<'a> application::ViewFn<'a, State, Message, Theme, Renderer> + 'static,
 ) -> Result
 where
     State: Default + 'static,

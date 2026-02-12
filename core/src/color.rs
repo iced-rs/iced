@@ -206,9 +206,7 @@ pub enum ParseError {
     #[error(transparent)]
     ParseIntError(#[from] std::num::ParseIntError),
     /// The string is of invalid length.
-    #[error(
-        "expected hex string of length 3, 4, 6 or 8 excluding optional prefix '#', found {0}"
-    )]
+    #[error("expected hex string of length 3, 4, 6 or 8 excluding optional prefix '#', found {0}")]
     InvalidLength(usize),
 }
 
@@ -218,14 +216,12 @@ impl std::str::FromStr for Color {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let hex = s.strip_prefix('#').unwrap_or(s);
 
-        let parse_channel =
-            |from: usize, to: usize| -> Result<f32, std::num::ParseIntError> {
-                let num =
-                    usize::from_str_radix(&hex[from..=to], 16)? as f32 / 255.0;
+        let parse_channel = |from: usize, to: usize| -> Result<f32, std::num::ParseIntError> {
+            let num = usize::from_str_radix(&hex[from..=to], 16)? as f32 / 255.0;
 
-                // If we only got half a byte (one letter), expand it into a full byte (two letters)
-                Ok(if from == to { num + num * 16.0 } else { num })
-            };
+            // If we only got half a byte (one letter), expand it into a full byte (two letters)
+            Ok(if from == to { num + num * 16.0 } else { num })
+        };
 
         let val = match hex.len() {
             3 => Color::from_rgb(
@@ -287,9 +283,18 @@ macro_rules! color {
         $crate::Color::from_rgb8($r, $g, $b)
     };
     ($r:expr, $g:expr, $b:expr, $a:expr) => {{ $crate::Color::from_rgba8($r, $g, $b, $a) }};
-    ($hex:expr) => {{ $crate::color!($hex, 1.0) }};
-    ($hex:expr, $a:expr) => {{
-        let hex = $hex as u32;
+    ($hex:literal) => {{ $crate::color!($hex, 1.0) }};
+    ($hex:literal, $a:expr) => {{
+        let mut hex = $hex as u32;
+
+        // Shorthand notation: 0x123
+        if stringify!($hex).len() == 5 {
+            let r = hex & 0xF00;
+            let g = hex & 0xF0;
+            let b = hex & 0xF;
+
+            hex = (r << 12) | (r << 8) | (g << 8) | (g << 4) | (b << 4) | b;
+        }
 
         debug_assert!(hex <= 0xffffff, "color! value must not exceed 0xffffff");
 
@@ -323,5 +328,12 @@ mod tests {
         }
 
         assert!("invalid".parse::<Color>().is_err());
+    }
+
+    const SHORTHAND: Color = color!(0x123);
+
+    #[test]
+    fn shorthand_notation() {
+        assert_eq!(SHORTHAND, Color::from_rgb8(0x11, 0x22, 0x33));
     }
 }

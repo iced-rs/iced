@@ -4,7 +4,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Event, Layout, Shell, Size};
+use crate::{Event, Layout, Shell, Size};
 
 /// An overlay container that displays nested overlays
 pub struct Nested<'a, Message, Theme, Renderer> {
@@ -16,20 +16,14 @@ where
     Renderer: renderer::Renderer,
 {
     /// Creates a nested overlay from the provided [`overlay::Element`]
-    pub fn new(
-        element: overlay::Element<'a, Message, Theme, Renderer>,
-    ) -> Self {
+    pub fn new(element: overlay::Element<'a, Message, Theme, Renderer>) -> Self {
         Self { overlay: element }
     }
 
     /// Returns the layout [`Node`] of the [`Nested`] overlay.
     ///
     /// [`Node`]: layout::Node
-    pub fn layout(
-        &mut self,
-        renderer: &Renderer,
-        bounds: Size,
-    ) -> layout::Node {
+    pub fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             renderer: &Renderer,
@@ -47,10 +41,7 @@ where
                 .map(|nested| recurse(nested, renderer, bounds));
 
             if let Some(nested_node) = nested_node {
-                layout::Node::with_children(
-                    node.size(),
-                    vec![node, nested_node],
-                )
+                layout::Node::with_children(node.size(), vec![node, nested_node])
             } else {
                 layout::Node::with_children(node.size(), vec![node])
             }
@@ -115,14 +106,7 @@ where
                 if let Some((mut nested, nested_layout)) =
                     overlay.overlay(layout, renderer).zip(nested_layout)
                 {
-                    recurse(
-                        &mut nested,
-                        nested_layout,
-                        renderer,
-                        theme,
-                        style,
-                        cursor,
-                    );
+                    recurse(&mut nested, nested_layout, renderer, theme, style, cursor);
                 }
             }
         }
@@ -170,7 +154,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         fn recurse<Message, Theme, Renderer>(
@@ -179,7 +162,6 @@ where
             event: &Event,
             cursor: mouse::Cursor,
             renderer: &Renderer,
-            clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
         ) -> bool
         where
@@ -193,15 +175,7 @@ where
                 let nested_is_over = if let Some((mut nested, nested_layout)) =
                     overlay.overlay(layout, renderer).zip(layouts.next())
                 {
-                    recurse(
-                        &mut nested,
-                        nested_layout,
-                        event,
-                        cursor,
-                        renderer,
-                        clipboard,
-                        shell,
-                    )
+                    recurse(&mut nested, nested_layout, event, cursor, renderer, shell)
                 } else {
                     false
                 };
@@ -228,7 +202,6 @@ where
                             cursor
                         },
                         renderer,
-                        clipboard,
                         shell,
                     );
 
@@ -241,15 +214,7 @@ where
             }
         }
 
-        let _ = recurse(
-            &mut self.overlay,
-            layout,
-            event,
-            cursor,
-            renderer,
-            clipboard,
-            shell,
-        );
+        let _ = recurse(&mut self.overlay, layout, event, cursor, renderer, shell);
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Nested`] overlay.
@@ -280,9 +245,7 @@ where
                     .and_then(|(mut overlay, layout)| {
                         recurse(&mut overlay, layout, cursor, renderer)
                     })
-                    .unwrap_or_else(|| {
-                        overlay.mouse_interaction(layout, cursor, renderer)
-                    }),
+                    .unwrap_or_else(|| overlay.mouse_interaction(layout, cursor, renderer)),
             )
         }
 

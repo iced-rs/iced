@@ -16,12 +16,18 @@ impl Shell {
         struct Headless;
 
         impl Notifier for Headless {
+            fn tick(&self) {}
             fn request_redraw(&self) {}
-
             fn invalidate_layout(&self) {}
         }
 
         Self::new(Headless)
+    }
+
+    /// Requests for [`Renderer::tick`](crate::core::Renderer::tick) to
+    /// be called by the [`Shell`].
+    pub fn tick(&self) {
+        self.0.tick();
     }
 
     /// Requests for all windows of the [`Shell`] to be redrawn.
@@ -37,6 +43,10 @@ impl Shell {
 
 /// A type that can notify a shell of certain events.
 pub trait Notifier: Send + Sync + 'static {
+    /// Requests for [`Renderer::tick`](crate::core::Renderer::tick) to
+    /// be called by the [`Shell`].
+    fn tick(&self);
+
     /// Requests for all windows of the [`Shell`] to be redrawn.
     fn request_redraw(&self);
 

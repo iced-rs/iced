@@ -55,8 +55,7 @@ where
         let title = program.title(window_id);
         let scale_factor = program.scale_factor(window_id);
         let theme = program.theme(window_id);
-        let theme_mode =
-            theme.as_ref().map(theme::Base::mode).unwrap_or_default();
+        let theme_mode = theme.as_ref().map(theme::Base::mode).unwrap_or_default();
         let default_theme = <P::Theme as theme::Base>::default(system_theme);
         let style = program.style(theme.as_ref().unwrap_or(&default_theme));
 
@@ -106,10 +105,7 @@ where
     pub fn cursor(&self) -> mouse::Cursor {
         self.cursor_position
             .map(|cursor_position| {
-                conversion::cursor_position(
-                    cursor_position,
-                    self.viewport.scale_factor(),
-                )
+                conversion::cursor_position(cursor_position, self.viewport.scale_factor())
             })
             .map(mouse::Cursor::Available)
             .unwrap_or(mouse::Cursor::Unavailable)
@@ -135,12 +131,7 @@ where
         self.style.text_color
     }
 
-    pub fn update(
-        &mut self,
-        program: &program::Instance<P>,
-        window: &Window,
-        event: &WindowEvent,
-    ) {
+    pub fn update(&mut self, program: &program::Instance<P>, window: &Window, event: &WindowEvent) {
         match event {
             WindowEvent::Resized(new_size) => {
                 let size = Size::new(new_size.width, new_size.height);
@@ -176,9 +167,8 @@ where
                 self.modifiers = new_modifiers.state();
             }
             WindowEvent::ThemeChanged(theme) => {
-                self.default_theme = <P::Theme as theme::Base>::default(
-                    conversion::theme_mode(*theme),
-                );
+                self.default_theme =
+                    <P::Theme as theme::Base>::default(conversion::theme_mode(*theme));
 
                 if self.theme.is_none() {
                     self.style = program.style(&self.default_theme);
@@ -233,8 +223,7 @@ where
                 // Assume the old mode matches the system one
                 // We will be notified otherwise
                 if new_mode == theme::Mode::None {
-                    self.default_theme =
-                        <P::Theme as theme::Base>::default(self.theme_mode);
+                    self.default_theme = <P::Theme as theme::Base>::default(self.theme_mode);
 
                     if self.theme.is_none() {
                         self.style = program.style(&self.default_theme);

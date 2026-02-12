@@ -30,9 +30,7 @@
 //! ```
 use std::ops::RangeInclusive;
 
-pub use crate::slider::{
-    Catalog, Handle, HandleShape, Status, Style, StyleFn, default,
-};
+pub use crate::slider::{Catalog, Handle, HandleShape, Status, Style, StyleFn, default};
 
 use crate::core::border::Border;
 use crate::core::keyboard;
@@ -43,10 +41,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{
-    self, Clipboard, Element, Event, Length, Pixels, Point, Rectangle, Shell,
-    Size, Widget,
-};
+use crate::core::{self, Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Widget};
 
 /// An vertical bar and a handle that selects a single value from a range of
 /// values.
@@ -252,7 +247,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
@@ -278,9 +272,8 @@ where
                 let start = (*self.range.start()).into();
                 let end = (*self.range.end()).into();
 
-                let percent = 1.0
-                    - f64::from(cursor_position.y - bounds.y)
-                        / f64::from(bounds.height);
+                let percent =
+                    1.0 - f64::from(cursor_position.y - bounds.y) / f64::from(bounds.height);
 
                 let steps = (percent * (end - start) / step).round();
                 let value = steps * step + start;
@@ -336,12 +329,8 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if let Some(cursor_position) =
-                    cursor.position_over(layout.bounds())
-                {
-                    if state.keyboard_modifiers.control()
-                        || state.keyboard_modifiers.command()
-                    {
+                if let Some(cursor_position) = cursor.position_over(layout.bounds()) {
+                    if state.keyboard_modifiers.control() || state.keyboard_modifiers.command() {
                         let _ = self.default.map(change);
                         state.is_dragging = false;
                     } else {
@@ -365,8 +354,7 @@ where
             Event::Mouse(mouse::Event::CursorMoved { .. })
             | Event::Touch(touch::Event::FingerMoved { .. }) => {
                 if is_dragging {
-                    let _ =
-                        cursor.land().position().and_then(locate).map(change);
+                    let _ = cursor.land().position().and_then(locate).map(change);
 
                     shell.capture_event();
                 }
@@ -437,19 +425,15 @@ where
     ) {
         let bounds = layout.bounds();
 
-        let style =
-            theme.style(&self.class, self.status.unwrap_or(Status::Active));
+        let style = theme.style(&self.class, self.status.unwrap_or(Status::Active));
 
-        let (handle_width, handle_height, handle_border_radius) =
-            match style.handle.shape {
-                HandleShape::Circle { radius } => {
-                    (radius * 2.0, radius * 2.0, radius.into())
-                }
-                HandleShape::Rectangle {
-                    width,
-                    border_radius,
-                } => (f32::from(width), bounds.width, border_radius),
-            };
+        let (handle_width, handle_height, handle_border_radius) = match style.handle.shape {
+            HandleShape::Circle { radius } => (radius * 2.0, radius * 2.0, radius.into()),
+            HandleShape::Rectangle {
+                width,
+                border_radius,
+            } => (f32::from(width), bounds.width, border_radius),
+        };
 
         let value = self.value.into() as f32;
         let (range_start, range_end) = {
@@ -461,8 +445,7 @@ where
         let offset = if range_start >= range_end {
             0.0
         } else {
-            (bounds.height - handle_width) * (value - range_end)
-                / (range_start - range_end)
+            (bounds.height - handle_width) * (value - range_end) / (range_start - range_end)
         };
 
         let rail_x = bounds.x + bounds.width / 2.0;
@@ -525,17 +508,26 @@ where
         let state = tree.state.downcast_ref::<State>();
 
         if state.is_dragging {
-            mouse::Interaction::Grabbing
+            // FIXME: Fall back to `Pointer` on Windows
+            // See https://github.com/rust-windowing/winit/issues/1043
+            if cfg!(target_os = "windows") {
+                mouse::Interaction::Pointer
+            } else {
+                mouse::Interaction::Grabbing
+            }
         } else if cursor.is_over(layout.bounds()) {
-            mouse::Interaction::Grab
+            if cfg!(target_os = "windows") {
+                mouse::Interaction::Pointer
+            } else {
+                mouse::Interaction::Grab
+            }
         } else {
             mouse::Interaction::default()
         }
     }
 }
 
-impl<'a, T, Message, Theme, Renderer>
-    From<VerticalSlider<'a, T, Message, Theme>>
+impl<'a, T, Message, Theme, Renderer> From<VerticalSlider<'a, T, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive + 'a,

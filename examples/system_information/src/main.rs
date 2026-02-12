@@ -86,42 +86,35 @@ impl Example {
                         .unwrap_or(&"unknown".to_string())
                 );
 
-                let cpu_brand =
-                    text!("Processor brand: {}", information.cpu_brand);
+                let cpu_brand = text!("Processor brand: {}", information.cpu_brand);
 
                 let cpu_cores = text!(
                     "Processor cores: {}",
                     information
                         .cpu_cores
-                        .map_or("unknown".to_string(), |cores| cores
-                            .to_string())
+                        .map_or("unknown".to_string(), |cores| cores.to_string())
                 );
 
-                let memory_readable =
-                    ByteSize::b(information.memory_total).to_string_as(true);
+                let memory_readable = ByteSize::b(information.memory_total).to_string_as(true);
 
                 let memory_total = text!(
                     "Memory (total): {} bytes ({memory_readable})",
                     information.memory_total,
                 );
 
-                let memory_text =
-                    if let Some(memory_used) = information.memory_used {
-                        let memory_readable =
-                            ByteSize::b(memory_used).to_string_as(true);
+                let memory_text = if let Some(memory_used) = information.memory_used {
+                    let memory_readable = ByteSize::b(memory_used).to_string_as(true);
 
-                        format!("{memory_used} bytes ({memory_readable})")
-                    } else {
-                        String::from("None")
-                    };
+                    format!("{memory_used} bytes ({memory_readable})")
+                } else {
+                    String::from("None")
+                };
 
                 let memory_used = text!("Memory (used): {memory_text}");
 
-                let graphics_adapter =
-                    text!("Graphics adapter: {}", information.graphics_adapter);
+                let graphics_adapter = text!("Graphics adapter: {}", information.graphics_adapter);
 
-                let graphics_backend =
-                    text!("Graphics backend: {}", information.graphics_backend);
+                let graphics_backend = text!("Graphics backend: {}", information.graphics_backend);
 
                 column![
                     system_name.size(30),

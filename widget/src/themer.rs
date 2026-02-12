@@ -7,8 +7,7 @@ use crate::core::theme;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Clipboard, Color, Element, Event, Layout, Length, Rectangle,
-    Shell, Size, Vector, Widget,
+    Background, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that applies any `Theme` to its contents.
@@ -111,13 +110,12 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget_mut().update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-        );
+        self.content
+            .as_widget_mut()
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn mouse_interaction(
@@ -183,19 +181,14 @@ where
             content: overlay::Element<'a, Message, Theme, Renderer>,
         }
 
-        impl<Message, Theme, Renderer, AnyTheme>
-            overlay::Overlay<Message, AnyTheme, Renderer>
+        impl<Message, Theme, Renderer, AnyTheme> overlay::Overlay<Message, AnyTheme, Renderer>
             for Overlay<'_, Message, Theme, Renderer>
         where
             Theme: theme::Base,
             AnyTheme: theme::Base,
             Renderer: crate::core::Renderer,
         {
-            fn layout(
-                &mut self,
-                renderer: &Renderer,
-                bounds: Size,
-            ) -> layout::Node {
+            fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
                 self.content.as_overlay_mut().layout(renderer, bounds)
             }
 
@@ -221,12 +214,11 @@ where
                 layout: Layout<'_>,
                 cursor: mouse::Cursor,
                 renderer: &Renderer,
-                clipboard: &mut dyn Clipboard,
                 shell: &mut Shell<'_, Message>,
             ) {
                 self.content
                     .as_overlay_mut()
-                    .update(event, layout, cursor, renderer, clipboard, shell);
+                    .update(event, layout, cursor, renderer, shell);
             }
 
             fn operate(
@@ -255,8 +247,7 @@ where
                 &'b mut self,
                 layout: Layout<'b>,
                 renderer: &Renderer,
-            ) -> Option<overlay::Element<'b, Message, AnyTheme, Renderer>>
-            {
+            ) -> Option<overlay::Element<'b, Message, AnyTheme, Renderer>> {
                 self.content
                     .as_overlay_mut()
                     .overlay(layout, renderer)
@@ -279,8 +270,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer, AnyTheme>
-    From<Themer<'a, Message, Theme, Renderer>>
+impl<'a, Message, Theme, Renderer, AnyTheme> From<Themer<'a, Message, Theme, Renderer>>
     for Element<'a, Message, AnyTheme, Renderer>
 where
     Message: 'a,

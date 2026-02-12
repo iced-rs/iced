@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
 [![Downloads](https://img.shields.io/crates/d/iced.svg)](https://crates.io/crates/iced)
 [![Test Status](https://img.shields.io/github/actions/workflow/status/iced-rs/iced/test.yml?branch=master&event=push&label=test)](https://github.com/iced-rs/iced/actions)
-[![Discourse](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscourse.iced.rs%2Fsite%2Fstatistics.json&query=%24.users_count&suffix=%20users&label=discourse&color=5e7ce2)](https://discourse.iced.rs/)
+[![Zulip Chat](https://img.shields.io/badge/chat-on%20Zulip-5e7ce2?logo=zulip&logoColor=white)](https://iced.zulipchat.com/)
 [![Discord Server](https://img.shields.io/discord/628993209984614400?label=&labelColor=6A7EC2&logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/3xZJ65GAhd)
 
 A cross-platform GUI library for Rust focused on simplicity and type-safety.
@@ -32,7 +32,7 @@ Inspired by [Elm].
 * Responsive layout
 * Built-in widgets (including [text inputs], [scrollables], and more!)
 * Custom widget support (create your own!)
-* [Debug overlay with performance metrics]
+* [Debug tooling with performance metrics and time traveling]
 * First-class support for async actions (use futures!)
 * Modular ecosystem split into reusable parts:
   * A [renderer-agnostic native runtime] enabling integration with existing systems
@@ -47,7 +47,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap] and
 [Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg
 [text inputs]: https://iced.rs/examples/text_input.mp4
 [scrollables]: https://iced.rs/examples/scrollable.mp4
-[Debug overlay with performance metrics]: https://iced.rs/examples/debug.mp4
+[Debug tooling with performance metrics and time traveling]: https://github.com/user-attachments/assets/2e49695c-0261-4b43-ac2e-8d7da5454c4b
 [renderer-agnostic native runtime]: runtime/
 [`wgpu`]: https://github.com/gfx-rs/wgpu
 [`tiny-skia`]: https://github.com/RazrFalcon/tiny-skia
@@ -142,7 +142,7 @@ And that's everything! We just wrote a whole user interface. Let's run it:
 
 ```rust
 fn main() -> iced::Result {
-    iced::run("A cool counter", Counter::update, Counter::view)
+    iced::run(Counter::update, Counter::view)
 }
 ```
 
@@ -178,7 +178,7 @@ end-user-oriented GUI library, while keeping the ecosystem modular.
 
 If you want to contribute, please read our [contributing guidelines] for more details.
 
-Feedback is also welcome! You can create a new topic in [our Discourse forum] or
+Feedback is also welcome! You can create a new topic in [our Zulip forum] or
 come chat to [our Discord server].
 
 ## Sponsors
@@ -193,7 +193,7 @@ The development of Iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
 [the current issues]: https://github.com/iced-rs/iced/issues
 [contributing guidelines]: https://github.com/iced-rs/iced/blob/master/CONTRIBUTING.md
-[our Discourse forum]: https://discourse.iced.rs/
+[our Zulip forum]: https://iced.zulipchat.com/
 [our Discord server]: https://discord.gg/3xZJ65GAhd
 [Cryptowatch]: https://cryptowat.ch/charts
 [Kraken.com]: https://kraken.com/

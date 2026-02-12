@@ -81,9 +81,19 @@ impl std::ops::Add<Vector> for Cursor {
     fn add(self, translation: Vector) -> Self::Output {
         match self {
             Cursor::Available(point) => Cursor::Available(point + translation),
-            Cursor::Levitating(point) => {
-                Cursor::Levitating(point + translation)
-            }
+            Cursor::Levitating(point) => Cursor::Levitating(point + translation),
+            Cursor::Unavailable => Cursor::Unavailable,
+        }
+    }
+}
+
+impl std::ops::Sub<Vector> for Cursor {
+    type Output = Self;
+
+    fn sub(self, translation: Vector) -> Self::Output {
+        match self {
+            Cursor::Available(point) => Cursor::Available(point - translation),
+            Cursor::Levitating(point) => Cursor::Levitating(point - translation),
             Cursor::Unavailable => Cursor::Unavailable,
         }
     }
@@ -94,12 +104,8 @@ impl std::ops::Mul<Transformation> for Cursor {
 
     fn mul(self, transformation: Transformation) -> Self {
         match self {
-            Self::Available(position) => {
-                Self::Available(position * transformation)
-            }
-            Self::Levitating(position) => {
-                Self::Levitating(position * transformation)
-            }
+            Self::Available(position) => Self::Available(position * transformation),
+            Self::Levitating(position) => Self::Levitating(position * transformation),
             Self::Unavailable => Self::Unavailable,
         }
     }

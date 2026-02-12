@@ -1,8 +1,7 @@
 use iced::font;
 use iced::time::{Duration, hours, minutes};
 use iced::widget::{
-    center_x, center_y, column, container, row, scrollable, slider, table,
-    text, tooltip,
+    center_x, center_y, column, container, row, scrollable, slider, table, text, tooltip,
 };
 use iced::{Center, Element, Fill, Font, Right, Theme};
 
@@ -64,13 +63,11 @@ impl Table {
                 .align_y(Center),
                 table::column(bold("Price"), |event: &Event| {
                     if event.price > 0.0 {
-                        text!("${:.2}", event.price).style(
-                            if event.price > 100.0 {
-                                text::warning
-                            } else {
-                                text::default
-                            },
-                        )
+                        text!("${:.2}", event.price).style(if event.price > 100.0 {
+                            text::warning
+                        } else {
+                            text::default
+                        })
                     } else {
                         text("Free").style(text::success).width(Fill).center()
                     }
@@ -121,12 +118,7 @@ impl Table {
                 };
 
             column![
-                labeled_slider(
-                    "Padding",
-                    0.0..=30.0,
-                    self.padding,
-                    Message::PaddingChanged
-                ),
+                labeled_slider("Padding", 0.0..=30.0, self.padding, Message::PaddingChanged),
                 labeled_slider(
                     "Separator",
                     0.0..=5.0,
@@ -205,8 +197,7 @@ impl Event {
                 rating: 4.7,
             },
             Event {
-                name: "Try to order at a secret ramen place with no sign"
-                    .to_owned(),
+                name: "Try to order at a secret ramen place with no sign".to_owned(),
                 duration: minutes(50),
                 price: 14.0,
                 rating: 4.6,

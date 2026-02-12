@@ -1,5 +1,6 @@
 [package]
 name = "iced_devtools"
+description = "Attachable developer tools for any iced program"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

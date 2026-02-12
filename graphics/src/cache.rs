@@ -62,8 +62,7 @@ impl<T> Cache<T> {
     pub fn clear(&self) {
         let mut state = self.state.borrow_mut();
 
-        let previous =
-            mem::replace(&mut *state, State::Empty { previous: None });
+        let previous = mem::replace(&mut *state, State::Empty { previous: None });
 
         let previous = match previous {
             State::Empty { previous } => previous,
@@ -181,10 +180,5 @@ impl Cached for () {
 
     fn load(_cache: &Self::Cache) -> Self {}
 
-    fn cache(
-        self,
-        _group: Group,
-        _previous: Option<Self::Cache>,
-    ) -> Self::Cache {
-    }
+    fn cache(self, _group: Group, _previous: Option<Self::Cache>) -> Self::Cache {}
 }

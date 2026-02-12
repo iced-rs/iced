@@ -17,9 +17,7 @@ impl Background {
     pub fn scale_alpha(self, factor: f32) -> Self {
         match self {
             Self::Color(color) => Self::Color(color.scale_alpha(factor)),
-            Self::Gradient(gradient) => {
-                Self::Gradient(gradient.scale_alpha(factor))
-            }
+            Self::Gradient(gradient) => Self::Gradient(gradient.scale_alpha(factor)),
         }
     }
 }

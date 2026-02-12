@@ -24,11 +24,7 @@ impl Limits {
 
     /// Creates new [`Limits`] with the given minimun and maximum [`Size`], and
     /// whether fluid lengths should be compressed to intrinsic dimensions.
-    pub const fn with_compression(
-        min: Size,
-        max: Size,
-        compress: Size<bool>,
-    ) -> Self {
+    pub const fn with_compression(min: Size, max: Size, compress: Size<bool>) -> Self {
         Limits {
             min,
             max,
@@ -77,8 +73,7 @@ impl Limits {
                 self.compression.height = true;
             }
             Length::Fixed(amount) => {
-                let new_height =
-                    amount.min(self.max.height).max(self.min.height);
+                let new_height = amount.min(self.max.height).max(self.min.height);
 
                 self.min.height = new_height;
                 self.max.height = new_height;
@@ -139,7 +134,7 @@ impl Limits {
         }
     }
 
-    /// Removes the minimum width constraint for the current [`Limits`].
+    /// Removes the minimum [`Size`] constraint for the current [`Limits`].
     pub fn loose(&self) -> Limits {
         Limits {
             min: Size::ZERO,
@@ -158,26 +153,14 @@ impl Limits {
         intrinsic_size: Size,
     ) -> Size {
         let width = match width.into() {
-            Length::Fill | Length::FillPortion(_)
-                if !self.compression.width =>
-            {
-                self.max.width
-            }
-            Length::Fixed(amount) => {
-                amount.min(self.max.width).max(self.min.width)
-            }
+            Length::Fill | Length::FillPortion(_) if !self.compression.width => self.max.width,
+            Length::Fixed(amount) => amount.min(self.max.width).max(self.min.width),
             _ => intrinsic_size.width.min(self.max.width).max(self.min.width),
         };
 
         let height = match height.into() {
-            Length::Fill | Length::FillPortion(_)
-                if !self.compression.height =>
-            {
-                self.max.height
-            }
-            Length::Fixed(amount) => {
-                amount.min(self.max.height).max(self.min.height)
-            }
+            Length::Fill | Length::FillPortion(_) if !self.compression.height => self.max.height,
+            Length::Fixed(amount) => amount.min(self.max.height).max(self.min.height),
             _ => intrinsic_size
                 .height
                 .min(self.max.height)

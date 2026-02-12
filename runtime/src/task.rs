@@ -40,7 +40,12 @@ impl<T> Task<T> {
     where
         T: MaybeSend + 'static,
     {
-        Self::future(future::ready(value))
+        Self {
+            stream: Some(boxed_stream(stream::once(future::ready(Action::Output(
+                value,
+            ))))),
+            units: 0,
+        }
     }
 
     /// Creates a [`Task`] that runs the given [`Future`] to completion and maps its
@@ -109,10 +114,7 @@ impl<T> Task<T> {
     }
 
     /// Maps the output of a [`Task`] with the given closure.
-    pub fn map<O>(
-        self,
-        mut f: impl FnMut(T) -> O + MaybeSend + 'static,
-    ) -> Task<O>
+    pub fn map<O>(self, mut f: impl FnMut(T) -> O + MaybeSend + 'static) -> Task<O>
     where
         T: MaybeSend + 'static,
         O: MaybeSend + 'static,
@@ -125,10 +127,7 @@ impl<T> Task<T> {
     ///
     /// This is the monadic interface of [`Task`]—analogous to [`Future`] and
     /// [`Stream`].
-    pub fn then<O>(
-        self,
-        mut f: impl FnMut(T) -> Task<O> + MaybeSend + 'static,
-    ) -> Task<O>
+    pub fn then<O>(self, mut f: impl FnMut(T) -> Task<O> + MaybeSend + 'static) -> Task<O>
     where
         T: MaybeSend + 'static,
         O: MaybeSend + 'static,
@@ -136,20 +135,14 @@ impl<T> Task<T> {
         Task {
             stream: match self.stream {
                 None => None,
-                Some(stream) => {
-                    Some(boxed_stream(stream.flat_map(move |action| {
-                        match action.output() {
-                            Ok(output) => {
-                                f(output).stream.unwrap_or_else(|| {
-                                    boxed_stream(stream::empty())
-                                })
-                            }
-                            Err(action) => boxed_stream(stream::once(
-                                async move { action },
-                            )),
-                        }
-                    })))
-                }
+                Some(stream) => Some(boxed_stream(stream.flat_map(move |action| {
+                    match action.output() {
+                        Ok(output) => f(output)
+                            .stream
+                            .unwrap_or_else(|| boxed_stream(stream::empty())),
+                        Err(action) => boxed_stream(stream::once(async move { action })),
+                    }
+                }))),
             },
             units: self.units,
         }
@@ -190,10 +183,7 @@ impl<T> Task<T> {
                             let mut outputs = outputs?;
 
                             let Some(action) = stream.next().await else {
-                                return Some((
-                                    Some(Action::Output(outputs)),
-                                    (stream, None),
-                                ));
+                                return Some((Some(Action::Output(outputs)), (stream, None)));
                             };
 
                             match action.output() {
@@ -202,10 +192,7 @@ impl<T> Task<T> {
 
                                     Some((None, (stream, Some(outputs))))
                                 }
-                                Err(action) => Some((
-                                    Some(action),
-                                    (stream, Some(outputs)),
-                                )),
+                                Err(action) => Some((Some(action), (stream, Some(outputs)))),
                             }
                         },
                     )
@@ -345,10 +332,7 @@ impl Handle {
 impl Drop for Handle {
     fn drop(&mut self) {
         if let InternalHandle::AbortOnDrop(handle) = &mut self.internal {
-            let handle = std::mem::replace(
-                handle,
-                Arc::new(stream::AbortHandle::new_pair().0),
-            );
+            let handle = std::mem::replace(handle, Arc::new(stream::AbortHandle::new_pair().0));
 
             if let Some(handle) = Arc::into_inner(handle) {
                 handle.abort();
@@ -361,10 +345,7 @@ impl<T> Task<Option<T>> {
     /// Executes a new [`Task`] after this one, only when it produces `Some` value.
     ///
     /// The value is provided to the closure to create the subsequent [`Task`].
-    pub fn and_then<A>(
-        self,
-        f: impl Fn(T) -> Task<A> + MaybeSend + 'static,
-    ) -> Task<A>
+    pub fn and_then<A>(self, f: impl Fn(T) -> Task<A> + MaybeSend + 'static) -> Task<A>
     where
         T: MaybeSend + 'static,
         A: MaybeSend + 'static,
@@ -386,17 +367,12 @@ impl<T, E> Task<Result<T, E>> {
         E: MaybeSend + 'static,
         A: MaybeSend + 'static,
     {
-        self.then(move |result| {
-            result.map_or_else(|error| Task::done(Err(error)), &f)
-        })
+        self.then(move |result| result.map_or_else(|error| Task::done(Err(error)), &f))
     }
 
     /// Maps the error type of this [`Task`] to a different one using the given
     /// function.
-    pub fn map_err<E2>(
-        self,
-        f: impl Fn(E) -> E2 + MaybeSend + 'static,
-    ) -> Task<Result<T, E2>>
+    pub fn map_err<E2>(self, f: impl Fn(E) -> E2 + MaybeSend + 'static) -> Task<Result<T, E2>>
     where
         T: MaybeSend + 'static,
         E: MaybeSend + 'static,
@@ -425,10 +401,9 @@ where
     T: Send + 'static,
 {
     channel(move |sender| {
-        let operation =
-            widget::operation::map(Box::new(operation), move |value| {
-                let _ = sender.clone().try_send(value);
-            });
+        let operation = widget::operation::map(Box::new(operation), move |value| {
+            let _ = sender.clone().try_send(value);
+        });
 
         Action::Widget(Box::new(operation))
     })
@@ -445,11 +420,13 @@ where
     let action = f(sender);
 
     Task {
-        stream: Some(boxed_stream(stream::once(async move { action }).chain(
-            receiver.into_stream().filter_map(|result| async move {
-                Some(Action::Output(result.ok()?))
-            }),
-        ))),
+        stream: Some(boxed_stream(
+            stream::once(async move { action }).chain(
+                receiver
+                    .into_stream()
+                    .filter_map(|result| async move { Some(Action::Output(result.ok()?)) }),
+            ),
+        )),
         units: 1,
     }
 }
@@ -542,10 +519,7 @@ async fn yield_now() {
     impl Future for YieldNow {
         type Output = ();
 
-        fn poll(
-            mut self: Pin<&mut Self>,
-            cx: &mut task::Context<'_>,
-        ) -> task::Poll<()> {
+        fn poll(mut self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> task::Poll<()> {
             if self.yielded {
                 return task::Poll::Ready(());
             }

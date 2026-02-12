@@ -72,11 +72,9 @@ impl Rectangle<f32> {
     ) -> (Rectangle, Radians) {
         let width = (top_right.x - top_left.x).hypot(top_right.y - top_left.y);
 
-        let height =
-            (bottom_left.x - top_left.x).hypot(bottom_left.y - top_left.y);
+        let height = (bottom_left.x - top_left.x).hypot(bottom_left.y - top_left.y);
 
-        let rotation =
-            (top_right.y - top_left.y).atan2(top_right.x - top_left.x);
+        let rotation = (top_right.y - top_left.y).atan2(top_right.x - top_left.x);
 
         let rotation = if rotation < 0.0 {
             2.0 * std::f32::consts::PI + rotation
@@ -153,11 +151,9 @@ impl Rectangle<f32> {
     pub fn distance(&self, point: Point) -> f32 {
         let center = self.center();
 
-        let distance_x =
-            ((point.x - center.x).abs() - self.width / 2.0).max(0.0);
+        let distance_x = ((point.x - center.x).abs() - self.width / 2.0).max(0.0);
 
-        let distance_y =
-            ((point.y - center.y).abs() - self.height / 2.0).max(0.0);
+        let distance_y = ((point.y - center.y).abs() - self.height / 2.0).max(0.0);
 
         distance_x.hypot(distance_y)
     }
@@ -196,10 +192,7 @@ impl Rectangle<f32> {
     }
 
     /// Computes the intersection with the given [`Rectangle`].
-    pub fn intersection(
-        &self,
-        other: &Rectangle<f32>,
-    ) -> Option<Rectangle<f32>> {
+    pub fn intersection(&self, other: &Rectangle<f32>) -> Option<Rectangle<f32>> {
         let x = self.x.max(other.x);
         let y = self.y.max(other.y);
 
@@ -245,23 +238,32 @@ impl Rectangle<f32> {
         }
     }
 
+    /// Rounds the [`Rectangle`] coordinates.
+    pub fn round(self) -> Self {
+        let top_left = self.position().round();
+        let bottom_right = (self.position() + Vector::from(self.size())).round();
+
+        Self {
+            x: top_left.x,
+            y: top_left.y,
+            width: bottom_right.x - top_left.x,
+            height: bottom_right.y - top_left.y,
+        }
+    }
+
     /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
     pub fn snap(self) -> Option<Rectangle<u32>> {
-        let top_left = self.position().snap();
-        let bottom_right = (self.position() + Vector::from(self.size())).snap();
+        let rounded = self.round();
 
-        let width = bottom_right.x.checked_sub(top_left.x)?;
-        let height = bottom_right.y.checked_sub(top_left.y)?;
-
-        if width < 1 || height < 1 {
+        if rounded.width < 1.0 || rounded.height < 1.0 {
             return None;
         }
 
         Some(Rectangle {
-            x: top_left.x,
-            y: top_left.y,
-            width,
-            height,
+            x: rounded.x as u32,
+            y: rounded.y as u32,
+            width: rounded.width as u32,
+            height: rounded.height as u32,
         })
     }
 
@@ -323,17 +325,13 @@ impl Rectangle<f32> {
     ) -> Point {
         let x = match align_x.into() {
             alignment::Horizontal::Left => self.x,
-            alignment::Horizontal::Center => {
-                self.x + (self.width - size.width) / 2.0
-            }
+            alignment::Horizontal::Center => self.x + (self.width - size.width) / 2.0,
             alignment::Horizontal::Right => self.x + self.width - size.width,
         };
 
         let y = match align_y.into() {
             alignment::Vertical::Top => self.y,
-            alignment::Vertical::Center => {
-                self.y + (self.height - size.height) / 2.0
-            }
+            alignment::Vertical::Center => self.y + (self.height - size.height) / 2.0,
             alignment::Vertical::Bottom => self.y + self.height - size.height,
         };
 

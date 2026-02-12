@@ -1,11 +1,8 @@
 use iced::widget::{
-    button, center, center_x, column, container, operation, scrollable, space,
-    text, text_input,
+    button, center, center_x, column, container, operation, scrollable, space, text, text_input,
 };
 use iced::window;
-use iced::{
-    Center, Element, Fill, Function, Subscription, Task, Theme, Vector,
-};
+use iced::{Center, Element, Fill, Function, Subscription, Task, Theme, Vector};
 
 use std::collections::BTreeMap;
 
@@ -68,14 +65,10 @@ impl Example {
 
                 window::position(*last_window)
                     .then(|last_position| {
-                        let position = last_position.map_or(
-                            window::Position::Default,
-                            |last_position| {
-                                window::Position::Specific(
-                                    last_position + Vector::new(20.0, 20.0),
-                                )
-                            },
-                        );
+                        let position =
+                            last_position.map_or(window::Position::Default, |last_position| {
+                                window::Position::Specific(last_position + Vector::new(20.0, 20.0))
+                            });
 
                         let (_, open) = window::open(window::Settings {
                             position,
@@ -169,10 +162,7 @@ impl Window {
             text("Window scale factor:"),
             text_input("Window Scale", &self.scale_input)
                 .on_input(Message::ScaleInputChanged.with(id))
-                .on_submit(Message::ScaleChanged(
-                    id,
-                    self.scale_input.to_string()
-                ))
+                .on_submit(Message::ScaleChanged(id, self.scale_input.to_string()))
         ];
 
         let title_input = column![
@@ -182,8 +172,7 @@ impl Window {
                 .id(format!("input-{id}"))
         ];
 
-        let new_window_button =
-            button(text("New Window")).on_press(Message::OpenWindow);
+        let new_window_button = button(text("New Window")).on_press(Message::OpenWindow);
 
         let content = column![scale_input, title_input, new_window_button]
             .spacing(50)

@@ -4,15 +4,13 @@ use crate::core::widget::operation;
 use crate::task;
 use crate::{Action, Task};
 
-pub use crate::core::widget::operation::scrollable::{
-    AbsoluteOffset, RelativeOffset,
-};
+pub use crate::core::widget::operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
 /// Snaps the scrollable with the given [`Id`] to the provided [`RelativeOffset`].
-pub fn snap_to<T>(id: impl Into<Id>, offset: RelativeOffset) -> Task<T> {
+pub fn snap_to<T>(id: impl Into<Id>, offset: impl Into<RelativeOffset<Option<f32>>>) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::snap_to(
         id.into(),
-        offset,
+        offset.into(),
     )))
 }
 
@@ -20,15 +18,15 @@ pub fn snap_to<T>(id: impl Into<Id>, offset: RelativeOffset) -> Task<T> {
 pub fn snap_to_end<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::snap_to(
         id.into(),
-        RelativeOffset::END,
+        RelativeOffset::END.into(),
     )))
 }
 
 /// Scrolls the scrollable with the given [`Id`] to the provided [`AbsoluteOffset`].
-pub fn scroll_to<T>(id: impl Into<Id>, offset: AbsoluteOffset) -> Task<T> {
+pub fn scroll_to<T>(id: impl Into<Id>, offset: impl Into<AbsoluteOffset<Option<f32>>>) -> Task<T> {
     task::effect(Action::widget(operation::scrollable::scroll_to(
         id.into(),
-        offset,
+        offset.into(),
     )))
 }
 

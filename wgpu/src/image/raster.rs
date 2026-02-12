@@ -75,11 +75,7 @@ impl Cache {
         self.map.contains_key(&handle.id())
     }
 
-    pub fn trim(
-        &mut self,
-        atlas: &mut Atlas,
-        on_drop: impl Fn(Arc<wgpu::BindGroup>),
-    ) {
+    pub fn trim(&mut self, atlas: &mut Atlas, on_drop: impl Fn(Arc<wgpu::BindGroup>)) {
         // Only trim if new entries have landed in the `Cache`
         if !self.should_trim {
             return;

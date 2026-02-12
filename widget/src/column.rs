@@ -6,8 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Padding, Pixels, Rectangle,
-    Shell, Size, Vector, Widget,
+    Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A container that distributes its contents vertically.
@@ -32,8 +31,7 @@ use crate::core::{
 ///     ].into()
 /// }
 /// ```
-pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-{
+pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,
     padding: Padding,
     width: Length,
@@ -74,9 +72,7 @@ where
     ///
     /// If any of the children have a [`Length::Fill`] strategy, you will need to
     /// call [`Column::width`] or [`Column::height`] accordingly.
-    pub fn from_vec(
-        children: Vec<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
@@ -137,10 +133,7 @@ where
     }
 
     /// Adds an element to the [`Column`].
-    pub fn push(
-        mut self,
-        child: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
         let child_size = child.as_widget().size_hint();
 
@@ -183,14 +176,9 @@ where
 }
 
 impl<'a, Message, Theme, Renderer: crate::core::Renderer>
-    FromIterator<Element<'a, Message, Theme, Renderer>>
-    for Column<'a, Message, Theme, Renderer>
+    FromIterator<Element<'a, Message, Theme, Renderer>> for Column<'a, Message, Theme, Renderer>
 {
-    fn from_iter<
-        T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    >(
-        iter: T,
-    ) -> Self {
+    fn from_iter<T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>>(iter: T) -> Self {
         Self::with_children(iter)
     }
 }
@@ -265,7 +253,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -275,10 +262,9 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
         {
-            child.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell,
-                viewport,
-            );
+            child
+                .as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 
@@ -327,9 +313,9 @@ where
                 .zip(layout.children())
                 .filter(|(_, layout)| layout.bounds().intersects(viewport))
             {
-                child.as_widget().draw(
-                    tree, renderer, theme, style, layout, cursor, viewport,
-                );
+                child
+                    .as_widget()
+                    .draw(tree, renderer, theme, style, layout, cursor, viewport);
             }
         }
     }
@@ -372,12 +358,7 @@ where
 ///
 /// The original alignment of the [`Column`] is preserved per column wrapped.
 #[allow(missing_debug_implementations)]
-pub struct Wrapping<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> {
+pub struct Wrapping<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     column: Column<'a, Message, Theme, Renderer>,
     horizontal_spacing: Option<f32>,
     align_y: alignment::Vertical,
@@ -450,20 +431,15 @@ where
                 for node in &mut children[column_start] {
                     let width = node.size().width;
 
-                    node.translate_mut(Vector::new(
-                        (column_width - width) / align_factor,
-                        0.0,
-                    ));
+                    node.translate_mut(Vector::new((column_width - width) / align_factor, 0.0));
                 }
             }
         };
 
         for (i, child) in self.column.children.iter_mut().enumerate() {
-            let node = child.as_widget_mut().layout(
-                &mut tree.children[i],
-                renderer,
-                &child_limits,
-            );
+            let node = child
+                .as_widget_mut()
+                .layout(&mut tree.children[i], renderer, &child_limits);
 
             let child_size = node.size();
 
@@ -480,10 +456,8 @@ where
 
             column_width = column_width.max(child_size.width);
 
-            children.push(node.move_to((
-                x + self.column.padding.left,
-                y + self.column.padding.top,
-            )));
+            children
+                .push(node.move_to((x + self.column.padding.left, y + self.column.padding.top)));
 
             y += child_size.height + spacing;
         }
@@ -516,10 +490,8 @@ where
                     .unwrap_or_default();
 
                 if next_y == 0.0 {
-                    let translation = Vector::new(
-                        0.0,
-                        (total_height - column_height) / align_factor,
-                    );
+                    let translation =
+                        Vector::new(0.0, (total_height - column_height) / align_factor);
 
                     for node in &mut children[column_start..=i] {
                         node.translate_mut(translation);
@@ -530,11 +502,7 @@ where
             }
         }
 
-        let size = limits.resolve(
-            self.column.width,
-            self.column.height,
-            intrinsic_size,
-        );
+        let size = limits.resolve(self.column.width, self.column.height, intrinsic_size);
 
         layout::Node::with_children(size.expand(self.column.padding), children)
     }
@@ -556,13 +524,11 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.column.update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-        );
+        self.column
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn mouse_interaction(

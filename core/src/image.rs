@@ -30,12 +30,6 @@ pub struct Image<H = Handle> {
     ///
     /// 0 means transparent. 1 means opaque.
     pub opacity: f32,
-
-    /// If set to `true`, the image will be snapped to the pixel grid.
-    ///
-    /// This can avoid graphical glitches, specially when using
-    /// [`FilterMethod::Nearest`].
-    pub snap: bool,
 }
 
 impl Image<Handle> {
@@ -47,7 +41,6 @@ impl Image<Handle> {
             rotation: Radians(0.0),
             border_radius: border::Radius::default(),
             opacity: 1.0,
-            snap: false,
         }
     }
 
@@ -66,12 +59,6 @@ impl Image<Handle> {
     /// Sets the opacity of the [`Image`].
     pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
         self.opacity = opacity.into();
-        self
-    }
-
-    /// Sets whether the [`Image`] should be snapped to the pixel grid.
-    pub fn snap(mut self, snap: bool) -> Self {
-        self.snap = snap;
         self
     }
 }
@@ -144,11 +131,7 @@ impl Handle {
     /// `width * height * 4`.
     ///
     /// This is useful if you have already decoded your image.
-    pub fn from_rgba(
-        width: u32,
-        height: u32,
-        pixels: impl Into<Bytes>,
-    ) -> Handle {
+    pub fn from_rgba(width: u32, height: u32, pixels: impl Into<Bytes>) -> Handle {
         Self::Rgba {
             id: Id::unique(),
             width,
@@ -160,9 +143,7 @@ impl Handle {
     /// Returns the unique identifier of the [`Handle`].
     pub fn id(&self) -> Id {
         match self {
-            Handle::Path(id, _)
-            | Handle::Bytes(id, _)
-            | Handle::Rgba { id, .. } => *id,
+            Handle::Path(id, _) | Handle::Bytes(id, _) | Handle::Rgba { id, .. } => *id,
         }
     }
 }
@@ -328,12 +309,7 @@ pub trait Renderer: crate::Renderer {
     ///
     /// If you need to draw an image right away, consider using [`Renderer::load_image`]
     /// and hold on to an [`Allocation`] first.
-    fn draw_image(
-        &mut self,
-        image: Image<Self::Handle>,
-        bounds: Rectangle,
-        clip_bounds: Rectangle,
-    );
+    fn draw_image(&mut self, image: Image<Self::Handle>, bounds: Rectangle, clip_bounds: Rectangle);
 }
 
 /// An image loading error.
@@ -348,6 +324,9 @@ pub enum Error {
     /// Loading images is unsupported.
     #[error("loading images is unsupported")]
     Unsupported,
+    /// The image is empty.
+    #[error("the image is empty")]
+    Empty,
     /// Not enough memory to allocate the image.
     #[error("not enough memory to allocate the image")]
     OutOfMemory,

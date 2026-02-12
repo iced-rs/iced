@@ -8,6 +8,7 @@ use tiny_skia::Transform;
 use std::cell::RefCell;
 use std::collections::hash_map;
 use std::fs;
+use std::panic;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -105,14 +106,10 @@ impl Cache {
 
         if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
             let svg = match handle.data() {
-                Data::Path(path) => {
-                    fs::read_to_string(path).ok().and_then(|contents| {
-                        usvg::Tree::from_str(&contents, &options).ok()
-                    })
-                }
-                Data::Bytes(bytes) => {
-                    usvg::Tree::from_data(bytes, &options).ok()
-                }
+                Data::Path(path) => fs::read_to_string(path)
+                    .ok()
+                    .and_then(|contents| usvg::Tree::from_str(&contents, &options).ok()),
+                Data::Bytes(bytes) => usvg::Tree::from_data(bytes, &options).ok(),
             };
 
             let _ = entry.insert(svg);
@@ -171,28 +168,26 @@ impl Cache {
                 tiny_skia::Transform::default()
             };
 
-            resvg::render(tree, transform, &mut image.as_mut());
+            // SVG rendering can panic on malformed or complex vectors.
+            // We catch panics to prevent crashes and continue gracefully.
+            let render = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                resvg::render(tree, transform, &mut image.as_mut());
+            }));
+
+            if let Err(error) = render {
+                log::warn!("SVG rendering for {handle:?} panicked: {error:?}");
+            }
 
             if let Some([r, g, b, _]) = key.color {
                 // Apply color filter
-                for pixel in
-                    bytemuck::cast_slice_mut::<u8, u32>(image.data_mut())
-                {
+                for pixel in bytemuck::cast_slice_mut::<u8, u32>(image.data_mut()) {
                     *pixel = bytemuck::cast(
-                        tiny_skia::ColorU8::from_rgba(
-                            b,
-                            g,
-                            r,
-                            (*pixel >> 24) as u8,
-                        )
-                        .premultiply(),
+                        tiny_skia::ColorU8::from_rgba(b, g, r, (*pixel >> 24) as u8).premultiply(),
                     );
                 }
             } else {
                 // Swap R and B channels for `softbuffer` presentation
-                for pixel in
-                    bytemuck::cast_slice_mut::<u8, u32>(image.data_mut())
-                {
+                for pixel in bytemuck::cast_slice_mut::<u8, u32>(image.data_mut()) {
                     *pixel = *pixel & 0xFF00_FF00
                         | ((0x0000_00FF & *pixel) << 16)
                         | ((0x00FF_0000 & *pixel) >> 16);

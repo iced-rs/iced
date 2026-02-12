@@ -82,15 +82,14 @@ impl Atlas {
             ..Default::default()
         });
 
-        let texture_bind_group =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::image texture atlas bind group"),
-                layout: &texture_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&texture_view),
-                }],
-            });
+        let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::image texture atlas bind group"),
+            layout: &texture_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&texture_view),
+            }],
+        });
 
         Atlas {
             size,
@@ -131,9 +130,7 @@ impl Atlas {
 
         match &entry {
             Entry::Contiguous(allocation) => {
-                self.upload_allocation(
-                    pixels, width, 0, allocation, device, encoder, belt,
-                );
+                self.upload_allocation(pixels, width, 0, allocation, encoder, belt);
             }
             Entry::Fragmented { fragments, .. } => {
                 for fragment in fragments {
@@ -145,7 +142,6 @@ impl Atlas {
                         width,
                         offset,
                         &fragment.allocation,
-                        device,
                         encoder,
                         belt,
                     );
@@ -312,7 +308,6 @@ impl Atlas {
         image_width: u32,
         offset: usize,
         allocation: &Allocation,
-        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
     ) {
@@ -328,13 +323,11 @@ impl Atlas {
         let bytes_per_row = (4 * (width + padding.width * 2))
             .next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
             as usize;
-        let total_bytes =
-            bytes_per_row * (height + padding.height * 2) as usize;
+        let total_bytes = bytes_per_row * (height + padding.height * 2) as usize;
 
         let buffer_slice = belt.allocate(
             wgpu::BufferSize::new(total_bytes as u64).unwrap(),
             wgpu::BufferSize::new(8 * 4).unwrap(),
-            device,
         );
 
         const PIXEL: usize = 4;
@@ -359,11 +352,9 @@ impl Atlas {
                 fragment[dst + PIXEL * i..dst + PIXEL * (i + 1)]
                     .copy_from_slice(&pixels[src..src + PIXEL]);
 
-                fragment[dst + stride + PIXEL * (pad_w + i)
-                    ..dst + stride + PIXEL * (pad_w + i + 1)]
-                    .copy_from_slice(
-                        &pixels[src + stride - PIXEL..src + stride],
-                    );
+                fragment
+                    [dst + stride + PIXEL * (pad_w + i)..dst + stride + PIXEL * (pad_w + i + 1)]
+                    .copy_from_slice(&pixels[src + stride - PIXEL..src + stride]);
             }
         }
 
@@ -379,8 +370,7 @@ impl Atlas {
                 .copy_from_slice(&pixels[src_top..src_top + PIXEL * w]);
 
             // Bottom
-            fragment
-                [dst_bottom + PIXEL * pad_w..dst_bottom + PIXEL * (pad_w + w)]
+            fragment[dst_bottom + PIXEL * pad_w..dst_bottom + PIXEL * (pad_w + w)]
                 .copy_from_slice(&pixels[src_bottom..src_bottom + PIXEL * w]);
 
             // Corners
@@ -390,11 +380,8 @@ impl Atlas {
                     .copy_from_slice(&pixels[offset..offset + PIXEL]);
 
                 // Top right
-                fragment[dst_top + PIXEL * (w + pad_w + i)
-                    ..dst_top + PIXEL * (w + pad_w + i + 1)]
-                    .copy_from_slice(
-                        &pixels[offset + PIXEL * (w - 1)..offset + PIXEL * w],
-                    );
+                fragment[dst_top + PIXEL * (w + pad_w + i)..dst_top + PIXEL * (w + pad_w + i + 1)]
+                    .copy_from_slice(&pixels[offset + PIXEL * (w - 1)..offset + PIXEL * w]);
 
                 // Bottom left
                 fragment[dst_bottom + PIXEL * i..dst_bottom + PIXEL * (i + 1)]
@@ -403,10 +390,7 @@ impl Atlas {
                 // Bottom right
                 fragment[dst_bottom + PIXEL * (w + pad_w + i)
                     ..dst_bottom + PIXEL * (w + pad_w + i + 1)]
-                    .copy_from_slice(
-                        &pixels[src_bottom + PIXEL * (w - 1)
-                            ..src_bottom + PIXEL * w],
-                    );
+                    .copy_from_slice(&pixels[src_bottom + PIXEL * (w - 1)..src_bottom + PIXEL * w]);
             }
         }
 
@@ -449,13 +433,15 @@ impl Atlas {
             return;
         }
 
-        // On the GL backend if layers.len() == 6 we need to help wgpu figure out that this texture
-        // is still a `GL_TEXTURE_2D_ARRAY` rather than `GL_TEXTURE_CUBE_MAP`. This will over-allocate
-        // some unused memory on GL, but it's better than not being able to grow the atlas past a depth
-        // of 6!
+        // On the GL backend if layers.len() is a multiple of 6 we need to help wgpu figure out that this texture
+        // is still a `GL_TEXTURE_2D_ARRAY` rather than `GL_TEXTURE_CUBE_MAP` or `GL_TEXTURE_CUBE_ARRAY`.
+        // This will over-allocate some unused memory on GL, but it's better than not being able to
+        // grow the atlas past multiples of 6!
         // https://github.com/gfx-rs/wgpu/blob/004e3efe84a320d9331371ed31fa50baa2414911/wgpu-hal/src/gles/mod.rs#L371
         let depth_or_array_layers = match backend {
-            wgpu::Backend::Gl if self.layers.len() == 6 => 7,
+            wgpu::Backend::Gl if self.layers.len().is_multiple_of(6) => {
+                self.layers.len() as u32 + 1
+            }
             _ => self.layers.len() as u32,
         };
 
@@ -482,9 +468,7 @@ impl Atlas {
 
         let amount_to_copy = self.layers.len() - amount;
 
-        for (i, layer) in
-            self.layers.iter_mut().take(amount_to_copy).enumerate()
-        {
+        for (i, layer) in self.layers.iter_mut().take(amount_to_copy).enumerate() {
             if layer.is_empty() {
                 continue;
             }
@@ -519,22 +503,18 @@ impl Atlas {
         }
 
         self.texture = new_texture;
-        self.texture_view =
-            self.texture.create_view(&wgpu::TextureViewDescriptor {
-                dimension: Some(wgpu::TextureViewDimension::D2Array),
-                ..Default::default()
-            });
+        self.texture_view = self.texture.create_view(&wgpu::TextureViewDescriptor {
+            dimension: Some(wgpu::TextureViewDimension::D2Array),
+            ..Default::default()
+        });
 
-        self.texture_bind_group =
-            Arc::new(device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::image texture atlas bind group"),
-                layout: &self.texture_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.texture_view,
-                    ),
-                }],
-            }));
+        self.texture_bind_group = Arc::new(device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::image texture atlas bind group"),
+            layout: &self.texture_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&self.texture_view),
+            }],
+        }));
     }
 }

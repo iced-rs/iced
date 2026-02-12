@@ -4,22 +4,14 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::Tree;
-use crate::core::{
-    self, Clipboard, Element, Event, Length, Rectangle, Shell, Size, Vector,
-    Widget,
-};
+use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 use crate::space;
 
 /// A widget that is aware of its dimensions.
 ///
 /// A [`Responsive`] widget will always try to fill all the available space of
 /// its parent.
-pub struct Responsive<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> {
+pub struct Responsive<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     view: Box<dyn Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a>,
     width: Length,
     height: Length,
@@ -36,9 +28,7 @@ where
     /// The `view` closure will receive the maximum available space for
     /// the [`Responsive`] during layout. You can use this [`Size`] to
     /// conditionally build the contents.
-    pub fn new(
-        view: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a,
-    ) -> Self {
+    pub fn new(view: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a) -> Self {
         Self {
             view: Box::new(view),
             width: Length::Fill,
@@ -88,11 +78,10 @@ where
         self.content = (self.view)(size);
         tree.diff_children(std::slice::from_ref(&self.content));
 
-        let node = self.content.as_widget_mut().layout(
-            &mut tree.children[0],
-            renderer,
-            &limits.loose(),
-        );
+        let node =
+            self.content
+                .as_widget_mut()
+                .layout(&mut tree.children[0], renderer, &limits.loose());
 
         let size = limits.resolve(self.width, self.height, node.size());
 
@@ -106,7 +95,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -116,7 +104,6 @@ where
             layout.children().next().unwrap(),
             cursor,
             renderer,
-            clipboard,
             shell,
             viewport,
         );
@@ -193,8 +180,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer>
-    From<Responsive<'a, Message, Theme, Renderer>>
+impl<'a, Message, Theme, Renderer> From<Responsive<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,

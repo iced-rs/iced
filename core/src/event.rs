@@ -1,4 +1,5 @@
 //! Handle events of a user interface.
+use crate::clipboard;
 use crate::input_method;
 use crate::keyboard;
 use crate::mouse;
@@ -27,6 +28,9 @@ pub enum Event {
 
     /// An input method event
     InputMethod(input_method::Event),
+
+    /// A clipboard event
+    Clipboard(clipboard::Event),
 }
 
 /// The status of an [`Event`] after being processed.

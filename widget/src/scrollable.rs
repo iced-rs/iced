@@ -35,9 +35,8 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Event, InputMethod, Layout,
-    Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
-    Widget,
+    self, Background, Color, Element, Event, InputMethod, Layout, Length, Padding, Pixels, Point,
+    Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
@@ -64,12 +63,8 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 ///     ]).into()
 /// }
 /// ```
-pub struct Scrollable<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> where
+pub struct Scrollable<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
@@ -90,9 +85,7 @@ where
     Renderer: text::Renderer,
 {
     /// Creates a new vertical [`Scrollable`].
-    pub fn new(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self::with_direction(content, Direction::default())
     }
 
@@ -189,8 +182,7 @@ where
     /// Sets the [`Anchor`] of the horizontal direction of the [`Scrollable`], if applicable.
     pub fn anchor_x(mut self, alignment: Anchor) -> Self {
         match &mut self.direction {
-            Direction::Horizontal(horizontal)
-            | Direction::Both { horizontal, .. } => {
+            Direction::Horizontal(horizontal) | Direction::Both { horizontal, .. } => {
                 horizontal.alignment = alignment;
             }
             Direction::Vertical { .. } => {}
@@ -202,8 +194,7 @@ where
     /// Sets the [`Anchor`] of the vertical direction of the [`Scrollable`], if applicable.
     pub fn anchor_y(mut self, alignment: Anchor) -> Self {
         match &mut self.direction {
-            Direction::Vertical(vertical)
-            | Direction::Both { vertical, .. } => {
+            Direction::Vertical(vertical) | Direction::Both { vertical, .. } => {
                 vertical.alignment = alignment;
             }
             Direction::Horizontal { .. } => {}
@@ -219,8 +210,7 @@ where
     /// of the [`Scrollable`].
     pub fn spacing(mut self, new_spacing: impl Into<Pixels>) -> Self {
         match &mut self.direction {
-            Direction::Horizontal(scrollbar)
-            | Direction::Vertical(scrollbar) => {
+            Direction::Horizontal(scrollbar) | Direction::Vertical(scrollbar) => {
                 scrollbar.spacing = Some(new_spacing.into().0);
             }
             Direction::Both { .. } => {}
@@ -293,11 +283,9 @@ impl Direction {
     }
 
     fn align(&self, delta: Vector) -> Vector {
-        let horizontal_alignment =
-            self.horizontal().map(|p| p.alignment).unwrap_or_default();
+        let horizontal_alignment = self.horizontal().map(|p| p.alignment).unwrap_or_default();
 
-        let vertical_alignment =
-            self.vertical().map(|p| p.alignment).unwrap_or_default();
+        let vertical_alignment = self.vertical().map(|p| p.alignment).unwrap_or_default();
 
         let align = |alignment: Anchor, delta: f32| match alignment {
             Anchor::Start => delta,
@@ -485,8 +473,7 @@ where
                 spacing: Some(spacing),
                 ..
             }) => {
-                let is_vertical =
-                    matches!(self.direction, Direction::Vertical(_));
+                let is_vertical = matches!(self.direction, Direction::Vertical(_));
 
                 let padding = width + margin * 2.0 + spacing;
                 let state = tree.state.downcast_mut::<State>();
@@ -505,11 +492,9 @@ where
                 );
 
                 let is_scrollbar_visible = if is_vertical {
-                    status_quo.children()[0].size().height
-                        > status_quo.size().height
+                    status_quo.children()[0].size().height > status_quo.size().height
                 } else {
-                    status_quo.children()[0].size().width
-                        > status_quo.size().width
+                    status_quo.children()[0].size().width > status_quo.size().width
                 };
 
                 if state.is_scrollbar_visible == is_scrollbar_visible {
@@ -548,16 +533,9 @@ where
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
-        let translation =
-            state.translation(self.direction, bounds, content_bounds);
+        let translation = state.translation(self.direction, bounds, content_bounds);
 
-        operation.scrollable(
-            self.id.as_ref(),
-            bounds,
-            content_bounds,
-            translation,
-            state,
-        );
+        operation.scrollable(self.id.as_ref(), bounds, content_bounds, translation, state);
 
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
@@ -576,7 +554,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
@@ -590,11 +567,9 @@ where
         let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
 
-        let scrollbars =
-            Scrollbars::new(state, self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
 
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
-            scrollbars.is_mouse_over(cursor);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
         let last_offsets = (state.offset_x, state.offset_y);
 
@@ -622,17 +597,12 @@ where
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
                         if let Some(scrollbar) = scrollbars.y {
-                            let Some(cursor_position) =
-                                cursor.land().position()
-                            else {
+                            let Some(cursor_position) = cursor.land().position() else {
                                 return;
                             };
 
                             state.scroll_y_to(
-                                scrollbar.scroll_percentage_y(
-                                    scroller_grabbed_at,
-                                    cursor_position,
-                                ),
+                                scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
                                 bounds,
                                 content_bounds,
                             );
@@ -652,30 +622,22 @@ where
                 }
             } else if mouse_over_y_scrollbar {
                 match event {
-                    Event::Mouse(mouse::Event::ButtonPressed(
-                        mouse::Button::Left,
-                    ))
+                    Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                     | Event::Touch(touch::Event::FingerPressed { .. }) => {
                         let Some(cursor_position) = cursor.position() else {
                             return;
                         };
 
-                        if let (Some(scroller_grabbed_at), Some(scrollbar)) = (
-                            scrollbars.grab_y_scroller(cursor_position),
-                            scrollbars.y,
-                        ) {
+                        if let (Some(scroller_grabbed_at), Some(scrollbar)) =
+                            (scrollbars.grab_y_scroller(cursor_position), scrollbars.y)
+                        {
                             state.scroll_y_to(
-                                scrollbar.scroll_percentage_y(
-                                    scroller_grabbed_at,
-                                    cursor_position,
-                                ),
+                                scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
                                 bounds,
                                 content_bounds,
                             );
 
-                            state.interaction = Interaction::YScrollerGrabbed(
-                                scroller_grabbed_at,
-                            );
+                            state.interaction = Interaction::YScrollerGrabbed(scroller_grabbed_at);
 
                             let _ = notify_scroll(
                                 state,
@@ -696,17 +658,13 @@ where
                 match event {
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        let Some(cursor_position) = cursor.land().position()
-                        else {
+                        let Some(cursor_position) = cursor.land().position() else {
                             return;
                         };
 
                         if let Some(scrollbar) = scrollbars.x {
                             state.scroll_x_to(
-                                scrollbar.scroll_percentage_x(
-                                    scroller_grabbed_at,
-                                    cursor_position,
-                                ),
+                                scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
                                 bounds,
                                 content_bounds,
                             );
@@ -726,30 +684,22 @@ where
                 }
             } else if mouse_over_x_scrollbar {
                 match event {
-                    Event::Mouse(mouse::Event::ButtonPressed(
-                        mouse::Button::Left,
-                    ))
+                    Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                     | Event::Touch(touch::Event::FingerPressed { .. }) => {
                         let Some(cursor_position) = cursor.position() else {
                             return;
                         };
 
-                        if let (Some(scroller_grabbed_at), Some(scrollbar)) = (
-                            scrollbars.grab_x_scroller(cursor_position),
-                            scrollbars.x,
-                        ) {
+                        if let (Some(scroller_grabbed_at), Some(scrollbar)) =
+                            (scrollbars.grab_x_scroller(cursor_position), scrollbars.x)
+                        {
                             state.scroll_x_to(
-                                scrollbar.scroll_percentage_x(
-                                    scroller_grabbed_at,
-                                    cursor_position,
-                                ),
+                                scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
                                 bounds,
                                 content_bounds,
                             );
 
-                            state.interaction = Interaction::XScrollerGrabbed(
-                                scroller_grabbed_at,
-                            );
+                            state.interaction = Interaction::XScrollerGrabbed(scroller_grabbed_at);
 
                             let _ = notify_scroll(
                                 state,
@@ -770,8 +720,7 @@ where
                 && matches!(
                     event,
                     Event::Mouse(
-                        mouse::Event::ButtonPressed(_)
-                            | mouse::Event::WheelScrolled { .. }
+                        mouse::Event::ButtonPressed(_) | mouse::Event::WheelScrolled { .. }
                     ) | Event::Touch(_)
                         | Event::Keyboard(_)
                 )
@@ -784,18 +733,13 @@ where
             }
 
             if state.last_scrolled.is_none()
-                || !matches!(
-                    event,
-                    Event::Mouse(mouse::Event::WheelScrolled { .. })
-                )
+                || !matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
             {
-                let translation =
-                    state.translation(self.direction, bounds, content_bounds);
+                let translation = state.translation(self.direction, bounds, content_bounds);
 
                 let cursor = match cursor_over_scrollable {
                     Some(cursor_position)
-                        if !(mouse_over_x_scrollbar
-                            || mouse_over_y_scrollbar) =>
+                        if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
                     {
                         mouse::Cursor::Available(cursor_position + translation)
                     }
@@ -810,7 +754,6 @@ where
                     content,
                     cursor,
                     renderer,
-                    clipboard,
                     shell,
                     &Rectangle {
                         y: bounds.y + translation.y,
@@ -820,8 +763,7 @@ where
                 );
 
                 if !had_input_method
-                    && let InputMethod::Enabled { cursor, .. } =
-                        shell.input_method_mut()
+                    && let InputMethod::Enabled { cursor, .. } = shell.input_method_mut()
                 {
                     *cursor = *cursor - translation;
                 }
@@ -831,8 +773,7 @@ where
                 event,
                 Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
                     | Event::Touch(
-                        touch::Event::FingerLifted { .. }
-                            | touch::Event::FingerLost { .. }
+                        touch::Event::FingerLifted { .. } | touch::Event::FingerLost { .. }
                     )
             ) {
                 state.interaction = Interaction::None;
@@ -851,13 +792,10 @@ where
 
                     let delta = match *delta {
                         mouse::ScrollDelta::Lines { x, y } => {
-                            let is_shift_pressed =
-                                state.keyboard_modifiers.shift();
+                            let is_shift_pressed = state.keyboard_modifiers.shift();
 
                             // macOS automatically inverts the axes when Shift is pressed
-                            let (x, y) = if cfg!(target_os = "macos")
-                                && is_shift_pressed
-                            {
+                            let (x, y) = if cfg!(target_os = "macos") && is_shift_pressed {
                                 (y, x)
                             } else {
                                 (x, y)
@@ -872,24 +810,13 @@ where
                             // TODO: Configurable speed/friction (?)
                             -movement * 60.0
                         }
-                        mouse::ScrollDelta::Pixels { x, y } => {
-                            -Vector::new(x, y)
-                        }
+                        mouse::ScrollDelta::Pixels { x, y } => -Vector::new(x, y),
                     };
 
-                    state.scroll(
-                        self.direction.align(delta),
-                        bounds,
-                        content_bounds,
-                    );
+                    state.scroll(self.direction.align(delta), bounds, content_bounds);
 
-                    let has_scrolled = notify_scroll(
-                        state,
-                        &self.on_scroll,
-                        bounds,
-                        content_bounds,
-                        shell,
-                    );
+                    let has_scrolled =
+                        notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
 
                     let in_transaction = state.last_scrolled.is_some();
 
@@ -897,10 +824,8 @@ where
                         shell.capture_event();
                     }
                 }
-                Event::Mouse(mouse::Event::ButtonPressed(
-                    mouse::Button::Middle,
-                )) if self.auto_scroll
-                    && matches!(state.interaction, Interaction::None) =>
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle))
+                    if self.auto_scroll && matches!(state.interaction, Interaction::None) =>
                 {
                     let Some(origin) = cursor_over_scrollable else {
                         return;
@@ -917,11 +842,8 @@ where
                     shell.request_redraw();
                 }
                 Event::Touch(event)
-                    if matches!(
-                        state.interaction,
-                        Interaction::TouchScrolling(_)
-                    ) || (!mouse_over_y_scrollbar
-                        && !mouse_over_x_scrollbar) =>
+                    if matches!(state.interaction, Interaction::TouchScrolling(_))
+                        || (!mouse_over_y_scrollbar && !mouse_over_x_scrollbar) =>
                 {
                     match event {
                         touch::Event::FingerPressed { .. } => {
@@ -929,19 +851,16 @@ where
                                 return;
                             };
 
-                            state.interaction =
-                                Interaction::TouchScrolling(position);
+                            state.interaction = Interaction::TouchScrolling(position);
                         }
                         touch::Event::FingerMoved { .. } => {
-                            let Interaction::TouchScrolling(
-                                scroll_box_touched_at,
-                            ) = state.interaction
+                            let Interaction::TouchScrolling(scroll_box_touched_at) =
+                                state.interaction
                             else {
                                 return;
                             };
 
-                            let Some(cursor_position) = cursor.position()
-                            else {
+                            let Some(cursor_position) = cursor.position() else {
                                 return;
                             };
 
@@ -950,14 +869,9 @@ where
                                 scroll_box_touched_at.y - cursor_position.y,
                             );
 
-                            state.scroll(
-                                self.direction.align(delta),
-                                bounds,
-                                content_bounds,
-                            );
+                            state.scroll(self.direction.align(delta), bounds, content_bounds);
 
-                            state.interaction =
-                                Interaction::TouchScrolling(cursor_position);
+                            state.interaction = Interaction::TouchScrolling(cursor_position);
 
                             // TODO: bubble up touch movements if not consumed.
                             let _ = notify_scroll(
@@ -975,9 +889,7 @@ where
                 }
                 Event::Mouse(mouse::Event::CursorMoved { position }) => {
                     if let Interaction::AutoScrolling {
-                        origin,
-                        last_frame,
-                        ..
+                        origin, last_frame, ..
                     } = state.interaction
                     {
                         let delta = *position - origin;
@@ -996,9 +908,7 @@ where
                         }
                     }
                 }
-                Event::Keyboard(keyboard::Event::ModifiersChanged(
-                    modifiers,
-                )) => {
+                Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
                     state.keyboard_modifiers = *modifiers;
                 }
                 Event::Window(window::Event::RedrawRequested(now)) => {
@@ -1030,28 +940,21 @@ where
                         }
 
                         if delta.x != 0.0 || delta.y != 0.0 {
-                            let time_delta =
-                                if let Some(last_frame) = last_frame {
-                                    *now - last_frame
-                                } else {
-                                    Duration::ZERO
-                                };
+                            let time_delta = if let Some(last_frame) = last_frame {
+                                *now - last_frame
+                            } else {
+                                Duration::ZERO
+                            };
 
                             let scroll_factor = time_delta.as_secs_f32();
 
                             state.scroll(
                                 self.direction.align(Vector::new(
                                     delta.x.signum()
-                                        * delta
-                                            .x
-                                            .abs()
-                                            .powf(AUTOSCROLL_SMOOTHNESS)
+                                        * delta.x.abs().powf(AUTOSCROLL_SMOOTHNESS)
                                         * scroll_factor,
                                     delta.y.signum()
-                                        * delta
-                                            .y
-                                            .abs()
-                                            .powf(AUTOSCROLL_SMOOTHNESS)
+                                        * delta.y.abs().powf(AUTOSCROLL_SMOOTHNESS)
                                         * scroll_factor,
                                 )),
                                 bounds,
@@ -1067,12 +970,11 @@ where
                             );
 
                             if has_scrolled || time_delta.is_zero() {
-                                state.interaction =
-                                    Interaction::AutoScrolling {
-                                        origin,
-                                        current,
-                                        last_frame: Some(*now),
-                                    };
+                                state.interaction = Interaction::AutoScrolling {
+                                    origin,
+                                    current,
+                                    last_frame: Some(*now),
+                                };
 
                                 shell.request_redraw();
                             }
@@ -1081,13 +983,7 @@ where
                         }
                     }
 
-                    let _ = notify_viewport(
-                        state,
-                        &self.on_scroll,
-                        bounds,
-                        content_bounds,
-                        shell,
-                    );
+                    let _ = notify_viewport(state, &self.on_scroll, bounds, content_bounds, shell);
                 }
                 _ => {}
             }
@@ -1097,12 +993,8 @@ where
 
         let status = if state.scrollers_grabbed() {
             Status::Dragged {
-                is_horizontal_scrollbar_dragged: state
-                    .x_scroller_grabbed_at()
-                    .is_some(),
-                is_vertical_scrollbar_dragged: state
-                    .y_scroller_grabbed_at()
-                    .is_some(),
+                is_horizontal_scrollbar_dragged: state.x_scroller_grabbed_at().is_some(),
+                is_vertical_scrollbar_dragged: state.y_scroller_grabbed_at().is_some(),
                 is_horizontal_scrollbar_disabled: scrollbars.is_x_disabled(),
                 is_vertical_scrollbar_disabled: scrollbars.is_y_disabled(),
             }
@@ -1153,20 +1045,15 @@ where
             return;
         };
 
-        let scrollbars =
-            Scrollbars::new(state, self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
 
         let cursor_over_scrollable = cursor.position_over(bounds);
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
-            scrollbars.is_mouse_over(cursor);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
-        let translation =
-            state.translation(self.direction, bounds, content_bounds);
+        let translation = state.translation(self.direction, bounds, content_bounds);
 
         let cursor = match cursor_over_scrollable {
-            Some(cursor_position)
-                if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
-            {
+            Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
             _ => mouse::Cursor::Unavailable,
@@ -1184,6 +1071,9 @@ where
 
         // Draw inner content
         if scrollbars.active() {
+            let scale_factor = renderer.scale_factor().unwrap_or(1.0);
+            let translation = (translation * scale_factor).round() / scale_factor;
+
             renderer.with_layer(visible_bounds, |renderer| {
                 renderer.with_translation(
                     Vector::new(-translation.x, -translation.y),
@@ -1206,9 +1096,7 @@ where
             });
 
             let draw_scrollbar =
-                |renderer: &mut Renderer,
-                 style: Rail,
-                 scrollbar: &internals::Scrollbar| {
+                |renderer: &mut Renderer, style: Rail, scrollbar: &internals::Scrollbar| {
                     if scrollbar.bounds.width > 0.0
                         && scrollbar.bounds.height > 0.0
                         && (style.background.is_some()
@@ -1221,18 +1109,17 @@ where
                                 border: style.border,
                                 ..renderer::Quad::default()
                             },
-                            style.background.unwrap_or(Background::Color(
-                                Color::TRANSPARENT,
-                            )),
+                            style
+                                .background
+                                .unwrap_or(Background::Color(Color::TRANSPARENT)),
                         );
                     }
 
                     if let Some(scroller) = scrollbar.scroller
                         && scroller.bounds.width > 0.0
                         && scroller.bounds.height > 0.0
-                        && (style.scroller.color != Color::TRANSPARENT
-                            || (style.scroller.border.color
-                                != Color::TRANSPARENT
+                        && (style.scroller.background != Background::Color(Color::TRANSPARENT)
+                            || (style.scroller.border.color != Color::TRANSPARENT
                                 && style.scroller.border.width > 0.0))
                     {
                         renderer.fill_quad(
@@ -1241,7 +1128,7 @@ where
                                 border: style.scroller.border,
                                 ..renderer::Quad::default()
                             },
-                            style.scroller.color,
+                            style.scroller.background,
                         );
                     }
                 };
@@ -1254,24 +1141,15 @@ where
                 },
                 |renderer| {
                     if let Some(scrollbar) = scrollbars.y {
-                        draw_scrollbar(
-                            renderer,
-                            style.vertical_rail,
-                            &scrollbar,
-                        );
+                        draw_scrollbar(renderer, style.vertical_rail, &scrollbar);
                     }
 
                     if let Some(scrollbar) = scrollbars.x {
-                        draw_scrollbar(
-                            renderer,
-                            style.horizontal_rail,
-                            &scrollbar,
-                        );
+                        draw_scrollbar(renderer, style.horizontal_rail, &scrollbar);
                     }
 
                     if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
-                        let background =
-                            style.gap.or(style.container.background);
+                        let background = style.gap.or(style.container.background);
 
                         if let Some(background) = background {
                             renderer.fill_quad(
@@ -1322,23 +1200,18 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
 
-        let scrollbars =
-            Scrollbars::new(state, self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
 
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
-            scrollbars.is_mouse_over(cursor);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
         if state.scrollers_grabbed() {
             return mouse::Interaction::None;
         }
 
-        let translation =
-            state.translation(self.direction, bounds, content_bounds);
+        let translation = state.translation(self.direction, bounds, content_bounds);
 
         let cursor = match cursor_over_scrollable {
-            Some(cursor_position)
-                if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
-            {
+            Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
             _ => cursor.levitate() + translation,
@@ -1380,11 +1253,8 @@ where
             translation - offset,
         );
 
-        let icon = if let Interaction::AutoScrolling { origin, .. } =
-            state.interaction
-        {
-            let scrollbars =
-                Scrollbars::new(state, self.direction, bounds, content_bounds);
+        let icon = if let Interaction::AutoScrolling { origin, .. } = state.interaction {
+            let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
 
             Some(overlay::Element::new(Box::new(AutoScrollIcon {
                 origin,
@@ -1400,9 +1270,9 @@ where
             (None, None) => None,
             (None, Some(icon)) => Some(icon),
             (Some(overlay), None) => Some(overlay),
-            (Some(overlay), Some(icon)) => Some(overlay::Element::new(
-                Box::new(overlay::Group::with_children(vec![overlay, icon])),
-            )),
+            (Some(overlay), Some(icon)) => Some(overlay::Element::new(Box::new(
+                overlay::Group::with_children(vec![overlay, icon]),
+            ))),
         }
     }
 }
@@ -1455,11 +1325,7 @@ where
                 renderer::Quad {
                     bounds,
                     border: style.border,
-                    shadow: core::Shadow {
-                        color: Color::BLACK.scale_alpha(0.8),
-                        offset: Vector::new(1.0, 1.0),
-                        blur_radius: 3.0,
-                    },
+                    shadow: style.shadow,
                     snap: false,
                 },
                 style.background,
@@ -1468,8 +1334,7 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: Rectangle::new(
-                        bounds.center()
-                            - Vector::new(Self::DOT, Self::DOT) / 2.0,
+                        bounds.center() - Vector::new(Self::DOT, Self::DOT) / 2.0,
                         Size::new(Self::DOT, Self::DOT),
                     ),
                     border: border::rounded(bounds.width),
@@ -1489,6 +1354,7 @@ where
                 align_y: alignment::Vertical::Center,
                 shaping: text::Shaping::Basic,
                 wrapping: text::Wrapping::None,
+                hint_factor: None,
             };
 
             if self.vertical {
@@ -1498,10 +1364,7 @@ where
                         align_y: alignment::Vertical::Top,
                         ..arrow
                     },
-                    Point::new(
-                        bounds.center_x(),
-                        bounds.y + Self::PADDING - 1.0,
-                    ),
+                    Point::new(bounds.center_x(), bounds.y + Self::PADDING),
                     style.icon,
                     bounds,
                 );
@@ -1514,7 +1377,7 @@ where
                     },
                     Point::new(
                         bounds.center_x(),
-                        bounds.y + bounds.height - Self::PADDING + 1.0,
+                        bounds.y + bounds.height - Self::PADDING - 0.5,
                     ),
                     style.icon,
                     bounds,
@@ -1528,10 +1391,7 @@ where
                         align_x: text::Alignment::Left,
                         ..arrow
                     },
-                    Point::new(
-                        bounds.x + Self::PADDING,
-                        bounds.center_y() + 1.0,
-                    ),
+                    Point::new(bounds.x + Self::PADDING + 1.0, bounds.center_y() + 1.0),
                     style.icon,
                     bounds,
                 );
@@ -1543,7 +1403,7 @@ where
                         ..arrow
                     },
                     Point::new(
-                        bounds.x + bounds.width - Self::PADDING,
+                        bounds.x + bounds.width - Self::PADDING - 1.0,
                         bounds.center_y() + 1.0,
                     ),
                     style.icon,
@@ -1558,8 +1418,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer>
-    From<Scrollable<'a, Message, Theme, Renderer>>
+impl<'a, Message, Theme, Renderer> From<Scrollable<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -1596,9 +1455,7 @@ fn notify_viewport<Message>(
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
 ) -> bool {
-    if content_bounds.width <= bounds.width
-        && content_bounds.height <= bounds.height
-    {
+    if content_bounds.width <= bounds.width && content_bounds.height <= bounds.height {
         return false;
     }
 
@@ -1617,9 +1474,8 @@ fn notify_viewport<Message>(
         let last_absolute_offset = last_notified.absolute_offset();
         let current_absolute_offset = viewport.absolute_offset();
 
-        let unchanged = |a: f32, b: f32| {
-            (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
-        };
+        let unchanged =
+            |a: f32, b: f32| (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan());
 
         if last_notified.bounds == bounds
             && last_notified.content_bounds == content_bounds
@@ -1680,20 +1536,15 @@ impl Default for State {
 }
 
 impl operation::Scrollable for State {
-    fn snap_to(&mut self, offset: RelativeOffset) {
+    fn snap_to(&mut self, offset: RelativeOffset<Option<f32>>) {
         State::snap_to(self, offset);
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset) {
+    fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
         State::scroll_to(self, offset);
     }
 
-    fn scroll_by(
-        &mut self,
-        offset: AbsoluteOffset,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) {
+    fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
         State::scroll_by(self, offset, bounds, content_bounds);
     }
 }
@@ -1707,21 +1558,12 @@ enum Offset {
 impl Offset {
     fn absolute(self, viewport: f32, content: f32) -> f32 {
         match self {
-            Offset::Absolute(absolute) => {
-                absolute.min((content - viewport).max(0.0))
-            }
-            Offset::Relative(percentage) => {
-                ((content - viewport) * percentage).max(0.0)
-            }
+            Offset::Absolute(absolute) => absolute.min((content - viewport).max(0.0)),
+            Offset::Relative(percentage) => ((content - viewport) * percentage).max(0.0),
         }
     }
 
-    fn translation(
-        self,
-        viewport: f32,
-        content: f32,
-        alignment: Anchor,
-    ) -> f32 {
+    fn translation(self, viewport: f32, content: f32, alignment: Anchor) -> f32 {
         let offset = self.absolute(viewport, content);
 
         match alignment {
@@ -1793,78 +1635,64 @@ impl State {
         State::default()
     }
 
-    fn scroll(
-        &mut self,
-        delta: Vector<f32>,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) {
+    fn scroll(&mut self, delta: Vector<f32>, bounds: Rectangle, content_bounds: Rectangle) {
         if bounds.height < content_bounds.height {
             self.offset_y = Offset::Absolute(
-                (self.offset_y.absolute(bounds.height, content_bounds.height)
-                    + delta.y)
+                (self.offset_y.absolute(bounds.height, content_bounds.height) + delta.y)
                     .clamp(0.0, content_bounds.height - bounds.height),
             );
         }
 
         if bounds.width < content_bounds.width {
             self.offset_x = Offset::Absolute(
-                (self.offset_x.absolute(bounds.width, content_bounds.width)
-                    + delta.x)
+                (self.offset_x.absolute(bounds.width, content_bounds.width) + delta.x)
                     .clamp(0.0, content_bounds.width - bounds.width),
             );
         }
     }
 
-    fn scroll_y_to(
-        &mut self,
-        percentage: f32,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) {
+    fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
         self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0));
         self.unsnap(bounds, content_bounds);
     }
 
-    fn scroll_x_to(
-        &mut self,
-        percentage: f32,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) {
+    fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
         self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0));
         self.unsnap(bounds, content_bounds);
     }
 
-    fn snap_to(&mut self, offset: RelativeOffset) {
-        self.offset_x = Offset::Relative(offset.x.clamp(0.0, 1.0));
-        self.offset_y = Offset::Relative(offset.y.clamp(0.0, 1.0));
+    fn snap_to(&mut self, offset: RelativeOffset<Option<f32>>) {
+        if let Some(x) = offset.x {
+            self.offset_x = Offset::Relative(x.clamp(0.0, 1.0));
+        }
+
+        if let Some(y) = offset.y {
+            self.offset_y = Offset::Relative(y.clamp(0.0, 1.0));
+        }
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        self.offset_x = Offset::Absolute(offset.x.max(0.0));
-        self.offset_y = Offset::Absolute(offset.y.max(0.0));
+    fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
+        if let Some(x) = offset.x {
+            self.offset_x = Offset::Absolute(x.max(0.0));
+        }
+
+        if let Some(y) = offset.y {
+            self.offset_y = Offset::Absolute(y.max(0.0));
+        }
     }
 
     /// Scroll by the provided [`AbsoluteOffset`].
-    pub fn scroll_by(
-        &mut self,
-        offset: AbsoluteOffset,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) {
+    fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
         self.scroll(Vector::new(offset.x, offset.y), bounds, content_bounds);
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the
     /// [`Scrollable`] and its contents.
-    pub fn unsnap(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
-        self.offset_x = Offset::Absolute(
-            self.offset_x.absolute(bounds.width, content_bounds.width),
-        );
-        self.offset_y = Offset::Absolute(
-            self.offset_y.absolute(bounds.height, content_bounds.height),
-        );
+    fn unsnap(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
+        self.offset_x =
+            Offset::Absolute(self.offset_x.absolute(bounds.width, content_bounds.width));
+        self.offset_y =
+            Offset::Absolute(self.offset_y.absolute(bounds.height, content_bounds.height));
     }
 
     /// Returns the scrolling translation of the [`State`], given a [`Direction`],
@@ -1878,22 +1706,14 @@ impl State {
         Vector::new(
             if let Some(horizontal) = direction.horizontal() {
                 self.offset_x
-                    .translation(
-                        bounds.width,
-                        content_bounds.width,
-                        horizontal.alignment,
-                    )
+                    .translation(bounds.width, content_bounds.width, horizontal.alignment)
                     .round()
             } else {
                 0.0
             },
             if let Some(vertical) = direction.vertical() {
                 self.offset_y
-                    .translation(
-                        bounds.height,
-                        content_bounds.height,
-                        vertical.alignment,
-                    )
+                    .translation(bounds.height, content_bounds.height, vertical.alignment)
                     .round()
             } else {
                 0.0
@@ -1960,11 +1780,10 @@ impl Scrollbars {
 
             // Adjust the height of the vertical scrollbar if the horizontal scrollbar
             // is present
-            let x_scrollbar_height = show_scrollbar_x
-                .map_or(0.0, |h| h.width.max(h.scroller_width) + h.margin);
+            let x_scrollbar_height =
+                show_scrollbar_x.map_or(0.0, |h| h.width.max(h.scroller_width) + h.margin);
 
-            let total_scrollbar_width =
-                width.max(scroller_width) + 2.0 * margin;
+            let total_scrollbar_width = width.max(scroller_width) + 2.0 * margin;
 
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
@@ -1976,9 +1795,7 @@ impl Scrollbars {
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
-                x: bounds.x + bounds.width
-                    - total_scrollbar_width / 2.0
-                    - width / 2.0,
+                x: bounds.x + bounds.width - total_scrollbar_width / 2.0 - width / 2.0,
                 y: bounds.y,
                 width,
                 height: (bounds.height - x_scrollbar_height).max(0.0),
@@ -1990,16 +1807,12 @@ impl Scrollbars {
                 None
             } else {
                 // min height for easier grabbing with super tall content
-                let scroller_height =
-                    (scrollbar_bounds.height * ratio).max(2.0);
+                let scroller_height = (scrollbar_bounds.height * ratio).max(2.0);
                 let scroller_offset =
-                    translation.y * ratio * scrollbar_bounds.height
-                        / bounds.height;
+                    translation.y * ratio * scrollbar_bounds.height / bounds.height;
 
                 let scroller_bounds = Rectangle {
-                    x: bounds.x + bounds.width
-                        - total_scrollbar_width / 2.0
-                        - scroller_width / 2.0,
+                    x: bounds.x + bounds.width - total_scrollbar_width / 2.0 - scroller_width / 2.0,
                     y: (scrollbar_bounds.y + scroller_offset).max(0.0),
                     width: scroller_width,
                     height: scroller_height,
@@ -2031,11 +1844,10 @@ impl Scrollbars {
 
             // Need to adjust the width of the horizontal scrollbar if the vertical scrollbar
             // is present
-            let scrollbar_y_width = y_scrollbar
-                .map_or(0.0, |scrollbar| scrollbar.total_bounds.width);
+            let scrollbar_y_width =
+                y_scrollbar.map_or(0.0, |scrollbar| scrollbar.total_bounds.width);
 
-            let total_scrollbar_height =
-                width.max(scroller_width) + 2.0 * margin;
+            let total_scrollbar_height = width.max(scroller_width) + 2.0 * margin;
 
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
@@ -2048,9 +1860,7 @@ impl Scrollbars {
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
                 x: bounds.x,
-                y: bounds.y + bounds.height
-                    - total_scrollbar_height / 2.0
-                    - width / 2.0,
+                y: bounds.y + bounds.height - total_scrollbar_height / 2.0 - width / 2.0,
                 width: (bounds.width - scrollbar_y_width).max(0.0),
                 height: width,
             };
@@ -2062,9 +1872,7 @@ impl Scrollbars {
             } else {
                 // min width for easier grabbing with extra wide content
                 let scroller_length = (scrollbar_bounds.width * ratio).max(2.0);
-                let scroller_offset =
-                    translation.x * ratio * scrollbar_bounds.width
-                        / bounds.width;
+                let scroller_offset = translation.x * ratio * scrollbar_bounds.width / bounds.width;
 
                 let scroller_bounds = Rectangle {
                     x: (scrollbar_bounds.x + scroller_offset).max(0.0),
@@ -2178,16 +1986,11 @@ pub(super) mod internals {
         }
 
         /// Returns the y-axis scrolled percentage from the cursor position.
-        pub fn scroll_percentage_y(
-            &self,
-            grabbed_at: f32,
-            cursor_position: Point,
-        ) -> f32 {
+        pub fn scroll_percentage_y(&self, grabbed_at: f32, cursor_position: Point) -> f32 {
             if let Some(scroller) = self.scroller {
-                let percentage = (cursor_position.y
-                    - self.bounds.y
-                    - scroller.bounds.height * grabbed_at)
-                    / (self.bounds.height - scroller.bounds.height);
+                let percentage =
+                    (cursor_position.y - self.bounds.y - scroller.bounds.height * grabbed_at)
+                        / (self.bounds.height - scroller.bounds.height);
 
                 match self.alignment {
                     Anchor::Start => percentage,
@@ -2199,16 +2002,11 @@ pub(super) mod internals {
         }
 
         /// Returns the x-axis scrolled percentage from the cursor position.
-        pub fn scroll_percentage_x(
-            &self,
-            grabbed_at: f32,
-            cursor_position: Point,
-        ) -> f32 {
+        pub fn scroll_percentage_x(&self, grabbed_at: f32, cursor_position: Point) -> f32 {
             if let Some(scroller) = self.scroller {
-                let percentage = (cursor_position.x
-                    - self.bounds.x
-                    - scroller.bounds.width * grabbed_at)
-                    / (self.bounds.width - scroller.bounds.width);
+                let percentage =
+                    (cursor_position.x - self.bounds.x - scroller.bounds.width * grabbed_at)
+                        / (self.bounds.width - scroller.bounds.width);
 
                 match self.alignment {
                     Anchor::Start => percentage,
@@ -2291,8 +2089,8 @@ pub struct Rail {
 /// The appearance of the scroller of a scrollable.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Scroller {
-    /// The [`Color`] of the scroller.
-    pub color: Color,
+    /// The [`Background`] of the scroller.
+    pub background: Background,
     /// The [`Border`] of the scroller.
     pub border: Border,
 }
@@ -2304,6 +2102,8 @@ pub struct AutoScroll {
     pub background: Background,
     /// The [`Border`] of the [`AutoScroll`] overlay.
     pub border: Border,
+    /// Thje [`Shadow`] of the [`AutoScroll`] overlay.
+    pub shadow: Shadow,
     /// The [`Color`] for the arrow icons of the [`AutoScroll`] overlay.
     pub icon: Color,
 }
@@ -2343,17 +2143,22 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         background: Some(palette.background.weak.color.into()),
         border: border::rounded(2),
         scroller: Scroller {
-            color: palette.background.strongest.color,
+            background: palette.background.strongest.color.into(),
             border: border::rounded(2),
         },
     };
 
     let auto_scroll = AutoScroll {
-        background: palette.background.weak.color.scale_alpha(0.9).into(),
+        background: palette.background.base.color.scale_alpha(0.9).into(),
         border: border::rounded(u32::MAX)
             .width(1)
-            .color(palette.background.weak.text.scale_alpha(0.8)),
-        icon: palette.background.weak.text.scale_alpha(0.8),
+            .color(palette.background.base.text.scale_alpha(0.8)),
+        shadow: Shadow {
+            color: Color::BLACK.scale_alpha(0.7),
+            offset: Vector::ZERO,
+            blur_radius: 2.0,
+        },
+        icon: palette.background.base.text.scale_alpha(0.8),
     };
 
     match status {
@@ -2371,7 +2176,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         } => {
             let hovered_scrollbar = Rail {
                 scroller: Scroller {
-                    color: palette.primary.strong.color,
+                    background: palette.primary.strong.color.into(),
                     ..scrollbar.scroller
                 },
                 ..scrollbar
@@ -2400,7 +2205,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         } => {
             let dragged_scrollbar = Rail {
                 scroller: Scroller {
-                    color: palette.primary.base.color,
+                    background: palette.primary.base.color.into(),
                     ..scrollbar.scroller
                 },
                 ..scrollbar

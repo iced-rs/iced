@@ -56,8 +56,8 @@ pub use crate::Action;
 pub use crate::core::event::Event;
 pub use crate::graphics::cache::Group;
 pub use crate::graphics::geometry::{
-    Fill, Gradient, Image, LineCap, LineDash, LineJoin, Path, Stroke, Style,
-    Text, fill, gradient, path, stroke,
+    Fill, Gradient, Image, LineCap, LineDash, LineJoin, Path, Stroke, Style, Text, fill, gradient,
+    path, stroke,
 };
 
 use crate::core::event;
@@ -66,9 +66,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{
-    Clipboard, Element, Length, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{Element, Length, Rectangle, Shell, Size, Vector, Widget};
 use crate::graphics::geometry;
 
 use std::marker::PhantomData;
@@ -80,8 +78,7 @@ use std::marker::PhantomData;
 pub type Cache<Renderer = crate::Renderer> = geometry::Cache<Renderer>;
 
 /// The geometry supported by a renderer.
-pub type Geometry<Renderer = crate::Renderer> =
-    <Renderer as geometry::Renderer>::Geometry;
+pub type Geometry<Renderer = crate::Renderer> = <Renderer as geometry::Renderer>::Geometry;
 
 /// The frame supported by a renderer.
 pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
@@ -222,20 +219,16 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
 
         let state = tree.state.downcast_mut::<P::State>();
-        let is_redraw_request = matches!(
-            event,
-            Event::Window(window::Event::RedrawRequested(_now)),
-        );
+        let is_redraw_request =
+            matches!(event, Event::Window(window::Event::RedrawRequested(_now)),);
 
-        if let Some(action) = self.program.update(state, event, bounds, cursor)
-        {
+        if let Some(action) = self.program.update(state, event, bounds, cursor) {
             let (message, redraw_request, event_status) = action.into_inner();
 
             shell.request_redraw_at(redraw_request);
@@ -250,16 +243,15 @@ where
         }
 
         if shell.redraw_request() != window::RedrawRequest::NextFrame {
-            let mouse_interaction = self
-                .mouse_interaction(tree, layout, cursor, viewport, renderer);
+            let mouse_interaction =
+                self.mouse_interaction(tree, layout, cursor, viewport, renderer);
 
             if is_redraw_request {
                 self.last_mouse_interaction = Some(mouse_interaction);
-            } else if self.last_mouse_interaction.is_some_and(
-                |last_mouse_interaction| {
-                    last_mouse_interaction != mouse_interaction
-                },
-            ) {
+            } else if self
+                .last_mouse_interaction
+                .is_some_and(|last_mouse_interaction| last_mouse_interaction != mouse_interaction)
+            {
                 shell.request_redraw();
             }
         }
@@ -297,17 +289,13 @@ where
 
         let state = tree.state.downcast_ref::<P::State>();
 
-        renderer.with_translation(
-            Vector::new(bounds.x, bounds.y),
-            |renderer| {
-                let layers =
-                    self.program.draw(state, renderer, theme, bounds, cursor);
+        renderer.with_translation(Vector::new(bounds.x, bounds.y), |renderer| {
+            let layers = self.program.draw(state, renderer, theme, bounds, cursor);
 
-                for layer in layers {
-                    renderer.draw_geometry(layer);
-                }
-            },
-        );
+            for layer in layers {
+                renderer.draw_geometry(layer);
+            }
+        });
     }
 }
 
@@ -319,9 +307,7 @@ where
     Renderer: 'a + geometry::Renderer,
     P: 'a + Program<Message, Theme, Renderer>,
 {
-    fn from(
-        canvas: Canvas<P, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn from(canvas: Canvas<P, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(canvas)
     }
 }

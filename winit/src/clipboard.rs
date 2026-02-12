@@ -1,103 +1,179 @@
 //! Access the clipboard.
+use crate::core::clipboard::{Content, Error, Kind};
 
-use crate::core::clipboard::Kind;
-use std::sync::Arc;
-use winit::window::{Window, WindowId};
+pub use platform::*;
 
-/// A buffer for short-term storage and transfer within and between
-/// applications.
-pub struct Clipboard {
-    state: State,
+impl Default for Clipboard {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
-enum State {
-    Connected {
-        clipboard: window_clipboard::Clipboard,
-        // Held until drop to satisfy the safety invariants of
-        // `window_clipboard::Clipboard`.
-        //
-        // Note that the field ordering is load-bearing.
-        #[allow(dead_code)]
-        window: Arc<Window>,
-    },
-    Unavailable,
-}
+#[cfg(not(target_arch = "wasm32"))]
+mod platform {
+    use super::*;
 
-impl Clipboard {
-    /// Creates a new [`Clipboard`] for the given window.
-    pub fn connect(window: Arc<Window>) -> Clipboard {
-        // SAFETY: The window handle will stay alive throughout the entire
-        // lifetime of the `window_clipboard::Clipboard` because we hold
-        // the `Arc<Window>` together with `State`, and enum variant fields
-        // get dropped in declaration order.
-        #[allow(unsafe_code)]
-        let clipboard =
-            unsafe { window_clipboard::Clipboard::connect(&window) };
+    use std::sync::{Arc, Mutex};
+    use std::thread;
 
-        let state = match clipboard {
-            Ok(clipboard) => State::Connected { clipboard, window },
-            Err(_) => State::Unavailable,
-        };
-
-        Clipboard { state }
+    /// A buffer for short-term storage and transfer within and between
+    /// applications.
+    pub struct Clipboard {
+        state: State,
     }
 
-    /// Creates a new [`Clipboard`] that isn't associated with a window.
-    /// This clipboard will never contain a copied value.
-    pub fn unconnected() -> Clipboard {
-        Clipboard {
-            state: State::Unavailable,
+    enum State {
+        Connected {
+            clipboard: Arc<Mutex<arboard::Clipboard>>,
+        },
+        Unavailable,
+    }
+
+    impl Clipboard {
+        /// Creates a new [`Clipboard`] for the given window.
+        pub fn new() -> Self {
+            let clipboard = arboard::Clipboard::new();
+
+            let state = match clipboard {
+                Ok(clipboard) => State::Connected {
+                    clipboard: Arc::new(Mutex::new(clipboard)),
+                },
+                Err(_) => State::Unavailable,
+            };
+
+            Clipboard { state }
         }
-    }
 
-    /// Reads the current content of the [`Clipboard`] as text.
-    pub fn read(&self, kind: Kind) -> Option<String> {
-        match &self.state {
-            State::Connected { clipboard, .. } => match kind {
-                Kind::Standard => clipboard.read().ok(),
-                Kind::Primary => clipboard.read_primary().and_then(Result::ok),
-            },
-            State::Unavailable => None,
-        }
-    }
+        /// Reads the current content of the [`Clipboard`] as text.
+        pub fn read(
+            &self,
+            kind: Kind,
+            callback: impl FnOnce(Result<Content, Error>) + Send + 'static,
+        ) {
+            let State::Connected { clipboard } = &self.state else {
+                callback(Err(Error::ClipboardUnavailable));
+                return;
+            };
 
-    /// Writes the given text contents to the [`Clipboard`].
-    pub fn write(&mut self, kind: Kind, contents: String) {
-        match &mut self.state {
-            State::Connected { clipboard, .. } => {
-                let result = match kind {
-                    Kind::Standard => clipboard.write(contents),
-                    Kind::Primary => {
-                        clipboard.write_primary(contents).unwrap_or(Ok(()))
-                    }
+            let clipboard = clipboard.clone();
+
+            let _ = thread::spawn(move || {
+                let Ok(mut clipboard) = clipboard.lock() else {
+                    callback(Err(Error::ClipboardUnavailable));
+                    return;
                 };
 
-                match result {
-                    Ok(()) => {}
-                    Err(error) => {
-                        log::warn!("error writing to clipboard: {error}");
+                let get = clipboard.get();
+
+                let result = match kind {
+                    Kind::Text => get.text().map(Content::Text),
+                    Kind::Html => get.html().map(Content::Html),
+                    #[cfg(feature = "image")]
+                    Kind::Image => get.image().map(|image| {
+                        let rgba = crate::core::Bytes::from_owner(image.bytes);
+                        let size = crate::core::Size {
+                            width: image.width as u32,
+                            height: image.height as u32,
+                        };
+
+                        Content::Image(crate::core::clipboard::Image { rgba, size })
+                    }),
+                    Kind::Files => get.file_list().map(Content::Files),
+                    kind => {
+                        log::warn!("unsupported clipboard kind: {kind:?}");
+
+                        Err(arboard::Error::ContentNotAvailable)
                     }
                 }
-            }
-            State::Unavailable => {}
+                .map_err(to_error);
+
+                callback(result);
+            });
+        }
+
+        /// Writes the given text contents to the [`Clipboard`].
+        pub fn write(
+            &mut self,
+            content: Content,
+            callback: impl FnOnce(Result<(), Error>) + Send + 'static,
+        ) {
+            let State::Connected { clipboard } = &self.state else {
+                callback(Err(Error::ClipboardUnavailable));
+                return;
+            };
+
+            let clipboard = clipboard.clone();
+
+            let _ = thread::spawn(move || {
+                let Ok(mut clipboard) = clipboard.lock() else {
+                    callback(Err(Error::ClipboardUnavailable));
+                    return;
+                };
+
+                let set = clipboard.set();
+
+                let result = match content {
+                    Content::Text(text) => set.text(text),
+                    Content::Html(html) => set.html(html, None),
+                    #[cfg(feature = "image")]
+                    Content::Image(image) => set.image(arboard::ImageData {
+                        bytes: image.rgba.as_ref().into(),
+                        width: image.size.width as usize,
+                        height: image.size.height as usize,
+                    }),
+                    Content::Files(files) => set.file_list(&files),
+                    content => {
+                        log::warn!("unsupported clipboard content: {content:?}");
+
+                        Err(arboard::Error::ClipboardNotSupported)
+                    }
+                }
+                .map_err(to_error);
+
+                callback(result);
+            });
         }
     }
 
-    /// Returns the identifier of the window used to create the [`Clipboard`], if any.
-    pub fn window_id(&self) -> Option<WindowId> {
-        match &self.state {
-            State::Connected { window, .. } => Some(window.id()),
-            State::Unavailable => None,
+    fn to_error(error: arboard::Error) -> Error {
+        match error {
+            arboard::Error::ContentNotAvailable => Error::ContentNotAvailable,
+            arboard::Error::ClipboardNotSupported => Error::ClipboardUnavailable,
+            arboard::Error::ClipboardOccupied => Error::ClipboardOccupied,
+            arboard::Error::ConversionFailure => Error::ConversionFailure,
+            arboard::Error::Unknown { description } => Error::Unknown {
+                description: Arc::new(description),
+            },
+            error => Error::Unknown {
+                description: Arc::new(error.to_string()),
+            },
         }
     }
 }
 
-impl crate::core::Clipboard for Clipboard {
-    fn read(&self, kind: Kind) -> Option<String> {
-        self.read(kind)
-    }
+// TODO: Wasm support
+#[cfg(target_arch = "wasm32")]
+mod platform {
+    use super::*;
 
-    fn write(&mut self, kind: Kind, contents: String) {
-        self.write(kind, contents);
+    /// A buffer for short-term storage and transfer within and between
+    /// applications.
+    pub struct Clipboard;
+
+    impl Clipboard {
+        /// Creates a new [`Clipboard`] for the given window.
+        pub fn new() -> Self {
+            Self
+        }
+
+        /// Reads the current content of the [`Clipboard`] as text.
+        pub fn read(&self, _kind: Kind, callback: impl FnOnce(Result<Content, Error>)) {
+            callback(Err(Error::ClipboardUnavailable));
+        }
+
+        /// Writes the given text contents to the [`Clipboard`].
+        pub fn write(&mut self, _content: Content, callback: impl FnOnce(Result<(), Error>)) {
+            callback(Err(Error::ClipboardUnavailable));
+        }
     }
 }

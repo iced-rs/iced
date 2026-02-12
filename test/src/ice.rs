@@ -78,8 +78,7 @@ impl Ice {
             match field.trim() {
                 "viewport" => {
                     viewport = Some(
-                        if let Some((width, height)) =
-                            value.trim().split_once('x')
+                        if let Some((width, height)) = value.trim().split_once('x')
                             && let Ok(width) = width.parse()
                             && let Ok(height) = height.parse()
                         {
@@ -130,11 +129,9 @@ impl Ice {
             .skip(1)
             .enumerate()
             .map(|(i, line)| {
-                Instruction::parse(line).map_err(|error| {
-                    ParseError::InvalidInstruction {
-                        line: metadata.lines().count() + 1 + i,
-                        error,
-                    }
+                Instruction::parse(line).map_err(|error| ParseError::InvalidInstruction {
+                    line: metadata.lines().count() + 1 + i,
+                    error,
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -153,7 +150,7 @@ impl std::fmt::Display for Ice {
         writeln!(
             f,
             "viewport: {width}x{height}",
-            width = self.viewport.width as u32, // TODO
+            width = self.viewport.width as u32,   // TODO
             height = self.viewport.height as u32, // TODO
         )?;
 

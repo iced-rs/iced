@@ -8,10 +8,7 @@ use futures::stream::{self, Stream, StreamExt};
 /// This is a more ergonomic [`stream::unfold`], which allows you to go
 /// from the "world of futures" to the "world of streams" by simply looping
 /// and publishing to an async channel from inside a [`Future`].
-pub fn channel<T>(
-    size: usize,
-    f: impl AsyncFnOnce(mpsc::Sender<T>),
-) -> impl Stream<Item = T> {
+pub fn channel<T>(size: usize, f: impl AsyncFnOnce(mpsc::Sender<T>)) -> impl Stream<Item = T> {
     let (sender, receiver) = mpsc::channel(size);
 
     let runner = stream::once(f(sender)).filter_map(|_| async { None });

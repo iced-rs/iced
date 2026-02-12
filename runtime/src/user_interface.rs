@@ -6,9 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{
-    Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector,
-};
+use crate::core::{Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -21,7 +19,7 @@ use crate::core::{
 /// The [`integration`] example uses a [`UserInterface`] to integrate Iced in an
 /// existing graphical application.
 ///
-/// [`integration`]: https://github.com/iced-rs/iced/tree/0.13/examples/integration
+/// [`integration`]: https://github.com/iced-rs/iced/tree/master/examples/integration
 pub struct UserInterface<'a, Message, Theme, Renderer> {
     root: Element<'a, Message, Theme, Renderer>,
     base: layout::Node,
@@ -137,7 +135,6 @@ where
     /// #     pub fn view(&self) -> iced_core::Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_runtime::core::clipboard;
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::Size;
     /// use iced_runtime::user_interface::{self, UserInterface};
@@ -148,7 +145,6 @@ where
     /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
-    /// let mut clipboard = clipboard::Null;
     ///
     /// // Initialize our event storage
     /// let mut events = Vec::new();
@@ -169,7 +165,6 @@ where
     ///         &events,
     ///         cursor,
     ///         &mut renderer,
-    ///         &mut clipboard,
     ///         &mut messages
     ///     );
     ///
@@ -186,12 +181,12 @@ where
         events: &[Event],
         cursor: mouse::Cursor,
         renderer: &mut Renderer,
-        clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
     ) -> (State, Vec<event::Status>) {
         let mut outdated = false;
         let mut redraw_request = window::RedrawRequest::Wait;
         let mut input_method = InputMethod::Disabled;
+        let mut clipboard = Clipboard::new();
         let mut has_layout_changed = false;
         let viewport = Rectangle::with_size(self.bounds);
 
@@ -207,103 +202,95 @@ where
             )
             .map(overlay::Nested::new);
 
-        let (base_cursor, overlay_statuses, overlay_interaction) =
-            if maybe_overlay.is_some() {
-                let bounds = self.bounds;
+        let (base_cursor, overlay_statuses, overlay_interaction) = if maybe_overlay.is_some() {
+            let bounds = self.bounds;
 
-                let mut overlay = maybe_overlay.as_mut().unwrap();
-                let mut layout = overlay.layout(renderer, bounds);
-                let mut event_statuses = Vec::new();
+            let mut overlay = maybe_overlay.as_mut().unwrap();
+            let mut layout = overlay.layout(renderer, bounds);
+            let mut event_statuses = Vec::new();
 
-                for event in events {
-                    let mut shell = Shell::new(messages);
+            for event in events {
+                let mut shell = Shell::new(messages);
 
-                    overlay.update(
-                        event,
-                        Layout::new(&layout),
-                        cursor,
+                overlay.update(event, Layout::new(&layout), cursor, renderer, &mut shell);
+
+                event_statuses.push(shell.event_status());
+                redraw_request = redraw_request.min(shell.redraw_request());
+                input_method.merge(shell.input_method());
+                clipboard.merge(shell.clipboard_mut());
+
+                if shell.is_layout_invalid() {
+                    drop(maybe_overlay);
+
+                    self.base = self.root.as_widget_mut().layout(
+                        &mut self.state,
                         renderer,
-                        clipboard,
-                        &mut shell,
+                        &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
-                    event_statuses.push(shell.event_status());
-                    redraw_request = redraw_request.min(shell.redraw_request());
-                    input_method.merge(shell.input_method());
-
-                    if shell.is_layout_invalid() {
-                        drop(maybe_overlay);
-
-                        self.base = self.root.as_widget_mut().layout(
+                    maybe_overlay = self
+                        .root
+                        .as_widget_mut()
+                        .overlay(
                             &mut self.state,
+                            Layout::new(&self.base),
                             renderer,
-                            &layout::Limits::new(Size::ZERO, self.bounds),
-                        );
+                            &viewport,
+                            Vector::ZERO,
+                        )
+                        .map(overlay::Nested::new);
 
-                        maybe_overlay = self
-                            .root
-                            .as_widget_mut()
-                            .overlay(
-                                &mut self.state,
-                                Layout::new(&self.base),
-                                renderer,
-                                &viewport,
-                                Vector::ZERO,
-                            )
-                            .map(overlay::Nested::new);
-
-                        if maybe_overlay.is_none() {
-                            break;
-                        }
-
-                        overlay = maybe_overlay.as_mut().unwrap();
-
-                        shell.revalidate_layout(|| {
-                            layout = overlay.layout(renderer, bounds);
-                            has_layout_changed = true;
-                        });
+                    if maybe_overlay.is_none() {
+                        break;
                     }
 
-                    if shell.are_widgets_invalid() {
-                        outdated = true;
-                    }
+                    overlay = maybe_overlay.as_mut().unwrap();
+
+                    shell.revalidate_layout(|| {
+                        layout = overlay.layout(renderer, bounds);
+                        has_layout_changed = true;
+                    });
                 }
 
-                let (base_cursor, interaction) =
-                    if let Some(overlay) = maybe_overlay.as_mut() {
-                        let interaction = cursor
-                            .position()
-                            .map(|cursor_position| {
-                                overlay.mouse_interaction(
-                                    Layout::new(&layout),
-                                    mouse::Cursor::Available(cursor_position),
-                                    renderer,
-                                )
-                            })
-                            .unwrap_or_default();
+                if shell.are_widgets_invalid() {
+                    outdated = true;
+                }
+            }
 
-                        if interaction == mouse::Interaction::None {
-                            (cursor, mouse::Interaction::None)
-                        } else {
-                            (mouse::Cursor::Unavailable, interaction)
-                        }
-                    } else {
-                        (cursor, mouse::Interaction::None)
-                    };
+            let (base_cursor, interaction) = if let Some(overlay) = maybe_overlay.as_mut() {
+                let interaction = cursor
+                    .position()
+                    .map(|cursor_position| {
+                        overlay.mouse_interaction(
+                            Layout::new(&layout),
+                            mouse::Cursor::Available(cursor_position),
+                            renderer,
+                        )
+                    })
+                    .unwrap_or_default();
 
-                self.overlay = Some(Overlay {
-                    layout,
-                    interaction,
-                });
-
-                (base_cursor, event_statuses, interaction)
+                if interaction == mouse::Interaction::None {
+                    (cursor, mouse::Interaction::None)
+                } else {
+                    (mouse::Cursor::Unavailable, interaction)
+                }
             } else {
-                (
-                    cursor,
-                    vec![event::Status::Ignored; events.len()],
-                    mouse::Interaction::None,
-                )
+                (cursor, mouse::Interaction::None)
             };
+
+            self.overlay = Some(Overlay {
+                layout,
+                interaction,
+            });
+
+            (base_cursor, event_statuses, interaction)
+        } else {
+            (
+                cursor,
+                vec![event::Status::Ignored; events.len()],
+                mouse::Interaction::None,
+            )
+        };
 
         drop(maybe_overlay);
 
@@ -323,7 +310,6 @@ where
                     Layout::new(&self.base),
                     base_cursor,
                     renderer,
-                    clipboard,
                     &mut shell,
                     &viewport,
                 );
@@ -334,6 +320,7 @@ where
 
                 redraw_request = redraw_request.min(shell.redraw_request());
                 input_method.merge(shell.input_method());
+                clipboard.merge(shell.clipboard_mut());
 
                 shell.revalidate_layout(|| {
                     has_layout_changed = true;
@@ -357,11 +344,8 @@ where
                         .map(overlay::Nested::new)
                     {
                         let layout = overlay.layout(renderer, self.bounds);
-                        let interaction = overlay.mouse_interaction(
-                            Layout::new(&layout),
-                            cursor,
-                            renderer,
-                        );
+                        let interaction =
+                            overlay.mouse_interaction(Layout::new(&layout), cursor, renderer);
 
                         self.overlay = Some(Overlay {
                             layout,
@@ -378,18 +362,17 @@ where
             })
             .collect();
 
-        let mouse_interaction =
-            if overlay_interaction == mouse::Interaction::None {
-                self.root.as_widget().mouse_interaction(
-                    &self.state,
-                    Layout::new(&self.base),
-                    base_cursor,
-                    &viewport,
-                    renderer,
-                )
-            } else {
-                overlay_interaction
-            };
+        let mouse_interaction = if overlay_interaction == mouse::Interaction::None {
+            self.root.as_widget().mouse_interaction(
+                &self.state,
+                Layout::new(&self.base),
+                base_cursor,
+                &viewport,
+                renderer,
+            )
+        } else {
+            overlay_interaction
+        };
 
         (
             if outdated {
@@ -399,6 +382,7 @@ where
                     mouse_interaction,
                     redraw_request,
                     input_method,
+                    clipboard,
                     has_layout_changed,
                 }
             },
@@ -430,7 +414,6 @@ where
     /// #     pub fn view(&self) -> Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_runtime::core::clipboard;
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::renderer;
     /// use iced_runtime::core::{Element, Size};
@@ -442,7 +425,6 @@ where
     /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
-    /// let mut clipboard = clipboard::Null;
     /// let mut events = Vec::new();
     /// let mut messages = Vec::new();
     /// let mut theme = Theme::default();
@@ -462,7 +444,6 @@ where
     ///         &events,
     ///         cursor,
     ///         &mut renderer,
-    ///         &mut clipboard,
     ///         &mut messages
     ///     );
     ///
@@ -536,11 +517,7 @@ where
     }
 
     /// Applies a [`widget::Operation`] to the [`UserInterface`].
-    pub fn operate(
-        &mut self,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation,
-    ) {
+    pub fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
         let viewport = Rectangle::with_size(self.bounds);
 
         self.root.as_widget_mut().operate(
@@ -615,7 +592,7 @@ impl Default for Cache {
 }
 
 /// The resulting state after updating a [`UserInterface`].
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum State {
     /// The [`UserInterface`] is outdated and needs to be rebuilt.
     Outdated,
@@ -629,6 +606,8 @@ pub enum State {
         redraw_request: window::RedrawRequest,
         /// The current [`InputMethod`] strategy of the user interface.
         input_method: InputMethod,
+        /// The set of [`Clipboard`] requests that the user interface has produced.
+        clipboard: Clipboard,
         /// Whether the layout of the [`UserInterface`] has changed.
         has_layout_changed: bool,
     },

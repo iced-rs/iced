@@ -274,8 +274,9 @@ impl Text {
     /// Returns the visible bounds of the [`Text`], in screen coordinates.
     pub fn visible_bounds(&self) -> Option<Rectangle> {
         match self {
-            Text::Raw { visible_bounds, .. }
-            | Text::Input { visible_bounds, .. } => *visible_bounds,
+            Text::Raw { visible_bounds, .. } | Text::Input { visible_bounds, .. } => {
+                *visible_bounds
+            }
         }
     }
 }

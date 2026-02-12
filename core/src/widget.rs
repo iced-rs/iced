@@ -14,7 +14,7 @@ use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Clipboard, Event, Length, Rectangle, Shell, Size, Vector};
+use crate::{Event, Length, Rectangle, Shell, Size, Vector};
 
 /// A component that displays information and allows interaction.
 ///
@@ -30,10 +30,10 @@ use crate::{Clipboard, Event, Length, Rectangle, Shell, Size, Vector};
 /// - [`geometry`], a custom widget showcasing how to draw geometry with the
 ///   `Mesh2D` primitive in [`iced_wgpu`].
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.13/examples
-/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.13/examples/custom_widget
-/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.13/examples/geometry
-/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.13/wgpu
+/// [examples]: https://github.com/iced-rs/iced/tree/master/examples
+/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/master/examples/custom_widget
+/// [`geometry`]: https://github.com/iced-rs/iced/tree/master/examples/geometry
+/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/master/wgpu
 pub trait Widget<Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
@@ -116,7 +116,6 @@ where
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
