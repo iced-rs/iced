@@ -1056,7 +1056,7 @@ where
             Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
-            _ => mouse::Cursor::Unavailable,
+            _ => cursor.levitate() + translation,
         };
 
         let style = theme.style(
