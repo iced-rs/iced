@@ -75,7 +75,8 @@ impl Styling {
     fn view(&self) -> Element<'_, Message> {
         let choose_theme = column![
             text("Theme:"),
-            pick_list(Theme::ALL, self.theme.as_ref(), Message::ThemeChanged)
+            pick_list(self.theme.as_ref(), Theme::ALL, Theme::to_string)
+                .on_select(Message::ThemeChanged)
                 .width(Fill)
                 .placeholder("System"),
         ]

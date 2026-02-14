@@ -830,6 +830,7 @@ where
                     menu,
                     &filtered_options.options,
                     hovered_option,
+                    &T::to_string,
                     |selection| {
                         self.state.with_inner_mut(|state| {
                             state.value = String::new();

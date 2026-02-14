@@ -1592,10 +1592,11 @@ where
 ///     ];
 ///
 ///     pick_list(
-///         fruits,
 ///         state.favorite,
-///         Message::FruitSelected,
+///         fruits,
+///         Fruit::to_string,
 ///     )
+///     .on_select(Message::FruitSelected)
 ///     .placeholder("Select your favorite fruit...")
 ///     .into()
 /// }
@@ -1620,19 +1621,19 @@ where
 /// }
 /// ```
 pub fn pick_list<'a, T, L, V, Message, Theme, Renderer>(
-    options: L,
     selected: Option<V>,
-    on_selected: impl Fn(T) -> Message + 'a,
+    options: L,
+    to_string: impl Fn(&T) -> String + 'a,
 ) -> PickList<'a, T, L, V, Message, Theme, Renderer>
 where
-    T: ToString + PartialEq + Clone + 'a,
+    T: PartialEq + Clone + 'a,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone,
     Theme: pick_list::Catalog + overlay::menu::Catalog,
     Renderer: core::text::Renderer,
 {
-    PickList::new(options, selected, on_selected)
+    PickList::new(selected, options, to_string)
 }
 
 /// Creates a new [`ComboBox`].

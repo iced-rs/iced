@@ -103,6 +103,7 @@ impl Image {
 
         let fit = row![
             pick_list(
+                Some(self.content_fit),
                 [
                     ContentFit::Contain,
                     ContentFit::Cover,
@@ -110,18 +111,19 @@ impl Image {
                     ContentFit::None,
                     ContentFit::ScaleDown
                 ],
-                Some(self.content_fit),
-                Message::ContentFitChanged
+                ContentFit::to_string,
             )
+            .on_select(Message::ContentFitChanged)
             .width(Fill),
             pick_list(
-                [RotationStrategy::Floating, RotationStrategy::Solid],
                 Some(match self.rotation {
                     Rotation::Floating(_) => RotationStrategy::Floating,
                     Rotation::Solid(_) => RotationStrategy::Solid,
                 }),
-                Message::RotationStrategyChanged,
+                [RotationStrategy::Floating, RotationStrategy::Solid],
+                RotationStrategy::to_string,
             )
+            .on_select(Message::RotationStrategyChanged,)
             .width(Fill),
         ]
         .spacing(10)
