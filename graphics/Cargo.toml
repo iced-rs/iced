@@ -23,6 +23,7 @@ image = ["dep:image", "kamadak-exif"]
 svg = []
 web-colors = []
 fira-sans = []
+fontconfig = ["cosmic-text/fontconfig"]
 
 [dependencies]
 iced_core.workspace = true
