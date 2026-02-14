@@ -93,6 +93,8 @@ x11 = ["iced_renderer/x11", "iced_winit/x11"]
 wayland = ["iced_renderer/wayland", "iced_winit/wayland"]
 # Enables system font loading via fontconfig on Linux (can significantly slow startup)
 fontconfig = ["iced_renderer/fontconfig"]
+# Requires explicit font configuration via `iced::font::configure()` - no default system font loading
+fontconfig-explicit = ["iced_renderer/fontconfig-explicit"]
 
 [dependencies]
 iced_debug.workspace = true

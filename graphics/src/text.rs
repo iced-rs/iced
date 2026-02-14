@@ -111,13 +111,51 @@ impl Text {
 #[cfg(feature = "fira-sans")]
 pub const FIRA_SANS_REGULAR: &[u8] = include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice();
 
+/// Configuration for the font system.
+///
+/// When the `fontconfig-explicit` feature is enabled, you must configure
+/// the font system before any text rendering occurs using [`configure_font_system`].
+#[cfg(feature = "fontconfig-explicit")]
+#[derive(Debug, Clone, Copy)]
+pub struct FontConfig {
+    /// Whether to load system fonts via fontconfig.
+    ///
+    /// Setting this to `false` significantly speeds up startup on systems
+    /// with many fonts, but only bundled and explicitly loaded fonts will
+    /// be available.
+    pub load_system_fonts: bool,
+}
+
+#[cfg(feature = "fontconfig-explicit")]
+static FONT_CONFIG: OnceLock<FontConfig> = OnceLock::new();
+
+/// Configures the font system.
+///
+/// This must be called before any text rendering when the `fontconfig-explicit`
+/// feature is enabled. The configuration cannot be changed after initialization.
+///
+/// # Panics
+///
+/// Panics if called after the font system has already been initialized.
+#[cfg(feature = "fontconfig-explicit")]
+pub fn configure_font_system(config: FontConfig) {
+    FONT_CONFIG
+        .set(config)
+        .expect("font system already configured");
+}
+
 /// Returns the global [`FontSystem`].
 pub fn font_system() -> &'static RwLock<FontSystem> {
     static FONT_SYSTEM: OnceLock<RwLock<FontSystem>> = OnceLock::new();
 
     FONT_SYSTEM.get_or_init(|| {
-        RwLock::new(FontSystem {
-            raw: cosmic_text::FontSystem::new_with_fonts([
+        #[cfg(feature = "fontconfig-explicit")]
+        {
+            let config = FONT_CONFIG.get().expect(
+                "font system not configured - call `iced::font::configure()` before running the app",
+            );
+            
+            let mut raw = cosmic_text::FontSystem::new_with_fonts([
                 cosmic_text::fontdb::Source::Binary(Arc::new(
                     include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
                 )),
@@ -125,10 +163,56 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
                 cosmic_text::fontdb::Source::Binary(Arc::new(
                     include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice(),
                 )),
-            ]),
-            loaded_fonts: HashSet::new(),
-            version: Version::default(),
-        })
+            ]);
+            
+            if config.load_system_fonts {
+                raw.db_mut().load_system_fonts();
+            }
+            
+            RwLock::new(FontSystem {
+                raw,
+                loaded_fonts: HashSet::new(),
+                version: Version::default(),
+            })
+        }
+        
+        #[cfg(all(feature = "fontconfig", not(feature = "fontconfig-explicit")))]
+        {
+            let mut raw = cosmic_text::FontSystem::new_with_fonts([
+                cosmic_text::fontdb::Source::Binary(Arc::new(
+                    include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
+                )),
+                #[cfg(feature = "fira-sans")]
+                cosmic_text::fontdb::Source::Binary(Arc::new(
+                    include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice(),
+                )),
+            ]);
+            
+            raw.db_mut().load_system_fonts();
+            
+            RwLock::new(FontSystem {
+                raw,
+                loaded_fonts: HashSet::new(),
+                version: Version::default(),
+            })
+        }
+        
+        #[cfg(all(not(feature = "fontconfig"), not(feature = "fontconfig-explicit")))]
+        {
+            RwLock::new(FontSystem {
+                raw: cosmic_text::FontSystem::new_with_fonts([
+                    cosmic_text::fontdb::Source::Binary(Arc::new(
+                        include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
+                    )),
+                    #[cfg(feature = "fira-sans")]
+                    cosmic_text::fontdb::Source::Binary(Arc::new(
+                        include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice(),
+                    )),
+                ]),
+                loaded_fonts: HashSet::new(),
+                version: Version::default(),
+            })
+        }
     })
 }
 

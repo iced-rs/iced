@@ -581,6 +581,10 @@ pub mod font {
     //! Load and use fonts.
     pub use crate::core::font::*;
     pub use crate::runtime::font::*;
+    
+    #[cfg(feature = "fontconfig-explicit")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "fontconfig-explicit")))]
+    pub use iced_widget::graphics::{FontConfig, configure_font_system as configure};
 }
 
 pub mod event {

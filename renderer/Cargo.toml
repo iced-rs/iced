@@ -27,6 +27,7 @@ strict-assertions = ["iced_wgpu?/strict-assertions"]
 x11 = ["iced_tiny_skia?/x11"]
 wayland = ["iced_tiny_skia?/wayland"]
 fontconfig = ["iced_graphics/fontconfig"]
+fontconfig-explicit = ["iced_graphics/fontconfig-explicit"]
 
 [dependencies]
 iced_graphics.workspace = true

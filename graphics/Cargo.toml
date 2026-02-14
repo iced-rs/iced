@@ -24,6 +24,7 @@ svg = []
 web-colors = []
 fira-sans = []
 fontconfig = ["cosmic-text/fontconfig"]
+fontconfig-explicit = ["cosmic-text/fontconfig"]
 
 [dependencies]
 iced_core.workspace = true

@@ -40,5 +40,8 @@ pub use shell::Shell;
 pub use text::Text;
 pub use viewport::Viewport;
 
+#[cfg(feature = "fontconfig-explicit")]
+pub use text::{FontConfig, configure_font_system};
+
 pub use iced_core as core;
 pub use iced_futures as futures;
