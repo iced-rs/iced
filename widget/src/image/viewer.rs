@@ -6,7 +6,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, ContentFit, Element, Event, Image, Layout, Length, Pixels, Point, Radians, Rectangle, Shell,
+    ContentFit, Element, Event, Image, Layout, Length, Pixels, Point, Rectangle, Rotation, Shell,
     Size, Vector, Widget,
 };
 
