@@ -32,7 +32,7 @@ tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `image` widget and image clipboard support
 image = ["image-without-codecs", "image/default", "iced_winit/image"]
 # Enables the `image` widget, without any built-in codecs of the `image` crate
-image-without-codecs = ["iced_widget/image", "dep:image"]
+image-without-codecs = ["iced_widget/image-without-codecs", "dep:image"]
 # Enables the `svg` widget
 svg = ["iced_widget/svg"]
 # Enables the `canvas` widget

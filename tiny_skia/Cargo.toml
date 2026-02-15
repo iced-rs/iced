@@ -16,6 +16,7 @@ workspace = true
 [features]
 default = ["x11", "wayland"]
 image = ["iced_graphics/image"]
+image-without-codecs = ["iced_graphics/image-without-codecs"]
 svg = ["iced_graphics/svg", "resvg"]
 geometry = ["iced_graphics/geometry"]
 x11 = ["softbuffer/x11", "softbuffer/x11-dlopen"]
