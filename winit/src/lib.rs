@@ -130,6 +130,7 @@ where
         program,
         runtime,
         proxy.clone(),
+        event_sender.clone(),
         event_receiver,
         control_sender,
         display_handle,
@@ -469,6 +470,7 @@ async fn run_instance<P>(
     mut program: program::Instance<P>,
     mut runtime: Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
     mut proxy: Proxy<P::Message>,
+    mut event_sender: mpsc::UnboundedSender<Event<Action<P::Message>>>,
     mut event_receiver: mpsc::UnboundedReceiver<Event<Action<P::Message>>>,
     mut control_sender: mpsc::UnboundedSender<Control>,
     display_handle: winit::event_loop::OwnedDisplayHandle,
@@ -721,6 +723,7 @@ async fn run_instance<P>(
                             &mut events,
                             &mut messages,
                             &mut clipboard,
+                            &mut event_sender,
                             &mut control_sender,
                             &mut user_interfaces,
                             &mut window_manager,
@@ -837,6 +840,7 @@ async fn run_instance<P>(
                                         &mut events,
                                         &mut messages,
                                         &mut clipboard,
+                                        &mut event_sender,
                                         &mut control_sender,
                                         &mut user_interfaces,
                                         &mut window_manager,
@@ -1020,6 +1024,7 @@ async fn run_instance<P>(
                                 &mut events,
                                 &mut messages,
                                 &mut clipboard,
+                                &mut event_sender,
                                 &mut control_sender,
                                 &mut user_interfaces,
                                 &mut window_manager,
@@ -1150,6 +1155,7 @@ async fn run_instance<P>(
                                     &mut events,
                                     &mut messages,
                                     &mut clipboard,
+                                    &mut event_sender,
                                     &mut control_sender,
                                     &mut user_interfaces,
                                     &mut window_manager,
@@ -1265,6 +1271,7 @@ fn run_action<'a, P, C>(
     events: &mut Vec<(window::Id, core::Event)>,
     messages: &mut Vec<P::Message>,
     clipboard: &mut Clipboard,
+    event_sender: &mut mpsc::UnboundedSender<Event<Action<P::Message>>>,
     control_sender: &mut mpsc::UnboundedSender<Control>,
     interfaces: &mut FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>,
     window_manager: &mut WindowManager<P, C>,
@@ -1349,13 +1356,21 @@ fn run_action<'a, P, C>(
             }
             window::Action::Resize(id, size) => {
                 if let Some(window) = window_manager.get_mut(id) {
-                    let _ = window.raw.request_inner_size(
+                    if let Some(size) = window.raw.request_inner_size(
                         winit::dpi::LogicalSize {
                             width: size.width,
                             height: size.height,
                         }
                         .to_physical::<f32>(f64::from(window.state.scale_factor())),
-                    );
+                    ) {
+                        // Inject window resize event if the underlying windowing system doesn't produce one for us.
+                        let _ = event_sender.unbounded_send(Event::EventLoopAwakened(
+                            winit::event::Event::WindowEvent {
+                                window_id: window.raw.id(),
+                                event: winit::event::WindowEvent::Resized(size),
+                            },
+                        ));
+                    }
                 }
             }
             window::Action::SetMinSize(id, size) => {
