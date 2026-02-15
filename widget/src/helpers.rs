@@ -1698,7 +1698,7 @@ pub fn combo_box<'a, T, Message, Theme, Renderer>(
     state: &'a combo_box::State<T>,
     placeholder: &str,
     selection: Option<&T>,
-    on_selected: impl Fn(T) -> Message + 'static,
+    on_selected: impl Fn(T) -> Message + 'a,
 ) -> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
