@@ -171,6 +171,10 @@ where
         let limits = limits.width(size.width).height(size.height);
         let available = limits.max();
 
+        if limits.compression().width && self.width.is_none() {
+            return layout::Node::new(Size::ZERO);
+        }
+
         let cells_per_row = match self.columns {
             // width = n * (cell + spacing) - spacing, given n > 0
             Constraint::MaxWidth(pixels) => {

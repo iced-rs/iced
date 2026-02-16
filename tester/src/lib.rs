@@ -657,9 +657,14 @@ impl<P: Program + 'static> Tester<P> {
         .size(14)
         .width(Fill);
 
-        let mode = pick_list(emulator::Mode::ALL, Some(self.mode), Event::ModeSelected)
-            .text_size(14)
-            .width(Fill);
+        let mode = pick_list(
+            Some(self.mode),
+            emulator::Mode::ALL,
+            emulator::Mode::to_string,
+        )
+        .on_select(Event::ModeSelected)
+        .text_size(14)
+        .width(Fill);
 
         let player = {
             let instructions = if let Some(edit) = &self.edit {

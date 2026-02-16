@@ -353,16 +353,19 @@ pub fn to_color(color: Color) -> cosmic_text::Color {
 }
 
 /// Returns the ideal hint factor given the size and scale factor of some text.
-pub fn hint_factor(size: Pixels, scale_factor: Option<f32>) -> Option<f32> {
-    const MAX_HINTING_SIZE: f32 = 18.0;
+pub fn hint_factor(_size: Pixels, _scale_factor: Option<f32>) -> Option<f32> {
+    // TODO: Fix hinting in `cosmic-text`
+    // const MAX_HINTING_SIZE: f32 = 18.0;
 
-    let hint_factor = scale_factor?;
+    // let hint_factor = scale_factor?;
 
-    if size.0 * hint_factor < MAX_HINTING_SIZE {
-        Some(hint_factor)
-    } else {
-        None
-    }
+    // if size.0 * hint_factor < MAX_HINTING_SIZE {
+    //     Some(hint_factor)
+    // } else {
+    //     None
+    // }
+
+    None // Disable all text hinting for now
 }
 
 /// A text renderer coupled to `iced_graphics`.

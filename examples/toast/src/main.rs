@@ -117,10 +117,11 @@ impl App {
                 subtitle(
                     "Status",
                     pick_list(
-                        toast::Status::ALL,
                         Some(self.editing.status),
-                        Message::Status
+                        toast::Status::ALL,
+                        toast::Status::to_string
                     )
+                    .on_select(Message::Status)
                     .width(Fill)
                     .into()
                 ),

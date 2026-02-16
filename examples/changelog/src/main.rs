@@ -296,10 +296,11 @@ impl Generator {
                             .on_submit(Message::Next);
 
                         let category = pick_list(
-                            changelog::Category::ALL,
                             Some(category),
-                            Message::CategorySelected,
-                        );
+                            changelog::Category::ALL,
+                            changelog::Category::to_string,
+                        )
+                        .on_select(Message::CategorySelected);
 
                         let next = button("Next →")
                             .on_press(Message::Next)
