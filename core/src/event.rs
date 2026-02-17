@@ -1,4 +1,6 @@
 //! Handle events of a user interface.
+use crate::auto_hide;
+use crate::dismiss;
 use crate::input_method;
 use crate::keyboard;
 use crate::mouse;
@@ -31,6 +33,12 @@ pub enum Event {
 
     /// A voice mode event from the compositor
     VoiceMode(voice_mode::Event),
+
+    /// An auto-hide visibility event from the compositor
+    AutoHide(auto_hide::Event),
+
+    /// A dismiss event from the compositor
+    Dismiss(dismiss::Event),
 }
 
 /// The status of an [`Event`] after being processed.

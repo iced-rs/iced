@@ -626,6 +626,16 @@ pub mod voice_mode {
     pub use crate::core::voice_mode::{Event, OrbState};
 }
 
+pub mod auto_hide {
+    //! Listen and react to auto-hide visibility events from the compositor.
+    pub use crate::core::auto_hide::Event;
+}
+
+pub mod dismiss {
+    //! Listen and react to dismiss events from the compositor.
+    pub use crate::core::dismiss::Event;
+}
+
 #[allow(hidden_glob_reexports)]
 pub mod widget {
     //! Use the built-in widgets or create your own.
