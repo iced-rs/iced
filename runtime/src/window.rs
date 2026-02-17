@@ -238,6 +238,11 @@ pub enum Action {
     /// Parameters are (window_id, exclusive).
     SetExclusiveMode(Id, bool),
 
+    /// Set corner radius for the window (COSMIC compositor protocol).
+    /// Communicates corner radius hints to the compositor for blur outlines and rounded corners.
+    /// Parameters are (window_id, top_left, top_right, bottom_right, bottom_left).
+    SetCornerRadius(Id, u32, u32, u32, u32),
+
     /// Register the window to receive voice mode events (COSMIC compositor protocol).
     /// Parameters are (window_id, is_default_receiver).
     /// When is_default_receiver is true, this window receives events when no other receiver is active.
@@ -801,6 +806,26 @@ pub fn allow_automatic_tabbing<T>(enabled: bool) -> Task<T> {
 pub fn set_exclusive_mode<T>(id: Id, exclusive: bool) -> Task<T> {
     task::effect(crate::Action::Window(Action::SetExclusiveMode(
         id, exclusive,
+    )))
+}
+
+/// Sets the corner radius for the window using the COSMIC corner radius protocol.
+///
+/// Communicates corner radius hints to the compositor so it can draw proper
+/// blur outlines and apply rounded corners.
+///
+/// ## Platform-specific
+/// - **COSMIC/Wayland:** Uses `layer_corner_radius_manager_v1` protocol.
+/// - **Other platforms:** No effect.
+pub fn set_corner_radius<T>(
+    id: Id,
+    top_left: u32,
+    top_right: u32,
+    bottom_right: u32,
+    bottom_left: u32,
+) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetCornerRadius(
+        id, top_left, top_right, bottom_right, bottom_left,
     )))
 }
 

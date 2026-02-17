@@ -1858,6 +1858,35 @@ fn run_action<'a, P, C>(
                     }
                 }
             }
+            window::Action::SetCornerRadius(
+                id,
+                top_left,
+                top_right,
+                bottom_right,
+                bottom_left,
+            ) => {
+                #[cfg(all(
+                    feature = "wayland",
+                    any(
+                        target_os = "linux",
+                        target_os = "dragonfly",
+                        target_os = "freebsd",
+                        target_os = "netbsd",
+                        target_os = "openbsd",
+                    )
+                ))]
+                {
+                    use winit::platform::wayland::WindowExtWayland;
+                    if let Some(window) = window_manager.get_mut(id) {
+                        let _ = window.raw.set_corner_radius(
+                            top_left,
+                            top_right,
+                            bottom_right,
+                            bottom_left,
+                        );
+                    }
+                }
+            }
             window::Action::RegisterVoiceMode(id, is_default) => {
                 #[cfg(all(
                     feature = "wayland",

@@ -237,8 +237,8 @@ web-sys = "0.3.69"
 web-time = "1.1"
 wgpu = { version = "27.0", default-features = false, features = ["std", "wgsl"] }
 window_clipboard = { version = "0.5", default-features = false }
-winit = { git = "https://github.com/playtron-os/winit.git", rev = "8079c54c", default-features = false, features = ["rwh_06"] }
-# winit = { path = "../winit", default-features = false, features = ["rwh_06"] }
+winit = { git = "https://github.com/playtron-os/winit.git", rev = "1272e2e9", default-features = false, features = ["rwh_06"] }
+#winit = { path = "../winit", default-features = false, features = ["rwh_06"] }
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
