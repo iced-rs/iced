@@ -2,7 +2,7 @@ use crate::runtime::task::{self, Task};
 
 use std::process;
 
-pub const COMPATIBLE_REVISION: &str = "3f75f3240edc1719df584810337bc7df010327d8";
+pub const COMPATIBLE_REVISION: &str = "fbef808eed51562f0ea601d8fc7c715bea9cfd0b";
 
 pub fn launch() -> Task<launch::Result> {
     task::try_blocking(|mut sender| {
