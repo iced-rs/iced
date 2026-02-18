@@ -281,7 +281,7 @@ impl<P: Program + 'static> Emulator<P> {
     /// produced by the [`Emulator`].
     ///
     /// Otherwise, an [`Event::Failed`] will be triggered.
-    pub fn run(&mut self, program: &P, instruction: Instruction) {
+    pub fn run(&mut self, program: &P, instruction: &Instruction) {
         let mut user_interface = UserInterface::build(
             program.view(&self.state, self.window),
             self.size,
@@ -291,7 +291,7 @@ impl<P: Program + 'static> Emulator<P> {
 
         let mut messages = Vec::new();
 
-        match &instruction {
+        match instruction {
             Instruction::Interact(interaction) => {
                 let Some(events) = interaction.events(|target| match target {
                     instruction::Target::Id(id) => {
@@ -330,7 +330,7 @@ impl<P: Program + 'static> Emulator<P> {
                     }
                     instruction::Target::Point(position) => Some(*position),
                 }) else {
-                    self.runtime.send(Event::Failed(instruction));
+                    self.runtime.send(Event::Failed(instruction.clone()));
                     self.cache = Some(user_interface.into_cache());
                     return;
                 };
@@ -373,7 +373,7 @@ impl<P: Program + 'static> Emulator<P> {
                             self.runtime.send(Event::Ready);
                         }
                         _ => {
-                            self.runtime.send(Event::Failed(instruction));
+                            self.runtime.send(Event::Failed(instruction.clone()));
                         }
                     }
 

@@ -190,8 +190,8 @@ pub fn run<P: program::Program + 'static>(
 
         let mut emulator = Emulator::with_preset(sender, &program, ice.mode, ice.viewport, preset);
 
-        let mut history = Vec::with_capacity(ice.instructions.len());
-        let mut instructions = ice.instructions.into_iter();
+        let mut instructions = ice.instructions.iter();
+        let mut current = 0;
 
         loop {
             let event = executor::block_on(receiver.next())
@@ -231,7 +231,7 @@ pub fn run<P: program::Program + 'static>(
                         viewport: ice.viewport,
                         mode: ice.mode,
                         preset: ice.preset,
-                        instructions: history,
+                        instructions: ice.instructions[..current].to_vec(),
                     };
 
                     fs::write(errors_dir.join(file.file_name()), reproduction.to_string())?;
@@ -246,8 +246,8 @@ pub fn run<P: program::Program + 'static>(
                         break;
                     };
 
-                    emulator.run(&program, instruction.clone());
-                    history.push(instruction);
+                    emulator.run(&program, instruction);
+                    current += 1;
                 }
             }
         }

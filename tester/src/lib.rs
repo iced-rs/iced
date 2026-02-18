@@ -452,8 +452,7 @@ impl<P: Program + 'static> Tester<P> {
                         emulator::Event::Ready => {
                             *current += 1;
 
-                            if let Some(instruction) = self.instructions.get(*current - 1).cloned()
-                            {
+                            if let Some(instruction) = self.instructions.get(*current - 1) {
                                 emulator.run(program, instruction);
                             }
 
