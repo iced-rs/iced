@@ -106,6 +106,7 @@ pub use selector::Selector;
 pub use simulator::{Simulator, simulator};
 
 use crate::core::Size;
+use crate::core::theme;
 use crate::core::time::{Duration, Instant};
 use crate::core::window;
 
@@ -119,8 +120,8 @@ use std::path::Path;
 /// Remember that an [`Emulator`] executes the real thing! Side effects _will_
 /// take place. It is up to you to ensure your tests have reproducible environments
 /// by leveraging [`Preset`][program::Preset].
-pub fn run(
-    program: impl program::Program + 'static,
+pub fn run<P: program::Program + 'static>(
+    program: P,
     tests_dir: impl AsRef<Path>,
 ) -> Result<(), Error> {
     use crate::futures::futures::StreamExt;
@@ -129,6 +130,9 @@ pub fn run(
 
     use std::ffi::OsStr;
     use std::fs;
+
+    let errors_dir = tests_dir.as_ref().join("errors");
+    fs::remove_dir_all(&errors_dir)?;
 
     let files = fs::read_dir(tests_dir)?;
     let mut tests = Vec::new();
@@ -194,6 +198,31 @@ pub fn run(
                     emulator.perform(&program, action);
                 }
                 emulator::Event::Failed(instruction) => {
+                    fs::create_dir_all(&errors_dir)?;
+
+                    let theme = emulator
+                        .theme(&program)
+                        .unwrap_or_else(|| <P::Theme as theme::Base>::default(theme::Mode::None));
+
+                    let screenshot = emulator.screenshot(&program, &theme, 2.0);
+
+                    let image = fs::File::create(
+                        errors_dir.join(
+                            file.path()
+                                .with_extension("png")
+                                .file_name()
+                                .expect("Test must have a filename"),
+                        ),
+                    )?;
+
+                    let mut encoder =
+                        png::Encoder::new(image, screenshot.size.width, screenshot.size.height);
+                    encoder.set_color(png::ColorType::Rgba);
+
+                    let mut writer = encoder.write_header()?;
+                    writer.write_image_data(&screenshot.rgba)?;
+                    writer.finish()?;
+
                     return Err(Error::IceTestingFailed {
                         file: file.path().to_path_buf(),
                         instruction,
