@@ -234,15 +234,7 @@ pub fn run<P: program::Program + 'static>(
                         instructions: history,
                     };
 
-                    fs::write(
-                        errors_dir.join(
-                            file.path()
-                                .with_extension("ice")
-                                .file_name()
-                                .expect("Test must have a filename"),
-                        ),
-                        reproduction.to_string(),
-                    )?;
+                    fs::write(errors_dir.join(file.file_name()), reproduction.to_string())?;
 
                     return Err(Error::IceTestingFailed {
                         file: file.path().to_path_buf(),
