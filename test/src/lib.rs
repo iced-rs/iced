@@ -132,7 +132,10 @@ pub fn run<P: program::Program + 'static>(
     use std::fs;
 
     let errors_dir = tests_dir.as_ref().join("errors");
-    fs::remove_dir_all(&errors_dir)?;
+
+    if errors_dir.exists() {
+        fs::remove_dir_all(&errors_dir)?;
+    }
 
     let files = fs::read_dir(tests_dir)?;
     let mut tests = Vec::new();
