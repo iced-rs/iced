@@ -164,6 +164,7 @@ where
     text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
+    ellipsis: text::Ellipsis,
     font: Option<Renderer::Font>,
     handle: Handle<Renderer::Font>,
     class: <Theme as Catalog>::Class<'a>,
@@ -197,6 +198,7 @@ where
             text_size: None,
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::default(),
+            ellipsis: text::Ellipsis::End,
             font: None,
             handle: Handle::default(),
             class: <Theme as Catalog>::default(),
@@ -245,6 +247,12 @@ where
     /// Sets the [`text::Shaping`] strategy of the [`PickList`].
     pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
         self.text_shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Ellipsis`] strategy of the [`PickList`].
+    pub fn ellipsis(mut self, ellipsis: text::Ellipsis) -> Self {
+        self.ellipsis = ellipsis;
         self
     }
 
@@ -365,7 +373,7 @@ where
             align_y: alignment::Vertical::Center,
             shaping: self.text_shaping,
             wrapping: text::Wrapping::None,
-            ellipsis: text::Ellipsis::End,
+            ellipsis: self.ellipsis,
             hint_factor: renderer.scale_factor(),
         };
 
@@ -640,8 +648,8 @@ where
                     align_x: text::Alignment::Right,
                     align_y: alignment::Vertical::Center,
                     shaping,
-                    wrapping: text::Wrapping::default(),
-                    ellipsis: text::Ellipsis::default(),
+                    wrapping: text::Wrapping::None,
+                    ellipsis: text::Ellipsis::None,
                     hint_factor: None,
                 },
                 Point::new(
@@ -672,7 +680,7 @@ where
                     align_y: alignment::Vertical::Center,
                     shaping: self.text_shaping,
                     wrapping: text::Wrapping::None,
-                    ellipsis: text::Ellipsis::End,
+                    ellipsis: self.ellipsis,
                     hint_factor: renderer.scale_factor(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),

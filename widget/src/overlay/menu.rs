@@ -34,6 +34,7 @@ where
     text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
+    ellipsis: text::Ellipsis,
     font: Option<Renderer::Font>,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
@@ -69,6 +70,7 @@ where
             text_size: None,
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::default(),
+            ellipsis: text::Ellipsis::default(),
             font: None,
             class,
         }
@@ -101,6 +103,12 @@ where
     /// Sets the [`text::Shaping`] strategy of the [`Menu`].
     pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
         self.text_shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Ellipsis`] strategy of the [`Menu`].
+    pub fn ellipsis(mut self, ellipsis: text::Ellipsis) -> Self {
+        self.ellipsis = ellipsis;
         self
     }
 
@@ -198,6 +206,7 @@ where
             text_size,
             text_line_height,
             text_shaping,
+            ellipsis,
             class,
         } = menu;
 
@@ -211,6 +220,7 @@ where
             text_size,
             text_line_height,
             text_shaping,
+            ellipsis,
             padding,
             class,
         })
@@ -329,6 +339,7 @@ where
     text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
+    ellipsis: text::Ellipsis,
     font: Option<Renderer::Font>,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
@@ -534,7 +545,7 @@ where
                     align_y: alignment::Vertical::Center,
                     shaping: self.text_shaping,
                     wrapping: text::Wrapping::None,
-                    ellipsis: text::Ellipsis::End,
+                    ellipsis: self.ellipsis,
                     hint_factor: renderer.scale_factor(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
