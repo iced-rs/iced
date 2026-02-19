@@ -27,6 +27,7 @@ pub mod overlay;
 pub mod padding;
 pub mod renderer;
 pub mod svg;
+pub mod surface_visibility;
 pub mod text;
 pub mod theme;
 pub mod time;

@@ -48,6 +48,10 @@ impl Cache {
     /// Load svg
     pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
         if self.svgs.contains_key(&handle.id()) {
+            // Mark as "hit" so trim() won't evict the parsed tree even
+            // when it is only used for viewport-dimension measurement
+            // (e.g. during layout) and never uploaded in this frame.
+            let _ = self.svg_hits.insert(handle.id());
             return self.svgs.get(&handle.id()).unwrap();
         }
 
@@ -100,18 +104,23 @@ impl Cache {
     ) -> Option<&atlas::Entry> {
         let id = handle.id();
 
-        let (width, height) = (
-            (scale * size.width).ceil() as u32,
-            (scale * size.height).ceil() as u32,
-        );
+        // Quantize pixel dimensions to reduce SVG cache thrashing during
+        // scale animations. Rasterize at the next multiple of QUANTIZE_STEP
+        // and let the GPU texture sampler handle the minor downscale.
+        const QUANTIZE_STEP: u32 = 8;
+
+        let (width, height) = {
+            let w = (scale * size.width).ceil() as u32;
+            let h = (scale * size.height).ceil() as u32;
+            (
+                ((w + QUANTIZE_STEP - 1) / QUANTIZE_STEP) * QUANTIZE_STEP,
+                ((h + QUANTIZE_STEP - 1) / QUANTIZE_STEP) * QUANTIZE_STEP,
+            )
+        };
 
         let color = color.map(Color::into_rgba8);
         let key = (id, width, height, color);
 
-        // TODO: Optimize!
-        // We currently rerasterize the SVG when its size changes. This is slow
-        // as heck. A GPU rasterizer like `pathfinder` may perform better.
-        // It would be cool to be able to smooth resize the `svg` example.
         if self.rasterized.contains_key(&key) {
             let _ = self.svg_hits.insert(id);
             let _ = self.rasterized_hits.insert(key);
@@ -125,10 +134,6 @@ impl Cache {
                     return None;
                 }
 
-                // TODO: Optimize!
-                // We currently rerasterize the SVG when its size changes. This is slow
-                // as heck. A GPU rasterizer like `pathfinder` may perform better.
-                // It would be cool to be able to smooth resize the `svg` example.
                 let mut img = tiny_skia::Pixmap::new(width, height)?;
 
                 let tree_size = tree.size().to_int_size();

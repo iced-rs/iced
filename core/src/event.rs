@@ -4,6 +4,7 @@ use crate::dismiss;
 use crate::input_method;
 use crate::keyboard;
 use crate::mouse;
+use crate::surface_visibility;
 use crate::touch;
 use crate::voice_mode;
 use crate::window;
@@ -39,6 +40,9 @@ pub enum Event {
 
     /// A dismiss event from the compositor
     Dismiss(dismiss::Event),
+
+    /// A surface visibility event from the layer-surface-visibility protocol
+    SurfaceVisibility(surface_visibility::Event),
 }
 
 /// The status of an [`Event`] after being processed.
