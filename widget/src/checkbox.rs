@@ -299,6 +299,7 @@ where
                             align_y: alignment::Vertical::Top,
                             shaping: self.text_shaping,
                             wrapping: self.text_wrapping,
+                            ellipsis: text::Ellipsis::None,
                         },
                     )
                 } else {
@@ -423,6 +424,7 @@ where
                         align_y: alignment::Vertical::Center,
                         shaping: *shaping,
                         wrapping: text::Wrapping::default(),
+                        ellipsis: text::Ellipsis::default(),
                         hint_factor: None,
                     },
                     bounds.center(),

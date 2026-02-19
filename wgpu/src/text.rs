@@ -463,6 +463,8 @@ fn prepare(
                 line_height,
                 font,
                 shaping,
+                wrapping,
+                ellipsis,
                 align_x,
                 ..
             } => {
@@ -479,6 +481,8 @@ fn prepare(
                             height: bounds.height,
                         },
                         shaping: *shaping,
+                        wrapping: *wrapping,
+                        ellipsis: *ellipsis,
                     },
                 );
 

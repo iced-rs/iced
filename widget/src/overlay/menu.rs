@@ -526,14 +526,15 @@ where
             renderer.fill_text(
                 Text {
                     content: (self.to_string)(option),
-                    bounds: Size::new(f32::INFINITY, bounds.height),
+                    bounds: Size::new(bounds.width - self.padding.x(), bounds.height),
                     size: text_size,
                     line_height: self.text_line_height,
                     font: self.font.unwrap_or_else(|| renderer.default_font()),
                     align_x: text::Alignment::Default,
                     align_y: alignment::Vertical::Center,
                     shaping: self.text_shaping,
-                    wrapping: text::Wrapping::default(),
+                    wrapping: text::Wrapping::None,
+                    ellipsis: text::Ellipsis::End,
                     hint_factor: renderer.scale_factor(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),

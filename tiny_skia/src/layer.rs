@@ -86,6 +86,8 @@ impl Layer {
             align_x: text.align_x,
             align_y: text.align_y,
             shaping: text.shaping,
+            wrapping: text.wrapping,
+            ellipsis: text.ellipsis,
             clip_bounds: clip_bounds * transformation,
         };
 

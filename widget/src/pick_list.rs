@@ -355,7 +355,7 @@ where
         let option_text = Text {
             content: "",
             bounds: Size::new(
-                f32::INFINITY,
+                limits.max().width,
                 self.text_line_height.to_absolute(text_size).into(),
             ),
             size: text_size,
@@ -364,7 +364,8 @@ where
             align_x: text::Alignment::Default,
             align_y: alignment::Vertical::Center,
             shaping: self.text_shaping,
-            wrapping: text::Wrapping::default(),
+            wrapping: text::Wrapping::None,
+            ellipsis: text::Ellipsis::End,
             hint_factor: renderer.scale_factor(),
         };
 
@@ -640,6 +641,7 @@ where
                     align_y: alignment::Vertical::Center,
                     shaping,
                     wrapping: text::Wrapping::default(),
+                    ellipsis: text::Ellipsis::default(),
                     hint_factor: None,
                 },
                 Point::new(
@@ -669,7 +671,8 @@ where
                     align_x: text::Alignment::Default,
                     align_y: alignment::Vertical::Center,
                     shaping: self.text_shaping,
-                    wrapping: text::Wrapping::default(),
+                    wrapping: text::Wrapping::None,
+                    ellipsis: text::Ellipsis::End,
                     hint_factor: renderer.scale_factor(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
