@@ -728,6 +728,7 @@ where
             .width(bounds.width)
             .padding(self.padding)
             .font(font)
+            .ellipsis(self.ellipsis)
             .text_shaping(self.text_shaping);
 
             if let Some(text_size) = self.text_size {
