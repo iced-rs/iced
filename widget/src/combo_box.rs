@@ -143,7 +143,7 @@ where
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     padding: Padding,
     size: Option<f32>,
-    text_shaping: text::Shaping,
+    shaping: text::Shaping,
     menu_class: <Theme as menu::Catalog>::Class<'a>,
     menu_height: Length,
 }
@@ -181,7 +181,7 @@ where
             on_close: None,
             padding: text_input::DEFAULT_PADDING,
             size: None,
-            text_shaping: text::Shaping::default(),
+            shaping: text::Shaping::default(),
             menu_class: <Theme as Catalog>::default_menu(),
             menu_height: Length::Shrink,
         }
@@ -270,8 +270,8 @@ where
     }
 
     /// Sets the [`text::Shaping`] strategy of the [`ComboBox`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
-        self.text_shaping = shaping;
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
+        self.shaping = shaping;
         self
     }
 
@@ -849,7 +849,7 @@ where
                 )
                 .width(bounds.width)
                 .padding(self.padding)
-                .text_shaping(self.text_shaping);
+                .shaping(self.shaping);
 
                 if let Some(font) = self.font {
                     menu = menu.font(font);
