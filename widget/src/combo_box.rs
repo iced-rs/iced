@@ -183,7 +183,7 @@ where
             padding: text_input::DEFAULT_PADDING,
             size: None,
             shaping: text::Shaping::default(),
-            ellipsis: text::Ellipsis::default(),
+            ellipsis: text::Ellipsis::End,
             menu_class: <Theme as Catalog>::default_menu(),
             menu_height: Length::Shrink,
         }
