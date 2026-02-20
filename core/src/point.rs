@@ -34,6 +34,18 @@ impl<T: Num> Point<T> {
 
         a.hypot(b)
     }
+
+    /// Computes the distance to another [`Point`], using a slower but more deterministic algorithm.
+    /// Useful for sorting algorithms.
+    pub fn distance_slow(&self, to: Self) -> T
+    where
+        T: Float,
+    {
+        let a = self.x - to.x;
+        let b = self.y - to.y;
+
+        (a * a + b * b).sqrt()
+    }
 }
 
 impl<T> From<[T; 2]> for Point<T>
