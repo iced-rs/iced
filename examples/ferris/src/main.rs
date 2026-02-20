@@ -20,6 +20,7 @@ struct Image {
     content_fit: ContentFit,
     spin: bool,
     last_tick: Instant,
+    ferris: image::Handle,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -86,14 +87,11 @@ impl Image {
         let i_am_ferris = column![
             "Hello!",
             Element::from(
-                image(concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/../tour/images/ferris.png",
-                ))
-                .width(self.width)
-                .content_fit(self.content_fit)
-                .rotation(self.rotation)
-                .opacity(self.opacity)
+                image(&self.ferris)
+                    .width(self.width)
+                    .content_fit(self.content_fit)
+                    .rotation(self.rotation)
+                    .opacity(self.opacity)
             )
             .explain(Color::WHITE),
             "I am Ferris!"
@@ -174,6 +172,7 @@ impl Default for Image {
             content_fit: ContentFit::default(),
             spin: false,
             last_tick: Instant::now(),
+            ferris: concat!(env!("CARGO_MANIFEST_DIR"), "/../tour/images/ferris.png",).into(),
         }
     }
 }
