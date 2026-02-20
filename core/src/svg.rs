@@ -29,6 +29,16 @@ pub struct Svg<H = Handle> {
     ///
     /// 0 means transparent. 1 means opaque.
     pub opacity: f32,
+
+    /// The size at which to rasterize the SVG, in logical pixels.
+    ///
+    /// When set, the SVG will be rasterized once at this size and the
+    /// GPU will scale the texture to fit the display bounds. This is
+    /// useful for animations where the display size changes but you
+    /// want to avoid re-rasterizing the SVG every frame.
+    ///
+    /// If `None`, the SVG is rasterized at the display bounds size.
+    pub rasterize_size: Option<Size>,
 }
 
 impl Svg<Handle> {
@@ -39,6 +49,7 @@ impl Svg<Handle> {
             color: None,
             rotation: Radians(0.0),
             opacity: 1.0,
+            rasterize_size: None,
         }
     }
 
@@ -57,6 +68,16 @@ impl Svg<Handle> {
     /// Sets the opacity of the [`Svg`].
     pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
         self.opacity = opacity.into();
+        self
+    }
+
+    /// Sets the size at which to rasterize the SVG.
+    ///
+    /// When set, the SVG will be rasterized once at this size and the
+    /// GPU will scale the texture to fit the display bounds. This avoids
+    /// re-rasterization during scale animations.
+    pub fn rasterize_size(mut self, size: impl Into<Size>) -> Self {
+        self.rasterize_size = Some(size.into());
         self
     }
 }

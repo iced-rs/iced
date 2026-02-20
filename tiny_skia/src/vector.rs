@@ -35,18 +35,31 @@ impl Pipeline {
         handle: &Handle,
         color: Option<Color>,
         bounds: Rectangle,
+        rasterize_size: Option<Size>,
         opacity: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         transform: Transform,
         clip_mask: Option<&tiny_skia::Mask>,
     ) {
-        if let Some(image) = self.cache.borrow_mut().draw(
-            handle,
-            color,
+        // Use explicit rasterize_size if provided, otherwise compute from bounds.
+        // This allows SVGs to be rasterized once at a fixed size and GPU-scaled
+        // during animations, avoiding re-rasterization every frame.
+        let size = rasterize_size.map(|s| {
+            Size::new(
+                (s.width * transform.sx) as u32,
+                (s.height * transform.sy) as u32,
+            )
+        }).unwrap_or_else(|| {
             Size::new(
                 (bounds.width * transform.sx) as u32,
                 (bounds.height * transform.sy) as u32,
-            ),
+            )
+        });
+
+        if let Some(image) = self.cache.borrow_mut().draw(
+            handle,
+            color,
+            size,
         ) {
             pixels.draw_pixmap(
                 (bounds.x * transform.sx) as i32,

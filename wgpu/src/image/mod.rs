@@ -287,13 +287,22 @@ impl State {
                         return;
                     }
 
+                    // Use explicit rasterize_size if provided, otherwise use display bounds.
+                    // This allows SVGs to be rasterized once at a fixed size and GPU-scaled
+                    // during animations, avoiding re-rasterization every frame.
+                    let rasterize_size = svg.rasterize_size.map(|s| {
+                        Size::new((s.width * scale).ceil() as u32, (s.height * scale).ceil() as u32)
+                    }).unwrap_or_else(|| {
+                        Size::new(bounds.width as u32, bounds.height as u32)
+                    });
+
                     if let Some((atlas_entry, bind_group)) = cache.upload_vector(
                         device,
                         encoder,
                         belt,
                         &svg.handle,
                         svg.color,
-                        Size::new(bounds.width as u32, bounds.height as u32),
+                        rasterize_size,
                     ) {
                         match atlas.as_mut() {
                             None => {

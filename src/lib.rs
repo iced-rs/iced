@@ -643,6 +643,11 @@ pub mod dismiss {
     pub use crate::core::dismiss::Event;
 }
 
+pub mod surface_visibility {
+    //! Listen and react to surface visibility events from the compositor.
+    pub use crate::core::surface_visibility::Event;
+}
+
 #[allow(hidden_glob_reexports)]
 pub mod widget {
     //! Use the built-in widgets or create your own.

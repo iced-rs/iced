@@ -635,6 +635,7 @@ impl Engine {
                     &svg.handle,
                     svg.color,
                     *bounds,
+                    svg.rasterize_size,
                     svg.opacity,
                     _pixels,
                     transform,

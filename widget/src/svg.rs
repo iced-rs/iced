@@ -64,6 +64,7 @@ where
     rotation: Rotation,
     opacity: f32,
     status: Option<Status>,
+    rasterize_size: Option<Size>,
 }
 
 impl<'a, Theme> Svg<'a, Theme>
@@ -81,6 +82,7 @@ where
             rotation: Rotation::default(),
             opacity: 1.0,
             status: None,
+            rasterize_size: None,
         }
     }
 
@@ -146,6 +148,19 @@ where
     /// and `1.0` meaning completely opaque.
     pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
         self.opacity = opacity.into();
+        self
+    }
+
+    /// Sets a fixed size at which to rasterize the SVG.
+    ///
+    /// When set, the SVG will be rasterized once at this size and the
+    /// GPU will scale the texture to fit the display bounds. This avoids
+    /// re-rasterization during scale animations.
+    ///
+    /// If not set, the SVG is rasterized at its display size.
+    #[must_use]
+    pub fn rasterize_size(mut self, size: impl Into<Size>) -> Self {
+        self.rasterize_size = Some(size.into());
         self
     }
 }
@@ -273,6 +288,7 @@ where
                 color,
                 rotation: self.rotation.radians(),
                 opacity: self.opacity,
+                rasterize_size: self.rasterize_size,
             },
             drawing_bounds,
             bounds,
