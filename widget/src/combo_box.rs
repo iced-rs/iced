@@ -143,7 +143,8 @@ where
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     padding: Padding,
     size: Option<f32>,
-    text_shaping: text::Shaping,
+    shaping: text::Shaping,
+    ellipsis: text::Ellipsis,
     menu_class: <Theme as menu::Catalog>::Class<'a>,
     menu_height: Length,
 }
@@ -181,7 +182,8 @@ where
             on_close: None,
             padding: text_input::DEFAULT_PADDING,
             size: None,
-            text_shaping: text::Shaping::default(),
+            shaping: text::Shaping::default(),
+            ellipsis: text::Ellipsis::default(),
             menu_class: <Theme as Catalog>::default_menu(),
             menu_height: Length::Shrink,
         }
@@ -270,8 +272,14 @@ where
     }
 
     /// Sets the [`text::Shaping`] strategy of the [`ComboBox`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
-        self.text_shaping = shaping;
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
+        self.shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Ellipsis`] strategy of the [`ComboBox`].
+    pub fn ellipsis(mut self, ellipsis: text::Ellipsis) -> Self {
+        self.ellipsis = ellipsis;
         self
     }
 
@@ -849,7 +857,8 @@ where
                 )
                 .width(bounds.width)
                 .padding(self.padding)
-                .text_shaping(self.text_shaping);
+                .shaping(self.shaping)
+                .ellipsis(self.ellipsis);
 
                 if let Some(font) = self.font {
                     menu = menu.font(font);

@@ -91,9 +91,9 @@ where
     size: f32,
     spacing: f32,
     text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_shaping: text::Shaping,
-    text_wrapping: text::Wrapping,
+    line_height: text::LineHeight,
+    shaping: text::Shaping,
+    wrapping: text::Wrapping,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
     class: Theme::Class<'a>,
@@ -121,9 +121,9 @@ where
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SIZE / 2.0,
             text_size: None,
-            text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::default(),
-            text_wrapping: text::Wrapping::default(),
+            line_height: text::LineHeight::default(),
+            shaping: text::Shaping::default(),
+            wrapping: text::Wrapping::default(),
             font: None,
             icon: Icon {
                 font: Renderer::ICON_FONT,
@@ -193,20 +193,20 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Checkbox`].
-    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.text_line_height = line_height.into();
+    pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
+        self.line_height = line_height.into();
         self
     }
 
     /// Sets the [`text::Shaping`] strategy of the [`Checkbox`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
-        self.text_shaping = shaping;
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
+        self.shaping = shaping;
         self
     }
 
     /// Sets the [`text::Wrapping`] strategy of the [`Checkbox`].
-    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
-        self.text_wrapping = wrapping;
+    pub fn wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.wrapping = wrapping;
         self
     }
 
@@ -292,13 +292,14 @@ where
                         widget::text::Format {
                             width: self.width,
                             height: Length::Shrink,
-                            line_height: self.text_line_height,
+                            line_height: self.line_height,
                             size: self.text_size,
                             font: self.font,
                             align_x: text::Alignment::Default,
                             align_y: alignment::Vertical::Top,
-                            shaping: self.text_shaping,
-                            wrapping: self.text_wrapping,
+                            shaping: self.shaping,
+                            wrapping: self.wrapping,
+                            ellipsis: text::Ellipsis::None,
                         },
                     )
                 } else {
@@ -423,6 +424,7 @@ where
                         align_y: alignment::Vertical::Center,
                         shaping: *shaping,
                         wrapping: text::Wrapping::default(),
+                        ellipsis: text::Ellipsis::default(),
                         hint_factor: None,
                     },
                     bounds.center(),

@@ -274,7 +274,7 @@ pub fn screenshot<P: program::Program + 'static>(
     let start = Instant::now();
 
     loop {
-        if let Some(event) = receiver.try_next().ok().flatten() {
+        if let Ok(event) = receiver.try_recv() {
             match event {
                 emulator::Event::Action(action) => {
                     emulator.perform(program, action);

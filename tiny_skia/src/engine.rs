@@ -365,6 +365,8 @@ impl Engine {
                 align_x,
                 align_y,
                 shaping,
+                wrapping,
+                ellipsis,
                 clip_bounds: local_clip_bounds,
             } => {
                 let physical_bounds = *local_clip_bounds * transformation;
@@ -391,6 +393,8 @@ impl Engine {
                     *align_x,
                     *align_y,
                     *shaping,
+                    *wrapping,
+                    *ellipsis,
                     pixels,
                     clip_mask,
                     transformation,

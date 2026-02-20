@@ -297,7 +297,8 @@ where
             align_x: text::Alignment::Default,
             align_y: alignment::Vertical::Center,
             shaping: text::Shaping::Advanced,
-            wrapping: text::Wrapping::default(),
+            wrapping: text::Wrapping::None,
+            ellipsis: text::Ellipsis::None,
             hint_factor: renderer.scale_factor(),
         };
 
@@ -323,7 +324,8 @@ where
                 align_x: text::Alignment::Center,
                 align_y: alignment::Vertical::Center,
                 shaping: text::Shaping::Advanced,
-                wrapping: text::Wrapping::default(),
+                wrapping: text::Wrapping::None,
+                ellipsis: text::Ellipsis::None,
                 hint_factor: renderer.scale_factor(),
             };
 
@@ -1583,7 +1585,8 @@ fn replace_paragraph<Renderer>(
         align_x: text::Alignment::Default,
         align_y: alignment::Vertical::Center,
         shaping: text::Shaping::Advanced,
-        wrapping: text::Wrapping::default(),
+        wrapping: text::Wrapping::None,
+        ellipsis: text::Ellipsis::None,
         hint_factor: renderer.scale_factor(),
     });
 }
