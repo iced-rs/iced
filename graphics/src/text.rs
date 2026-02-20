@@ -11,7 +11,7 @@ pub use cosmic_text;
 
 use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::{Alignment, Shaping, Span, Wrapping};
+use crate::core::text::{Alignment, Ellipsis, Shaping, Span, Wrapping};
 use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
 use std::borrow::Cow;
@@ -59,6 +59,10 @@ pub enum Text {
         align_y: alignment::Vertical,
         /// The shaping strategy of the text.
         shaping: Shaping,
+        /// The wrapping strategy of the text.
+        wrapping: Wrapping,
+        /// The ellipsis strategy of the text.
+        ellipsis: Ellipsis,
         /// The clip bounds of the text.
         clip_bounds: Rectangle,
     },
@@ -365,6 +369,18 @@ pub fn to_wrap(wrapping: Wrapping) -> cosmic_text::Wrap {
     }
 }
 
+/// Converts some [`Ellipsis`] strategy to a [`cosmic_text::Ellipsize`] strategy.
+pub fn to_ellipsize(ellipsis: Ellipsis, max_height: f32) -> cosmic_text::Ellipsize {
+    let limit = cosmic_text::EllipsizeHeightLimit::Height(max_height);
+
+    match ellipsis {
+        Ellipsis::None => cosmic_text::Ellipsize::None,
+        Ellipsis::Start => cosmic_text::Ellipsize::Start(limit),
+        Ellipsis::Middle => cosmic_text::Ellipsize::Middle(limit),
+        Ellipsis::End => cosmic_text::Ellipsize::End(limit),
+    }
+}
+
 /// Converts some [`Color`] to a [`cosmic_text::Color`].
 pub fn to_color(color: Color) -> cosmic_text::Color {
     let [r, g, b, a] = color.into_rgba8();
@@ -373,16 +389,19 @@ pub fn to_color(color: Color) -> cosmic_text::Color {
 }
 
 /// Returns the ideal hint factor given the size and scale factor of some text.
-pub fn hint_factor(size: Pixels, scale_factor: Option<f32>) -> Option<f32> {
-    const MAX_HINTING_SIZE: f32 = 18.0;
+pub fn hint_factor(_size: Pixels, _scale_factor: Option<f32>) -> Option<f32> {
+    // TODO: Fix hinting in `cosmic-text`
+    // const MAX_HINTING_SIZE: f32 = 18.0;
 
-    let hint_factor = scale_factor?;
+    // let hint_factor = scale_factor?;
 
-    if size.0 * hint_factor < MAX_HINTING_SIZE {
-        Some(hint_factor)
-    } else {
-        None
-    }
+    // if size.0 * hint_factor < MAX_HINTING_SIZE {
+    //     Some(hint_factor)
+    // } else {
+    //     None
+    // }
+
+    None // Disable all text hinting for now
 }
 
 /// A text renderer coupled to `iced_graphics`.

@@ -4,9 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{
-    self, Clipboard, Element, Event, Layout, Padding, Point, Rectangle, Shell, Size, Vector,
-};
+use crate::core::{self, Element, Event, Layout, Padding, Point, Rectangle, Shell, Size, Vector};
 use crate::pane_grid::controls::Controls;
 
 /// The title bar of a [`Pane`].
@@ -402,7 +400,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -427,7 +424,6 @@ where
                         compact_layout,
                         cursor,
                         renderer,
-                        clipboard,
                         shell,
                         viewport,
                     );
@@ -440,7 +436,6 @@ where
                         controls_layout,
                         cursor,
                         renderer,
-                        clipboard,
                         shell,
                         viewport,
                     );
@@ -452,7 +447,6 @@ where
                     controls_layout,
                     cursor,
                     renderer,
-                    clipboard,
                     shell,
                     viewport,
                 );
@@ -466,7 +460,6 @@ where
                 title_layout,
                 cursor,
                 renderer,
-                clipboard,
                 shell,
                 viewport,
             );

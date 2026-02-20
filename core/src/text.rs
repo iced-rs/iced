@@ -43,6 +43,9 @@ pub struct Text<Content = String, Font = crate::Font> {
     /// The [`Wrapping`] strategy of the [`Text`].
     pub wrapping: Wrapping,
 
+    /// The [`Ellipsis`] strategy of the [`Text`].
+    pub ellipsis: Ellipsis,
+
     /// The scale factor that may be used to internally scale the layout
     /// calculation of the [`Paragraph`] and leverage metrics hinting.
     ///
@@ -71,6 +74,7 @@ where
             align_y: self.align_y,
             shaping: self.shaping,
             wrapping: self.wrapping,
+            ellipsis: self.ellipsis,
             hint_factor: self.hint_factor,
         }
     }
@@ -199,6 +203,22 @@ pub enum Wrapping {
     Glyph,
     /// Wraps at the word level, or fallback to glyph level if a word can't fit on a line by itself.
     WordOrGlyph,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+/// The ellipsis strategy of some text.
+pub enum Ellipsis {
+    /// No ellipsis.
+    ///
+    /// This is the default.
+    #[default]
+    None,
+    /// Ellipsize the start of the last visual line in the text.
+    Start,
+    /// Ellipsize the middle of the last visual line in the text.
+    Middle,
+    /// Ellipsize the end of the last visual line in the text.
+    End,
 }
 
 /// The height of a line of text in a paragraph.

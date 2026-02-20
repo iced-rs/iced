@@ -4,9 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
-use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// Controls how a [`Stack`] determines its intrinsic size.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -328,7 +326,6 @@ where
         layout: Layout<'_>,
         mut cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -347,9 +344,9 @@ where
             .zip(layout.children().rev())
             .enumerate()
         {
-            child.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-            );
+            child
+                .as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
 
             if shell.is_event_captured() {
                 return;

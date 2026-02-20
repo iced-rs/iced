@@ -33,10 +33,11 @@
 //!     ];
 //!
 //!     pick_list(
-//!         fruits,
 //!         state.favorite,
-//!         Message::FruitSelected,
+//!         fruits,
+//!         Fruit::to_string,
 //!     )
+//!     .on_select(Message::FruitSelected)
 //!     .placeholder("Select your favorite fruit...")
 //!     .into()
 //! }
@@ -72,8 +73,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Event, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Size, Theme, Vector, Widget,
+    Background, Border, Color, Element, Event, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Shell, Size, Theme, Vector, Widget,
 };
 use crate::overlay::menu::{self, Menu};
 
@@ -115,10 +116,11 @@ use std::f32;
 ///     ];
 ///
 ///     pick_list(
-///         fruits,
 ///         state.favorite,
-///         Message::FruitSelected,
+///         fruits,
+///         Fruit::to_string,
 ///     )
+///     .on_select(Message::FruitSelected)
 ///     .placeholder("Select your favorite fruit...")
 ///     .into()
 /// }
@@ -144,23 +146,25 @@ use std::f32;
 /// ```
 pub struct PickList<'a, T, L, V, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
-    T: ToString + PartialEq + Clone,
+    T: PartialEq + Clone,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    on_select: Box<dyn Fn(T) -> Message + 'a>,
+    options: L,
+    to_string: Box<dyn Fn(&T) -> String + 'a>,
+    on_select: Option<Box<dyn Fn(T) -> Message + 'a>>,
     on_open: Option<Message>,
     on_close: Option<Message>,
-    options: L,
     placeholder: Option<String>,
     selected: Option<V>,
     width: Length,
     padding: Padding,
     text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_shaping: text::Shaping,
+    line_height: text::LineHeight,
+    shaping: text::Shaping,
+    ellipsis: text::Ellipsis,
     font: Option<Renderer::Font>,
     handle: Handle<Renderer::Font>,
     class: <Theme as Catalog>::Class<'a>,
@@ -171,7 +175,7 @@ where
 
 impl<'a, T, L, V, Message, Theme, Renderer> PickList<'a, T, L, V, Message, Theme, Renderer>
 where
-    T: ToString + PartialEq + Clone,
+    T: PartialEq + Clone,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone,
@@ -180,9 +184,10 @@ where
 {
     /// Creates a new [`PickList`] with the given list of options, the current
     /// selected value, and the message to produce when an option is selected.
-    pub fn new(options: L, selected: Option<V>, on_select: impl Fn(T) -> Message + 'a) -> Self {
+    pub fn new(selected: Option<V>, options: L, to_string: impl Fn(&T) -> String + 'a) -> Self {
         Self {
-            on_select: Box::new(on_select),
+            to_string: Box::new(to_string),
+            on_select: None,
             on_open: None,
             on_close: None,
             options,
@@ -191,8 +196,9 @@ where
             width: Length::Shrink,
             padding: crate::button::DEFAULT_PADDING,
             text_size: None,
-            text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::default(),
+            line_height: text::LineHeight::default(),
+            shaping: text::Shaping::default(),
+            ellipsis: text::Ellipsis::End,
             font: None,
             handle: Handle::default(),
             class: <Theme as Catalog>::default(),
@@ -233,14 +239,20 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`PickList`].
-    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.text_line_height = line_height.into();
+    pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
+        self.line_height = line_height.into();
         self
     }
 
     /// Sets the [`text::Shaping`] strategy of the [`PickList`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
-        self.text_shaping = shaping;
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
+        self.shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Ellipsis`] strategy of the [`PickList`].
+    pub fn ellipsis(mut self, ellipsis: text::Ellipsis) -> Self {
+        self.ellipsis = ellipsis;
         self
     }
 
@@ -253,6 +265,12 @@ where
     /// Sets the [`Handle`] of the [`PickList`].
     pub fn handle(mut self, handle: Handle<Renderer::Font>) -> Self {
         self.handle = handle;
+        self
+    }
+
+    /// Sets the message that will be produced when the [`PickList`] selected value changes.
+    pub fn on_select(mut self, on_select: impl Fn(T) -> Message + 'a) -> Self {
+        self.on_select = Some(Box::new(on_select));
         self
     }
 
@@ -308,7 +326,7 @@ where
 impl<'a, T, L, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for PickList<'a, T, L, V, Message, Theme, Renderer>
 where
-    T: Clone + ToString + PartialEq + 'a,
+    T: Clone + PartialEq + 'a,
     L: Borrow<[T]>,
     V: Borrow<T>,
     Message: Clone + 'a,
@@ -342,32 +360,22 @@ where
         let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
         let options = self.options.borrow();
 
-        state.options.resize_with(options.len(), Default::default);
-
         let option_text = Text {
             content: "",
             bounds: Size::new(
-                f32::INFINITY,
-                self.text_line_height.to_absolute(text_size).into(),
+                limits.max().width,
+                self.line_height.to_absolute(text_size).into(),
             ),
             size: text_size,
-            line_height: self.text_line_height,
+            line_height: self.line_height,
             font,
             align_x: text::Alignment::Default,
             align_y: alignment::Vertical::Center,
-            shaping: self.text_shaping,
-            wrapping: text::Wrapping::default(),
+            shaping: self.shaping,
+            wrapping: text::Wrapping::None,
+            ellipsis: self.ellipsis,
             hint_factor: renderer.scale_factor(),
         };
-
-        for (option, paragraph) in options.iter().zip(state.options.iter_mut()) {
-            let label = option.to_string();
-
-            let _ = paragraph.update(Text {
-                content: &label,
-                ..option_text
-            });
-        }
 
         if let Some(placeholder) = &self.placeholder {
             let _ = state.placeholder.update(Text {
@@ -378,6 +386,17 @@ where
 
         let max_width = match self.width {
             Length::Shrink => {
+                state.options.resize_with(options.len(), Default::default);
+
+                for (option, paragraph) in options.iter().zip(state.options.iter_mut()) {
+                    let label = (self.to_string)(option);
+
+                    let _ = paragraph.update(Text {
+                        content: &label,
+                        ..option_text
+                    });
+                }
+
                 let labels_width = state.options.iter().fold(0.0, |width, paragraph| {
                     f32::max(width, paragraph.min_width())
                 });
@@ -395,7 +414,7 @@ where
         let size = {
             let intrinsic = Size::new(
                 max_width + text_size.0 + self.padding.left,
-                f32::from(self.text_line_height.to_absolute(text_size)),
+                f32::from(self.line_height.to_absolute(text_size)),
             );
 
             limits
@@ -415,7 +434,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
@@ -454,6 +472,10 @@ where
             Event::Mouse(mouse::Event::WheelScrolled {
                 delta: mouse::ScrollDelta::Lines { y, .. },
             }) => {
+                let Some(on_select) = &self.on_select else {
+                    return;
+                };
+
                 if state.keyboard_modifiers.command()
                     && cursor.is_over(layout.bounds())
                     && !state.is_open
@@ -487,7 +509,7 @@ where
                     };
 
                     if let Some(next_option) = next_option {
-                        shell.publish((self.on_select)(next_option.clone()));
+                        shell.publish(on_select(next_option.clone()));
                     }
 
                     shell.capture_event();
@@ -502,7 +524,9 @@ where
         let status = {
             let is_hovered = cursor.is_over(layout.bounds());
 
-            if state.is_open {
+            if self.on_select.is_none() {
+                Status::Disabled
+            } else if state.is_open {
                 Status::Opened { is_hovered }
             } else if is_hovered {
                 Status::Hovered
@@ -533,7 +557,11 @@ where
         let is_mouse_over = cursor.is_over(bounds);
 
         if is_mouse_over {
-            mouse::Interaction::Pointer
+            if self.on_select.is_some() {
+                mouse::Interaction::Pointer
+            } else {
+                mouse::Interaction::Idle
+            }
         } else {
             mouse::Interaction::default()
         }
@@ -620,7 +648,8 @@ where
                     align_x: text::Alignment::Right,
                     align_y: alignment::Vertical::Center,
                     shaping,
-                    wrapping: text::Wrapping::default(),
+                    wrapping: text::Wrapping::None,
+                    ellipsis: text::Ellipsis::None,
                     hint_factor: None,
                 },
                 Point::new(
@@ -632,7 +661,7 @@ where
             );
         }
 
-        let label = selected.map(ToString::to_string);
+        let label = selected.map(&self.to_string);
 
         if let Some(label) = label.or_else(|| self.placeholder.clone()) {
             let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
@@ -641,16 +670,17 @@ where
                 Text {
                     content: label,
                     size: text_size,
-                    line_height: self.text_line_height,
+                    line_height: self.line_height,
                     font,
                     bounds: Size::new(
                         bounds.width - self.padding.x(),
-                        f32::from(self.text_line_height.to_absolute(text_size)),
+                        f32::from(self.line_height.to_absolute(text_size)),
                     ),
                     align_x: text::Alignment::Default,
                     align_y: alignment::Vertical::Center,
-                    shaping: self.text_shaping,
-                    wrapping: text::Wrapping::default(),
+                    shaping: self.shaping,
+                    wrapping: text::Wrapping::None,
+                    ellipsis: self.ellipsis,
                     hint_factor: renderer.scale_factor(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
@@ -672,18 +702,21 @@ where
         viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        let Some(on_select) = &self.on_select else {
+            return None;
+        };
+
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
         let font = self.font.unwrap_or_else(|| renderer.default_font());
 
         if state.is_open {
             let bounds = layout.bounds();
 
-            let on_select = &self.on_select;
-
             let mut menu = Menu::new(
                 &mut state.menu,
                 self.options.borrow(),
                 &mut state.hovered_option,
+                &self.to_string,
                 |option| {
                     state.is_open = false;
 
@@ -695,7 +728,8 @@ where
             .width(bounds.width)
             .padding(self.padding)
             .font(font)
-            .text_shaping(self.text_shaping);
+            .ellipsis(self.ellipsis)
+            .shaping(self.shaping);
 
             if let Some(text_size) = self.text_size {
                 menu = menu.text_size(text_size);
@@ -716,7 +750,7 @@ where
 impl<'a, T, L, V, Message, Theme, Renderer> From<PickList<'a, T, L, V, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    T: Clone + ToString + PartialEq + 'a,
+    T: Clone + PartialEq + 'a,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone + 'a,
@@ -814,6 +848,8 @@ pub enum Status {
         /// Whether the [`PickList`] is hovered, while open.
         is_hovered: bool,
     },
+    /// The [`PickList`] is disabled.
+    Disabled,
 }
 
 /// The appearance of a pick list.
@@ -889,6 +925,16 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 ..active.border
             },
             ..active
+        },
+        Status::Disabled => Style {
+            text_color: palette.background.strongest.color,
+            background: palette.background.weaker.color.into(),
+            placeholder_color: palette.background.strongest.color,
+            handle_color: palette.background.strongest.color,
+            border: Border {
+                color: palette.background.weak.color,
+                ..active.border
+            },
         },
     }
 }

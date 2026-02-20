@@ -334,7 +334,7 @@ impl Task {
                     .on_toggle(TaskMessage::Completed)
                     .width(Fill)
                     .size(17)
-                    .text_shaping(text::Shaping::Advanced);
+                    .shaping(text::Shaping::Advanced);
 
                 row![
                     checkbox,

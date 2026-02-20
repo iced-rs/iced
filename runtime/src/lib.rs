@@ -26,6 +26,7 @@ pub use task::Task;
 pub use user_interface::UserInterface;
 pub use window::Window;
 
+use crate::core::Event;
 use crate::futures::futures::channel::oneshot;
 
 use std::borrow::Cow;
@@ -59,6 +60,14 @@ pub enum Action<T> {
     /// Run an image action.
     Image(image::Action),
 
+    /// Produce an event.
+    Event {
+        /// The [`window::Id`](core::window::Id) of the event.
+        window: core::window::Id,
+        /// The [`Event`] to be produced.
+        event: Event,
+    },
+
     /// Poll any resources that may have pending computations.
     Tick,
 
@@ -87,6 +96,7 @@ impl<T> Action<T> {
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
             Action::Image(action) => Err(Action::Image(action)),
+            Action::Event { window, event } => Err(Action::Event { window, event }),
             Action::Tick => Err(Action::Tick),
             Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
@@ -113,6 +123,10 @@ where
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
             Action::Image(_) => write!(f, "Action::Image"),
+            Action::Event { window, event } => write!(
+                f,
+                "Action::Event {{ window: {window:?}, event: {event:?} }}"
+            ),
             Action::Tick => write!(f, "Action::Tick"),
             Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),

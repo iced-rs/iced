@@ -108,6 +108,7 @@ impl Compositor {
                     wgpu::TextureFormat::Rgb10a2Uint,
                 ];
 
+
                 let formats = formats.filter(|format| {
                     format.required_features() == wgpu::Features::empty()
                         && !BLACKLIST.contains(format)

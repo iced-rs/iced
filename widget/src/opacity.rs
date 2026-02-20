@@ -8,7 +8,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::{Clipboard, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// A widget that applies opacity to its content.
 ///
@@ -109,7 +109,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -119,7 +118,6 @@ where
             layout,
             cursor,
             renderer,
-            clipboard,
             shell,
             viewport,
         );

@@ -160,10 +160,11 @@ impl Editor {
                 .label("Word Wrap")
                 .on_toggle(Message::WordWrapToggled),
             pick_list(
-                highlighter::Theme::ALL,
                 Some(self.theme),
-                Message::ThemeSelected
+                highlighter::Theme::ALL,
+                highlighter::Theme::to_string,
             )
+            .on_select(Message::ThemeSelected)
             .text_size(14)
             .padding([5, 10])
         ]

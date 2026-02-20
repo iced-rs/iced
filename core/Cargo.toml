@@ -16,6 +16,7 @@ workspace = true
 [features]
 advanced = []
 crisp = []
+image = []
 basic-shaping = []
 advanced-shaping = []
 

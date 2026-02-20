@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: I have a question
-    url: https://discourse.iced.rs/c/learn/6
-    about: Ask and learn from others in the Discourse forum.
+    url: https://iced.zulipchat.com/#narrow/channel/213445-questions
+    about: Ask and learn from others in the Zulip forum.
   - name: I want to request a feature or start a discussion
-    url: https://discourse.iced.rs/c/request-feedback/7
-    about: Share your idea and gather feedback in the Discourse forum.
+    url: https://iced.zulipchat.com/#narrow/channel/213316-discussions
+    about: Share your idea and gather feedback in the Zulip forum.
   - name: I want to chat with other users of the library
     url: https://discord.com/invite/3xZJ65GAhd
     about: Join the Discord server and get involved with the community!

@@ -159,7 +159,9 @@ fn view_controls<'a>(
             .label("Grid")
             .on_toggle(Message::ToggleGrid),
         row![
-            pick_list(preset::ALL, Some(preset), Message::PresetPicked),
+            pick_list(Some(preset), preset::ALL, Preset::to_string)
+                .on_select(Message::PresetPicked)
+                .ellipsis(text::Ellipsis::Middle),
             button("Clear")
                 .on_press(Message::Clear)
                 .style(button::danger)

@@ -662,16 +662,15 @@ where
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
-            clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
             let is_mouse_press =
                 matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
 
-            self.content.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-            );
+            self.content
+                .as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
 
             if is_mouse_press && cursor.is_over(layout.bounds()) {
                 shell.capture_event();
@@ -857,7 +856,6 @@ where
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
-            clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
@@ -897,7 +895,7 @@ where
                 let redraw_request = shell.redraw_request();
 
                 self.top.as_widget_mut().update(
-                    top_tree, event, top_layout, cursor, renderer, clipboard, shell, viewport,
+                    top_tree, event, top_layout, cursor, renderer, shell, viewport,
                 );
 
                 // Ignore redraw requests of invisible content
@@ -916,7 +914,6 @@ where
                 base_layout,
                 cursor,
                 renderer,
-                clipboard,
                 shell,
                 viewport,
             );
@@ -1595,10 +1592,11 @@ where
 ///     ];
 ///
 ///     pick_list(
-///         fruits,
 ///         state.favorite,
-///         Message::FruitSelected,
+///         fruits,
+///         Fruit::to_string,
 ///     )
+///     .on_select(Message::FruitSelected)
 ///     .placeholder("Select your favorite fruit...")
 ///     .into()
 /// }
@@ -1623,19 +1621,19 @@ where
 /// }
 /// ```
 pub fn pick_list<'a, T, L, V, Message, Theme, Renderer>(
-    options: L,
     selected: Option<V>,
-    on_selected: impl Fn(T) -> Message + 'a,
+    options: L,
+    to_string: impl Fn(&T) -> String + 'a,
 ) -> PickList<'a, T, L, V, Message, Theme, Renderer>
 where
-    T: ToString + PartialEq + Clone + 'a,
+    T: PartialEq + Clone + 'a,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone,
     Theme: pick_list::Catalog + overlay::menu::Catalog,
     Renderer: core::text::Renderer,
 {
-    PickList::new(options, selected, on_selected)
+    PickList::new(selected, options, to_string)
 }
 
 /// Creates a new [`ComboBox`].
@@ -1700,7 +1698,7 @@ pub fn combo_box<'a, T, Message, Theme, Renderer>(
     state: &'a combo_box::State<T>,
     placeholder: &str,
     selection: Option<&T>,
-    on_selected: impl Fn(T) -> Message + 'static,
+    on_selected: impl Fn(T) -> Message + 'a,
 ) -> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,

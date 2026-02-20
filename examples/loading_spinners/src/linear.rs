@@ -2,7 +2,7 @@
 use iced::advanced::layout;
 use iced::advanced::renderer::{self, Quad};
 use iced::advanced::widget::tree::{self, Tree};
-use iced::advanced::{self, Clipboard, Layout, Shell, Widget};
+use iced::advanced::{self, Layout, Shell, Widget};
 use iced::mouse;
 use iced::time::Instant;
 use iced::window;
@@ -174,7 +174,6 @@ where
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {

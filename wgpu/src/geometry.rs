@@ -312,6 +312,8 @@ impl geometry::frame::Backend for Frame {
                 align_x: text.align_x,
                 align_y: text.align_y,
                 shaping: text.shaping,
+                wrapping: text.wrapping,
+                ellipsis: text.ellipsis,
                 clip_bounds: self.clip_bounds,
             });
         } else {

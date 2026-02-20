@@ -1,5 +1,6 @@
 //! Handle events of a user interface.
 use crate::auto_hide;
+use crate::clipboard;
 use crate::dismiss;
 use crate::input_method;
 use crate::keyboard;
@@ -43,6 +44,9 @@ pub enum Event {
 
     /// A surface visibility event from the layer-surface-visibility protocol
     SurfaceVisibility(surface_visibility::Event),
+
+    /// A clipboard event
+    Clipboard(clipboard::Event),
 }
 
 /// The status of an [`Event`] after being processed.

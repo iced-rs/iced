@@ -44,11 +44,13 @@ impl Cache {
                 cosmic_text::Metrics::new(key.size, key.line_height.max(f32::MIN_POSITIVE));
             let mut buffer = cosmic_text::Buffer::new(font_system, metrics);
 
-            buffer.set_size(
-                font_system,
-                Some(key.bounds.width),
-                Some(key.bounds.height.max(key.line_height)),
-            );
+            let max_height = key.bounds.height.max(key.line_height);
+
+            buffer.set_size(font_system, Some(key.bounds.width), Some(max_height));
+
+            buffer.set_wrap(font_system, text::to_wrap(key.wrapping));
+            buffer.set_ellipsize(font_system, text::to_ellipsize(key.ellipsis, max_height));
+
             buffer.set_text(
                 font_system,
                 key.content,
@@ -115,6 +117,10 @@ pub struct Key<'a> {
     pub shaping: text::Shaping,
     /// The alignment of the text.
     pub align_x: text::Alignment,
+    /// The wrapping strategy of the text.
+    pub wrapping: text::Wrapping,
+    /// The ellipsis strategy of the text.
+    pub ellipsis: text::Ellipsis,
 }
 
 impl Key<'_> {

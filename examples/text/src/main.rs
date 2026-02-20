@@ -69,10 +69,11 @@ impl Text {
         let sizes = 5..=32;
 
         let font_selector = pick_list(
-            [Font::SansSerif, Font::Serif, Font::Monospace],
             Some(self.font),
-            Message::FontChanged,
-        );
+            [Font::SansSerif, Font::Serif, Font::Monospace],
+            Font::to_string,
+        )
+        .on_select(Message::FontChanged);
 
         stack![
             center(

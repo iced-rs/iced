@@ -183,6 +183,8 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
                         align_x: text::Alignment::Left,
                         align_y: alignment::Vertical::Top,
                         shaping: text::Shaping::Basic,
+                        wrapping: text::Wrapping::default(),
+                        ellipsis: text::Ellipsis::default(),
                         max_width: f32::INFINITY,
                     });
                 }

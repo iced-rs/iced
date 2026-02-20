@@ -125,6 +125,10 @@ impl text::Paragraph for () {
         text::Wrapping::default()
     }
 
+    fn ellipsis(&self) -> text::Ellipsis {
+        text::Ellipsis::default()
+    }
+
     fn shaping(&self) -> text::Shaping {
         text::Shaping::default()
     }

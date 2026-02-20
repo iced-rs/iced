@@ -35,8 +35,8 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Event, InputMethod, Layout, Length, Padding,
-    Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    self, Background, Color, Element, Event, InputMethod, Layout, Length, Padding, Pixels, Point,
+    Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
@@ -554,7 +554,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
@@ -755,7 +754,6 @@ where
                     content,
                     cursor,
                     renderer,
-                    clipboard,
                     shell,
                     &Rectangle {
                         y: bounds.y + translation.y,
@@ -1058,7 +1056,7 @@ where
             Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
-            _ => mouse::Cursor::Unavailable,
+            _ => cursor.levitate() + translation,
         };
 
         let style = theme.style(
@@ -1357,6 +1355,7 @@ where
                 align_y: alignment::Vertical::Center,
                 shaping: text::Shaping::Basic,
                 wrapping: text::Wrapping::None,
+                ellipsis: text::Ellipsis::None,
                 hint_factor: None,
             };
 

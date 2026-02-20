@@ -4,9 +4,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
-use crate::{
-    Border, Clipboard, Color, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::{Border, Color, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
 
 use std::borrow::Borrow;
 
@@ -303,7 +301,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
         viewport: &Rectangle,
     ) {
@@ -316,7 +313,6 @@ where
             layout,
             cursor,
             renderer,
-            clipboard,
             &mut local_shell,
             viewport,
         );
@@ -437,13 +433,12 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.element.widget.update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-        );
+        self.element
+            .widget
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn draw(

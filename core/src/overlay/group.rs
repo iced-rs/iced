@@ -3,7 +3,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Event, Layout, Overlay, Shell, Size};
+use crate::{Event, Layout, Overlay, Shell, Size};
 
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.
@@ -76,13 +76,12 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         for (child, layout) in self.children.iter_mut().zip(layout.children()) {
             child
                 .as_overlay_mut()
-                .update(event, layout, cursor, renderer, clipboard, shell);
+                .update(event, layout, cursor, renderer, shell);
         }
     }
 
