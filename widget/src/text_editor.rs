@@ -1028,7 +1028,10 @@ where
                         );
                     }
                 }
-                Selection::Caret(_) => {}
+                Selection::Caret(_) => {
+                    // Drawing an empty quad helps some renderers to track the damage of the blinking cursor
+                    renderer.fill_quad(renderer::Quad::default(), Color::TRANSPARENT);
+                }
             }
         }
     }

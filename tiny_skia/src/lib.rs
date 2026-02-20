@@ -135,8 +135,7 @@ impl Renderer {
 
                     for group in &layer.primitives {
                         let Some(group_bounds) =
-                            (group.clip_bounds() * group.transformation() * scale_factor)
-                                .intersection(&layer_bounds)
+                            (group.clip_bounds() * scale_factor).intersection(&layer_bounds)
                         else {
                             continue;
                         };
@@ -146,7 +145,7 @@ impl Renderer {
                         for primitive in group.as_slice() {
                             self.engine.draw_primitive(
                                 primitive,
-                                group.transformation() * Transformation::scale(scale_factor),
+                                Transformation::scale(scale_factor) * group.transformation(),
                                 pixels,
                                 clip_mask,
                                 group_bounds,
@@ -182,7 +181,7 @@ impl Renderer {
                         for text in group.as_slice() {
                             self.engine.draw_text(
                                 text,
-                                group.transformation() * Transformation::scale(scale_factor),
+                                Transformation::scale(scale_factor) * group.transformation(),
                                 pixels,
                                 clip_mask,
                                 layer_bounds,

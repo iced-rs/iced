@@ -69,6 +69,7 @@ impl Compositor {
         if log::max_level() >= log::LevelFilter::Info {
             let available_adapters: Vec<_> = instance
                 .enumerate_adapters(settings.backends)
+                .await
                 .iter()
                 .map(wgpu::Adapter::get_info)
                 .collect();
@@ -102,9 +103,17 @@ impl Compositor {
 
                 log::info!("Available formats: {formats:#?}");
 
-                let formats_vec: Vec<_> = formats
-                    .filter(|format| format.required_features() == wgpu::Features::empty())
-                    .collect();
+                const BLACKLIST: &[wgpu::TextureFormat] = &[
+                    wgpu::TextureFormat::Rgb10a2Unorm,
+                    wgpu::TextureFormat::Rgb10a2Uint,
+                ];
+
+                let formats = formats.filter(|format| {
+                    format.required_features() == wgpu::Features::empty()
+                        && !BLACKLIST.contains(format)
+                });
+
+                let formats_vec: Vec<_> = formats.collect();
 
                 log::info!("Filtered formats (no special features): {formats_vec:#?}");
 
@@ -160,9 +169,7 @@ impl Compositor {
                 log::info!("Available alpha modes: {alpha_modes:#?}");
 
                 let preferred_alpha =
-                    if alpha_modes.contains(&wgpu::CompositeAlphaMode::PostMultiplied) {
-                        wgpu::CompositeAlphaMode::PostMultiplied
-                    } else if alpha_modes.contains(&wgpu::CompositeAlphaMode::PreMultiplied) {
+                    if alpha_modes.contains(&wgpu::CompositeAlphaMode::PreMultiplied) {
                         wgpu::CompositeAlphaMode::PreMultiplied
                     } else {
                         wgpu::CompositeAlphaMode::Auto

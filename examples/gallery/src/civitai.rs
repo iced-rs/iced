@@ -16,7 +16,7 @@ pub struct Image {
 }
 
 impl Image {
-    pub const LIMIT: usize = 96;
+    pub const LIMIT: usize = 200;
 
     pub async fn list() -> Result<Vec<Self>, Error> {
         #[derive(Deserialize)]

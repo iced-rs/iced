@@ -134,7 +134,10 @@ impl Renderer {
             // TODO: Resize belt smartly (?)
             // It would be great if the `StagingBelt` API exposed methods
             // for introspection to detect when a resize may be worth it.
-            staging_belt: wgpu::util::StagingBelt::new(buffer::MAX_WRITE_SIZE as u64),
+            staging_belt: wgpu::util::StagingBelt::new(
+                engine.device.clone(),
+                buffer::MAX_WRITE_SIZE as u64,
+            ),
 
             engine,
         }
@@ -503,9 +506,9 @@ impl Renderer {
                                     graphics::color::pack(background_color).components();
 
                                 wgpu::Color {
-                                    r: f64::from(r),
-                                    g: f64::from(g),
-                                    b: f64::from(b),
+                                    r: f64::from(r * a),
+                                    g: f64::from(g * a),
+                                    b: f64::from(b * a),
                                     a: f64::from(a),
                                 }
                             }),
@@ -517,6 +520,7 @@ impl Renderer {
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
                 occlusion_query_set: None,
+                multiview_mask: None,
             }));
 
         let mut quad_layer = 0;
@@ -631,6 +635,7 @@ impl Renderer {
                         depth_stencil_attachment: None,
                         timestamp_writes: None,
                         occlusion_query_set: None,
+                        multiview_mask: None,
                     }));
             }
 
@@ -718,6 +723,7 @@ impl Renderer {
                             depth_stencil_attachment: None,
                             timestamp_writes: None,
                             occlusion_query_set: None,
+                            multiview_mask: None,
                         }));
                 }
 
@@ -1019,6 +1025,7 @@ impl Renderer {
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
                 occlusion_query_set: None,
+                multiview_mask: None,
             }));
 
         for (layer_index, layer) in self.layers.as_slice().iter().enumerate() {
@@ -1114,6 +1121,7 @@ impl Renderer {
                         depth_stencil_attachment: None,
                         timestamp_writes: None,
                         occlusion_query_set: None,
+                        multiview_mask: None,
                     },
                 ));
             }
@@ -1195,6 +1203,7 @@ impl Renderer {
                     depth_stencil_attachment: None,
                     timestamp_writes: None,
                     occlusion_query_set: None,
+                    multiview_mask: None,
                 });
             }
 
@@ -1218,6 +1227,7 @@ impl Renderer {
                         depth_stencil_attachment: None,
                         timestamp_writes: None,
                         occlusion_query_set: None,
+                        multiview_mask: None,
                     }));
 
                 // Set viewport and scissor for the offscreen render pass

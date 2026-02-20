@@ -51,7 +51,7 @@ impl Layer {
         instances: &[Gradient],
     ) {
         let _ = self.instances.resize(device, instances.len());
-        let _ = self.instances.write(device, encoder, belt, 0, instances);
+        let _ = self.instances.write(encoder, belt, 0, instances);
 
         self.instance_count = instances.len();
     }
@@ -70,8 +70,8 @@ impl Pipeline {
     ) -> Self {
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("iced_wgpu.quad.gradient.pipeline"),
-            push_constant_ranges: &[],
             bind_group_layouts: &[constants_layout],
+            immediate_size: 0,
         });
 
         // Use WebGL-compatible shader on WASM (fewer inter-stage varyings)
@@ -312,7 +312,7 @@ impl Pipeline {
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
 

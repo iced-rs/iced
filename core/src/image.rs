@@ -30,12 +30,6 @@ pub struct Image<H = Handle> {
     ///
     /// 0 means transparent. 1 means opaque.
     pub opacity: f32,
-
-    /// If set to `true`, the image will be snapped to the pixel grid.
-    ///
-    /// This can avoid graphical glitches, specially when using
-    /// [`FilterMethod::Nearest`].
-    pub snap: bool,
 }
 
 impl Image<Handle> {
@@ -47,7 +41,6 @@ impl Image<Handle> {
             rotation: Radians(0.0),
             border_radius: border::Radius::default(),
             opacity: 1.0,
-            snap: false,
         }
     }
 
@@ -66,12 +59,6 @@ impl Image<Handle> {
     /// Sets the opacity of the [`Image`].
     pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
         self.opacity = opacity.into();
-        self
-    }
-
-    /// Sets whether the [`Image`] should be snapped to the pixel grid.
-    pub fn snap(mut self, snap: bool) -> Self {
-        self.snap = snap;
         self
     }
 }

@@ -37,7 +37,7 @@ impl Cache {
             raster: Raster {
                 cache: crate::image::raster::Cache::default(),
                 pending: HashMap::new(),
-                belt: wgpu::util::StagingBelt::new(2 * 1024 * 1024),
+                belt: wgpu::util::StagingBelt::new(device.clone(), 2 * 1024 * 1024),
             },
             #[cfg(feature = "svg")]
             vector: crate::image::vector::Cache::default(),
@@ -257,21 +257,11 @@ impl Cache {
         belt: &mut wgpu::util::StagingBelt,
         handle: &core::svg::Handle,
         color: Option<core::Color>,
-        size: Size,
-        scale: f32,
+        size: Size<u32>,
     ) -> Option<(&atlas::Entry, &Arc<wgpu::BindGroup>)> {
         // TODO: Concurrency
         self.vector
-            .upload(
-                device,
-                encoder,
-                belt,
-                handle,
-                color,
-                size,
-                scale,
-                &mut self.atlas,
-            )
+            .upload(device, encoder, belt, handle, color, size, &mut self.atlas)
             .map(|entry| (entry, self.atlas.bind_group()))
     }
 
@@ -425,7 +415,7 @@ mod worker {
                 backend,
                 texture_layout,
                 shell: shell.clone(),
-                belt: wgpu::util::StagingBelt::new(4 * 1024 * 1024),
+                belt: wgpu::util::StagingBelt::new(device.clone(), 4 * 1024 * 1024),
                 jobs: jobs_receiver,
                 output: work_sender,
                 quit: quit_receiver,
