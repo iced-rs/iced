@@ -48,6 +48,7 @@ use crate::core::alignment;
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
+use crate::core::text::Wrapping;
 use crate::core::theme;
 use crate::core::{self, Color, Element, Length, Padding, Pixels, Theme, color};
 use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
@@ -1027,6 +1028,10 @@ pub struct Settings {
     /// Defaults to [`Length::Fill`]. Set to [`Length::Shrink`] for
     /// content that should wrap to the natural text width
     pub width: Length,
+    /// The [`Wrapping`] strategy for text.
+    ///
+    /// Defaults to [`Wrapping::WordOrGlyph`].
+    pub wrapping: Wrapping,
 }
 
 impl Settings {
@@ -1055,6 +1060,7 @@ impl Settings {
             spacing: text_size * 0.875,
             style: style.into(),
             width: Length::Fill,
+            wrapping: Wrapping::WordOrGlyph,
         }
     }
 }
@@ -1439,6 +1445,7 @@ where
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(settings.text_size)
+                    .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
@@ -1468,6 +1475,7 @@ where
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(size)
+                    .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
@@ -1520,7 +1528,8 @@ where
                     container(
                         rich_text(alt.spans(settings.style))
                             .font(settings.style.font)
-                            .size(settings.text_size),
+                            .size(settings.text_size)
+                            .wrapping(settings.wrapping),
                     )
                     .padding(settings.spacing)
                     .class(Theme::code_block())
@@ -1607,6 +1616,7 @@ where
                     .on_link_click(V::on_link_click)
                     .font(settings.style.font)
                     .size(settings.text_size)
+                    .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
@@ -1637,6 +1647,7 @@ where
                     .on_link_click(V::on_link_click)
                     .font(settings.style.font)
                     .size(size)
+                    .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
@@ -1754,6 +1765,7 @@ where
             rich_text(line.spans(settings.style))
                 .font(Font::MONOSPACE)
                 .size(settings.code_size)
+                .wrapping(settings.wrapping)
                 .width(settings.width)
                 .selection(selection)
                 .selection_color(settings.style.selection_color)
@@ -1831,6 +1843,7 @@ where
                             rich_text(text.spans(settings.style))
                                 .font(settings.style.font)
                                 .size(settings.text_size)
+                                .wrapping(settings.wrapping)
                                 .selection(selection)
                                 .selection_color(settings.style.selection_color)
                                 .global_selecting(is_selecting)
@@ -1911,6 +1924,7 @@ where
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(settings.text_size)
+                    .wrapping(settings.wrapping)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
                     .global_selecting(is_selecting)
@@ -1938,6 +1952,7 @@ where
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(size)
+                    .wrapping(settings.wrapping)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
                     .global_selecting(is_selecting)
@@ -2180,6 +2195,7 @@ where
             rich_text(text.spans(settings.style))
                 .font(settings.style.font)
                 .size(settings.text_size)
+                .wrapping(settings.wrapping)
                 .selection(selection)
                 .selection_color(settings.style.selection_color)
                 .global_selecting(is_selecting)
@@ -2200,6 +2216,7 @@ where
             rich_text(text.spans(settings.style))
                 .font(settings.style.font)
                 .size(size)
+                .wrapping(settings.wrapping)
                 .selection(selection)
                 .selection_color(settings.style.selection_color)
                 .global_selecting(is_selecting)
@@ -2282,7 +2299,8 @@ where
                 pulldown_cmark::HeadingLevel::H4 => h4_size,
                 pulldown_cmark::HeadingLevel::H5 => h5_size,
                 pulldown_cmark::HeadingLevel::H6 => h6_size,
-            }),
+            })
+            .wrapping(settings.wrapping),
     )
     .padding(padding::top(if index > 0 {
         text_size / 2.0
@@ -2305,6 +2323,7 @@ where
 {
     rich_text(text.spans(settings.style))
         .size(settings.text_size)
+        .wrapping(settings.wrapping)
         .on_link_click(on_link_click)
         .into()
 }
@@ -2408,6 +2427,7 @@ where
                     .on_link_click(on_link_click.clone())
                     .font(settings.style.code_block_font)
                     .size(settings.code_size)
+                    .wrapping(settings.wrapping)
                     .into()
             })))
             .padding(settings.code_size),
@@ -2550,7 +2570,7 @@ where
         let _url = url;
         let _title = title;
 
-        container(rich_text(alt.spans(settings.style)).on_link_click(Self::on_link_click))
+        container(rich_text(alt.spans(settings.style)).on_link_click(Self::on_link_click).wrapping(settings.wrapping))
             .padding(settings.spacing.0)
             .class(Theme::code_block())
             .into()
