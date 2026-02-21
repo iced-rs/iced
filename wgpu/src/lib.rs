@@ -125,7 +125,9 @@ impl Renderer {
         }
     }
 
-    fn draw(
+    /// Render to the target texture view.
+    /// You don't have to call this if you are already calling [`Renderer::present`]
+    pub fn draw(
         &mut self,
         clear_color: Option<Color>,
         target: &wgpu::TextureView,
@@ -637,6 +639,18 @@ impl Renderer {
                 })
                 .count()
         });
+    }
+
+    /// This must be called before the command encoder is submitted.  
+    /// You don't have to call this if you are already calling [`Renderer::present`]
+    pub fn staging_belt_finish(&mut self) {
+        self.staging_belt.finish();
+    }
+
+    /// This must be called after the command encoder is submitted.  
+    /// You don't have to call this if you are already calling [`Renderer::present`]
+    pub fn staging_belt_recall(&mut self) {
+        self.staging_belt.recall();
     }
 }
 
