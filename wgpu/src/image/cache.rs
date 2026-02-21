@@ -223,7 +223,12 @@ impl Cache {
         const MAX_SYNC_SIZE: usize = 2 * 1024 * 1024;
 
         // TODO: Concurrent Wasm support
-        if image.len() < MAX_SYNC_SIZE || cfg!(target_arch = "wasm32") {
+        // RGBA handles have their pixel data already in memory, sending them
+        // to the async worker buys nothing and breaks per-frame streaming use
+        // cases where Handle::from_rgba is called every frame (each call
+        // produces a new unique ID, so the async result is never retrieved).
+        let is_rgba = matches!(handle, core::image::Handle::Rgba { .. });
+        if image.len() < MAX_SYNC_SIZE || cfg!(target_arch = "wasm32") || is_rgba {
             let entry =
                 self.atlas
                     .upload(device, encoder, belt, image.width(), image.height(), &image)?;
