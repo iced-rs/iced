@@ -115,7 +115,8 @@ pub fn window_attributes(
         attributes = attributes
             .with_title_hidden(settings.platform_specific.title_hidden)
             .with_titlebar_transparent(settings.platform_specific.titlebar_transparent)
-            .with_fullsize_content_view(settings.platform_specific.fullsize_content_view);
+            .with_fullsize_content_view(settings.platform_specific.fullsize_content_view)
+            .with_unified_titlebar(settings.platform_specific.unified_titlebar);
     }
 
     #[cfg(target_os = "linux")]
