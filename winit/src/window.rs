@@ -269,9 +269,17 @@ where
         }
 
         if self.ime_state != Some((cursor, purpose)) {
+            let (cursor_y, cursor_height) = if cfg!(any(target_os = "windows", target_os = "macos"))
+            {
+                (cursor.y, cursor.height)
+            } else {
+                // Specify the bottom-left position of the cursor because
+                // only the position is supported on Linux (or other platforms).
+                (cursor.y + cursor.height, 0f32)
+            };
             self.raw.set_ime_cursor_area(
-                LogicalPosition::new(cursor.x, cursor.y),
-                LogicalSize::new(cursor.width, cursor.height),
+                LogicalPosition::new(cursor.x, cursor_y),
+                LogicalSize::new(cursor.width, cursor_height),
             );
             self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
 
