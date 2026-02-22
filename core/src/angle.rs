@@ -71,6 +71,18 @@ impl num_traits::FromPrimitive for Degrees {
     }
 }
 
+impl num_traits::AsPrimitive<f32> for Degrees {
+    fn as_(self) -> f32 {
+        self.0
+    }
+}
+
+impl num_traits::AsPrimitive<f64> for Degrees {
+    fn as_(self) -> f64 {
+        f64::from(self.0)
+    }
+}
+
 /// Radians
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Radians(pub f32);
@@ -140,6 +152,18 @@ impl num_traits::FromPrimitive for Radians {
 
     fn from_f64(n: f64) -> Option<Self> {
         Some(Self(n as f32))
+    }
+}
+
+impl num_traits::AsPrimitive<f32> for Radians {
+    fn as_(self) -> f32 {
+        self.0
+    }
+}
+
+impl num_traits::AsPrimitive<f64> for Radians {
+    fn as_(self) -> f64 {
+        f64::from(self.0)
     }
 }
 
