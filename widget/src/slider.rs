@@ -211,7 +211,7 @@ where
 
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Slider<'_, T, Message, Theme>
 where
-    T: Copy + Into<f64> + num_traits::FromPrimitive,
+    T: Copy + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive,
     Message: Clone,
     Theme: Catalog,
     Renderer: core::Renderer,
@@ -263,15 +263,15 @@ where
                 } else if cursor_position.x >= bounds.x + bounds.width {
                     Some(*self.range.end())
                 } else {
-                    let step = if state.keyboard_modifiers.shift() {
+                    let step: f64 = if state.keyboard_modifiers.shift() {
                         self.shift_step.unwrap_or(self.step)
                     } else {
                         self.step
                     }
-                    .into();
+                    .as_();
 
-                    let start = (*self.range.start()).into();
-                    let end = (*self.range.end()).into();
+                    let start: f64 = (*self.range.start()).as_();
+                    let end: f64 = (*self.range.end()).as_();
 
                     let percent = f64::from(cursor_position.x - bounds.x) / f64::from(bounds.width);
 
@@ -283,17 +283,17 @@ where
             };
 
             let increment = |value: T| -> Option<T> {
-                let step = if state.keyboard_modifiers.shift() {
+                let step: f64 = if state.keyboard_modifiers.shift() {
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step
                 }
-                .into();
+                .as_();
 
-                let steps = (value.into() / step).round();
+                let steps = (value.as_() / step).round();
                 let new_value = step * (steps + 1.0);
 
-                if new_value > (*self.range.end()).into() {
+                if new_value > (*self.range.end()).as_() {
                     return Some(*self.range.end());
                 }
 
@@ -301,17 +301,17 @@ where
             };
 
             let decrement = |value: T| -> Option<T> {
-                let step = if state.keyboard_modifiers.shift() {
+                let step: f64 = if state.keyboard_modifiers.shift() {
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step
                 }
-                .into();
+                .as_();
 
-                let steps = (value.into() / step).round();
+                let steps = (value.as_() / step).round();
                 let new_value = step * (steps - 1.0);
 
-                if new_value < (*self.range.start()).into() {
+                if new_value < (*self.range.start()).as_() {
                     return Some(*self.range.start());
                 }
 
@@ -319,7 +319,7 @@ where
             };
 
             let change = |new_value: T| {
-                if (self.value.into() - new_value.into()).abs() > f64::EPSILON {
+                if (self.value.as_() - new_value.as_()).abs() > f64::EPSILON {
                     shell.publish((self.on_change)(new_value));
 
                     self.value = new_value;
@@ -438,11 +438,11 @@ where
             } => (f32::from(width), bounds.height, border_radius),
         };
 
-        let value = self.value.into() as f32;
+        let value = self.value.as_() as f32;
         let (range_start, range_end) = {
             let (start, end) = self.range.clone().into_inner();
 
-            (start.into() as f32, end.into() as f32)
+            (start.as_() as f32, end.as_() as f32)
         };
 
         let offset = if range_start >= range_end {
@@ -533,7 +533,7 @@ where
 impl<'a, T, Message, Theme, Renderer> From<Slider<'a, T, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
-    T: Copy + Into<f64> + num_traits::FromPrimitive + 'a,
+    T: Copy + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive + 'a,
     Message: Clone + 'a,
     Theme: Catalog + 'a,
     Renderer: core::Renderer + 'a,
