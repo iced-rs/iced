@@ -78,7 +78,7 @@ We start by modelling the __state__ of our application:
 ```rust
 #[derive(Default)]
 struct Counter {
-    value: i32,
+    value: i64,
 }
 ```
 
@@ -97,10 +97,11 @@ Now, let's show the actual counter by putting it all together in our
 __view logic__:
 
 ```rust
-use iced::widget::{button, column, text, Column};
+use iced::Center;
+use iced::widget::{Column, button, column, text};
 
 impl Counter {
-    pub fn view(&self) -> Column<Message> {
+    pub fn view(&self) -> Column<'_, Message> {
         // We use a column: a simple vertical layout
         column![
             // The increment button. We tell it to produce an
@@ -114,6 +115,8 @@ impl Counter {
             // `Decrement` message when pressed
             button("-").on_press(Message::Decrement),
         ]
+        .padding(20)
+        .align_x(Center)
     }
 }
 ```
