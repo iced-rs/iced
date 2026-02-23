@@ -8,7 +8,7 @@ use crate::graphics::mesh::{self, Mesh};
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
-use std::sync::Weak;
+use std::sync::Arc;
 
 const INITIAL_INDEX_COUNT: usize = 1_000;
 const INITIAL_VERTEX_COUNT: usize = 1_000;
@@ -32,7 +32,7 @@ struct Upload {
     layer: Layer,
     transformation: Transformation,
     version: usize,
-    batch: Weak<[Mesh]>,
+    batch: Arc<[Mesh]>,
 }
 
 #[derive(Debug, Default)]
@@ -67,21 +67,21 @@ impl Storage {
             hash_map::Entry::Occupied(entry) => {
                 let upload = entry.into_mut();
 
-                if !cache.is_empty()
-                    && (upload.version != cache.version()
-                        || upload.transformation != new_transformation)
+                if upload.version != cache.version() || upload.transformation != new_transformation
                 {
-                    upload.layer.prepare(
-                        device,
-                        encoder,
-                        belt,
-                        solid,
-                        gradient,
-                        cache.batch(),
-                        new_transformation,
-                    );
+                    if !cache.is_empty() {
+                        upload.layer.prepare(
+                            device,
+                            encoder,
+                            belt,
+                            solid,
+                            gradient,
+                            cache.batch(),
+                            new_transformation,
+                        );
+                    }
 
-                    upload.batch = cache.downgrade();
+                    upload.batch = cache.batch().clone();
                     upload.version = cache.version();
                     upload.transformation = new_transformation;
                 }
@@ -103,7 +103,7 @@ impl Storage {
                     layer,
                     transformation: new_transformation,
                     version: 0,
-                    batch: cache.downgrade(),
+                    batch: cache.batch().clone(),
                 });
 
                 log::debug!(
@@ -117,7 +117,7 @@ impl Storage {
 
     pub fn trim(&mut self) {
         self.uploads
-            .retain(|_id, upload| upload.batch.strong_count() > 0);
+            .retain(|_id, upload| Arc::strong_count(&upload.batch) > 1);
     }
 }
 
@@ -241,7 +241,7 @@ impl State {
 
                 Some((
                     &upload.layer,
-                    cache.batch(),
+                    &upload.batch,
                     screen_transformation * *transformation,
                 ))
             }
