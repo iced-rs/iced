@@ -21,6 +21,20 @@ pub struct Settings {
     ///
     /// By default, it is `true`.
     pub vsync: bool,
+
+    /// The maximum number of bind groups that can be used simultaneously
+    /// in a shader pipeline.
+    ///
+    /// The [WebGPU specification] guarantees a minimum of `4`, which is also
+    /// the default value used by `wgpu`. Applications embedding custom render
+    /// pipelines (e.g. via [`Shader`] primitives) may need more bind groups
+    /// than iced's own pipelines require.
+    ///
+    /// By default, it is set to `4`.
+    ///
+    /// [WebGPU specification]: https://www.w3.org/TR/webgpu/#limits
+    /// [`Shader`]: https://docs.rs/iced/latest/iced/widget/shader/index.html
+    pub max_bind_groups: u32,
 }
 
 impl Default for Settings {
@@ -30,6 +44,7 @@ impl Default for Settings {
             default_text_size: Pixels(16.0),
             antialiasing: None,
             vsync: true,
+            max_bind_groups: 4,
         }
     }
 }
@@ -47,6 +62,7 @@ impl From<core::Settings> for Settings {
             default_text_size: settings.default_text_size,
             antialiasing: settings.antialiasing.then_some(Antialiasing::MSAAx4),
             vsync: settings.vsync,
+            max_bind_groups: 4,
         }
     }
 }
