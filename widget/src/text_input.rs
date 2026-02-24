@@ -580,10 +580,14 @@ where
             );
         };
 
+        let Some(intersection) = text_bounds.intersection(viewport) else {
+            return;
+        };
+
         if is_selecting {
-            renderer.with_layer(text_bounds, |renderer| draw(renderer, *viewport));
+            renderer.with_layer(intersection, |renderer| draw(renderer, *viewport));
         } else {
-            draw(renderer, text_bounds);
+            draw(renderer, intersection);
         }
     }
 }
@@ -768,11 +772,13 @@ where
             | Event::Touch(touch::Event::FingerLost { .. }) => {
                 state::<Renderer>(tree).is_dragging = None;
             }
-            Event::Mouse(mouse::Event::CursorMoved { position })
-            | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
+            Event::Mouse(mouse::Event::CursorMoved { .. })
+            | Event::Touch(touch::Event::FingerMoved { .. }) => {
                 let state = state::<Renderer>(tree);
 
-                if let Some(is_dragging) = &state.is_dragging {
+                if let Some(is_dragging) = &state.is_dragging
+                    && let Some(position) = cursor.land().position()
+                {
                     let text_layout = layout.children().next().unwrap();
 
                     let target = {
