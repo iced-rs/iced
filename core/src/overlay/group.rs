@@ -40,7 +40,7 @@ where
 
     /// Turns the [`Group`] into an overlay [`overlay::Element`].
     pub fn overlay(self) -> overlay::Element<'a, Message, Theme, Renderer> {
-        overlay::Element::new(Box::new(self))
+        overlay::Element::new(self)
     }
 }
 

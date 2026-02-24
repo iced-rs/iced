@@ -227,12 +227,12 @@ where
 
                 let state = tree.state.downcast_mut::<State>();
 
-                overlay::Element::new(Box::new(Overlay {
+                overlay::Element::new(Overlay {
                     raw,
                     bounds: layout.bounds(),
                     last_hovered: &mut state.last_hovered_overlay,
                     on_record: self.on_record.as_deref(),
-                }))
+                })
             })
     }
 }
@@ -357,12 +357,12 @@ where
             .as_overlay_mut()
             .overlay(layout, renderer)
             .map(|raw| {
-                overlay::Element::new(Box::new(Overlay {
+                overlay::Element::new(Overlay {
                     raw,
                     bounds: self.bounds,
                     last_hovered: self.last_hovered,
                     on_record: self.on_record,
-                }))
+                })
             })
     }
 

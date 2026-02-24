@@ -229,13 +229,13 @@ where
                     -bounds.y - bounds.height / 2.0,
                 );
 
-            Some(overlay::Element::new(Box::new(Overlay {
+            Some(overlay::Element::new(Overlay {
                 float: self,
                 state,
                 layout,
                 viewport: *viewport,
                 transformation,
-            })))
+            }))
         } else {
             self.content
                 .as_widget_mut()
