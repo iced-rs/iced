@@ -100,7 +100,7 @@ impl Pokemon {
 
     fn view(&self) -> Element<'_, Message> {
         row![
-            image::viewer(self.image.clone()),
+            image::viewer(&self.image),
             column![
                 row![
                     text(&self.name).size(30).width(Fill),

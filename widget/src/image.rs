@@ -3,7 +3,9 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } }
-//! # pub type State = ();
+//! # pub struct State{
+//!     img: image::Handle
+//! }
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::image;
 //!
@@ -12,7 +14,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     image("ferris.png").into()
+//!     image(&state.img).into()
 //! }
 //! ```
 //! <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
@@ -32,7 +34,7 @@ use crate::core::{
 pub use image::{FilterMethod, Handle};
 
 /// Creates a new [`Viewer`] with the given image `Handle`.
-pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
+pub fn viewer<'a>(handle: &'a Handle) -> Viewer<'a, Handle> {
     Viewer::new(handle)
 }
 
@@ -41,7 +43,9 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
-/// # pub type State = ();
+/// # pub struct State{
+///     img: image::Handle
+/// }
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::image;
 ///
@@ -50,12 +54,12 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     image("ferris.png").into()
+///     image(&state.img).into()
 /// }
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
-pub struct Image<Handle = image::Handle> {
-    handle: Handle,
+pub struct Image<'a, Handle = image::Handle> {
+    handle: &'a Handle,
     width: Length,
     height: Length,
     crop: Option<Rectangle<u32>>,
@@ -68,11 +72,11 @@ pub struct Image<Handle = image::Handle> {
     expand: bool,
 }
 
-impl<Handle> Image<Handle> {
+impl<'a, Handle> Image<'a, Handle> {
     /// Creates a new [`Image`] with the given path.
-    pub fn new(handle: impl Into<Handle>) -> Self {
+    pub fn new(handle: &'a Handle) -> Self {
         Image {
-            handle: handle.into(),
+            handle,
             width: Length::Shrink,
             height: Length::Shrink,
             crop: None,
@@ -336,7 +340,7 @@ pub fn draw<Renderer, Handle>(
     );
 }
 
-impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Image<Handle>
+impl<'a, Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Image<'a, Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -357,7 +361,7 @@ where
         layout(
             renderer,
             limits,
-            &self.handle,
+            self.handle,
             self.width,
             self.height,
             self.crop,
@@ -380,7 +384,7 @@ where
         draw(
             renderer,
             layout,
-            &self.handle,
+            self.handle,
             self.crop,
             self.border_radius,
             self.content_fit,
@@ -392,13 +396,13 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer, Handle> From<Image<Handle>>
+impl<'a, Message, Theme, Renderer, Handle> From<Image<'a, Handle>>
     for Element<'a, Message, Theme, Renderer>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + 'a,
 {
-    fn from(image: Image<Handle>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(image: Image<'a, Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(image)
     }
 }

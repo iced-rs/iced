@@ -11,23 +11,23 @@ use crate::core::{
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
-pub struct Viewer<Handle> {
+pub struct Viewer<'a, Handle> {
     padding: f32,
     width: Length,
     height: Length,
     min_scale: f32,
     max_scale: f32,
     scale_step: f32,
-    handle: Handle,
+    handle: &'a Handle,
     filter_method: FilterMethod,
     content_fit: ContentFit,
 }
 
-impl<Handle> Viewer<Handle> {
+impl<'a, Handle> Viewer<'a, Handle> {
     /// Creates a new [`Viewer`] with the given [`State`].
-    pub fn new<T: Into<Handle>>(handle: T) -> Self {
+    pub fn new(handle: &'a Handle) -> Self {
         Viewer {
-            handle: handle.into(),
+            handle,
             padding: 0.0,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -95,7 +95,7 @@ impl<Handle> Viewer<Handle> {
     }
 }
 
-impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Viewer<Handle>
+impl<'a, Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Viewer<'a, Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -122,7 +122,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         // The raw w/h of the underlying image
-        let image_size = renderer.measure_image(&self.handle).unwrap_or_default();
+        let image_size = renderer.measure_image(self.handle).unwrap_or_default();
 
         let image_size = Size::new(image_size.width as f32, image_size.height as f32);
 
@@ -182,7 +182,7 @@ where
 
                             let scaled_size = scaled_image_size(
                                 renderer,
-                                &self.handle,
+                                self.handle,
                                 state,
                                 bounds.size(),
                                 self.content_fit,
@@ -237,7 +237,7 @@ where
                 if let Some(origin) = state.cursor_grabbed_at {
                     let scaled_size = scaled_image_size(
                         renderer,
-                        &self.handle,
+                        self.handle,
                         state,
                         bounds.size(),
                         self.content_fit,
@@ -305,7 +305,7 @@ where
 
         let final_size = scaled_image_size(
             renderer,
-            &self.handle,
+            self.handle,
             state,
             bounds.size(),
             self.content_fit,
@@ -390,14 +390,14 @@ impl State {
     }
 }
 
-impl<'a, Message, Theme, Renderer, Handle> From<Viewer<Handle>>
+impl<'a, Message, Theme, Renderer, Handle> From<Viewer<'a, Handle>>
     for Element<'a, Message, Theme, Renderer>
 where
     Renderer: 'a + image::Renderer<Handle = Handle>,
     Message: 'a,
     Handle: Clone + 'a,
 {
-    fn from(viewer: Viewer<Handle>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(viewer: Viewer<'a, Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(viewer)
     }
 }
