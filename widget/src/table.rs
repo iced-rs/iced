@@ -183,6 +183,23 @@ where
         self.separator_y = separator.into().0;
         self
     }
+
+    /// Sets the style of the [`Table`].
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+    /// Sets the style class of the [`Table`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
+        self
+    }
 }
 
 struct Metrics {
@@ -476,15 +493,50 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
+        let bounds = layout.bounds();
+        let metrics = tree.state.downcast_ref::<Metrics>();
+        let table_style = theme.style(&self.class);
+
+        if let Some(background) = table_style.background {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    ..Default::default()
+                },
+                background,
+            );
+        }
+
+        if let Some(background) = table_style.alternating_background {
+            let mut y = bounds.y;
+
+            for (idx, height) in metrics.rows.iter().enumerate() {
+                let height = *height + (2.0 * self.padding_y);
+
+                if idx != 0 && idx % 2 == 0 {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: Rectangle {
+                                x: bounds.x,
+                                y,
+                                width: bounds.width,
+                                height,
+                            },
+                            ..Default::default()
+                        },
+                        background,
+                    );
+                }
+
+                y += height + self.separator_y;
+            }
+        }
+
         for ((cell, state), layout) in self.cells.iter().zip(&tree.children).zip(layout.children())
         {
             cell.as_widget()
                 .draw(state, renderer, theme, style, layout, cursor, viewport);
         }
-
-        let bounds = layout.bounds();
-        let metrics = tree.state.downcast_ref::<Metrics>();
-        let style = theme.style(&self.class);
 
         if self.separator_x > 0.0 {
             let mut x = self.padding_x;
@@ -503,7 +555,7 @@ where
                         snap: true,
                         ..renderer::Quad::default()
                     },
-                    style.separator_x,
+                    table_style.separator_x,
                 );
 
                 x += self.separator_x + self.padding_x;
@@ -527,7 +579,7 @@ where
                         snap: true,
                         ..renderer::Quad::default()
                     },
-                    style.separator_y,
+                    table_style.separator_y,
                 );
 
                 y += self.separator_y + self.padding_y;
@@ -636,6 +688,10 @@ impl<'a, 'b, T, Message, Theme, Renderer> Column<'a, 'b, T, Message, Theme, Rend
 /// The appearance of a [`Table`].
 #[derive(Debug, Clone, Copy)]
 pub struct Style {
+    /// The [`Background`] of the table
+    pub background: Option<Background>,
+    /// The [`Background`] of alternating rows of the table
+    pub alternating_background: Option<Background>,
     /// The background color of the horizontal line separator between cells.
     pub separator_x: Background,
     /// The background color of the vertical line separator between cells.
@@ -681,6 +737,8 @@ pub fn default(theme: &crate::Theme) -> Style {
     let separator = palette.background.strong.color.into();
 
     Style {
+        background: Some(palette.background.base.color.into()),
+        alternating_background: Some(palette.background.weakest.color.into()),
         separator_x: separator,
         separator_y: separator,
     }
