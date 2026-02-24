@@ -93,6 +93,7 @@ where
     on_release: Option<Message>,
     width: Length,
     height: f32,
+    handle: Size,
     class: Theme::Class<'a>,
     status: Option<Status>,
 }
@@ -140,6 +141,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
+            handle: Size::new(14.0, 14.0),
             class: Theme::default(),
             status: None,
         }
@@ -187,6 +189,12 @@ where
     /// If set, this value is used as the step while the shift key is pressed.
     pub fn shift_step(mut self, shift_step: impl Into<T>) -> Self {
         self.shift_step = Some(shift_step.into());
+        self
+    }
+
+    /// Sets the size of the [`Slider`]'s handle.
+    pub fn handle(mut self, handle: impl Into<Size>) -> Self {
+        self.handle = handle.into();
         self
     }
 
@@ -273,7 +281,10 @@ where
                     let start = (*self.range.start()).into();
                     let end = (*self.range.end()).into();
 
-                    let percent = f64::from(cursor_position.x - bounds.x) / f64::from(bounds.width);
+                    let percent = f64::from(cursor_position.x - bounds.x - self.handle.width / 2.0)
+                        / f64::from(bounds.width - self.handle.width);
+
+                    let percent = percent.clamp(0.0, 1.0);
 
                     let steps = (percent * (end - start) / step).round();
                     let value = steps * step + start;
@@ -430,14 +441,6 @@ where
 
         let style = theme.style(&self.class, self.status.unwrap_or(Status::Active));
 
-        let (handle_width, handle_height, handle_border_radius) = match style.handle.shape {
-            HandleShape::Circle { radius } => (radius * 2.0, radius * 2.0, radius.into()),
-            HandleShape::Rectangle {
-                width,
-                border_radius,
-            } => (f32::from(width), bounds.height, border_radius),
-        };
-
         let value = self.value.into() as f32;
         let (range_start, range_end) = {
             let (start, end) = self.range.clone().into_inner();
@@ -448,7 +451,7 @@ where
         let offset = if range_start >= range_end {
             0.0
         } else {
-            (bounds.width - handle_width) * (value - range_start) / (range_end - range_start)
+            (bounds.width - self.handle.width) * (value - range_start) / (range_end - range_start)
         };
 
         let rail_y = bounds.y + bounds.height / 2.0;
@@ -458,7 +461,7 @@ where
                 bounds: Rectangle {
                     x: bounds.x,
                     y: rail_y - style.rail.width / 2.0,
-                    width: offset + handle_width / 2.0,
+                    width: offset + self.handle.width / 2.0,
                     height: style.rail.width,
                 },
                 border: style.rail.border,
@@ -470,9 +473,9 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle {
-                    x: bounds.x + offset + handle_width / 2.0,
+                    x: bounds.x + offset + self.handle.width / 2.0,
                     y: rail_y - style.rail.width / 2.0,
-                    width: bounds.width - offset - handle_width / 2.0,
+                    width: bounds.width - offset - self.handle.width / 2.0,
                     height: style.rail.width,
                 },
                 border: style.rail.border,
@@ -485,15 +488,11 @@ where
             renderer::Quad {
                 bounds: Rectangle {
                     x: bounds.x + offset,
-                    y: rail_y - handle_height / 2.0,
-                    width: handle_width,
-                    height: handle_height,
+                    y: rail_y - self.handle.height / 2.0,
+                    width: self.handle.width,
+                    height: self.handle.height,
                 },
-                border: Border {
-                    radius: handle_border_radius,
-                    width: style.handle.border_width,
-                    color: style.handle.border_color,
-                },
+                border: style.handle.border,
                 ..renderer::Quad::default()
             },
             style.handle.background,
@@ -569,17 +568,6 @@ pub struct Style {
     pub handle: Handle,
 }
 
-impl Style {
-    /// Changes the [`HandleShape`] of the [`Style`] to a circle
-    /// with the given radius.
-    pub fn with_circular_handle(mut self, radius: impl Into<Pixels>) -> Self {
-        self.handle.shape = HandleShape::Circle {
-            radius: radius.into().0,
-        };
-        self
-    }
-}
-
 /// The appearance of a slider rail
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rail {
@@ -594,31 +582,10 @@ pub struct Rail {
 /// The appearance of the handle of a slider.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Handle {
-    /// The shape of the handle.
-    pub shape: HandleShape,
     /// The [`Background`] of the handle.
     pub background: Background,
-    /// The border width of the handle.
-    pub border_width: f32,
-    /// The border [`Color`] of the handle.
-    pub border_color: Color,
-}
-
-/// The shape of the handle of a slider.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum HandleShape {
-    /// A circular handle.
-    Circle {
-        /// The radius of the circle.
-        radius: f32,
-    },
-    /// A rectangular shape.
-    Rectangle {
-        /// The width of the rectangle.
-        width: u16,
-        /// The border radius of the corners of the rectangle.
-        border_radius: border::Radius,
-    },
+    /// The border of the handle.
+    pub border: Border,
 }
 
 /// The theme catalog of a [`Slider`].
@@ -669,10 +636,8 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             },
         },
         handle: Handle {
-            shape: HandleShape::Circle { radius: 7.0 },
             background: color.into(),
-            border_color: Color::TRANSPARENT,
-            border_width: 0.0,
+            border: border::rounded(7.0),
         },
     }
 }
