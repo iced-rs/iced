@@ -154,21 +154,24 @@ pub fn diff_children_custom_with_search<T>(
 
         if !first_maybe_changed && last_maybe_changed {
             current_children.extend(new_children[current_children.len()..].iter().map(new_state));
+        } else if first_maybe_changed {
+            let _ = current_children.splice(
+                0..0,
+                new_children[0..(new_children.len() - current_children.len())]
+                    .iter()
+                    .map(&new_state),
+            );
         } else {
-            let difference_index = if first_maybe_changed {
-                0
-            } else {
-                (1..current_children.len())
-                    .find(|&i| maybe_changed(i))
-                    .unwrap_or(0)
-            };
+            let difference_index = (1..current_children.len())
+                .find(|&i| maybe_changed(i))
+                .unwrap_or(current_children.len());
 
             let _ = current_children.splice(
                 difference_index..difference_index,
                 new_children[difference_index
                     ..difference_index + (new_children.len() - current_children.len())]
                     .iter()
-                    .map(new_state),
+                    .map(&new_state),
             );
         }
     }
