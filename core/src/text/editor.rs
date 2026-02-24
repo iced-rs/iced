@@ -201,7 +201,7 @@ pub enum Selection {
 }
 
 /// The range of an [`Editor`].
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Cursor {
     /// The cursor position.
     pub position: Position,
@@ -211,7 +211,7 @@ pub struct Cursor {
 }
 
 /// A cursor position in an [`Editor`].
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Position {
     /// The line of text.
     pub line: usize,
