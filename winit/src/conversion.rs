@@ -106,6 +106,9 @@ pub fn window_attributes(
                 platform::CornerPreference::Round => CornerPreference::Round,
                 platform::CornerPreference::RoundSmall => CornerPreference::RoundSmall,
             });
+
+        attributes =
+            attributes.with_taskbar_icon(settings.platform_specific.taskbar_icon.and_then(icon));
     }
 
     #[cfg(target_os = "macos")]
