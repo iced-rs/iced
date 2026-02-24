@@ -185,12 +185,16 @@ where
             }
 
             let bounds = layout.bounds();
-            let top_left_distance = viewport.distance(bounds.position());
+            let distance = if bounds.intersects(viewport) {
+                0.0
+            } else {
+                let top_left_distance = viewport.distance(bounds.position());
 
-            let bottom_right_distance =
-                viewport.distance(bounds.position() + Vector::from(bounds.size()));
+                let bottom_right_distance =
+                    viewport.distance(bounds.position() + Vector::from(bounds.size()));
 
-            let distance = top_left_distance.min(bottom_right_distance);
+                top_left_distance.min(bottom_right_distance)
+            };
 
             if self.on_show.is_none() {
                 if let Some(on_resize) = &self.on_resize {
