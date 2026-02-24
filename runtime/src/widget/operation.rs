@@ -58,6 +58,11 @@ pub fn focus<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus(id.into())))
 }
 
+/// Unfocuses the focused widget.
+pub fn unfocus<T>() -> Task<T> {
+    task::effect(Action::widget(operation::focusable::unfocus()))
+}
+
 /// Moves the cursor of the widget with the given [`Id`] to the end.
 pub fn move_cursor_to_end<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to_end(
