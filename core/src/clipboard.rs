@@ -1,15 +1,18 @@
 //! Access the clipboard.
+use crate::dnd;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 /// A set of clipboard requests.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Clipboard {
     /// The read requests the runtime must fulfill.
     pub reads: Vec<Kind>,
     /// The content that must be written to the clipboard by the runtime,
     /// if any.
     pub write: Option<Content>,
+    /// Pending DnD requests from widgets.
+    pub dnd_requests: Vec<dnd::Request>,
 }
 
 impl Clipboard {
@@ -18,6 +21,7 @@ impl Clipboard {
         Self {
             reads: Vec::new(),
             write: None,
+            dnd_requests: Vec::new(),
         }
     }
 
@@ -25,6 +29,7 @@ impl Clipboard {
     pub fn merge(&mut self, other: &mut Self) {
         self.reads.append(&mut other.reads);
         self.write = other.write.take().or(self.write.take());
+        self.dnd_requests.append(&mut other.dnd_requests);
     }
 }
 

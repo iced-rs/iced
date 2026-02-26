@@ -320,7 +320,10 @@ where
 
                 redraw_request = redraw_request.min(shell.redraw_request());
                 input_method.merge(shell.input_method());
-                clipboard.merge(shell.clipboard_mut());
+                {
+                    let shell_cb = shell.clipboard_mut();
+                    clipboard.merge(shell_cb);
+                }
 
                 shell.revalidate_layout(|| {
                     has_layout_changed = true;
@@ -376,7 +379,7 @@ where
 
         (
             if outdated {
-                State::Outdated
+                State::Outdated { clipboard }
             } else {
                 State::Updated {
                     mouse_interaction,
@@ -603,7 +606,13 @@ impl Default for Cache {
 #[derive(Debug)]
 pub enum State {
     /// The [`UserInterface`] is outdated and needs to be rebuilt.
-    Outdated,
+    ///
+    /// Clipboard requests from the update cycle are still preserved so they
+    /// can be processed even when the widget tree needs rebuilding.
+    Outdated {
+        /// The set of [`Clipboard`] requests that the user interface has produced.
+        clipboard: Clipboard,
+    },
 
     /// The [`UserInterface`] is up-to-date and can be reused without
     /// rebuilding.
@@ -625,7 +634,7 @@ impl State {
     /// Returns whether the layout of the [`UserInterface`] has changed.
     pub fn has_layout_changed(&self) -> bool {
         match self {
-            State::Outdated => true,
+            State::Outdated { .. } => true,
             State::Updated {
                 has_layout_changed, ..
             } => *has_layout_changed,

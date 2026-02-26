@@ -1,4 +1,5 @@
 use crate::clipboard;
+use crate::dnd;
 use crate::event;
 use crate::window;
 use crate::{Clipboard, InputMethod};
@@ -33,6 +34,7 @@ impl<'a, Message> Shell<'a, Message> {
             clipboard: Clipboard {
                 reads: Vec::new(),
                 write: None,
+                dnd_requests: Vec::new(),
             },
         }
     }
@@ -110,6 +112,114 @@ impl<'a, Message> Shell<'a, Message> {
     /// Returns the [`Clipboard`] requests of the [`Shell`], mutably.
     pub fn clipboard_mut(&mut self) -> &mut Clipboard {
         &mut self.clipboard
+    }
+
+    /// Start a Wayland drag-and-drop operation.
+    ///
+    /// The runtime will create a `wl_data_source`, offer the given MIME
+    /// types, and call `wl_data_device.start_drag(…)` with the current
+    /// pointer serial.
+    pub fn start_dnd(
+        &mut self,
+        mime_types: Vec<String>,
+        actions: dnd::DndAction,
+        data: Vec<Vec<u8>>,
+        internal: bool,
+    ) {
+        self.clipboard.dnd_requests.push(dnd::Request::StartDrag {
+            internal,
+            mime_types,
+            actions,
+            data,
+            icon: None,
+        });
+    }
+
+    /// Start a Wayland drag-and-drop operation with a custom icon.
+    ///
+    /// Same as [`start_dnd`](Self::start_dnd) but with pre-rendered
+    /// pixel data that the compositor will display under the cursor.
+    ///
+    /// `scale` is the buffer scale for HiDPI support (1 for standard, 2 for 2x).
+    pub fn start_dnd_with_icon(
+        &mut self,
+        mime_types: Vec<String>,
+        actions: dnd::DndAction,
+        data: Vec<Vec<u8>>,
+        internal: bool,
+        width: u32,
+        height: u32,
+        pixels: Vec<u8>,
+        scale: i32,
+    ) {
+        self.clipboard.dnd_requests.push(dnd::Request::StartDrag {
+            internal,
+            mime_types,
+            actions,
+            data,
+            icon: Some(dnd::DndIcon::Pixels {
+                width,
+                height,
+                pixels,
+                scale,
+            }),
+        });
+    }
+
+    /// Start a Wayland drag-and-drop operation with an iced widget
+    /// [`Element`] as the icon.
+    ///
+    /// The runtime will render the element offscreen using the
+    /// compositor, convert to pre-multiplied ARGB, and use it as the
+    /// Wayland drag icon surface.
+    ///
+    /// [`Element`]: crate::Element
+    pub fn start_dnd_with_icon_element(
+        &mut self,
+        mime_types: Vec<String>,
+        actions: dnd::DndAction,
+        data: Vec<Vec<u8>>,
+        internal: bool,
+        icon_surface: dnd::DndIconSurface,
+    ) {
+        self.clipboard.dnd_requests.push(dnd::Request::StartDrag {
+            internal,
+            mime_types,
+            actions,
+            data,
+            icon: Some(dnd::DndIcon::Element(icon_surface)),
+        });
+    }
+
+    /// Accept the current DnD offer for a specific MIME type.
+    pub fn accept_dnd_mime_type(&mut self, mime_type: Option<String>) {
+        self.clipboard
+            .dnd_requests
+            .push(dnd::Request::AcceptMimeType(mime_type));
+    }
+
+    /// Set the accepted DnD actions for the current offer.
+    pub fn set_dnd_actions(&mut self, actions: dnd::DndAction, preferred: dnd::DndAction) {
+        self.clipboard
+            .dnd_requests
+            .push(dnd::Request::SetActions { actions, preferred });
+    }
+
+    /// Request data for a given MIME type from the current DnD offer.
+    pub fn request_dnd_data(&mut self, mime_type: String) {
+        self.clipboard
+            .dnd_requests
+            .push(dnd::Request::RequestData { mime_type });
+    }
+
+    /// Signal that the destination has finished processing the DnD drop.
+    pub fn finish_dnd(&mut self) {
+        self.clipboard.dnd_requests.push(dnd::Request::FinishDnd);
+    }
+
+    /// End / cancel the current DnD operation from the source side.
+    pub fn end_dnd(&mut self) {
+        self.clipboard.dnd_requests.push(dnd::Request::EndDnd);
     }
 
     /// Requests the current [`InputMethod`] strategy.

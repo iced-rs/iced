@@ -309,6 +309,9 @@ pub fn window_event(
         WindowEvent::VoiceMode(voice_event) => {
             Some(Event::VoiceMode(voice_mode_event(voice_event)))
         }
+        WindowEvent::Dnd(dnd_event) => {
+            Some(Event::Dnd(dnd_window_event(dnd_event)))
+        }
         _ => None,
     }
 }
@@ -1174,5 +1177,32 @@ fn voice_mode_event(event: winit::event::VoiceModeWindowEvent) -> voice_mode::Ev
         VoiceModeWindowEvent::OrbDetached => voice_mode::Event::OrbDetached,
         VoiceModeWindowEvent::WillStop { serial } => voice_mode::Event::WillStop { serial },
         VoiceModeWindowEvent::FocusInput => voice_mode::Event::FocusInput,
+    }
+}
+
+/// Converts a winit DnD window event into an iced DnD event.
+fn dnd_window_event(event: winit::event::DndWindowEvent) -> crate::core::dnd::Event {
+    use crate::core::dnd::{DndAction, Event as DndEvent, SourceEvent};
+    use winit::event::DndWindowEvent;
+
+    match event {
+        DndWindowEvent::Enter { x, y, mime_types } => DndEvent::Enter { x, y, mime_types },
+        DndWindowEvent::Motion { x, y } => DndEvent::Motion { x, y },
+        DndWindowEvent::Leave => DndEvent::Leave,
+        DndWindowEvent::Drop => DndEvent::Drop,
+        DndWindowEvent::DataReceived { mime_type, data } => {
+            DndEvent::DataReceived { mime_type, data }
+        }
+        DndWindowEvent::SelectedAction(bits) => {
+            DndEvent::SelectedAction(DndAction::from_bits_truncate(bits))
+        }
+        DndWindowEvent::SourceCancelled => DndEvent::SourceEvent(SourceEvent::Cancelled),
+        DndWindowEvent::SourceDropPerformed => {
+            DndEvent::SourceEvent(SourceEvent::DropPerformed)
+        }
+        DndWindowEvent::SourceFinished => DndEvent::SourceEvent(SourceEvent::Finished),
+        DndWindowEvent::SourceAction(bits) => {
+            DndEvent::SourceEvent(SourceEvent::Action(DndAction::from_bits_truncate(bits)))
+        }
     }
 }

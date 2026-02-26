@@ -2,6 +2,7 @@
 use crate::auto_hide;
 use crate::clipboard;
 use crate::dismiss;
+use crate::dnd;
 use crate::input_method;
 use crate::keyboard;
 use crate::mouse;
@@ -47,6 +48,9 @@ pub enum Event {
 
     /// A clipboard event
     Clipboard(clipboard::Event),
+
+    /// A drag-and-drop event from the Wayland compositor.
+    Dnd(dnd::Event),
 }
 
 /// The status of an [`Event`] after being processed.

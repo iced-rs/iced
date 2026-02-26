@@ -237,7 +237,7 @@ wasmtimer = "0.4.2"
 web-sys = "0.3.69"
 web-time = "1.1"
 wgpu = { version = "28.0", default-features = false, features = ["std", "wgsl"] }
-winit = { git = "https://github.com/playtron-os/winit.git", rev = "f05aec1f", default-features = false, features = ["rwh_06"] }
+winit = { git = "https://github.com/playtron-os/winit.git", rev = "023ce4dd", default-features = false, features = ["rwh_06"] }
 #winit = { path = "../winit", default-features = false, features = ["rwh_06"] }
 
 [workspace.lints.rust]

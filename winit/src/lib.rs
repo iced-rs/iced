@@ -901,7 +901,7 @@ async fn run_instance<P>(
                             redraw_request,
                             input_method,
                             mouse_interaction,
-                            clipboard: clipboard_requests,
+                            clipboard: mut clipboard_requests,
                             ..
                         } = state
                         {
@@ -909,7 +909,41 @@ async fn run_instance<P>(
                             window.request_input_method(input_method);
                             window.update_mouse(mouse_interaction);
 
-                            run_clipboard(&mut proxy, &mut clipboard, clipboard_requests, id);
+                            resolve_dnd_icon_elements::<P, _>(
+                                &mut clipboard_requests,
+                                &mut *current_compositor,
+                                window.state.viewport(),
+                                window.state.theme(),
+                                window.state.text_color(),
+                            );
+
+                            run_clipboard(
+                                &mut proxy,
+                                &mut clipboard,
+                                clipboard_requests,
+                                id,
+                                Some(&window.raw),
+                            );
+                        } else if let user_interface::State::Outdated {
+                            clipboard: mut clipboard_requests,
+                        } = state
+                        {
+                            // Ensure DnD/clipboard requests are not lost when UI is outdated during redraw.
+                            resolve_dnd_icon_elements::<P, _>(
+                                &mut clipboard_requests,
+                                &mut *current_compositor,
+                                window.state.viewport(),
+                                window.state.theme(),
+                                window.state.text_color(),
+                            );
+
+                            run_clipboard(
+                                &mut proxy,
+                                &mut clipboard,
+                                clipboard_requests,
+                                id,
+                                Some(&window.raw),
+                            );
                         }
 
                         runtime.broadcast(subscription::Event::Interaction {
@@ -1081,11 +1115,23 @@ async fn run_instance<P>(
                             #[cfg(feature = "unconditional-rendering")]
                             window.request_redraw(window::RedrawRequest::NextFrame);
 
+                            match &ui_state {
+                                user_interface::State::Updated { clipboard: cb, .. }
+                                | user_interface::State::Outdated { clipboard: cb } => {
+                                    if !cb.dnd_requests.is_empty() {
+                                        tracing::trace!(
+                                            "[WINIT] ui_state has {} dnd_requests",
+                                            cb.dnd_requests.len()
+                                        );
+                                    }
+                                }
+                            }
+
                             match ui_state {
                                 user_interface::State::Updated {
                                     redraw_request: _redraw_request,
                                     mouse_interaction,
-                                    clipboard: clipboard_requests,
+                                    clipboard: mut clipboard_requests,
                                     ..
                                 } => {
                                     window.update_mouse(mouse_interaction);
@@ -1093,14 +1139,44 @@ async fn run_instance<P>(
                                     #[cfg(not(feature = "unconditional-rendering"))]
                                     window.request_redraw(_redraw_request);
 
+                                    if let Some(ref mut comp) = compositor {
+                                        resolve_dnd_icon_elements::<P, _>(
+                                            &mut clipboard_requests,
+                                            comp,
+                                            window.state.viewport(),
+                                            window.state.theme(),
+                                            window.state.text_color(),
+                                        );
+                                    }
+
                                     run_clipboard(
                                         &mut proxy,
                                         &mut clipboard,
                                         clipboard_requests,
                                         id,
+                                        Some(&window.raw),
                                     );
                                 }
-                                user_interface::State::Outdated => {
+                                user_interface::State::Outdated {
+                                    clipboard: mut clipboard_requests,
+                                } => {
+                                    if let Some(ref mut comp) = compositor {
+                                        resolve_dnd_icon_elements::<P, _>(
+                                            &mut clipboard_requests,
+                                            comp,
+                                            window.state.viewport(),
+                                            window.state.theme(),
+                                            window.state.text_color(),
+                                        );
+                                    }
+
+                                    run_clipboard(
+                                        &mut proxy,
+                                        &mut clipboard,
+                                        clipboard_requests,
+                                        id,
+                                        Some(&window.raw),
+                                    );
                                     uis_stale = true;
                                 }
                             }
@@ -1400,14 +1476,7 @@ fn run_action<'a, P, C>(
                     }
                 }
             }
-            window::Action::AnimatedResizeWithPosition(
-                id,
-                x,
-                y,
-                width,
-                height,
-                duration_ms,
-            ) => {
+            window::Action::AnimatedResizeWithPosition(id, x, y, width, height, duration_ms) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     #[cfg(all(
                         feature = "wayland",
@@ -1702,7 +1771,13 @@ fn run_action<'a, P, C>(
                     use winit::platform::wayland::WindowExtWayland;
                     if let Some(window) = window_manager.get_mut(id) {
                         let result = window.raw.embed_toplevel_by_pid(
-                            pid, &app_id, x, y, width, height, interactive,
+                            pid,
+                            &app_id,
+                            x,
+                            y,
+                            width,
+                            height,
+                            interactive,
                         );
                         let _ = channel.send(result);
                     } else {
@@ -1864,13 +1939,7 @@ fn run_action<'a, P, C>(
                     }
                 }
             }
-            window::Action::SetCornerRadius(
-                id,
-                top_left,
-                top_right,
-                bottom_right,
-                bottom_left,
-            ) => {
+            window::Action::SetCornerRadius(id, top_left, top_right, bottom_right, bottom_left) => {
                 #[cfg(all(
                     feature = "wayland",
                     any(
@@ -2212,11 +2281,126 @@ fn system_information(graphics: compositor::Information) -> system::Information 
     }
 }
 
+/// Pre-process any [`DndIcon::Element`] variants in the clipboard's DnD
+/// requests by rendering them offscreen and replacing them with
+/// [`DndIcon::Pixels`].
+///
+/// This must be called *before* `run_clipboard`, while the compositor and
+/// window state (`viewport`, `theme`, `text_color`) are still available.
+fn resolve_dnd_icon_elements<P, C>(
+    clipboard_requests: &mut core::Clipboard,
+    compositor: &mut C,
+    viewport: &graphics::Viewport,
+    theme: &P::Theme,
+    text_color: core::Color,
+) where
+    P: Program + 'static,
+    P::Theme: theme::Base + 'static,
+    C: Compositor<Renderer = P::Renderer>,
+    P::Renderer: 'static,
+{
+    for req in &mut clipboard_requests.dnd_requests {
+        if let core::dnd::Request::StartDrag { icon, .. } = req {
+            let needs_render = matches!(icon, Some(core::dnd::DndIcon::Element(_)));
+            if needs_render {
+                // Take the Element icon out of the request.
+                let elem_icon = match icon.take() {
+                    Some(core::dnd::DndIcon::Element(surface)) => surface,
+                    _ => unreachable!(),
+                };
+
+                // Downcast to the program's concrete types.
+                if let Some((mut element, state)) = elem_icon.downcast::<P::Theme, P::Renderer>() {
+                    // Create a fresh offscreen renderer.
+                    let mut icon_renderer = compositor.create_renderer();
+
+                    // Use 2x scale for crisp rendering on HiDPI displays.
+                    // The Wayland compositor will handle scaling the surface appropriately.
+                    let icon_scale = viewport.scale_factor().max(2.0);
+
+                    // Layout the element to determine its natural size.
+                    let lim = core::layout::Limits::new(
+                        core::Size::new(1.0, 1.0),
+                        core::Size::new(
+                            viewport.physical_width() as f32,
+                            viewport.physical_height() as f32,
+                        ),
+                    );
+
+                    let mut tree = core::widget::Tree {
+                        tag: element.as_widget().tag(),
+                        state,
+                        children: element.as_widget().children(),
+                    };
+
+                    let layout_node =
+                        element
+                            .as_widget_mut()
+                            .layout(&mut tree, &icon_renderer, &lim);
+
+                    let size = lim.resolve(
+                        core::Length::Shrink,
+                        core::Length::Shrink,
+                        layout_node.size(),
+                    );
+
+                    // Convert logical size to physical size using our icon scale.
+                    let physical = core::Size::new(
+                        (size.width * icon_scale).ceil() as u32,
+                        (size.height * icon_scale).ceil() as u32,
+                    );
+                    let icon_viewport =
+                        graphics::Viewport::with_physical_size(physical, icon_scale);
+
+                    // Build a UserInterface for the element and draw it.
+                    let mut ui = UserInterface::build(
+                        element,
+                        size,
+                        user_interface::Cache::default(),
+                        &mut icon_renderer,
+                    );
+                    let _ = ui.draw(
+                        &mut icon_renderer,
+                        theme,
+                        &renderer::Style { text_color },
+                        core::mouse::Cursor::Unavailable,
+                    );
+
+                    // Screenshot to RGBA, then convert to pre-multiplied ARGB.
+                    let mut bytes = compositor.screenshot(
+                        &mut icon_renderer,
+                        &icon_viewport,
+                        core::Color::TRANSPARENT,
+                    );
+                    for pix in bytes.chunks_exact_mut(4) {
+                        // RGBA → ARGB (little-endian pre-multiplied)
+                        pix.swap(0, 2);
+                    }
+
+                    let w = icon_viewport.physical_width();
+                    let h = icon_viewport.physical_height();
+                    let scale_int = icon_scale.ceil() as i32;
+
+                    *icon = Some(core::dnd::DndIcon::Pixels {
+                        width: w,
+                        height: h,
+                        pixels: bytes,
+                        scale: scale_int,
+                    });
+                } else {
+                    tracing::warn!("resolve_dnd_icon_elements: failed to downcast DndIconSurface");
+                }
+            }
+        }
+    }
+}
+
 fn run_clipboard<Message: Send>(
     proxy: &mut Proxy<Message>,
     clipboard: &mut Clipboard,
     requests: core::Clipboard,
     window: window::Id,
+    raw_window: Option<&winit::window::Window>,
 ) {
     for kind in requests.reads {
         let proxy = proxy.clone();
@@ -2238,5 +2422,85 @@ fn run_clipboard<Message: Send>(
                 event: core::Event::Clipboard(core::clipboard::Event::Written(result)),
             });
         });
+    }
+
+    // Process DnD requests.
+    if !requests.dnd_requests.is_empty() {
+        tracing::trace!(
+            dnd_requests_count = requests.dnd_requests.len(),
+            has_raw_window = raw_window.is_some(),
+            "run_clipboard: has DnD requests to process"
+        );
+    }
+    #[cfg(all(
+        feature = "wayland",
+        any(
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "openbsd",
+        )
+    ))]
+    if !requests.dnd_requests.is_empty() {
+        tracing::trace!(
+            count = requests.dnd_requests.len(),
+            "run_clipboard: processing DnD requests"
+        );
+        if let Some(raw) = raw_window {
+            use winit::platform::wayland::WindowExtWayland;
+            for req in requests.dnd_requests {
+                match req {
+                    core::dnd::Request::StartDrag {
+                        mime_types,
+                        actions,
+                        data,
+                        icon,
+                        ..
+                    } => {
+                        let action_bits = actions.bits();
+                        // By this point, Element icons should already have been
+                        // resolved to Pixels by `resolve_dnd_icon_elements`.
+                        let icon_data = match icon {
+                            Some(core::dnd::DndIcon::Pixels {
+                                width,
+                                height,
+                                pixels,
+                                scale,
+                            }) => Some((width, height, pixels, scale)),
+                            Some(core::dnd::DndIcon::Element(_)) => {
+                                tracing::error!(
+                                    "DnD: Element icon was not resolved to pixels before run_clipboard!"
+                                );
+                                None
+                            }
+                            None => None,
+                        };
+                        let (ok, _mime_types, _data) =
+                            raw.start_drag(mime_types, action_bits, data, icon_data);
+                        if ok {
+                            tracing::trace!("DnD: start_drag succeeded");
+                        } else {
+                            tracing::warn!("DnD: start_drag failed");
+                        }
+                    }
+                    core::dnd::Request::AcceptMimeType(_mime) => {
+                        // TODO: forward to wl_data_offer.accept()
+                    }
+                    core::dnd::Request::SetActions { .. } => {
+                        // TODO: forward to wl_data_offer.set_actions()
+                    }
+                    core::dnd::Request::RequestData { .. } => {
+                        // TODO: forward to wl_data_offer.receive()
+                    }
+                    core::dnd::Request::FinishDnd => {
+                        // TODO: forward to wl_data_offer.finish()
+                    }
+                    core::dnd::Request::EndDnd => {
+                        // TODO: forward to wl_data_source.destroy()
+                    }
+                }
+            }
+        }
     }
 }
