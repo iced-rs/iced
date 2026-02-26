@@ -2484,20 +2484,20 @@ fn run_clipboard<Message: Send>(
                             tracing::warn!("DnD: start_drag failed");
                         }
                     }
-                    core::dnd::Request::AcceptMimeType(_mime) => {
-                        // TODO: forward to wl_data_offer.accept()
+                    core::dnd::Request::AcceptMimeType(mime) => {
+                        raw.dnd_accept_mime_type(mime.as_deref());
                     }
-                    core::dnd::Request::SetActions { .. } => {
-                        // TODO: forward to wl_data_offer.set_actions()
+                    core::dnd::Request::SetActions { actions, preferred } => {
+                        raw.dnd_set_actions(actions.bits(), preferred.bits());
                     }
-                    core::dnd::Request::RequestData { .. } => {
-                        // TODO: forward to wl_data_offer.receive()
+                    core::dnd::Request::RequestData { mime_type } => {
+                        raw.dnd_request_data(&mime_type);
                     }
                     core::dnd::Request::FinishDnd => {
-                        // TODO: forward to wl_data_offer.finish()
+                        raw.dnd_finish();
                     }
                     core::dnd::Request::EndDnd => {
-                        // TODO: forward to wl_data_source.destroy()
+                        // EndDnd is handled by the compositor when the drag finishes
                     }
                 }
             }
