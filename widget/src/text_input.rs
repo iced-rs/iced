@@ -111,6 +111,7 @@ where
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
+    on_unfocus: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
@@ -142,6 +143,7 @@ where
             on_input: None,
             on_paste: None,
             on_submit: None,
+            on_unfocus: None,
             icon: None,
             class: Theme::default(),
             last_status: None,
@@ -203,6 +205,18 @@ where
     /// the [`TextInput`], if `Some`.
     pub fn on_paste_maybe(mut self, on_paste: Option<impl Fn(String) -> Message + 'a>) -> Self {
         self.on_paste = on_paste.map(|f| Box::new(f) as _);
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] loses focus.
+    pub fn on_unfocus(mut self, message: Message) -> Self {
+        self.on_unfocus = Some(message);
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] loses focus, if `Some`.
+    pub fn on_unfocus_maybe(mut self, on_unfocus: Option<Message>) -> Self {
+        self.on_unfocus = on_unfocus;
         self
     }
 
@@ -651,6 +665,9 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
+        // Track focus state before processing event to detect unfocus
+        let was_focused = state::<Renderer>(tree).is_focused();
+
         let update_cache = |state, value| {
             replace_paragraph(
                 renderer,
@@ -1451,7 +1468,14 @@ where
             _ => {}
         }
 
+        // Emit unfocus callback if focus was just lost
         let state = state::<Renderer>(tree);
+        if was_focused && !state.is_focused() {
+            if let Some(on_unfocus) = self.on_unfocus.clone() {
+                shell.publish(on_unfocus);
+            }
+        }
+
         let is_disabled = self.on_input.is_none();
 
         let status = if is_disabled {
