@@ -113,6 +113,7 @@ where
     on_submit: Option<Message>,
     on_focus: Option<Message>,
     on_unfocus: Option<Message>,
+    on_escape: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
@@ -146,6 +147,7 @@ where
             on_submit: None,
             on_focus: None,
             on_unfocus: None,
+            on_escape: None,
             icon: None,
             class: Theme::default(),
             last_status: None,
@@ -231,6 +233,18 @@ where
     /// Sets the message that should be produced when the [`TextInput`] gains focus, if `Some`.
     pub fn on_focus_maybe(mut self, on_focus: Option<Message>) -> Self {
         self.on_focus = on_focus;
+        self
+    }
+
+    /// Sets the message that should be produced when Escape is pressed while the [`TextInput`] is focused.
+    pub fn on_escape(mut self, message: Message) -> Self {
+        self.on_escape = Some(message);
+        self
+    }
+
+    /// Sets the message that should be produced when Escape is pressed while focused, if `Some`.
+    pub fn on_escape_maybe(mut self, on_escape: Option<Message>) -> Self {
+        self.on_escape = on_escape;
         self
     }
 
@@ -1313,6 +1327,11 @@ where
                             shell.capture_event();
                         }
                         keyboard::Key::Named(key::Named::Escape) => {
+                            // Fire on_escape callback BEFORE unfocusing (so it runs before on_unfocus)
+                            if let Some(on_escape) = self.on_escape.clone() {
+                                shell.publish(on_escape);
+                            }
+
                             state.is_focused = None;
                             state.is_dragging = None;
                             state.is_pasting = None;
