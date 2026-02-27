@@ -1327,6 +1327,18 @@ where
                 {
                     state.is_pasting = Some(Paste::Pasting(Value::new(text)));
 
+                    // Save undo state before edit (paste is a single operation)
+                    commit_pending_impl(
+                        &mut state.pending_entry,
+                        &mut state.pending_edit_kind,
+                        &mut state.undo_stack,
+                    );
+                    state.undo_stack.push(HistoryEntry {
+                        value: self.value.clone(),
+                        cursor: state.cursor,
+                    });
+                    state.redo_stack.clear();
+
                     let mut editor = Editor::new(&mut self.value, &mut state.cursor);
                     editor.paste(Value::new(text));
 
@@ -1372,6 +1384,18 @@ where
                         let Some(on_input) = &self.on_input else {
                             return;
                         };
+
+                        // Save undo state before edit (IME commit is a single operation)
+                        commit_pending_impl(
+                            &mut state.pending_entry,
+                            &mut state.pending_edit_kind,
+                            &mut state.undo_stack,
+                        );
+                        state.undo_stack.push(HistoryEntry {
+                            value: self.value.clone(),
+                            cursor: state.cursor,
+                        });
+                        state.redo_stack.clear();
 
                         let mut editor = Editor::new(&mut self.value, &mut state.cursor);
                         editor.paste(Value::new(text));
