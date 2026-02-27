@@ -111,6 +111,7 @@ where
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
+    on_focus: Option<Message>,
     on_unfocus: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
     class: Theme::Class<'a>,
@@ -143,6 +144,7 @@ where
             on_input: None,
             on_paste: None,
             on_submit: None,
+            on_focus: None,
             on_unfocus: None,
             icon: None,
             class: Theme::default(),
@@ -217,6 +219,18 @@ where
     /// Sets the message that should be produced when the [`TextInput`] loses focus, if `Some`.
     pub fn on_unfocus_maybe(mut self, on_unfocus: Option<Message>) -> Self {
         self.on_unfocus = on_unfocus;
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] gains focus.
+    pub fn on_focus(mut self, message: Message) -> Self {
+        self.on_focus = Some(message);
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] gains focus, if `Some`.
+    pub fn on_focus_maybe(mut self, on_focus: Option<Message>) -> Self {
+        self.on_focus = on_focus;
         self
     }
 
@@ -1473,6 +1487,13 @@ where
         if was_focused && !state.is_focused() {
             if let Some(on_unfocus) = self.on_unfocus.clone() {
                 shell.publish(on_unfocus);
+            }
+        }
+
+        // Emit focus callback if focus was just gained
+        if !was_focused && state.is_focused() {
+            if let Some(on_focus) = self.on_focus.clone() {
+                shell.publish(on_focus);
             }
         }
 
