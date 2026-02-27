@@ -819,6 +819,12 @@ where
                                 // TODO: Debounce (?)
                                 shell.read_clipboard(clipboard::Kind::Text);
                             }
+                            Binding::Undo => {
+                                publish(Action::Edit(Edit::Undo));
+                            }
+                            Binding::Redo => {
+                                publish(Action::Edit(Edit::Redo));
+                            }
                             Binding::Move(motion) => {
                                 publish(Action::Move(motion));
                             }
@@ -1098,6 +1104,10 @@ pub enum Binding<Message> {
     Cut,
     /// Paste the clipboard contents in the [`TextEditor`].
     Paste,
+    /// Undo the last change.
+    Undo,
+    /// Redo the last undone change.
+    Redo,
     /// Apply a [`Motion`].
     Move(Motion),
     /// Select text with a given [`Motion`].
@@ -1166,6 +1176,9 @@ impl<Message> Binding<Message> {
             Some('x') if modifiers.command() => Some(Self::Cut),
             Some('v') if modifiers.command() && !modifiers.alt() => Some(Self::Paste),
             Some('a') if modifiers.command() => Some(Self::SelectAll),
+            Some('z') if modifiers.command() && !modifiers.shift() => Some(Self::Undo),
+            Some('z') if modifiers.command() && modifiers.shift() => Some(Self::Redo),
+            Some('y') if modifiers.command() => Some(Self::Redo),
             _ => None,
         };
 

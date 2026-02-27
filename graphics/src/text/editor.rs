@@ -408,6 +408,12 @@ impl editor::Editor for Editor {
                         Edit::Delete => {
                             editor.action(font_system.raw(), cosmic_text::Action::Delete);
                         }
+                        Edit::Undo => {
+                            editor.action(font_system.raw(), cosmic_text::Action::Undo);
+                        }
+                        Edit::Redo => {
+                            editor.action(font_system.raw(), cosmic_text::Action::Redo);
+                        }
                     }
 
                     let cursor = editor.cursor();

@@ -865,6 +865,18 @@ where
                                 ));
                             }
 
+                            // Save undo state before edit (cut is a single operation)
+                            commit_pending_impl(
+                                &mut state.pending_entry,
+                                &mut state.pending_edit_kind,
+                                &mut state.undo_stack,
+                            );
+                            state.undo_stack.push(HistoryEntry {
+                                value: self.value.clone(),
+                                cursor: state.cursor,
+                            });
+                            state.redo_stack.clear();
+
                             let mut editor = Editor::new(&mut self.value, &mut state.cursor);
                             editor.delete();
 
@@ -893,6 +905,18 @@ where
                                     return;
                                 }
                             };
+
+                            // Save undo state before edit (paste is a single operation)
+                            commit_pending_impl(
+                                &mut state.pending_entry,
+                                &mut state.pending_edit_kind,
+                                &mut state.undo_stack,
+                            );
+                            state.undo_stack.push(HistoryEntry {
+                                value: self.value.clone(),
+                                cursor: state.cursor,
+                            });
+                            state.redo_stack.clear();
 
                             let mut editor = Editor::new(&mut self.value, &mut state.cursor);
                             editor.paste(content.clone());
@@ -923,6 +947,111 @@ where
                             shell.capture_event();
                             return;
                         }
+                        Some('z')
+                            if state.keyboard_modifiers.command()
+                                && !state.keyboard_modifiers.shift() =>
+                        {
+                            // Undo
+                            let Some(on_input) = &self.on_input else {
+                                return;
+                            };
+
+                            // Commit any pending edit before undo
+                            commit_pending_impl(
+                                &mut state.pending_entry,
+                                &mut state.pending_edit_kind,
+                                &mut state.undo_stack,
+                            );
+
+                            if let Some(entry) = state.undo_stack.pop() {
+                                // Save current state to redo stack
+                                state.redo_stack.push(HistoryEntry {
+                                    value: self.value.clone(),
+                                    cursor: state.cursor,
+                                });
+
+                                // Restore previous state
+                                self.value = entry.value;
+                                state.cursor = entry.cursor;
+
+                                let message = (on_input)(self.value.to_string());
+                                shell.publish(message);
+                                shell.capture_event();
+
+                                focus.updated_at = Instant::now();
+                                update_cache(state, &self.value);
+                            }
+                            return;
+                        }
+                        Some('z')
+                            if state.keyboard_modifiers.command()
+                                && state.keyboard_modifiers.shift() =>
+                        {
+                            // Redo (Ctrl+Shift+Z)
+                            let Some(on_input) = &self.on_input else {
+                                return;
+                            };
+
+                            // Commit any pending edit before redo
+                            commit_pending_impl(
+                                &mut state.pending_entry,
+                                &mut state.pending_edit_kind,
+                                &mut state.undo_stack,
+                            );
+
+                            if let Some(entry) = state.redo_stack.pop() {
+                                // Save current state to undo stack
+                                state.undo_stack.push(HistoryEntry {
+                                    value: self.value.clone(),
+                                    cursor: state.cursor,
+                                });
+
+                                // Restore redo state
+                                self.value = entry.value;
+                                state.cursor = entry.cursor;
+
+                                let message = (on_input)(self.value.to_string());
+                                shell.publish(message);
+                                shell.capture_event();
+
+                                focus.updated_at = Instant::now();
+                                update_cache(state, &self.value);
+                            }
+                            return;
+                        }
+                        Some('y') if state.keyboard_modifiers.command() => {
+                            // Redo (Ctrl+Y)
+                            let Some(on_input) = &self.on_input else {
+                                return;
+                            };
+
+                            // Commit any pending edit before redo
+                            commit_pending_impl(
+                                &mut state.pending_entry,
+                                &mut state.pending_edit_kind,
+                                &mut state.undo_stack,
+                            );
+
+                            if let Some(entry) = state.redo_stack.pop() {
+                                // Save current state to undo stack
+                                state.undo_stack.push(HistoryEntry {
+                                    value: self.value.clone(),
+                                    cursor: state.cursor,
+                                });
+
+                                // Restore redo state
+                                self.value = entry.value;
+                                state.cursor = entry.cursor;
+
+                                let message = (on_input)(self.value.to_string());
+                                shell.publish(message);
+                                shell.capture_event();
+
+                                focus.updated_at = Instant::now();
+                                update_cache(state, &self.value);
+                            }
+                            return;
+                        }
                         _ => {}
                     }
 
@@ -934,6 +1063,18 @@ where
                         state.is_pasting = None;
 
                         if let Some(c) = text.chars().next().filter(|c| !c.is_control()) {
+                            // Record edit with grouping for consecutive inserts
+                            record_edit_impl(
+                                EditKind::Insert,
+                                &self.value,
+                                &state.cursor,
+                                &mut state.pending_entry,
+                                &mut state.pending_edit_kind,
+                                &mut state.last_edit_at,
+                                &mut state.undo_stack,
+                                &mut state.redo_stack,
+                            );
+
                             let mut editor = Editor::new(&mut self.value, &mut state.cursor);
 
                             editor.insert(c);
@@ -977,6 +1118,18 @@ where
                                 }
                             }
 
+                            // Record edit with grouping for consecutive backspaces
+                            record_edit_impl(
+                                EditKind::Backspace,
+                                &self.value,
+                                &state.cursor,
+                                &mut state.pending_entry,
+                                &mut state.pending_edit_kind,
+                                &mut state.last_edit_at,
+                                &mut state.undo_stack,
+                                &mut state.redo_stack,
+                            );
+
                             let mut editor = Editor::new(&mut self.value, &mut state.cursor);
                             editor.backspace();
 
@@ -1003,6 +1156,18 @@ where
                                     state.cursor.select_right_by_words(&self.value);
                                 }
                             }
+
+                            // Record edit with grouping for consecutive deletes
+                            record_edit_impl(
+                                EditKind::Delete,
+                                &self.value,
+                                &state.cursor,
+                                &mut state.pending_entry,
+                                &mut state.pending_edit_kind,
+                                &mut state.last_edit_at,
+                                &mut state.undo_stack,
+                                &mut state.redo_stack,
+                            );
 
                             let mut editor = Editor::new(&mut self.value, &mut state.cursor);
                             editor.delete();
@@ -1358,6 +1523,24 @@ pub enum Side {
     Right,
 }
 
+/// The kind of edit operation for grouping undo.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum EditKind {
+    Insert,
+    Backspace,
+    Delete,
+}
+
+/// An entry in the undo/redo history.
+#[derive(Debug, Clone)]
+struct HistoryEntry {
+    value: Value,
+    cursor: Cursor,
+}
+
+/// Debounce timeout for grouping edits - if user pauses longer than this, start new undo group
+const UNDO_DEBOUNCE_TIMEOUT: Duration = Duration::from_millis(500);
+
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
 pub struct State<P: text::Paragraph> {
@@ -1371,6 +1554,14 @@ pub struct State<P: text::Paragraph> {
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
+    undo_stack: Vec<HistoryEntry>,
+    redo_stack: Vec<HistoryEntry>,
+    /// Pending edit being accumulated (not yet on undo_stack)
+    pending_entry: Option<HistoryEntry>,
+    /// The kind of the pending edit for grouping
+    pending_edit_kind: Option<EditKind>,
+    /// Timestamp of last edit for time-based debouncing
+    last_edit_at: Option<Instant>,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -1455,6 +1646,48 @@ impl<P: text::Paragraph> State<P> {
     pub fn select_range(&mut self, start: usize, end: usize) {
         self.cursor.select_range(start, end);
     }
+}
+
+/// Helper function for commit_pending to avoid borrow conflicts.
+fn commit_pending_impl(
+    pending_entry: &mut Option<HistoryEntry>,
+    pending_edit_kind: &mut Option<EditKind>,
+    undo_stack: &mut Vec<HistoryEntry>,
+) {
+    if let Some(entry) = pending_entry.take() {
+        undo_stack.push(entry);
+    }
+    *pending_edit_kind = None;
+}
+
+/// Helper function for record_edit to avoid borrow conflicts.
+/// Groups consecutive same-type edits, but starts new group if time gap exceeds threshold.
+fn record_edit_impl(
+    kind: EditKind,
+    value: &Value,
+    cursor: &Cursor,
+    pending_entry: &mut Option<HistoryEntry>,
+    pending_edit_kind: &mut Option<EditKind>,
+    last_edit_at: &mut Option<Instant>,
+    undo_stack: &mut Vec<HistoryEntry>,
+    redo_stack: &mut Vec<HistoryEntry>,
+) {
+    let now = Instant::now();
+    let timed_out = last_edit_at
+        .map(|t| now.duration_since(t) > UNDO_DEBOUNCE_TIMEOUT)
+        .unwrap_or(false);
+
+    // Start new undo group if: different action type OR time gap exceeded
+    if *pending_edit_kind != Some(kind) || timed_out {
+        commit_pending_impl(pending_entry, pending_edit_kind, undo_stack);
+        *pending_entry = Some(HistoryEntry {
+            value: value.clone(),
+            cursor: *cursor,
+        });
+        *pending_edit_kind = Some(kind);
+    }
+    *last_edit_at = Some(now);
+    redo_stack.clear();
 }
 
 impl<P: text::Paragraph> operation::Focusable for State<P> {
