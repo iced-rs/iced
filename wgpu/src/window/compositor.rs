@@ -354,12 +354,20 @@ impl graphics::Compositor for Compositor {
     }
 
     fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32) {
-        // WASM/WebGL doesn't support COPY_SRC on swapchain textures
-        // On native, we need COPY_SRC for backdrop blur to copy the scene
-        #[cfg(target_arch = "wasm32")]
-        let usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
+        // Always need RENDER_ATTACHMENT; request COPY_SRC for backdrop blur only if supported
+        let mut usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
+
         #[cfg(not(target_arch = "wasm32"))]
-        let usage = wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC;
+        {
+            let caps = surface.get_capabilities(&self.adapter);
+            if caps.usages.contains(wgpu::TextureUsages::COPY_SRC) {
+                usage |= wgpu::TextureUsages::COPY_SRC;
+            } else {
+                log::warn!(
+                    "Surface does not support COPY_SRC; backdrop blur will be unavailable"
+                );
+            }
+        }
 
         surface.configure(
             &self.engine.device,
