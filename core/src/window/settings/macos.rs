@@ -9,4 +9,6 @@ pub struct PlatformSpecific {
     pub titlebar_transparent: bool,
     /// Makes the window content appear behind the titlebar.
     pub fullsize_content_view: bool,
+    /// Makes the titlebar unified with the window content.
+    pub unified_titlebar: bool,
 }
