@@ -1,5 +1,5 @@
-use iced::Center;
-use iced::widget::{Column, button, column, text};
+use iced::widget::{Container, button, column, container, text};
+use iced::{Center, Length};
 
 pub fn main() -> iced::Result {
     iced::run(Counter::update, Counter::view)
@@ -19,23 +19,20 @@ enum Message {
 impl Counter {
     fn update(&mut self, message: Message) {
         match message {
-            Message::Increment => {
-                self.value += 1;
-            }
-            Message::Decrement => {
-                self.value -= 1;
-            }
+            Message::Increment => self.value += 1,
+            Message::Decrement => self.value -= 1,
         }
     }
 
-    fn view(&self) -> Column<'_, Message> {
-        column![
+    fn view(&self) -> Container<'_, Message> {
+        let column = column![
             button("Increment").on_press(Message::Increment),
             text(self.value).size(50),
             button("Decrement").on_press(Message::Decrement)
         ]
         .padding(20)
-        .align_x(Center)
+        .align_x(Center);
+        container(column).center(Length::Fill)
     }
 }
 
