@@ -352,7 +352,7 @@ where
             Some(selection) => {
                 vec![
                     text::Span::new(&preedit.content[..selection.start]),
-                    text::Span::new(if selection.start == selection.end {
+                    text::Span::new(if selection.start >= selection.end {
                         "\u{200A}"
                     } else {
                         &preedit.content[selection.start..selection.end]
