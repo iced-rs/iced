@@ -1340,16 +1340,14 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    let digits = ((start + bullets.len() as u64).max(1) as f32)
-        .log10()
-        .ceil();
+    let digits = (start + bullets.len() as u64).max(1).ilog10();
 
     column(bullets.iter().enumerate().map(|(i, bullet)| {
         row![
             text!("{}.", i as u64 + start)
                 .size(settings.text_size)
                 .align_x(alignment::Horizontal::Right)
-                .width(settings.text_size * ((digits / 2.0).ceil() + 1.0)),
+                .width(settings.text_size * ((digits as f32 / 2.0).ceil() + 1.0)),
             view_with(
                 bullet.items(),
                 Settings {
