@@ -271,6 +271,9 @@ impl<P: Program + 'static> Emulator<P> {
                 runtime::Action::Reload => {
                     // TODO
                 }
+                runtime::Action::PlatformSpecific(_action) => {
+                    // Platform-specific actions not supported in test emulator
+                }
             },
         }
     }

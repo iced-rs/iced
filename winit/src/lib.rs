@@ -33,6 +33,12 @@ mod error;
 mod proxy;
 mod window;
 
+#[cfg(all(
+    unix,
+    not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+))]
+mod popup;
+
 pub use clipboard::Clipboard;
 pub use error::Error;
 pub use proxy::Proxy;
@@ -42,7 +48,7 @@ use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -248,6 +254,68 @@ where
         }
 
         fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+            // Poll popup events from winit BEFORE processing AboutToWait,
+            // so they're in the event channel when AboutToWait dispatches events.
+            #[cfg(all(
+                unix,
+                not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+            ))]
+            {
+                use winit::platform::wayland::ActiveEventLoopExtWayland;
+
+                for popup_event in event_loop.take_popup_events() {
+                    match popup_event {
+                        winit::platform::wayland::PopupEvent::Configure { id, width, height } => {
+                            // Get raw handles for the popup surface
+                            if let Some((surface_ptr, display_ptr)) =
+                                event_loop.popup_raw_handles(id)
+                            {
+                                let _ = self.sender.unbounded_send(Event::PopupConfigured {
+                                    winit_popup_id: id.0,
+                                    width,
+                                    height,
+                                    surface_ptr,
+                                    display_ptr,
+                                });
+                            }
+                        }
+                        winit::platform::wayland::PopupEvent::Done { id } => {
+                            let _ = self.sender.unbounded_send(Event::PopupClosed {
+                                winit_popup_id: id.0,
+                            });
+                        }
+                        winit::platform::wayland::PopupEvent::PointerEnter { id, x, y } => {
+                            let _ = self.sender.unbounded_send(Event::PopupPointerEvent {
+                                winit_popup_id: id.0,
+                                kind: PopupPointerEventKind::Enter { x, y },
+                            });
+                        }
+                        winit::platform::wayland::PopupEvent::PointerLeave { id } => {
+                            let _ = self.sender.unbounded_send(Event::PopupPointerEvent {
+                                winit_popup_id: id.0,
+                                kind: PopupPointerEventKind::Leave,
+                            });
+                        }
+                        winit::platform::wayland::PopupEvent::PointerMotion { id, x, y } => {
+                            let _ = self.sender.unbounded_send(Event::PopupPointerEvent {
+                                winit_popup_id: id.0,
+                                kind: PopupPointerEventKind::Motion { x, y },
+                            });
+                        }
+                        winit::platform::wayland::PopupEvent::PointerButton {
+                            id,
+                            button,
+                            pressed,
+                        } => {
+                            let _ = self.sender.unbounded_send(Event::PopupPointerEvent {
+                                winit_popup_id: id.0,
+                                kind: PopupPointerEventKind::Button { button, pressed },
+                            });
+                        }
+                    }
+                }
+            }
+
             self.process_event(
                 event_loop,
                 Event::EventLoopAwakened(winit::event::Event::AboutToWait),
@@ -398,6 +466,93 @@ where
                                 self.error = Some(error);
                                 event_loop.exit();
                             }
+                            #[cfg(all(
+                                unix,
+                                not(any(
+                                    target_os = "macos",
+                                    target_os = "ios",
+                                    target_os = "android"
+                                ))
+                            ))]
+                            Control::CreatePopup {
+                                id,
+                                parent_iced_id,
+                                parent_winit_id,
+                                size,
+                                anchor_rect,
+                                anchor,
+                                gravity,
+                                offset,
+                                constraint_adjustment,
+                                grab,
+                                window_geometry,
+                            } => {
+                                use winit::platform::wayland::ActiveEventLoopExtWayland;
+                                use winit::platform::wayland::{
+                                    PopupAnchor, PopupGravity, PopupSettings as WinitPopupSettings,
+                                };
+
+                                let settings = WinitPopupSettings {
+                                    parent_id: parent_winit_id,
+                                    size,
+                                    anchor_rect,
+                                    anchor: PopupAnchor::from(anchor),
+                                    gravity: PopupGravity::from(gravity),
+                                    offset,
+                                    constraint_adjustment,
+                                    grab,
+                                    window_geometry,
+                                };
+
+                                if let Some(winit_popup_id) = event_loop.create_popup(settings) {
+                                    // Send event to run_instance to track the popup
+                                    let _ = self.sender.unbounded_send(Event::PopupCreated {
+                                        iced_id: id,
+                                        winit_popup_id: winit_popup_id.0,
+                                        parent_id: parent_iced_id,
+                                        size,
+                                    });
+                                } else {
+                                    tracing::warn!(
+                                        "Failed to create xdg_popup for window {:?}",
+                                        id
+                                    );
+                                }
+                            }
+                            #[cfg(all(
+                                unix,
+                                not(any(
+                                    target_os = "macos",
+                                    target_os = "ios",
+                                    target_os = "android"
+                                ))
+                            ))]
+                            Control::DestroyPopup { winit_popup_id } => {
+                                use winit::platform::wayland::ActiveEventLoopExtWayland;
+                                use winit::platform::wayland::PopupId as WinitPopupId;
+
+                                let popup_id = WinitPopupId(winit_popup_id);
+                                let _ = event_loop.destroy_popup(popup_id);
+                            }
+                            #[cfg(all(
+                                unix,
+                                not(any(
+                                    target_os = "macos",
+                                    target_os = "ios",
+                                    target_os = "android"
+                                ))
+                            ))]
+                            Control::ResizePopup {
+                                winit_popup_id,
+                                width,
+                                height,
+                            } => {
+                                use winit::platform::wayland::ActiveEventLoopExtWayland;
+                                use winit::platform::wayland::PopupId as WinitPopupId;
+
+                                let popup_id = WinitPopupId(winit_popup_id);
+                                let _ = event_loop.resize_popup(popup_id, width, height);
+                            }
                             Control::SetAutomaticWindowTabbing(_enabled) => {
                                 #[cfg(target_os = "macos")]
                                 {
@@ -436,6 +591,19 @@ where
     }
 }
 
+/// Kind of pointer event on a popup surface.
+#[cfg(all(
+    unix,
+    not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+))]
+#[derive(Debug)]
+enum PopupPointerEventKind {
+    Enter { x: f64, y: f64 },
+    Leave,
+    Motion { x: f64, y: f64 },
+    Button { button: u32, pressed: bool },
+}
+
 #[derive(Debug)]
 enum Event<Message: 'static> {
     WindowCreated {
@@ -444,6 +612,42 @@ enum Event<Message: 'static> {
         exit_on_close_request: bool,
         make_visible: bool,
         on_open: oneshot::Sender<window::Id>,
+    },
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    PopupCreated {
+        iced_id: window::Id,
+        winit_popup_id: u64,
+        parent_id: window::Id,
+        size: (u32, u32),
+    },
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    PopupConfigured {
+        winit_popup_id: u64,
+        width: u32,
+        height: u32,
+        surface_ptr: std::ptr::NonNull<std::ffi::c_void>,
+        display_ptr: std::ptr::NonNull<std::ffi::c_void>,
+    },
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    PopupClosed {
+        winit_popup_id: u64,
+    },
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    PopupPointerEvent {
+        winit_popup_id: u64,
+        kind: PopupPointerEventKind,
     },
     EventLoopAwakened(winit::event::Event<Message>),
     Exit,
@@ -461,6 +665,40 @@ enum Control {
         monitor: Option<winit::monitor::MonitorHandle>,
         on_open: oneshot::Sender<window::Id>,
         scale_factor: f32,
+    },
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    CreatePopup {
+        id: window::Id,
+        parent_iced_id: window::Id,
+        parent_winit_id: winit::window::WindowId,
+        size: (u32, u32),
+        anchor_rect: (i32, i32, i32, i32),
+        anchor: u32,
+        gravity: u32,
+        offset: (i32, i32),
+        constraint_adjustment: u32,
+        grab: bool,
+        window_geometry: Option<(i32, i32, i32, i32)>,
+    },
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    DestroyPopup {
+        /// The winit popup ID to destroy.
+        winit_popup_id: u64,
+    },
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    ResizePopup {
+        winit_popup_id: u64,
+        width: u32,
+        height: u32,
     },
     SetAutomaticWindowTabbing(bool),
 }
@@ -480,11 +718,28 @@ async fn run_instance<P>(
     P: Program + 'static,
     P::Theme: theme::Base,
 {
+    use crate::core::Renderer as _;
     use winit::event;
     use winit::event_loop::ControlFlow;
 
     let mut window_manager = WindowManager::new();
     let mut is_window_opening = !is_daemon;
+
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    let mut popup_manager: popup::PopupManager<
+        P,
+        <P::Renderer as compositor::Default>::Compositor,
+    > = popup::PopupManager::new();
+
+    // Track cursor position per popup for event dispatch
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    let mut popup_cursor_position: FxHashMap<window::Id, core::Point> = FxHashMap::default();
 
     let mut compositor = None;
     let mut events = Vec::new();
@@ -676,6 +931,131 @@ async fn run_instance<P>(
                 let _ = on_open.send(id);
                 is_window_opening = false;
             }
+            #[cfg(all(
+                unix,
+                not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+            ))]
+            Event::PopupCreated {
+                iced_id,
+                winit_popup_id,
+                parent_id,
+                size,
+            } => {
+                // Get scale factor from parent window
+                let scale_factor = window_manager
+                    .get(parent_id)
+                    .map(|w| w.state.scale_factor())
+                    .unwrap_or(1.0);
+
+                // Store the popup in our popup manager (not yet configured)
+                popup_manager.insert(
+                    popup::PopupId(winit_popup_id),
+                    iced_id,
+                    parent_id,
+                    Size::new(size.0, size.1),
+                    scale_factor,
+                );
+
+                is_window_opening = false;
+            }
+            #[cfg(all(
+                unix,
+                not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+            ))]
+            Event::PopupConfigured {
+                winit_popup_id,
+                width,
+                height,
+                surface_ptr,
+                display_ptr,
+            } => {
+                // Create PopupSurface wrapper for compositor
+                let popup_surface = popup::PopupSurface::new(surface_ptr, display_ptr);
+
+                // Configure the popup with the compositor surface
+                if let Some(comp) = compositor.as_mut() {
+                    let popup_id = popup::PopupId(winit_popup_id);
+                    let _ = popup_manager.configure(
+                        popup_id,
+                        winit_popup_id,
+                        width,
+                        height,
+                        popup_surface,
+                        comp,
+                    );
+                }
+            }
+            #[cfg(all(
+                unix,
+                not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+            ))]
+            Event::PopupClosed { winit_popup_id } => {
+                // Remove from popup manager and notify the application
+                if let Some(removed) = popup_manager.remove(popup::PopupId(winit_popup_id)) {
+                    let iced_id = removed.iced_id;
+                    let _ = ui_caches.remove(&iced_id);
+                    let _ = user_interfaces.remove(&iced_id);
+                    let _ = popup_cursor_position.remove(&iced_id);
+                    events.push((iced_id, core::Event::Window(core::window::Event::Closed)));
+                }
+            }
+            #[cfg(all(
+                unix,
+                not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+            ))]
+            Event::PopupPointerEvent {
+                winit_popup_id,
+                kind,
+            } => {
+                if let Some(popup) = popup_manager.find_by_winit_id(winit_popup_id) {
+                    let iced_id = popup.iced_id;
+                    let parent_id = popup.parent_id;
+
+                    match kind {
+                        PopupPointerEventKind::Enter { x, y }
+                        | PopupPointerEventKind::Motion { x, y } => {
+                            let position = core::Point::new(x as f32, y as f32);
+                            // Store cursor position for the popup
+                            let _ = popup_cursor_position.insert(iced_id, position);
+                            events.push((
+                                iced_id,
+                                core::Event::Mouse(core::mouse::Event::CursorMoved { position }),
+                            ));
+                        }
+                        PopupPointerEventKind::Leave => {
+                            let _ = popup_cursor_position.remove(&iced_id);
+                            events.push((
+                                iced_id,
+                                core::Event::Mouse(core::mouse::Event::CursorLeft),
+                            ));
+                        }
+                        PopupPointerEventKind::Button { button, pressed } => {
+                            // Convert Linux evdev button codes to iced mouse button
+                            let mouse_button = match button {
+                                0x110 => core::mouse::Button::Left,
+                                0x111 => core::mouse::Button::Right,
+                                0x112 => core::mouse::Button::Middle,
+                                0x113 | 0x116 => core::mouse::Button::Back,
+                                0x114 | 0x115 => core::mouse::Button::Forward,
+                                other => core::mouse::Button::Other(other as u16),
+                            };
+                            let event = if pressed {
+                                core::mouse::Event::ButtonPressed(mouse_button)
+                            } else {
+                                core::mouse::Event::ButtonReleased(mouse_button)
+                            };
+                            events.push((iced_id, core::Event::Mouse(event)));
+                        }
+                    }
+
+                    // Request redraw on parent window to trigger popup rendering
+                    if let Some((_id, window)) =
+                        window_manager.iter_mut().find(|(id, _)| *id == parent_id)
+                    {
+                        window.raw.request_redraw();
+                    }
+                }
+            }
             Event::EventLoopAwakened(event) => {
                 match event {
                     event::Event::NewEvents(event::StartCause::Init) => {
@@ -727,6 +1107,15 @@ async fn run_instance<P>(
                             &mut ui_caches,
                             &mut is_window_opening,
                             &mut system_theme,
+                            #[cfg(all(
+                                unix,
+                                not(any(
+                                    target_os = "macos",
+                                    target_os = "ios",
+                                    target_os = "android"
+                                ))
+                            ))]
+                            &mut popup_manager,
                         );
                         actions += 1;
                     }
@@ -843,6 +1232,15 @@ async fn run_instance<P>(
                                         &mut ui_caches,
                                         &mut is_window_opening,
                                         &mut system_theme,
+                                        #[cfg(all(
+                                            unix,
+                                            not(any(
+                                                target_os = "macos",
+                                                target_os = "ios",
+                                                target_os = "android"
+                                            ))
+                                        ))]
+                                        &mut popup_manager,
                                     );
                                 }
 
@@ -907,7 +1305,37 @@ async fn run_instance<P>(
                         {
                             window.request_redraw(redraw_request);
                             window.request_input_method(input_method);
-                            window.update_mouse(mouse_interaction);
+
+                            // Only update the parent window's cursor if no popup
+                            // currently owns cursor control. Otherwise the parent
+                            // window resets the cursor to Default on every frame,
+                            // fighting with the popup's Pointer cursor.
+                            #[cfg(all(
+                                unix,
+                                not(any(
+                                    target_os = "macos",
+                                    target_os = "ios",
+                                    target_os = "android"
+                                ))
+                            ))]
+                            let popup_has_cursor = popup_manager
+                                .iter()
+                                .any(|(_, p)| p.parent_id == id && p.configured)
+                                && popup_cursor_position.values().next().is_some();
+
+                            #[cfg(not(all(
+                                unix,
+                                not(any(
+                                    target_os = "macos",
+                                    target_os = "ios",
+                                    target_os = "android"
+                                ))
+                            )))]
+                            let popup_has_cursor = false;
+
+                            if !popup_has_cursor {
+                                window.update_mouse(mouse_interaction);
+                            }
 
                             resolve_dnd_icon_elements::<P, _>(
                                 &mut clipboard_requests,
@@ -964,6 +1392,97 @@ async fn run_instance<P>(
                         ) {
                             Ok(()) => {
                                 present_span.finish();
+
+                                // Render child popups for this window
+                                #[cfg(all(
+                                    unix,
+                                    not(any(
+                                        target_os = "macos",
+                                        target_os = "ios",
+                                        target_os = "android"
+                                    ))
+                                ))]
+                                {
+                                    for (_popup_id, popup) in popup_manager.iter_mut() {
+                                        // Only render popups that belong to this window
+                                        if popup.parent_id != id || !popup.configured {
+                                            continue;
+                                        }
+
+                                        if let (Some(surface), Some(renderer), Some(viewport)) = (
+                                            popup.surface.as_mut(),
+                                            popup.renderer.as_mut(),
+                                            popup.viewport.as_ref(),
+                                        ) {
+                                            // Build or rebuild popup UI using cached state
+                                            let popup_view = program.view(popup.iced_id);
+                                            let logical_size = viewport.logical_size();
+
+                                            let cache = ui_caches
+                                                .remove(&popup.iced_id)
+                                                .unwrap_or_default();
+
+                                            let mut popup_ui = UserInterface::build(
+                                                popup_view,
+                                                Size::new(logical_size.width, logical_size.height),
+                                                cache,
+                                                renderer,
+                                            );
+
+                                            // Get cursor position for this popup
+                                            let popup_cursor = popup_cursor_position
+                                                .get(&popup.iced_id)
+                                                .map(|pos| core::mouse::Cursor::Available(*pos))
+                                                .unwrap_or(core::mouse::Cursor::Unavailable);
+
+                                            // Send RedrawRequested through update() so widgets
+                                            // (like button) can update their visual status
+                                            // (hovered, pressed, etc.) based on cursor position.
+                                            let redraw_event = core::Event::Window(
+                                                window::Event::RedrawRequested(Instant::now()),
+                                            );
+                                            let (popup_state, _) = popup_ui.update(
+                                                std::slice::from_ref(&redraw_event),
+                                                popup_cursor,
+                                                renderer,
+                                                &mut messages,
+                                            );
+
+                                            // Draw the popup
+                                            let _ = popup_ui.draw(
+                                                renderer,
+                                                window.state.theme(),
+                                                &renderer::Style {
+                                                    text_color: window.state.text_color(),
+                                                },
+                                                popup_cursor,
+                                            );
+
+                                            // Update cursor icon on parent window based on popup interaction
+                                            if let user_interface::State::Updated {
+                                                mouse_interaction,
+                                                ..
+                                            } = popup_state
+                                            {
+                                                window.update_mouse(mouse_interaction);
+                                            }
+
+                                            // Cache the UI for next frame
+                                            let cache = popup_ui.into_cache();
+                                            let _ = ui_caches.insert(popup.iced_id, cache);
+
+                                            // Present the popup surface with transparent background
+                                            // so rounded corners and shadows render correctly
+                                            let _ = current_compositor.present(
+                                                renderer,
+                                                surface,
+                                                viewport,
+                                                crate::core::Color::TRANSPARENT,
+                                                || {},
+                                            );
+                                        }
+                                    }
+                                }
                             }
                             Err(error) => match error {
                                 compositor::SurfaceError::OutOfMemory => {
@@ -1060,9 +1579,57 @@ async fn run_instance<P>(
                                 &mut ui_caches,
                                 &mut is_window_opening,
                                 &mut system_theme,
+                                #[cfg(all(
+                                    unix,
+                                    not(any(
+                                        target_os = "macos",
+                                        target_os = "ios",
+                                        target_os = "android"
+                                    ))
+                                ))]
+                                &mut popup_manager,
                             );
                         } else {
                             window.state.update(&program, &window.raw, &window_event);
+
+                            // If a mouse button is pressed on a window that has active popups,
+                            // dismiss those popups (click-outside-to-close behavior).
+                            #[cfg(all(
+                                unix,
+                                not(any(
+                                    target_os = "macos",
+                                    target_os = "ios",
+                                    target_os = "android"
+                                ))
+                            ))]
+                            if matches!(
+                                window_event,
+                                winit::event::WindowEvent::MouseInput {
+                                    state: winit::event::ElementState::Pressed,
+                                    ..
+                                }
+                            ) {
+                                let child_popups: Vec<_> = popup_manager
+                                    .iter()
+                                    .filter(|(_, p)| p.parent_id == id && p.configured)
+                                    .map(|(pid, p)| (*pid, p.iced_id, p.winit_popup_id))
+                                    .collect();
+                                for (popup_id, iced_id, winit_id) in child_popups {
+                                    let _ = ui_caches.remove(&iced_id);
+                                    let _ = user_interfaces.remove(&iced_id);
+                                    let _ = popup_cursor_position.remove(&iced_id);
+                                    let _ = popup_manager.remove(popup_id);
+                                    events.push((
+                                        iced_id,
+                                        core::Event::Window(core::window::Event::Closed),
+                                    ));
+                                    if let Some(wid) = winit_id {
+                                        let _ = control_sender.start_send(Control::DestroyPopup {
+                                            winit_popup_id: wid,
+                                        });
+                                    }
+                                }
+                            }
 
                             if let Some(event) = conversion::window_event(
                                 window_event,
@@ -1194,6 +1761,79 @@ async fn run_instance<P>(
                             interact_span.finish();
                         }
 
+                        // Process popup events
+                        #[cfg(all(
+                            unix,
+                            not(any(
+                                target_os = "macos",
+                                target_os = "ios",
+                                target_os = "android"
+                            ))
+                        ))]
+                        {
+                            for (_popup_id, popup) in popup_manager.iter_mut() {
+                                if !popup.configured {
+                                    continue;
+                                }
+
+                                let iced_id = popup.iced_id;
+                                let mut popup_events = vec![];
+
+                                events.retain(|(window_id, event)| {
+                                    if *window_id == iced_id {
+                                        popup_events.push(event.clone());
+                                        false
+                                    } else {
+                                        true
+                                    }
+                                });
+
+                                if popup_events.is_empty() {
+                                    continue;
+                                }
+
+                                if let (Some(renderer), Some(viewport)) =
+                                    (popup.renderer.as_mut(), popup.viewport.as_ref())
+                                {
+                                    let popup_view = program.view(iced_id);
+                                    let logical_size = viewport.logical_size();
+
+                                    let cache = ui_caches.remove(&iced_id).unwrap_or_default();
+
+                                    let mut popup_ui = UserInterface::build(
+                                        popup_view,
+                                        Size::new(logical_size.width, logical_size.height),
+                                        cache,
+                                        renderer,
+                                    );
+
+                                    let popup_cursor = popup_cursor_position
+                                        .get(&iced_id)
+                                        .map(|pos| core::mouse::Cursor::Available(*pos))
+                                        .unwrap_or(core::mouse::Cursor::Unavailable);
+
+                                    let (_ui_state, _statuses) = popup_ui.update(
+                                        &popup_events,
+                                        popup_cursor,
+                                        renderer,
+                                        &mut messages,
+                                    );
+
+                                    // Cache the UI for rendering
+                                    let cache = popup_ui.into_cache();
+                                    let _ = ui_caches.insert(iced_id, cache);
+
+                                    // Request parent window redraw to trigger popup re-render
+                                    if let Some((_id, parent_window)) = window_manager
+                                        .iter_mut()
+                                        .find(|(wid, _)| *wid == popup.parent_id)
+                                    {
+                                        parent_window.raw.request_redraw();
+                                    }
+                                }
+                            }
+                        }
+
                         for (id, event) in events.drain(..) {
                             runtime.broadcast(subscription::Event::Interaction {
                                 window: id,
@@ -1232,6 +1872,15 @@ async fn run_instance<P>(
                                     &mut ui_caches,
                                     &mut is_window_opening,
                                     &mut system_theme,
+                                    #[cfg(all(
+                                        unix,
+                                        not(any(
+                                            target_os = "macos",
+                                            target_os = "ios",
+                                            target_os = "android"
+                                        ))
+                                    ))]
+                                    &mut popup_manager,
                                 );
                             }
 
@@ -1347,6 +1996,11 @@ fn run_action<'a, P, C>(
     ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
     is_window_opening: &mut bool,
     system_theme: &mut theme::Mode,
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    popup_manager: &mut popup::PopupManager<P, C>,
 ) where
     P: Program,
     C: Compositor<Renderer = P::Renderer> + 'static,
@@ -1354,6 +2008,7 @@ fn run_action<'a, P, C>(
 {
     use crate::core::Renderer as _;
     use crate::runtime::clipboard;
+    use crate::runtime::user_interface::{self, UserInterface};
     use crate::runtime::window;
 
     match action {
@@ -2183,6 +2838,168 @@ fn run_action<'a, P, C>(
                 .start_send(Control::Exit)
                 .expect("Send control action");
         }
+        #[cfg(all(
+            unix,
+            not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+        ))]
+        Action::PlatformSpecific(action) => {
+            use crate::runtime::platform_specific;
+
+            match action {
+                platform_specific::Action::Wayland(wayland_action) => {
+                    use crate::runtime::platform_specific::wayland::{
+                        Action as WaylandAction, popup,
+                    };
+
+                    match wayland_action {
+                        WaylandAction::Popup(popup_action) => match popup_action {
+                            popup::Action::Show { settings } => {
+                                // Get the parent window's winit ID from the window manager
+                                let parent_winit_id = match window_manager.get(settings.parent) {
+                                    Some(parent_window) => parent_window.raw.id(),
+                                    None => {
+                                        tracing::warn!(
+                                            "Parent window {:?} not found for popup",
+                                            settings.parent
+                                        );
+                                        return;
+                                    }
+                                };
+
+                                // Destroy any existing popups for this parent
+                                let existing: Vec<_> = popup_manager
+                                    .iter()
+                                    .filter(|(_, p)| p.parent_id == settings.parent)
+                                    .map(|(id, p)| (*id, p.iced_id, p.winit_popup_id))
+                                    .collect();
+                                for (popup_id, iced_id, winit_id) in existing {
+                                    let _ = ui_caches.remove(&iced_id);
+                                    let _ = interfaces.remove(&iced_id);
+                                    let _ = popup_manager.remove(popup_id);
+                                    events.push((
+                                        iced_id,
+                                        core::Event::Window(core::window::Event::Closed),
+                                    ));
+                                    if let Some(wid) = winit_id {
+                                        let _ = control_sender.start_send(Control::DestroyPopup {
+                                            winit_popup_id: wid,
+                                        });
+                                    }
+                                }
+
+                                // Determine popup size: use explicit size or auto-measure content
+                                let anchor_rect = settings.positioner.anchor_rect;
+                                let shadow_pad = settings.positioner.shadow_padding;
+                                let (size, window_geometry) =
+                                    if let Some(size) = settings.positioner.size {
+                                        (size, settings.positioner.window_geometry)
+                                    } else if let Some(comp) = compositor.as_mut() {
+                                        // Auto-size: measure the popup content to determine size
+                                        let mut measure_renderer = comp.create_renderer();
+                                        let popup_view = program.view(settings.id);
+                                        let max_size = settings.positioner.size_limits.max();
+                                        let ui = UserInterface::build(
+                                            popup_view,
+                                            max_size,
+                                            user_interface::Cache::default(),
+                                            &mut measure_renderer,
+                                        );
+                                        let content = ui.content_size();
+                                        let w = content.width.ceil() as u32;
+                                        let h = content.height.ceil() as u32;
+                                        // Compute window_geometry from shadow_padding
+                                        let wg = if shadow_pad > 0 {
+                                            let sp = shadow_pad as i32;
+                                            let inner_w = w as i32 - 2 * sp;
+                                            let inner_h = h as i32 - 2 * sp;
+                                            if inner_w > 0 && inner_h > 0 {
+                                                Some((sp, sp, inner_w, inner_h))
+                                            } else {
+                                                None
+                                            }
+                                        } else {
+                                            settings.positioner.window_geometry
+                                        };
+                                        ((w, h), wg)
+                                    } else {
+                                        ((200, 200), settings.positioner.window_geometry)
+                                    };
+
+                                control_sender
+                                    .start_send(Control::CreatePopup {
+                                        id: settings.id,
+                                        parent_iced_id: settings.parent,
+                                        parent_winit_id,
+                                        size,
+                                        anchor_rect: (
+                                            anchor_rect.x,
+                                            anchor_rect.y,
+                                            anchor_rect.width,
+                                            anchor_rect.height,
+                                        ),
+                                        anchor: settings.positioner.anchor as u32,
+                                        gravity: settings.positioner.gravity as u32,
+                                        offset: settings.positioner.offset,
+                                        constraint_adjustment: settings
+                                            .positioner
+                                            .constraint_adjustment,
+                                        grab: settings.grab,
+                                        window_geometry,
+                                    })
+                                    .expect("Send control action");
+
+                                *is_window_opening = true;
+                            }
+                            popup::Action::Hide { id } => {
+                                // Close the popup - remove from popup_manager and destroy winit surface
+                                let _ = ui_caches.remove(&id);
+                                let _ = interfaces.remove(&id);
+
+                                if let Some(removed) = popup_manager.remove_by_iced_id(id) {
+                                    events.push((
+                                        id,
+                                        core::Event::Window(core::window::Event::Closed),
+                                    ));
+                                    // Actually destroy the winit popup surface
+                                    if let Some(winit_id) = removed.winit_popup_id {
+                                        let _ = control_sender.start_send(Control::DestroyPopup {
+                                            winit_popup_id: winit_id,
+                                        });
+                                    }
+                                } else {
+                                    tracing::warn!("Popup {:?} not found in popup_manager", id);
+                                }
+                            }
+                            popup::Action::Resize { id, width, height } => {
+                                if let Some(comp) = compositor.as_mut() {
+                                    if let Some((winit_id, parent_id)) =
+                                        popup_manager.resize(id, width, height, comp)
+                                    {
+                                        let _ = control_sender.start_send(Control::ResizePopup {
+                                            winit_popup_id: winit_id,
+                                            width,
+                                            height,
+                                        });
+
+                                        if let Some(parent) = window_manager.get_mut(parent_id) {
+                                            parent.raw.request_redraw();
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    }
+                }
+            }
+        }
+        #[cfg(not(all(
+            unix,
+            not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+        )))]
+        Action::PlatformSpecific(action) => {
+            // Platform-specific actions not supported on this platform
+            let _ = action;
+        }
     }
 }
 
@@ -2196,6 +3013,8 @@ where
     C: Compositor<Renderer = P::Renderer>,
     P::Theme: theme::Base,
 {
+    use crate::core::Renderer as _;
+
     for (id, window) in window_manager.iter_mut() {
         window.state.synchronize(program, id, &window.raw);
 

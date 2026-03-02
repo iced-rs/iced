@@ -13,6 +13,7 @@ pub mod clipboard;
 pub mod font;
 pub mod image;
 pub mod keyboard;
+pub mod platform_specific;
 pub mod system;
 pub mod task;
 pub mod user_interface;
@@ -74,6 +75,9 @@ pub enum Action<T> {
     /// Recreate all user interfaces and redraw all windows.
     Reload,
 
+    /// Run a platform-specific action.
+    PlatformSpecific(platform_specific::Action),
+
     /// Exits the runtime.
     ///
     /// This will normally close any application windows and
@@ -99,6 +103,7 @@ impl<T> Action<T> {
             Action::Event { window, event } => Err(Action::Event { window, event }),
             Action::Tick => Err(Action::Tick),
             Action::Reload => Err(Action::Reload),
+            Action::PlatformSpecific(action) => Err(Action::PlatformSpecific(action)),
             Action::Exit => Err(Action::Exit),
         }
     }
@@ -129,6 +134,9 @@ where
             ),
             Action::Tick => write!(f, "Action::Tick"),
             Action::Reload => write!(f, "Action::Reload"),
+            Action::PlatformSpecific(action) => {
+                write!(f, "Action::PlatformSpecific({action:?})")
+            }
             Action::Exit => write!(f, "Action::Exit"),
         }
     }

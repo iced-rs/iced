@@ -648,6 +648,45 @@ pub mod surface_visibility {
     pub use crate::core::surface_visibility::Event;
 }
 
+/// Wayland-specific functionality.
+///
+/// This module provides types and actions for Wayland-specific features
+/// like popup surfaces that can appear outside the parent window bounds.
+#[cfg(feature = "wayland")]
+pub mod wayland {
+    /// Popup surface support.
+    pub mod popup {
+        //! Types and actions for Wayland xdg_popup surfaces.
+        //!
+        //! Popup surfaces are transient windows that appear relative to a parent
+        //! surface and can extend outside the parent window bounds. They're commonly
+        //! used for dropdown menus, context menus, and tooltips.
+        //!
+        //! # Example
+        //!
+        //! ```no_run,ignore
+        //! use iced::wayland::popup::{self, Anchor, Gravity, PopupSettings, Positioner};
+        //! use iced::window::Id;
+        //! use iced::Task;
+        //!
+        //! fn show_context_menu(parent: Id, x: i32, y: i32) -> Task<Message> {
+        //!     popup::show(PopupSettings {
+        //!         parent,
+        //!         id: Id::unique(),
+        //!         positioner: Positioner {
+        //!             anchor_rect: iced::Rectangle { x, y, width: 1, height: 1 },
+        //!             anchor: Anchor::BottomLeft,
+        //!             gravity: Gravity::BottomRight,
+        //!             ..Default::default()
+        //!         },
+        //!         grab: false,
+        //!     })
+        //! }
+        //! ```
+        pub use crate::runtime::platform_specific::wayland::popup::*;
+    }
+}
+
 #[allow(hidden_glob_reexports)]
 pub mod widget {
     //! Use the built-in widgets or create your own.
