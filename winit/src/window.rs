@@ -2,7 +2,8 @@ mod state;
 
 use state::State;
 
-pub use crate::core::window::{Event, Id, RedrawRequest, Settings};
+use crate::CursorRegistry;
+pub use crate::core::window::{Event, Id, RedrawRequest, Settings, cursor};
 
 use crate::conversion;
 use crate::core::alignment;
@@ -236,9 +237,17 @@ where
         }
     }
 
-    pub fn update_mouse(&mut self, interaction: mouse::Interaction) {
+    pub fn update_mouse(
+        &mut self,
+        cursor_registry: &CursorRegistry,
+        interaction: mouse::Interaction,
+    ) {
         if interaction != self.mouse_interaction {
-            if let Some(icon) = conversion::mouse_interaction(interaction) {
+            if let mouse::Interaction::Custom(id) = interaction {
+                if let Some(cursor) = cursor_registry.get(&id) {
+                    self.raw.set_cursor(cursor.clone());
+                }
+            } else if let Some(icon) = conversion::mouse_interaction(interaction) {
                 self.raw.set_cursor(icon);
 
                 if self.mouse_interaction == mouse::Interaction::Hidden {
