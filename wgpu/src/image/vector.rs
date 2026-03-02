@@ -7,6 +7,7 @@ use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
 use std::panic;
+#[cfg(feature = "svg-text")]
 use std::sync::Arc;
 
 /// Entry in cache corresponding to an svg handle
@@ -39,6 +40,7 @@ pub struct Cache {
     svg_hits: FxHashSet<u64>,
     rasterized_hits: FxHashSet<(u64, u32, u32, ColorFilter)>,
     should_trim: bool,
+    #[cfg(feature = "svg-text")]
     fontdb: Option<Arc<usvg::fontdb::Database>>,
 }
 
@@ -52,6 +54,7 @@ impl Cache {
         }
 
         // TODO: Reuse `cosmic-text` font database
+        #[cfg(feature = "svg-text")]
         if self.fontdb.is_none() {
             let mut fontdb = usvg::fontdb::Database::new();
             fontdb.load_system_fonts();
@@ -60,6 +63,7 @@ impl Cache {
         }
 
         let options = usvg::Options {
+            #[cfg(feature = "svg-text")]
             fontdb: self
                 .fontdb
                 .as_ref()
