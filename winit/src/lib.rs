@@ -1170,6 +1170,10 @@ async fn run_instance<P>(
 
                         let interact_span = debug::interact(id);
                         let mut redraw_count = 0;
+                        // Accumulate clipboard/DnD requests across redraw loop
+                        // iterations so they aren't silently dropped when the
+                        // loop continues past an iteration that produced them.
+                        let mut accumulated_clipboard = core::Clipboard::new();
 
                         let state = loop {
                             let message_count = messages.len();
@@ -1184,13 +1188,43 @@ async fn run_instance<P>(
                                 break state;
                             }
 
+                            // Before continuing the loop, preserve any clipboard
+                            // requests from this iteration.
+                            match &state {
+                                user_interface::State::Updated { clipboard: cb, .. }
+                                | user_interface::State::Outdated { clipboard: cb } => {
+                                    if !cb.dnd_requests.is_empty() {
+                                        tracing::trace!(
+                                            count = cb.dnd_requests.len(),
+                                            redraw_count,
+                                            "[REDRAW LOOP] saving {} DnD requests from iteration before continuing",
+                                            cb.dnd_requests.len()
+                                        );
+                                    }
+                                }
+                            }
+                            // Move clipboard out of state before dropping it
+                            let mut intermediate_clipboard = match state {
+                                user_interface::State::Updated { clipboard: cb, .. }
+                                | user_interface::State::Outdated { clipboard: cb } => cb,
+                            };
+                            accumulated_clipboard.merge(&mut intermediate_clipboard);
+
                             if redraw_count >= 2 {
                                 log::warn!(
                                     "More than 3 consecutive RedrawRequested events \
                                     produced layout invalidation"
                                 );
 
-                                break state;
+                                // Build a minimal state to break with, carrying
+                                // accumulated clipboard requests.
+                                let (final_state, _) = interface.update(
+                                    &[],
+                                    cursor,
+                                    &mut window.renderer,
+                                    &mut messages,
+                                );
+                                break final_state;
                             }
 
                             redraw_count += 1;
@@ -1303,6 +1337,16 @@ async fn run_instance<P>(
                             ..
                         } = state
                         {
+                            // Merge any DnD/clipboard requests that were
+                            // accumulated from earlier redraw-loop iterations.
+                            clipboard_requests.merge(&mut accumulated_clipboard);
+                            if !clipboard_requests.dnd_requests.is_empty() {
+                                tracing::trace!(
+                                    count = clipboard_requests.dnd_requests.len(),
+                                    "[REDRAW] processing DnD requests (after merge)"
+                                );
+                            }
+
                             window.request_redraw(redraw_request);
                             window.request_input_method(input_method);
 
@@ -1356,6 +1400,15 @@ async fn run_instance<P>(
                             clipboard: mut clipboard_requests,
                         } = state
                         {
+                            // Merge accumulated requests from earlier iterations.
+                            clipboard_requests.merge(&mut accumulated_clipboard);
+                            if !clipboard_requests.dnd_requests.is_empty() {
+                                tracing::trace!(
+                                    count = clipboard_requests.dnd_requests.len(),
+                                    "[REDRAW Outdated] processing DnD requests (after merge)"
+                                );
+                            }
+
                             // Ensure DnD/clipboard requests are not lost when UI is outdated during redraw.
                             resolve_dnd_icon_elements::<P, _>(
                                 &mut clipboard_requests,
@@ -1687,7 +1740,8 @@ async fn run_instance<P>(
                                 | user_interface::State::Outdated { clipboard: cb } => {
                                     if !cb.dnd_requests.is_empty() {
                                         tracing::trace!(
-                                            "[WINIT] ui_state has {} dnd_requests",
+                                            count = cb.dnd_requests.len(),
+                                            "[EVENT] ui_state has {} DnD requests after event processing",
                                             cb.dnd_requests.len()
                                         );
                                     }
@@ -3118,6 +3172,13 @@ fn resolve_dnd_icon_elements<P, C>(
     C: Compositor<Renderer = P::Renderer>,
     P::Renderer: 'static,
 {
+    if !clipboard_requests.dnd_requests.is_empty() {
+        tracing::trace!(
+            count = clipboard_requests.dnd_requests.len(),
+            "resolve_dnd_icon_elements: processing {} DnD requests",
+            clipboard_requests.dnd_requests.len()
+        );
+    }
     for req in &mut clipboard_requests.dnd_requests {
         if let core::dnd::Request::StartDrag { icon, .. } = req {
             let needs_render = matches!(icon, Some(core::dnd::DndIcon::Element(_)));
@@ -3199,6 +3260,16 @@ fn resolve_dnd_icon_elements<P, C>(
                     let w = icon_viewport.physical_width();
                     let h = icon_viewport.physical_height();
                     let scale_int = icon_scale.ceil() as i32;
+
+                    tracing::debug!(
+                        w,
+                        h,
+                        scale = scale_int,
+                        bytes_len = bytes.len(),
+                        logical_w = size.width,
+                        logical_h = size.height,
+                        "resolve_dnd_icon_elements: rendered icon to pixels"
+                    );
 
                     *icon = Some(core::dnd::DndIcon::Pixels {
                         width: w,
@@ -3295,12 +3366,16 @@ fn run_clipboard<Message: Send>(
                             }
                             None => None,
                         };
+                        let has_icon = icon_data.is_some();
+                        let icon_dims = icon_data
+                            .as_ref()
+                            .map(|(w, h, _, s)| format!("{}x{} scale={}", w, h, s));
                         let (ok, _mime_types, _data) =
                             raw.start_drag(mime_types, action_bits, data, icon_data);
                         if ok {
-                            tracing::trace!("DnD: start_drag succeeded");
+                            tracing::trace!(has_icon, ?icon_dims, "DnD: start_drag succeeded");
                         } else {
-                            tracing::warn!("DnD: start_drag failed");
+                            tracing::warn!(has_icon, ?icon_dims, "DnD: start_drag failed");
                         }
                     }
                     core::dnd::Request::AcceptMimeType(mime) => {
