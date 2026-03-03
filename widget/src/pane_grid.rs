@@ -76,7 +76,7 @@ pub use node::Node;
 pub use pane::Pane;
 pub use split::Split;
 pub use state::State;
-pub use title_bar::TitleBar;
+pub use title_bar::{ShowControls, TitleBar};
 
 use crate::container;
 use crate::core::layout;
