@@ -31,9 +31,9 @@ use std::fmt;
 ///
 /// If you want to run a simulation without side effects, use a [`Simulator`](crate::Simulator)
 /// instead.
-pub struct Emulator<P: Program<Custom = ()>> {
+pub struct Emulator<P: Program> {
     state: P::State,
-    runtime: Runtime<P::Executor, mpsc::Sender<Event<P>>, Event<P>>,
+    runtime: Runtime<P::Executor, mpsc::Sender<Event<P>>, Event<P>, P::Custom>,
     renderer: P::Renderer,
     mode: Mode,
     size: Size,
@@ -44,7 +44,7 @@ pub struct Emulator<P: Program<Custom = ()>> {
 }
 
 /// An emulation event.
-pub enum Event<P: Program<Custom = ()>> {
+pub enum Event<P: Program> {
     /// An action that must be [performed](Emulator::perform) by the [`Emulator`].
     Action(Action<P>),
     /// An [`Instruction`] failed to be executed.
@@ -54,14 +54,14 @@ pub enum Event<P: Program<Custom = ()>> {
 }
 
 /// An action that must be [performed](Emulator::perform) by the [`Emulator`].
-pub struct Action<P: Program<Custom = ()>>(Action_<P>);
+pub struct Action<P: Program>(Action_<P>);
 
-enum Action_<P: Program<Custom = ()>> {
-    Runtime(runtime::Action<P::Message>),
+enum Action_<P: Program> {
+    Runtime(runtime::Action<P::Message, P::Custom>),
     CountDown,
 }
 
-impl<P: Program<Custom = ()> + 'static> Emulator<P> {
+impl<P: Program + 'static> Emulator<P> {
     /// Creates a new [`Emulator`] of the [`Program`] with the given [`Mode`] and [`Size`].
     ///
     /// The [`Emulator`] will send [`Event`] notifications through the provided [`mpsc::Sender`].

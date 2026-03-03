@@ -47,7 +47,7 @@ pub struct Attach<P> {
 
 impl<P> Program for Attach<P>
 where
-    P: Program<Custom = ()> + 'static,
+    P: Program + 'static,
 {
     type State = Tester<P>;
     type Message = Message<P>;
@@ -110,7 +110,7 @@ where
 /// A tester decorates a [`Program`] definition and attaches a test recorder on top.
 ///
 /// It can be used to both record and play [`Ice`] tests.
-pub struct Tester<P: Program<Custom = ()>> {
+pub struct Tester<P: Program> {
     viewport: Size,
     mode: emulator::Mode,
     presets: combo_box::State<String>,
@@ -120,7 +120,7 @@ pub struct Tester<P: Program<Custom = ()>> {
     edit: Option<text_editor::Content<P::Renderer>>,
 }
 
-enum State<P: Program<Custom = ()>> {
+enum State<P: Program> {
     Empty,
     Idle {
         state: P::State,
@@ -147,7 +147,7 @@ enum Outcome {
 }
 
 /// The message of a [`Tester`].
-pub struct Message<P: Program<Custom = ()>>(Tick<P>);
+pub struct Message<P: Program>(Tick<P>);
 
 #[derive(Debug, Clone)]
 enum Event {
@@ -165,7 +165,7 @@ enum Event {
     Confirm,
 }
 
-enum Tick<P: Program<Custom = ()>> {
+enum Tick<P: Program> {
     Tester(Event),
     Program(P::Message),
     Emulator(emulator::Event<P>),
@@ -173,7 +173,7 @@ enum Tick<P: Program<Custom = ()>> {
     Assert(instruction::Interaction),
 }
 
-impl<P: Program<Custom = ()> + 'static> Tester<P> {
+impl<P: Program + 'static> Tester<P> {
     fn new(program: &P) -> Self {
         let (state, _) = program.boot();
         let window = program.window().unwrap_or_default();
