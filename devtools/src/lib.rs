@@ -49,6 +49,7 @@ where
     type Theme = P::Theme;
     type Renderer = P::Renderer;
     type Executor = P::Executor;
+    type Custom = P::Custom;
 
     fn name() -> &'static str {
         P::name()
@@ -62,7 +63,7 @@ where
         self.program.window()
     }
 
-    fn boot(&self) -> (Self::State, Task<Self::Message>) {
+    fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
         let (state, boot) = self.program.boot();
         let (devtools, task) = DevTools::new(state);
 
@@ -72,7 +73,11 @@ where
         )
     }
 
-    fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
+    fn update(
+        &self,
+        state: &mut Self::State,
+        message: Self::Message,
+    ) -> Task<Self::Message, Self::Custom> {
         state.update(&self.program, message)
     }
 
@@ -88,7 +93,7 @@ where
         state.title(&self.program, window)
     }
 
-    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message, Self::Custom> {
         state.subscription(&self.program)
     }
 
@@ -146,7 +151,7 @@ where
     P: Program + 'static,
     P::Message: std::fmt::Debug + message::MaybeClone,
 {
-    pub fn new(state: P::State) -> (Self, Task<Message>) {
+    pub fn new(state: P::State) -> (Self, Task<Message, P::Custom>) {
         (
             Self {
                 state,
@@ -166,7 +171,7 @@ where
         program.title(&self.state, window)
     }
 
-    pub fn update(&mut self, program: &P, event: Event<P>) -> Task<Event<P>> {
+    pub fn update(&mut self, program: &P, event: Event<P>) -> Task<Event<P>, P::Custom> {
         match event {
             Event::Message(message) => match message {
                 Message::HideNotification => {
@@ -355,7 +360,7 @@ where
             .into()
     }
 
-    pub fn subscription(&self, program: &P) -> Subscription<Event<P>> {
+    pub fn subscription(&self, program: &P) -> Subscription<Event<P>, P::Custom> {
         let subscription = program.subscription(&self.state).map(Event::Program);
         debug::subscriptions_tracked(subscription.units());
 

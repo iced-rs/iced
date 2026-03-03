@@ -1,6 +1,7 @@
 //! Listen and react to time.
 pub use crate::core::time::*;
 
+use iced_futures::MaybeSend;
 #[allow(unused_imports)]
 #[cfg_attr(
     docsrs,
@@ -18,6 +19,9 @@ use crate::Task;
 ///
 /// You may care about purity if you want to leverage the `time-travel`
 /// feature properly.
-pub fn now() -> Task<Instant> {
+pub fn now<Custom>() -> Task<Instant, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     Task::future(async { Instant::now() })
 }

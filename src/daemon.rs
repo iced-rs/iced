@@ -22,10 +22,10 @@ use std::borrow::Cow;
 ///
 /// [`exit`]: crate::exit
 pub fn daemon<State, Message, Theme, Renderer>(
-    boot: impl application::BootFn<State, Message>,
-    update: impl application::UpdateFn<State, Message>,
+    boot: impl application::BootFn<State, Message, ()>,
+    update: impl application::UpdateFn<State, Message, ()>,
     view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
-) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme>>
+) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme, Custom = ()>>
 where
     State: 'static,
     Message: Send + 'static,
@@ -58,6 +58,7 @@ where
         type Message = Message;
         type Theme = Theme;
         type Renderer = Renderer;
+        type Custom = ();
         type Executor = iced_futures::backend::default::Executor;
 
         fn name() -> &'static str {
@@ -74,11 +75,15 @@ where
             None
         }
 
-        fn boot(&self) -> (Self::State, Task<Self::Message>) {
+        fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
             self.boot.boot()
         }
 
-        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
+        fn update(
+            &self,
+            state: &mut Self::State,
+            message: Self::Message,
+        ) -> Task<Self::Message, Self::Custom> {
             self.update.update(state, message)
         }
 
@@ -117,10 +122,10 @@ where
 pub struct Daemon<P: Program> {
     raw: P,
     settings: Settings,
-    presets: Vec<Preset<P::State, P::Message>>,
+    presets: Vec<Preset<P::State, P::Message, P::Custom>>,
 }
 
-impl<P: Program> Daemon<P> {
+impl<P: Program<Custom = ()>> Daemon<P> {
     /// Runs the [`Daemon`].
     pub fn run(self) -> Result
     where
@@ -183,7 +188,9 @@ impl<P: Program> Daemon<P> {
     pub fn title(
         self,
         title: impl TitleFn<P::State>,
-    ) -> Daemon<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>> {
+    ) -> Daemon<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    > {
         Daemon {
             raw: program::with_title(self.raw, move |state, window| title.title(state, window)),
             settings: self.settings,
@@ -194,8 +201,10 @@ impl<P: Program> Daemon<P> {
     /// Sets the subscription logic of the [`Daemon`].
     pub fn subscription(
         self,
-        f: impl Fn(&P::State) -> Subscription<P::Message>,
-    ) -> Daemon<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>> {
+        f: impl Fn(&P::State) -> Subscription<P::Message, P::Custom>,
+    ) -> Daemon<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    > {
         Daemon {
             raw: program::with_subscription(self.raw, f),
             settings: self.settings,
@@ -207,7 +216,9 @@ impl<P: Program> Daemon<P> {
     pub fn theme(
         self,
         f: impl ThemeFn<P::State, P::Theme>,
-    ) -> Daemon<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>> {
+    ) -> Daemon<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    > {
         Daemon {
             raw: program::with_theme(self.raw, move |state, window| f.theme(state, window)),
             settings: self.settings,
@@ -219,7 +230,9 @@ impl<P: Program> Daemon<P> {
     pub fn style(
         self,
         f: impl Fn(&P::State, &P::Theme) -> theme::Style,
-    ) -> Daemon<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>> {
+    ) -> Daemon<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    > {
         Daemon {
             raw: program::with_style(self.raw, f),
             settings: self.settings,
@@ -231,7 +244,9 @@ impl<P: Program> Daemon<P> {
     pub fn scale_factor(
         self,
         f: impl Fn(&P::State, window::Id) -> f32,
-    ) -> Daemon<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>> {
+    ) -> Daemon<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    > {
         Daemon {
             raw: program::with_scale_factor(self.raw, f),
             settings: self.settings,
@@ -242,7 +257,9 @@ impl<P: Program> Daemon<P> {
     /// Sets the executor of the [`Daemon`].
     pub fn executor<E>(
         self,
-    ) -> Daemon<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>>
+    ) -> Daemon<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    >
     where
         E: Executor,
     {
@@ -258,7 +275,10 @@ impl<P: Program> Daemon<P> {
     /// Presets can be used to override the default booting strategy
     /// of your application during testing to create reproducible
     /// environments.
-    pub fn presets(self, presets: impl IntoIterator<Item = Preset<P::State, P::Message>>) -> Self {
+    pub fn presets(
+        self,
+        presets: impl IntoIterator<Item = Preset<P::State, P::Message, P::Custom>>,
+    ) -> Self {
         Self {
             presets: presets.into_iter().collect(),
             ..self
@@ -272,6 +292,7 @@ impl<P: Program> Program for Daemon<P> {
     type Theme = P::Theme;
     type Renderer = P::Renderer;
     type Executor = P::Executor;
+    type Custom = P::Custom;
 
     fn name() -> &'static str {
         P::name()
@@ -285,11 +306,15 @@ impl<P: Program> Program for Daemon<P> {
         None
     }
 
-    fn boot(&self) -> (Self::State, Task<Self::Message>) {
+    fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
         self.raw.boot()
     }
 
-    fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
+    fn update(
+        &self,
+        state: &mut Self::State,
+        message: Self::Message,
+    ) -> Task<Self::Message, Self::Custom> {
         debug::hot(|| self.raw.update(state, message))
     }
 
@@ -305,7 +330,7 @@ impl<P: Program> Program for Daemon<P> {
         debug::hot(|| self.raw.title(state, window))
     }
 
-    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message, Self::Custom> {
         debug::hot(|| self.raw.subscription(state))
     }
 
@@ -321,7 +346,7 @@ impl<P: Program> Program for Daemon<P> {
         debug::hot(|| self.raw.scale_factor(state, window))
     }
 
-    fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
+    fn presets(&self) -> &[Preset<Self::State, Self::Message, Self::Custom>] {
         &self.presets
     }
 }

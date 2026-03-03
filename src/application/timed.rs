@@ -20,11 +20,13 @@ use iced_debug as debug;
 ///
 /// [`comet`]: https://github.com/iced-rs/comet
 pub fn timed<State, Message, Theme, Renderer>(
-    boot: impl BootFn<State, Message>,
-    update: impl UpdateFn<State, Message>,
+    boot: impl BootFn<State, Message, ()>,
+    update: impl UpdateFn<State, Message, ()>,
     subscription: impl Fn(&State) -> Subscription<Message>,
     view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
-) -> Application<impl Program<State = State, Message = (Message, Instant), Theme = Theme>>
+) -> Application<
+    impl Program<State = State, Message = (Message, Instant), Theme = Theme, Custom = ()>,
+>
 where
     State: 'static,
     Message: Send + 'static,
@@ -51,7 +53,7 @@ where
         Theme: theme::Base + 'static,
         Renderer: program::Renderer + 'static,
         Boot: self::BootFn<State, Message>,
-        Update: self::UpdateFn<State, Message>,
+        Update: self::UpdateFn<State, Message, ()>,
         Subscription: Fn(&State) -> self::Subscription<Message>,
         View: for<'a> self::ViewFn<'a, State, Message, Theme, Renderer>,
     {
@@ -59,6 +61,7 @@ where
         type Message = (Message, Instant);
         type Theme = Theme;
         type Renderer = Renderer;
+        type Custom = ();
         type Executor = iced_futures::backend::default::Executor;
 
         fn name() -> &'static str {
@@ -75,7 +78,7 @@ where
             Some(window::Settings::default())
         }
 
-        fn boot(&self) -> (State, Task<Self::Message>) {
+        fn boot(&self) -> (State, Task<Self::Message, Self::Custom>) {
             let (state, task) = self.boot.boot();
 
             (state, task.map(|message| (message, Instant::now())))
@@ -85,7 +88,7 @@ where
             &self,
             state: &mut Self::State,
             (message, now): Self::Message,
-        ) -> Task<Self::Message> {
+        ) -> Task<Self::Message, Self::Custom> {
             debug::hot(move || {
                 self.update
                     .update(state, message, now)
@@ -132,33 +135,41 @@ where
 ///
 /// This is like [`application::UpdateFn`](super::UpdateFn),
 /// but it also takes an [`Instant`].
-pub trait UpdateFn<State, Message> {
+pub trait UpdateFn<State, Message, Custom> {
     /// Processes the message and updates the state of the [`Application`].
-    fn update(&self, state: &mut State, message: Message, now: Instant)
-    -> impl Into<Task<Message>>;
+    fn update(
+        &self,
+        state: &mut State,
+        message: Message,
+        now: Instant,
+    ) -> impl Into<Task<Message, Custom>>;
 }
 
-impl<State, Message> UpdateFn<State, Message> for () {
+impl<State, Message, Custom> UpdateFn<State, Message, Custom> for ()
+where
+    Custom: Send + 'static,
+{
     fn update(
         &self,
         _state: &mut State,
         _message: Message,
         _now: Instant,
-    ) -> impl Into<Task<Message>> {
+    ) -> impl Into<Task<Message, Custom>> {
     }
 }
 
-impl<T, State, Message, C> UpdateFn<State, Message> for T
+impl<T, State, Message, C, Custom> UpdateFn<State, Message, Custom> for T
 where
     T: Fn(&mut State, Message, Instant) -> C,
-    C: Into<Task<Message>>,
+    C: Into<Task<Message, Custom>>,
+    Custom: Send + 'static,
 {
     fn update(
         &self,
         state: &mut State,
         message: Message,
         now: Instant,
-    ) -> impl Into<Task<Message>> {
+    ) -> impl Into<Task<Message, Custom>> {
         self(state, message, now)
     }
 }

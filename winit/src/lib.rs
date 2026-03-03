@@ -67,7 +67,7 @@ use std::sync::Arc;
 /// Runs a [`Program`] with the provided settings.
 pub fn run<P>(program: P) -> Result<(), Error>
 where
-    P: Program + 'static,
+    P: Program<Custom = ()> + 'static,
     P::Theme: theme::Base,
 {
     use winit::event_loop::EventLoop;
@@ -477,7 +477,7 @@ async fn run_instance<P>(
     default_fonts: Vec<Cow<'static, [u8]>>,
     mut _system_theme: oneshot::Receiver<theme::Mode>,
 ) where
-    P: Program + 'static,
+    P: Program<Custom = ()> + 'static,
     P::Theme: theme::Base,
 {
     use winit::event;
@@ -1204,7 +1204,7 @@ where
     user_interface
 }
 
-fn update<P: Program, E: Executor>(
+fn update<P: Program<Custom = ()>, E: Executor>(
     program: &mut program::Instance<P>,
     runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>>,
     messages: &mut Vec<P::Message>,

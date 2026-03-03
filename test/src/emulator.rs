@@ -31,7 +31,7 @@ use std::fmt;
 ///
 /// If you want to run a simulation without side effects, use a [`Simulator`](crate::Simulator)
 /// instead.
-pub struct Emulator<P: Program> {
+pub struct Emulator<P: Program<Custom = ()>> {
     state: P::State,
     runtime: Runtime<P::Executor, mpsc::Sender<Event<P>>, Event<P>>,
     renderer: P::Renderer,
@@ -44,7 +44,7 @@ pub struct Emulator<P: Program> {
 }
 
 /// An emulation event.
-pub enum Event<P: Program> {
+pub enum Event<P: Program<Custom = ()>> {
     /// An action that must be [performed](Emulator::perform) by the [`Emulator`].
     Action(Action<P>),
     /// An [`Instruction`] failed to be executed.
@@ -54,14 +54,14 @@ pub enum Event<P: Program> {
 }
 
 /// An action that must be [performed](Emulator::perform) by the [`Emulator`].
-pub struct Action<P: Program>(Action_<P>);
+pub struct Action<P: Program<Custom = ()>>(Action_<P>);
 
-enum Action_<P: Program> {
+enum Action_<P: Program<Custom = ()>> {
     Runtime(runtime::Action<P::Message>),
     CountDown,
 }
 
-impl<P: Program + 'static> Emulator<P> {
+impl<P: Program<Custom = ()> + 'static> Emulator<P> {
     /// Creates a new [`Emulator`] of the [`Program`] with the given [`Mode`] and [`Size`].
     ///
     /// The [`Emulator`] will send [`Event`] notifications through the provided [`mpsc::Sender`].
@@ -80,7 +80,7 @@ impl<P: Program + 'static> Emulator<P> {
         program: &P,
         mode: Mode,
         size: Size,
-        preset: Option<&program::Preset<P::State, P::Message>>,
+        preset: Option<&program::Preset<P::State, P::Message, P::Custom>>,
     ) -> Emulator<P> {
         use renderer::Headless;
 
@@ -383,7 +383,7 @@ impl<P: Program + 'static> Emulator<P> {
         }
     }
 
-    fn wait_for(&mut self, task: Task<P::Message>) {
+    fn wait_for(&mut self, task: Task<P::Message, P::Custom>) {
         if let Some(stream) = task::into_stream(task) {
             match self.mode {
                 Mode::Zen => {

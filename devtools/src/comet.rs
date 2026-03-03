@@ -1,10 +1,15 @@
+use iced_debug::futures::MaybeSend;
+
 use crate::runtime::task::{self, Task};
 
 use std::process;
 
 pub const COMPATIBLE_REVISION: &str = "fbef808eed51562f0ea601d8fc7c715bea9cfd0b";
 
-pub fn launch() -> Task<launch::Result> {
+pub fn launch<Custom>() -> Task<launch::Result, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     task::try_blocking(|mut sender| {
         let cargo_install = process::Command::new("cargo")
             .args(["install", "--list"])
@@ -45,7 +50,10 @@ pub fn launch() -> Task<launch::Result> {
     })
 }
 
-pub fn install() -> Task<install::Result> {
+pub fn install<Custom>() -> Task<install::Result, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     task::try_blocking(|mut sender| {
         use std::io::{BufRead, BufReader};
         use std::process::{Command, Stdio};

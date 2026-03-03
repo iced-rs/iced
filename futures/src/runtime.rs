@@ -12,18 +12,19 @@ use std::marker::PhantomData;
 ///
 /// [`Subscription`]: crate::Subscription
 #[derive(Debug)]
-pub struct Runtime<Executor, Sender, Message> {
+pub struct Runtime<Executor, Sender, Message, Custom = ()> {
     executor: Executor,
     sender: Sender,
-    subscriptions: subscription::Tracker,
+    subscriptions: subscription::Tracker<Custom>,
     _message: PhantomData<Message>,
 }
 
-impl<Executor, Sender, Message> Runtime<Executor, Sender, Message>
+impl<Executor, Sender, Message, Custom> Runtime<Executor, Sender, Message, Custom>
 where
     Executor: self::Executor,
     Sender: Sink<Message, Error = mpsc::SendError> + Unpin + MaybeSend + Clone + 'static,
     Message: MaybeSend + 'static,
+    Custom: Send + 'static + Default + std::fmt::Debug + Clone,
 {
     /// Creates a new empty [`Runtime`].
     ///
@@ -90,7 +91,9 @@ where
     /// [`Subscription`]: crate::Subscription
     pub fn track(
         &mut self,
-        recipes: impl IntoIterator<Item = Box<dyn subscription::Recipe<Output = Message>>>,
+        recipes: impl IntoIterator<
+            Item = Box<dyn subscription::Recipe<Output = Message, Custom = Custom>>,
+        >,
     ) {
         let Runtime {
             executor,
@@ -112,7 +115,7 @@ where
     /// See [`Tracker::broadcast`] to learn more.
     ///
     /// [`Tracker::broadcast`]: subscription::Tracker::broadcast
-    pub fn broadcast(&mut self, event: subscription::Event) {
+    pub fn broadcast(&mut self, event: subscription::Event<Custom>) {
         self.subscriptions.broadcast(event);
     }
 }

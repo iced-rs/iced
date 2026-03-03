@@ -268,7 +268,10 @@ pub fn close_requests() -> Subscription<Id> {
 
 /// Opens a new window with the given [`Settings`]; producing the [`Id`]
 /// of the new window on completion.
-pub fn open(settings: Settings) -> (Id, Task<Id>) {
+pub fn open<Custom>(settings: Settings) -> (Id, Task<Id, Custom>)
+where
+    Custom: Send + 'static,
+{
     let id = Id::unique();
 
     (
@@ -278,116 +281,182 @@ pub fn open(settings: Settings) -> (Id, Task<Id>) {
 }
 
 /// Closes the window with `id`.
-pub fn close<T>(id: Id) -> Task<T> {
+pub fn close<T, Custom>(id: Id) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::Close(id)))
 }
 
 /// Gets the window [`Id`] of the oldest window.
-pub fn oldest() -> Task<Option<Id>> {
+pub fn oldest<Custom>() -> Task<Option<Id>, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(|channel| crate::Action::Window(Action::GetOldest(channel)))
 }
 
 /// Gets the window [`Id`] of the latest window.
-pub fn latest() -> Task<Option<Id>> {
+pub fn latest<Custom>() -> Task<Option<Id>, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(|channel| crate::Action::Window(Action::GetLatest(channel)))
 }
 
 /// Begins dragging the window while the left mouse button is held.
-pub fn drag<T>(id: Id) -> Task<T> {
+pub fn drag<T, Custom>(id: Id) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::Drag(id)))
 }
 
 /// Begins resizing the window while the left mouse button is held.
-pub fn drag_resize<T>(id: Id, direction: Direction) -> Task<T> {
+pub fn drag_resize<T, Custom>(id: Id, direction: Direction) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::DragResize(id, direction)))
 }
 
 /// Resizes the window to the given logical dimensions.
-pub fn resize<T>(id: Id, new_size: Size) -> Task<T> {
+pub fn resize<T, Custom>(id: Id, new_size: Size) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::Resize(id, new_size)))
 }
 
 /// Set the window to be resizable or not.
-pub fn set_resizable<T>(id: Id, resizable: bool) -> Task<T> {
+pub fn set_resizable<T, Custom>(id: Id, resizable: bool) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::SetResizable(id, resizable)))
 }
 
 /// Set the inner maximum size of the window.
-pub fn set_max_size<T>(id: Id, size: Option<Size>) -> Task<T> {
+pub fn set_max_size<T, Custom>(id: Id, size: Option<Size>) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::SetMaxSize(id, size)))
 }
 
 /// Set the inner minimum size of the window.
-pub fn set_min_size<T>(id: Id, size: Option<Size>) -> Task<T> {
+pub fn set_min_size<T, Custom>(id: Id, size: Option<Size>) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::SetMinSize(id, size)))
 }
 
 /// Set the window size increment.
 ///
 /// This is usually used by apps such as terminal emulators that need "blocky" resizing.
-pub fn set_resize_increments<T>(id: Id, increments: Option<Size>) -> Task<T> {
+pub fn set_resize_increments<T, Custom>(id: Id, increments: Option<Size>) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::SetResizeIncrements(
         id, increments,
     )))
 }
 
 /// Gets the window size in logical dimensions.
-pub fn size(id: Id) -> Task<Size> {
+pub fn size<Custom>(id: Id) -> Task<Size, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(move |channel| crate::Action::Window(Action::GetSize(id, channel)))
 }
 
 /// Gets the maximized state of the window with the given [`Id`].
-pub fn is_maximized(id: Id) -> Task<bool> {
+pub fn is_maximized<Custom>(id: Id) -> Task<bool, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(move |channel| crate::Action::Window(Action::GetMaximized(id, channel)))
 }
 
 /// Maximizes the window.
-pub fn maximize<T>(id: Id, maximized: bool) -> Task<T> {
+pub fn maximize<T, Custom>(id: Id, maximized: bool) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::Maximize(id, maximized)))
 }
 
 /// Gets the minimized state of the window with the given [`Id`].
-pub fn is_minimized(id: Id) -> Task<Option<bool>> {
+pub fn is_minimized<Custom>(id: Id) -> Task<Option<bool>, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(move |channel| crate::Action::Window(Action::GetMinimized(id, channel)))
 }
 
 /// Minimizes the window.
-pub fn minimize<T>(id: Id, minimized: bool) -> Task<T> {
+pub fn minimize<T, Custom>(id: Id, minimized: bool) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::Minimize(id, minimized)))
 }
 
 /// Gets the position in logical coordinates of the window with the given [`Id`].
-pub fn position(id: Id) -> Task<Option<Point>> {
+pub fn position<Custom>(id: Id) -> Task<Option<Point>, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(move |channel| crate::Action::Window(Action::GetPosition(id, channel)))
 }
 
 /// Gets the scale factor of the window with the given [`Id`].
-pub fn scale_factor(id: Id) -> Task<f32> {
+pub fn scale_factor<Custom>(id: Id) -> Task<f32, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(move |channel| crate::Action::Window(Action::GetScaleFactor(id, channel)))
 }
 
 /// Moves the window to the given logical coordinates.
-pub fn move_to<T>(id: Id, position: Point) -> Task<T> {
+pub fn move_to<T, Custom>(id: Id, position: Point) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::Move(id, position)))
 }
 
 /// Gets the current [`Mode`] of the window.
-pub fn mode(id: Id) -> Task<Mode> {
+pub fn mode<Custom>(id: Id) -> Task<Mode, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(move |channel| crate::Action::Window(Action::GetMode(id, channel)))
 }
 
 /// Changes the [`Mode`] of the window.
-pub fn set_mode<T>(id: Id, mode: Mode) -> Task<T> {
+pub fn set_mode<T, Custom>(id: Id, mode: Mode) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::SetMode(id, mode)))
 }
 
 /// Toggles the window to maximized or back.
-pub fn toggle_maximize<T>(id: Id) -> Task<T> {
+pub fn toggle_maximize<T, Custom>(id: Id) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::ToggleMaximize(id)))
 }
 
 /// Toggles the window decorations.
-pub fn toggle_decorations<T>(id: Id) -> Task<T> {
+pub fn toggle_decorations<T, Custom>(id: Id) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::ToggleDecorations(id)))
 }
 
@@ -397,7 +466,13 @@ pub fn toggle_decorations<T>(id: Id) -> Task<T> {
 ///
 /// Providing `None` will unset the request for user attention. Unsetting the request for
 /// user attention might not be done automatically by the WM when the window receives input.
-pub fn request_user_attention<T>(id: Id, user_attention: Option<UserAttention>) -> Task<T> {
+pub fn request_user_attention<T, Custom>(
+    id: Id,
+    user_attention: Option<UserAttention>,
+) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::RequestUserAttention(
         id,
         user_attention,
@@ -410,39 +485,55 @@ pub fn request_user_attention<T>(id: Id, user_attention: Option<UserAttention>) 
 /// This [`Task`] steals input focus from other applications. Do not use this method unless
 /// you are certain that's what the user wants. Focus stealing can cause an extremely disruptive
 /// user experience.
-pub fn gain_focus<T>(id: Id) -> Task<T> {
+pub fn gain_focus<T, Custom>(id: Id) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::GainFocus(id)))
 }
 
 /// Changes the window [`Level`].
-pub fn set_level<T>(id: Id, level: Level) -> Task<T> {
+pub fn set_level<T, Custom>(id: Id, level: Level) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::SetLevel(id, level)))
 }
 
 /// Shows the [system menu] at cursor position.
 ///
 /// [system menu]: https://en.wikipedia.org/wiki/Common_menus_in_Microsoft_Windows#System_menu
-pub fn show_system_menu<T>(id: Id) -> Task<T> {
+pub fn show_system_menu<T, Custom>(id: Id) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::ShowSystemMenu(id)))
 }
 
 /// Gets an identifier unique to the window, provided by the underlying windowing system. This is
 /// not to be confused with [`Id`].
-pub fn raw_id<Message>(id: Id) -> Task<u64> {
+pub fn raw_id<Message, Custom>(id: Id) -> Task<u64, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(|channel| crate::Action::Window(Action::GetRawId(id, channel)))
 }
 
 /// Changes the [`Icon`] of the window.
-pub fn set_icon<T>(id: Id, icon: Icon) -> Task<T> {
+pub fn set_icon<T, Custom>(id: Id, icon: Icon) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::SetIcon(id, icon)))
 }
 
 /// Runs the given callback with a reference to the [`Window`] with the given [`Id`].
 ///
 /// Note that if the window closes before this call is processed the callback will not be run.
-pub fn run<T>(id: Id, f: impl FnOnce(&dyn Window) -> T + Send + 'static) -> Task<T>
+pub fn run<T, Custom>(id: Id, f: impl FnOnce(&dyn Window) -> T + Send + 'static) -> Task<T, Custom>
 where
     T: Send + 'static,
+    Custom: Send + 'static,
 {
     task::oneshot(move |channel| {
         crate::Action::Window(Action::Run(
@@ -455,7 +546,10 @@ where
 }
 
 /// Captures a [`Screenshot`] from the window.
-pub fn screenshot(id: Id) -> Task<Screenshot> {
+pub fn screenshot<Custom>(id: Id) -> Task<Screenshot, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(move |channel| crate::Action::Window(Action::Screenshot(id, channel)))
 }
 
@@ -463,7 +557,10 @@ pub fn screenshot(id: Id) -> Task<Screenshot> {
 ///
 /// This disables mouse events for the window and passes mouse events
 /// through to whatever window is underneath.
-pub fn enable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
+pub fn enable_mouse_passthrough<Message, Custom>(id: Id) -> Task<Message, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::EnableMousePassthrough(id)))
 }
 
@@ -471,19 +568,28 @@ pub fn enable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
 ///
 /// This enables mouse events for the window and stops mouse events
 /// from being passed to whatever is underneath.
-pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
+pub fn disable_mouse_passthrough<Message, Custom>(id: Id) -> Task<Message, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::DisableMousePassthrough(id)))
 }
 
 /// Gets the logical dimensions of the monitor containing the window with the given [`Id`].
-pub fn monitor_size(id: Id) -> Task<Option<Size>> {
+pub fn monitor_size<Custom>(id: Id) -> Task<Option<Size>, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(move |channel| crate::Action::Window(Action::GetMonitorSize(id, channel)))
 }
 
 /// Sets whether the system can automatically organize windows into tabs.
 ///
 /// See <https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing>
-pub fn allow_automatic_tabbing<T>(enabled: bool) -> Task<T> {
+pub fn allow_automatic_tabbing<T, Custom>(enabled: bool) -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(crate::Action::Window(Action::SetAllowAutomaticTabbing(
         enabled,
     )))

@@ -48,12 +48,18 @@ pub struct Information {
 }
 
 /// Returns available system information.
-pub fn information() -> Task<Information> {
+pub fn information<Custom>() -> Task<Information, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(|channel| crate::Action::System(Action::GetInformation(channel)))
 }
 
 /// Returns the current system theme.
-pub fn theme() -> Task<theme::Mode> {
+pub fn theme<Custom>() -> Task<theme::Mode, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(|sender| crate::Action::System(Action::GetTheme(sender)))
 }
 

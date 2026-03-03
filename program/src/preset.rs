@@ -1,19 +1,24 @@
+use iced_runtime::futures::MaybeSend;
+
 use crate::runtime::Task;
 
 use std::borrow::Cow;
 use std::fmt;
 
 /// A specific boot strategy for a [`Program`](crate::Program).
-pub struct Preset<State, Message> {
+pub struct Preset<State, Message, Custom> {
     name: Cow<'static, str>,
-    boot: Box<dyn Fn() -> (State, Task<Message>)>,
+    boot: Box<dyn Fn() -> (State, Task<Message, Custom>)>,
 }
 
-impl<State, Message> Preset<State, Message> {
+impl<State, Message, Custom> Preset<State, Message, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     /// Creates a new [`Preset`] with the given name and boot strategy.
     pub fn new(
         name: impl Into<Cow<'static, str>>,
-        boot: impl Fn() -> (State, Task<Message>) + 'static,
+        boot: impl Fn() -> (State, Task<Message, Custom>) + 'static,
     ) -> Self {
         Self {
             name: name.into(),
@@ -28,12 +33,12 @@ impl<State, Message> Preset<State, Message> {
 
     /// Boots the [`Preset`], returning the initial [`Program`](crate::Program) state and
     /// a [`Task`] for concurrent booting.
-    pub fn boot(&self) -> (State, Task<Message>) {
+    pub fn boot(&self) -> (State, Task<Message, Custom>) {
         (self.boot)()
     }
 }
 
-impl<State, Message> fmt::Debug for Preset<State, Message> {
+impl<State, Message, Custom> fmt::Debug for Preset<State, Message, Custom> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Preset")
             .field("name", &self.name)

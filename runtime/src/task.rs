@@ -21,12 +21,15 @@ pub use sipper::{Never, Sender, Sipper, Straw, sipper, stream};
 ///
 /// A [`Task`] _may_ produce a bunch of values of type `T`.
 #[must_use = "`Task` must be returned to the runtime to take effect; normally in your `update` or `new` functions."]
-pub struct Task<T> {
-    stream: Option<BoxStream<Action<T>>>,
+pub struct Task<T, Custom = ()> {
+    stream: Option<BoxStream<Action<T, Custom>>>,
     units: usize,
 }
 
-impl<T> Task<T> {
+impl<T, Custom> Task<T, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     /// Creates a [`Task`] that does nothing.
     pub fn none() -> Self {
         Self {
@@ -114,7 +117,7 @@ impl<T> Task<T> {
     }
 
     /// Maps the output of a [`Task`] with the given closure.
-    pub fn map<O>(self, mut f: impl FnMut(T) -> O + MaybeSend + 'static) -> Task<O>
+    pub fn map<O>(self, mut f: impl FnMut(T) -> O + MaybeSend + 'static) -> Task<O, Custom>
     where
         T: MaybeSend + 'static,
         O: MaybeSend + 'static,
@@ -127,7 +130,10 @@ impl<T> Task<T> {
     ///
     /// This is the monadic interface of [`Task`]—analogous to [`Future`] and
     /// [`Stream`].
-    pub fn then<O>(self, mut f: impl FnMut(T) -> Task<O> + MaybeSend + 'static) -> Task<O>
+    pub fn then<O>(
+        self,
+        mut f: impl FnMut(T) -> Task<O, Custom> + MaybeSend + 'static,
+    ) -> Task<O, Custom>
     where
         T: MaybeSend + 'static,
         O: MaybeSend + 'static,
@@ -169,7 +175,7 @@ impl<T> Task<T> {
     }
 
     /// Creates a new [`Task`] that collects all the output of the current one into a [`Vec`].
-    pub fn collect(self) -> Task<Vec<T>>
+    pub fn collect(self) -> Task<Vec<T>, Custom>
     where
         T: MaybeSend + 'static,
     {
@@ -206,7 +212,7 @@ impl<T> Task<T> {
     /// Creates a new [`Task`] that discards the result of the current one.
     ///
     /// Useful if you only care about the side effects of a [`Task`].
-    pub fn discard<O>(self) -> Task<O>
+    pub fn discard<O>(self) -> Task<O, Custom>
     where
         T: MaybeSend + 'static,
         O: MaybeSend + 'static,
@@ -271,7 +277,7 @@ impl<T> Task<T> {
     }
 }
 
-impl<T> std::fmt::Debug for Task<T> {
+impl<T, Custom> std::fmt::Debug for Task<T, Custom> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(&format!("Task<{}>", std::any::type_name::<T>()))
             .field("units", &self.units)
@@ -341,11 +347,17 @@ impl Drop for Handle {
     }
 }
 
-impl<T> Task<Option<T>> {
+impl<T, Custom> Task<Option<T>, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     /// Executes a new [`Task`] after this one, only when it produces `Some` value.
     ///
     /// The value is provided to the closure to create the subsequent [`Task`].
-    pub fn and_then<A>(self, f: impl Fn(T) -> Task<A> + MaybeSend + 'static) -> Task<A>
+    pub fn and_then<A>(
+        self,
+        f: impl Fn(T) -> Task<A, Custom> + MaybeSend + 'static,
+    ) -> Task<A, Custom>
     where
         T: MaybeSend + 'static,
         A: MaybeSend + 'static,
@@ -354,14 +366,17 @@ impl<T> Task<Option<T>> {
     }
 }
 
-impl<T, E> Task<Result<T, E>> {
+impl<T, E, Custom> Task<Result<T, E>, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     /// Executes a new [`Task`] after this one, only when it succeeds with an `Ok` value.
     ///
     /// The success value is provided to the closure to create the subsequent [`Task`].
     pub fn and_then<A>(
         self,
-        f: impl Fn(T) -> Task<Result<A, E>> + MaybeSend + 'static,
-    ) -> Task<Result<A, E>>
+        f: impl Fn(T) -> Task<Result<A, E>, Custom> + MaybeSend + 'static,
+    ) -> Task<Result<A, E>, Custom>
     where
         T: MaybeSend + 'static,
         E: MaybeSend + 'static,
@@ -372,7 +387,10 @@ impl<T, E> Task<Result<T, E>> {
 
     /// Maps the error type of this [`Task`] to a different one using the given
     /// function.
-    pub fn map_err<E2>(self, f: impl Fn(E) -> E2 + MaybeSend + 'static) -> Task<Result<T, E2>>
+    pub fn map_err<E2>(
+        self,
+        f: impl Fn(E) -> E2 + MaybeSend + 'static,
+    ) -> Task<Result<T, E2>, Custom>
     where
         T: MaybeSend + 'static,
         E: MaybeSend + 'static,
@@ -382,13 +400,19 @@ impl<T, E> Task<Result<T, E>> {
     }
 }
 
-impl<T> Default for Task<T> {
+impl<T, Custom> Default for Task<T, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     fn default() -> Self {
         Self::none()
     }
 }
 
-impl<T> From<()> for Task<T> {
+impl<T, Custom> From<()> for Task<T, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     fn from(_value: ()) -> Self {
         Self::none()
     }
@@ -396,9 +420,10 @@ impl<T> From<()> for Task<T> {
 
 /// Creates a new [`Task`] that runs the given [`widget::Operation`] and produces
 /// its output.
-pub fn widget<T>(operation: impl widget::Operation<T> + 'static) -> Task<T>
+pub fn widget<T, Custom>(operation: impl widget::Operation<T> + 'static) -> Task<T, Custom>
 where
     T: Send + 'static,
+    Custom: Send + 'static,
 {
     channel(move |sender| {
         let operation = widget::operation::map(Box::new(operation), move |value| {
@@ -411,9 +436,12 @@ where
 
 /// Creates a new [`Task`] that executes the [`Action`] returned by the closure and
 /// produces the value fed to the [`oneshot::Sender`].
-pub fn oneshot<T>(f: impl FnOnce(oneshot::Sender<T>) -> Action<T>) -> Task<T>
+pub fn oneshot<T, Custom>(
+    f: impl FnOnce(oneshot::Sender<T>) -> Action<T, Custom>,
+) -> Task<T, Custom>
 where
     T: MaybeSend + 'static,
+    Custom: MaybeSend + 'static,
 {
     let (sender, receiver) = oneshot::channel();
 
@@ -433,9 +461,10 @@ where
 
 /// Creates a new [`Task`] that executes the [`Action`] returned by the closure and
 /// produces the values fed to the [`mpsc::Sender`].
-pub fn channel<T>(f: impl FnOnce(mpsc::Sender<T>) -> Action<T>) -> Task<T>
+pub fn channel<T, Custom>(f: impl FnOnce(mpsc::Sender<T>) -> Action<T, Custom>) -> Task<T, Custom>
 where
     T: MaybeSend + 'static,
+    Custom: MaybeSend + 'static,
 {
     let (sender, receiver) = mpsc::channel(1);
 
@@ -451,7 +480,10 @@ where
 }
 
 /// Creates a new [`Task`] that executes the given [`Action`] and produces no output.
-pub fn effect<T>(action: impl Into<Action<Infallible>>) -> Task<T> {
+pub fn effect<T, Custom>(action: impl Into<Action<Infallible, Custom>>) -> Task<T, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     let action = action.into();
 
     Task {
@@ -463,7 +495,7 @@ pub fn effect<T>(action: impl Into<Action<Infallible>>) -> Task<T> {
 }
 
 /// Returns the underlying [`Stream`] of the [`Task`].
-pub fn into_stream<T>(task: Task<T>) -> Option<BoxStream<Action<T>>> {
+pub fn into_stream<T, Custom>(task: Task<T, Custom>) -> Option<BoxStream<Action<T, Custom>>> {
     task.stream
 }
 
@@ -471,9 +503,10 @@ pub fn into_stream<T>(task: Task<T>) -> Option<BoxStream<Action<T>>> {
 ///
 /// Any data sent by the closure through the [`mpsc::Sender`] will be produced
 /// by the [`Task`].
-pub fn blocking<T>(f: impl FnOnce(mpsc::Sender<T>) + Send + 'static) -> Task<T>
+pub fn blocking<T, Custom>(f: impl FnOnce(mpsc::Sender<T>) + Send + 'static) -> Task<T, Custom>
 where
     T: Send + 'static,
+    Custom: MaybeSend + 'static,
 {
     let (sender, receiver) = mpsc::channel(1);
 
@@ -489,12 +522,13 @@ where
 ///
 /// Any data sent by the closure through the [`mpsc::Sender`] will be produced
 /// by the [`Task`].
-pub fn try_blocking<T, E>(
+pub fn try_blocking<T, E, Custom>(
     f: impl FnOnce(mpsc::Sender<T>) -> Result<(), E> + Send + 'static,
-) -> Task<Result<T, E>>
+) -> Task<Result<T, E>, Custom>
 where
     T: Send + 'static,
     E: Send + 'static,
+    Custom: MaybeSend + 'static,
 {
     let (sender, receiver) = mpsc::channel(1);
     let (error_sender, error_receiver) = oneshot::channel();
