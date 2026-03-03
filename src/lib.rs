@@ -652,7 +652,16 @@ pub mod surface_visibility {
 ///
 /// This module provides types and actions for Wayland-specific features
 /// like popup surfaces that can appear outside the parent window bounds.
-#[cfg(feature = "wayland")]
+#[cfg(all(
+    feature = "wayland",
+    unix,
+    not(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "android",
+        target_arch = "wasm32"
+    ))
+))]
 pub mod wayland {
     /// Popup surface support.
     pub mod popup {

@@ -237,8 +237,14 @@ where
                 let max_available = limits.max();
 
                 // Determine which dimensions to compress based on Stack's own sizing
-                let compress_width = !matches!(self.width, Length::Fill | Length::FillPortion(_) | Length::Spacer);
-                let compress_height = !matches!(self.height, Length::Fill | Length::FillPortion(_) | Length::Spacer);
+                let compress_width = !matches!(
+                    self.width,
+                    Length::Fill | Length::FillPortion(_) | Length::Spacer
+                );
+                let compress_height = !matches!(
+                    self.height,
+                    Length::Fill | Length::FillPortion(_) | Length::Spacer
+                );
 
                 // FIRST PASS: Use compression to get intrinsic sizes
                 let compress_limits = layout::Limits::with_compression(
