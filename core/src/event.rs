@@ -13,7 +13,7 @@ use crate::window;
 ///
 /// [open an issue]: https://github.com/iced-rs/iced/issues
 #[derive(Debug, Clone, PartialEq)]
-pub enum Event {
+pub enum Event<Custom = ()> {
     /// A keyboard event
     Keyboard(keyboard::Event),
 
@@ -31,6 +31,9 @@ pub enum Event {
 
     /// A clipboard event
     Clipboard(clipboard::Event),
+
+    /// Custom type, reserved for something like wayland events
+    Custom(Custom),
 }
 
 /// The status of an [`Event`] after being processed.

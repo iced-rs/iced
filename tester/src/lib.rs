@@ -47,13 +47,14 @@ pub struct Attach<P> {
 
 impl<P> Program for Attach<P>
 where
-    P: Program + 'static,
+    P: Program<Custom = ()> + 'static,
 {
     type State = Tester<P>;
     type Message = Message<P>;
     type Theme = Theme;
     type Renderer = P::Renderer;
     type Executor = P::Executor;
+    type Custom = P::Custom;
 
     fn name() -> &'static str {
         P::name()
@@ -77,11 +78,15 @@ where
         )
     }
 
-    fn boot(&self) -> (Self::State, Task<Self::Message>) {
+    fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
         (Tester::new(&self.program), Task::none())
     }
 
-    fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
+    fn update(
+        &self,
+        state: &mut Self::State,
+        message: Self::Message,
+    ) -> Task<Self::Message, Self::Custom> {
         state.tick(&self.program, message.0).map(Message)
     }
 
@@ -105,7 +110,7 @@ where
 /// A tester decorates a [`Program`] definition and attaches a test recorder on top.
 ///
 /// It can be used to both record and play [`Ice`] tests.
-pub struct Tester<P: Program> {
+pub struct Tester<P: Program<Custom = ()>> {
     viewport: Size,
     mode: emulator::Mode,
     presets: combo_box::State<String>,
@@ -115,7 +120,7 @@ pub struct Tester<P: Program> {
     edit: Option<text_editor::Content<P::Renderer>>,
 }
 
-enum State<P: Program> {
+enum State<P: Program<Custom = ()>> {
     Empty,
     Idle {
         state: P::State,
@@ -142,7 +147,7 @@ enum Outcome {
 }
 
 /// The message of a [`Tester`].
-pub struct Message<P: Program>(Tick<P>);
+pub struct Message<P: Program<Custom = ()>>(Tick<P>);
 
 #[derive(Debug, Clone)]
 enum Event {
@@ -160,7 +165,7 @@ enum Event {
     Confirm,
 }
 
-enum Tick<P: Program> {
+enum Tick<P: Program<Custom = ()>> {
     Tester(Event),
     Program(P::Message),
     Emulator(emulator::Event<P>),
@@ -168,7 +173,7 @@ enum Tick<P: Program> {
     Assert(instruction::Interaction),
 }
 
-impl<P: Program + 'static> Tester<P> {
+impl<P: Program<Custom = ()> + 'static> Tester<P> {
     fn new(program: &P) -> Self {
         let (state, _) = program.boot();
         let window = program.window().unwrap_or_default();
@@ -202,7 +207,7 @@ impl<P: Program + 'static> Tester<P> {
         )
     }
 
-    fn update(&mut self, program: &P, event: Event) -> Task<Tick<P>> {
+    fn update(&mut self, program: &P, event: Event) -> Task<Tick<P>, P::Custom> {
         match event {
             Event::ViewportChanged(viewport) => {
                 self.viewport = viewport;
@@ -410,7 +415,10 @@ impl<P: Program + 'static> Tester<P> {
         }
     }
 
-    fn preset<'a>(&self, program: &'a P) -> Option<&'a program::Preset<P::State, P::Message>> {
+    fn preset<'a>(
+        &self,
+        program: &'a P,
+    ) -> Option<&'a program::Preset<P::State, P::Message, P::Custom>> {
         self.preset.as_ref().and_then(|preset| {
             program
                 .presets()
@@ -419,7 +427,7 @@ impl<P: Program + 'static> Tester<P> {
         })
     }
 
-    fn tick(&mut self, program: &P, tick: Tick<P>) -> Task<Tick<P>> {
+    fn tick(&mut self, program: &P, tick: Tick<P>) -> Task<Tick<P>, P::Custom> {
         match tick {
             Tick::Tester(message) => self.update(program, message),
             Tick::Program(message) => {

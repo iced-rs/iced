@@ -30,13 +30,19 @@ pub enum Action {
 }
 
 /// Read the given [`Kind`] of [`Content`] from the clipboard.
-pub fn read(kind: Kind) -> Task<Result<Arc<Content>, Error>> {
+pub fn read<Custom>(kind: Kind) -> Task<Result<Arc<Content>, Error>, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(|channel| crate::Action::Clipboard(Action::Read { kind, channel }))
         .map(|result| result.map(Arc::new))
 }
 
 /// Read the current text contents of the clipboard.
-pub fn read_text() -> Task<Result<Arc<String>, Error>> {
+pub fn read_text<Custom>() -> Task<Result<Arc<String>, Error>, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(|channel| {
         crate::Action::Clipboard(Action::Read {
             kind: Kind::Text,
@@ -53,7 +59,10 @@ pub fn read_text() -> Task<Result<Arc<String>, Error>> {
 }
 
 /// Read the current HTML contents of the clipboard.
-pub fn read_html() -> Task<Result<Arc<String>, Error>> {
+pub fn read_html<Custom>() -> Task<Result<Arc<String>, Error>, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(|channel| {
         crate::Action::Clipboard(Action::Read {
             kind: Kind::Html,
@@ -70,7 +79,10 @@ pub fn read_html() -> Task<Result<Arc<String>, Error>> {
 }
 
 /// Read the current file paths of the clipboard.
-pub fn read_files() -> Task<Result<Arc<[PathBuf]>, Error>> {
+pub fn read_files<Custom>() -> Task<Result<Arc<[PathBuf]>, Error>, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(|channel| {
         crate::Action::Clipboard(Action::Read {
             kind: Kind::Files,
@@ -88,7 +100,10 @@ pub fn read_files() -> Task<Result<Arc<[PathBuf]>, Error>> {
 
 /// Read the current [`Image`](crate::core::clipboard::Image) of the clipboard.
 #[cfg(feature = "image")]
-pub fn read_image() -> Task<Result<crate::core::clipboard::Image, Error>> {
+pub fn read_image<Custom>() -> Task<Result<crate::core::clipboard::Image, Error>, Custom>
+where
+    Custom: Send + 'static,
+{
     task::oneshot(|channel| {
         crate::Action::Clipboard(Action::Read {
             kind: Kind::Image,
@@ -105,7 +120,10 @@ pub fn read_image() -> Task<Result<crate::core::clipboard::Image, Error>> {
 }
 
 /// Write the given [`Content`] to the clipboard.
-pub fn write(content: impl Into<Content>) -> Task<Result<(), Error>> {
+pub fn write<Custom>(content: impl Into<Content>) -> Task<Result<(), Error>, Custom>
+where
+    Custom: Send + 'static,
+{
     let content = content.into();
 
     task::oneshot(|channel| crate::Action::Clipboard(Action::Write { content, channel }))

@@ -120,7 +120,7 @@ use std::path::Path;
 /// Remember that an [`Emulator`] executes the real thing! Side effects _will_
 /// take place. It is up to you to ensure your tests have reproducible environments
 /// by leveraging [`Preset`][program::Preset].
-pub fn run<P: program::Program + 'static>(
+pub fn run<P: program::Program<Custom = ()> + 'static>(
     program: P,
     tests_dir: impl AsRef<Path>,
 ) -> Result<(), Error> {
@@ -258,7 +258,7 @@ pub fn run<P: program::Program + 'static>(
 
 /// Takes a screenshot of the given [`Program`](program::Program) with the given theme, viewport,
 /// and scale factor after running it for the given [`Duration`].
-pub fn screenshot<P: program::Program + 'static>(
+pub fn screenshot<P: program::Program<Custom = ()> + 'static>(
     program: &P,
     theme: &P::Theme,
     viewport: impl Into<Size>,

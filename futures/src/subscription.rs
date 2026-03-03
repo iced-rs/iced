@@ -11,10 +11,11 @@ use crate::{BoxStream, MaybeSend};
 
 use std::any::TypeId;
 use std::hash::Hash;
+use std::marker::PhantomData;
 
 /// A subscription event.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Event {
+pub enum Event<Custom = ()> {
     /// A user interacted with a user interface in a window.
     Interaction {
         /// The window holding the interface of the interaction.
@@ -22,7 +23,7 @@ pub enum Event {
         /// The [`Event`] describing the interaction.
         ///
         /// [`Event`]: event::Event
-        event: event::Event,
+        event: event::Event<Custom>,
 
         /// The [`event::Status`] of the interaction.
         status: event::Status,
@@ -56,7 +57,7 @@ pub enum MacOS {
 /// A stream of runtime events.
 ///
 /// It is the input of a [`Subscription`].
-pub type EventStream = BoxStream<Event>;
+pub type EventStream<Custom = crate::core::Never> = BoxStream<Event<Custom>>;
 
 /// The hasher used for identifying subscriptions.
 pub type Hasher = rustc_hash::FxHasher;
@@ -118,11 +119,14 @@ pub type Hasher = rustc_hash::FxHasher;
 ///
 /// [`Future`]: std::future::Future
 #[must_use = "`Subscription` must be returned to the runtime to take effect; normally in your `subscription` function."]
-pub struct Subscription<T> {
-    recipes: Vec<Box<dyn Recipe<Output = T>>>,
+pub struct Subscription<T, Custom = ()> {
+    recipes: Vec<Box<dyn Recipe<Output = T, Custom = Custom>>>,
 }
 
-impl<T> Subscription<T> {
+impl<T, Custom> Subscription<T, Custom>
+where
+    Custom: MaybeSend + 'static,
+{
     /// Returns an empty [`Subscription`] that will not produce any output.
     pub fn none() -> Self {
         Self {
@@ -208,6 +212,7 @@ impl<T> Subscription<T> {
         from_recipe(Runner {
             data: builder,
             spawn: |builder, _| builder(),
+            _custom: PhantomData,
         })
     }
 
@@ -225,12 +230,13 @@ impl<T> Subscription<T> {
         from_recipe(Runner {
             data: (data, builder),
             spawn: |(data, builder), _| builder(data),
+            _custom: PhantomData,
         })
     }
 
     /// Batches all the provided subscriptions and returns the resulting
     /// [`Subscription`].
-    pub fn batch(subscriptions: impl IntoIterator<Item = Subscription<T>>) -> Self {
+    pub fn batch(subscriptions: impl IntoIterator<Item = Subscription<T, Custom>>) -> Self {
         Self {
             recipes: subscriptions
                 .into_iter()
@@ -242,22 +248,24 @@ impl<T> Subscription<T> {
     /// Adds a value to the [`Subscription`] context.
     ///
     /// The value will be part of the identity of a [`Subscription`].
-    pub fn with<A>(self, value: A) -> Subscription<(A, T)>
+    pub fn with<A>(self, value: A) -> Subscription<(A, T), Custom>
     where
         T: 'static,
         A: std::hash::Hash + Clone + Send + Sync + 'static,
     {
-        struct With<A, B> {
-            recipe: Box<dyn Recipe<Output = A>>,
+        struct With<A, B, Custom> {
+            recipe: Box<dyn Recipe<Output = A, Custom = Custom>>,
             value: B,
         }
 
-        impl<A, B> Recipe for With<A, B>
+        impl<A, B, Custom> Recipe for With<A, B, Custom>
         where
             A: 'static,
             B: 'static + std::hash::Hash + Clone + Send + Sync,
+            Custom: 'static,
         {
             type Output = (B, A);
+            type Custom = Custom;
 
             fn hash(&self, state: &mut Hasher) {
                 std::any::TypeId::of::<B>().hash(state);
@@ -265,7 +273,7 @@ impl<T> Subscription<T> {
                 self.recipe.hash(state);
             }
 
-            fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
+            fn stream(self: Box<Self>, input: EventStream<Custom>) -> BoxStream<Self::Output> {
                 use futures::StreamExt;
 
                 let value = self.value;
@@ -286,7 +294,7 @@ impl<T> Subscription<T> {
                     Box::new(With {
                         recipe,
                         value: value.clone(),
-                    }) as Box<dyn Recipe<Output = (A, T)>>
+                    }) as Box<dyn Recipe<Output = (A, T), Custom = Custom>>
                 })
                 .collect(),
         }
@@ -295,7 +303,7 @@ impl<T> Subscription<T> {
     /// Transforms the [`Subscription`] output with the given function.
     ///
     /// The closure provided must be a non-capturing closure.
-    pub fn map<F, A>(self, f: F) -> Subscription<A>
+    pub fn map<F, A>(self, f: F) -> Subscription<A, Custom>
     where
         T: 'static,
         F: Fn(T) -> A + MaybeSend + Clone + 'static,
@@ -305,28 +313,30 @@ impl<T> Subscription<T> {
             check_zero_sized::<F>();
         }
 
-        struct Map<A, B, F>
+        struct Map<A, B, F, Custom>
         where
             F: Fn(A) -> B + 'static,
         {
-            recipe: Box<dyn Recipe<Output = A>>,
+            recipe: Box<dyn Recipe<Output = A, Custom = Custom>>,
             mapper: F,
         }
 
-        impl<A, B, F> Recipe for Map<A, B, F>
+        impl<A, B, F, Custom> Recipe for Map<A, B, F, Custom>
         where
             A: 'static,
+            Custom: 'static,
             B: 'static,
             F: Fn(A) -> B + 'static + MaybeSend,
         {
             type Output = B;
+            type Custom = Custom;
 
             fn hash(&self, state: &mut Hasher) {
                 TypeId::of::<F>().hash(state);
                 self.recipe.hash(state);
             }
 
-            fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
+            fn stream(self: Box<Self>, input: EventStream<Custom>) -> BoxStream<Self::Output> {
                 use futures::StreamExt;
 
                 Box::pin(self.recipe.stream(input).map(self.mapper))
@@ -341,7 +351,7 @@ impl<T> Subscription<T> {
                     Box::new(Map {
                         recipe,
                         mapper: f.clone(),
-                    }) as Box<dyn Recipe<Output = A>>
+                    }) as Box<dyn Recipe<Output = A, Custom = Custom>>
                 })
                 .collect(),
         }
@@ -351,7 +361,7 @@ impl<T> Subscription<T> {
     /// values only when the function returns `Some(A)`.
     ///
     /// The closure provided must be a non-capturing closure.
-    pub fn filter_map<F, A>(mut self, f: F) -> Subscription<A>
+    pub fn filter_map<F, A>(mut self, f: F) -> Subscription<A, Custom>
     where
         T: MaybeSend + 'static,
         F: Fn(T) -> Option<A> + MaybeSend + Clone + 'static,
@@ -361,28 +371,30 @@ impl<T> Subscription<T> {
             check_zero_sized::<F>();
         }
 
-        struct FilterMap<A, B, F>
+        struct FilterMap<A, B, F, Custom>
         where
             F: Fn(A) -> Option<B> + 'static,
         {
-            recipe: Box<dyn Recipe<Output = A>>,
+            recipe: Box<dyn Recipe<Output = A, Custom = Custom>>,
             mapper: F,
         }
 
-        impl<A, B, F> Recipe for FilterMap<A, B, F>
+        impl<A, B, F, Custom> Recipe for FilterMap<A, B, F, Custom>
         where
             A: 'static,
+            Custom: 'static,
             B: 'static + MaybeSend,
             F: Fn(A) -> Option<B> + MaybeSend,
         {
             type Output = B;
+            type Custom = Custom;
 
             fn hash(&self, state: &mut Hasher) {
                 TypeId::of::<F>().hash(state);
                 self.recipe.hash(state);
             }
 
-            fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
+            fn stream(self: Box<Self>, input: EventStream<Custom>) -> BoxStream<Self::Output> {
                 use futures::StreamExt;
                 use futures::future;
 
@@ -404,7 +416,7 @@ impl<T> Subscription<T> {
                     Box::new(FilterMap {
                         recipe,
                         mapper: f.clone(),
-                    }) as Box<dyn Recipe<Output = A>>
+                    }) as Box<dyn Recipe<Output = A, Custom = Custom>>
                 })
                 .collect(),
         }
@@ -417,14 +429,18 @@ impl<T> Subscription<T> {
 }
 
 /// Creates a [`Subscription`] from a [`Recipe`] describing it.
-pub fn from_recipe<T>(recipe: impl Recipe<Output = T> + 'static) -> Subscription<T> {
+pub fn from_recipe<T, Custom>(
+    recipe: impl Recipe<Output = T, Custom = Custom> + 'static,
+) -> Subscription<T, Custom> {
     Subscription {
         recipes: vec![Box::new(recipe)],
     }
 }
 
 /// Returns the different recipes of the [`Subscription`].
-pub fn into_recipes<T>(subscription: Subscription<T>) -> Vec<Box<dyn Recipe<Output = T>>> {
+pub fn into_recipes<T, Custom>(
+    subscription: Subscription<T, Custom>,
+) -> Vec<Box<dyn Recipe<Output = T, Custom = Custom>>> {
     subscription.recipes
 }
 
@@ -440,6 +456,8 @@ impl<T> std::fmt::Debug for Subscription<T> {
 /// by runtimes to run and identify subscriptions. You can use it to create your
 /// own!
 pub trait Recipe {
+    /// Custom field
+    type Custom;
     /// The events that will be produced by a [`Subscription`] with this
     /// [`Recipe`].
     type Output;
@@ -451,15 +469,16 @@ pub trait Recipe {
 
     /// Executes the [`Recipe`] and produces the stream of events of its
     /// [`Subscription`].
-    fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output>;
+    fn stream(self: Box<Self>, input: EventStream<Self::Custom>) -> BoxStream<Self::Output>;
 }
 
 /// Creates a [`Subscription`] from a hashable id and a filter function.
-pub fn filter_map<I, F, T>(id: I, f: F) -> Subscription<T>
+pub fn filter_map<I, F, T, Custom>(id: I, f: F) -> Subscription<T, Custom>
 where
     I: Hash + 'static,
-    F: Fn(Event) -> Option<T> + MaybeSend + 'static,
+    F: Fn(Event<Custom>) -> Option<T> + MaybeSend + 'static,
     T: 'static + MaybeSend,
+    Custom: 'static + Send,
 {
     from_recipe(Runner {
         data: id,
@@ -469,32 +488,35 @@ where
 
             events.filter_map(move |event| future::ready(f(event)))
         },
+        _custom: PhantomData,
     })
 }
 
-struct Runner<I, F, S, T>
+struct Runner<I, F, S, T, Custom>
 where
-    F: FnOnce(&I, EventStream) -> S,
+    F: FnOnce(&I, EventStream<Custom>) -> S,
     S: Stream<Item = T>,
 {
     data: I,
     spawn: F,
+    _custom: PhantomData<Custom>,
 }
 
-impl<I, F, S, T> Recipe for Runner<I, F, S, T>
+impl<I, F, S, T, Custom> Recipe for Runner<I, F, S, T, Custom>
 where
     I: Hash + 'static,
-    F: FnOnce(&I, EventStream) -> S,
+    F: FnOnce(&I, EventStream<Custom>) -> S,
     S: Stream<Item = T> + MaybeSend + 'static,
 {
     type Output = T;
+    type Custom = Custom;
 
     fn hash(&self, state: &mut Hasher) {
         std::any::TypeId::of::<I>().hash(state);
         self.data.hash(state);
     }
 
-    fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
+    fn stream(self: Box<Self>, input: EventStream<Custom>) -> BoxStream<Self::Output> {
         crate::boxed_stream((self.spawn)(&self.data, input))
     }
 }

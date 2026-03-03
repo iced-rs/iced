@@ -15,17 +15,20 @@ use std::hash::Hasher as _;
 ///
 /// [`Subscription`]: crate::Subscription
 #[derive(Debug, Default)]
-pub struct Tracker {
-    subscriptions: FxHashMap<u64, Execution>,
+pub struct Tracker<Custom = ()> {
+    subscriptions: FxHashMap<u64, Execution<Custom>>,
 }
 
 #[derive(Debug)]
-pub struct Execution {
+pub struct Execution<Custom = ()> {
     _cancel: futures::channel::oneshot::Sender<()>,
-    listener: Option<futures::channel::mpsc::Sender<Event>>,
+    listener: Option<futures::channel::mpsc::Sender<Event<Custom>>>,
 }
 
-impl Tracker {
+impl<Custom> Tracker<Custom>
+where
+    Custom: std::fmt::Debug + Clone + Default + Send + 'static,
+{
     /// Creates a new empty [`Tracker`].
     pub fn new() -> Self {
         Self {
@@ -54,7 +57,7 @@ impl Tracker {
     /// [`Subscription`]: crate::Subscription
     pub fn update<Message, Receiver>(
         &mut self,
-        recipes: impl Iterator<Item = Box<dyn Recipe<Output = Message>>>,
+        recipes: impl Iterator<Item = Box<dyn Recipe<Output = Message, Custom = Custom>>>,
         receiver: Receiver,
     ) -> Vec<BoxFuture<()>>
     where
@@ -132,7 +135,7 @@ impl Tracker {
     /// currently open.
     ///
     /// [`Recipe::stream`]: crate::subscription::Recipe::stream
-    pub fn broadcast(&mut self, event: Event) {
+    pub fn broadcast(&mut self, event: Event<Custom>) {
         self.subscriptions
             .values_mut()
             .filter_map(|connection| connection.listener.as_mut())

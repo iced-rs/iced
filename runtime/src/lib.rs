@@ -31,7 +31,7 @@ use crate::core::Event;
 use std::fmt;
 
 /// An action that the iced runtime can perform.
-pub enum Action<T> {
+pub enum Action<T, Custom = ()> {
     /// Output some value.
     Output(T),
 
@@ -58,7 +58,7 @@ pub enum Action<T> {
         /// The [`window::Id`](core::window::Id) of the event.
         window: core::window::Id,
         /// The [`Event`] to be produced.
-        event: Event,
+        event: Event<Custom>,
     },
 
     /// Poll any resources that may have pending computations.
@@ -74,13 +74,13 @@ pub enum Action<T> {
     Exit,
 }
 
-impl<T> Action<T> {
+impl<T, Custom> Action<T, Custom> {
     /// Creates a new [`Action::Widget`] with the given [`widget::Operation`](core::widget::Operation).
     pub fn widget(operation: impl core::widget::Operation + 'static) -> Self {
         Self::Widget(Box::new(operation))
     }
 
-    fn output<O>(self) -> Result<T, Action<O>> {
+    fn output<O>(self) -> Result<T, Action<O, Custom>> {
         match self {
             Action::Output(output) => Ok(output),
             Action::Widget(operation) => Err(Action::Widget(operation)),
@@ -131,6 +131,9 @@ where
 ///
 /// This will normally close any application windows and
 /// terminate the runtime loop.
-pub fn exit<T>() -> Task<T> {
+pub fn exit<T, Custom>() -> Task<T, Custom>
+where
+    Custom: Send + 'static,
+{
     task::effect(Action::Exit)
 }

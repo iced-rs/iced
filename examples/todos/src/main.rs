@@ -19,7 +19,7 @@ pub fn main() -> iced::Result {
     application().run()
 }
 
-fn application() -> Application<impl Program<Message = Message, Theme = Theme>> {
+fn application() -> Application<impl Program<Message = Message, Theme = Theme, Custom = ()>> {
     iced::application(Todos::new, Todos::update, Todos::view)
         .subscription(Todos::subscription)
         .title(Todos::title)
@@ -563,7 +563,7 @@ impl SavedState {
     }
 }
 
-fn presets() -> impl IntoIterator<Item = Preset<Todos, Message>> {
+fn presets() -> impl IntoIterator<Item = Preset<Todos, Message, ()>> {
     [
         Preset::new("Empty", || {
             (Todos::Loaded(State::default()), Command::none())
