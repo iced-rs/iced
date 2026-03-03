@@ -131,13 +131,13 @@ where
         target_height: f32,
         menu_height: Length,
     ) -> overlay::Element<'a, Message, Theme, Renderer> {
-        overlay::Element::new(Box::new(Overlay::new(
+        overlay::Element::new(Overlay::new(
             position,
             viewport,
             self,
             target_height,
             menu_height,
-        )))
+        ))
     }
 }
 
