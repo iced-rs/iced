@@ -20,7 +20,6 @@ struct Image {
     content_fit: ContentFit,
     spin: bool,
     last_tick: Instant,
-    ferris: image::Handle,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -84,10 +83,17 @@ impl Image {
     }
 
     fn view(&self) -> Element<'_, Message> {
+        static FERRIS: std::sync::LazyLock<image::Handle> = std::sync::LazyLock::new(|| {
+            image::Handle::from_path(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../tour/images/ferris.png",
+            ))
+        });
+
         let i_am_ferris = column![
             "Hello!",
             Element::from(
-                image(&self.ferris)
+                image(&FERRIS)
                     .width(self.width)
                     .content_fit(self.content_fit)
                     .rotation(self.rotation)
@@ -172,7 +178,6 @@ impl Default for Image {
             content_fit: ContentFit::default(),
             spin: false,
             last_tick: Instant::now(),
-            ferris: concat!(env!("CARGO_MANIFEST_DIR"), "/../tour/images/ferris.png",).into(),
         }
     }
 }
