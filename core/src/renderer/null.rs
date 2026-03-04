@@ -3,7 +3,7 @@ use crate::image::{self, Image};
 use crate::renderer::{self, Renderer};
 use crate::svg;
 use crate::text::{self, Text};
-use crate::{Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation};
+use crate::{Background, Color, Em, Font, Pixels, Point, Rectangle, Size, Transformation};
 
 impl Renderer for () {
     fn start_layer(&mut self, _bounds: Rectangle) {}
@@ -133,6 +133,10 @@ impl text::Paragraph for () {
         text::Shaping::default()
     }
 
+    fn letter_spacing(&self) -> Em {
+        Em::ZERO
+    }
+
     fn grapheme_position(&self, _line: usize, _index: usize) -> Option<Point> {
         None
     }
@@ -212,6 +216,7 @@ impl text::Editor for () {
         _new_font: Self::Font,
         _new_size: Pixels,
         _new_line_height: text::LineHeight,
+        _new_letter_spacing: Em,
         _new_wrapping: text::Wrapping,
         _new_hint_factor: Option<f32>,
         _new_highlighter: &mut impl text::Highlighter,

@@ -4,7 +4,7 @@ use criterion::{Bencher, Criterion, criterion_group, criterion_main};
 use iced::alignment;
 use iced::mouse;
 use iced::widget::{canvas, scrollable, stack, text};
-use iced::{Color, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme};
+use iced::{Color, Element, Em, Font, Length, Pixels, Point, Rectangle, Size, Theme};
 use iced_wgpu::Renderer;
 use iced_wgpu::wgpu;
 
@@ -186,6 +186,7 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
                         wrapping: text::Wrapping::default(),
                         ellipsis: text::Ellipsis::default(),
                         max_width: f32::INFINITY,
+                        letter_spacing: Em::ZERO,
                     });
                 }
             })]

@@ -144,6 +144,7 @@ where
     line_height: text::LineHeight,
     shaping: text::Shaping,
     wrapping: text::Wrapping,
+    letter_spacing: crate::core::Em,
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
@@ -185,6 +186,7 @@ where
             line_height: text::LineHeight::default(),
             shaping: text::Shaping::default(),
             wrapping: text::Wrapping::default(),
+            letter_spacing: crate::core::Em::default(),
             font: None,
             class: Theme::default(),
             last_status: None,
@@ -230,6 +232,12 @@ where
     /// Sets the [`text::Wrapping`] strategy of the [`Radio`] button.
     pub fn wrapping(mut self, wrapping: text::Wrapping) -> Self {
         self.wrapping = wrapping;
+        self
+    }
+
+    /// Sets the letter spacing of the [`Radio`] button.
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<crate::core::Em>) -> Self {
+        self.letter_spacing = letter_spacing.into();
         self
     }
 
@@ -311,6 +319,7 @@ where
                         shaping: self.shaping,
                         wrapping: self.wrapping,
                         ellipsis: text::Ellipsis::default(),
+                        letter_spacing: self.letter_spacing,
                     },
                 )
             },

@@ -1,0 +1,14 @@
+[package]
+name = "letter_spacing"
+version = "0.1.0"
+authors = ["Andy Terra <tech@andyterra.com>"]
+edition = "2024"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["tokio"]
+hyper = { version = "1", features = ["http1", "http2"] }
+hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "tokio"] }
+hyper-tls = "0.6"
+http-body-util = "0.1"

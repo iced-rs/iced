@@ -1,5 +1,5 @@
 //! Cache text.
-use crate::core::{Font, Size};
+use crate::core::{Em, Font, Size};
 use crate::text;
 
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
@@ -54,7 +54,7 @@ impl Cache {
             buffer.set_text(
                 font_system,
                 key.content,
-                &text::to_attributes(key.font),
+                &text::to_attributes(key.font, key.letter_spacing),
                 text::to_shaping(key.shaping, key.content),
                 None,
             );
@@ -117,6 +117,8 @@ pub struct Key<'a> {
     pub shaping: text::Shaping,
     /// The alignment of the text.
     pub align_x: text::Alignment,
+    /// The letter spacing of the text.
+    pub letter_spacing: Em,
     /// The wrapping strategy of the text.
     pub wrapping: text::Wrapping,
     /// The ellipsis strategy of the text.
@@ -133,6 +135,7 @@ impl Key<'_> {
         self.bounds.height.to_bits().hash(&mut hasher);
         self.shaping.hash(&mut hasher);
         self.align_x.hash(&mut hasher);
+        self.letter_spacing.0.to_bits().hash(&mut hasher);
 
         hasher.finish()
     }
