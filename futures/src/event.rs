@@ -8,7 +8,10 @@ use crate::subscription::{self, Subscription};
 ///
 /// This subscription will notify your application of any [`Event`] that was
 /// not captured by any widget.
-pub fn listen() -> Subscription<Event> {
+pub fn listen<Custom>() -> Subscription<Event<Custom>, Custom>
+where
+    Custom: 'static + Send,
+{
     listen_with(|event, status, _window| match status {
         event::Status::Ignored => Some(event),
         event::Status::Captured => None,
@@ -23,11 +26,12 @@ pub fn listen() -> Subscription<Event> {
 ///
 /// - Returns `None`, the [`Event`] will be discarded.
 /// - Returns `Some` message, the `Message` will be produced.
-pub fn listen_with<Message>(
-    f: fn(Event, event::Status, window::Id) -> Option<Message>,
-) -> Subscription<Message>
+pub fn listen_with<Message, Custom>(
+    f: fn(Event<Custom>, event::Status, window::Id) -> Option<Message>,
+) -> Subscription<Message, Custom>
 where
     Message: 'static + MaybeSend,
+    Custom: 'static + Send,
 {
     #[derive(Hash)]
     struct EventsWith;
@@ -52,11 +56,12 @@ where
 ///
 /// **Warning:** This [`Subscription`], if unfiltered, may produce messages in
 /// an infinite loop.
-pub fn listen_raw<Message>(
-    f: fn(Event, event::Status, window::Id) -> Option<Message>,
-) -> Subscription<Message>
+pub fn listen_raw<Message, Custom>(
+    f: fn(Event<Custom>, event::Status, window::Id) -> Option<Message>,
+) -> Subscription<Message, Custom>
 where
     Message: 'static + MaybeSend,
+    Custom: 'static + Send,
 {
     #[derive(Hash)]
     struct RawEvents;
@@ -79,7 +84,10 @@ where
 /// _**Note:** Currently, it only triggers on macOS and the executable needs to be properly [bundled]!_
 ///
 /// [bundled]: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW19
-pub fn listen_url() -> Subscription<String> {
+pub fn listen_url<Custom>() -> Subscription<String, Custom>
+where
+    Custom: 'static + Send,
+{
     #[derive(Hash)]
     struct ListenUrl;
 
