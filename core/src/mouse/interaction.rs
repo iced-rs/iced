@@ -1,3 +1,5 @@
+use crate::window;
+
 /// The interaction of a mouse cursor.
 #[derive(Debug, Eq, PartialEq, Clone, Copy, PartialOrd, Ord, Default)]
 #[allow(missing_docs)]
@@ -30,4 +32,5 @@ pub enum Interaction {
     AllScroll,
     ZoomIn,
     ZoomOut,
+    Custom(window::cursor::Id),
 }
