@@ -410,8 +410,7 @@ pub fn request_user_attention<T>(id: Id, user_attention: Option<UserAttention>) 
 /// This [`Task`] steals input focus from other applications. Do not use this method unless
 /// you are certain that's what the user wants. Focus stealing can cause an extremely disruptive
 /// user experience.
-pub fn gain_focus<T>(id: Id) -> Task<T>
-{
+pub fn gain_focus<T>(id: Id) -> Task<T> {
     task::effect(crate::Action::Window(Action::GainFocus(id)))
 }
 

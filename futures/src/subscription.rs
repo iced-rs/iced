@@ -42,7 +42,7 @@ pub enum PlatformSpecific<Custom> {
     /// A MacOS specific event
     MacOS(MacOS),
     /// Others
-    Others(Custom)
+    Others(Custom),
 }
 
 /// Describes an event specific to MacOS

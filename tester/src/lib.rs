@@ -82,11 +82,7 @@ where
         (Tester::new(&self.program), Task::none())
     }
 
-    fn update(
-        &self,
-        state: &mut Self::State,
-        message: Self::Message,
-    ) -> Task<Self::Message> {
+    fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
         state.tick(&self.program, message.0).map(Message)
     }
 
@@ -415,10 +411,7 @@ impl<P: Program + 'static> Tester<P> {
         }
     }
 
-    fn preset<'a>(
-        &self,
-        program: &'a P,
-    ) -> Option<&'a program::Preset<P::State, P::Message>> {
+    fn preset<'a>(&self, program: &'a P) -> Option<&'a program::Preset<P::State, P::Message>> {
         self.preset.as_ref().and_then(|preset| {
             program
                 .presets()

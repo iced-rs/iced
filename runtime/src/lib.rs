@@ -138,7 +138,6 @@ where
 ///
 /// This will normally close any application windows and
 /// terminate the runtime loop.
-pub fn exit<T>() -> Task<T>
-{
+pub fn exit<T>() -> Task<T> {
     task::effect(Action::Exit)
 }
