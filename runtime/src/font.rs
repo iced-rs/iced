@@ -8,10 +8,7 @@ use std::borrow::Cow;
 pub enum Error {}
 
 /// Load a font from its bytes.
-pub fn load<Custom>(bytes: impl Into<Cow<'static, [u8]>>) -> Task<Result<(), Error>, Custom>
-where
-    Custom: Send + 'static,
-{
+pub fn load(bytes: impl Into<Cow<'static, [u8]>>) -> Task<Result<(), Error>> {
     task::oneshot(|channel| Action::LoadFont {
         bytes: bytes.into(),
         channel,

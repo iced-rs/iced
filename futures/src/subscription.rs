@@ -23,7 +23,7 @@ pub enum Event<Custom = ()> {
         /// The [`Event`] describing the interaction.
         ///
         /// [`Event`]: event::Event
-        event: event::Event<Custom>,
+        event: event::Event,
 
         /// The [`event::Status`] of the interaction.
         status: event::Status,
@@ -33,14 +33,16 @@ pub enum Event<Custom = ()> {
     SystemThemeChanged(theme::Mode),
 
     /// A platform specific event.
-    PlatformSpecific(PlatformSpecific),
+    PlatformSpecific(PlatformSpecific<Custom>),
 }
 
 /// A platform specific event
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PlatformSpecific {
+pub enum PlatformSpecific<Custom> {
     /// A MacOS specific event
     MacOS(MacOS),
+    /// Others
+    Others(Custom)
 }
 
 /// Describes an event specific to MacOS

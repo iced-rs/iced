@@ -76,8 +76,8 @@ pub use timed::timed;
 /// }
 /// ```
 pub fn application<State, Message, Theme, Renderer>(
-    boot: impl BootFn<State, Message, ()>,
-    update: impl UpdateFn<State, Message, ()>,
+    boot: impl BootFn<State, Message>,
+    update: impl UpdateFn<State, Message>,
     view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
 ) -> Application<impl Program<State = State, Message = Message, Theme = Theme, Custom = ()>>
 where
@@ -121,7 +121,7 @@ where
             name.split("::").next().unwrap_or("a_cool_application")
         }
 
-        fn boot(&self) -> (State, Task<Message, Self::Custom>) {
+        fn boot(&self) -> (State, Task<Message>) {
             self.boot.boot()
         }
 
@@ -129,7 +129,7 @@ where
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Task<Self::Message, Self::Custom> {
+        ) -> Task<Self::Message> {
             self.update.update(state, message)
         }
 
@@ -178,7 +178,7 @@ pub struct Application<P: Program> {
     raw: P,
     settings: Settings,
     window: window::Settings,
-    presets: Vec<Preset<P::State, P::Message, P::Custom>>,
+    presets: Vec<Preset<P::State, P::Message>>,
 }
 
 impl<P: Program<Custom = ()>> Application<P> {
@@ -441,7 +441,7 @@ impl<P: Program<Custom = ()>> Application<P> {
     /// environments.
     pub fn presets(
         self,
-        presets: impl IntoIterator<Item = Preset<P::State, P::Message, P::Custom>>,
+        presets: impl IntoIterator<Item = Preset<P::State, P::Message>>,
     ) -> Self {
         Self {
             presets: presets.into_iter().collect(),
@@ -470,15 +470,11 @@ impl<P: Program> Program for Application<P> {
         Some(self.window.clone())
     }
 
-    fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+    fn boot(&self) -> (Self::State, Task<Self::Message>) {
         self.raw.boot()
     }
 
-    fn update(
-        &self,
-        state: &mut Self::State,
-        message: Self::Message,
-    ) -> Task<Self::Message, Self::Custom> {
+    fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
         debug::hot(|| self.raw.update(state, message))
     }
 
@@ -510,7 +506,7 @@ impl<P: Program> Program for Application<P> {
         debug::hot(|| self.raw.scale_factor(state, window))
     }
 
-    fn presets(&self) -> &[Preset<Self::State, Self::Message, Self::Custom>] {
+    fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
         &self.presets
     }
 }
@@ -523,38 +519,35 @@ impl<P: Program> Program for Application<P> {
 /// In practice, this means that [`application`] can both take
 /// simple functions like `State::default` and more advanced ones
 /// that return a [`Task`].
-pub trait BootFn<State, Message, Custom = ()> {
+pub trait BootFn<State, Message> {
     /// Initializes the [`Application`] state.
-    fn boot(&self) -> (State, Task<Message, Custom>);
+    fn boot(&self) -> (State, Task<Message>);
 }
 
-impl<T, C, State, Message, Custom> BootFn<State, Message, Custom> for T
+impl<T, C, State, Message> BootFn<State, Message> for T
 where
     T: Fn() -> C,
-    C: IntoBoot<State, Message, Custom>,
+    C: IntoBoot<State, Message>,
 {
-    fn boot(&self) -> (State, Task<Message, Custom>) {
+    fn boot(&self) -> (State, Task<Message>) {
         self().into_boot()
     }
 }
 
 /// The initial state of some [`Application`].
-pub trait IntoBoot<State, Message, Custom> {
+pub trait IntoBoot<State, Message> {
     /// Turns some type into the initial state of some [`Application`].
-    fn into_boot(self) -> (State, Task<Message, Custom>);
+    fn into_boot(self) -> (State, Task<Message>);
 }
 
-impl<State, Message, Custom> IntoBoot<State, Message, Custom> for State
-where
-    Custom: Send + 'static,
-{
-    fn into_boot(self) -> (State, Task<Message, Custom>) {
+impl<State, Message> IntoBoot<State, Message> for State {
+    fn into_boot(self) -> (State, Task<Message>) {
         (self, Task::none())
     }
 }
 
-impl<State, Message, Custom> IntoBoot<State, Message, Custom> for (State, Task<Message, Custom>) {
-    fn into_boot(self) -> (State, Task<Message, Custom>) {
+impl<State, Message> IntoBoot<State, Message> for (State, Task<Message>) {
+    fn into_boot(self) -> (State, Task<Message>) {
         self
     }
 }
@@ -589,26 +582,23 @@ where
 ///
 /// This trait allows the [`application`] builder to take any closure that
 /// returns any `Into<Task<Message>>`.
-pub trait UpdateFn<State, Message, Custom = ()> {
+pub trait UpdateFn<State, Message> {
     /// Processes the message and updates the state of the [`Application`].
-    fn update(&self, state: &mut State, message: Message) -> Task<Message, Custom>;
+    fn update(&self, state: &mut State, message: Message) -> Task<Message>;
 }
 
-impl<State, Custom> UpdateFn<State, Never, Custom> for ()
-where
-    Custom: Send + 'static,
-{
-    fn update(&self, _state: &mut State, _message: Never) -> Task<Never, Custom> {
+impl<State> UpdateFn<State, Never> for () {
+    fn update(&self, _state: &mut State, _message: Never) -> Task<Never> {
         Task::none()
     }
 }
 
-impl<T, State, Message, C, Custom> UpdateFn<State, Message, Custom> for T
+impl<T, State, Message, C> UpdateFn<State, Message> for T
 where
     T: Fn(&mut State, Message) -> C,
-    C: Into<Task<Message, Custom>>,
+    C: Into<Task<Message>>,
 {
-    fn update(&self, state: &mut State, message: Message) -> Task<Message, Custom> {
+    fn update(&self, state: &mut State, message: Message) -> Task<Message> {
         self(state, message).into()
     }
 }
