@@ -577,7 +577,8 @@ use iced_futures::Subscription as IcedSubscription;
 /// #         pub use std::time::{Duration, Instant};
 /// #     }
 /// #
-/// #     pub use iced_futures::Subscription;
+/// #     use iced_futures::Subscription as IcedSubscription;
+/// #     pub type Subscription<T> = IcedSubscription<T, iced_winit::PlatformSpecific>;
 /// # }
 /// use iced::time::{self, Duration, Instant};
 /// use iced::Subscription;

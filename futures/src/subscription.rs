@@ -81,7 +81,8 @@ pub type Hasher = rustc_hash::FxHasher;
 /// #         pub use std::time::{Duration, Instant};
 /// #     }
 /// #
-/// #     pub use iced_futures::Subscription;
+/// #     use iced_futures::Subscription as IcedSubScription;
+/// #     pub type Subscription<T> = IcedSubScription<T, ()>;
 /// # }
 /// use iced::time::{self, Duration, Instant};
 /// use iced::Subscription;
@@ -101,7 +102,7 @@ pub type Hasher = rustc_hash::FxHasher;
 ///
 /// [`Future`]: std::future::Future
 #[must_use = "`Subscription` must be returned to the runtime to take effect; normally in your `subscription` function."]
-pub struct Subscription<T, Custom = ()> {
+pub struct Subscription<T, Custom> {
     recipes: Vec<Box<dyn Recipe<Output = T, Custom = Custom>>>,
 }
 
@@ -129,7 +130,8 @@ where
     ///
     /// ```
     /// # mod iced {
-    /// #     pub use iced_futures::Subscription;   
+    /// #     use iced_futures::Subscription as IcedSubScription;
+    /// #     pub type Subscription<T> = IcedSubScription<T, ()>;
     /// #     pub use iced_futures::futures;
     /// #     pub use iced_futures::stream;
     /// # }
@@ -426,7 +428,7 @@ pub fn into_recipes<T, Custom>(
     subscription.recipes
 }
 
-impl<T> std::fmt::Debug for Subscription<T> {
+impl<T, Custom> std::fmt::Debug for Subscription<T, Custom> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Subscription").finish()
     }
