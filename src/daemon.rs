@@ -79,11 +79,7 @@ where
             self.boot.boot()
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.update.update(state, message)
         }
 
@@ -275,10 +271,7 @@ impl<P: Program<Custom = ()>> Daemon<P> {
     /// Presets can be used to override the default booting strategy
     /// of your application during testing to create reproducible
     /// environments.
-    pub fn presets(
-        self,
-        presets: impl IntoIterator<Item = Preset<P::State, P::Message>>,
-    ) -> Self {
+    pub fn presets(self, presets: impl IntoIterator<Item = Preset<P::State, P::Message>>) -> Self {
         Self {
             presets: presets.into_iter().collect(),
             ..self
@@ -310,11 +303,7 @@ impl<P: Program> Program for Daemon<P> {
         self.raw.boot()
     }
 
-    fn update(
-        &self,
-        state: &mut Self::State,
-        message: Self::Message,
-    ) -> Task<Self::Message> {
+    fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
         debug::hot(|| self.raw.update(state, message))
     }
 

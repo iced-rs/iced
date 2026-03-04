@@ -52,11 +52,7 @@ pub trait Program: Sized {
 
     fn boot(&self) -> (Self::State, Task<Self::Message>);
 
-    fn update(
-        &self,
-        state: &mut Self::State,
-        message: Self::Message,
-    ) -> Task<Self::Message>;
+    fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message>;
 
     fn view<'a>(
         &self,
@@ -156,11 +152,7 @@ pub fn with_title<P: Program>(
             self.program.boot()
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -233,11 +225,7 @@ pub fn with_subscription<P: Program>(
             self.program.boot()
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -317,11 +305,7 @@ pub fn with_theme<P: Program>(
             self.program.title(state, window)
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -394,11 +378,7 @@ pub fn with_style<P: Program>(
             self.program.title(state, window)
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -467,11 +447,7 @@ pub fn with_scale_factor<P: Program>(
             self.program.boot()
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -548,11 +524,7 @@ pub fn with_executor<P: Program, E: Executor>(
             self.program.boot()
         }
 
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Task<Self::Message> {
+        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 

@@ -18,7 +18,6 @@ use crate::Task;
 ///
 /// You may care about purity if you want to leverage the `time-travel`
 /// feature properly.
-pub fn now() -> Task<Instant>
-{
+pub fn now() -> Task<Instant> {
     Task::future(async { Instant::now() })
 }
