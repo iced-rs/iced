@@ -470,7 +470,7 @@ enum Control {
 
 async fn run_instance<P>(
     mut program: program::Instance<P>,
-    mut runtime: Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
+    mut runtime: Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>, P::Custom>,
     mut proxy: Proxy<P::Message>,
     mut event_receiver: mpsc::UnboundedReceiver<Event<Action<P::Message>>>,
     mut control_sender: mpsc::UnboundedSender<Control>,
@@ -1216,7 +1216,7 @@ where
 
 fn update<P: Program<Custom = ()>, E: Executor>(
     program: &mut program::Instance<P>,
-    runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>>,
+    runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>, P::Custom>,
     messages: &mut Vec<P::Message>,
 ) -> Vec<Action<P::Message>>
 where
@@ -1270,7 +1270,7 @@ where
 fn run_action<'a, P, C>(
     action: Action<P::Message>,
     program: &'a program::Instance<P>,
-    runtime: &mut Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
+    runtime: &mut Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>, P::Custom>,
     compositor: &mut Option<C>,
     events: &mut Vec<(window::Id, core::Event)>,
     messages: &mut Vec<P::Message>,
