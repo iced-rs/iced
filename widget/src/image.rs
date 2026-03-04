@@ -3,9 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } }
-//! # pub struct State{
-//!     img: image::Handle
-//! }
+//! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::image;
 //!
@@ -14,7 +12,11 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     image(&state.img).into()
+//!     use std::sync::LazyLock;
+//!
+//!     static IMAGE: LazyLock<image::Handle> = LazyLock::new(|| image::Handle::from_path("ferris.png"));
+//!
+//!     image(&IMAGE).into()
 //! }
 //! ```
 //! <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
@@ -43,9 +45,7 @@ pub fn viewer<'a>(handle: &'a Handle) -> Viewer<'a, Handle> {
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
-/// # pub struct State{
-///     img: image::Handle
-/// }
+/// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::image;
 ///
@@ -54,7 +54,11 @@ pub fn viewer<'a>(handle: &'a Handle) -> Viewer<'a, Handle> {
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     image(&state.img).into()
+///     use std::sync::LazyLock;
+///
+///     static IMAGE: LazyLock<image::Handle> = LazyLock::new(|| image::Handle::from_path("ferris.png"));
+///
+///     image(&IMAGE).into()
 /// }
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
