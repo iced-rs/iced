@@ -19,7 +19,8 @@ pub fn main() -> iced::Result {
     application().run()
 }
 
-fn application() -> Application<impl Program<Message = Message, Theme = Theme, Custom = ()>> {
+fn application()
+-> Application<impl Program<Message = Message, Theme = Theme, Custom = iced::PlatformSpecific>> {
     iced::application(Todos::new, Todos::update, Todos::view)
         .subscription(Todos::subscription)
         .title(Todos::title)

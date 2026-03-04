@@ -540,7 +540,6 @@ pub use crate::program::Preset;
 pub use crate::program::message;
 pub use crate::runtime::exit;
 use iced_futures::Subscription as IcedSubscription;
-
 /// A request to listen to external events.
 ///
 /// Besides performing async actions on demand with `Task`, most
@@ -597,8 +596,10 @@ use iced_futures::Subscription as IcedSubscription;
 /// ```
 ///
 /// [`Future`]: std::future::Future
-
+/// [`Stream`]: crate::futures::Stream
 pub type Subscription<T> = IcedSubscription<T, iced_winit::PlatformSpecific>;
+
+pub use iced_winit::PlatformSpecific;
 
 pub use Alignment::Center;
 pub use Length::{Fill, FillPortion, Shrink};
