@@ -35,11 +35,10 @@ use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
 use crate::window;
-use crate::{
-    Element, Executor, Font, Never, Preset, Result, Settings, Size, Subscription, Task, Theme,
-};
+use crate::{Element, Executor, Font, Never, Preset, Result, Settings, Size, Task, Theme};
 
 use iced_debug as debug;
+use iced_futures::Subscription;
 
 use std::borrow::Cow;
 
@@ -79,7 +78,9 @@ pub fn application<State, Message, Theme, Renderer>(
     boot: impl BootFn<State, Message>,
     update: impl UpdateFn<State, Message>,
     view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
-) -> Application<impl Program<State = State, Message = Message, Theme = Theme, Custom = ()>>
+) -> Application<
+    impl Program<State = State, Message = Message, Theme = Theme, Custom = iced_winit::PlatformSpecific>,
+>
 where
     State: 'static,
     Message: Send + 'static,
@@ -112,7 +113,7 @@ where
         type Message = Message;
         type Theme = Theme;
         type Renderer = Renderer;
-        type Custom = ();
+        type Custom = iced_winit::PlatformSpecific;
         type Executor = iced_futures::backend::default::Executor;
 
         fn name() -> &'static str {
@@ -177,7 +178,7 @@ pub struct Application<P: Program> {
     presets: Vec<Preset<P::State, P::Message>>,
 }
 
-impl<P: Program<Custom = ()>> Application<P> {
+impl<P: Program<Custom = iced_winit::PlatformSpecific>> Application<P> {
     /// Runs the [`Application`].
     pub fn run(self) -> Result
     where

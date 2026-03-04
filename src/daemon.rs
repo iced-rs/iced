@@ -5,7 +5,9 @@ use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
 use crate::window;
-use crate::{Element, Executor, Font, Preset, Result, Settings, Subscription, Task, Theme};
+use crate::{Element, Executor, Font, Preset, Result, Settings, Task, Theme};
+
+use iced_futures::Subscription;
 
 use iced_debug as debug;
 
@@ -121,7 +123,7 @@ pub struct Daemon<P: Program> {
     presets: Vec<Preset<P::State, P::Message>>,
 }
 
-impl<P: Program<Custom = ()>> Daemon<P> {
+impl<P: Program<Custom = iced_winit::PlatformSpecific>> Daemon<P> {
     /// Runs the [`Daemon`].
     pub fn run(self) -> Result
     where

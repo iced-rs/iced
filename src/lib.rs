@@ -539,7 +539,66 @@ pub use crate::core::{
 pub use crate::program::Preset;
 pub use crate::program::message;
 pub use crate::runtime::exit;
-pub use iced_futures::Subscription;
+use iced_futures::Subscription as IcedSubscription;
+
+/// A request to listen to external events.
+///
+/// Besides performing async actions on demand with `Task`, most
+/// applications also need to listen to external events passively.
+///
+/// A [`Subscription`] is normally provided to some runtime, like a `Task`,
+/// and it will generate events as long as the user keeps requesting it.
+///
+/// For instance, you can use a [`Subscription`] to listen to a `WebSocket`
+/// connection, keyboard presses, mouse events, time ticks, etc.
+///
+/// # The Lifetime of a [`Subscription`]
+/// Much like a [`Future`] or a [`Stream`], a [`Subscription`] does not produce any effects
+/// on its own. For a [`Subscription`] to run, it must be returned to the iced runtime—normally
+/// in the `subscription` function of an `application` or a `daemon`.
+///
+/// When a [`Subscription`] is provided to the runtime for the first time, the runtime will
+/// start running it asynchronously. Running a [`Subscription`] consists in building its underlying
+/// [`Stream`] and executing it in an async runtime.
+///
+/// Therefore, you can think of a [`Subscription`] as a "stream builder". It simply represents a way
+/// to build a certain [`Stream`] together with some way to _identify_ it.
+///
+/// Identification is important because when a specific [`Subscription`] stops being returned to the
+/// iced runtime, the runtime will kill its associated [`Stream`]. The runtime uses the identity of a
+/// [`Subscription`] to keep track of it.
+///
+/// This way, iced allows you to declaratively __subscribe__ to particular streams of data temporarily
+/// and whenever necessary.
+///
+/// ```
+/// # mod iced {
+/// #     pub mod time {
+/// #         pub use iced_futures::backend::default::time::every;
+/// #         pub use std::time::{Duration, Instant};
+/// #     }
+/// #
+/// #     pub use iced_futures::Subscription;
+/// # }
+/// use iced::time::{self, Duration, Instant};
+/// use iced::Subscription;
+///
+/// struct State {
+///     timer_enabled: bool,
+/// }
+///
+/// fn subscription(state: &State) -> Subscription<Instant> {
+///     if state.timer_enabled {
+///         time::every(Duration::from_secs(1))
+///     } else {
+///         Subscription::none()
+///     }
+/// }
+/// ```
+///
+/// [`Future`]: std::future::Future
+
+pub type Subscription<T> = IcedSubscription<T, iced_winit::PlatformSpecific>;
 
 pub use Alignment::Center;
 pub use Length::{Fill, FillPortion, Shrink};
@@ -586,7 +645,8 @@ pub mod font {
 pub mod event {
     //! Handle events of a user interface.
     pub use crate::core::event::{Event, Status};
-    pub use iced_futures::event::{listen, listen_raw, listen_url, listen_with};
+    pub use iced_futures::event::{listen, listen_raw, listen_with};
+    pub use iced_winit::listen_url;
 }
 
 pub mod keyboard {
