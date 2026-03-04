@@ -57,7 +57,7 @@ pub enum MacOS {
 /// A stream of runtime events.
 ///
 /// It is the input of a [`Subscription`].
-pub type EventStream<Custom = crate::core::Never> = BoxStream<Event<Custom>>;
+pub type EventStream<Custom = ()> = BoxStream<Event<Custom>>;
 
 /// The hasher used for identifying subscriptions.
 pub type Hasher = rustc_hash::FxHasher;
