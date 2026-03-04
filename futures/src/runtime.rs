@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 ///
 /// [`Subscription`]: crate::Subscription
 #[derive(Debug)]
-pub struct Runtime<Executor, Sender, Message, Custom = ()> {
+pub struct Runtime<Executor, Sender, Message, Custom> {
     executor: Executor,
     sender: Sender,
     subscriptions: subscription::Tracker<Custom>,
