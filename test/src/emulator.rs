@@ -57,7 +57,7 @@ pub enum Event<P: Program> {
 pub struct Action<P: Program>(Action_<P>);
 
 enum Action_<P: Program> {
-    Runtime(runtime::Action<P::Message, P::Custom>),
+    Runtime(runtime::Action<P::Message>),
     CountDown,
 }
 
@@ -80,7 +80,7 @@ impl<P: Program + 'static> Emulator<P> {
         program: &P,
         mode: Mode,
         size: Size,
-        preset: Option<&program::Preset<P::State, P::Message, P::Custom>>,
+        preset: Option<&program::Preset<P::State, P::Message>>,
     ) -> Emulator<P> {
         use renderer::Headless;
 
@@ -380,7 +380,7 @@ impl<P: Program + 'static> Emulator<P> {
         }
     }
 
-    fn wait_for(&mut self, task: Task<P::Message, P::Custom>) {
+    fn wait_for(&mut self, task: Task<P::Message>) {
         if let Some(stream) = task::into_stream(task) {
             match self.mode {
                 Mode::Zen => {

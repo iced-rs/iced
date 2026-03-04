@@ -78,7 +78,7 @@ where
         )
     }
 
-    fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+    fn boot(&self) -> (Self::State, Task<Self::Message>) {
         (Tester::new(&self.program), Task::none())
     }
 
@@ -86,7 +86,7 @@ where
         &self,
         state: &mut Self::State,
         message: Self::Message,
-    ) -> Task<Self::Message, Self::Custom> {
+    ) -> Task<Self::Message> {
         state.tick(&self.program, message.0).map(Message)
     }
 
@@ -207,7 +207,7 @@ impl<P: Program + 'static> Tester<P> {
         )
     }
 
-    fn update(&mut self, program: &P, event: Event) -> Task<Tick<P>, P::Custom> {
+    fn update(&mut self, program: &P, event: Event) -> Task<Tick<P>> {
         match event {
             Event::ViewportChanged(viewport) => {
                 self.viewport = viewport;
@@ -418,7 +418,7 @@ impl<P: Program + 'static> Tester<P> {
     fn preset<'a>(
         &self,
         program: &'a P,
-    ) -> Option<&'a program::Preset<P::State, P::Message, P::Custom>> {
+    ) -> Option<&'a program::Preset<P::State, P::Message>> {
         self.preset.as_ref().and_then(|preset| {
             program
                 .presets()
@@ -427,7 +427,7 @@ impl<P: Program + 'static> Tester<P> {
         })
     }
 
-    fn tick(&mut self, program: &P, tick: Tick<P>) -> Task<Tick<P>, P::Custom> {
+    fn tick(&mut self, program: &P, tick: Tick<P>) -> Task<Tick<P>> {
         match tick {
             Tick::Tester(message) => self.update(program, message),
             Tick::Program(message) => {

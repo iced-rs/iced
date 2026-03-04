@@ -50,13 +50,13 @@ pub trait Program: Sized {
 
     fn window(&self) -> Option<window::Settings>;
 
-    fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>);
+    fn boot(&self) -> (Self::State, Task<Self::Message>);
 
     fn update(
         &self,
         state: &mut Self::State,
         message: Self::Message,
-    ) -> Task<Self::Message, Self::Custom>;
+    ) -> Task<Self::Message>;
 
     fn view<'a>(
         &self,
@@ -109,7 +109,7 @@ pub trait Program: Sized {
         1.0
     }
 
-    fn presets(&self) -> &[Preset<Self::State, Self::Message, Self::Custom>] {
+    fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
         &[]
     }
 }
@@ -152,7 +152,7 @@ pub fn with_title<P: Program>(
             self.program.window()
         }
 
-        fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
 
@@ -160,7 +160,7 @@ pub fn with_title<P: Program>(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Task<Self::Message, Self::Custom> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -229,7 +229,7 @@ pub fn with_subscription<P: Program>(
             self.program.window()
         }
 
-        fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
 
@@ -237,7 +237,7 @@ pub fn with_subscription<P: Program>(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Task<Self::Message, Self::Custom> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -309,7 +309,7 @@ pub fn with_theme<P: Program>(
             self.program.window()
         }
 
-        fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
 
@@ -321,7 +321,7 @@ pub fn with_theme<P: Program>(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Task<Self::Message, Self::Custom> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -386,7 +386,7 @@ pub fn with_style<P: Program>(
             self.program.window()
         }
 
-        fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
 
@@ -398,7 +398,7 @@ pub fn with_style<P: Program>(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Task<Self::Message, Self::Custom> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -463,7 +463,7 @@ pub fn with_scale_factor<P: Program>(
             self.program.window()
         }
 
-        fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
 
@@ -471,7 +471,7 @@ pub fn with_scale_factor<P: Program>(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Task<Self::Message, Self::Custom> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -544,7 +544,7 @@ pub fn with_executor<P: Program, E: Executor>(
             self.program.window()
         }
 
-        fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
 
@@ -552,7 +552,7 @@ pub fn with_executor<P: Program, E: Executor>(
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Task<Self::Message, Self::Custom> {
+        ) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
@@ -603,7 +603,7 @@ pub struct Instance<P: Program> {
 
 impl<P: Program> Instance<P> {
     /// Creates a new [`Instance`] of the given [`Program`].
-    pub fn new(program: P) -> (Self, Task<P::Message, P::Custom>) {
+    pub fn new(program: P) -> (Self, Task<P::Message>) {
         let (state, task) = program.boot();
 
         (Self { program, state }, task)
@@ -615,7 +615,7 @@ impl<P: Program> Instance<P> {
     }
 
     /// Processes the given message and updates the [`Instance`].
-    pub fn update(&mut self, message: P::Message) -> Task<P::Message, P::Custom> {
+    pub fn update(&mut self, message: P::Message) -> Task<P::Message> {
         self.program.update(&mut self.state, message)
     }
 

@@ -8,7 +8,7 @@ use crate::subscription::{self, Subscription};
 ///
 /// This subscription will notify your application of any [`Event`] that was
 /// not captured by any widget.
-pub fn listen<Custom>() -> Subscription<Event<Custom>, Custom>
+pub fn listen<Custom>() -> Subscription<Event, Custom>
 where
     Custom: 'static + Send,
 {
@@ -27,7 +27,7 @@ where
 /// - Returns `None`, the [`Event`] will be discarded.
 /// - Returns `Some` message, the `Message` will be produced.
 pub fn listen_with<Message, Custom>(
-    f: fn(Event<Custom>, event::Status, window::Id) -> Option<Message>,
+    f: fn(Event, event::Status, window::Id) -> Option<Message>,
 ) -> Subscription<Message, Custom>
 where
     Message: 'static + MaybeSend,
@@ -57,7 +57,7 @@ where
 /// **Warning:** This [`Subscription`], if unfiltered, may produce messages in
 /// an infinite loop.
 pub fn listen_raw<Message, Custom>(
-    f: fn(Event<Custom>, event::Status, window::Id) -> Option<Message>,
+    f: fn(Event, event::Status, window::Id) -> Option<Message>,
 ) -> Subscription<Message, Custom>
 where
     Message: 'static + MaybeSend,

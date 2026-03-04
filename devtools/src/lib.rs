@@ -63,7 +63,7 @@ where
         self.program.window()
     }
 
-    fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+    fn boot(&self) -> (Self::State, Task<Self::Message>) {
         let (state, boot) = self.program.boot();
         let (devtools, task) = DevTools::new(state);
 
@@ -77,7 +77,7 @@ where
         &self,
         state: &mut Self::State,
         message: Self::Message,
-    ) -> Task<Self::Message, Self::Custom> {
+    ) -> Task<Self::Message> {
         state.update(&self.program, message)
     }
 
@@ -151,7 +151,7 @@ where
     P: Program + 'static,
     P::Message: std::fmt::Debug + message::MaybeClone,
 {
-    pub fn new(state: P::State) -> (Self, Task<Message, P::Custom>) {
+    pub fn new(state: P::State) -> (Self, Task<Message>) {
         (
             Self {
                 state,
@@ -171,7 +171,7 @@ where
         program.title(&self.state, window)
     }
 
-    pub fn update(&mut self, program: &P, event: Event<P>) -> Task<Event<P>, P::Custom> {
+    pub fn update(&mut self, program: &P, event: Event<P>) -> Task<Event<P>> {
         match event {
             Event::Message(message) => match message {
                 Message::HideNotification => {

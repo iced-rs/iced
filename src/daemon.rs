@@ -22,8 +22,8 @@ use std::borrow::Cow;
 ///
 /// [`exit`]: crate::exit
 pub fn daemon<State, Message, Theme, Renderer>(
-    boot: impl application::BootFn<State, Message, ()>,
-    update: impl application::UpdateFn<State, Message, ()>,
+    boot: impl application::BootFn<State, Message>,
+    update: impl application::UpdateFn<State, Message>,
     view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
 ) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme, Custom = ()>>
 where
@@ -75,7 +75,7 @@ where
             None
         }
 
-        fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+        fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.boot.boot()
         }
 
@@ -83,7 +83,7 @@ where
             &self,
             state: &mut Self::State,
             message: Self::Message,
-        ) -> Task<Self::Message, Self::Custom> {
+        ) -> Task<Self::Message> {
             self.update.update(state, message)
         }
 
@@ -122,7 +122,7 @@ where
 pub struct Daemon<P: Program> {
     raw: P,
     settings: Settings,
-    presets: Vec<Preset<P::State, P::Message, P::Custom>>,
+    presets: Vec<Preset<P::State, P::Message>>,
 }
 
 impl<P: Program<Custom = ()>> Daemon<P> {
@@ -277,7 +277,7 @@ impl<P: Program<Custom = ()>> Daemon<P> {
     /// environments.
     pub fn presets(
         self,
-        presets: impl IntoIterator<Item = Preset<P::State, P::Message, P::Custom>>,
+        presets: impl IntoIterator<Item = Preset<P::State, P::Message>>,
     ) -> Self {
         Self {
             presets: presets.into_iter().collect(),
@@ -306,7 +306,7 @@ impl<P: Program> Program for Daemon<P> {
         None
     }
 
-    fn boot(&self) -> (Self::State, Task<Self::Message, Self::Custom>) {
+    fn boot(&self) -> (Self::State, Task<Self::Message>) {
         self.raw.boot()
     }
 
@@ -314,7 +314,7 @@ impl<P: Program> Program for Daemon<P> {
         &self,
         state: &mut Self::State,
         message: Self::Message,
-    ) -> Task<Self::Message, Self::Custom> {
+    ) -> Task<Self::Message> {
         debug::hot(|| self.raw.update(state, message))
     }
 
@@ -346,7 +346,7 @@ impl<P: Program> Program for Daemon<P> {
         debug::hot(|| self.raw.scale_factor(state, window))
     }
 
-    fn presets(&self) -> &[Preset<Self::State, Self::Message, Self::Custom>] {
+    fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
         &self.presets
     }
 }
