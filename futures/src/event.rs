@@ -98,3 +98,22 @@ where
         _ => None,
     })
 }
+
+/// Creates a [`Subscription`] to listen on others platform specific events, like wayland events
+/// For some unique platform
+pub fn listen_platform_events<Message, Custom>(
+    f: fn(Custom) -> Option<Message>,
+) -> Subscription<Message, Custom>
+where
+    Message: 'static + MaybeSend,
+    Custom: 'static + Send,
+{
+    #[derive(Hash)]
+    struct EventsWith;
+    subscription::filter_map((EventsWith, f), move |event| match event {
+        subscription::Event::PlatformSpecific(subscription::PlatformSpecific::Others(custom)) => {
+            f(custom)
+        }
+        _ => None,
+    })
+}
