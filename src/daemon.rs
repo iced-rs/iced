@@ -5,7 +5,7 @@ use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
 use crate::window;
-use crate::{Element, Executor, Font, Preset, Result, Settings, Task, Theme};
+use crate::{Element, Executor, Font, PlatformSpecific, Preset, Result, Settings, Task, Theme};
 
 use iced_futures::Subscription;
 
@@ -27,7 +27,7 @@ pub fn daemon<State, Message, Theme, Renderer>(
     boot: impl application::BootFn<State, Message>,
     update: impl application::UpdateFn<State, Message>,
     view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
-) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme, Custom = ()>>
+) -> Daemon<impl Program<State = State, Message = Message, Theme = Theme, Custom = PlatformSpecific>>
 where
     State: 'static,
     Message: Send + 'static,
@@ -60,7 +60,7 @@ where
         type Message = Message;
         type Theme = Theme;
         type Renderer = Renderer;
-        type Custom = ();
+        type Custom = PlatformSpecific;
         type Executor = iced_futures::backend::default::Executor;
 
         fn name() -> &'static str {

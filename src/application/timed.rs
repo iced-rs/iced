@@ -4,7 +4,7 @@ use crate::program;
 use crate::theme;
 use crate::time::Instant;
 use crate::window;
-use crate::{Element, Program, Settings, Task};
+use crate::{Element, PlatformSpecific, Program, Settings, Task};
 use iced_debug as debug;
 use iced_futures::Subscription;
 
@@ -22,10 +22,10 @@ use iced_futures::Subscription;
 pub fn timed<State, Message, Theme, Renderer>(
     boot: impl BootFn<State, Message>,
     update: impl UpdateFn<State, Message>,
-    subscription: impl Fn(&State) -> Subscription<Message>,
+    subscription: impl Fn(&State) -> Subscription<Message, PlatformSpecific>,
     view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
 ) -> Application<
-    impl Program<State = State, Message = (Message, Instant), Theme = Theme, Custom = ()>,
+    impl Program<State = State, Message = (Message, Instant), Theme = Theme, Custom = PlatformSpecific>,
 >
 where
     State: 'static,
@@ -54,14 +54,14 @@ where
         Renderer: program::Renderer + 'static,
         Boot: self::BootFn<State, Message>,
         Update: self::UpdateFn<State, Message>,
-        Subscription: Fn(&State) -> self::Subscription<Message>,
+        Subscription: Fn(&State) -> self::Subscription<Message, PlatformSpecific>,
         View: for<'a> self::ViewFn<'a, State, Message, Theme, Renderer>,
     {
         type State = State;
         type Message = (Message, Instant);
         type Theme = Theme;
         type Renderer = Renderer;
-        type Custom = ();
+        type Custom = PlatformSpecific;
         type Executor = iced_futures::backend::default::Executor;
 
         fn name() -> &'static str {
