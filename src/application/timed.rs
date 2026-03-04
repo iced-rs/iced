@@ -4,9 +4,9 @@ use crate::program;
 use crate::theme;
 use crate::time::Instant;
 use crate::window;
-use crate::{Element, Program, Settings, Subscription, Task};
-
+use crate::{Element, Program, Settings, Task};
 use iced_debug as debug;
+use iced_futures::Subscription;
 
 /// Creates an [`Application`] with an `update` function that also
 /// takes the [`Instant`] of each `Message`.

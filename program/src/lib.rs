@@ -35,7 +35,7 @@ pub trait Program: Sized {
     type Theme: theme::Base;
 
     /// Custom type
-    type Custom: Send + Clone + Default + std::fmt::Debug + 'static;
+    type Custom: Send + Clone + std::fmt::Debug + 'static;
 
     /// The renderer of the program.
     type Renderer: Renderer;

@@ -14,9 +14,17 @@ use std::hash::Hasher as _;
 /// its executions alive.
 ///
 /// [`Subscription`]: crate::Subscription
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Tracker<Custom = ()> {
     subscriptions: FxHashMap<u64, Execution<Custom>>,
+}
+
+impl Default for Tracker {
+    fn default() -> Self {
+        Self {
+            subscriptions: FxHashMap::default(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -27,7 +35,7 @@ pub struct Execution<Custom = ()> {
 
 impl<Custom> Tracker<Custom>
 where
-    Custom: std::fmt::Debug + Clone + Default + Send + 'static,
+    Custom: std::fmt::Debug + Clone + Send + 'static,
 {
     /// Creates a new empty [`Tracker`].
     pub fn new() -> Self {

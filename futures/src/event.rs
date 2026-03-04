@@ -78,27 +78,6 @@ where
     })
 }
 
-/// Creates a [`Subscription`] that notifies of custom application URL
-/// received from the system.
-///
-/// _**Note:** Currently, it only triggers on macOS and the executable needs to be properly [bundled]!_
-///
-/// [bundled]: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW19
-pub fn listen_url<Custom>() -> Subscription<String, Custom>
-where
-    Custom: 'static + Send,
-{
-    #[derive(Hash)]
-    struct ListenUrl;
-
-    subscription::filter_map(ListenUrl, move |event| match event {
-        subscription::Event::PlatformSpecific(subscription::PlatformSpecific::MacOS(
-            subscription::MacOS::ReceivedUrl(url),
-        )) => Some(url),
-        _ => None,
-    })
-}
-
 /// Creates a [`Subscription`] to listen on others platform specific events, like wayland events
 /// For some unique platform
 pub fn listen_platform_events<Message, Custom>(
@@ -111,9 +90,7 @@ where
     #[derive(Hash)]
     struct EventsWith;
     subscription::filter_map((EventsWith, f), move |event| match event {
-        subscription::Event::PlatformSpecific(subscription::PlatformSpecific::Others(custom)) => {
-            f(custom)
-        }
+        subscription::Event::PlatformSpecific(custom) => f(custom),
         _ => None,
     })
 }

@@ -24,7 +24,7 @@ where
     Executor: self::Executor,
     Sender: Sink<Message, Error = mpsc::SendError> + Unpin + MaybeSend + Clone + 'static,
     Message: MaybeSend + 'static,
-    Custom: Send + 'static + Default + std::fmt::Debug + Clone,
+    Custom: Send + 'static + std::fmt::Debug + Clone,
 {
     /// Creates a new empty [`Runtime`].
     ///

@@ -33,27 +33,7 @@ pub enum Event<Custom = ()> {
     SystemThemeChanged(theme::Mode),
 
     /// A platform specific event.
-    PlatformSpecific(PlatformSpecific<Custom>),
-}
-
-/// A platform specific event
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PlatformSpecific<Custom> {
-    /// A MacOS specific event
-    MacOS(MacOS),
-    /// Others
-    Others(Custom),
-}
-
-/// Describes an event specific to MacOS
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MacOS {
-    /// Triggered when the app receives an URL from the system
-    ///
-    /// _**Note:** For this event to be triggered, the executable needs to be properly [bundled]!_
-    ///
-    /// [bundled]: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW19
-    ReceivedUrl(String),
+    PlatformSpecific(Custom),
 }
 
 /// A stream of runtime events.
