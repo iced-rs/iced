@@ -634,7 +634,7 @@ pub mod widget {
     pub use iced_runtime::widget::*;
     pub use iced_widget::*;
 
-    #[cfg(feature = "image")]
+    #[cfg(feature = "image-without-codecs")]
     pub mod image {
         //! Images display raster graphics in different formats (PNG, JPG, etc.).
         pub use iced_runtime::image::{Allocation, Error, allocate};
