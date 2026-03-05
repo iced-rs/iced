@@ -12,7 +12,7 @@ pub use cosmic_text;
 use crate::core::alignment;
 use crate::core::font::{self, Font};
 use crate::core::text::{Alignment, Ellipsis, Shaping, Wrapping};
-use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
+use crate::core::{Color, Em, Pixels, Point, Rectangle, Size, Transformation};
 
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -63,6 +63,8 @@ pub enum Text {
         wrapping: Wrapping,
         /// The ellipsis strategy of the text.
         ellipsis: Ellipsis,
+        /// The letter spacing of the text.
+        letter_spacing: Em,
         /// The clip bounds of the text.
         clip_bounds: Rectangle,
     },
@@ -259,12 +261,13 @@ pub fn align(
 }
 
 /// Returns the attributes of the given [`Font`].
-pub fn to_attributes(font: Font) -> cosmic_text::Attrs<'static> {
+pub fn to_attributes(font: Font, letter_spacing: Em) -> cosmic_text::Attrs<'static> {
     cosmic_text::Attrs::new()
         .family(to_family(font.family))
         .weight(to_weight(font.weight))
         .stretch(to_stretch(font.stretch))
         .style(to_style(font.style))
+        .letter_spacing(letter_spacing.0)
 }
 
 fn to_family(family: font::Family) -> cosmic_text::Family<'static> {

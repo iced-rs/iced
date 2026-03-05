@@ -12,7 +12,7 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::theme;
 use crate::core::time::Instant;
-use crate::core::{Color, InputMethod, Padding, Point, Rectangle, Size, Text, Vector};
+use crate::core::{Color, Em, InputMethod, Padding, Point, Rectangle, Size, Text, Vector};
 use crate::graphics::Compositor;
 use crate::program::{self, Program};
 use crate::runtime::window::raw_window_handle;
@@ -378,6 +378,7 @@ where
                 shaping: text::Shaping::Advanced,
                 wrapping: text::Wrapping::None,
                 ellipsis: text::Ellipsis::None,
+                letter_spacing: Em::ZERO,
                 hint_factor: renderer.scale_factor(),
             });
 

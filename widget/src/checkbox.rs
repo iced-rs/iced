@@ -94,6 +94,7 @@ where
     line_height: text::LineHeight,
     shaping: text::Shaping,
     wrapping: text::Wrapping,
+    letter_spacing: crate::core::Em,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
     class: Theme::Class<'a>,
@@ -124,6 +125,7 @@ where
             line_height: text::LineHeight::default(),
             shaping: text::Shaping::default(),
             wrapping: text::Wrapping::default(),
+            letter_spacing: crate::core::Em::default(),
             font: None,
             icon: Icon {
                 font: Renderer::ICON_FONT,
@@ -207,6 +209,12 @@ where
     /// Sets the [`text::Wrapping`] strategy of the [`Checkbox`].
     pub fn wrapping(mut self, wrapping: text::Wrapping) -> Self {
         self.wrapping = wrapping;
+        self
+    }
+
+    /// Sets the letter spacing of the [`Checkbox`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<crate::core::Em>) -> Self {
+        self.letter_spacing = letter_spacing.into();
         self
     }
 
@@ -300,6 +308,7 @@ where
                             shaping: self.shaping,
                             wrapping: self.wrapping,
                             ellipsis: text::Ellipsis::None,
+                            letter_spacing: self.letter_spacing,
                         },
                     )
                 } else {
@@ -425,6 +434,7 @@ where
                         shaping: *shaping,
                         wrapping: text::Wrapping::default(),
                         ellipsis: text::Ellipsis::default(),
+                        letter_spacing: crate::core::Em::default(),
                         hint_factor: None,
                     },
                     bounds.center(),
