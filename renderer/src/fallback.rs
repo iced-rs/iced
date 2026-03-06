@@ -85,6 +85,10 @@ where
     fn reset(&mut self, new_bounds: Rectangle) {
         delegate!(self, renderer, renderer.reset(new_bounds));
     }
+
+    fn set_default_font(&mut self, font: Font) {
+        delegate!(self, renderer, renderer.set_default_font(font));
+    }
 }
 
 impl<A, B> core::text::Renderer for Renderer<A, B>

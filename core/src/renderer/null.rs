@@ -32,6 +32,8 @@ impl Renderer for () {
     }
 
     fn reset(&mut self, _new_bounds: Rectangle) {}
+
+    fn set_default_font(&mut self, _font: Font) {}
 }
 
 impl text::Renderer for () {

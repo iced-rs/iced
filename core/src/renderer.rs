@@ -76,6 +76,9 @@ pub trait Renderer {
     /// Resets the [`Renderer`] to start drawing in the `new_bounds` from scratch.
     fn reset(&mut self, new_bounds: Rectangle);
 
+    /// Sets the default font of the renderer
+    fn set_default_font(&mut self, font: Font);
+
     /// Polls any concurrent computations that may be pending in the [`Renderer`].
     ///
     /// By default, it does nothing.

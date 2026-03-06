@@ -1194,6 +1194,7 @@ where
     P::Theme: theme::Base,
 {
     let view_span = debug::view(id);
+    renderer.set_default_font(program.settings().default_font);
     let view = program.view(id);
     view_span.finish();
 
@@ -1220,7 +1221,6 @@ where
     while !messages.is_empty() {
         for message in messages.drain(..) {
             let task = runtime.enter(|| program.update(message));
-
             if let Some(mut stream) = runtime::task::into_stream(task) {
                 let waker = futures::task::noop_waker_ref();
                 let mut context = futures::task::Context::from_waker(waker);
