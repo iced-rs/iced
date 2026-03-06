@@ -345,6 +345,8 @@ impl Span {
 
                 if let Some(link) = link.as_ref() {
                     span.color(style.link_color).link(link.clone())
+                } else if let Some(text_color) = style.text_color {
+                    span.color(text_color)
                 } else {
                     span
                 }
@@ -1082,6 +1084,10 @@ impl From<Theme> for Settings {
 pub struct Style {
     /// The [`Font`] to be applied to basic text.
     pub font: Font,
+    /// The [`Color`] to be applied to regular text.
+    ///
+    /// When set to `None`, the text color is inherited from the renderer default.
+    pub text_color: Option<Color>,
     /// The [`Highlight`] to be applied to the background of inline code.
     pub inline_code_highlight: Highlight,
     /// The [`Padding`] to be applied to the background of inline code.
@@ -1103,6 +1109,7 @@ impl Style {
     pub fn from_palette(palette: theme::Palette) -> Self {
         Self {
             font: Font::default(),
+            text_color: None,
             inline_code_padding: padding::left(1).right(1),
             inline_code_highlight: Highlight {
                 background: color!(0x111111).into(),
@@ -2570,10 +2577,14 @@ where
         let _url = url;
         let _title = title;
 
-        container(rich_text(alt.spans(settings.style)).on_link_click(Self::on_link_click).wrapping(settings.wrapping))
-            .padding(settings.spacing.0)
-            .class(Theme::code_block())
-            .into()
+        container(
+            rich_text(alt.spans(settings.style))
+                .on_link_click(Self::on_link_click)
+                .wrapping(settings.wrapping),
+        )
+        .padding(settings.spacing.0)
+        .class(Theme::code_block())
+        .into()
     }
 
     /// Displays a heading.
