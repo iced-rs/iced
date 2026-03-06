@@ -1194,7 +1194,6 @@ where
     P::Theme: theme::Base,
 {
     let view_span = debug::view(id);
-    renderer.set_default_font(program.settings().default_font);
     let view = program.view(id);
     view_span.finish();
 
@@ -1694,6 +1693,11 @@ fn run_action<'a, P, C>(
             control_sender
                 .start_send(Control::Exit)
                 .expect("Send control action");
+        }
+        Action::SetDefaultFont(font) => {
+            for (_id, window) in window_manager.iter_mut() {
+                window.renderer.set_default_font(font);
+            }
         }
     }
 }
